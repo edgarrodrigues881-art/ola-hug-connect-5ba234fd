@@ -236,13 +236,13 @@ const Campaigns = () => {
                   "Nome", "Número",
                   "Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5",
                   "Variável 6", "Variável 7", "Variável 8", "Variável 9", "Variável 10",
-                  "Texto aleatório",
+                  "Texto aleatório", "Número aleatório",
                 ].map((v) => (
                   <button
                     key={v}
                     className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                     onClick={() => {
-                      const tag = v === "Nome" ? "{{nome}}" : v === "Número" ? "{{numero}}" : v === "Texto aleatório" ? "{{texto_aleatorio}}" : `{{var${v.split(" ")[1]}}}`;
+                      const tag = v === "Nome" ? "{{nome}}" : v === "Número" ? "{{numero}}" : v === "Texto aleatório" ? "{{texto_aleatorio}}" : v === "Número aleatório" ? "{{numero_aleatorio}}" : `{{var${v.split(" ")[1]}}}`;
                       setMessage(prev => prev + tag);
                     }}
                   >
