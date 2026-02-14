@@ -22,8 +22,9 @@ import Inbox from "./pages/dashboard/Inbox";
 import Integrations from "./pages/dashboard/Integrations";
 import SettingsPage from "./pages/dashboard/Settings";
 import Context from "./pages/dashboard/Context";
+import Templates from "./pages/dashboard/Templates";
 import {
-  HandMetal, FileText,
+  HandMetal,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -49,7 +50,7 @@ const App = () => (
                       <Route path="campaigns" element={<Campaigns />} />
                       <Route path="welcome" element={<PlaceholderPage title="Mensagem de Boas-vindas" description="Configure mensagens automáticas para novos contatos" icon={<HandMetal className="w-8 h-8 text-primary" />} />} />
                       <Route path="auto-reply" element={<AutoReply />} />
-                      <Route path="templates" element={<PlaceholderPage title="Modelos" description="Crie e gerencie templates de mensagem" icon={<FileText className="w-8 h-8 text-primary" />} />} />
+                      <Route path="templates" element={<Templates />} />
                       <Route path="contacts" element={<Contacts />} />
                       <Route path="unsubscribe" element={<Unsubscribe />} />
                       <Route path="number-filter" element={<NumberFilter />} />
