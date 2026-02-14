@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -224,9 +225,32 @@ const Campaigns = () => {
 
           {/* Toolbar */}
           <div className="flex items-center gap-1 border border-border rounded-md p-1 bg-muted/30 flex-wrap">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <FileText className="w-3.5 h-3.5" />
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-primary text-primary hover:bg-primary/10">
+                  <FileText className="w-3.5 h-3.5" /> Usar coluna
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1 bg-popover border border-border shadow-lg z-50" align="start">
+                {[
+                  "Nome", "Número",
+                  "Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5",
+                  "Variável 6", "Variável 7", "Variável 8", "Variável 9", "Variável 10",
+                  "Texto aleatório",
+                ].map((v) => (
+                  <button
+                    key={v}
+                    className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => {
+                      const tag = v === "Nome" ? "{{nome}}" : v === "Número" ? "{{numero}}" : v === "Texto aleatório" ? "{{texto_aleatorio}}" : `{{var${v.split(" ")[1]}}}`;
+                      setMessage(prev => prev + tag);
+                    }}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
             <Button variant="ghost" size="icon" className="h-7 w-7">
               <Smile className="w-3.5 h-3.5" />
             </Button>
