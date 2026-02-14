@@ -1,1 +1,10 @@
 project_id = "ccfsxwmvgyxsoscofqoh"
+
+[functions.process-campaign]
+verify_jwt = false
+
+[functions.manage-contacts]
+verify_jwt = false
+
+[functions.system-stats]
+verify_jwt = false
