@@ -14,6 +14,8 @@ import {
   Plug,
   Settings,
   Cog,
+  Contact,
+  Flame,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import logo from "@/assets/logo.png";
@@ -59,9 +61,19 @@ const systemItems = [
   { title: "Configurações", url: "/dashboard/settings", icon: Settings },
 ];
 
+const crmItems = [
+  { title: "CRM", url: "/dashboard/crm", icon: Contact },
+];
+
+const warmupItems = [
+  { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+];
+
 const groups = [
   { label: "Principal", items: mainItems },
   { label: "Automação", items: automationItems },
+  { label: "CRM", items: crmItems },
+  { label: "Aquecimento", items: warmupItems },
   { label: "Contatos", items: contactItems },
   { label: "Análise", items: analyticsItems },
   { label: "Sistema", items: systemItems },

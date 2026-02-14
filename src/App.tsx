@@ -23,6 +23,8 @@ import Integrations from "./pages/dashboard/Integrations";
 import SettingsPage from "./pages/dashboard/Settings";
 import Context from "./pages/dashboard/Context";
 import Templates from "./pages/dashboard/Templates";
+import CRM from "./pages/dashboard/CRM";
+import Warmup from "./pages/dashboard/Warmup";
 import {
   HandMetal,
 } from "lucide-react";
@@ -58,6 +60,8 @@ const App = () => (
                       <Route path="reports" element={<Reports />} />
                       <Route path="inbox" element={<Inbox />} />
                       <Route path="integrations" element={<Integrations />} />
+                      <Route path="crm" element={<CRM />} />
+                      <Route path="warmup" element={<Warmup />} />
                       <Route path="context" element={<Context />} />
                       <Route path="settings" element={<SettingsPage />} />
                     </Routes>
