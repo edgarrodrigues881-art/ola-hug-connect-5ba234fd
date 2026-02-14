@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
-  Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle
+  Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle, Link, MousePointerClick, X
 } from "lucide-react";
 
 interface Contact {
@@ -23,6 +23,18 @@ interface Contact {
   var3: string;
 }
 
+interface QuickReplyButton {
+  id: number;
+  text: string;
+}
+
+interface CTAButton {
+  id: number;
+  type: "url" | "phone";
+  text: string;
+  value: string;
+}
+
 const Campaigns = () => {
   const [contacts, setContacts] = useState<Contact[]>([
     { id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" },
@@ -32,6 +44,38 @@ const Campaigns = () => {
   const [schedule, setSchedule] = useState(false);
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
+  const [quickReplyButtons, setQuickReplyButtons] = useState<QuickReplyButton[]>([]);
+  const [ctaButtons, setCTAButtons] = useState<CTAButton[]>([]);
+
+  const addQuickReply = () => {
+    if (quickReplyButtons.length < 3) {
+      setQuickReplyButtons([...quickReplyButtons, { id: Date.now(), text: "" }]);
+    }
+  };
+
+  const addCTAButton = (type: "url" | "phone") => {
+    if (ctaButtons.length < 2) {
+      setCTAButtons([...ctaButtons, { id: Date.now(), type, text: "", value: "" }]);
+    }
+  };
+
+  const removeQuickReply = (id: number) => {
+    setQuickReplyButtons(quickReplyButtons.filter(b => b.id !== id));
+  };
+
+  const removeCTAButton = (id: number) => {
+    setCTAButtons(ctaButtons.filter(b => b.id !== id));
+  };
+
+  const updateQuickReply = (id: number, text: string) => {
+    setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
+  };
+
+  const updateCTAButton = (id: number, field: "text" | "value", val: string) => {
+    setCTAButtons(ctaButtons.map(b => b.id === id ? { ...b, [field]: val } : b));
+  };
+
+  const showButtons = messageType === "botoes" || messageType === "botao-midia";
 
   const addContact = () => {
     setContacts([...contacts, {
@@ -290,7 +334,124 @@ const Campaigns = () => {
         </CardContent>
       </Card>
 
-      {/* Bottom bar */}
+      {/* Buttons section - shown when messageType is botões */}
+      {showButtons && (
+        <Card className="glass-card">
+          <CardContent className="p-4 space-y-4">
+            <Label className="text-sm font-medium text-foreground">Botões Interativos</Label>
+
+            {/* Quick Reply Buttons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MousePointerClick className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Botões de Resposta Rápida</span>
+                  <span className="text-xs text-muted-foreground">(máx. 3)</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs h-7"
+                  onClick={addQuickReply}
+                  disabled={quickReplyButtons.length >= 3}
+                >
+                  <Plus className="w-3 h-3" /> Adicionar
+                </Button>
+              </div>
+              {quickReplyButtons.map((btn, idx) => (
+                <div key={btn.id} className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-5">{idx + 1}.</span>
+                  <Input
+                    value={btn.text}
+                    onChange={(e) => updateQuickReply(btn.id, e.target.value)}
+                    placeholder="Texto do botão (ex: Sim, Quero saber mais)"
+                    className="h-8 text-xs flex-1"
+                    maxLength={20}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeQuickReply(btn.id)}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {quickReplyButtons.length === 0 && (
+                <p className="text-xs text-muted-foreground italic pl-6">Nenhum botão adicionado. Clique em "Adicionar" para criar.</p>
+              )}
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* CTA Buttons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Botões com Link / Ligação (CTA)</span>
+                  <span className="text-xs text-muted-foreground">(máx. 2)</span>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs h-7"
+                    onClick={() => addCTAButton("url")}
+                    disabled={ctaButtons.length >= 2}
+                  >
+                    <Link className="w-3 h-3" /> URL
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs h-7"
+                    onClick={() => addCTAButton("phone")}
+                    disabled={ctaButtons.length >= 2}
+                  >
+                    <Send className="w-3 h-3" /> Ligação
+                  </Button>
+                </div>
+              </div>
+              {ctaButtons.map((btn, idx) => (
+                <div key={btn.id} className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground w-5">{idx + 1}.</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                    {btn.type === "url" ? "URL" : "TEL"}
+                  </span>
+                  <Input
+                    value={btn.text}
+                    onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)}
+                    placeholder="Texto do botão"
+                    className="h-8 text-xs w-36"
+                    maxLength={20}
+                  />
+                  <Input
+                    value={btn.value}
+                    onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)}
+                    placeholder={btn.type === "url" ? "https://exemplo.com" : "+5511999999999"}
+                    className="h-8 text-xs flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeCTAButton(btn.id)}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {ctaButtons.length === 0 && (
+                <p className="text-xs text-muted-foreground italic pl-6">Nenhum botão CTA adicionado.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card className="glass-card">
         <CardContent className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
