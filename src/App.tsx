@@ -13,6 +13,7 @@ import Devices from "./pages/dashboard/Devices";
 import Campaigns from "./pages/dashboard/Campaigns";
 import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
 import Contacts from "./pages/dashboard/Contacts";
+import Reports from "./pages/dashboard/Reports";
 import {
   HandMetal, Bot, FileText, Users, Ban, Filter,
   UsersRound, BarChart3, MessageSquare, Plug, Settings,
@@ -46,7 +47,7 @@ const App = () => (
                       <Route path="unsubscribe" element={<PlaceholderPage title="Cancelar Inscrição" description="Gerencie a lista negra de contatos" icon={<Ban className="w-8 h-8 text-primary" />} />} />
                       <Route path="number-filter" element={<PlaceholderPage title="Filtro Numérico" description="Filtre por DDD, remova fixos e duplicados" icon={<Filter className="w-8 h-8 text-primary" />} />} />
                       <Route path="group-capture" element={<PlaceholderPage title="Capturador de Grupo" description="Extraia participantes de grupos do WhatsApp" icon={<UsersRound className="w-8 h-8 text-primary" />} />} />
-                      <Route path="reports" element={<PlaceholderPage title="Relatório" description="Visualize métricas detalhadas de envio" icon={<BarChart3 className="w-8 h-8 text-primary" />} />} />
+                      <Route path="reports" element={<Reports />} />
                       <Route path="inbox" element={<PlaceholderPage title="Mensagens Recebidas" description="Visualize e responda mensagens recebidas" icon={<MessageSquare className="w-8 h-8 text-primary" />} />} />
                       <Route path="integrations" element={<PlaceholderPage title="Integrações" description="Configure webhooks, API e CRM externo" icon={<Plug className="w-8 h-8 text-primary" />} />} />
                       <Route path="settings" element={<PlaceholderPage title="Configurações" description="Perfil, plano, segurança e logs" icon={<Settings className="w-8 h-8 text-primary" />} />} />
