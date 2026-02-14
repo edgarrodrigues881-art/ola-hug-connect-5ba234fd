@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, ArrowRight, Mail, Lock, User } from "lucide-react";
+import { ArrowRight, Mail, Lock, User } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -74,11 +75,9 @@ const Auth = () => {
           ))}
         </div>
         <div className="relative z-10 text-white max-w-md animate-fade-up">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <MessageSquare className="w-7 h-7" />
-            </div>
-            <h1 className="text-3xl font-bold">ZapFlow</h1>
+          <div className="flex items-center gap-4 mb-8">
+            <img src={logo} alt="DG Contingência Pro" className="w-16 h-16 rounded-2xl" />
+            <h1 className="text-3xl font-bold">DG Contingência Pro</h1>
           </div>
           <h2 className="text-4xl font-bold leading-tight mb-4">
             Dispare mensagens para seus clientes com facilidade
@@ -94,10 +93,8 @@ const Auth = () => {
         <div className="w-full max-w-md animate-fade-up">
           {/* Mobile Logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">ZapFlow</h1>
+            <img src={logo} alt="DG Contingência Pro" className="w-12 h-12 rounded-xl" />
+            <h1 className="text-xl font-bold text-foreground">DG Contingência Pro</h1>
           </div>
 
           <div className="mb-8">
