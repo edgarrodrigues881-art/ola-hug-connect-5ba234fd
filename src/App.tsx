@@ -12,6 +12,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import Devices from "./pages/dashboard/Devices";
 import Campaigns from "./pages/dashboard/Campaigns";
 import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
+import Contacts from "./pages/dashboard/Contacts";
 import {
   HandMetal, Bot, FileText, Users, Ban, Filter,
   UsersRound, BarChart3, MessageSquare, Plug, Settings,
@@ -41,7 +42,7 @@ const App = () => (
                       <Route path="welcome" element={<PlaceholderPage title="Mensagem de Boas-vindas" description="Configure mensagens automáticas para novos contatos" icon={<HandMetal className="w-8 h-8 text-primary" />} />} />
                       <Route path="auto-reply" element={<PlaceholderPage title="Resposta Automática" description="Crie regras de resposta por palavra-chave" icon={<Bot className="w-8 h-8 text-primary" />} />} />
                       <Route path="templates" element={<PlaceholderPage title="Modelos" description="Crie e gerencie templates de mensagem" icon={<FileText className="w-8 h-8 text-primary" />} />} />
-                      <Route path="contacts" element={<PlaceholderPage title="Contatos" description="Importe, organize e filtre seus contatos" icon={<Users className="w-8 h-8 text-primary" />} />} />
+                      <Route path="contacts" element={<Contacts />} />
                       <Route path="unsubscribe" element={<PlaceholderPage title="Cancelar Inscrição" description="Gerencie a lista negra de contatos" icon={<Ban className="w-8 h-8 text-primary" />} />} />
                       <Route path="number-filter" element={<PlaceholderPage title="Filtro Numérico" description="Filtre por DDD, remova fixos e duplicados" icon={<Filter className="w-8 h-8 text-primary" />} />} />
                       <Route path="group-capture" element={<PlaceholderPage title="Capturador de Grupo" description="Extraia participantes de grupos do WhatsApp" icon={<UsersRound className="w-8 h-8 text-primary" />} />} />
