@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Plug,
   Settings,
+  Cog,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import logo from "@/assets/logo.png";
@@ -54,6 +55,7 @@ const analyticsItems = [
 
 const systemItems = [
   { title: "Integrações", url: "/dashboard/integrations", icon: Plug },
+  { title: "Contexto", url: "/dashboard/context", icon: Cog },
   { title: "Configurações", url: "/dashboard/settings", icon: Settings },
 ];
 

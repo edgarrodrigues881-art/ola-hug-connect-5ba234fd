@@ -21,6 +21,7 @@ import GroupCapture from "./pages/dashboard/GroupCapture";
 import Inbox from "./pages/dashboard/Inbox";
 import Integrations from "./pages/dashboard/Integrations";
 import SettingsPage from "./pages/dashboard/Settings";
+import Context from "./pages/dashboard/Context";
 import {
   HandMetal, FileText,
 } from "lucide-react";
@@ -56,6 +57,7 @@ const App = () => (
                       <Route path="reports" element={<Reports />} />
                       <Route path="inbox" element={<Inbox />} />
                       <Route path="integrations" element={<Integrations />} />
+                      <Route path="context" element={<Context />} />
                       <Route path="settings" element={<SettingsPage />} />
                     </Routes>
                   </DashboardLayout>
