@@ -2,82 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 20% 10%;
+    --background: 150 10% 98%;
+    --foreground: 160 30% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 160 30% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 160 30% 8%;
 
-    --primary: 152 60% 38%;
+    --primary: 152 55% 32%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 15% 93%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary: 150 12% 93%;
+    --secondary-foreground: 160 30% 8%;
 
-    --muted: 210 15% 95%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 150 10% 95%;
+    --muted-foreground: 160 10% 45%;
 
-    --accent: 152 50% 94%;
-    --accent-foreground: 152 60% 28%;
+    --accent: 152 45% 92%;
+    --accent-foreground: 152 55% 25%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 152 60% 38%;
+    --border: 150 12% 90%;
+    --input: 150 12% 90%;
+    --ring: 152 55% 32%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 152 60% 45%;
+    --sidebar-background: 160 30% 6%;
+    --sidebar-foreground: 150 10% 85%;
+    --sidebar-primary: 152 55% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 15%;
-    --sidebar-accent-foreground: 210 15% 85%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 152 60% 45%;
+    --sidebar-accent: 160 20% 12%;
+    --sidebar-accent-foreground: 150 10% 85%;
+    --sidebar-border: 160 20% 15%;
+    --sidebar-ring: 152 55% 45%;
 
-    --auth-gradient: linear-gradient(135deg, hsl(152 60% 28%), hsl(170 50% 25%), hsl(200 60% 20%));
-    --auth-card: 0 0% 100%;
-    --success: 152 60% 45%;
+    --success: 152 55% 42%;
+
+    /* Landing page tokens */
+    --hero-bg-from: 160 30% 6%;
+    --hero-bg-via: 155 25% 10%;
+    --hero-bg-to: 150 20% 14%;
+    --glow-primary: 152 60% 45%;
+    --glow-secondary: 170 50% 35%;
+    --card-hover-border: 152 40% 60%;
+    --step-line: 152 40% 70%;
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 210 15% 93%;
-
-    --card: 220 18% 10%;
-    --card-foreground: 210 15% 93%;
-
-    --popover: 220 18% 10%;
-    --popover-foreground: 210 15% 93%;
-
-    --primary: 152 60% 45%;
+    --background: 160 30% 4%;
+    --foreground: 150 10% 93%;
+    --card: 160 25% 8%;
+    --card-foreground: 150 10% 93%;
+    --popover: 160 25% 8%;
+    --popover-foreground: 150 10% 93%;
+    --primary: 152 55% 45%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 210 15% 93%;
-
-    --muted: 220 15% 15%;
-    --muted-foreground: 215 15% 55%;
-
-    --accent: 220 15% 15%;
-    --accent-foreground: 210 15% 93%;
-
+    --secondary: 160 20% 12%;
+    --secondary-foreground: 150 10% 93%;
+    --muted: 160 20% 12%;
+    --muted-foreground: 150 10% 55%;
+    --accent: 160 20% 12%;
+    --accent-foreground: 150 10% 93%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 152 60% 45%;
+    --border: 160 20% 15%;
+    --input: 160 20% 15%;
+    --ring: 152 55% 45%;
   }
 }
 
@@ -87,40 +86,109 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
 @layer utilities {
+  .hero-gradient {
+    background: linear-gradient(
+      165deg,
+      hsl(var(--hero-bg-from)) 0%,
+      hsl(var(--hero-bg-via)) 40%,
+      hsl(var(--hero-bg-to)) 100%
+    );
+  }
+
   .auth-gradient {
-    background: var(--auth-gradient);
+    background: linear-gradient(
+      165deg,
+      hsl(160 30% 6%) 0%,
+      hsl(155 25% 10%) 50%,
+      hsl(152 35% 15%) 100%
+    );
+  }
+
+  .glow-dot {
+    background: radial-gradient(
+      circle,
+      hsl(var(--glow-primary) / 0.3) 0%,
+      hsl(var(--glow-primary) / 0) 70%
+    );
   }
 
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-xl;
+    @apply bg-card/70 backdrop-blur-xl border border-border/50;
+    box-shadow: 0 4px 24px -4px hsl(var(--hero-bg-from) / 0.08),
+                0 0 0 1px hsl(var(--border) / 0.5);
+  }
+
+  .glass-card-dark {
+    background: hsl(0 0% 100% / 0.04);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(0 0% 100% / 0.08);
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(152 60% 45%), hsl(170 50% 40%));
+    background-image: linear-gradient(135deg, hsl(152 55% 50%), hsl(170 50% 42%));
   }
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
+  .card-glow {
+    transition: all 0.3s ease;
+  }
+
+  .card-glow:hover {
+    border-color: hsl(var(--card-hover-border) / 0.4);
+    box-shadow: 0 8px 32px -8px hsl(var(--glow-primary) / 0.15),
+                0 0 0 1px hsl(var(--card-hover-border) / 0.2);
+  }
+
+  .step-connector {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--step-line) / 0.6),
+      hsl(var(--step-line) / 0.1)
+    );
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.7s ease-out both;
+  }
+
+  .animate-fade-up-delay-1 {
+    animation: fadeUp 0.7s ease-out 0.15s both;
+  }
+
+  .animate-fade-up-delay-2 {
+    animation: fadeUp 0.7s ease-out 0.3s both;
+  }
+
+  .animate-fade-up-delay-3 {
+    animation: fadeUp 0.7s ease-out 0.45s both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    50% { transform: translateY(-8px); }
   }
 
-  .animate-fade-up {
-    animation: fadeUp 0.6s ease-out;
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
   }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
   }
 }
