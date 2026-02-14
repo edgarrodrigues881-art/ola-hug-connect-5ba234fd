@@ -11,7 +11,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import Devices from "./pages/dashboard/Devices";
 import Campaigns from "./pages/dashboard/Campaigns";
-import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
+import Welcome from "./pages/dashboard/Welcome";
 import Contacts from "./pages/dashboard/Contacts";
 import Reports from "./pages/dashboard/Reports";
 import AutoReply from "./pages/dashboard/AutoReply";
@@ -25,9 +25,6 @@ import Context from "./pages/dashboard/Context";
 import Templates from "./pages/dashboard/Templates";
 import CRM from "./pages/dashboard/CRM";
 import Warmup from "./pages/dashboard/Warmup";
-import {
-  HandMetal,
-} from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +47,7 @@ const App = () => (
                       <Route index element={<DashboardHome />} />
                       <Route path="devices" element={<Devices />} />
                       <Route path="campaigns" element={<Campaigns />} />
-                      <Route path="welcome" element={<PlaceholderPage title="Mensagem de Boas-vindas" description="Configure mensagens automáticas para novos contatos" icon={<HandMetal className="w-8 h-8 text-primary" />} />} />
+                      <Route path="welcome" element={<Welcome />} />
                       <Route path="auto-reply" element={<AutoReply />} />
                       <Route path="templates" element={<Templates />} />
                       <Route path="contacts" element={<Contacts />} />
