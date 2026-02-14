@@ -14,6 +14,164 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaign_contacts: {
+        Row: {
+          campaign_id: string
+          contact_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          name: string | null
+          phone: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          name?: string | null
+          phone: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          name?: string | null
+          phone?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_contacts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          buttons: Json | null
+          completed_at: string | null
+          created_at: string
+          delivered_count: number | null
+          failed_count: number | null
+          id: string
+          media_url: string | null
+          message_content: string | null
+          message_type: string
+          name: string
+          scheduled_at: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string
+          template_id: string | null
+          total_contacts: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buttons?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          media_url?: string | null
+          message_content?: string | null
+          message_type?: string
+          name: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          total_contacts?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buttons?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          media_url?: string | null
+          message_content?: string | null
+          message_type?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          total_contacts?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -41,6 +199,42 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          buttons: Json | null
+          content: string
+          created_at: string
+          id: string
+          media_url: string | null
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buttons?: Json | null
+          content: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          name: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buttons?: Json | null
+          content?: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

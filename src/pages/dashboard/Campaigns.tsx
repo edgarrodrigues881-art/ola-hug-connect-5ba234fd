@@ -13,6 +13,9 @@ import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
   Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle, Link, MousePointerClick, X
 } from "lucide-react";
+import { useCreateCampaign } from "@/hooks/useCampaigns";
+import { useTemplates } from "@/hooks/useTemplates";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
   id: number;
@@ -36,6 +39,9 @@ interface CTAButton {
 }
 
 const Campaigns = () => {
+  const { toast } = useToast();
+  const createCampaign = useCreateCampaign();
+  const { data: savedTemplates = [] } = useTemplates();
   const [contacts, setContacts] = useState<Contact[]>([
     { id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" },
   ]);
@@ -46,6 +52,38 @@ const Campaigns = () => {
   const [message, setMessage] = useState("");
   const [quickReplyButtons, setQuickReplyButtons] = useState<QuickReplyButton[]>([]);
   const [ctaButtons, setCTAButtons] = useState<CTAButton[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
+
+  const handleSendCampaign = () => {
+    if (!campaignName.trim()) {
+      toast({ title: "Erro", description: "Nome da campanha é obrigatório.", variant: "destructive" });
+      return;
+    }
+    const validContacts = contacts.filter(c => c.numero.trim());
+    if (validContacts.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um contato.", variant: "destructive" });
+      return;
+    }
+    createCampaign.mutate({
+      name: campaignName,
+      message_type: messageType,
+      message_content: message,
+      buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
+      contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
+    }, {
+      onSuccess: () => {
+        toast({ title: "Campanha criada!", description: `${validContacts.length} contatos adicionados.` });
+        setCampaignName("");
+        setMessage("");
+        setContacts([{ id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" }]);
+        setQuickReplyButtons([]);
+        setCTAButtons([]);
+      },
+      onError: (err: any) => {
+        toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" });
+      },
+    });
+  };
 
   const addQuickReply = () => {
     if (quickReplyButtons.length < 3) {
@@ -121,12 +159,19 @@ const Campaigns = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Modelo</Label>
-          <Select>
+          <Select value={selectedTemplate} onValueChange={(val) => {
+            setSelectedTemplate(val);
+            if (val !== "nova") {
+              const tmpl = savedTemplates.find(t => t.id === val);
+              if (tmpl) { setMessage(tmpl.content); setMessageType(tmpl.type === "text" ? "texto" : tmpl.type); }
+            }
+          }}>
             <SelectTrigger><SelectValue placeholder="Nova mensagem" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="nova">Nova mensagem</SelectItem>
-              <SelectItem value="template1">Template 1</SelectItem>
-              <SelectItem value="template2">Template 2</SelectItem>
+              {savedTemplates.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -477,8 +522,8 @@ const Campaigns = () => {
               <Button variant="outline" className="gap-1.5 text-sm">
                 <Eye className="w-4 h-4" /> Pré-visualização
               </Button>
-              <Button className="gap-1.5 text-sm bg-primary hover:bg-primary/90">
-                <Send className="w-4 h-4" /> Enviar agora
+              <Button className="gap-1.5 text-sm bg-primary hover:bg-primary/90" onClick={handleSendCampaign} disabled={createCampaign.isPending}>
+                <Send className="w-4 h-4" /> {createCampaign.isPending ? "Salvando..." : "Enviar agora"}
               </Button>
             </div>
           </div>
