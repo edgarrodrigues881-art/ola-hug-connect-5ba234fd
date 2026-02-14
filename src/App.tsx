@@ -15,9 +15,14 @@ import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
 import Contacts from "./pages/dashboard/Contacts";
 import Reports from "./pages/dashboard/Reports";
 import AutoReply from "./pages/dashboard/AutoReply";
+import Unsubscribe from "./pages/dashboard/Unsubscribe";
+import NumberFilter from "./pages/dashboard/NumberFilter";
+import GroupCapture from "./pages/dashboard/GroupCapture";
+import Inbox from "./pages/dashboard/Inbox";
+import Integrations from "./pages/dashboard/Integrations";
+import SettingsPage from "./pages/dashboard/Settings";
 import {
-  HandMetal, Bot, FileText, Users, Ban, Filter,
-  UsersRound, BarChart3, MessageSquare, Plug, Settings,
+  HandMetal, FileText,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -45,13 +50,13 @@ const App = () => (
                       <Route path="auto-reply" element={<AutoReply />} />
                       <Route path="templates" element={<PlaceholderPage title="Modelos" description="Crie e gerencie templates de mensagem" icon={<FileText className="w-8 h-8 text-primary" />} />} />
                       <Route path="contacts" element={<Contacts />} />
-                      <Route path="unsubscribe" element={<PlaceholderPage title="Cancelar Inscrição" description="Gerencie a lista negra de contatos" icon={<Ban className="w-8 h-8 text-primary" />} />} />
-                      <Route path="number-filter" element={<PlaceholderPage title="Filtro Numérico" description="Filtre por DDD, remova fixos e duplicados" icon={<Filter className="w-8 h-8 text-primary" />} />} />
-                      <Route path="group-capture" element={<PlaceholderPage title="Capturador de Grupo" description="Extraia participantes de grupos do WhatsApp" icon={<UsersRound className="w-8 h-8 text-primary" />} />} />
+                      <Route path="unsubscribe" element={<Unsubscribe />} />
+                      <Route path="number-filter" element={<NumberFilter />} />
+                      <Route path="group-capture" element={<GroupCapture />} />
                       <Route path="reports" element={<Reports />} />
-                      <Route path="inbox" element={<PlaceholderPage title="Mensagens Recebidas" description="Visualize e responda mensagens recebidas" icon={<MessageSquare className="w-8 h-8 text-primary" />} />} />
-                      <Route path="integrations" element={<PlaceholderPage title="Integrações" description="Configure webhooks, API e CRM externo" icon={<Plug className="w-8 h-8 text-primary" />} />} />
-                      <Route path="settings" element={<PlaceholderPage title="Configurações" description="Perfil, plano, segurança e logs" icon={<Settings className="w-8 h-8 text-primary" />} />} />
+                      <Route path="inbox" element={<Inbox />} />
+                      <Route path="integrations" element={<Integrations />} />
+                      <Route path="settings" element={<SettingsPage />} />
                     </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
