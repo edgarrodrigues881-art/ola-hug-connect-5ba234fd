@@ -1,6 +1,7 @@
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, LogOut, Wifi } from "lucide-react";
+import { LogOut, Wifi } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -11,10 +12,8 @@ const Index = () => {
       <header className="border-b border-border bg-card">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold text-foreground">ZapFlow</span>
+            <img src={logo} alt="DG Contingência Pro" className="w-10 h-10 rounded-lg" />
+            <span className="text-lg font-bold text-foreground">DG Contingência Pro</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">
