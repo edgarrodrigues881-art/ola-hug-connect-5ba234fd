@@ -17,20 +17,7 @@ const HeroSection = () => {
 
       <div className="container relative z-10 py-20 lg:py-28">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center justify-center gap-3 mb-12"
-          >
-            <img src={logo} alt="DG Contingência" className="w-12 h-12 rounded-xl" />
-            <span className="text-xl font-semibold text-foreground tracking-tight">
-              DG Contingência
-            </span>
-          </motion.div>
-
-          {/* Headline */}
+        {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
