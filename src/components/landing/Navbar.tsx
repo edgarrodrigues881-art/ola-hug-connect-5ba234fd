@@ -32,7 +32,7 @@ const Navbar = () => {
             Como funciona
           </button>
           <button
-            onClick={() => window.open("https://wa.me/5500000000000", "_blank")}
+            onClick={() => window.open("https://wa.me/5562994192500?text=Ol%C3%A1%20DG%2C%20vim%20do%20site%20e%20preciso%20de%20suporte!", "_blank")}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
           >
             <MessageCircle className="w-3.5 h-3.5" />
