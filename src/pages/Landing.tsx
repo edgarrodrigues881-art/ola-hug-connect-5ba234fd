@@ -6,7 +6,7 @@ import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 
 const Landing = () => (
-  <div className="min-h-screen bg-background">
+  <div className="landing-dark min-h-screen bg-background">
     <HeroSection />
     <MetricsSection />
     <FeaturesSection />
