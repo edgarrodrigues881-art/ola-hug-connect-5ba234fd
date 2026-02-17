@@ -1,20 +1,20 @@
+import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import MetricsSection from "@/components/landing/MetricsSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
-import SupportButton from "@/components/SupportButton";
 
 const Landing = () => (
   <div className="landing-dark min-h-screen bg-background">
+    <Navbar />
     <HeroSection />
     <MetricsSection />
     <FeaturesSection />
     <HowItWorksSection />
     <CTASection />
     <Footer />
-    <SupportButton />
   </div>
 );
 
