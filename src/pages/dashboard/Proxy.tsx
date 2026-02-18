@@ -294,11 +294,11 @@ const Proxy = () => {
   const statusBadge = (s: string) => {
     switch (s) {
       case "USANDO":
-        return <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">USANDO</Badge>;
+        return <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-500 border-yellow-500/30">USANDO</Badge>;
       case "USADA":
-        return <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">USADA</Badge>;
+        return <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-500 border-red-500/30">USADA</Badge>;
       default:
-        return <Badge variant="outline" className="text-[10px] text-muted-foreground">NOVA</Badge>;
+        return <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">NOVA</Badge>;
     }
   };
 
@@ -423,9 +423,9 @@ const Proxy = () => {
       <div className="flex items-center gap-2">
         {[
           { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
-          { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-sky-500/15 text-sky-400 border-sky-500/40" },
-          { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟢", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
-          { key: "USADA" as StatusFilter, label: "Usada", icon: "🟡", activeClass: "bg-amber-500/15 text-amber-400 border-amber-500/40" },
+          { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
+          { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
+          { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
         ].map((chip) => (
           <button
             key={chip.label}
