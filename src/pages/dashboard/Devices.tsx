@@ -413,6 +413,46 @@ const Devices = () => {
           <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => setCreateOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Criar instância
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={async () => {
+              try {
+                // Sync proxy statuses based on linked devices
+                const { data: allDevices } = await supabase.from("devices").select("proxy_id, status");
+                const { data: allProxies } = await supabase.from("proxies").select("id, status");
+                const linkedProxyIds = new Set(
+                  (allDevices || []).filter(d => d.proxy_id).map(d => d.proxy_id)
+                );
+
+                let updated = 0;
+                for (const proxy of (allProxies || [])) {
+                  const isLinked = linkedProxyIds.has(proxy.id);
+                  let correctStatus: string;
+                  if (isLinked) {
+                    correctStatus = "USANDO";
+                  } else if (proxy.status === "USANDO") {
+                    correctStatus = "USADA";
+                  } else {
+                    correctStatus = proxy.status;
+                  }
+                  if (proxy.status !== correctStatus) {
+                    await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
+                    updated++;
+                  }
+                }
+
+                queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                queryClient.invalidateQueries({ queryKey: ["devices"] });
+                toast({ title: "Sincronizado!", description: `${updated} proxy(s) atualizada(s). Pronto para sincronizar instâncias quando a API for conectada.` });
+              } catch {
+                toast({ title: "Erro ao sincronizar", variant: "destructive" });
+              }
+            }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+          </Button>
         </div>
       </div>
 
