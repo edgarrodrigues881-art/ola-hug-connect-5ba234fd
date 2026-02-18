@@ -454,7 +454,7 @@ const Proxy = () => {
                               value={proxy.proxyStatus}
                               onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
                             >
-                              <SelectTrigger className="h-6 w-auto gap-1 rounded-full border-0 bg-transparent px-0 text-[10px] shadow-none focus:ring-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
+                              <SelectTrigger className="h-6 w-auto gap-1 rounded-full !border-0 bg-transparent px-0 text-[10px] !shadow-none !ring-0 !ring-offset-0 !outline-none [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
                                 {statusBadge(proxy.proxyStatus)}
                               </SelectTrigger>
                               <SelectContent className="min-w-[100px] bg-popover z-50">
