@@ -164,6 +164,10 @@ const Devices = () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
       toast({ title: "Instância removida" });
     },
+    onError: (err: any) => {
+      console.error("Delete error:", err);
+      toast({ title: "Erro ao apagar instância", description: err?.message || "Erro desconhecido", variant: "destructive" });
+    },
   });
 
   const updateMutation = useMutation({
