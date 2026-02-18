@@ -63,7 +63,7 @@ const FeaturesSection = () => (
           <motion.div
             key={i}
             variants={item}
-            className="bg-secondary rounded-xl p-7 border border-border hover:border-primary/20 transition-colors"
+            className="bg-secondary rounded-xl p-7 border border-border hover:border-primary/20 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5"
           >
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
               <feature.icon className="w-5 h-5 text-primary" />

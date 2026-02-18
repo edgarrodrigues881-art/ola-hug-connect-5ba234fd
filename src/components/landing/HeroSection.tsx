@@ -48,7 +48,7 @@ const HeroSection = () => {
             <Button
               size="lg"
               onClick={() => navigate("/auth")}
-              className="h-14 px-12 text-base font-semibold rounded-lg gap-2 bg-primary hover:bg-[hsl(142,71%,38%)] transition-colors border-0 shadow-none"
+              className="h-14 px-12 text-base font-semibold rounded-lg gap-2 bg-primary hover:bg-[hsl(142,71%,38%)] transition-all duration-200 hover:scale-[1.03] border-0 shadow-none"
             >
               Entrar na plataforma
               <ArrowRight className="w-4 h-4" />
@@ -59,7 +59,7 @@ const HeroSection = () => {
               onClick={() => {
                 document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="h-14 px-12 text-base font-semibold rounded-lg border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="h-14 px-12 text-base font-semibold rounded-lg border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 hover:scale-[1.03]"
             >
               Ver funcionamento
             </Button>

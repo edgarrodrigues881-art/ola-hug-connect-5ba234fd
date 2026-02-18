@@ -25,7 +25,7 @@ const CTASection = () => {
           <Button
             size="lg"
             onClick={() => navigate("/auth")}
-            className="h-14 px-14 text-base font-semibold rounded-lg gap-2 bg-primary hover:bg-[hsl(142,71%,38%)] transition-colors border-0 shadow-none"
+            className="h-14 px-14 text-base font-semibold rounded-lg gap-2 bg-primary hover:bg-[hsl(142,71%,38%)] transition-all duration-200 hover:scale-[1.03] border-0 shadow-none"
           >
             Acessar plataforma
             <ArrowRight className="w-4 h-4" />
