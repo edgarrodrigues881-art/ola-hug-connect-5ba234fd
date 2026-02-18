@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Shield, Plus, Trash2, ToggleLeft, ToggleRight, Upload, Download, Info, X, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ interface ProxyEntry {
 const PROXY_DISCLAIMER_KEY = "proxy-disclaimer-accepted";
 
 const Proxy = () => {
+  const navigate = useNavigate();
   const [proxies, setProxies] = useState<ProxyEntry[]>([]);
   const [form, setForm] = useState({ host: "", port: "", username: "", password: "" });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -164,8 +166,8 @@ const Proxy = () => {
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Disclaimer Dialog */}
-      <Dialog open={disclaimerOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
