@@ -83,10 +83,12 @@ export default function WhatsAppIntegration() {
       const base64 = res.base64;
       if (base64) {
         setQrCode(base64);
+        setStatus("idle");
         toast.success("QR Code gerado! Escaneie com o WhatsApp.");
         startPollingStatus();
       } else {
         toast.info("Nenhum QR Code retornado. A instância pode já estar conectada.");
+        setStatus("idle");
         checkStatus();
       }
     } catch (err: unknown) {
