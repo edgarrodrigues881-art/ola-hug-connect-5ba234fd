@@ -162,15 +162,16 @@ const Devices = () => {
   const openEdit = (device: Device) => {
     setEditingDevice(device);
     setEditName(device.name);
-    setEditNumber(device.number);
+    setEditProxyValue(device.proxy_id || "none");
     setEditOpen(true);
   };
 
   const handleEdit = () => {
     if (!editingDevice || !editName.trim()) return;
+    const proxyId = editProxyValue === "none" ? null : editProxyValue;
     updateMutation.mutate({
       id: editingDevice.id,
-      updates: { name: editName },
+      updates: { name: editName, proxy_id: proxyId },
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -315,9 +316,6 @@ const Devices = () => {
                   <span className="text-xs text-muted-foreground">
                     {assignedProxy ? assignedProxy.label : "Sem proxy"}
                   </span>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => openEditProxy(d)}>
-                    <Pencil className="w-3 h-3" />
-                  </Button>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -376,6 +374,27 @@ const Devices = () => {
               <Label className="text-xs">Nome da instância</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Proxy</Label>
+              <Select value={editProxyValue} onValueChange={setEditProxyValue}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selecionar proxy" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProxies.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-3 h-3 text-primary" />
+                        {p.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">Sem proxy</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
@@ -396,42 +415,6 @@ const Devices = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setLogoutOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleLogout}>Desconectar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Proxy Dialog */}
-      <Dialog open={editProxyOpen} onOpenChange={setEditProxyOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Proxy</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Alterar proxy de <span className="font-medium text-foreground">{editProxyDevice?.name}</span>
-            </p>
-            <Select value={editProxyValue} onValueChange={setEditProxyValue}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecionar proxy" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableProxies.map(p => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3 h-3 text-primary" />
-                      {p.label}
-                    </div>
-                  </SelectItem>
-                ))}
-                <SelectItem value="none">
-                  <span className="text-muted-foreground">Sem proxy</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditProxyOpen(false)}>Cancelar</Button>
-            <Button onClick={handleEditProxy} className="bg-primary hover:bg-primary/90">Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
