@@ -70,6 +70,10 @@ const Devices = () => {
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
   const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code" | "connecting" | "done">("choose");
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [connectError, setConnectError] = useState("");
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch devices from database
   const { data: devices = [] } = useQuery({
@@ -336,10 +340,63 @@ const Devices = () => {
     setLoggingOutDevice(null);
   };
 
+  // Helper to call evolution-connect edge function
+  const callEvolution = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Not authenticated");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) throw response.error;
+    return response.data;
+  };
+
+  // Stop polling
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  };
+
+  // Poll connection status
+  const startPolling = (deviceName: string, deviceId: string, proxyId: string | null) => {
+    stopPolling();
+    const interval = setInterval(async () => {
+      try {
+        const result = await callEvolution({ action: "status", instanceName: deviceName });
+        const state = result?.instance?.state || result?.state;
+        if (state === "open") {
+          clearInterval(interval);
+          setPollingInterval(null);
+          // Sync the device info
+          const { data: { session: s } } = await supabase.auth.getSession();
+          if (s) {
+            await supabase.functions.invoke("sync-devices", {
+              headers: { Authorization: `Bearer ${s.access_token}` },
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+          queryClient.invalidateQueries({ queryKey: ["proxies"] });
+          setConnectStep("done");
+          toast({ title: "Conectado!", description: `${deviceName} conectado com sucesso!` });
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 3000);
+    setPollingInterval(interval);
+  };
+
   // Connect
   const openConnect = (device: Device) => {
     setConnectingDevice(device);
     setConnectStep("choose");
+    setQrCodeBase64("");
+    setPairingCode("");
+    setConnectError("");
+    stopPolling();
     setConnectOpen(true);
   };
 
@@ -351,35 +408,48 @@ const Devices = () => {
     setConnectStep("proxy");
   };
 
-  const handleConfirmProxy = () => {
+  const handleConfirmProxy = async () => {
+    if (!connectingDevice) return;
+    const deviceName = connectingDevice.name;
+    const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
+
+    // Update proxy on the device
+    if (proxyId) {
+      await supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id);
+      await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    }
+
+    setConnectError("");
     setConnectStep(connectMethod);
 
-    setTimeout(() => {
-      setConnectStep("connecting");
-      setTimeout(() => {
-        if (connectingDevice) {
-          const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
-          updateMutation.mutate({
-            id: connectingDevice.id,
-            updates: {
-              status: "Ready",
-              login_type: connectMethod,
-              number: `+55 ${Math.floor(10 + Math.random() * 89)} 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-              proxy_id: proxyId,
-            },
-          });
-          // Update proxy status to USANDO
-          if (proxyId) {
-            supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId).then(() => {
-              queryClient.invalidateQueries({ queryKey: ["proxies"] });
-            });
-          }
-        }
-        setConnectStep("done");
-        const proxyLabel = availableProxies.find(p => p.id === selectedProxy)?.label || "Sem proxy";
-        toast({ title: "Conectado!", description: `Instância conectada via proxy ${proxyLabel}.` });
-      }, 2000);
-    }, 3000);
+    try {
+      // 1. Create instance on Evolution API (if not exists)
+      await callEvolution({ action: "create", instanceName: deviceName });
+
+      // 2. Get QR code / pairing code
+      const connectResult = await callEvolution({
+        action: "connect",
+        instanceName: deviceName,
+      });
+
+      if (connectResult.base64) {
+        setQrCodeBase64(connectResult.base64);
+      }
+      if (connectResult.pairingCode) {
+        setPairingCode(connectResult.pairingCode);
+      }
+      if (connectResult.code) {
+        setPairingCode(connectResult.code);
+      }
+
+      // 3. Start polling for connection status
+      startPolling(deviceName, connectingDevice.id, proxyId);
+    } catch (err: any) {
+      console.error("Connect error:", err);
+      setConnectError(err?.message || "Erro ao conectar com a Evolution API");
+      toast({ title: "Erro ao gerar QR Code", description: err?.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -629,7 +699,12 @@ const Devices = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={connectOpen} onOpenChange={(open) => { if (!open && connectStep !== "connecting") { setConnectOpen(false); } }}>
+      <Dialog open={connectOpen} onOpenChange={(open) => {
+        if (!open) {
+          stopPolling();
+          setConnectOpen(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -720,19 +795,52 @@ const Devices = () => {
 
           {connectStep === "qr" && (
             <div className="flex flex-col items-center gap-4 py-4">
-              <div className="w-48 h-48 bg-muted rounded-xl flex items-center justify-center border-2 border-dashed border-border">
-                <QrCode className="w-24 h-24 text-muted-foreground/50" />
-              </div>
+              {qrCodeBase64 ? (
+                <img
+                  src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
+                  alt="QR Code"
+                  className="w-56 h-56 rounded-xl border border-border"
+                />
+              ) : connectError ? (
+                <div className="w-56 h-56 bg-destructive/10 rounded-xl flex flex-col items-center justify-center border border-destructive/30 p-4">
+                  <XCircle className="w-10 h-10 text-destructive mb-2" />
+                  <p className="text-xs text-destructive text-center">{connectError}</p>
+                </div>
+              ) : (
+                <div className="w-56 h-56 bg-muted rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-border">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin mb-2" />
+                  <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground text-center">Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar dispositivo</p>
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                <p className="text-xs text-muted-foreground">Aguardando leitura do QR Code...</p>
+              </div>
             </div>
           )}
 
           {connectStep === "code" && (
             <div className="flex flex-col items-center gap-4 py-4">
-              <div className="bg-muted rounded-xl px-8 py-4 border border-border">
-                <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{Math.random().toString(36).substring(2, 10).toUpperCase()}</p>
-              </div>
+              {pairingCode ? (
+                <div className="bg-muted rounded-xl px-8 py-4 border border-border">
+                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
+                </div>
+              ) : connectError ? (
+                <div className="bg-destructive/10 rounded-xl px-8 py-4 border border-destructive/30">
+                  <p className="text-sm text-destructive text-center">{connectError}</p>
+                </div>
+              ) : (
+                <div className="bg-muted rounded-xl px-8 py-4 border border-border flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">Gerando código...</p>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground text-center">Insira este código no WhatsApp → Configurações → Aparelhos conectados → Conectar com número de telefone</p>
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                <p className="text-xs text-muted-foreground">Aguardando emparelhamento...</p>
+              </div>
             </div>
           )}
 
@@ -747,7 +855,7 @@ const Devices = () => {
             <div className="flex flex-col items-center gap-4 py-8">
               <CheckCircle2 className="w-12 h-12 text-emerald-500" />
               <p className="text-sm font-medium text-foreground">Instância conectada com sucesso!</p>
-              <Button onClick={() => setConnectOpen(false)} className="bg-primary hover:bg-primary/90">Fechar</Button>
+              <Button onClick={() => { stopPolling(); setConnectOpen(false); }} className="bg-primary hover:bg-primary/90">Fechar</Button>
             </div>
           )}
         </DialogContent>

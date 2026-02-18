@@ -1,0 +1,160 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
+    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+
+    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Evolution API not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
+    const body = await req.json();
+    const { action, instanceName, phone } = body;
+
+    // ACTION: create - Create instance on Evolution API
+    if (action === "create") {
+      const evoRes = await fetch(`${baseUrl}/instance/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+        }),
+      });
+
+      const data = await evoRes.json();
+      if (!evoRes.ok) {
+        // Instance might already exist, try to connect directly
+        if (evoRes.status === 403 || evoRes.status === 409 || JSON.stringify(data).includes("already")) {
+          return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error(`Create instance failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      }
+
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: connect - Get QR code or pairing code
+    if (action === "connect") {
+      let url = `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`;
+      if (phone) {
+        url += `?number=${encodeURIComponent(phone)}`;
+      }
+
+      const evoRes = await fetch(url, {
+        headers: { apikey: EVOLUTION_API_KEY },
+      });
+
+      const data = await evoRes.json();
+      if (!evoRes.ok) {
+        throw new Error(`Connect failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      }
+
+      // Response contains: { base64, code, pairingCode, count }
+      return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: status - Check connection state
+    if (action === "status") {
+      const evoRes = await fetch(
+        `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
+        { headers: { apikey: EVOLUTION_API_KEY } }
+      );
+
+      const data = await evoRes.json();
+      if (!evoRes.ok) {
+        throw new Error(`Status check failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      }
+
+      return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: logout - Disconnect instance
+    if (action === "logout") {
+      const evoRes = await fetch(
+        `${baseUrl}/instance/logout/${encodeURIComponent(instanceName)}`,
+        { method: "DELETE", headers: { apikey: EVOLUTION_API_KEY } }
+      );
+
+      const data = await evoRes.json();
+      return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: delete - Delete instance from Evolution API
+    if (action === "delete") {
+      const evoRes = await fetch(
+        `${baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
+        { method: "DELETE", headers: { apikey: EVOLUTION_API_KEY } }
+      );
+
+      const data = await evoRes.json();
+      return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error: unknown) {
+    console.error("Evolution connect error:", error);
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
