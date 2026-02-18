@@ -13,6 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 interface ProxyEntry {
   id: string;
@@ -50,7 +53,8 @@ const simulateTest = (proxy: ProxyEntry): Promise<Partial<ProxyEntry>> => {
 
 const Proxy = () => {
   const navigate = useNavigate();
-  const [proxies, setProxies] = useState<ProxyEntry[]>([]);
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ host: "", port: "", username: "", password: "" });
   const [proxyType, setProxyType] = useState<"HTTP" | "SOCKS5">("HTTP");
   const [pasteInput, setPasteInput] = useState("");
@@ -58,7 +62,69 @@ const Proxy = () => {
   const [howToOpen, setHowToOpen] = useState(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [testingIds, setTestingIds] = useState<Set<string>>(new Set());
+  const [testResults, setTestResults] = useState<Record<string, { status: string; detectedIp: string; country: string; latency: number | null; lastChecked: string }>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch proxies from database
+  const { data: dbProxies = [], isLoading } = useQuery({
+    queryKey: ["proxies"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("proxies" as any).select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!session,
+  });
+
+  // Map DB rows to ProxyEntry with local test results
+  const proxies: ProxyEntry[] = dbProxies.map((p: any) => ({
+    id: p.id,
+    host: p.host,
+    port: p.port,
+    username: p.username,
+    password: p.password,
+    type: p.type as "HTTP" | "SOCKS5",
+    active: p.active,
+    status: testingIds.has(p.id) ? "testing" : (testResults[p.id]?.status as any) || "untested",
+    detectedIp: testResults[p.id]?.detectedIp || "",
+    country: testResults[p.id]?.country || "",
+    latency: testResults[p.id]?.latency ?? null,
+    lastChecked: testResults[p.id]?.lastChecked || "",
+  }));
+
+  const addMutation = useMutation({
+    mutationFn: async (proxy: { host: string; port: string; username: string; password: string; type: string }) => {
+      const { error } = await supabase.from("proxies" as any).insert({ ...proxy, user_id: session?.user.id } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["proxies"] }); toast.success("Proxy adicionada!"); },
+    onError: () => toast.error("Erro ao adicionar proxy"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("proxies" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["proxies"] }); toast.success("Proxy removida"); },
+  });
+
+  const deleteMultipleMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("proxies" as any).delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["proxies"] }); setSelectedIds(new Set()); toast.success("Proxies removidas"); },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from("proxies" as any).update({ active } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["proxies"] }),
+  });
 
   useEffect(() => {
     const accepted = localStorage.getItem(PROXY_DISCLAIMER_KEY);
@@ -107,51 +173,39 @@ const Proxy = () => {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    setProxies((prev) => [
-      ...prev,
-      {
-        ...form,
-        id: crypto.randomUUID(),
-        type: proxyType,
-        active: true,
-        status: "untested",
-        detectedIp: "",
-        country: "",
-        latency: null,
-        lastChecked: "",
-      },
-    ]);
+    addMutation.mutate({ host: form.host, port: form.port, username: form.username, password: form.password, type: proxyType });
     setForm({ host: "", port: "", username: "", password: "" });
-    toast.success("Proxy adicionada!");
   };
 
   const handleTestProxy = async (id: string) => {
-    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, status: "testing" as const } : p)));
+    setTestingIds((prev) => new Set(prev).add(id));
     const proxy = proxies.find((p) => p.id === id);
     if (!proxy) return;
     const result = await simulateTest(proxy);
-    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, ...result } : p)));
+    setTestingIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    setTestResults((prev) => ({ ...prev, [id]: { status: result.status || "offline", detectedIp: result.detectedIp || "", country: result.country || "", latency: result.latency ?? null, lastChecked: result.lastChecked || "" } }));
     toast.success(result.status === "online" ? "Proxy online!" : "Proxy offline");
   };
 
   const handleTestAll = async () => {
     toast.info("Testando todas as proxies...");
     for (const proxy of proxies) {
-      setProxies((prev) => prev.map((p) => (p.id === proxy.id ? { ...p, status: "testing" as const } : p)));
+      setTestingIds((prev) => new Set(prev).add(proxy.id));
       const result = await simulateTest(proxy);
-      setProxies((prev) => prev.map((p) => (p.id === proxy.id ? { ...p, ...result } : p)));
+      setTestingIds((prev) => { const n = new Set(prev); n.delete(proxy.id); return n; });
+      setTestResults((prev) => ({ ...prev, [proxy.id]: { status: result.status || "offline", detectedIp: result.detectedIp || "", country: result.country || "", latency: result.latency ?? null, lastChecked: result.lastChecked || "" } }));
     }
     toast.success("Teste concluído!");
   };
 
   const toggleProxy = (id: string) => {
-    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p)));
+    const proxy = proxies.find((p) => p.id === id);
+    if (proxy) toggleMutation.mutate({ id, active: !proxy.active });
   };
 
   const removeProxy = (id: string) => {
-    setProxies((prev) => prev.filter((p) => p.id !== id));
+    deleteMutation.mutate(id);
     setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-    toast.success("Proxy removida");
   };
 
   const toggleSelect = (id: string) => {
@@ -167,15 +221,11 @@ const Proxy = () => {
   };
 
   const removeSelected = () => {
-    setProxies((prev) => prev.filter((p) => !selectedIds.has(p.id)));
-    setSelectedIds(new Set());
-    toast.success("Proxies removidas");
+    deleteMultipleMutation.mutate(Array.from(selectedIds));
   };
 
   const clearAll = () => {
-    setProxies([]);
-    setSelectedIds(new Set());
-    toast.success("Todas as proxies removidas");
+    deleteMultipleMutation.mutate(proxies.map((p) => p.id));
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,13 +249,17 @@ const Proxy = () => {
           const p = line.split(":");
           host = p[0] || ""; port = p[1] || ""; username = p[2] || ""; password = p[3] || "";
         }
-        if (host && port) {
-          imported.push({ id: crypto.randomUUID(), host, port, username, password, type: proxyType, active: true, status: "untested", detectedIp: "", country: "", latency: null, lastChecked: "" });
+        if (host && port && username && password) {
+          imported.push({ host, port, username, password, type: proxyType } as any);
         }
       }
       if (imported.length > 0) {
-        setProxies((prev) => [...prev, ...imported]);
-        toast.success(`${imported.length} proxy(s) importada(s)!`);
+        const insertData = imported.map((p) => ({ ...p, user_id: session?.user.id }));
+        supabase.from("proxies" as any).insert(insertData as any).then(({ error }) => {
+          if (error) { toast.error("Erro ao importar"); return; }
+          queryClient.invalidateQueries({ queryKey: ["proxies"] });
+          toast.success(`${imported.length} proxy(s) importada(s)!`);
+        });
       } else {
         toast.error("Nenhuma proxy válida encontrada");
       }
