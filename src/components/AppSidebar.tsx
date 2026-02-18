@@ -16,7 +16,10 @@ import {
   Cog,
   Contact,
   Flame,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
 import logo from "@/assets/logo.png";
 import {
@@ -82,6 +85,12 @@ const groups = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth", { replace: true });
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -124,6 +133,17 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      {/* Logout button */}
+      <div className="mt-auto border-t border-sidebar-border p-2">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!collapsed && <span className="text-sm">Sair</span>}
+        </button>
+      </div>
     </Sidebar>
   );
 }
