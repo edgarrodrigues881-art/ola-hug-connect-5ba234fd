@@ -92,6 +92,7 @@ const Devices = () => {
     label: `#${i + 1} - ${p.host}:${p.port}`,
     host: p.host,
     port: p.port,
+    status: p.status || "NOVA",
   }));
   const [selectedProxy, setSelectedProxy] = useState("");
   const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
@@ -134,12 +135,25 @@ const Devices = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
+    mutationFn: async ({ id, updates, oldProxyId, newProxyId }: { id: string; updates: Record<string, any>; oldProxyId?: string | null; newProxyId?: string | null }) => {
       const { error } = await supabase.from("devices").update(updates as any).eq("id", id);
       if (error) throw error;
+      
+      // Update proxy statuses if proxy changed
+      if (oldProxyId && oldProxyId !== newProxyId) {
+        // Check if old proxy is still used by another device
+        const { data: otherDevices } = await supabase.from("devices").select("id").eq("proxy_id", oldProxyId).neq("id", id);
+        if (!otherDevices || otherDevices.length === 0) {
+          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", oldProxyId);
+        }
+      }
+      if (newProxyId && newProxyId !== oldProxyId) {
+        await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", newProxyId);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
     },
   });
 
@@ -172,6 +186,8 @@ const Devices = () => {
     updateMutation.mutate({
       id: editingDevice.id,
       updates: { name: editName, proxy_id: proxyId },
+      oldProxyId: editingDevice.proxy_id,
+      newProxyId: proxyId,
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -245,6 +261,8 @@ const Devices = () => {
               number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}`,
               proxy_id: proxyId,
             },
+            oldProxyId: connectingDevice.proxy_id,
+            newProxyId: proxyId,
           });
         }
         setConnectStep("done");
@@ -383,9 +401,14 @@ const Devices = () => {
                 <SelectContent>
                   {availableProxies.map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-3 h-3 text-primary" />
-                        {p.label}
+                      <div className="flex items-center justify-between gap-4 w-full">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-3 h-3 text-primary" />
+                          {p.label}
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                          {p.status}
+                        </Badge>
                       </div>
                     </SelectItem>
                   ))}
@@ -467,9 +490,14 @@ const Devices = () => {
                   <SelectContent>
                     {availableProxies.map(p => (
                       <SelectItem key={p.id} value={p.id}>
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-3 h-3 text-primary" />
-                          {p.label}
+                        <div className="flex items-center justify-between gap-4 w-full">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-3 h-3 text-primary" />
+                            {p.label}
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                            {p.status}
+                          </Badge>
                         </div>
                       </SelectItem>
                     ))}
