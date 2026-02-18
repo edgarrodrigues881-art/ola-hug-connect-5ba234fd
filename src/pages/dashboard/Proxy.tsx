@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -157,16 +158,39 @@ const Proxy = () => {
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      if (!text) return;
-      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-      const parsed = lines.map(parseLine).filter(Boolean) as any[];
-      if (parsed.length > 0) addMutation.mutate(parsed);
-      else toast.error("Nenhuma proxy válida encontrada");
-    };
-    reader.readAsText(file);
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    if (ext === "xlsx" || ext === "xls") {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const parsed = rows
+          .map((row: any[]) => {
+            if (!row || row.length < 2) return null;
+            const [host, port, username, password] = row.map(String);
+            return host && port ? { host, port: port || "", username: username || "", password: password || "" } : null;
+          })
+          .filter(Boolean) as any[];
+        if (parsed.length > 0) addMutation.mutate(parsed);
+        else toast.error("Nenhuma proxy válida encontrada no Excel");
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // TXT / CSV
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        if (!text) return;
+        const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+        const parsed = lines.map(parseLine).filter(Boolean) as any[];
+        if (parsed.length > 0) addMutation.mutate(parsed);
+        else toast.error("Nenhuma proxy válida encontrada");
+      };
+      reader.readAsText(file);
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -267,7 +291,7 @@ const Proxy = () => {
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
         </div>
         <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".txt,.csv" className="hidden" onChange={handleImport} />
+          <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
             📂 Importar
           </Button>
