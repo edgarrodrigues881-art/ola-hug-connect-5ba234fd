@@ -63,6 +63,7 @@ const Devices = () => {
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
   const [deleteDisconnectedOpen, setDeleteDisconnectedOpen] = useState(false);
   const [deleteSingleOpen, setDeleteSingleOpen] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [deleteSingleDevice, setDeleteSingleDevice] = useState<Device | null>(null);
 
   // Connect dialog
@@ -417,41 +418,40 @@ const Devices = () => {
             size="sm"
             variant="outline"
             className="gap-1.5 text-xs"
+            disabled={syncLoading}
             onClick={async () => {
+              setSyncLoading(true);
               try {
-                // Sync proxy statuses based on linked devices
-                const { data: allDevices } = await supabase.from("devices").select("proxy_id, status");
-                const { data: allProxies } = await supabase.from("proxies").select("id, status");
-                const linkedProxyIds = new Set(
-                  (allDevices || []).filter(d => d.proxy_id).map(d => d.proxy_id)
-                );
+                const { data: { session: s } } = await supabase.auth.getSession();
+                if (!s) throw new Error("Not authenticated");
 
-                let updated = 0;
-                for (const proxy of (allProxies || [])) {
-                  const isLinked = linkedProxyIds.has(proxy.id);
-                  let correctStatus: string;
-                  if (isLinked) {
-                    correctStatus = "USANDO";
-                  } else if (proxy.status === "USANDO") {
-                    correctStatus = "USADA";
-                  } else {
-                    correctStatus = proxy.status;
-                  }
-                  if (proxy.status !== correctStatus) {
-                    await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
-                    updated++;
-                  }
-                }
+                const response = await supabase.functions.invoke("sync-devices", {
+                  headers: { Authorization: `Bearer ${s.access_token}` },
+                });
 
-                queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                if (response.error) throw response.error;
+
+                const result = response.data;
+                const found = result.devices?.filter((d: any) => d.found).length || 0;
+                const notFound = result.devices?.filter((d: any) => !d.found).length || 0;
+                const proxiesUpdated = result.proxiesUpdated || 0;
+
                 queryClient.invalidateQueries({ queryKey: ["devices"] });
-                toast({ title: "Sincronizado!", description: `${updated} proxy(s) atualizada(s). Pronto para sincronizar instâncias quando a API for conectada.` });
-              } catch {
-                toast({ title: "Erro ao sincronizar", variant: "destructive" });
+                queryClient.invalidateQueries({ queryKey: ["proxies"] });
+
+                toast({
+                  title: "Sincronizado com Evolution API!",
+                  description: `${found} instância(s) encontrada(s), ${notFound} não encontrada(s), ${proxiesUpdated} proxy(s) atualizada(s).`,
+                });
+              } catch (err: any) {
+                console.error("Sync error:", err);
+                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique a configuração da API.", variant: "destructive" });
+              } finally {
+                setSyncLoading(false);
               }
             }}
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+            <RefreshCw className={`w-3.5 h-3.5 ${syncLoading ? "animate-spin" : ""}`} /> {syncLoading ? "Sincronizando..." : "Sincronizar"}
           </Button>
         </div>
       </div>
