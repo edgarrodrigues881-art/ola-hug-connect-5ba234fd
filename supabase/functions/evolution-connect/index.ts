@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
+    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "") + "/api";
     const body = await req.json();
     const { action, instanceName, phone } = body;
 
@@ -57,7 +57,9 @@ Deno.serve(async (req) => {
 
     // ACTION: create - Create instance on Evolution API
     if (action === "create") {
-      const evoRes = await fetch(`${baseUrl}/instance/create`, {
+      const createUrl = `${baseUrl}/instance/create`;
+      console.log("CREATE URL:", createUrl);
+      const evoRes = await fetch(createUrl, {
         method: "POST",
         headers: {
           ...evoHeaders,
