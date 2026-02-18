@@ -178,29 +178,29 @@ const Proxy = () => {
           </DialogHeader>
           <div className="space-y-4 py-3">
             {/* Risk block */}
-            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/25 space-y-1.5">
-              <p className="text-sm font-medium text-yellow-600">⚠ Utilize apenas proxies de alta qualidade.</p>
+            <div className="p-3 rounded-lg bg-yellow-500/8 border border-yellow-500/20 space-y-1.5">
+              <p className="text-sm font-medium text-yellow-500/90">Requisitos mínimos de qualidade da proxy</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Proxies gratuitos, compartilhados ou de baixa reputação podem comprometer a estabilidade da instância e aumentar o risco de restrições.
+                Proxies gratuitas, compartilhadas ou de baixa reputação podem comprometer a estabilidade da instância e elevar o risco de restrições operacionais.
               </p>
             </div>
 
             {/* Recommendation block */}
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-1.5">
-              <p className="text-sm font-medium text-primary">✔ Recomendação técnica</p>
+            <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/15 space-y-1.5">
+              <p className="text-sm font-medium text-primary/80">Boas práticas de configuração</p>
               <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
-                <li>• Proxies <strong className="text-foreground">residenciais ou móveis</strong> de fornecedores confiáveis.</li>
-                <li>• Evite proxies de datacenter compartilhadas.</li>
-                <li>• Sempre utilize uma proxy dedicada por instância para evitar cruzamento de dados.</li>
+                <li>• Proxies <strong className="text-foreground">residenciais ou móveis dedicadas</strong>, fornecidas por provedores confiáveis.</li>
+                <li>• Evite proxies de datacenter compartilhadas ou pools rotativos agressivos.</li>
+                <li>• Utilize uma proxy dedicada por instância para evitar cruzamento de dados.</li>
               </ul>
             </div>
 
             {/* Responsibility block */}
-            <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-1.5">
-              <p className="text-sm font-medium text-foreground">🛡 Responsabilidade</p>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-1.5">
+              <p className="text-sm font-medium text-foreground/80">Termo de responsabilidade</p>
               <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
                 <li>• O <strong className="text-foreground">DG Contingência</strong> não se responsabiliza por restrições ou bloqueios decorrentes do uso inadequado de proxies.</li>
-                <li>• A escolha e configuração da proxy são de responsabilidade exclusiva do usuário.</li>
+                <li>• A escolha, configuração e qualidade da proxy são de responsabilidade exclusiva do usuário.</li>
               </ul>
             </div>
           </div>
@@ -216,8 +216,8 @@ const Proxy = () => {
                 Declaro estar ciente das diretrizes e assumir total responsabilidade pela proxy utilizada.
               </label>
             </div>
-            <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
-              Aceitar e continuar
+            <Button onClick={handleAcceptDisclaimer} className="w-full transition-colors" disabled={!disclaimerChecked}>
+              Confirmar ciência e continuar
             </Button>
           </DialogFooter>
         </DialogContent>
