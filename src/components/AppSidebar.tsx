@@ -16,6 +16,7 @@ import {
   Cog,
   Contact,
   Flame,
+  Shield,
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -71,6 +72,7 @@ const crmItems = [
 
 const warmupItems = [
   { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+  { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
 ];
 
 const groups = [
