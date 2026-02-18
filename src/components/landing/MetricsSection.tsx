@@ -25,7 +25,7 @@ const metrics = [
 ];
 
 const MetricsSection = () => (
-  <section className="py-20 bg-background border-t border-border">
+  <section className="py-20 border-t border-border">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
