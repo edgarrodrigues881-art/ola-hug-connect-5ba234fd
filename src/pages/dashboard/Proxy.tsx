@@ -114,7 +114,7 @@ const Proxy = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
     },
-    onSuccess: () => toast.success("Status atualizado!"),
+    onSuccess: () => toast.success("Status atualizado!", { dismissible: true, closeButton: true }),
   });
 
   // Parse
