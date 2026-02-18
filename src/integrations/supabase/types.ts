@@ -202,6 +202,45 @@ export type Database = {
         }
         Relationships: []
       }
+      proxies: {
+        Row: {
+          active: boolean
+          created_at: string
+          host: string
+          id: string
+          password: string
+          port: string
+          type: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          host: string
+          id?: string
+          password: string
+          port: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          host?: string
+          id?: string
+          password?: string
+          port?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           buttons: Json | null
