@@ -353,7 +353,7 @@ const Devices = () => {
             updates: {
               status: "Ready",
               login_type: connectMethod,
-              number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}`,
+              number: `+55 ${Math.floor(10 + Math.random() * 89)} 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
               proxy_id: proxyId,
             },
             oldProxyId: connectingDevice.proxy_id,
