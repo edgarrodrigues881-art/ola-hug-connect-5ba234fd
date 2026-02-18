@@ -12,28 +12,31 @@ import logo from "@/assets/logo.png";
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
+  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
       toast({
         title: "Informe seu e-mail",
-        description: "Digite seu e-mail no campo acima antes de recuperar a senha.",
+        description: "Digite seu e-mail para recuperar a senha.",
         variant: "destructive",
       });
       return;
     }
     setForgotLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
@@ -54,6 +57,7 @@ const Auth = () => {
 
   useEffect(() => {
     setIsLogin(searchParams.get("mode") !== "signup");
+    setShowForgot(false);
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,7 +126,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center p-6 relative" style={{ backgroundColor: '#0F1115' }}>
       {/* Back button */}
       <button
-        onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
+        onClick={() => showForgot ? setShowForgot(false) : (window.history.length > 1 ? navigate(-1) : navigate("/"))}
         className="absolute top-6 left-6 flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -137,164 +141,232 @@ const Auth = () => {
           <span className="text-xs font-medium tracking-wide text-[#9CA3AF]">DG Contingência</span>
         </div>
 
-        {/* Heading */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">
-            {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
-          </h1>
-          <p className="text-sm text-[#9CA3AF]">
-            {isLogin
-              ? "Entre para gerenciar seus disparos"
-              : "Comece a enviar mensagens profissionais"}
-          </p>
-        </div>
+        {showForgot ? (
+          <>
+            {/* Forgot password view */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">Recuperar senha</h1>
+              <p className="text-sm text-[#9CA3AF]">
+                Informe seu e-mail e enviaremos um link para redefinir sua senha
+              </p>
+            </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="fullName" className="text-xs font-medium text-[#9CA3AF]">
-                  Nome completo
+                <Label htmlFor="forgotEmail" className="text-xs font-medium text-[#9CA3AF]">
+                  Endereço de e-mail
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
                   <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    id="forgotEmail"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
                     className={inputClass}
                     required
-                    maxLength={100}
+                    maxLength={255}
+                    autoFocus
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs font-medium text-[#9CA3AF]">
-                  Número de telefone
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={inputClass}
-                    required
-                    maxLength={20}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-medium text-[#9CA3AF]">
-              Endereço de e-mail
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
-                required
-                maxLength={255}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs font-medium text-[#9CA3AF]">
-              Senha de acesso
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-              <Input
-                id="password"
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
-                required
-                minLength={8}
-              />
-            </div>
-            {isLogin && (
-              <button
-                type="button"
-                onClick={handleForgotPassword}
+              <Button
+                type="submit"
                 disabled={forgotLoading}
-                className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 mt-1"
+                className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
+                style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
               >
-                {forgotLoading ? "Enviando..." : "Esqueceu sua senha?"}
-              </button>
-            )}
-          </div>
+                {forgotLoading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  "Enviar link de recuperação"
+                )}
+              </Button>
+            </form>
 
-          {!isLogin && (
-            <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword" className="text-xs font-medium text-[#9CA3AF]">
-                Confirmar senha
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Repita a senha"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={inputClass}
-                  required
-                  minLength={8}
-                />
-              </div>
+            <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Ambiente seguro e criptografado</span>
             </div>
-          )}
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
-            style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
-          >
-            {loading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              isLogin ? "Entrar" : "Criar conta"
-            )}
-          </Button>
-        </form>
+            <div className="my-6 border-t border-[#1E2330]" />
 
-        {/* Security microcopy */}
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
-          <ShieldCheck className="w-3 h-3" />
-          <span>Ambiente seguro e criptografado</span>
-        </div>
+            <p className="text-center text-sm text-[#9CA3AF]">
+              Lembrou a senha?{" "}
+              <button
+                onClick={() => setShowForgot(false)}
+                className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
+              >
+                Voltar ao login
+              </button>
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Heading */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">
+                {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
+              </h1>
+              <p className="text-sm text-[#9CA3AF]">
+                {isLogin
+                  ? "Entre para gerenciar seus disparos"
+                  : "Comece a enviar mensagens profissionais"}
+              </p>
+            </div>
 
-        {/* Divider */}
-        <div className="my-6 border-t border-[#1E2330]" />
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullName" className="text-xs font-medium text-[#9CA3AF]">
+                      Nome completo
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                      <Input
+                        id="fullName"
+                        type="text"
+                        placeholder="Seu nome"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className={inputClass}
+                        required
+                        maxLength={100}
+                      />
+                    </div>
+                  </div>
 
-        {/* Toggle */}
-        <p className="text-center text-sm text-[#9CA3AF]">
-          {isLogin ? "Não tem conta? " : "Já tem conta? "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
-          >
-            {isLogin ? "Criar agora" : "Faça login"}
-          </button>
-        </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone" className="text-xs font-medium text-[#9CA3AF]">
+                      Número de telefone
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="(00) 00000-0000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className={inputClass}
+                        required
+                        maxLength={20}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-medium text-[#9CA3AF]">
+                  Endereço de e-mail
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                    required
+                    maxLength={255}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-medium text-[#9CA3AF]">
+                  Senha de acesso
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                    required
+                    minLength={8}
+                  />
+                </div>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setShowForgot(true);
+                    }}
+                    className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 mt-1"
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                )}
+              </div>
+
+              {!isLogin && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-xs font-medium text-[#9CA3AF]">
+                    Confirmar senha
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Repita a senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={inputClass}
+                      required
+                      minLength={8}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
+                style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
+              >
+                {loading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  isLogin ? "Entrar" : "Criar conta"
+                )}
+              </Button>
+            </form>
+
+            {/* Security microcopy */}
+            <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Ambiente seguro e criptografado</span>
+            </div>
+
+            {/* Divider */}
+            <div className="my-6 border-t border-[#1E2330]" />
+
+            {/* Toggle */}
+            <p className="text-center text-sm text-[#9CA3AF]">
+              {isLogin ? "Não tem conta? " : "Já tem conta? "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
+              >
+                {isLogin ? "Criar agora" : "Faça login"}
+              </button>
+            </p>
+          </>
+        )}
       </div>
 
       {/* Floating support button */}
