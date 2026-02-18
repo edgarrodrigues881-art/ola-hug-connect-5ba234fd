@@ -404,7 +404,7 @@ const Devices = () => {
 
       {/* Device grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {devices.map((d) => {
+        {devices.map((d, index) => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const StatusIcon = sc.icon;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
@@ -428,7 +428,7 @@ const Devices = () => {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{d.name}</p>
+                      <p className="text-sm font-medium text-foreground">Instância {index + 1}</p>
                       <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
                     </div>
                   </div>
