@@ -23,7 +23,7 @@ const steps = [
 ];
 
 const HowItWorksSection = () => (
-  <section id="como-funciona" className="py-24 bg-secondary/50 border-t border-border">
+  <section id="como-funciona" className="py-24 bg-secondary/30 border-t border-border">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

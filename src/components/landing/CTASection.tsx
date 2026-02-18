@@ -7,7 +7,7 @@ const CTASection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="py-24 bg-background border-t border-border">
+    <section className="py-24 border-t border-border">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

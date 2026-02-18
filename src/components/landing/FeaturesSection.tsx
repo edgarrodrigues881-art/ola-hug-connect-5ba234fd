@@ -35,7 +35,7 @@ const item = {
 };
 
 const FeaturesSection = () => (
-  <section id="diferenciais" className="py-24 bg-background">
+  <section id="diferenciais" className="py-24">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

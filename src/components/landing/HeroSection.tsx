@@ -19,7 +19,7 @@ const HeroSection = () => {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex items-center bg-background overflow-hidden">
+    <section ref={sectionRef} className="relative min-h-screen flex items-center overflow-hidden">
       {/* Parallax grid */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
