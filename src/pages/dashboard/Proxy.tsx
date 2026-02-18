@@ -403,20 +403,20 @@ const Proxy = () => {
           {/* Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-destructive">*Endereço (Host)</Label>
+              <Label className="text-xs font-medium">Endereço (Host)</Label>
               <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-destructive">*Porta</Label>
+              <Label className="text-xs font-medium">Porta</Label>
               <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-destructive">*Usuário de autenticação</Label>
+              <Label className="text-xs font-medium">Usuário de autenticação</Label>
               <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-destructive">*Senha de autenticação</Label>
-              <Input type="password" placeholder="••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-xs font-medium">Senha de autenticação</Label>
+              <Input type="text" placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
             </div>
           </div>
 
