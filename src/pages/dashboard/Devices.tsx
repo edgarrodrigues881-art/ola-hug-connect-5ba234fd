@@ -633,8 +633,7 @@ const Devices = () => {
                   <p className="text-xs text-muted-foreground text-center py-4">Nenhuma proxy disponível</p>
                 ) : (
                   <>
-                    <div
-                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
                       onClick={() => {
                         if (bulkSelectedProxies.length === availableProxies.length) {
                           setBulkSelectedProxies([]);
@@ -645,6 +644,24 @@ const Devices = () => {
                     >
                       <Checkbox checked={bulkSelectedProxies.length === availableProxies.length} />
                       <span className="text-xs font-medium text-foreground">Selecionar todas</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={availableProxies.length}
+                        placeholder="Qtd"
+                        className="h-7 w-20 text-xs"
+                        onChange={e => {
+                          const num = parseInt(e.target.value);
+                          if (!isNaN(num) && num >= 0) {
+                            setBulkSelectedProxies(availableProxies.slice(0, Math.min(num, availableProxies.length)).map(p => p.id));
+                          } else if (e.target.value === "") {
+                            setBulkSelectedProxies([]);
+                          }
+                        }}
+                      />
+                      <span className="text-[11px] text-muted-foreground">Selecionar as primeiras N proxies</span>
                     </div>
                     {availableProxies.map(p => (
                       <div
