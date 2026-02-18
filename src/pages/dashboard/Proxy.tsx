@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ const Proxy = () => {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -119,10 +120,21 @@ const Proxy = () => {
 
   const handlePasteInput = (value: string) => {
     setPasteInput(value);
+    const lines = value.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      // Multiple lines pasted - parse all and add
+      const parsed = lines.map(parseLine).filter(Boolean) as any[];
+      if (parsed.length > 0) {
+        addMutation.mutate(parsed);
+        setPasteInput("");
+        setForm({ host: "", port: "", username: "", password: "" });
+        setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+      }
+      return;
+    }
     const parsed = parseLine(value);
     if (parsed && parsed.host && parsed.port) {
       setForm(parsed);
-      setPasteInput("");
     }
   };
 
@@ -133,6 +145,8 @@ const Proxy = () => {
     }
     addMutation.mutate([{ host: form.host, port: form.port, username: form.username, password: form.password }]);
     setForm({ host: "", port: "", username: "", password: "" });
+    setPasteInput("");
+    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,7 +314,7 @@ const Proxy = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Auto-preenchimento (cole host:porta:user:senha)</Label>
+            <Label className="text-xs text-muted-foreground">Cole uma ou mais proxies (host:porta:user:senha ou user:senha@host:porta)</Label>
             <Input
               placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
               value={pasteInput}
@@ -308,27 +322,31 @@ const Proxy = () => {
               className="font-mono text-xs"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Host</Label>
-              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
+          {form.host && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Host</Label>
+                <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Porta</Label>
+                <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Usuário</Label>
+                <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Senha</Label>
+                <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Porta</Label>
-              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Usuário</Label>
-              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Senha</Label>
-              <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
-            </div>
-          </div>
-          <Button onClick={handleAdd} className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
-            ＋ Adicionar
-          </Button>
+          )}
+          {form.host && (
+            <Button onClick={handleAdd} className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
+              ＋ Adicionar
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -360,7 +378,7 @@ const Proxy = () => {
       )}
 
       {/* Proxy table */}
-      <Card>
+      <Card ref={tableRef}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">Proxies ({filtered.length})</CardTitle>
