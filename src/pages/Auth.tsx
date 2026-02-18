@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, KeyRound } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.png";
 
@@ -14,7 +14,10 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [authCode, setAuthCode] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,6 +28,25 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password.length < 8) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter no mínimo 8 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      toast({
+        title: "Senhas não coincidem",
+        description: "A senha e a confirmação devem ser iguais.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,7 +62,10 @@ const Auth = () => {
           email: email.trim(),
           password,
           options: {
-            data: { full_name: fullName.trim() },
+            data: {
+              full_name: fullName.trim(),
+              phone: phone.trim(),
+            },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -60,6 +85,8 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  const inputClass = "pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative" style={{ backgroundColor: '#0F1115' }}>
@@ -93,26 +120,47 @@ const Auth = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-xs font-medium text-[#9CA3AF]">
-                Nome completo
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150"
-                  required={!isLogin}
-                  maxLength={100}
-                />
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName" className="text-xs font-medium text-[#9CA3AF]">
+                  Nome completo
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className={inputClass}
+                    required
+                    maxLength={100}
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-xs font-medium text-[#9CA3AF]">
+                  Número de telefone
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputClass}
+                    required
+                    maxLength={20}
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div className="space-y-1.5">
@@ -127,7 +175,7 @@ const Auth = () => {
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150"
+                className={inputClass}
                 required
                 maxLength={255}
               />
@@ -143,12 +191,12 @@ const Auth = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150"
+                className={inputClass}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             {isLogin && (
@@ -159,6 +207,46 @@ const Auth = () => {
                 Esqueceu sua senha?
               </button>
             )}
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword" className="text-xs font-medium text-[#9CA3AF]">
+                Confirmar senha
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Repita a senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={inputClass}
+                  required
+                  minLength={8}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Optional auth code */}
+          <div className="space-y-1.5">
+            <Label htmlFor="authCode" className="text-xs font-medium text-[#9CA3AF]">
+              Código de autenticação <span className="text-[#9CA3AF]/40">(opcional)</span>
+            </Label>
+            <div className="relative">
+              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+              <Input
+                id="authCode"
+                type="text"
+                placeholder="Digite o código, se tiver"
+                value={authCode}
+                onChange={(e) => setAuthCode(e.target.value)}
+                className={inputClass}
+                maxLength={10}
+              />
+            </div>
           </div>
 
           <Button
