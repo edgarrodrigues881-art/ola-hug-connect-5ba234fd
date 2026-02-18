@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +99,32 @@ const Proxy = () => {
       setSelectedIds(new Set());
       toast.success("Proxies removidas");
     },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "NOVA" | "USANDO" | "USADA" }) => {
+      const updates: any = {};
+      if (status === "USADA") {
+        updates.active = false;
+        updates.updated_at = new Date().toISOString();
+      } else if (status === "USANDO") {
+        updates.active = true;
+        updates.updated_at = new Date(Date.now() + 10000).toISOString();
+      } else {
+        updates.active = true;
+        updates.updated_at = new Date().toISOString();
+        // Reset updated_at to match created_at
+        const proxy = dbProxies.find((p: any) => p.id === id);
+        if (proxy) updates.updated_at = proxy.created_at;
+      }
+      const { error } = await supabase.from("proxies").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+      toast.success("Status atualizado!");
+    },
+    onError: () => toast.error("Erro ao atualizar status"),
   });
 
   // Parse
@@ -422,7 +449,21 @@ const Proxy = () => {
                           <TableCell>
                             <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
                           </TableCell>
-                          <TableCell>{statusBadge(proxy.proxyStatus)}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={proxy.proxyStatus}
+                              onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
+                            >
+                              <SelectTrigger className="h-7 w-[110px] text-[10px] border-none bg-transparent p-0 focus:ring-0">
+                                <SelectValue>{statusBadge(proxy.proxyStatus)}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NOVA" className="text-xs">NOVA</SelectItem>
+                                <SelectItem value="USANDO" className="text-xs">USANDO</SelectItem>
+                                <SelectItem value="USADA" className="text-xs">USADA</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                           <TableCell>
                             {isSelected && (
                               <button
