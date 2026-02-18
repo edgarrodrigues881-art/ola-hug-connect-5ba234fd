@@ -9,9 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
-  Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle, Link, MousePointerClick, X
+  Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle, Link, MousePointerClick, X, CalendarIcon, Clock
 } from "lucide-react";
 import { useCreateCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -48,6 +51,8 @@ const Campaigns = () => {
   const [messageType, setMessageType] = useState("texto");
   const [excludeUnsubscribed, setExcludeUnsubscribed] = useState(true);
   const [schedule, setSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date>();
+  const [scheduleTime, setScheduleTime] = useState("09:00");
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
   const [quickReplyButtons, setQuickReplyButtons] = useState<QuickReplyButton[]>([]);
@@ -517,13 +522,56 @@ const Campaigns = () => {
                   <span className="text-xs text-muted-foreground">{schedule ? "Sim" : "Não"}</span>
                 </div>
               </div>
+              {schedule && (
+                <div className="flex items-center gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Data</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[180px] justify-start text-left font-normal h-9 text-sm",
+                            !scheduleDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {scheduleDate ? format(scheduleDate, "dd/MM/yyyy") : "Selecionar data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={scheduleDate}
+                          onSelect={setScheduleDate}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Horário</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="h-9 w-[120px] text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" className="gap-1.5 text-sm">
                 <Eye className="w-4 h-4" /> Pré-visualização
               </Button>
               <Button className="gap-1.5 text-sm bg-primary hover:bg-primary/90" onClick={handleSendCampaign} disabled={createCampaign.isPending}>
-                <Send className="w-4 h-4" /> {createCampaign.isPending ? "Salvando..." : "Enviar agora"}
+                <Send className="w-4 h-4" /> {createCampaign.isPending ? "Salvando..." : schedule ? "Agendar envio" : "Enviar agora"}
               </Button>
             </div>
           </div>
