@@ -319,27 +319,23 @@ const Proxy = () => {
 
       {/* Filter chips */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => setStatusFilter(null)}
-          className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-            statusFilter === null
-              ? "bg-indigo-600 text-white"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
-        >
-          TODAS
-        </button>
-        {filterChips.map((chip) => (
+        {([
+          { key: null, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
+          { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-sky-500/15 text-sky-400 border-sky-500/40" },
+          { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟢", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
+          { key: "USADA" as StatusFilter, label: "Usada", icon: "🟡", activeClass: "bg-amber-500/15 text-amber-400 border-amber-500/40" },
+        ] as const).map((chip) => (
           <button
-            key={chip}
-            onClick={() => setStatusFilter(statusFilter === chip ? null : chip)}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-              statusFilter === chip
-                ? "bg-indigo-600 text-white"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            key={chip.label}
+            onClick={() => setStatusFilter(statusFilter === chip.key ? null : chip.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              statusFilter === chip.key
+                ? chip.activeClass
+                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
             }`}
           >
-            {chip}
+            <span className="text-[11px]">{chip.icon}</span>
+            {chip.label}
           </button>
         ))}
       </div>
