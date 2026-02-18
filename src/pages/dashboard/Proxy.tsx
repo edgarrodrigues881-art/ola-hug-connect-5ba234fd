@@ -319,6 +319,16 @@ const Proxy = () => {
 
       {/* Filter chips */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => setStatusFilter(null)}
+          className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+            statusFilter === null
+              ? "bg-indigo-600 text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          TODAS
+        </button>
         {filterChips.map((chip) => (
           <button
             key={chip}
