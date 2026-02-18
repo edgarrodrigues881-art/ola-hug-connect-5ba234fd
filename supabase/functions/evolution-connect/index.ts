@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
     const body = await req.json();
-    const { action, instanceName, phone } = body;
+    const { action, instanceName, phone, number, text } = body;
 
     // Common headers for all Evolution API requests (includes ngrok bypass)
     const evoHeaders: Record<string, string> = {
@@ -154,6 +154,40 @@ Deno.serve(async (req) => {
 
       const data = await evoRes.json();
       return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: sendText - Send text message
+    if (action === "sendText") {
+      if (!instanceName || !number || !text) {
+        return new Response(JSON.stringify({ error: "instanceName, number and text are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evoRes = await fetch(
+        `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
+        {
+          method: "POST",
+          headers: { ...evoHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({ number, text }),
+        }
+      );
+
+      const rawText = await evoRes.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Evolution API returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
+      }
+      if (!evoRes.ok) {
+        throw new Error(`sendText failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      }
+
+      return new Response(JSON.stringify({ success: true, data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
