@@ -85,20 +85,36 @@ const Proxy = () => {
 
   const deleteMultipleMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("proxies").delete().in("id", ids);
-      if (error) throw error;
+      // Check which proxies are linked to devices
+      const { data: linkedDevices } = await supabase
+        .from("devices")
+        .select("proxy_id")
+        .in("proxy_id", ids);
+      
+      const linkedIds = new Set((linkedDevices || []).map(d => d.proxy_id).filter(Boolean));
+      const deletableIds = ids.filter(id => !linkedIds.has(id));
+      const blockedCount = ids.length - deletableIds.length;
+
+      if (deletableIds.length > 0) {
+        const { error } = await supabase.from("proxies").delete().in("id", deletableIds);
+        if (error) throw error;
+      }
+
+      return { deleted: deletableIds.length, blocked: blockedCount };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
       setSelectedIds(new Set());
-      toast.success("Proxies removidas");
-    },
-    onError: (error: any) => {
-      if (error?.message?.includes("violates foreign key") || error?.code === "23503") {
-        toast.error("Algumas proxies estão vinculadas a instâncias e não podem ser removidas. Desvincule primeiro.");
+      if (result.blocked > 0 && result.deleted > 0) {
+        toast.success(`${result.deleted} proxy(s) removida(s). ${result.blocked} ignorada(s) por estarem vinculadas a instâncias.`);
+      } else if (result.blocked > 0 && result.deleted === 0) {
+        toast.error(`${result.blocked} proxy(s) vinculada(s) a instâncias. Desvincule primeiro.`);
       } else {
-        toast.error("Erro ao remover proxies");
+        toast.success("Proxies removidas");
       }
+    },
+    onError: () => {
+      toast.error("Erro ao remover proxies");
     },
   });
 
