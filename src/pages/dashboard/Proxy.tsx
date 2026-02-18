@@ -245,10 +245,12 @@ const Proxy = () => {
     );
   };
 
-  const handleExport = (status: "NOVA" | "USANDO" | "USADA") => {
-    const toExport = proxiesWithIndex.filter((p: any) => p.proxyStatus === status);
+  const handleExport = (status: "NOVA" | "USANDO" | "USADA" | "TODAS") => {
+    const toExport = status === "TODAS"
+      ? proxiesWithIndex
+      : proxiesWithIndex.filter((p: any) => p.proxyStatus === status);
     if (toExport.length === 0) {
-      toast.error(`Nenhuma proxy com status "${status}" para exportar`);
+      toast.error(`Nenhuma proxy${status !== "TODAS" ? ` com status "${status}"` : ""} para exportar`);
       return;
     }
     const content = toExport.map((p: any) =>
@@ -260,7 +262,7 @@ const Proxy = () => {
     a.href = url; a.download = `proxies-${status.toLowerCase()}.txt`; a.click();
     URL.revokeObjectURL(url);
     setExportMenuOpen(false);
-    toast.success(`${toExport.length} proxy(s) "${status}" exportada(s)!`);
+    toast.success(`${toExport.length} proxy(s) exportada(s)!`);
   };
 
   const filterChips: StatusFilter[] = ["NOVA", "USANDO", "USADA"];
@@ -340,7 +342,7 @@ const Proxy = () => {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
                 <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
-                  {(["NOVA", "USANDO", "USADA"] as const).map((s) => (
+                  {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => handleExport(s)}
