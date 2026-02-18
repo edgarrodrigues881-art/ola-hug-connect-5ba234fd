@@ -322,7 +322,6 @@ const Devices = () => {
               <div className="flex gap-2">
                 {([
                   { value: "qr" as const, label: "Login por QR Code" },
-                  { value: "phone" as const, label: "Login por telefone" },
                   { value: "code" as const, label: "Código de emparelhamento" },
                 ]).map(opt => (
                   <Button
