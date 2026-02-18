@@ -61,6 +61,7 @@ const Devices = () => {
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
+  const [deleteDisconnectedOpen, setDeleteDisconnectedOpen] = useState(false);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -230,6 +231,20 @@ const Devices = () => {
         const { error } = await supabase.from("devices").delete().eq("id", id);
         if (error) throw error;
       }
+      // Renumber remaining devices sequentially
+      const { data: remaining } = await supabase
+        .from("devices")
+        .select("id, name")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
+      if (remaining) {
+        for (let i = 0; i < remaining.length; i++) {
+          const newName = `Instância ${i + 1}`;
+          if (remaining[i].name !== newName) {
+            await supabase.from("devices").update({ name: newName } as any).eq("id", remaining[i].id);
+          }
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       setSelectedDevices([]);
       toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
@@ -353,6 +368,11 @@ const Devices = () => {
                 <Trash2 className="w-3.5 h-3.5" /> Apagar {selectedDevices.length} selecionada{selectedDevices.length !== 1 ? "s" : ""}
               </Button>
             </>
+          )}
+          {devices.some(d => d.status === "Disconnected") && (
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteDisconnectedOpen(true)}>
+              <XCircle className="w-3.5 h-3.5" /> Apagar desconectadas
+            </Button>
           )}
           {devices.length > 0 && (
             <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
@@ -782,6 +802,22 @@ const Devices = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleBulkDelete(devices.map(d => d.id))}>
               Apagar todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete disconnected confirmation */}
+      <AlertDialog open={deleteDisconnectedOpen} onOpenChange={setDeleteDisconnectedOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Apagar instâncias desconectadas</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja apagar {devices.filter(d => d.status === "Disconnected").length} instância{devices.filter(d => d.status === "Disconnected").length !== 1 ? "s" : ""} desconectada{devices.filter(d => d.status === "Disconnected").length !== 1 ? "s" : ""}? As instâncias restantes serão renumeradas automaticamente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleBulkDelete(devices.filter(d => d.status === "Disconnected").map(d => d.id))}>
+              Apagar desconectadas
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
