@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "") + "/api";
+    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
     const body = await req.json();
     const { action, instanceName, phone } = body;
 
