@@ -144,11 +144,19 @@ const Devices = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Find the device to check for proxy
+      const device = devices.find(d => d.id === id);
+      if (device?.proxy_id) {
+        await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
+        // Unlink proxy first so RESTRICT doesn't block
+        await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
+      }
       const { error } = await supabase.from("devices").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
       toast({ title: "Instância removida" });
     },
   });
@@ -230,6 +238,12 @@ const Devices = () => {
   const handleBulkDelete = async (ids: string[]) => {
     try {
       for (const id of ids) {
+        // Set proxy to USADA and unlink before deleting
+        const device = devices.find(d => d.id === id);
+        if (device?.proxy_id) {
+          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
+          await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
+        }
         const { error } = await supabase.from("devices").delete().eq("id", id);
         if (error) throw error;
       }
@@ -248,6 +262,7 @@ const Devices = () => {
         }
       }
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
       setSelectedDevices([]);
       toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
@@ -304,11 +319,16 @@ const Devices = () => {
     setLogoutOpen(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!loggingOutDevice) return;
+    // Set proxy status to USADA if linked
+    if (loggingOutDevice.proxy_id) {
+      await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", loggingOutDevice.proxy_id);
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    }
     updateMutation.mutate({
       id: loggingOutDevice.id,
-      updates: { status: "Disconnected", number: "" },
+      updates: { status: "Disconnected", number: "", proxy_id: null },
     });
     toast({ title: "Desconectado", description: `${loggingOutDevice.name} foi desconectado.` });
     setLogoutOpen(false);
