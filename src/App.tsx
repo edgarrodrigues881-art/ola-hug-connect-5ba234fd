@@ -28,6 +28,7 @@ import CRM from "./pages/dashboard/CRM";
 import Warmup from "./pages/dashboard/Warmup";
 import Proxy from "./pages/dashboard/Proxy";
 import AutoSaveNumber from "./pages/dashboard/AutoSaveNumber";
+import WhatsAppIntegration from "./pages/dashboard/WhatsAppIntegration";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
                       <Route path="warmup" element={<Warmup />} />
                       <Route path="proxy" element={<Proxy />} />
                       <Route path="auto-save" element={<AutoSaveNumber />} />
+                      <Route path="whatsapp" element={<WhatsAppIntegration />} />
                       <Route path="context" element={<Context />} />
                       <Route path="settings" element={<SettingsPage />} />
                     </Routes>
