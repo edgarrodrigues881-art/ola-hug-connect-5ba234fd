@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import logo from "@/assets/logo.png";
 import {
@@ -86,6 +87,11 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const avatarUrl = user?.user_metadata?.avatar_url;
+  const initials = fullName.slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -134,8 +140,23 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Logout button */}
-      <div className="mt-auto border-t border-sidebar-border p-2">
+      {/* User profile + Logout */}
+      <div className="mt-auto border-t border-sidebar-border p-2 space-y-1">
+        <div className="flex items-center gap-3 px-3 py-2">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={fullName} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
+              <span className="text-xs font-semibold text-primary">{initials}</span>
+            </div>
+          )}
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{fullName}</p>
+              <p className="text-[11px] text-sidebar-foreground/50 truncate">{user?.email}</p>
+            </div>
+          )}
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-colors"
