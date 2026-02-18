@@ -171,20 +171,25 @@ const Proxy = () => {
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Aviso sobre uso de Proxies
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-yellow-500" />
+              </div>
+              Atenção — Uso de Proxies
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+              <p className="text-sm font-semibold text-yellow-600 mb-1">⚠️ Use apenas proxies de qualidade!</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Proxies gratuitas, públicas ou de baixa qualidade podem causar <strong className="text-foreground">banimento permanente</strong> do seu número no WhatsApp.
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              O <strong className="text-foreground">DG Contingência Pro</strong> não se responsabiliza por banimentos ou bloqueios causados pelo uso de proxies de má qualidade.
+              Recomendamos <strong className="text-foreground">proxies residenciais ou móveis</strong> de fornecedores confiáveis. Evite proxies de datacenter compartilhadas.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Recomendamos fortemente o uso de <strong className="text-foreground">proxies residenciais ou móveis</strong> de fornecedores confiáveis para garantir a segurança das suas instâncias.
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Ao continuar, você declara estar ciente de que a qualidade da proxy é de sua total responsabilidade.
+              O <strong className="text-foreground">DG Contingência Pro</strong> não se responsabiliza por banimentos ou bloqueios causados pelo uso de proxies de má qualidade. A escolha e qualidade da proxy é de <strong className="text-foreground">total responsabilidade do usuário</strong>.
             </p>
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col">
@@ -196,7 +201,7 @@ const Proxy = () => {
                 className="mt-0.5"
               />
               <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                Estou ciente de que a qualidade das proxies é de minha total responsabilidade e que o DG Contingência Pro não se responsabiliza por banimentos.
+                Estou ciente e concordo que a qualidade das proxies é de minha total responsabilidade.
               </label>
             </div>
             <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
