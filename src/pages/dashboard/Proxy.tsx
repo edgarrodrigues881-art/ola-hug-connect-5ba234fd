@@ -180,14 +180,17 @@ const Proxy = () => {
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
               <p className="text-sm font-semibold text-yellow-600 mb-1">⚠️ Use apenas proxies de qualidade!</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Proxies gratuitas, públicas ou de baixa qualidade podem causar <strong className="text-foreground">banimento permanente</strong> do seu número no WhatsApp.
+                Proxies gratuitas, públicas ou de baixa qualidade podem causar <strong className="text-foreground">restrição ou banimento</strong> do número vinculado à proxy.
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Recomendamos <strong className="text-foreground">proxies residenciais ou móveis</strong> de fornecedores confiáveis. Evite proxies de datacenter compartilhadas.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              O <strong className="text-foreground">DG Contingência Pro</strong> não se responsabiliza por banimentos ou bloqueios causados pelo uso de proxies de má qualidade. A escolha e qualidade da proxy é de <strong className="text-foreground">total responsabilidade do usuário</strong>.
+              Sempre utilize proxy para <strong className="text-foreground">evitar cruzamento de dados</strong> e reduzir o risco de banimento das suas instâncias.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              O <strong className="text-foreground">DG Contingência Pro</strong> não se responsabiliza por restrições ou banimentos causados pelo uso de proxies de má qualidade. A escolha e qualidade da proxy é de <strong className="text-foreground">total responsabilidade do usuário</strong>.
             </p>
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col">
