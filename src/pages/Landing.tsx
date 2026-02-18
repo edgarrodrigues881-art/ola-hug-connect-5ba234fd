@@ -5,11 +5,13 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
+import GalacticParticles from "@/components/landing/GalacticParticles";
 
 const Landing = () => (
   <div className="landing-dark min-h-screen bg-background scroll-smooth relative overflow-hidden">
     {/* Galactic gradient background */}
     <div className="fixed inset-0 pointer-events-none z-0">
+      <GalacticParticles />
       <div
         className="absolute inset-0"
         style={{
