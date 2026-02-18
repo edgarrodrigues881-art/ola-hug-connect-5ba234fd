@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ interface Device {
   status: "Ready" | "Disconnected" | "Loading";
   login_type: string;
   proxy_id: string | null;
+  whapi_token: string | null;
 }
 
 const statusConfig = {
@@ -44,12 +45,14 @@ const Devices = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [loginType, setLoginType] = useState<"qr" | "phone" | "code">("qr");
   const [instanceName, setInstanceName] = useState("");
+  const [instanceToken, setInstanceToken] = useState("");
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editName, setEditName] = useState("");
   const [editNumber, setEditNumber] = useState("");
+  const [editToken, setEditToken] = useState("");
 
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -92,6 +95,7 @@ const Devices = () => {
         status: d.status as "Ready" | "Disconnected" | "Loading",
         login_type: d.login_type,
         proxy_id: d.proxy_id,
+        whapi_token: d.whapi_token || null,
       })) as Device[];
     },
     enabled: !!session,
@@ -132,11 +136,12 @@ const Devices = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (device: { name: string; login_type: string }) => {
+    mutationFn: async (device: { name: string; login_type: string; whapi_token?: string }) => {
       const { error } = await supabase.from("devices").insert({
         name: device.name,
         login_type: device.login_type,
         user_id: session?.user.id,
+        whapi_token: device.whapi_token || null,
       } as any);
       if (error) throw error;
     },
@@ -149,11 +154,9 @@ const Devices = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Find the device to check for proxy
       const device = devices.find(d => d.id === id);
       if (device?.proxy_id) {
         await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
-        // Unlink proxy first so RESTRICT doesn't block
         await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
       }
       const { error } = await supabase.from("devices").delete().eq("id", id);
@@ -185,9 +188,10 @@ const Devices = () => {
       toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ name: instanceName, login_type: loginType });
+    createMutation.mutate({ name: instanceName, login_type: loginType, whapi_token: instanceToken || undefined });
     setCreateOpen(false);
     setInstanceName("");
+    setInstanceToken("");
     setLoginType("qr");
   };
 
@@ -204,7 +208,6 @@ const Devices = () => {
     try {
       const inserts: any[] = [];
       let idx = 1;
-      // Instances with proxies
       for (const proxyId of bulkSelectedProxies) {
         inserts.push({
           name: `${bulkPrefix} ${idx}`,
@@ -214,7 +217,6 @@ const Devices = () => {
         });
         idx++;
       }
-      // Instances without proxy
       for (let i = 0; i < bulkNoProxyCount; i++) {
         inserts.push({
           name: `${bulkPrefix} ${idx}`,
@@ -247,7 +249,6 @@ const Devices = () => {
   const handleBulkDelete = async (ids: string[]) => {
     try {
       for (const id of ids) {
-        // Set proxy to USADA and unlink before deleting
         const device = devices.find(d => d.id === id);
         if (device?.proxy_id) {
           await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
@@ -256,7 +257,6 @@ const Devices = () => {
         const { error } = await supabase.from("devices").delete().eq("id", id);
         if (error) throw error;
       }
-      // Renumber remaining devices sequentially
       const { data: remaining } = await supabase
         .from("devices")
         .select("id, name")
@@ -287,6 +287,7 @@ const Devices = () => {
   const openEdit = (device: Device) => {
     setEditingDevice(device);
     setEditName(device.name);
+    setEditToken(device.whapi_token || "");
     setEditProxyValue(device.proxy_id || "none");
     setEditOpen(true);
   };
@@ -296,7 +297,7 @@ const Devices = () => {
     const proxyId = editProxyValue === "none" ? null : editProxyValue;
     updateMutation.mutate({
       id: editingDevice.id,
-      updates: { name: editName, proxy_id: proxyId },
+      updates: { name: editName, proxy_id: proxyId, whapi_token: editToken || null },
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -330,7 +331,14 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Set proxy status to USADA if linked
+    // Call Whapi logout if token exists
+    if (loggingOutDevice.whapi_token) {
+      try {
+        await callWhapi({ action: "logout", deviceId: loggingOutDevice.id });
+      } catch (err) {
+        console.error("Logout API error:", err);
+      }
+    }
     if (loggingOutDevice.proxy_id) {
       await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", loggingOutDevice.proxy_id);
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
@@ -344,8 +352,8 @@ const Devices = () => {
     setLoggingOutDevice(null);
   };
 
-  // Helper to call evolution-connect edge function
-  const callEvolution = async (body: Record<string, any>) => {
+  // Helper to call evolution-connect edge function (now Whapi)
+  const callWhapi = async (body: Record<string, any>) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Not authenticated");
     const response = await supabase.functions.invoke("evolution-connect", {
@@ -364,17 +372,18 @@ const Devices = () => {
     }
   };
 
-  // Poll connection status
-  const startPolling = (deviceName: string, deviceId: string, proxyId: string | null) => {
+  // Poll connection status via Whapi
+  const startPolling = (deviceId: string, proxyId: string | null) => {
     stopPolling();
     const interval = setInterval(async () => {
       try {
-        const result = await callEvolution({ action: "status", instanceName: deviceName });
-        const state = result?.instance?.state || result?.state;
-        if (state === "open") {
+        const result = await callWhapi({ action: "status", deviceId });
+        // Whapi returns status field: "authenticated" means connected
+        const whapiStatus = result?.status;
+        if (whapiStatus === "authenticated") {
           clearInterval(interval);
           setPollingInterval(null);
-          // Sync the device info
+          // Sync all devices
           const { data: { session: s } } = await supabase.auth.getSession();
           if (s) {
             await supabase.functions.invoke("sync-devices", {
@@ -384,7 +393,7 @@ const Devices = () => {
           queryClient.invalidateQueries({ queryKey: ["devices"] });
           queryClient.invalidateQueries({ queryKey: ["proxies"] });
           setConnectStep("done");
-          toast({ title: "Conectado!", description: `${deviceName} conectado com sucesso!` });
+          toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -395,6 +404,10 @@ const Devices = () => {
 
   // Connect
   const openConnect = (device: Device) => {
+    if (!device.whapi_token) {
+      toast({ title: "Token Whapi não configurado", description: "Edite a instância e adicione o token Whapi antes de conectar.", variant: "destructive" });
+      return;
+    }
     setConnectingDevice(device);
     setConnectStep("choose");
     setQrCodeBase64("");
@@ -414,10 +427,8 @@ const Devices = () => {
 
   const handleConfirmProxy = async () => {
     if (!connectingDevice) return;
-    const deviceName = connectingDevice.name;
     const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
 
-    // Update proxy on the device
     if (proxyId) {
       await supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id);
       await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
@@ -428,34 +439,39 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // 1. Create instance on Evolution API (if not exists)
-      await callEvolution({ action: "create", instanceName: deviceName });
-
-      // 2. Wait a bit for instance to initialize
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // 3. Poll for QR code on client side (no edge function timeout issues)
+      // Call Whapi to get QR code
       let qrFound = false;
-      for (let attempt = 1; attempt <= 10; attempt++) {
-        console.log(`QR poll attempt ${attempt}/10`);
+      for (let attempt = 1; attempt <= 8; attempt++) {
+        console.log(`QR poll attempt ${attempt}/8`);
         try {
-          const connectResult = await callEvolution({
+          const connectResult = await callWhapi({
             action: "connect",
-            instanceName: deviceName,
+            deviceId: connectingDevice.id,
           });
 
+          // Already connected
+          if (connectResult.alreadyConnected) {
+            setConnectStep("done");
+            toast({ title: "Já conectado!", description: "Esta instância já está autenticada." });
+            // Sync
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s) {
+              await supabase.functions.invoke("sync-devices", {
+                headers: { Authorization: `Bearer ${s.access_token}` },
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: ["devices"] });
+            return;
+          }
+
           if (connectResult.base64) {
-            setQrCodeBase64(connectResult.base64);
+            const b64 = connectResult.base64;
+            setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
             qrFound = true;
             break;
           }
-          if (connectResult.pairingCode) {
-            setPairingCode(connectResult.pairingCode);
-            qrFound = true;
-            break;
-          }
-          if (connectResult.code) {
-            setPairingCode(connectResult.code);
+          if (connectResult.qr) {
+            setQrCodeBase64(connectResult.qr.startsWith("data:") ? connectResult.qr : `data:image/png;base64,${connectResult.qr}`);
             qrFound = true;
             break;
           }
@@ -463,19 +479,18 @@ const Devices = () => {
           console.log(`QR poll attempt ${attempt} error:`, e);
         }
 
-        // Wait before next attempt (increasing delay)
         await new Promise(resolve => setTimeout(resolve, 2000 + attempt * 500));
       }
 
       if (!qrFound) {
-        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Tente novamente.");
+        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique o token Whapi.");
       }
 
-      // 4. Start polling for connection status
-      startPolling(deviceName, connectingDevice.id, proxyId);
+      // Start polling for connection status
+      startPolling(connectingDevice.id, proxyId);
     } catch (err: any) {
       console.error("Connect error:", err);
-      setConnectError(err?.message || "Erro ao conectar com a Evolution API");
+      setConnectError(err?.message || "Erro ao conectar com a Whapi");
       toast({ title: "Erro ao gerar QR Code", description: err?.message, variant: "destructive" });
     }
   };
@@ -486,7 +501,7 @@ const Devices = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dispositivos ({devices.length})</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
+          <p className="text-sm text-muted-foreground">Gerencie seus números conectados via Whapi</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {selectedDevices.length > 0 && (
@@ -538,12 +553,12 @@ const Devices = () => {
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
 
                 toast({
-                  title: "Sincronizado com Evolution API!",
+                  title: "Sincronizado com Whapi!",
                   description: `${found} instância(s) encontrada(s), ${notFound} não encontrada(s), ${proxiesUpdated} proxy(s) atualizada(s).`,
                 });
               } catch (err: any) {
                 console.error("Sync error:", err);
-                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique a configuração da API.", variant: "destructive" });
+                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique os tokens Whapi.", variant: "destructive" });
               } finally {
                 setSyncLoading(false);
               }
@@ -618,6 +633,14 @@ const Devices = () => {
                   Status: {d.status === "Ready" ? "conectado" : d.status === "Loading" ? "carregando..." : "desconectado"}
                 </p>
 
+                {/* Token info */}
+                <div className="flex items-center gap-2">
+                  <Key className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {d.whapi_token ? `Token: ...${d.whapi_token.slice(-8)}` : "Sem token Whapi"}
+                  </span>
+                </div>
+
                 {/* Proxy info */}
                 <div className="flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-muted-foreground" />
@@ -658,6 +681,11 @@ const Devices = () => {
               <Label className="text-xs text-destructive">*Nome da instância</Label>
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Token Whapi (canal)</Label>
+              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Cole o token do canal Whapi aqui" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Obtenha o token no painel da Whapi.cloud → Canais → Token do canal</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
@@ -676,6 +704,11 @@ const Devices = () => {
             <div className="space-y-2">
               <Label className="text-xs">Nome da instância</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Token Whapi</Label>
+              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Token do canal Whapi" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Token do canal na Whapi.cloud</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
@@ -825,7 +858,7 @@ const Devices = () => {
             <div className="flex flex-col items-center gap-4 py-4">
               {qrCodeBase64 ? (
                 <img
-                  src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
+                  src={qrCodeBase64}
                   alt="QR Code"
                   className="w-56 h-56 rounded-xl border border-border"
                 />

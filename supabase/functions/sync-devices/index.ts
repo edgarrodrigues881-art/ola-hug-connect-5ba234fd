@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const WHAPI_BASE = "https://gate.whapi.cloud";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,30 +39,6 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "Evolution API not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
-
-    // Fetch all instances from Evolution API
-    const evoResponse = await fetch(`${baseUrl}/instance/fetchInstances`, {
-      headers: { apikey: EVOLUTION_API_KEY },
-    });
-
-    if (!evoResponse.ok) {
-      const errText = await evoResponse.text();
-      throw new Error(`Evolution API error [${evoResponse.status}]: ${errText}`);
-    }
-
-    const instances = await evoResponse.json();
-
     // Get user's devices
     const { data: devices, error: devError } = await supabase
       .from("devices")
@@ -69,72 +47,80 @@ Deno.serve(async (req) => {
 
     if (devError) throw devError;
 
-    // Build map of Evolution instances by name
-    const evoMap: Record<string, any> = {};
-    for (const inst of (Array.isArray(instances) ? instances : [])) {
-      const name = inst.instance?.instanceName || inst.instanceName;
-      if (name) evoMap[name] = inst;
-    }
-
     const results: any[] = [];
 
     for (const device of (devices || [])) {
-      const evoInstance = evoMap[device.name];
-      if (!evoInstance) {
-        // Instance not found in Evolution API - mark as disconnected
-        results.push({ id: device.id, name: device.name, found: false });
-        await supabase
-          .from("devices")
-          .update({ status: "Disconnected", number: "" } as any)
-          .eq("id", device.id);
+      // Skip devices without whapi_token
+      if (!device.whapi_token) {
+        results.push({ id: device.id, name: device.name, found: false, reason: "no_token" });
         continue;
       }
 
-      // Extract info from the Evolution API response
-      const instanceData = evoInstance.instance || evoInstance;
-      const state = instanceData.state || instanceData.status || "close";
-      const ownerJid = instanceData.owner || instanceData.ownerJid || "";
-      const profilePicUrl = instanceData.profilePictureUrl || instanceData.profilePicUrl || "";
-      const profileName = instanceData.profileName || instanceData.pushName || "";
+      try {
+        // Check channel status via /users/me
+        const res = await fetch(`${WHAPI_BASE}/users/me`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${device.whapi_token}`,
+            "Accept": "application/json",
+          },
+        });
 
-      // Parse phone number from ownerJid (format: 5511999999999@s.whatsapp.net)
-      let phoneNumber = "";
-      if (ownerJid) {
-        const match = ownerJid.match(/^(\d+)@/);
-        if (match) {
-          const raw = match[1];
-          // Format as +XX XX XXXXX-XXXX for BR numbers
+        if (!res.ok) {
+          results.push({ id: device.id, name: device.name, found: false, reason: "api_error" });
+          await supabase
+            .from("devices")
+            .update({ status: "Disconnected", number: "" } as any)
+            .eq("id", device.id);
+          continue;
+        }
+
+        const data = await res.json();
+        
+        // Extract phone number and status from Whapi response
+        const phone = data.phone || "";
+        const pushName = data.pushname || data.name || "";
+        const status = data.status;
+        
+        // Determine connection status
+        // Whapi statuses: "loading", "authenticated", "got qr code", "not launched"
+        const isConnected = status === "authenticated" || status === "loading";
+        const newStatus = isConnected ? "Ready" : "Disconnected";
+
+        // Format phone number
+        let formattedPhone = "";
+        if (phone) {
+          const raw = phone.replace(/\D/g, "");
           if (raw.startsWith("55") && raw.length >= 12) {
-            phoneNumber = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          } else {
-            phoneNumber = `+${raw}`;
+            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          } else if (raw) {
+            formattedPhone = `+${raw}`;
           }
         }
-      }
 
-      const newStatus = state === "open" ? "Ready" : "Disconnected";
+        await supabase
+          .from("devices")
+          .update({
+            status: newStatus,
+            number: formattedPhone || device.number || "",
+          } as any)
+          .eq("id", device.id);
 
-      await supabase
-        .from("devices")
-        .update({
+        results.push({
+          id: device.id,
+          name: device.name,
+          found: true,
           status: newStatus,
-          number: phoneNumber || device.number || "",
-        } as any)
-        .eq("id", device.id);
-
-      results.push({
-        id: device.id,
-        name: device.name,
-        found: true,
-        status: newStatus,
-        phone: phoneNumber,
-        profilePic: profilePicUrl,
-        profileName: profileName,
-        state,
-      });
+          phone: formattedPhone,
+          pushName,
+        });
+      } catch (err) {
+        console.error(`Error syncing device ${device.name}:`, err);
+        results.push({ id: device.id, name: device.name, found: false, reason: "exception" });
+      }
     }
 
-    // Also sync proxy statuses
+    // Sync proxy statuses
     const { data: allDevicesAfter } = await supabase.from("devices").select("proxy_id").eq("user_id", userId);
     const { data: allProxies } = await supabase.from("proxies").select("id, status").eq("user_id", userId);
     const linkedProxyIds = new Set((allDevicesAfter || []).filter((d: any) => d.proxy_id).map((d: any) => d.proxy_id));

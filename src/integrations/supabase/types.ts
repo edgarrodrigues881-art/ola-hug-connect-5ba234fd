@@ -183,6 +183,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          whapi_token: string | null
         }
         Insert: {
           created_at?: string
@@ -194,6 +195,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          whapi_token?: string | null
         }
         Update: {
           created_at?: string
@@ -205,6 +207,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          whapi_token?: string | null
         }
         Relationships: [
           {
