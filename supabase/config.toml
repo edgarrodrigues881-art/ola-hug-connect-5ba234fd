@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.system-stats]
 verify_jwt = false
+
+[functions.sync-devices]
+verify_jwt = false
