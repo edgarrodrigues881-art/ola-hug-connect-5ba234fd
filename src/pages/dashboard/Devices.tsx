@@ -12,25 +12,18 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 interface Device {
   id: string;
   name: string;
   number: string;
   status: "Ready" | "Disconnected" | "Loading";
-  loginType: "qr" | "phone" | "code";
+  login_type: string;
+  proxy_id: string | null;
 }
-
-const initialDevices: Device[] = [
-  { id: "1", name: "instancehkhl6 xyz", number: "+55 11 9****-1234", status: "Ready", loginType: "qr" },
-  { id: "2", name: "instancehkhl6 xyz", number: "+55 11 9****-5678", status: "Ready", loginType: "qr" },
-  { id: "3", name: "instancehkhl6 xyz", number: "+55 21 9****-9012", status: "Ready", loginType: "phone" },
-  { id: "4", name: "instancehbb3h xyz", number: "", status: "Disconnected", loginType: "qr" },
-  { id: "5", name: "instancehbb3h xyz", number: "", status: "Disconnected", loginType: "code" },
-  { id: "6", name: "instancehbb3h xyz", number: "+55 31 9****-3456", status: "Ready", loginType: "qr" },
-];
 
 const statusConfig = {
   Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Ready", badgeClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
@@ -40,7 +33,8 @@ const statusConfig = {
 
 const Devices = () => {
   const { toast } = useToast();
-  const [devices, setDevices] = useState<Device[]>(initialDevices);
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -57,6 +51,27 @@ const Devices = () => {
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
   const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code" | "connecting" | "done">("choose");
+
+  // Fetch devices from database
+  const { data: devices = [] } = useQuery({
+    queryKey: ["devices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("devices")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        number: d.number || "",
+        status: d.status as "Ready" | "Disconnected" | "Loading",
+        login_type: d.login_type,
+        proxy_id: d.proxy_id,
+      })) as Device[];
+    },
+    enabled: !!session,
+  });
 
   // Fetch proxies from database
   const { data: dbProxies = [] } = useQuery({
@@ -85,27 +100,57 @@ const Devices = () => {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOutDevice, setLoggingOutDevice] = useState<Device | null>(null);
 
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: async (device: { name: string; login_type: string }) => {
+      const { error } = await supabase.from("devices").insert({
+        name: device.name,
+        login_type: device.login_type,
+        user_id: session?.user.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      toast({ title: "Instância criada" });
+    },
+    onError: () => toast({ title: "Erro ao criar instância", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("devices").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      toast({ title: "Instância removida" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
+      const { error } = await supabase.from("devices").update(updates as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+
   const handleCreate = () => {
     if (!instanceName.trim()) {
       toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
     }
-    setDevices(prev => [...prev, {
-      id: crypto.randomUUID(),
-      name: instanceName,
-      number: "",
-      status: "Disconnected",
-      loginType,
-    }]);
-    toast({ title: "Instância criada" });
+    createMutation.mutate({ name: instanceName, login_type: loginType });
     setCreateOpen(false);
     setInstanceName("");
     setLoginType("qr");
   };
 
   const handleDelete = (id: string) => {
-    setDevices(prev => prev.filter(d => d.id !== id));
-    toast({ title: "Instância removida" });
+    deleteMutation.mutate(id);
   };
 
   // Edit
@@ -118,9 +163,10 @@ const Devices = () => {
 
   const handleEdit = () => {
     if (!editingDevice || !editName.trim()) return;
-    setDevices(prev => prev.map(d =>
-      d.id === editingDevice.id ? { ...d, name: editName, number: editNumber } : d
-    ));
+    updateMutation.mutate({
+      id: editingDevice.id,
+      updates: { name: editName, number: editNumber },
+    });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
     setEditingDevice(null);
@@ -134,9 +180,10 @@ const Devices = () => {
 
   const handleLogout = () => {
     if (!loggingOutDevice) return;
-    setDevices(prev => prev.map(d =>
-      d.id === loggingOutDevice.id ? { ...d, status: "Disconnected" as const, number: "" } : d
-    ));
+    updateMutation.mutate({
+      id: loggingOutDevice.id,
+      updates: { status: "Disconnected", number: "" },
+    });
     toast({ title: "Desconectado", description: `${loggingOutDevice.name} foi desconectado.` });
     setLogoutOpen(false);
     setLoggingOutDevice(null);
@@ -151,7 +198,6 @@ const Devices = () => {
 
   const handleConnect = (method: "qr" | "code") => {
     setConnectMethod(method);
-    // Auto-rotate proxy: pick next available
     const currentIdx = availableProxies.findIndex(p => p.id === selectedProxy);
     const nextIdx = (currentIdx + 1) % availableProxies.length;
     setSelectedProxy(availableProxies[nextIdx]?.id || availableProxies[0]?.id || "");
@@ -161,16 +207,20 @@ const Devices = () => {
   const handleConfirmProxy = () => {
     setConnectStep(connectMethod);
 
-    // Simulate connection after delay
     setTimeout(() => {
       setConnectStep("connecting");
       setTimeout(() => {
         if (connectingDevice) {
-          setDevices(prev => prev.map(d =>
-            d.id === connectingDevice.id
-              ? { ...d, status: "Ready" as const, loginType: connectMethod, number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}` }
-              : d
-          ));
+          const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
+          updateMutation.mutate({
+            id: connectingDevice.id,
+            updates: {
+              status: "Ready",
+              login_type: connectMethod,
+              number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}`,
+              proxy_id: proxyId,
+            },
+          });
         }
         setConnectStep("done");
         const proxyLabel = availableProxies.find(p => p.id === selectedProxy)?.label || "Sem proxy";
@@ -200,7 +250,7 @@ const Devices = () => {
       {/* Device grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {devices.map((d) => {
-          const sc = statusConfig[d.status];
+          const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const StatusIcon = sc.icon;
           return (
             <Card key={d.id} className="glass-card">
