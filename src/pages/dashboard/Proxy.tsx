@@ -58,9 +58,15 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  const proxiesWithIndex = dbProxies.map((p: any, i: number) => ({
+  // Build a stable ID map based on creation order (never changes with filters)
+  const idToDisplayId = new Map<string, number>();
+  dbProxies.forEach((p: any, i: number) => {
+    idToDisplayId.set(p.id, i + 1);
+  });
+
+  const proxiesWithIndex = dbProxies.map((p: any) => ({
     ...p,
-    displayId: i + 1,
+    displayId: idToDisplayId.get(p.id) ?? 0,
     proxyStatus: p.status || "NOVA",
   }));
 
