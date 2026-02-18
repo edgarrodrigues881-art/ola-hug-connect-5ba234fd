@@ -431,23 +431,47 @@ const Devices = () => {
       // 1. Create instance on Evolution API (if not exists)
       await callEvolution({ action: "create", instanceName: deviceName });
 
-      // 2. Get QR code / pairing code
-      const connectResult = await callEvolution({
-        action: "connect",
-        instanceName: deviceName,
-      });
+      // 2. Wait a bit for instance to initialize
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (connectResult.base64) {
-        setQrCodeBase64(connectResult.base64);
-      }
-      if (connectResult.pairingCode) {
-        setPairingCode(connectResult.pairingCode);
-      }
-      if (connectResult.code) {
-        setPairingCode(connectResult.code);
+      // 3. Poll for QR code on client side (no edge function timeout issues)
+      let qrFound = false;
+      for (let attempt = 1; attempt <= 10; attempt++) {
+        console.log(`QR poll attempt ${attempt}/10`);
+        try {
+          const connectResult = await callEvolution({
+            action: "connect",
+            instanceName: deviceName,
+          });
+
+          if (connectResult.base64) {
+            setQrCodeBase64(connectResult.base64);
+            qrFound = true;
+            break;
+          }
+          if (connectResult.pairingCode) {
+            setPairingCode(connectResult.pairingCode);
+            qrFound = true;
+            break;
+          }
+          if (connectResult.code) {
+            setPairingCode(connectResult.code);
+            qrFound = true;
+            break;
+          }
+        } catch (e) {
+          console.log(`QR poll attempt ${attempt} error:`, e);
+        }
+
+        // Wait before next attempt (increasing delay)
+        await new Promise(resolve => setTimeout(resolve, 2000 + attempt * 500));
       }
 
-      // 3. Start polling for connection status
+      if (!qrFound) {
+        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Tente novamente.");
+      }
+
+      // 4. Start polling for connection status
       startPolling(deviceName, connectingDevice.id, proxyId);
     } catch (err: any) {
       console.error("Connect error:", err);
