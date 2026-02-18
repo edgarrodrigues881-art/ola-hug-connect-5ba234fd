@@ -27,17 +27,17 @@ const Proxy = () => {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Show disclaimer on first visit
+  // Show disclaimer on every visit for now (to test), then use localStorage
   useEffect(() => {
-    const accepted = localStorage.getItem(PROXY_DISCLAIMER_KEY);
-    if (!accepted) {
-      setDisclaimerOpen(true);
-    }
+    setDisclaimerOpen(true);
   }, []);
+
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
   const handleAcceptDisclaimer = () => {
     localStorage.setItem(PROXY_DISCLAIMER_KEY, "true");
     setDisclaimerOpen(false);
+    setDisclaimerChecked(false);
   };
 
   // Add manual
@@ -183,9 +183,20 @@ const Proxy = () => {
               Ao continuar, você declara estar ciente de que a qualidade da proxy é de sua total responsabilidade.
             </p>
           </div>
-          <DialogFooter>
-            <Button onClick={handleAcceptDisclaimer} className="w-full">
-              Estou ciente, continuar
+          <DialogFooter className="flex-col gap-3 sm:flex-col">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="disclaimer-check"
+                checked={disclaimerChecked}
+                onCheckedChange={(v) => setDisclaimerChecked(!!v)}
+                className="mt-0.5"
+              />
+              <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                Estou ciente de que a qualidade das proxies é de minha total responsabilidade e que o DG Contingência Pro não se responsabiliza por banimentos.
+              </label>
+            </div>
+            <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
+              Continuar
             </Button>
           </DialogFooter>
         </DialogContent>
