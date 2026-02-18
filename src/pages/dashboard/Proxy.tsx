@@ -171,28 +171,29 @@ const Proxy = () => {
           
           const parsed: any[] = [];
           for (const row of rows) {
-            if (!row || !Array.isArray(row) || row.length < 2) continue;
+            if (!row || !Array.isArray(row) || row.length < 1) continue;
             const vals = row.map((v: any) => String(v ?? "").trim());
             
-            // Skip header rows
+            // Skip header/empty rows
             const first = vals[0]?.toLowerCase();
-            if (first === "host" || first === "ip" || first === "proxy" || first === "servidor") continue;
+            if (!first || first === "host" || first === "ip" || first.includes("proxy") || first === "servidor") continue;
             
-            // Try parsing as "host:port:user:pass" in first cell
-            const combined = vals.join(":");
+            // Try parsing first cell as "host:port:user:pass"
             const fromParse = parseLine(vals[0]);
             if (fromParse) {
               parsed.push(fromParse);
               continue;
             }
             
-            // Columns: host, port, user, password
-            const host = vals[0] || "";
-            const port = vals[1] || "";
-            const username = vals[2] || "";
-            const password = vals[3] || "";
-            if (host && port) {
-              parsed.push({ host, port, username, password });
+            // Fallback: Columns: host, port, user, password
+            if (vals.length >= 2) {
+              const host = vals[0] || "";
+              const port = vals[1] || "";
+              const username = vals[2] || "";
+              const password = vals[3] || "";
+              if (host && port) {
+                parsed.push({ host, port, username, password });
+              }
             }
           }
           
