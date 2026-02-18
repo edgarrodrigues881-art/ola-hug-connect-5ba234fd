@@ -397,6 +397,20 @@ const Devices = () => {
         </div>
       </div>
 
+      {devices.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={selectedDevices.length === devices.length && devices.length > 0}
+            onCheckedChange={(checked) => {
+              setSelectedDevices(checked ? devices.map(d => d.id) : []);
+            }}
+          />
+          <span className="text-xs text-muted-foreground">
+            {selectedDevices.length === devices.length ? "Desmarcar todas" : "Selecionar todas"} ({selectedDevices.length}/{devices.length})
+          </span>
+        </div>
+      )}
+
       {/* Device grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {devices.map((d) => {
