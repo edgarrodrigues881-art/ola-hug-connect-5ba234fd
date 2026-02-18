@@ -62,6 +62,8 @@ const Devices = () => {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
   const [deleteDisconnectedOpen, setDeleteDisconnectedOpen] = useState(false);
+  const [deleteSingleOpen, setDeleteSingleOpen] = useState(false);
+  const [deleteSingleDevice, setDeleteSingleDevice] = useState<Device | null>(null);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -432,10 +434,17 @@ const Devices = () => {
                       <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(d.id)}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => {
+                      if (d.status === "Ready") {
+                        setDeleteSingleDevice(d);
+                        setDeleteSingleOpen(true);
+                      } else {
+                        handleDelete(d.id);
+                      }
+                    }}>
+                     <Trash2 className="w-3.5 h-3.5" />
+                   </Button>
+                 </div>
 
                 <div className="flex items-center gap-2">
                   <StatusIcon className={`w-4 h-4 ${sc.color}`} />
@@ -818,6 +827,22 @@ const Devices = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleBulkDelete(devices.filter(d => d.status === "Disconnected").map(d => d.id))}>
               Apagar desconectadas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete single connected device confirmation */}
+      <AlertDialog open={deleteSingleOpen} onOpenChange={setDeleteSingleOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Instância conectada</AlertDialogTitle>
+            <AlertDialogDescription>Esta instância está conectada. Tem certeza que deseja apagá-la?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => { if (deleteSingleDevice) handleDelete(deleteSingleDevice.id); setDeleteSingleDevice(null); }}>
+              Apagar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
