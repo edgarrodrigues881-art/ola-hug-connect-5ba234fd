@@ -63,6 +63,7 @@ const analyticsItems = [
 ];
 
 const systemItems = [
+  { title: "WhatsApp", url: "/dashboard/whatsapp", icon: MessageSquare },
   { title: "Integrações", url: "/dashboard/integrations", icon: Plug },
   { title: "Contexto", url: "/dashboard/context", icon: Cog },
   { title: "Configurações", url: "/dashboard/settings", icon: Settings },
