@@ -170,7 +170,7 @@ const Devices = () => {
     if (!editingDevice || !editName.trim()) return;
     updateMutation.mutate({
       id: editingDevice.id,
-      updates: { name: editName, number: editNumber },
+      updates: { name: editName },
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -375,10 +375,6 @@ const Devices = () => {
             <div className="space-y-2">
               <Label className="text-xs">Nome da instância</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Número</Label>
-              <Input value={editNumber} onChange={e => setEditNumber(e.target.value)} placeholder="+55 11 99999-9999" className="h-9 text-sm" />
             </div>
           </div>
           <DialogFooter>
