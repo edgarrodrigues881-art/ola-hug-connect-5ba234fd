@@ -166,22 +166,39 @@ Deno.serve(async (req) => {
           });
         }
         
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Try connect again
-        const retryRes = await fetch(url, { headers: evoHeaders });
-        const retryText = await retryRes.text();
-        console.log("RETRY CONNECT status:", retryRes.status);
-        console.log("RETRY CONNECT body (first 500):", retryText.substring(0, 500));
-        
-        let retryData;
-        try {
-          retryData = JSON.parse(retryText);
-        } catch {
-          throw new Error(`Retry connect non-JSON: ${retryText.substring(0, 200)}`);
+        // Retry connect with increasing delays (instance needs time to initialize)
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          const delay = attempt * 1500; // 1.5s, 3s, 4.5s, 6s, 7.5s
+          console.log(`RETRY CONNECT attempt ${attempt}, waiting ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          const retryRes = await fetch(url, { headers: evoHeaders });
+          const retryText = await retryRes.text();
+          console.log(`RETRY ${attempt} status:`, retryRes.status, "body:", retryText.substring(0, 500));
+          
+          let retryData;
+          try {
+            retryData = JSON.parse(retryText);
+          } catch {
+            continue; // try again
+          }
+          
+          if (retryData.base64) {
+            return new Response(JSON.stringify({ success: true, ...retryData }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (retryData.code) {
+            return new Response(JSON.stringify({ success: true, ...retryData }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
         
-        return new Response(JSON.stringify({ success: true, ...retryData }), {
+        // All retries failed
+        console.log("All retry attempts failed to get QR code");
+        return new Response(JSON.stringify({ success: false, error: "Não foi possível gerar o QR Code após várias tentativas. Tente novamente." }), {
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
