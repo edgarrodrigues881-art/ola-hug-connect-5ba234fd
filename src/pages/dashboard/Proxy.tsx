@@ -60,12 +60,11 @@ const Proxy = () => {
     refetchInterval: 5000,
   });
 
-  // Display IDs always follow sequential order 1,2,3... based on creation order
-  // They re-number after deletions but stay fixed on status changes
+  // Display IDs are persistent from the database (display_id column)
 
-  const proxiesWithIndex = dbProxies.map((p: any, i: number) => ({
+  const proxiesWithIndex = dbProxies.map((p: any) => ({
     ...p,
-    displayId: i + 1,
+    displayId: p.display_id || 0,
     proxyStatus: p.status || "NOVA",
   }));
 
@@ -76,7 +75,14 @@ const Proxy = () => {
   // Mutations
   const addMutation = useMutation({
     mutationFn: async (proxies: { host: string; port: string; username: string; password: string }[]) => {
-      const insertData = proxies.map((p) => ({ ...p, type: "HTTP", user_id: session?.user.id }));
+      // Get the current max display_id
+      const { data: maxData } = await supabase
+        .from("proxies")
+        .select("display_id")
+        .order("display_id", { ascending: false })
+        .limit(1);
+      const maxId = (maxData && maxData.length > 0 ? (maxData[0] as any).display_id : 0) || 0;
+      const insertData = proxies.map((p, i) => ({ ...p, type: "HTTP", user_id: session?.user.id, display_id: maxId + i + 1 }));
       const { error } = await supabase.from("proxies").insert(insertData as any);
       if (error) throw error;
     },
