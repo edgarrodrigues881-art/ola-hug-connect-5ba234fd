@@ -96,15 +96,15 @@ const Devices = () => {
         .from("proxies")
         .select("*")
         .eq("active", true)
-        .order("created_at", { ascending: true });
+        .order("display_id", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
-  const availableProxies = dbProxies.map((p, i) => ({
+  const availableProxies = dbProxies.map((p) => ({
     id: p.id,
-    label: `#${i + 1} - ${p.host}:${p.port}`,
+    label: `#${p.display_id} - ${p.host}:${p.port}`,
     host: p.host,
     port: p.port,
     status: p.status || "NOVA",
@@ -150,25 +150,12 @@ const Devices = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates, oldProxyId, newProxyId }: { id: string; updates: Record<string, any>; oldProxyId?: string | null; newProxyId?: string | null }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
       const { error } = await supabase.from("devices").update(updates as any).eq("id", id);
       if (error) throw error;
-      
-      // Update proxy statuses if proxy changed
-      if (oldProxyId && oldProxyId !== newProxyId) {
-        // Check if old proxy is still used by another device
-        const { data: otherDevices } = await supabase.from("devices").select("id").eq("proxy_id", oldProxyId).neq("id", id);
-        if (!otherDevices || otherDevices.length === 0) {
-          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", oldProxyId);
-        }
-      }
-      if (newProxyId && newProxyId !== oldProxyId) {
-        await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", newProxyId);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
     },
   });
 
@@ -218,11 +205,7 @@ const Devices = () => {
       }
       const { error } = await supabase.from("devices").insert(inserts);
       if (error) throw error;
-      for (const proxyId of bulkSelectedProxies) {
-        await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
-      }
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
       toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
       setBulkOpen(false);
     } catch {
@@ -242,20 +225,11 @@ const Devices = () => {
 
   const handleBulkDelete = async (ids: string[]) => {
     try {
-      // Release proxies used by these devices
-      const devicesToDelete = devices.filter(d => ids.includes(d.id) && d.proxy_id);
-      for (const d of devicesToDelete) {
-        const { data: otherDevices } = await supabase.from("devices").select("id").eq("proxy_id", d.proxy_id!).not("id", "in", `(${ids.join(",")})`);
-        if (!otherDevices || otherDevices.length === 0) {
-          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", d.proxy_id!);
-        }
-      }
       for (const id of ids) {
         const { error } = await supabase.from("devices").delete().eq("id", id);
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
       setSelectedDevices([]);
       toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
@@ -281,8 +255,6 @@ const Devices = () => {
     updateMutation.mutate({
       id: editingDevice.id,
       updates: { name: editName, proxy_id: proxyId },
-      oldProxyId: editingDevice.proxy_id,
-      newProxyId: proxyId,
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -356,8 +328,6 @@ const Devices = () => {
               number: `+55 ${Math.floor(10 + Math.random() * 89)} 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
               proxy_id: proxyId,
             },
-            oldProxyId: connectingDevice.proxy_id,
-            newProxyId: proxyId,
           });
         }
         setConnectStep("done");
