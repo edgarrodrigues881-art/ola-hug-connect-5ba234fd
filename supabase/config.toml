@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sync-devices]
 verify_jwt = false
+
+[functions.evolution-connect]
+verify_jwt = false
