@@ -315,12 +315,17 @@ const Proxy = () => {
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Cole uma ou mais proxies (host:porta:user:senha ou user:senha@host:porta)</Label>
-            <Input
-              placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
-              value={pasteInput}
-              onChange={(e) => handlePasteInput(e.target.value)}
-              className="font-mono text-xs"
-            />
+            <div className="flex gap-2">
+              <Input
+                placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
+                value={pasteInput}
+                onChange={(e) => handlePasteInput(e.target.value)}
+                className="font-mono text-xs flex-1"
+              />
+              <Button onClick={handleAdd} size="sm" className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white shrink-0">
+                ＋ Adicionar
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1">
