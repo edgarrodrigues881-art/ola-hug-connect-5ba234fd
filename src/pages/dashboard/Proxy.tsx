@@ -27,6 +27,7 @@ const Proxy = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(null);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -163,6 +164,24 @@ const Proxy = () => {
     );
   };
 
+  const handleExport = (status: "NOVA" | "USANDO" | "USADA") => {
+    const toExport = proxiesWithIndex.filter((p: any) => p.proxyStatus === status);
+    if (toExport.length === 0) {
+      toast.error(`Nenhuma proxy com status "${status}" para exportar`);
+      return;
+    }
+    const content = toExport.map((p: any) =>
+      p.username ? `${p.username}:${p.password}@${p.host}:${p.port}` : `${p.host}:${p.port}`
+    ).join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `proxies-${status.toLowerCase()}.txt`; a.click();
+    URL.revokeObjectURL(url);
+    setExportMenuOpen(false);
+    toast.success(`${toExport.length} proxy(s) "${status}" exportada(s)!`);
+  };
+
   const filterChips: StatusFilter[] = ["NOVA", "USANDO", "USADA"];
 
   const statusBadge = (s: string) => {
@@ -227,11 +246,32 @@ const Proxy = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".txt,.csv" className="hidden" onChange={handleImport} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
             📂 Importar
           </Button>
+          <div className="relative">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+              📤 Exportar
+            </Button>
+            {exportMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+                  {(["NOVA", "USANDO", "USADA"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleExport(s)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
