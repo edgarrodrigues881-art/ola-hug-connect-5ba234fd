@@ -41,7 +41,7 @@ const GalacticParticles = () => {
             height: p.size,
             left: `${p.x}%`,
             top: `${p.y}%`,
-            background: `hsl(${200 + Math.random() * 80} 80% 75%)`,
+            background: `hsl(${130 + Math.random() * 40} 70% 65%)`,
           }}
           animate={{
             x: [0, p.dx, -p.dx * 0.5, 0],
