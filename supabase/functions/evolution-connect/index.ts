@@ -37,6 +37,8 @@ Deno.serve(async (req) => {
 
     const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
     const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+    console.log("DEBUG EVOLUTION_API_URL:", EVOLUTION_API_URL?.substring(0, 20));
+    console.log("DEBUG EVOLUTION_API_KEY:", EVOLUTION_API_KEY?.substring(0, 10));
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       return new Response(
