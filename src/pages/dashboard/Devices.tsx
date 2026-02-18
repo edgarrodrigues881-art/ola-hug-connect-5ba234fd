@@ -100,6 +100,11 @@ const Devices = () => {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOutDevice, setLoggingOutDevice] = useState<Device | null>(null);
 
+  // Edit proxy dialog
+  const [editProxyOpen, setEditProxyOpen] = useState(false);
+  const [editProxyDevice, setEditProxyDevice] = useState<Device | null>(null);
+  const [editProxyValue, setEditProxyValue] = useState("");
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (device: { name: string; login_type: string }) => {
@@ -170,6 +175,25 @@ const Devices = () => {
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
     setEditingDevice(null);
+  };
+
+  // Edit proxy
+  const openEditProxy = (device: Device) => {
+    setEditProxyDevice(device);
+    setEditProxyValue(device.proxy_id || "none");
+    setEditProxyOpen(true);
+  };
+
+  const handleEditProxy = () => {
+    if (!editProxyDevice) return;
+    const proxyId = editProxyValue === "none" ? null : editProxyValue;
+    updateMutation.mutate({
+      id: editProxyDevice.id,
+      updates: { proxy_id: proxyId },
+    });
+    toast({ title: "Proxy atualizado" });
+    setEditProxyOpen(false);
+    setEditProxyDevice(null);
   };
 
   // Logout
@@ -252,6 +276,7 @@ const Devices = () => {
         {devices.map((d) => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const StatusIcon = sc.icon;
+          const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           return (
             <Card key={d.id} className="glass-card">
               <CardContent className="p-5 space-y-4">
@@ -268,7 +293,7 @@ const Devices = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{d.name}</p>
-                      {d.number && <p className="text-xs text-muted-foreground">{d.number}</p>}
+                      <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(d.id)}>
@@ -283,6 +308,17 @@ const Devices = () => {
                 <p className="text-xs text-muted-foreground">
                   Status: {d.status === "Ready" ? "conectado" : d.status === "Loading" ? "carregando..." : "desconectado"}
                 </p>
+
+                {/* Proxy info */}
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {assignedProxy ? assignedProxy.label : "Sem proxy"}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => openEditProxy(d)}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => openEdit(d)}>
@@ -368,7 +404,42 @@ const Devices = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Connect Dialog */}
+      {/* Edit Proxy Dialog */}
+      <Dialog open={editProxyOpen} onOpenChange={setEditProxyOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Proxy</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Alterar proxy de <span className="font-medium text-foreground">{editProxyDevice?.name}</span>
+            </p>
+            <Select value={editProxyValue} onValueChange={setEditProxyValue}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder="Selecionar proxy" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableProxies.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-3 h-3 text-primary" />
+                      {p.label}
+                    </div>
+                  </SelectItem>
+                ))}
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">Sem proxy</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditProxyOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditProxy} className="bg-primary hover:bg-primary/90">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={connectOpen} onOpenChange={(open) => { if (!open && connectStep !== "connecting") { setConnectOpen(false); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
