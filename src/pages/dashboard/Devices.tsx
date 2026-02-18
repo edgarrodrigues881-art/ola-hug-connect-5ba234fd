@@ -52,6 +52,7 @@ const Devices = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
+  const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -179,26 +180,42 @@ const Devices = () => {
       toast({ title: "Informe o prefixo do nome", variant: "destructive" });
       return;
     }
-    if (bulkSelectedProxies.length === 0) {
-      toast({ title: "Selecione ao menos uma proxy", variant: "destructive" });
+    const totalCount = bulkSelectedProxies.length + bulkNoProxyCount;
+    if (totalCount === 0) {
+      toast({ title: "Defina ao menos uma instância", variant: "destructive" });
       return;
     }
     try {
-      const inserts = bulkSelectedProxies.map((proxyId, idx) => ({
-        name: `${bulkPrefix} ${idx + 1}`,
-        login_type: "qr",
-        user_id: session?.user.id,
-        proxy_id: proxyId,
-      }));
-      const { error } = await supabase.from("devices").insert(inserts as any);
+      const inserts: any[] = [];
+      let idx = 1;
+      // Instances with proxies
+      for (const proxyId of bulkSelectedProxies) {
+        inserts.push({
+          name: `${bulkPrefix} ${idx}`,
+          login_type: "qr",
+          user_id: session?.user.id,
+          proxy_id: proxyId,
+        });
+        idx++;
+      }
+      // Instances without proxy
+      for (let i = 0; i < bulkNoProxyCount; i++) {
+        inserts.push({
+          name: `${bulkPrefix} ${idx}`,
+          login_type: "qr",
+          user_id: session?.user.id,
+          proxy_id: null,
+        });
+        idx++;
+      }
+      const { error } = await supabase.from("devices").insert(inserts);
       if (error) throw error;
-      // Update proxy statuses to USANDO
       for (const proxyId of bulkSelectedProxies) {
         await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
       }
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      toast({ title: `${bulkSelectedProxies.length} instâncias criadas` });
+      toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
       setBulkOpen(false);
     } catch {
       toast({ title: "Erro ao criar instâncias", variant: "destructive" });
@@ -324,7 +341,7 @@ const Devices = () => {
           <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => { setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); }}>
+          <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => { setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); setBulkNoProxyCount(0); }}>
             Instâncias em massa de porta
           </Button>
           <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => setCreateOpen(true)}>
@@ -683,11 +700,24 @@ const Devices = () => {
                 )}
               </div>
             </div>
+            <div>
+              <Label className="text-foreground mb-1 block">Sem proxy</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  value={bulkNoProxyCount}
+                  onChange={e => setBulkNoProxyCount(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-8 w-20 text-xs"
+                />
+                <span className="text-[11px] text-muted-foreground">instância{bulkNoProxyCount !== 1 ? "s" : ""} sem proxy</span>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancelar</Button>
-            <Button onClick={handleBulkCreate} disabled={bulkSelectedProxies.length === 0} className="bg-primary hover:bg-primary/90">
-              Criar {bulkSelectedProxies.length} instância{bulkSelectedProxies.length !== 1 ? "s" : ""}
+            <Button onClick={handleBulkCreate} disabled={bulkSelectedProxies.length + bulkNoProxyCount === 0} className="bg-primary hover:bg-primary/90">
+              Criar {bulkSelectedProxies.length + bulkNoProxyCount} instância{(bulkSelectedProxies.length + bulkNoProxyCount) !== 1 ? "s" : ""}
             </Button>
           </DialogFooter>
         </DialogContent>
