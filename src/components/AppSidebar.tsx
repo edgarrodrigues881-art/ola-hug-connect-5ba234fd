@@ -73,7 +73,7 @@ const crmItems = [
 ];
 
 const warmupItems = [
-  { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+  { title: "Aquecimento Automático", url: "/dashboard/warmup", icon: Flame },
   { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
 ];
 
