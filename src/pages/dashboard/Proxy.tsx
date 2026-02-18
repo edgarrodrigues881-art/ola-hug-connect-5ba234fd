@@ -115,9 +115,7 @@ const Proxy = () => {
       if (context?.previous) queryClient.setQueryData(["proxies"], context.previous);
       toast.error("Erro ao atualizar status");
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
-    },
+    onSettled: () => {},
     onSuccess: () => {},
   });
 
