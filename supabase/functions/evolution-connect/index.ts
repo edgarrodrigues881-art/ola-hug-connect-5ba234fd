@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.log("AUTH FAIL: no bearer token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -26,9 +27,9 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.log("AUTH FAIL: getUser error", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,6 +49,7 @@ Deno.serve(async (req) => {
     const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
     const body = await req.json();
     const { action, instanceName, phone, number, text } = body;
+    console.log("ACTION:", action, "INSTANCE:", instanceName);
 
     // Common headers for all Evolution API requests (includes ngrok bypass)
     const evoHeaders: Record<string, string> = {
@@ -98,14 +100,92 @@ Deno.serve(async (req) => {
 
     // ACTION: connect - Get QR code or pairing code
     if (action === "connect") {
+      // First, try to restart instance to reset state
+      try {
+        const restartRes = await fetch(
+          `${baseUrl}/instance/restart/${encodeURIComponent(instanceName)}`,
+          { method: "PUT", headers: evoHeaders }
+        );
+        console.log("RESTART status:", restartRes.status);
+        await restartRes.text(); // consume body
+      } catch (e) {
+        console.log("RESTART skip (may not exist):", e);
+      }
+
+      // Small delay to let instance restart
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       let url = `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`;
       if (phone) {
         url += `?number=${encodeURIComponent(phone)}`;
       }
 
+      console.log("CONNECT URL:", url);
       const evoRes = await fetch(url, { headers: evoHeaders });
 
-      const data = await evoRes.json();
+      const rawText = await evoRes.text();
+      console.log("CONNECT response status:", evoRes.status);
+      console.log("CONNECT response body (first 500):", rawText.substring(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Connect returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
+      }
+
+      // If no QR code returned (count:0), try deleting and recreating
+      if (!data.base64 && (!data.code) && (data.count === 0 || !data.qrcode)) {
+        console.log("No QR returned, trying delete+recreate flow");
+        
+        // Delete the instance
+        await fetch(
+          `${baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
+          { method: "DELETE", headers: evoHeaders }
+        );
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Recreate
+        const createRes = await fetch(`${baseUrl}/instance/create`, {
+          method: "POST",
+          headers: { ...evoHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instanceName,
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS",
+          }),
+        });
+        const createData = await createRes.json();
+        console.log("RECREATE status:", createRes.status);
+        
+        // If create returned a QR code directly
+        if (createData?.qrcode?.base64) {
+          return new Response(JSON.stringify({ success: true, base64: createData.qrcode.base64 }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Try connect again
+        const retryRes = await fetch(url, { headers: evoHeaders });
+        const retryText = await retryRes.text();
+        console.log("RETRY CONNECT status:", retryRes.status);
+        console.log("RETRY CONNECT body (first 500):", retryText.substring(0, 500));
+        
+        let retryData;
+        try {
+          retryData = JSON.parse(retryText);
+        } catch {
+          throw new Error(`Retry connect non-JSON: ${retryText.substring(0, 200)}`);
+        }
+        
+        return new Response(JSON.stringify({ success: true, ...retryData }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (!evoRes.ok) {
         throw new Error(`Connect failed [${evoRes.status}]: ${JSON.stringify(data)}`);
       }
