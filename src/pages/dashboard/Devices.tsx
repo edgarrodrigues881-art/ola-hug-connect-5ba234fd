@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +56,11 @@ const Devices = () => {
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
   const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
+
+  // Selection for bulk delete
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -232,6 +240,33 @@ const Devices = () => {
     deleteMutation.mutate(id);
   };
 
+  const handleBulkDelete = async (ids: string[]) => {
+    try {
+      // Release proxies used by these devices
+      const devicesToDelete = devices.filter(d => ids.includes(d.id) && d.proxy_id);
+      for (const d of devicesToDelete) {
+        const { data: otherDevices } = await supabase.from("devices").select("id").eq("proxy_id", d.proxy_id!).not("id", "in", `(${ids.join(",")})`);
+        if (!otherDevices || otherDevices.length === 0) {
+          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", d.proxy_id!);
+        }
+      }
+      for (const id of ids) {
+        const { error } = await supabase.from("devices").delete().eq("id", id);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+      setSelectedDevices([]);
+      toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
+    } catch {
+      toast({ title: "Erro ao remover instâncias", variant: "destructive" });
+    }
+  };
+
+  const toggleSelectDevice = (id: string) => {
+    setSelectedDevices(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   // Edit
   const openEdit = (device: Device) => {
     setEditingDevice(device);
@@ -340,9 +375,21 @@ const Devices = () => {
           <h1 className="text-2xl font-bold text-foreground">Dispositivos ({devices.length})</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {selectedDevices.length > 0 && (
+            <>
+              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setDeleteSelectedOpen(true)}>
+                <Trash2 className="w-3.5 h-3.5" /> Apagar {selectedDevices.length} selecionada{selectedDevices.length !== 1 ? "s" : ""}
+              </Button>
+            </>
+          )}
+          {devices.length > 0 && (
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="w-3.5 h-3.5" /> Apagar todas
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => { setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); setBulkNoProxyCount(0); }}>
-            Instâncias em massa de porta
+            Instâncias em massa
           </Button>
           <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => setCreateOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Criar instância
@@ -357,10 +404,15 @@ const Devices = () => {
           const StatusIcon = sc.icon;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           return (
-            <Card key={d.id} className="glass-card">
+            <Card key={d.id} className={`glass-card ${selectedDevices.includes(d.id) ? "ring-2 ring-primary" : ""}`}>
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedDevices.includes(d.id)}
+                      onCheckedChange={() => toggleSelectDevice(d.id)}
+                      className="mt-0.5"
+                    />
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 relative">
                       <Smartphone className="w-5 h-5 text-muted-foreground" />
                       {d.status === "Ready" && (
@@ -722,6 +774,38 @@ const Devices = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete selected confirmation */}
+      <AlertDialog open={deleteSelectedOpen} onOpenChange={setDeleteSelectedOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Apagar instâncias selecionadas</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja apagar {selectedDevices.length} instância{selectedDevices.length !== 1 ? "s" : ""}? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleBulkDelete(selectedDevices)}>
+              Apagar {selectedDevices.length}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete all confirmation */}
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Apagar todas as instâncias</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja apagar todas as {devices.length} instâncias? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleBulkDelete(devices.map(d => d.id))}>
+              Apagar todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
