@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const WHAPI_BASE = "https://gate.whapi.cloud";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,7 +16,6 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      console.log("AUTH FAIL: no bearer token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -29,96 +30,66 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      console.log("AUTH FAIL: getUser error", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+    const body = await req.json();
+    const { action, deviceId, whapiToken, number, text } = body;
+    console.log("ACTION:", action, "DEVICE:", deviceId);
 
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    // Get whapi token from body or from device record
+    let token = whapiToken;
+    if (!token && deviceId) {
+      const { data: device } = await supabase
+        .from("devices")
+        .select("whapi_token")
+        .eq("id", deviceId)
+        .single();
+      token = device?.whapi_token;
+    }
+
+    if (!token && action !== "checkToken") {
       return new Response(
-        JSON.stringify({ error: "Evolution API not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Token Whapi não configurado para este dispositivo" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, "");
-    const body = await req.json();
-    const { action, instanceName, phone, number, text } = body;
-    console.log("ACTION:", action, "INSTANCE:", instanceName);
-
-    // Common headers for all Evolution API requests (includes ngrok bypass)
-    const evoHeaders: Record<string, string> = {
-      apikey: EVOLUTION_API_KEY,
-      "ngrok-skip-browser-warning": "true",
+    const whapiHeaders = {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
     };
 
-    // ACTION: create - Create instance on Evolution API
-    if (action === "create") {
-      const createUrl = `${baseUrl}/instance/create`;
-      console.log("CREATE URL:", createUrl);
-      const evoRes = await fetch(createUrl, {
-        method: "POST",
-        headers: {
-          ...evoHeaders,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          instanceName,
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS",
-        }),
-      });
-
-      const rawText = await evoRes.text();
-      console.log("CREATE response status:", evoRes.status, "content-type:", evoRes.headers.get("content-type"));
-      console.log("CREATE response body (first 300):", rawText.substring(0, 300));
-      
-      let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        throw new Error(`Evolution API returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
-      }
-      if (!evoRes.ok) {
-        if (evoRes.status === 403 || evoRes.status === 409 || JSON.stringify(data).includes("already")) {
-          return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error(`Create instance failed [${evoRes.status}]: ${JSON.stringify(data)}`);
-      }
-
-      return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ACTION: connect - Get QR code (simple direct call like Evolution API docs)
+    // ACTION: connect - Get QR code for login
     if (action === "connect") {
-      const connectUrl = `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`;
-      console.log("CONNECT URL:", connectUrl);
-
-      const evoRes = await fetch(connectUrl, {
+      const res = await fetch(`${WHAPI_BASE}/users/login`, {
         method: "GET",
-        headers: {
-          ...evoHeaders,
-          "Content-Type": "application/json",
-        },
+        headers: whapiHeaders,
       });
 
-      const rawText = await evoRes.text();
-      console.log("CONNECT status:", evoRes.status, "body:", rawText.substring(0, 500));
+      const rawText = await res.text();
+      console.log("CONNECT status:", res.status, "body:", rawText.substring(0, 500));
 
       let data;
       try {
         data = JSON.parse(rawText);
       } catch {
-        throw new Error(`Connect returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
+        throw new Error(`Whapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
+      }
+
+      // 409 means already authenticated
+      if (res.status === 409) {
+        return new Response(JSON.stringify({ success: true, alreadyConnected: true, ...data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error(`Whapi connect failed [${res.status}]: ${JSON.stringify(data)}`);
       }
 
       return new Response(JSON.stringify({ success: true, ...data }), {
@@ -126,44 +97,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: status - Check connection state
+    // ACTION: status - Check connection state via /users/me
     if (action === "status") {
-      const evoRes = await fetch(
-        `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
-        { headers: evoHeaders }
-      );
+      const res = await fetch(`${WHAPI_BASE}/users/me`, {
+        method: "GET",
+        headers: whapiHeaders,
+      });
 
-      const data = await evoRes.json();
-      if (!evoRes.ok) {
-        throw new Error(`Status check failed [${evoRes.status}]: ${JSON.stringify(data)}`);
-      }
+      const data = await res.json();
+      console.log("STATUS:", res.status, JSON.stringify(data).substring(0, 300));
 
       return new Response(JSON.stringify({ success: true, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ACTION: logout - Disconnect instance
+    // ACTION: logout - Disconnect the channel
     if (action === "logout") {
-      const evoRes = await fetch(
-        `${baseUrl}/instance/logout/${encodeURIComponent(instanceName)}`,
-        { method: "DELETE", headers: evoHeaders }
-      );
-
-      const data = await evoRes.json();
-      return new Response(JSON.stringify({ success: true, ...data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const res = await fetch(`${WHAPI_BASE}/users/logout`, {
+        method: "POST",
+        headers: whapiHeaders,
       });
-    }
 
-    // ACTION: delete - Delete instance from Evolution API
-    if (action === "delete") {
-      const evoRes = await fetch(
-        `${baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
-        { method: "DELETE", headers: evoHeaders }
-      );
-
-      const data = await evoRes.json();
+      const data = await res.json();
       return new Response(JSON.stringify({ success: true, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -171,34 +127,57 @@ Deno.serve(async (req) => {
 
     // ACTION: sendText - Send text message
     if (action === "sendText") {
-      if (!instanceName || !number || !text) {
-        return new Response(JSON.stringify({ error: "instanceName, number and text are required" }), {
+      if (!number || !text) {
+        return new Response(JSON.stringify({ error: "number and text are required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const evoRes = await fetch(
-        `${baseUrl}/message/sendText/${encodeURIComponent(instanceName)}`,
-        {
-          method: "POST",
-          headers: { ...evoHeaders, "Content-Type": "application/json" },
-          body: JSON.stringify({ number, text }),
-        }
-      );
+      const res = await fetch(`${WHAPI_BASE}/messages/text`, {
+        method: "POST",
+        headers: whapiHeaders,
+        body: JSON.stringify({
+          to: number.replace(/\D/g, ""),
+          body: text,
+        }),
+      });
 
-      const rawText = await evoRes.text();
+      const rawText = await res.text();
       let data;
       try {
         data = JSON.parse(rawText);
       } catch {
-        throw new Error(`Evolution API returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
+        throw new Error(`Whapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
       }
-      if (!evoRes.ok) {
-        throw new Error(`sendText failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      if (!res.ok) {
+        throw new Error(`sendText failed [${res.status}]: ${JSON.stringify(data)}`);
       }
 
       return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: checkToken - Validate a Whapi token
+    if (action === "checkToken") {
+      if (!whapiToken) {
+        return new Response(JSON.stringify({ error: "whapiToken is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const res = await fetch(`${WHAPI_BASE}/settings`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${whapiToken}`,
+          "Accept": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      return new Response(JSON.stringify({ success: res.ok, status: res.status, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -208,7 +187,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Evolution connect error:", error);
+    console.error("Whapi error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
