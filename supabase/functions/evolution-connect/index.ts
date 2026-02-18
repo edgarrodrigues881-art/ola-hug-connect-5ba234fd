@@ -98,105 +98,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: connect - Get QR code or pairing code
+    // ACTION: connect - Get QR code (simple direct call like Evolution API docs)
     if (action === "connect") {
-      // Step 1: Always start clean - delete any existing instance
-      try {
-        const delRes = await fetch(
-          `${baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
-          { method: "DELETE", headers: evoHeaders }
-        );
-        console.log("PRE-DELETE status:", delRes.status);
-        await delRes.text();
-      } catch (e) {
-        console.log("PRE-DELETE skip:", e);
-      }
+      const connectUrl = `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`;
+      console.log("CONNECT URL:", connectUrl);
 
-      // Step 2: Wait for cleanup
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 3: Create fresh instance
-      const createRes = await fetch(`${baseUrl}/instance/create`, {
-        method: "POST",
-        headers: { ...evoHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instanceName,
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS",
-        }),
+      const evoRes = await fetch(connectUrl, {
+        method: "GET",
+        headers: {
+          ...evoHeaders,
+          "Content-Type": "application/json",
+        },
       });
-      const createText = await createRes.text();
-      console.log("FRESH CREATE status:", createRes.status, "body:", createText.substring(0, 500));
-      
-      let createData;
-      try { createData = JSON.parse(createText); } catch { createData = {}; }
-      
-      // Check if create returned QR directly
-      if (createData?.qrcode?.base64) {
-        console.log("QR from CREATE response!");
-        return new Response(JSON.stringify({ success: true, base64: createData.qrcode.base64 }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
-      // Step 4: Wait for instance to fully initialize
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const rawText = await evoRes.text();
+      console.log("CONNECT status:", evoRes.status, "body:", rawText.substring(0, 500));
 
-      // Step 5: Try connect with retries
-      let connectUrl = `${baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`;
-      if (phone) {
-        connectUrl += `?number=${encodeURIComponent(phone)}`;
-      }
-
-      for (let attempt = 1; attempt <= 6; attempt++) {
-        console.log(`CONNECT attempt ${attempt}/6`);
-        
-        const evoRes = await fetch(connectUrl, { headers: evoHeaders });
-        const rawText = await evoRes.text();
-        console.log(`CONNECT ${attempt} status:`, evoRes.status, "body:", rawText.substring(0, 500));
-
-        let data;
-        try { data = JSON.parse(rawText); } catch { data = {}; }
-
-        if (data.base64) {
-          console.log("QR CODE FOUND on attempt", attempt);
-          return new Response(JSON.stringify({ success: true, ...data }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (data.code || data.pairingCode) {
-          console.log("PAIRING CODE FOUND on attempt", attempt);
-          return new Response(JSON.stringify({ success: true, ...data }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Wait before next attempt (increasing delay)
-        if (attempt < 6) {
-          const delay = 2000 + (attempt * 1000);
-          console.log(`Waiting ${delay}ms before next attempt`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-
-      // All attempts failed
-      console.log("All 6 connect attempts failed");
-      return new Response(
-        JSON.stringify({ success: false, error: "Não foi possível gerar o QR Code. Verifique se a Evolution API está acessível e tente novamente." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // ACTION: status - Check connection state
-    if (action === "status") {
-      const evoRes = await fetch(
-        `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
-        { headers: evoHeaders }
-      );
-
-      const data = await evoRes.json();
-      if (!evoRes.ok) {
-        throw new Error(`Status check failed [${evoRes.status}]: ${JSON.stringify(data)}`);
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Connect returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
       }
 
       return new Response(JSON.stringify({ success: true, ...data }), {
