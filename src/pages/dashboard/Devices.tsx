@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,11 @@ const Devices = () => {
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editName, setEditName] = useState("");
   const [editNumber, setEditNumber] = useState("");
+
+  // Bulk create dialog
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPrefix, setBulkPrefix] = useState("Instância");
+  const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -168,6 +174,43 @@ const Devices = () => {
     setLoginType("qr");
   };
 
+  const handleBulkCreate = async () => {
+    if (!bulkPrefix.trim()) {
+      toast({ title: "Informe o prefixo do nome", variant: "destructive" });
+      return;
+    }
+    if (bulkSelectedProxies.length === 0) {
+      toast({ title: "Selecione ao menos uma proxy", variant: "destructive" });
+      return;
+    }
+    try {
+      const inserts = bulkSelectedProxies.map((proxyId, idx) => ({
+        name: `${bulkPrefix} ${idx + 1}`,
+        login_type: "qr",
+        user_id: session?.user.id,
+        proxy_id: proxyId,
+      }));
+      const { error } = await supabase.from("devices").insert(inserts as any);
+      if (error) throw error;
+      // Update proxy statuses to USANDO
+      for (const proxyId of bulkSelectedProxies) {
+        await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
+      }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+      toast({ title: `${bulkSelectedProxies.length} instâncias criadas` });
+      setBulkOpen(false);
+    } catch {
+      toast({ title: "Erro ao criar instâncias", variant: "destructive" });
+    }
+  };
+
+  const toggleBulkProxy = (proxyId: string) => {
+    setBulkSelectedProxies(prev =>
+      prev.includes(proxyId) ? prev.filter(id => id !== proxyId) : [...prev, proxyId]
+    );
+  };
+
   const handleDelete = (id: string) => {
     deleteMutation.mutate(id);
   };
@@ -281,7 +324,7 @@ const Devices = () => {
           <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90">
+          <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => { setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); }}>
             Instâncias em massa de porta
           </Button>
           <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => setCreateOpen(true)}>
@@ -563,6 +606,73 @@ const Devices = () => {
               <Button onClick={() => setConnectOpen(false)} className="bg-primary hover:bg-primary/90">Fechar</Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk create dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Instâncias em massa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-foreground">Prefixo do nome</Label>
+              <Input
+                value={bulkPrefix}
+                onChange={e => setBulkPrefix(e.target.value)}
+                placeholder="Ex: Instância"
+                className="mt-1"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Cada instância será nomeada como "{bulkPrefix} 1", "{bulkPrefix} 2", etc.</p>
+            </div>
+            <div>
+              <Label className="text-foreground mb-2 block">Selecione as proxies ({bulkSelectedProxies.length} selecionadas)</Label>
+              <div className="max-h-[240px] overflow-y-auto space-y-1 border border-border rounded-lg p-2">
+                {availableProxies.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma proxy disponível</p>
+                ) : (
+                  <>
+                    <div
+                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                      onClick={() => {
+                        if (bulkSelectedProxies.length === availableProxies.length) {
+                          setBulkSelectedProxies([]);
+                        } else {
+                          setBulkSelectedProxies(availableProxies.map(p => p.id));
+                        }
+                      }}
+                    >
+                      <Checkbox checked={bulkSelectedProxies.length === availableProxies.length} />
+                      <span className="text-xs font-medium text-foreground">Selecionar todas</span>
+                    </div>
+                    {availableProxies.map(p => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                        onClick={() => toggleBulkProxy(p.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox checked={bulkSelectedProxies.includes(p.id)} />
+                          <Shield className="w-3 h-3 text-primary" />
+                          <span className="text-xs text-foreground">{p.label}</span>
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                          {p.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+            <Button onClick={handleBulkCreate} disabled={bulkSelectedProxies.length === 0} className="bg-primary hover:bg-primary/90">
+              Criar {bulkSelectedProxies.length} instância{bulkSelectedProxies.length !== 1 ? "s" : ""}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
