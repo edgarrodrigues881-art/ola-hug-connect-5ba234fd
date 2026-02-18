@@ -99,11 +99,22 @@ const Proxy = () => {
       const { error } = await supabase.from("proxies").update({ status } as any).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      toast.success("Status atualizado!");
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["proxies"] });
+      const previous = queryClient.getQueryData(["proxies"]);
+      queryClient.setQueryData(["proxies"], (old: any[]) =>
+        old?.map((p: any) => (p.id === id ? { ...p, status } : p)) ?? []
+      );
+      return { previous };
     },
-    onError: () => toast.error("Erro ao atualizar status"),
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["proxies"], context.previous);
+      toast.error("Erro ao atualizar status");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    },
+    onSuccess: () => toast.success("Status atualizado!"),
   });
 
   // Parse
