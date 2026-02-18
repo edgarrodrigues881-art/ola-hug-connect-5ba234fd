@@ -37,8 +37,6 @@ Deno.serve(async (req) => {
 
     const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
     const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-    console.log("DEBUG EVOLUTION_API_URL:", EVOLUTION_API_URL?.substring(0, 20));
-    console.log("DEBUG EVOLUTION_API_KEY:", EVOLUTION_API_KEY?.substring(0, 10));
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
       return new Response(
@@ -51,13 +49,19 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, instanceName, phone } = body;
 
+    // Common headers for all Evolution API requests (includes ngrok bypass)
+    const evoHeaders: Record<string, string> = {
+      apikey: EVOLUTION_API_KEY,
+      "ngrok-skip-browser-warning": "true",
+    };
+
     // ACTION: create - Create instance on Evolution API
     if (action === "create") {
       const evoRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: {
+          ...evoHeaders,
           "Content-Type": "application/json",
-          apikey: EVOLUTION_API_KEY,
         },
         body: JSON.stringify({
           instanceName,
@@ -68,7 +72,6 @@ Deno.serve(async (req) => {
 
       const data = await evoRes.json();
       if (!evoRes.ok) {
-        // Instance might already exist, try to connect directly
         if (evoRes.status === 403 || evoRes.status === 409 || JSON.stringify(data).includes("already")) {
           return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,16 +92,13 @@ Deno.serve(async (req) => {
         url += `?number=${encodeURIComponent(phone)}`;
       }
 
-      const evoRes = await fetch(url, {
-        headers: { apikey: EVOLUTION_API_KEY },
-      });
+      const evoRes = await fetch(url, { headers: evoHeaders });
 
       const data = await evoRes.json();
       if (!evoRes.ok) {
         throw new Error(`Connect failed [${evoRes.status}]: ${JSON.stringify(data)}`);
       }
 
-      // Response contains: { base64, code, pairingCode, count }
       return new Response(JSON.stringify({ success: true, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     if (action === "status") {
       const evoRes = await fetch(
         `${baseUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`,
-        { headers: { apikey: EVOLUTION_API_KEY } }
+        { headers: evoHeaders }
       );
 
       const data = await evoRes.json();
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     if (action === "logout") {
       const evoRes = await fetch(
         `${baseUrl}/instance/logout/${encodeURIComponent(instanceName)}`,
-        { method: "DELETE", headers: { apikey: EVOLUTION_API_KEY } }
+        { method: "DELETE", headers: evoHeaders }
       );
 
       const data = await evoRes.json();
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     if (action === "delete") {
       const evoRes = await fetch(
         `${baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
-        { method: "DELETE", headers: { apikey: EVOLUTION_API_KEY } }
+        { method: "DELETE", headers: evoHeaders }
       );
 
       const data = await evoRes.json();
