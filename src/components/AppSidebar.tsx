@@ -17,6 +17,7 @@ import {
   Contact,
   Flame,
   Shield,
+  Save,
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +51,7 @@ const automationItems = [
 
 const contactItems = [
   { title: "Contatos", url: "/dashboard/contacts", icon: Users },
+  { title: "Número Auto Save", url: "/dashboard/auto-save", icon: Save },
   { title: "Cancelar Inscrição", url: "/dashboard/unsubscribe", icon: Ban },
   { title: "Filtro Numérico", url: "/dashboard/number-filter", icon: Filter },
   { title: "Capturador de Grupo", url: "/dashboard/group-capture", icon: UsersRound },
