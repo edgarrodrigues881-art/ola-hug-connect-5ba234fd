@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Device {
   id: string;
@@ -56,13 +58,27 @@ const Devices = () => {
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
   const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code" | "connecting" | "done">("choose");
 
-  // Proxy state
-  const availableProxies = [
-    { id: "1", label: "192.168.0.1:8080", host: "192.168.0.1", port: "8080" },
-    { id: "2", label: "10.0.0.5:3128", host: "10.0.0.5", port: "3128" },
-    { id: "3", label: "proxy.example.com:1080", host: "proxy.example.com", port: "1080" },
-  ];
-  const [selectedProxy, setSelectedProxy] = useState(availableProxies[0]?.id || "");
+  // Fetch proxies from database
+  const { data: dbProxies = [] } = useQuery({
+    queryKey: ["proxies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proxies")
+        .select("*")
+        .eq("active", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const availableProxies = dbProxies.map(p => ({
+    id: p.id,
+    label: `${p.host}:${p.port}`,
+    host: p.host,
+    port: p.port,
+  }));
+  const [selectedProxy, setSelectedProxy] = useState("");
   const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
 
   // Logout confirm dialog
