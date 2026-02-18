@@ -57,18 +57,10 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  const getStatus = (p: any): "NOVA" | "USANDO" | "USADA" => {
-    if (!p.active) return "USADA";
-    const created = new Date(p.created_at).getTime();
-    const updated = new Date(p.updated_at).getTime();
-    if (updated - created > 1000) return "USANDO";
-    return "NOVA";
-  };
-
   const proxiesWithIndex = dbProxies.map((p: any, i: number) => ({
     ...p,
     displayId: i + 1,
-    proxyStatus: getStatus(p),
+    proxyStatus: p.status || "NOVA",
   }));
 
   const filtered = statusFilter
@@ -103,21 +95,7 @@ const Proxy = () => {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "NOVA" | "USANDO" | "USADA" }) => {
-      const updates: any = {};
-      if (status === "USADA") {
-        updates.active = false;
-        updates.updated_at = new Date().toISOString();
-      } else if (status === "USANDO") {
-        updates.active = true;
-        updates.updated_at = new Date(Date.now() + 10000).toISOString();
-      } else {
-        updates.active = true;
-        updates.updated_at = new Date().toISOString();
-        // Reset updated_at to match created_at
-        const proxy = dbProxies.find((p: any) => p.id === id);
-        if (proxy) updates.updated_at = proxy.created_at;
-      }
-      const { error } = await supabase.from("proxies").update(updates).eq("id", id);
+      const { error } = await supabase.from("proxies").update({ status } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
