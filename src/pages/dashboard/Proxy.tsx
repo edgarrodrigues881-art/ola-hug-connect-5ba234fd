@@ -163,19 +163,45 @@ const Proxy = () => {
     if (ext === "xlsx" || ext === "xls") {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        const parsed = rows
-          .map((row: any[]) => {
-            if (!row || row.length < 2) return null;
-            const [host, port, username, password] = row.map(String);
-            return host && port ? { host, port: port || "", username: username || "", password: password || "" } : null;
-          })
-          .filter(Boolean) as any[];
-        if (parsed.length > 0) addMutation.mutate(parsed);
-        else toast.error("Nenhuma proxy válida encontrada no Excel");
+        try {
+          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+          
+          const parsed: any[] = [];
+          for (const row of rows) {
+            if (!row || !Array.isArray(row) || row.length < 2) continue;
+            const vals = row.map((v: any) => String(v ?? "").trim());
+            
+            // Skip header rows
+            const first = vals[0]?.toLowerCase();
+            if (first === "host" || first === "ip" || first === "proxy" || first === "servidor") continue;
+            
+            // Try parsing as "host:port:user:pass" in first cell
+            const combined = vals.join(":");
+            const fromParse = parseLine(vals[0]);
+            if (fromParse) {
+              parsed.push(fromParse);
+              continue;
+            }
+            
+            // Columns: host, port, user, password
+            const host = vals[0] || "";
+            const port = vals[1] || "";
+            const username = vals[2] || "";
+            const password = vals[3] || "";
+            if (host && port) {
+              parsed.push({ host, port, username, password });
+            }
+          }
+          
+          if (parsed.length > 0) addMutation.mutate(parsed);
+          else toast.error("Nenhuma proxy válida encontrada no Excel");
+        } catch (err) {
+          console.error("Erro ao ler Excel:", err);
+          toast.error("Erro ao ler arquivo Excel");
+        }
       };
       reader.readAsArrayBuffer(file);
     } else {
