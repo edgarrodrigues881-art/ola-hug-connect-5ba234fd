@@ -17,10 +17,40 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({
+        title: "Informe seu e-mail",
+        description: "Digite seu e-mail no campo acima antes de recuperar a senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: "E-mail enviado!",
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsLogin(searchParams.get("mode") !== "signup");
@@ -202,9 +232,11 @@ const Auth = () => {
             {isLogin && (
               <button
                 type="button"
+                onClick={handleForgotPassword}
+                disabled={forgotLoading}
                 className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 mt-1"
               >
-                Esqueceu sua senha?
+                {forgotLoading ? "Enviando..." : "Esqueceu sua senha?"}
               </button>
             )}
           </div>
