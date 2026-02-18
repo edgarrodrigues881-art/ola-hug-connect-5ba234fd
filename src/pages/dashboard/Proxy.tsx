@@ -59,9 +59,9 @@ const Proxy = () => {
     refetchInterval: 5000,
   });
 
-  const proxiesWithIndex = dbProxies.map((p: any) => ({
+  const proxiesWithIndex = dbProxies.map((p: any, index: number) => ({
     ...p,
-    displayId: p.display_id,
+    displayId: index + 1,
     proxyStatus: p.status || "NOVA",
   }));
 

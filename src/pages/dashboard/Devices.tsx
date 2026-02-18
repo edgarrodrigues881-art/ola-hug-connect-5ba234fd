@@ -106,9 +106,9 @@ const Devices = () => {
     },
   });
 
-  const availableProxies = dbProxies.map((p) => ({
+  const availableProxies = dbProxies.map((p, index) => ({
     id: p.id,
-    label: `#${p.display_id} - ${p.host}:${p.port}`,
+    label: `#${index + 1} - ${p.host}:${p.port}`,
     host: p.host,
     port: p.port,
     status: p.status || "NOVA",
