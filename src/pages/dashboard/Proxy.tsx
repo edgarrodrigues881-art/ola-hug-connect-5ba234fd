@@ -1,4 +1,13 @@
-import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,15 +15,31 @@ import { useAuth } from "@/lib/auth";
 
 type StatusFilter = "NOVA" | "USANDO" | "USADA" | null;
 
+const PROXY_DISCLAIMER_KEY = "proxy-disclaimer-accepted";
+
 const Proxy = () => {
+  const navigate = useNavigate();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const [form, setForm] = useState({ host: "", port: "", username: "", password: "" });
   const [pasteInput, setPasteInput] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(null);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch proxies from database
+  useEffect(() => {
+    if (!localStorage.getItem(PROXY_DISCLAIMER_KEY)) setDisclaimerOpen(true);
+  }, []);
+
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem(PROXY_DISCLAIMER_KEY, "true");
+    setDisclaimerOpen(false);
+    setDisclaimerChecked(false);
+  };
+
+  // Fetch proxies
   const { data: dbProxies = [] } = useQuery({
     queryKey: ["proxies"],
     queryFn: async () => {
@@ -28,11 +53,8 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  // Derive status: active = USANDO, not active = USADA, newly added (no usage yet) = NOVA
-  // For simplicity: active && never used as "NOVA", active && used = "USANDO", !active = "USADA"
   const getStatus = (p: any): "NOVA" | "USANDO" | "USADA" => {
     if (!p.active) return "USADA";
-    // If updated_at > created_at by more than 1s, consider it "USANDO"
     const created = new Date(p.created_at).getTime();
     const updated = new Date(p.updated_at).getTime();
     if (updated - created > 1000) return "USANDO";
@@ -52,11 +74,7 @@ const Proxy = () => {
   // Mutations
   const addMutation = useMutation({
     mutationFn: async (proxies: { host: string; port: string; username: string; password: string }[]) => {
-      const insertData = proxies.map((p) => ({
-        ...p,
-        type: "HTTP",
-        user_id: session?.user.id,
-      }));
+      const insertData = proxies.map((p) => ({ ...p, type: "HTTP", user_id: session?.user.id }));
       const { error } = await supabase.from("proxies").insert(insertData as any);
       if (error) throw error;
     },
@@ -79,43 +97,40 @@ const Proxy = () => {
     },
   });
 
-  // Parse proxy lines
+  // Parse
   const parseLine = (line: string) => {
+    const t = line.trim();
+    if (!t) return null;
     let host = "", port = "", username = "", password = "";
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-
-    if (trimmed.includes("@")) {
-      const [cred, hp] = trimmed.split("@");
+    if (t.includes("@")) {
+      const [cred, hp] = t.split("@");
       const c = cred.split(":");
-      username = c[0] || "";
-      password = c[1] || "";
+      username = c[0] || ""; password = c[1] || "";
       const h = hp?.split(":") || [];
-      host = h[0] || "";
-      port = h[1] || "";
+      host = h[0] || ""; port = h[1] || "";
     } else {
-      const p = trimmed.split(":");
-      host = p[0] || "";
-      port = p[1] || "";
-      username = p[2] || "";
-      password = p[3] || "";
+      const p = t.split(":");
+      host = p[0] || ""; port = p[1] || ""; username = p[2] || ""; password = p[3] || "";
     }
+    return host && port ? { host, port, username, password } : null;
+  };
 
-    if (host && port) return { host, port, username, password };
-    return null;
+  const handlePasteInput = (value: string) => {
+    setPasteInput(value);
+    const parsed = parseLine(value);
+    if (parsed && parsed.host && parsed.port) {
+      setForm(parsed);
+      setPasteInput("");
+    }
   };
 
   const handleAdd = () => {
-    const lines = pasteInput.split("\n").map((l) => l.trim()).filter(Boolean);
-    const parsed = lines.map(parseLine).filter(Boolean) as { host: string; port: string; username: string; password: string }[];
-
-    if (parsed.length === 0) {
-      toast.error("Nenhuma proxy válida encontrada");
+    if (!form.host || !form.port) {
+      toast.error("Preencha pelo menos Host e Porta");
       return;
     }
-
-    addMutation.mutate(parsed);
-    setPasteInput("");
+    addMutation.mutate([{ host: form.host, port: form.port, username: form.username, password: form.password }]);
+    setForm({ host: "", port: "", username: "", password: "" });
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,11 +142,8 @@ const Proxy = () => {
       if (!text) return;
       const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
       const parsed = lines.map(parseLine).filter(Boolean) as any[];
-      if (parsed.length > 0) {
-        addMutation.mutate(parsed);
-      } else {
-        toast.error("Nenhuma proxy válida encontrada");
-      }
+      if (parsed.length > 0) addMutation.mutate(parsed);
+      else toast.error("Nenhuma proxy válida encontrada");
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -140,48 +152,91 @@ const Proxy = () => {
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
+      n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
   };
 
   const selectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map((p: any) => p.id)));
-    }
-  };
-
-  const removeSelected = () => {
-    deleteMultipleMutation.mutate(Array.from(selectedIds));
-  };
-
-  const clearAll = () => {
-    deleteMultipleMutation.mutate(filtered.map((p: any) => p.id));
-  };
-
-  const statusColors: Record<string, string> = {
-    NOVA: "bg-slate-600 text-slate-200",
-    USANDO: "bg-emerald-600 text-emerald-100",
-    USADA: "bg-amber-600 text-amber-100",
+    setSelectedIds(
+      selectedIds.size === filtered.length ? new Set() : new Set(filtered.map((p: any) => p.id))
+    );
   };
 
   const filterChips: StatusFilter[] = ["NOVA", "USANDO", "USADA"];
 
+  const statusBadge = (s: string) => {
+    switch (s) {
+      case "USANDO":
+        return <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">USANDO</Badge>;
+      case "USADA":
+        return <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">USADA</Badge>;
+      default:
+        return <Badge variant="outline" className="text-[10px] text-muted-foreground">NOVA</Badge>;
+    }
+  };
+
   return (
-    <div className="space-y-4 animate-fade-up">
+    <div className="space-y-5 animate-fade-up">
+      {/* Disclaimer */}
+      <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
+        <DialogContent className="sm:max-w-lg backdrop-blur-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-foreground text-lg">
+              <div className="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+                <span className="text-yellow-500 text-lg">⚠</span>
+              </div>
+              Diretrizes para uso de Proxy
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-3">
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
+              <p className="text-sm font-medium text-yellow-500/90">Requisitos mínimos de qualidade</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Proxies gratuitas, compartilhadas ou de baixa reputação podem comprometer a estabilidade da instância.
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-1.5">
+              <p className="text-sm font-medium text-foreground/80">Termo de responsabilidade</p>
+              <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
+                <li>• Utilize proxies <strong className="text-foreground">residenciais ou móveis dedicadas</strong>.</li>
+                <li>• Evite proxies de datacenter compartilhadas.</li>
+                <li>• Uma proxy dedicada por instância.</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-3 sm:flex-col">
+            <div className="flex items-start gap-2">
+              <Checkbox id="disclaimer-check" checked={disclaimerChecked} onCheckedChange={(v) => setDisclaimerChecked(!!v)} className="mt-0.5" />
+              <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                Declaro estar ciente das diretrizes e assumir total responsabilidade.
+              </label>
+            </div>
+            <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
+              Confirmar e continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <span className="text-emerald-500">✓</span> Proxy
-        </h1>
-        <p className="text-sm text-muted-foreground">Gerencie suas proxies</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <span className="text-emerald-500">✓</span> Proxy
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
+        </div>
+        <div>
+          <input ref={fileInputRef} type="file" accept=".txt,.csv" className="hidden" onChange={handleImport} />
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+            📂 Importar
+          </Button>
+        </div>
       </div>
 
-      {/* Filter chips + Import */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Filter chips */}
+      <div className="flex items-center gap-2">
         {filterChips.map((chip) => (
           <button
             key={chip}
@@ -189,157 +244,132 @@ const Proxy = () => {
             className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
               statusFilter === chip
                 ? "bg-indigo-600 text-white"
-                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
             {chip}
           </button>
         ))}
-
-        <div className="ml-auto">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,.csv"
-            className="hidden"
-            onChange={handleImport}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 rounded text-xs font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
-          >
-            Importar
-          </button>
-        </div>
       </div>
 
-      {/* Paste input */}
-      <div className="border border-slate-700 rounded-lg overflow-hidden">
-        <textarea
-          value={pasteInput}
-          onChange={(e) => setPasteInput(e.target.value)}
-          placeholder="Cole aqui, uma por linha"
-          rows={3}
-          className="w-full bg-slate-800 text-sm text-foreground px-4 py-3 resize-none focus:outline-none placeholder:text-slate-500 font-mono"
-        />
-        <div className="flex justify-end px-3 py-2 bg-slate-800 border-t border-slate-700">
-          <button
-            onClick={handleAdd}
-            className="px-4 py-1.5 rounded text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
-          >
-            Adicionar
-          </button>
-        </div>
-      </div>
+      {/* Add form */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Adicionar Proxy</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Auto-preenchimento (cole host:porta:user:senha)</Label>
+            <Input
+              placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
+              value={pasteInput}
+              onChange={(e) => handlePasteInput(e.target.value)}
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Host</Label>
+              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Porta</Label>
+              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Usuário</Label>
+              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Senha</Label>
+              <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
+            </div>
+          </div>
+          <Button onClick={handleAdd} className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
+            ＋ Adicionar
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Bulk actions (only when selected) */}
+      {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">
-            {selectedIds.size} selecionada(s)
-          </span>
-          <button
-            onClick={removeSelected}
-            className="px-3 py-1.5 rounded text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
-          >
-            Remover
-          </button>
-          <button
-            onClick={clearAll}
-            className="px-3 py-1.5 rounded text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
-          >
-            Limpar tudo
-          </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">{selectedIds.size} selecionada(s)</span>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
+            🗑 Remover
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteMultipleMutation.mutate(filtered.map((p: any) => p.id))}>
+            ✕ Limpar tudo
+          </Button>
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
-        <div className="max-h-[60vh] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-800 border-b border-slate-700 z-10">
-              <tr>
-                <th className="w-10 px-3 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                    onChange={selectAll}
-                    className="rounded border-slate-600 accent-indigo-500"
-                  />
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-slate-400">
-                  ID
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-slate-400">
-                  Proxy
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-slate-400">
-                  Status
-                </th>
-                <th className="w-10 px-3 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-12 text-center text-sm text-slate-500">
-                    Nenhuma proxy cadastrada. Importe ou cole acima.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((proxy: any) => {
-                  const isSelected = selectedIds.has(proxy.id);
-                  return (
-                    <tr
-                      key={proxy.id}
-                      className={`border-b border-slate-700 last:border-0 transition-colors ${
-                        isSelected ? "bg-slate-700/50" : "hover:bg-slate-700/30"
-                      }`}
-                    >
-                      <td className="px-3 py-2.5">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelect(proxy.id)}
-                          className="rounded border-slate-600 accent-indigo-500"
-                        />
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">
-                        {proxy.displayId}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-foreground font-mono">
-                        {proxy.host}:{proxy.port}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            statusColors[proxy.proxyStatus]
-                          }`}
-                        >
-                          {proxy.proxyStatus}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        {isSelected && (
-                          <button
-                            onClick={() =>
-                              deleteMultipleMutation.mutate([proxy.id])
-                            }
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            title="Remover"
-                          >
-                            🗑
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Proxy table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Proxies ({filtered.length})</CardTitle>
+            {filtered.length > 0 && (
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={selectAll}>
+                {selectedIds.size === filtered.length ? "Desmarcar" : "Selecionar tudo"}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filtered.length === 0 ? (
+            <div className="text-center py-8 space-y-2">
+              <p className="text-sm text-muted-foreground">Nenhuma proxy cadastrada. Importe ou adicione acima.</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border">
+              <div className="max-h-[60vh] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead className="text-xs">ID</TableHead>
+                      <TableHead className="text-xs">Proxy</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((proxy: any) => {
+                      const isSelected = selectedIds.has(proxy.id);
+                      return (
+                        <TableRow key={proxy.id} className={isSelected ? "bg-primary/5" : ""}>
+                          <TableCell>
+                            <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(proxy.id)} />
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">
+                            {proxy.displayId}
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
+                          </TableCell>
+                          <TableCell>{statusBadge(proxy.proxyStatus)}</TableCell>
+                          <TableCell>
+                            {isSelected && (
+                              <button
+                                onClick={() => deleteMultipleMutation.mutate([proxy.id])}
+                                className="text-destructive hover:text-destructive/80 transition-colors text-sm"
+                                title="Remover"
+                              >
+                                🗑
+                              </button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
