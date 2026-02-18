@@ -70,7 +70,16 @@ Deno.serve(async (req) => {
         }),
       });
 
-      const data = await evoRes.json();
+      const rawText = await evoRes.text();
+      console.log("CREATE response status:", evoRes.status, "content-type:", evoRes.headers.get("content-type"));
+      console.log("CREATE response body (first 300):", rawText.substring(0, 300));
+      
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Evolution API returned non-JSON (status ${evoRes.status}): ${rawText.substring(0, 200)}`);
+      }
       if (!evoRes.ok) {
         if (evoRes.status === 403 || evoRes.status === 409 || JSON.stringify(data).includes("already")) {
           return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
