@@ -66,15 +66,15 @@ const Devices = () => {
         .from("proxies")
         .select("*")
         .eq("active", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
-  const availableProxies = dbProxies.map(p => ({
+  const availableProxies = dbProxies.map((p, i) => ({
     id: p.id,
-    label: `${p.host}:${p.port}`,
+    label: `#${i + 1} - ${p.host}:${p.port}`,
     host: p.host,
     port: p.port,
   }));
