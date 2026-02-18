@@ -29,9 +29,11 @@ const Proxy = () => {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Show disclaimer on every visit for now (to test), then use localStorage
   useEffect(() => {
-    setDisclaimerOpen(true);
+    const accepted = localStorage.getItem(PROXY_DISCLAIMER_KEY);
+    if (!accepted) {
+      setDisclaimerOpen(true);
+    }
   }, []);
 
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
