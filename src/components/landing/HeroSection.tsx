@@ -1,23 +1,50 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  const gridY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0px", "80px"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   return (
-    <section className="relative min-h-screen flex items-center bg-background">
-      {/* Subtle grid */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: `radial-gradient(circle at 1px 1px, hsl(220 10% 20% / 0.3) 1px, transparent 0)`,
-        backgroundSize: '40px 40px',
-      }} />
+    <section ref={sectionRef} className="relative min-h-screen flex items-center bg-background overflow-hidden">
+      {/* Parallax grid */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(220 10% 20% / 0.3) 1px, transparent 0)`,
+          backgroundSize: '40px 40px',
+          y: gridY,
+        }}
+      />
 
-      <div className="container relative z-10 py-20 lg:py-28">
+      {/* Parallax glow */}
+      <motion.div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse, hsl(var(--primary) / 0.06) 0%, transparent 70%)",
+          y: useTransform(scrollYProgress, [0, 1], ["0px", "120px"]),
+        }}
+      />
+
+      <motion.div
+        className="container relative z-10 py-20 lg:py-28"
+        style={{ y: contentY, opacity: contentOpacity }}
+      >
         <div className="max-w-4xl mx-auto text-center">
-        {/* Headline */}
+          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -65,7 +92,7 @@ const HeroSection = () => {
             </Button>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 };
