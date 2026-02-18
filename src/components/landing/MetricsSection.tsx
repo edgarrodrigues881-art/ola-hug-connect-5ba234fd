@@ -41,7 +41,7 @@ const MetricsSection = () => (
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: i * 0.1 }}
-            className="bg-secondary rounded-xl p-6 border border-border"
+            className="bg-secondary rounded-xl p-6 border border-border hover:border-primary/20 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5"
           >
             <metric.icon className="w-5 h-5 text-primary mb-4" />
             <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
