@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, KeyRound } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.png";
 
@@ -17,7 +17,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [authCode, setAuthCode] = useState("");
+  
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -92,7 +92,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center p-6 relative" style={{ backgroundColor: '#0F1115' }}>
       {/* Back button */}
       <button
-        onClick={() => navigate("/")}
+        onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
         className="absolute top-6 left-6 flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -229,25 +229,6 @@ const Auth = () => {
               </div>
             </div>
           )}
-
-          {/* Optional auth code */}
-          <div className="space-y-1.5">
-            <Label htmlFor="authCode" className="text-xs font-medium text-[#9CA3AF]">
-              Código de autenticação <span className="text-[#9CA3AF]/40">(opcional)</span>
-            </Label>
-            <div className="relative">
-              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-              <Input
-                id="authCode"
-                type="text"
-                placeholder="Digite o código, se tiver"
-                value={authCode}
-                onChange={(e) => setAuthCode(e.target.value)}
-                className={inputClass}
-                maxLength={10}
-              />
-            </div>
-          </div>
 
           <Button
             type="submit"
