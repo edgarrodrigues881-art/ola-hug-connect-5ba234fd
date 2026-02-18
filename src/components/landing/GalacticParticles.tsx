@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-const PARTICLE_COUNT = 35;
+const PARTICLE_COUNT = 18;
 
 const GalacticParticles = () => {
   const particles = useMemo(() => {
@@ -8,7 +8,7 @@ const GalacticParticles = () => {
       const size = Math.random() * 2.5 + 1;
       const x = Math.random() * 100;
       const y = Math.random() * 100;
-      const duration = Math.random() * 20 + 15;
+      const duration = Math.random() * 25 + 20;
       const delay = Math.random() * -30;
       const hue = 130 + Math.random() * 40;
       const opacity = Math.random() * 0.5 + 0.2;
@@ -17,11 +17,11 @@ const GalacticParticles = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden" style={{ contain: 'strict' }}>
       {particles.map((p) => (
         <div
           key={p.id}
-          className="absolute rounded-full will-change-transform"
+          className="absolute rounded-full"
           style={{
             width: p.size,
             height: p.size,
@@ -29,7 +29,8 @@ const GalacticParticles = () => {
             top: `${p.y}%`,
             background: `hsl(${p.hue} 70% 65%)`,
             opacity: p.opacity,
-            animation: `particle-float-${p.id % 4} ${p.duration}s ease-in-out ${p.delay}s infinite`,
+            animation: `particle-float-${p.id % 4} ${p.duration}s linear ${p.delay}s infinite`,
+            transform: 'translateZ(0)',
           }}
         />
       ))}
