@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -378,6 +379,43 @@ const Proxy = () => {
               </>
             )}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={async () => {
+              try {
+                // Get all proxies
+                const { data: allProxies } = await supabase.from("proxies").select("id, status");
+                // Get all devices with proxy linked
+                const { data: allDevices } = await supabase.from("devices").select("proxy_id");
+                const linkedProxyIds = new Set((allDevices || []).map(d => d.proxy_id).filter(Boolean));
+
+                let updated = 0;
+                for (const proxy of (allProxies || [])) {
+                  const isLinked = linkedProxyIds.has(proxy.id);
+                  let correctStatus: string;
+                  if (isLinked) {
+                    correctStatus = "USANDO";
+                  } else if (proxy.status === "USANDO") {
+                    correctStatus = "USADA";
+                  } else {
+                    correctStatus = proxy.status;
+                  }
+                  if (proxy.status !== correctStatus) {
+                    await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
+                    updated++;
+                  }
+                }
+                queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                toast.success(`Sincronizado! ${updated} proxy(s) atualizada(s).`);
+              } catch {
+                toast.error("Erro ao sincronizar");
+              }
+            }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+          </Button>
         </div>
       </div>
 
