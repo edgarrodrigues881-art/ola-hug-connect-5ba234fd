@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw,
 } from "lucide-react";
 
 interface Device {
@@ -52,7 +54,16 @@ const Devices = () => {
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
-  const [connectStep, setConnectStep] = useState<"choose" | "qr" | "code" | "connecting" | "done">("choose");
+  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code" | "connecting" | "done">("choose");
+
+  // Proxy state
+  const availableProxies = [
+    { id: "1", label: "192.168.0.1:8080", host: "192.168.0.1", port: "8080" },
+    { id: "2", label: "10.0.0.5:3128", host: "10.0.0.5", port: "3128" },
+    { id: "3", label: "proxy.example.com:1080", host: "proxy.example.com", port: "1080" },
+  ];
+  const [selectedProxy, setSelectedProxy] = useState(availableProxies[0]?.id || "");
+  const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
 
   // Logout confirm dialog
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -123,7 +134,16 @@ const Devices = () => {
   };
 
   const handleConnect = (method: "qr" | "code") => {
-    setConnectStep(method === "qr" ? "qr" : "code");
+    setConnectMethod(method);
+    // Auto-rotate proxy: pick next available
+    const currentIdx = availableProxies.findIndex(p => p.id === selectedProxy);
+    const nextIdx = (currentIdx + 1) % availableProxies.length;
+    setSelectedProxy(availableProxies[nextIdx]?.id || availableProxies[0]?.id || "");
+    setConnectStep("proxy");
+  };
+
+  const handleConfirmProxy = () => {
+    setConnectStep(connectMethod);
 
     // Simulate connection after delay
     setTimeout(() => {
@@ -132,12 +152,13 @@ const Devices = () => {
         if (connectingDevice) {
           setDevices(prev => prev.map(d =>
             d.id === connectingDevice.id
-              ? { ...d, status: "Ready" as const, loginType: method, number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}` }
+              ? { ...d, status: "Ready" as const, loginType: connectMethod, number: `+55 ${Math.floor(10 + Math.random() * 89)} 9****-${Math.floor(1000 + Math.random() * 9000)}` }
               : d
           ));
         }
         setConnectStep("done");
-        toast({ title: "Conectado!", description: "Instância conectada com sucesso." });
+        const proxyLabel = availableProxies.find(p => p.id === selectedProxy)?.label || "Sem proxy";
+        toast({ title: "Conectado!", description: `Instância conectada via proxy ${proxyLabel}.` });
       }, 2000);
     }, 3000);
   };
@@ -307,6 +328,7 @@ const Devices = () => {
           <DialogHeader>
             <DialogTitle>
               {connectStep === "choose" && "Conectar instância"}
+              {connectStep === "proxy" && "Confirmar Proxy"}
               {connectStep === "qr" && "Escaneie o QR Code"}
               {connectStep === "code" && "Código de emparelhamento"}
               {connectStep === "connecting" && "Conectando..."}
@@ -325,6 +347,61 @@ const Devices = () => {
                 <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => handleConnect("code")}>
                   <Link2 className="w-6 h-6 text-primary" />
                   <span className="text-xs">Código</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {connectStep === "proxy" && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Shield className="w-5 h-5 text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Proxy atribuído automaticamente</p>
+                  <p className="text-xs text-muted-foreground">Você pode confirmar, trocar ou remover antes de conectar.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Proxy selecionado</Label>
+                <Select value={selectedProxy} onValueChange={setSelectedProxy}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Selecionar proxy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProxies.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-3 h-3 text-primary" />
+                          {p.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">Sem proxy</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedProxy && selectedProxy !== "none" && (
+                <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-1">
+                  <p className="text-xs text-muted-foreground">Detalhes do proxy:</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {availableProxies.find(p => p.id === selectedProxy)?.label}
+                  </p>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {connectMethod === "qr" ? "QR Code" : "Código"} + Proxy
+                  </Badge>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <Button variant="outline" className="flex-1 gap-1.5 text-xs" onClick={() => setConnectStep("choose")}>
+                  Voltar
+                </Button>
+                <Button className="flex-1 gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={handleConfirmProxy}>
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar e conectar
                 </Button>
               </div>
             </div>
