@@ -28,6 +28,7 @@ const Proxy = () => {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -338,9 +339,23 @@ const Proxy = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
             🗑 Remover
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteMultipleMutation.mutate(filtered.map((p: any) => p.id))}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setClearAllConfirmOpen(true)}>
             ✕ Limpar tudo
           </Button>
+
+          {/* Confirmação de Limpar tudo */}
+          <Dialog open={clearAllConfirmOpen} onOpenChange={setClearAllConfirmOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Tem certeza?</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">Todas as proxies serão removidas permanentemente. Esta ação não pode ser desfeita.</p>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => setClearAllConfirmOpen(false)}>Cancelar</Button>
+                <Button variant="destructive" size="sm" onClick={() => { deleteMultipleMutation.mutate(filtered.map((p: any) => p.id)); setClearAllConfirmOpen(false); }}>Sim, limpar tudo</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
