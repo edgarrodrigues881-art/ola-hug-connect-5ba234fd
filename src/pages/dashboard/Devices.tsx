@@ -347,6 +347,12 @@ const Devices = () => {
               proxy_id: proxyId,
             },
           });
+          // Update proxy status to USANDO
+          if (proxyId) {
+            supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId).then(() => {
+              queryClient.invalidateQueries({ queryKey: ["proxies"] });
+            });
+          }
         }
         setConnectStep("done");
         const proxyLabel = availableProxies.find(p => p.id === selectedProxy)?.label || "Sem proxy";
