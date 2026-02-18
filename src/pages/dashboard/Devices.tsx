@@ -74,7 +74,8 @@ const Devices = () => {
       const { data, error } = await supabase
         .from("devices")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
       if (error) throw error;
       return (data || []).map((d: any) => ({
         id: d.id,
