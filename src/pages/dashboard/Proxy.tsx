@@ -57,6 +57,7 @@ const Proxy = () => {
       return (data || []) as any[];
     },
     enabled: !!session,
+    refetchInterval: 5000,
   });
 
   // Display IDs always follow sequential order 1,2,3... based on creation order
