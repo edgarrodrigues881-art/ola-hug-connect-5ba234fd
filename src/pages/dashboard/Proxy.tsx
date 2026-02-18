@@ -466,6 +466,8 @@ const Proxy = () => {
                       <TableHead className="w-10"></TableHead>
                       <TableHead className="text-xs">ID</TableHead>
                       <TableHead className="text-xs">Proxy</TableHead>
+                      <TableHead className="text-xs">Usuário</TableHead>
+                      <TableHead className="text-xs">Senha</TableHead>
                       <TableHead className="text-xs">Status</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
@@ -483,6 +485,12 @@ const Proxy = () => {
                           </TableCell>
                           <TableCell>
                             <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs text-muted-foreground font-mono">{proxy.username || "—"}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-xs text-muted-foreground font-mono">{proxy.password || "—"}</p>
                           </TableCell>
                           <TableCell>
                             <Select
