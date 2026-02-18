@@ -476,11 +476,6 @@ const Devices = () => {
                       <Link2 className="w-3 h-3" /> Conectar
                     </Button>
                   )}
-                  {d.status === "Ready" && (
-                    <Button size="sm" className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white pointer-events-none">
-                      <CheckCircle2 className="w-3 h-3" /> Pronto
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
