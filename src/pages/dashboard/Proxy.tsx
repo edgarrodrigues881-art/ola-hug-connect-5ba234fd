@@ -59,16 +59,12 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  // Maintain stable display IDs - only assign new IDs, never reassign existing ones
+  // Maintain stable display IDs - never reassign, never remove
   const idMap = stableIdMapRef.current;
   let maxId = 0;
   idMap.forEach((v) => { if (v > maxId) maxId = v; });
   
-  // Remove IDs that no longer exist in the data
-  const currentIds = new Set(dbProxies.map((p: any) => p.id));
-  idMap.forEach((_, key) => { if (!currentIds.has(key)) idMap.delete(key); });
-  
-  // Assign stable IDs to new proxies based on creation order
+  // Assign stable IDs to new proxies only
   dbProxies.forEach((p: any) => {
     if (!idMap.has(p.id)) {
       maxId++;
