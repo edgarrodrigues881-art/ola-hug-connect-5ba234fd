@@ -93,6 +93,13 @@ const Proxy = () => {
       setSelectedIds(new Set());
       toast.success("Proxies removidas");
     },
+    onError: (error: any) => {
+      if (error?.message?.includes("violates foreign key") || error?.code === "23503") {
+        toast.error("Algumas proxies estão vinculadas a instâncias e não podem ser removidas. Desvincule primeiro.");
+      } else {
+        toast.error("Erro ao remover proxies");
+      }
+    },
   });
 
   const updateStatusMutation = useMutation({
