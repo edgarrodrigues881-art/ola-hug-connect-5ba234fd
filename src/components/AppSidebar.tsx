@@ -157,7 +157,6 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{fullName}</p>
-              <p className="text-[11px] text-sidebar-foreground/50 truncate">{user?.email}</p>
             </div>
           )}
         </div>
