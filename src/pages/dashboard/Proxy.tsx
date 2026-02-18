@@ -33,6 +33,7 @@ const Proxy = () => {
   const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const stableIdMapRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!localStorage.getItem(PROXY_DISCLAIMER_KEY)) setDisclaimerOpen(true);
@@ -58,15 +59,26 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  // Build a stable ID map based on creation order (never changes with filters)
-  const idToDisplayId = new Map<string, number>();
-  dbProxies.forEach((p: any, i: number) => {
-    idToDisplayId.set(p.id, i + 1);
+  // Maintain stable display IDs - only assign new IDs, never reassign existing ones
+  const idMap = stableIdMapRef.current;
+  let maxId = 0;
+  idMap.forEach((v) => { if (v > maxId) maxId = v; });
+  
+  // Remove IDs that no longer exist in the data
+  const currentIds = new Set(dbProxies.map((p: any) => p.id));
+  idMap.forEach((_, key) => { if (!currentIds.has(key)) idMap.delete(key); });
+  
+  // Assign stable IDs to new proxies based on creation order
+  dbProxies.forEach((p: any) => {
+    if (!idMap.has(p.id)) {
+      maxId++;
+      idMap.set(p.id, maxId);
+    }
   });
 
   const proxiesWithIndex = dbProxies.map((p: any) => ({
     ...p,
-    displayId: idToDisplayId.get(p.id) ?? 0,
+    displayId: idMap.get(p.id) ?? 0,
     proxyStatus: p.status || "NOVA",
   }));
 
