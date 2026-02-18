@@ -318,25 +318,6 @@ const Devices = () => {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="space-y-2">
-              <Label className="text-xs text-destructive">*Selecione o tipo de login</Label>
-              <div className="flex gap-2">
-                {([
-                  { value: "qr" as const, label: "Login por QR Code" },
-                  { value: "code" as const, label: "Código de emparelhamento" },
-                ]).map(opt => (
-                  <Button
-                    key={opt.value}
-                    variant={loginType === opt.value ? "default" : "outline"}
-                    size="sm"
-                    className={`text-xs ${loginType === opt.value ? "bg-primary hover:bg-primary/90" : ""}`}
-                    onClick={() => setLoginType(opt.value)}
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label className="text-xs text-destructive">*Nome da instância</Label>
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
