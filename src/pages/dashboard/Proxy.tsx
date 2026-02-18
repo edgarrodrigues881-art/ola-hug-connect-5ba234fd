@@ -59,22 +59,12 @@ const Proxy = () => {
     enabled: !!session,
   });
 
-  // Maintain stable display IDs - never reassign, never remove
-  const idMap = stableIdMapRef.current;
-  let maxId = 0;
-  idMap.forEach((v) => { if (v > maxId) maxId = v; });
-  
-  // Assign stable IDs to new proxies only
-  dbProxies.forEach((p: any) => {
-    if (!idMap.has(p.id)) {
-      maxId++;
-      idMap.set(p.id, maxId);
-    }
-  });
+  // Display IDs always follow sequential order 1,2,3... based on creation order
+  // They re-number after deletions but stay fixed on status changes
 
-  const proxiesWithIndex = dbProxies.map((p: any) => ({
+  const proxiesWithIndex = dbProxies.map((p: any, i: number) => ({
     ...p,
-    displayId: idMap.get(p.id) ?? 0,
+    displayId: i + 1,
     proxyStatus: p.status || "NOVA",
   }));
 
