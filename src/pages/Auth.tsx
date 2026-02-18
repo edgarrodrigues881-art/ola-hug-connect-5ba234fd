@@ -22,6 +22,7 @@ const Auth = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -102,6 +103,7 @@ const Auth = () => {
           password,
         });
         if (error) throw error;
+        localStorage.setItem("dg_remember_me", rememberMe ? "true" : "false");
         navigate("/dashboard");
       } else {
         const { error } = await supabase.auth.signUp({
@@ -362,16 +364,27 @@ const Auth = () => {
                   </button>
                 </div>
                 {isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotEmail(email);
-                      setShowForgot(true);
-                    }}
-                    className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 mt-1"
-                  >
-                    Esqueceu sua senha?
-                  </button>
+                  <div className="flex items-center justify-between mt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-[#1E2330] bg-[#151821] text-[#22C55E] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#22C55E]"
+                      />
+                      <span className="text-xs text-[#9CA3AF]">Manter conectado</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotEmail(email);
+                        setShowForgot(true);
+                      }}
+                      className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
+                    >
+                      Esqueceu sua senha?
+                    </button>
+                  </div>
                 )}
               </div>
 

@@ -39,7 +39,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Sign out on tab close if "Manter conectado" is off
+    const handleBeforeUnload = () => {
+      const remember = localStorage.getItem("dg_remember_me");
+      if (remember === "false") {
+        // Use sendBeacon to sign out reliably on tab close
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/logout`;
+        const token = session?.access_token;
+        if (token) {
+          navigator.sendBeacon(
+            url,
+            new Blob([JSON.stringify({})], { type: "application/json" })
+          );
+        }
+        localStorage.removeItem("sb-" + import.meta.env.VITE_SUPABASE_PROJECT_ID + "-auth-token");
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, []);
 
   const signOut = async () => {
