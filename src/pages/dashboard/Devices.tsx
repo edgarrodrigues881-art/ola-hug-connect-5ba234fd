@@ -553,7 +553,7 @@ const Devices = () => {
                           <Shield className="w-3 h-3 text-primary" />
                           {p.label}
                         </div>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
                           {p.status}
                         </Badge>
                       </div>
@@ -642,7 +642,7 @@ const Devices = () => {
                             <Shield className="w-3 h-3 text-primary" />
                             {p.label}
                           </div>
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
                             {p.status}
                           </Badge>
                         </div>
@@ -778,7 +778,7 @@ const Devices = () => {
                           <Shield className="w-3 h-3 text-primary" />
                           <span className="text-xs text-foreground">{p.label}</span>
                         </div>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-emerald-500/30 text-emerald-500" : p.status === "USADA" ? "border-orange-500/30 text-orange-500" : "border-blue-500/30 text-blue-500"}`}>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
                           {p.status}
                         </Badge>
                       </div>
