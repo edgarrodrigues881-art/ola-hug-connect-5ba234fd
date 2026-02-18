@@ -1,11 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { Shield, Plus, Trash2, ToggleLeft, ToggleRight, Upload, Download, Info, X, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import {
+  Shield, Plus, Trash2, ToggleLeft, ToggleRight, Upload, Download, Info, X,
+  ChevronDown, ChevronUp, AlertTriangle, Globe, Wifi, WifiOff, Clock, Pencil, Loader2, CheckCircle2, XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -15,26 +20,52 @@ interface ProxyEntry {
   port: string;
   username: string;
   password: string;
+  type: "HTTP" | "SOCKS5";
   active: boolean;
+  status: "untested" | "testing" | "online" | "offline";
+  detectedIp: string;
+  country: string;
+  latency: number | null;
+  lastChecked: string;
 }
 
 const PROXY_DISCLAIMER_KEY = "proxy-disclaimer-accepted";
+
+const countries = ["🇧🇷 Brasil", "🇺🇸 EUA", "🇩🇪 Alemanha", "🇬🇧 Reino Unido", "🇵🇹 Portugal", "🇦🇷 Argentina", "🇨🇱 Chile"];
+
+const simulateTest = (proxy: ProxyEntry): Promise<Partial<ProxyEntry>> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const online = Math.random() > 0.2;
+      resolve({
+        status: online ? "online" : "offline",
+        detectedIp: online ? `${Math.floor(100 + Math.random() * 155)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}` : "",
+        country: online ? countries[Math.floor(Math.random() * countries.length)] : "",
+        latency: online ? Math.floor(30 + Math.random() * 200) : null,
+        lastChecked: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      });
+    }, 1500 + Math.random() * 1000);
+  });
+};
 
 const Proxy = () => {
   const navigate = useNavigate();
   const [proxies, setProxies] = useState<ProxyEntry[]>([]);
   const [form, setForm] = useState({ host: "", port: "", username: "", password: "" });
+  const [proxyType, setProxyType] = useState<"HTTP" | "SOCKS5">("HTTP");
+  const [pasteInput, setPasteInput] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [howToOpen, setHowToOpen] = useState(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    localStorage.removeItem(PROXY_DISCLAIMER_KEY);
-    setDisclaimerOpen(true);
+    const accepted = localStorage.getItem(PROXY_DISCLAIMER_KEY);
+    if (!accepted) {
+      setDisclaimerOpen(true);
+    }
   }, []);
-
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
   const handleAcceptDisclaimer = () => {
     localStorage.setItem(PROXY_DISCLAIMER_KEY, "true");
@@ -42,30 +73,85 @@ const Proxy = () => {
     setDisclaimerChecked(false);
   };
 
-  // Add manual
+  // Auto-parse paste input
+  const handlePasteInput = (value: string) => {
+    setPasteInput(value);
+    const parts = value.trim();
+    if (!parts) return;
+
+    let host = "", port = "", username = "", password = "";
+    if (parts.includes("@")) {
+      const [cred, hp] = parts.split("@");
+      const credParts = cred.split(":");
+      username = credParts[0] || "";
+      password = credParts[1] || "";
+      const hpParts = hp?.split(":") || [];
+      host = hpParts[0] || "";
+      port = hpParts[1] || "";
+    } else {
+      const p = parts.split(":");
+      host = p[0] || "";
+      port = p[1] || "";
+      username = p[2] || "";
+      password = p[3] || "";
+    }
+
+    if (host && port) {
+      setForm({ host, port, username, password });
+      setPasteInput("");
+    }
+  };
+
   const handleAdd = () => {
     if (!form.host || !form.port || !form.username || !form.password) {
-      toast.error("Preencha todos os campos: host, porta, usuário e senha");
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
     setProxies((prev) => [
       ...prev,
-      { ...form, id: crypto.randomUUID(), active: true },
+      {
+        ...form,
+        id: crypto.randomUUID(),
+        type: proxyType,
+        active: true,
+        status: "untested",
+        detectedIp: "",
+        country: "",
+        latency: null,
+        lastChecked: "",
+      },
     ]);
     setForm({ host: "", port: "", username: "", password: "" });
-    toast.success("Proxy adicionado!");
+    toast.success("Proxy adicionada!");
+  };
+
+  const handleTestProxy = async (id: string) => {
+    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, status: "testing" as const } : p)));
+    const proxy = proxies.find((p) => p.id === id);
+    if (!proxy) return;
+    const result = await simulateTest(proxy);
+    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, ...result } : p)));
+    toast.success(result.status === "online" ? "Proxy online!" : "Proxy offline");
+  };
+
+  const handleTestAll = async () => {
+    toast.info("Testando todas as proxies...");
+    for (const proxy of proxies) {
+      setProxies((prev) => prev.map((p) => (p.id === proxy.id ? { ...p, status: "testing" as const } : p)));
+      const result = await simulateTest(proxy);
+      setProxies((prev) => prev.map((p) => (p.id === proxy.id ? { ...p, ...result } : p)));
+    }
+    toast.success("Teste concluído!");
   };
 
   const toggleProxy = (id: string) => {
-    setProxies((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-    );
+    setProxies((prev) => prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p)));
   };
 
   const removeProxy = (id: string) => {
     setProxies((prev) => prev.filter((p) => p.id !== id));
     setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-    toast.success("Proxy removido");
+    toast.success("Proxy removida");
   };
 
   const toggleSelect = (id: string) => {
@@ -77,67 +163,51 @@ const Proxy = () => {
   };
 
   const selectAll = () => {
-    if (selectedIds.size === proxies.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(proxies.map((p) => p.id)));
-    }
+    setSelectedIds(selectedIds.size === proxies.length ? new Set() : new Set(proxies.map((p) => p.id)));
   };
 
   const removeSelected = () => {
-    if (selectedIds.size === 0) return;
     setProxies((prev) => prev.filter((p) => !selectedIds.has(p.id)));
     setSelectedIds(new Set());
-    toast.success("Proxies removidos");
+    toast.success("Proxies removidas");
   };
 
   const clearAll = () => {
     setProxies([]);
     setSelectedIds(new Set());
-    toast.success("Todas as proxies foram removidas");
+    toast.success("Todas as proxies removidas");
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
       if (!text) return;
-
       const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
       const imported: ProxyEntry[] = [];
-
       for (const line of lines) {
         let host = "", port = "", username = "", password = "";
-
         if (line.includes("@")) {
-          const [credentials, hostPort] = line.split("@");
-          const credParts = credentials.split(":");
-          username = credParts[0] || "";
-          password = credParts[1] || "";
-          const hpParts = hostPort?.split(":") || [];
-          host = hpParts[0] || "";
-          port = hpParts[1] || "";
+          const [cred, hp] = line.split("@");
+          const c = cred.split(":");
+          username = c[0] || ""; password = c[1] || "";
+          const h = hp?.split(":") || [];
+          host = h[0] || ""; port = h[1] || "";
         } else {
-          const parts = line.split(":");
-          host = parts[0] || "";
-          port = parts[1] || "";
-          username = parts[2] || "";
-          password = parts[3] || "";
+          const p = line.split(":");
+          host = p[0] || ""; port = p[1] || ""; username = p[2] || ""; password = p[3] || "";
         }
-
         if (host && port) {
-          imported.push({ id: crypto.randomUUID(), host, port, username, password, active: true });
+          imported.push({ id: crypto.randomUUID(), host, port, username, password, type: proxyType, active: true, status: "untested", detectedIp: "", country: "", latency: null, lastChecked: "" });
         }
       }
-
       if (imported.length > 0) {
         setProxies((prev) => [...prev, ...imported]);
-        toast.success(`${imported.length} proxy(s) importado(s)!`);
+        toast.success(`${imported.length} proxy(s) importada(s)!`);
       } else {
-        toast.error("Nenhuma proxy válida encontrada no arquivo");
+        toast.error("Nenhuma proxy válida encontrada");
       }
     };
     reader.readAsText(file);
@@ -145,26 +215,31 @@ const Proxy = () => {
   };
 
   const handleExport = () => {
-    if (proxies.length === 0) {
-      toast.error("Nenhuma proxy para exportar");
-      return;
-    }
-    const content = proxies
-      .map((p) => `${p.username}:${p.password}@${p.host}:${p.port}`)
-      .join("\n");
-
+    if (proxies.length === 0) { toast.error("Nenhuma proxy para exportar"); return; }
+    const content = proxies.map((p) => `${p.username}:${p.password}@${p.host}:${p.port}`).join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "proxies.txt";
-    a.click();
+    a.href = url; a.download = "proxies.txt"; a.click();
     URL.revokeObjectURL(url);
     toast.success("Proxies exportadas!");
   };
 
+  const onlineCount = proxies.filter((p) => p.status === "online").length;
+  const offlineCount = proxies.filter((p) => p.status === "offline").length;
+  const activeCount = proxies.filter((p) => p.active).length;
+
+  const statusBadge = (status: ProxyEntry["status"]) => {
+    switch (status) {
+      case "online": return <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1"><Wifi className="w-2.5 h-2.5" />Online</Badge>;
+      case "offline": return <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30 gap-1"><WifiOff className="w-2.5 h-2.5" />Offline</Badge>;
+      case "testing": return <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-500 border-yellow-500/30 gap-1"><Loader2 className="w-2.5 h-2.5 animate-spin" />Testando</Badge>;
+      default: return <Badge variant="outline" className="text-[10px] text-muted-foreground gap-1">Não testada</Badge>;
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-5 animate-fade-up">
       {/* Disclaimer Dialog */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
         <DialogContent className="sm:max-w-lg backdrop-blur-sm">
@@ -177,15 +252,12 @@ const Proxy = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-3">
-            {/* Risk block */}
             <div className="p-3 rounded-lg bg-yellow-500/8 border border-yellow-500/20 space-y-1.5">
               <p className="text-sm font-medium text-yellow-500/90">Requisitos mínimos de qualidade da proxy</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Proxies gratuitas, compartilhadas ou de baixa reputação podem comprometer a estabilidade da instância e elevar o risco de restrições operacionais.
               </p>
             </div>
-
-            {/* Recommendation block */}
             <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/15 space-y-1.5">
               <p className="text-sm font-medium text-primary/80">Boas práticas de configuração</p>
               <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
@@ -194,8 +266,6 @@ const Proxy = () => {
                 <li>• Utilize uma proxy dedicada por instância para evitar cruzamento de dados.</li>
               </ul>
             </div>
-
-            {/* Responsibility block */}
             <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-1.5">
               <p className="text-sm font-medium text-foreground/80">Termo de responsabilidade</p>
               <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
@@ -206,12 +276,7 @@ const Proxy = () => {
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col">
             <div className="flex items-start gap-2">
-              <Checkbox
-                id="disclaimer-check"
-                checked={disclaimerChecked}
-                onCheckedChange={(v) => setDisclaimerChecked(!!v)}
-                className="mt-0.5"
-              />
+              <Checkbox id="disclaimer-check" checked={disclaimerChecked} onCheckedChange={(v) => setDisclaimerChecked(!!v)} className="mt-0.5" />
               <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
                 Declaro estar ciente das diretrizes e assumir total responsabilidade pela proxy utilizada.
               </label>
@@ -227,64 +292,71 @@ const Proxy = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
+            <Shield className="w-5 h-5 text-primary" />
             Proxy
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure proxies para proteger seus chips e evitar bloqueios.
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gerencie proxies dedicadas para proteger instâncias e reduzir riscos operacionais.
           </p>
         </div>
-        {/* Collapsible how-to */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => setHowToOpen(!howToOpen)}
-        >
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setHowToOpen(!howToOpen)}>
           <Info className="w-3.5 h-3.5" />
           Como usar
           {howToOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </Button>
       </div>
 
-      {/* How-to mini card */}
       {howToOpen && (
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-primary/15 bg-primary/[0.03]">
           <CardContent className="p-4 space-y-2">
-            <p className="text-xs font-semibold text-foreground">📋 Formato aceito para importação:</p>
+            <p className="text-xs font-medium text-foreground">Formato aceito para importação e auto-preenchimento:</p>
             <div className="bg-muted/50 rounded-md p-2.5 border border-border font-mono text-xs text-foreground space-y-0.5">
               <p>host:porta:usuario:senha</p>
               <p>usuario:senha@host:porta</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              <strong>Exemplo:</strong> 192.168.0.1:8080:meuuser:minhasenha
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Tipos suportados: <strong>HTTP, HTTPS, SOCKS4, SOCKS5</strong>
-            </p>
+            <p className="text-xs text-muted-foreground">Cole no campo "Auto-preenchimento" e os dados serão separados automaticamente.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Import / Export / Actions */}
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Total", value: proxies.length, icon: Shield, color: "text-primary" },
+          { label: "Ativas", value: activeCount, icon: Wifi, color: "text-emerald-500" },
+          { label: "Online", value: onlineCount, icon: CheckCircle2, color: "text-emerald-500" },
+          { label: "Offline", value: offlineCount, icon: XCircle, color: "text-destructive" },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                <s.icon className={`w-4 h-4 ${s.color}`} />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground leading-none">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Actions bar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".txt,.csv"
-          className="hidden"
-          onChange={handleImport}
-        />
+        <input ref={fileInputRef} type="file" accept=".txt,.csv" className="hidden" onChange={handleImport} />
         <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-          <Upload className="w-3.5 h-3.5" /> Importar arquivo
+          <Upload className="w-3.5 h-3.5" /> Importar
         </Button>
         <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
-          <Download className="w-3.5 h-3.5" /> Exportar proxies
+          <Download className="w-3.5 h-3.5" /> Exportar
         </Button>
         {proxies.length > 0 && (
           <>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleTestAll}>
+              <Wifi className="w-3.5 h-3.5" /> Testar todas
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={removeSelected} disabled={selectedIds.size === 0}>
-              <Trash2 className="w-3.5 h-3.5" /> Remover selecionados ({selectedIds.size})
+              <Trash2 className="w-3.5 h-3.5" /> Remover ({selectedIds.size})
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={clearAll}>
               <X className="w-3.5 h-3.5" /> Limpar tudo
@@ -293,90 +365,151 @@ const Proxy = () => {
         )}
       </div>
 
-      {/* Manual Add */}
+      {/* Add form */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Adicionar Proxy Manualmente</CardTitle>
-          <CardDescription>Insira os dados do proxy (HTTP/SOCKS5)</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Adicionar Proxy</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-destructive">*Host</Label>
-              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-destructive">*Porta</Label>
-              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-destructive">*Usuário</Label>
-              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-destructive">*Senha</Label>
-              <Input type="password" placeholder="••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        <CardContent className="space-y-4">
+          {/* Auto-parse */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Auto-preenchimento (cole host:porta:user:senha)</Label>
+            <Input
+              placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
+              value={pasteInput}
+              onChange={(e) => handlePasteInput(e.target.value)}
+              className="font-mono text-xs"
+            />
+          </div>
+
+          {/* Type selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Tipo de proxy</Label>
+            <div className="flex gap-2">
+              {(["HTTP", "SOCKS5"] as const).map((t) => (
+                <Button
+                  key={t}
+                  variant={proxyType === t ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setProxyType(t)}
+                >
+                  {t}
+                </Button>
+              ))}
             </div>
           </div>
-          <Button onClick={handleAdd} className="mt-4 gap-2">
-            <Plus className="w-4 h-4" />
-            Adicionar Proxy
-          </Button>
+
+          {/* Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-destructive">*Endereço (Host)</Label>
+              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-destructive">*Porta</Label>
+              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-destructive">*Usuário de autenticação</Label>
+              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-destructive">*Senha de autenticação</Label>
+              <Input type="password" placeholder="••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleAdd} className="gap-1.5 text-xs">
+              <Plus className="w-3.5 h-3.5" /> Adicionar Proxy
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Proxy List */}
+      {/* Proxy Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Proxies Configurados</CardTitle>
-              <CardDescription>{proxies.length} proxy(s) cadastrado(s)</CardDescription>
-            </div>
+            <CardTitle className="text-sm">Proxies configuradas ({proxies.length})</CardTitle>
             {proxies.length > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs" onClick={selectAll}>
-                {selectedIds.size === proxies.length ? "Desmarcar tudo" : "Selecionar tudo"}
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={selectAll}>
+                {selectedIds.size === proxies.length ? "Desmarcar" : "Selecionar tudo"}
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
           {proxies.length === 0 ? (
-            <div className="text-center py-10 space-y-3">
-              <Shield className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">Nenhum proxy configurado ainda.</p>
-              <p className="text-xs text-muted-foreground">Adicione manualmente ou importe um arquivo .txt</p>
+            <div className="text-center py-8 space-y-2">
+              <Shield className="w-8 h-8 text-muted-foreground/20 mx-auto" />
+              <p className="text-sm text-muted-foreground">Nenhuma proxy configurada</p>
+              <p className="text-xs text-muted-foreground/60">Adicione manualmente ou importe um arquivo .txt</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {proxies.map((proxy, idx) => (
-                <div
-                  key={proxy.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                    selectedIds.has(proxy.id) ? "border-primary/40 bg-primary/5" : "border-border bg-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox checked={selectedIds.has(proxy.id)} onCheckedChange={() => toggleSelect(proxy.id)} />
-                    <span className="text-xs text-muted-foreground w-6">#{idx + 1}</span>
-                    <button onClick={() => toggleProxy(proxy.id)} className="text-muted-foreground hover:text-foreground">
-                      {proxy.active ? <ToggleRight className="w-6 h-6 text-primary" /> : <ToggleLeft className="w-6 h-6" />}
-                    </button>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{proxy.host}:{proxy.port}</p>
-                      <p className="text-xs text-muted-foreground">Usuário: {proxy.username}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${proxy.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      {proxy.active ? "Ativo" : "Inativo"}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => removeProxy(proxy.id)} className="h-8 w-8 text-destructive/70 hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="text-xs">Endereço</TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">IP externo</TableHead>
+                    <TableHead className="text-xs">País</TableHead>
+                    <TableHead className="text-xs">Latência</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                    <TableHead className="text-xs">Verificado</TableHead>
+                    <TableHead className="text-xs text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proxies.map((proxy) => (
+                    <TableRow key={proxy.id} className={selectedIds.has(proxy.id) ? "bg-primary/5" : ""}>
+                      <TableCell>
+                        <Checkbox checked={selectedIds.has(proxy.id)} onCheckedChange={() => toggleSelect(proxy.id)} />
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
+                          <p className="text-[10px] text-muted-foreground">{proxy.username}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">{proxy.type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-mono text-muted-foreground">{proxy.detectedIp || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs">{proxy.country || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-xs font-mono ${proxy.latency && proxy.latency < 100 ? "text-emerald-500" : proxy.latency ? "text-yellow-500" : "text-muted-foreground"}`}>
+                          {proxy.latency ? `${proxy.latency}ms` : "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>{statusBadge(proxy.status)}</TableCell>
+                      <TableCell>
+                        <span className="text-[10px] text-muted-foreground">{proxy.lastChecked || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleTestProxy(proxy.id)} disabled={proxy.status === "testing"}>
+                            {proxy.status === "testing" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleProxy(proxy.id)}>
+                            {proxy.active ? <ToggleRight className="w-4 h-4 text-primary" /> : <ToggleLeft className="w-4 h-4" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => removeProxy(proxy.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
