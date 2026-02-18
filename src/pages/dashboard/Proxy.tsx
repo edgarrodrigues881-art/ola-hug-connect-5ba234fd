@@ -167,31 +167,42 @@ const Proxy = () => {
     <div className="space-y-6 animate-fade-up">
       {/* Disclaimer Dialog */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-yellow-500" />
+            <DialogTitle className="flex items-center gap-3 text-foreground text-lg">
+              <div className="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-yellow-500" />
               </div>
-              Atenção — Uso de Proxies
+              Diretrizes para uso de Proxy
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-              <p className="text-sm font-semibold text-yellow-600 mb-1">⚠️ Use apenas proxies de qualidade!</p>
+          <div className="space-y-4 py-3">
+            {/* Risk block */}
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/25 space-y-1.5">
+              <p className="text-sm font-medium text-yellow-600">⚠ Utilize apenas proxies de alta qualidade.</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Proxies gratuitas, públicas ou de baixa qualidade podem causar <strong className="text-foreground">restrição ou banimento</strong> do número vinculado à proxy.
+                Proxies gratuitos, compartilhados ou de baixa reputação podem comprometer a estabilidade da instância e aumentar o risco de restrições.
               </p>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Recomendamos <strong className="text-foreground">proxies residenciais ou móveis</strong> de fornecedores confiáveis. Evite proxies de datacenter compartilhadas.
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Sempre utilize proxy para <strong className="text-foreground">evitar cruzamento de dados</strong> e reduzir o risco de banimento das suas instâncias.
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              O <strong className="text-foreground">DG Contingência Pro</strong> não se responsabiliza por restrições ou banimentos causados pelo uso de proxies de má qualidade. A escolha e qualidade da proxy é de <strong className="text-foreground">total responsabilidade do usuário</strong>.
-            </p>
+
+            {/* Recommendation block */}
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-1.5">
+              <p className="text-sm font-medium text-primary">✔ Recomendação técnica</p>
+              <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
+                <li>• Proxies <strong className="text-foreground">residenciais ou móveis</strong> de fornecedores confiáveis.</li>
+                <li>• Evite proxies de datacenter compartilhadas.</li>
+                <li>• Sempre utilize uma proxy dedicada por instância para evitar cruzamento de dados.</li>
+              </ul>
+            </div>
+
+            {/* Responsibility block */}
+            <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-1.5">
+              <p className="text-sm font-medium text-foreground">🛡 Responsabilidade</p>
+              <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
+                <li>• O <strong className="text-foreground">DG Contingência</strong> não se responsabiliza por restrições ou bloqueios decorrentes do uso inadequado de proxies.</li>
+                <li>• A escolha e configuração da proxy são de responsabilidade exclusiva do usuário.</li>
+              </ul>
+            </div>
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col">
             <div className="flex items-start gap-2">
@@ -202,11 +213,11 @@ const Proxy = () => {
                 className="mt-0.5"
               />
               <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                Estou ciente e concordo que a qualidade das proxies é de minha total responsabilidade.
+                Declaro estar ciente das diretrizes e assumir total responsabilidade pela proxy utilizada.
               </label>
             </div>
             <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
-              Continuar
+              Aceitar e continuar
             </Button>
           </DialogFooter>
         </DialogContent>
