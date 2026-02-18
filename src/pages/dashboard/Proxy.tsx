@@ -34,6 +34,7 @@ const Proxy = () => {
   const tableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stableIdMapRef = useRef<Map<string, number>>(new Map());
+  const nextIdRef = useRef(1);
 
   useEffect(() => {
     if (!localStorage.getItem(PROXY_DISCLAIMER_KEY)) setDisclaimerOpen(true);
@@ -60,13 +61,40 @@ const Proxy = () => {
     refetchInterval: 5000,
   });
 
-  // Display IDs always sequential 1,2,3... based on creation order
-
-  const proxiesWithIndex = dbProxies.map((p: any, i: number) => ({
-    ...p,
-    displayId: i + 1,
-    proxyStatus: p.status || "NOVA",
-  }));
+  // Build stable ID map: once a proxy gets a number, it keeps it forever during the session
+  // Only reassign all numbers when proxies are deleted (detected by size decrease)
+  const prevCountRef = useRef(0);
+  
+  const proxiesWithIndex = (() => {
+    const map = stableIdMapRef.current;
+    const currentIds = new Set(dbProxies.map((p: any) => p.id));
+    
+    // If proxies were deleted, rebuild the map from scratch for clean sequential numbering
+    const deletedSomething = prevCountRef.current > dbProxies.length;
+    if (deletedSomething) {
+      map.clear();
+      nextIdRef.current = 1;
+    }
+    prevCountRef.current = dbProxies.length;
+    
+    // Remove entries for proxies that no longer exist
+    for (const key of map.keys()) {
+      if (!currentIds.has(key)) map.delete(key);
+    }
+    
+    // Assign stable IDs to any proxy that doesn't have one yet
+    for (const p of dbProxies) {
+      if (!map.has(p.id)) {
+        map.set(p.id, nextIdRef.current++);
+      }
+    }
+    
+    return dbProxies.map((p: any) => ({
+      ...p,
+      displayId: map.get(p.id) || 0,
+      proxyStatus: p.status || "NOVA",
+    }));
+  })();
 
   const filtered = statusFilter
     ? proxiesWithIndex.filter((p: any) => p.proxyStatus === statusFilter)
