@@ -28,16 +28,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     // Get user's devices
     const { data: devices, error: devError } = await supabase
@@ -57,8 +56,8 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Check channel status via /users/me
-        const res = await fetch(`${WHAPI_BASE}/users/me`, {
+        // Check channel health via /health
+        const res = await fetch(`${WHAPI_BASE}/health`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${device.whapi_token}`,
@@ -66,31 +65,49 @@ Deno.serve(async (req) => {
           },
         });
 
+        const rawText = await res.text();
+        console.log(`Device ${device.name} /health status: ${res.status}, body: ${rawText.substring(0, 500)}`);
+
+        let data: any = {};
+        try { data = JSON.parse(rawText); } catch {}
+
         if (!res.ok) {
-          results.push({ id: device.id, name: device.name, found: false, reason: "api_error" });
-          await supabase
-            .from("devices")
-            .update({ status: "Disconnected", number: "" } as any)
-            .eq("id", device.id);
+          // Fallback: check /users/login for 409
+          const loginRes = await fetch(`${WHAPI_BASE}/users/login`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${device.whapi_token}`,
+              "Accept": "application/json",
+            },
+          });
+          const loginText = await loginRes.text();
+          
+          if (loginRes.status === 409) {
+            await supabase
+              .from("devices")
+              .update({ status: "Ready" })
+              .eq("id", device.id);
+            results.push({ id: device.id, name: device.name, found: true, status: "Ready" });
+          } else {
+            await supabase
+              .from("devices")
+              .update({ status: "Disconnected", number: "" })
+              .eq("id", device.id);
+            results.push({ id: device.id, name: device.name, found: false, reason: "api_error" });
+          }
+          await loginRes.text().catch(() => {});
           continue;
         }
 
-        const data = await res.json();
-        
-        // Extract phone number and status from Whapi response
-        const phone = data.phone || "";
-        const pushName = data.pushname || data.name || "";
-        const status = data.status;
-        
-        // Determine connection status
-        // Whapi statuses: "loading", "authenticated", "got qr code", "not launched"
-        const isConnected = status === "authenticated" || status === "loading";
+        // Extract phone from health response - user.id contains the phone number
+        const phone = data.user?.id || data.phone || data.user?.phone || data.wid || "";
+        const statusText = (data.status?.text || data.status || "").toString().toUpperCase();
+        const isConnected = statusText === "AUTH" || statusText === "AUTHENTICATED" || statusText === "CONNECTED" || !!phone;
         const newStatus = isConnected ? "Ready" : "Disconnected";
 
-        // Format phone number
         let formattedPhone = "";
         if (phone) {
-          const raw = phone.replace(/\D/g, "");
+          const raw = String(phone).replace(/\D/g, "");
           if (raw.startsWith("55") && raw.length >= 12) {
             formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
           } else if (raw) {
@@ -103,7 +120,7 @@ Deno.serve(async (req) => {
           .update({
             status: newStatus,
             number: formattedPhone || device.number || "",
-          } as any)
+          })
           .eq("id", device.id);
 
         results.push({
@@ -112,7 +129,6 @@ Deno.serve(async (req) => {
           found: true,
           status: newStatus,
           phone: formattedPhone,
-          pushName,
         });
       } catch (err) {
         console.error(`Error syncing device ${device.name}:`, err);
