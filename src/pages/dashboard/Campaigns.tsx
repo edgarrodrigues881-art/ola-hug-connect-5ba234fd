@@ -104,19 +104,6 @@ const Campaigns = () => {
   const [pauseEveryMax, setPauseEveryMax] = useState(20);
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
-  const [dynamicPersonalization, setDynamicPersonalization] = useState(false);
-
-  // Warmup
-  const [warmupMode, setWarmupMode] = useState(false);
-  const [dailyEscalation, setDailyEscalation] = useState(5);
-  const [progressiveVolume, setProgressiveVolume] = useState(20);
-
-  // Security
-  const [securityExpanded, setSecurityExpanded] = useState(false);
-  const [stopOnBlockRate, setStopOnBlockRate] = useState(true);
-  const [blockRateThreshold, setBlockRateThreshold] = useState(5);
-  const [stopOnConsecutiveErrors, setStopOnConsecutiveErrors] = useState(true);
-  const [consecutiveErrorsThreshold, setConsecutiveErrorsThreshold] = useState(3);
 
   const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
@@ -127,9 +114,8 @@ const Campaigns = () => {
   const showButtons = messageType === "texto-botao" || messageType === "imagem-botao";
 
   const getRiskLevel = () => {
-    if (warmupMode) return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
-    if (messageLimit > 200 || minDelay < 10) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10" };
-    if (messageLimit > 100 || minDelay < 15) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10" };
+    if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10" };
+    if (minDelay < 10) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10" };
     return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
   };
   const risk = getRiskLevel();
@@ -505,63 +491,7 @@ const Campaigns = () => {
                 <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
               </div>
 
-              <div className="h-px bg-border/20" />
-
-              {/* Personalization + Warmup */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Hash className="w-3 h-3" /> Personalização dinâmica <code className="text-[9px] text-muted-foreground/50 ml-1">{"{{nome}}"}</code></span>
-                <Switch checked={dynamicPersonalization} onCheckedChange={setDynamicPersonalization} />
-              </div>
-
-              {/* Warmup */}
-              <div className="border-t border-border/20 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className={cn("text-[11px] font-medium flex items-center gap-1.5", warmupMode ? "text-amber-400" : "text-muted-foreground")}><Flame className="w-3 h-3" /> Modo Aquecimento</span>
-                  <Switch checked={warmupMode} onCheckedChange={setWarmupMode} />
-                </div>
-                {warmupMode && (
-                  <div className="mt-3 space-y-3 pl-4 border-l-2 border-amber-500/20">
-                    <div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1"><span>Escalonamento diário</span><span className="font-mono text-foreground">+{dailyEscalation}/dia</span></div>
-                      <Slider value={[dailyEscalation]} onValueChange={([v]) => setDailyEscalation(v)} min={1} max={20} step={1} />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1"><span>Volume inicial</span><span className="font-mono text-foreground">{progressiveVolume} msgs</span></div>
-                      <Slider value={[progressiveVolume]} onValueChange={([v]) => setProgressiveVolume(v)} min={5} max={100} step={5} />
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
-          </div>
-
-          {/* Security - Collapsible */}
-          <div className="rounded-lg border border-border/30 bg-card/40 overflow-hidden">
-            <button onClick={() => setSecurityExpanded(!securityExpanded)} className="w-full flex items-center justify-between p-3 text-left transition-colors hover:bg-muted/10">
-              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5"><ShieldAlert className="w-3 h-3" /> Segurança</span>
-              <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", securityExpanded && "rotate-180")} />
-            </button>
-            {securityExpanded && (
-              <div className="px-3 pb-3 space-y-2.5 border-t border-border/20">
-                <div className="flex items-center justify-between pt-2.5">
-                  <div className="flex items-center gap-2">
-                    <Checkbox checked={stopOnBlockRate} onCheckedChange={(v) => setStopOnBlockRate(!!v)} />
-                    <span className="text-[11px] text-muted-foreground">Parar se bloqueio &gt;</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Input type="number" value={blockRateThreshold} onChange={(e) => setBlockRateThreshold(Number(e.target.value))} className="h-6 w-12 text-[10px] text-center bg-background/50 border-border/30" disabled={!stopOnBlockRate} />
-                    <span className="text-[10px] text-muted-foreground">%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox checked={stopOnConsecutiveErrors} onCheckedChange={(v) => setStopOnConsecutiveErrors(!!v)} />
-                    <span className="text-[11px] text-muted-foreground">Parar se erros consecutivos &gt;</span>
-                  </div>
-                  <Input type="number" value={consecutiveErrorsThreshold} onChange={(e) => setConsecutiveErrorsThreshold(Number(e.target.value))} className="h-6 w-12 text-[10px] text-center bg-background/50 border-border/30" disabled={!stopOnConsecutiveErrors} />
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex justify-end">
@@ -849,7 +779,6 @@ const Campaigns = () => {
                 { label: "Contatos", value: String(validContacts.length) },
                 { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s` },
                 { label: "Pausa", value: `A cada ${pauseEveryMin}–${pauseEveryMax} msgs · ${pauseDurationMin}s–${pauseDurationMax}s` },
-                { label: "Modo", value: warmupMode ? "Aquecimento" : "Normal" },
                 { label: "Risco", value: risk.label, className: risk.color },
               ].map(item => (
                 <div key={item.label} className="space-y-0.5">
