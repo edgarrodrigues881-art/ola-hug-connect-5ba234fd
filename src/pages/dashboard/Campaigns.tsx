@@ -98,9 +98,12 @@ const Campaigns = () => {
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
-  const [minDelay, setMinDelay] = useState(15);
-  const [maxDelay, setMaxDelay] = useState(45);
-  const [randomDelay, setRandomDelay] = useState(true);
+  const [minDelay, setMinDelay] = useState(8);
+  const [maxDelay, setMaxDelay] = useState(25);
+  const [pauseEveryMin, setPauseEveryMin] = useState(10);
+  const [pauseEveryMax, setPauseEveryMax] = useState(20);
+  const [pauseDurationMin, setPauseDurationMin] = useState(30);
+  const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [dynamicPersonalization, setDynamicPersonalization] = useState(false);
 
   // Warmup
@@ -448,29 +451,65 @@ const Campaigns = () => {
           {/* Send Control */}
           <div className="space-y-3">
             <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Controle de Envio</Label>
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground">Limite</label>
-                  <Input type="number" value={messageLimit} onChange={(e) => setMessageLimit(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-5">
+
+              {/* Delay between messages */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Intervalo entre mensagens</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
+                    <Input type="number" value={minDelay} onChange={(e) => setMinDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
+                    <Input type="number" value={maxDelay} onChange={(e) => setMaxDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground">Mín. (s)</label>
-                  <Input type="number" value={minDelay} onChange={(e) => setMinDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground">Máx. (s)</label>
-                  <Input type="number" value={maxDelay} onChange={(e) => setMaxDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
-                </div>
+                <p className="text-[9px] text-muted-foreground/60">Intervalo aleatório entre {minDelay}s e {maxDelay}s a cada envio</p>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Delay aleatório</span>
-                <Switch checked={randomDelay} onCheckedChange={setRandomDelay} />
+              <div className="h-px bg-border/20" />
+
+              {/* Pause every X messages */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Pausa a cada X mensagens</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">A cada (mín.)</label>
+                    <Input type="number" value={pauseEveryMin} onChange={(e) => setPauseEveryMin(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">A cada (máx.)</label>
+                    <Input type="number" value={pauseEveryMax} onChange={(e) => setPauseEveryMax(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground/60">Pausa aleatória entre cada {pauseEveryMin} a {pauseEveryMax} mensagens enviadas</p>
               </div>
 
+              <div className="h-px bg-border/20" />
+
+              {/* Pause duration */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Activity className="w-3 h-3" /> Duração da pausa</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
+                    <Input type="number" value={pauseDurationMin} onChange={(e) => setPauseDurationMin(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
+                    <Input type="number" value={pauseDurationMax} onChange={(e) => setPauseDurationMax(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
+              </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Personalization + Warmup */}
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Personalização dinâmica <code className="text-[9px] text-muted-foreground/50 ml-1">{"{{nome}}"}</code></span>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Hash className="w-3 h-3" /> Personalização dinâmica <code className="text-[9px] text-muted-foreground/50 ml-1">{"{{nome}}"}</code></span>
                 <Switch checked={dynamicPersonalization} onCheckedChange={setDynamicPersonalization} />
               </div>
 
@@ -808,8 +847,8 @@ const Campaigns = () => {
               {[
                 { label: "Instância(s)", value: selectedDevicesData.length > 0 ? selectedDevicesData.map(d => d.name).join(", ") : "—" },
                 { label: "Contatos", value: String(validContacts.length) },
-                { label: "Limite", value: `${messageLimit} msgs` },
                 { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s` },
+                { label: "Pausa", value: `A cada ${pauseEveryMin}–${pauseEveryMax} msgs · ${pauseDurationMin}s–${pauseDurationMax}s` },
                 { label: "Modo", value: warmupMode ? "Aquecimento" : "Normal" },
                 { label: "Risco", value: risk.label, className: risk.color },
               ].map(item => (
