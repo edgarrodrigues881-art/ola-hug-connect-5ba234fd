@@ -393,9 +393,13 @@ const Campaigns = () => {
             <div className="rounded-lg border border-border/30 bg-card/40 p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
-                    <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
-                  </div>
+                  {selectedDeviceData.profile_picture ? (
+                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-8 h-8 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
+                      <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-medium text-foreground">{selectedDeviceData.name}</p>
                     <p className="text-[10px] text-muted-foreground font-mono">{selectedDeviceData.number || "—"}</p>
