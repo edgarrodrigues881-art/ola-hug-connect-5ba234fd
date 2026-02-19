@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
@@ -104,6 +105,7 @@ const Campaigns = () => {
   const [manualName, setManualName] = useState("");
   const [previewContacts, setPreviewContacts] = useState<Contact[] | null>(null);
   const [contactPage, setContactPage] = useState(0);
+  const [importProgress, setImportProgress] = useState<number | null>(null);
   const CONTACTS_PER_PAGE = 50;
 
   // Send control
@@ -212,18 +214,29 @@ const Campaigns = () => {
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportProgress(0);
     const reader = new FileReader();
+    reader.onprogress = (evt) => {
+      if (evt.lengthComputable) {
+        setImportProgress(Math.round((evt.loaded / evt.total) * 40));
+      }
+    };
     reader.onload = (evt) => {
       try {
+        setImportProgress(45);
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
+        setImportProgress(60);
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
         if (rows.length < 1) {
+          setImportProgress(null);
           toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
           return;
         }
+
+        setImportProgress(70);
 
         // Smart column detection
         const normalize = (s: string) =>
@@ -278,6 +291,7 @@ const Campaigns = () => {
         }
 
         if (numCol === -1) {
+          setImportProgress(null);
           toast({ title: "Coluna de número não encontrada", description: "Certifique-se que a planilha tem uma coluna com números de telefone.", variant: "destructive" });
           return;
         }
@@ -285,7 +299,10 @@ const Campaigns = () => {
         // Name column defaults to the one before number, or first non-number column
         if (nameCol === -1) nameCol = numCol === 0 ? 1 : 0;
 
+        setImportProgress(80);
+
         const imported: Contact[] = [];
+        const totalRows = rows.length - startRow;
         for (let i = startRow; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0) continue;
@@ -312,13 +329,18 @@ const Campaigns = () => {
             var7: otherCols[6] ?? "",
           });
         }
-        if (imported.length > 0) {
-          setPreviewContacts(imported);
-        } else {
-          toast({ title: "Nenhum contato encontrado", description: "Nenhum número válido (8+ dígitos) foi encontrado.", variant: "destructive" });
-        }
+        setImportProgress(100);
+        setTimeout(() => {
+          setImportProgress(null);
+          if (imported.length > 0) {
+            setPreviewContacts(imported);
+          } else {
+            toast({ title: "Nenhum contato encontrado", description: "Nenhum número válido (8+ dígitos) foi encontrado.", variant: "destructive" });
+          }
+        }, 400);
       } catch (err) {
         console.error("Import error:", err);
+        setImportProgress(null);
         toast({ title: "Erro ao ler arquivo", description: "Formato não suportado.", variant: "destructive" });
       }
     };
@@ -1014,6 +1036,20 @@ const Campaigns = () => {
                 {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : "Enviar agora"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Progress Bar */}
+      {importProgress !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="w-80 rounded-xl border border-border/40 bg-card p-6 shadow-lg space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Upload className="w-4 h-4 animate-pulse text-primary" />
+              Processando arquivo...
+            </div>
+            <Progress value={importProgress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">{importProgress}%</p>
           </div>
         </div>
       )}
