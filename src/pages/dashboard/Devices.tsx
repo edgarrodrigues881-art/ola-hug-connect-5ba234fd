@@ -594,6 +594,10 @@ const Devices = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-4 pb-3">
                   <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelectDevice(d.id)}
+                    />
                     <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative overflow-hidden">
                       {d.profile_picture ? (
                         <img src={d.profile_picture} alt="" className="w-full h-full object-cover rounded-full" />
