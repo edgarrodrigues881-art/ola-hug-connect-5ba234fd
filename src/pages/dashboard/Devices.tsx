@@ -673,11 +673,6 @@ const Devices = () => {
               <Label className="text-xs text-destructive">*Nome da instância</Label>
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Token Whapi (canal)</Label>
-              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Cole o token do canal Whapi aqui" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Obtenha o token no painel da Whapi.cloud → Canais → Token do canal</p>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
