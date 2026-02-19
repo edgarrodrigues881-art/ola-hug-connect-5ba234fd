@@ -561,6 +561,7 @@ const Campaigns = () => {
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
             <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => fileRef.current?.click()}>
               <Upload className="w-3 h-3" /> Importar
             </Button>
