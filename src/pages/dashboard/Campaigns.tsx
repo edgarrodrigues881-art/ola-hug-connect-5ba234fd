@@ -83,7 +83,7 @@ const Campaigns = () => {
   const [messageType, setMessageType] = useState("texto");
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
-  const [selectedDevice, setSelectedDevice] = useState("");
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [quickReplyButtons, setQuickReplyButtons] = useState<QuickReplyButton[]>([]);
   const [ctaButtons, setCTAButtons] = useState<CTAButton[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
@@ -115,7 +115,8 @@ const Campaigns = () => {
   const [consecutiveErrorsThreshold, setConsecutiveErrorsThreshold] = useState(3);
 
   const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
-  const selectedDeviceData = devices.find(d => d.id === selectedDevice);
+  const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
+  const selectedDeviceData = selectedDevicesData[0];
   const validContacts = contacts.filter(c => c.numero.trim());
   const invalidContacts = contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
   const duplicateCount = contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size;
@@ -132,7 +133,7 @@ const Campaigns = () => {
   // Handlers
   const handleSendCampaign = () => {
     if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
-    if (!selectedDevice) { toast({ title: "Instância obrigatória", description: "Selecione uma instância.", variant: "destructive" }); return; }
+    if (selectedDevices.length === 0) { toast({ title: "Instância obrigatória", description: "Selecione pelo menos uma instância.", variant: "destructive" }); return; }
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
     if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
@@ -142,7 +143,7 @@ const Campaigns = () => {
     }, {
       onSuccess: (newCampaign) => {
         toast({ title: "Campanha criada!", description: `${validContacts.length} contatos. Iniciando envio...` });
-        startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevice }, {
+        startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
           onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
           onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
@@ -307,34 +308,66 @@ const Campaigns = () => {
               </Select>
             </div>
 
-            {/* Instance */}
+            {/* Instance (Multi-select) */}
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância</Label>
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância{selectedDevices.length > 1 ? `s (${selectedDevices.length})` : ""}</Label>
               {devices.length === 0 ? (
                 <div className="h-9 rounded-md border border-dashed border-border/40 bg-card/30 flex items-center justify-center gap-1.5 px-2">
                   <WifiOff className="w-3 h-3 text-muted-foreground" />
                   <span className="text-[10px] text-muted-foreground">Nenhuma conectada</span>
                 </div>
               ) : (
-                <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-                  <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-9 w-full justify-between text-xs bg-card/60 border-border/40 font-normal">
+                      <span className="truncate">
+                        {selectedDevices.length === 0 ? "Selecionar" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2 space-y-1" align="start">
+                    {/* Select All */}
+                    <button
+                      onClick={() => {
+                        if (selectedDevices.length === devices.length) setSelectedDevices([]);
+                        else setSelectedDevices(devices.map(d => d.id));
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
+                        selectedDevices.length === devices.length && "bg-accent"
+                      )}
+                    >
+                      <Checkbox checked={selectedDevices.length === devices.length} className="h-3.5 w-3.5" />
+                      <span className="font-medium">Selecionar todas</span>
+                      <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
+                    </button>
+                    <div className="h-px bg-border/30 my-1" />
                     {devices.map(d => {
                       const s = getDeviceStatus(d.status);
+                      const isSelected = selectedDevices.includes(d.id);
                       return (
-                        <SelectItem key={d.id} value={d.id}>
-                          <div className="flex items-center gap-2">
-                            <div className={cn("w-1.5 h-1.5 rounded-full", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
-                            <span>{d.name}</span>
-                            <span className="text-muted-foreground text-[10px]">{s.label}</span>
-                          </div>
-                        </SelectItem>
+                        <button
+                          key={d.id}
+                          onClick={() => {
+                            setSelectedDevices(prev =>
+                              isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id]
+                            );
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
+                            isSelected && "bg-accent/60"
+                          )}
+                        >
+                          <Checkbox checked={isSelected} className="h-3.5 w-3.5" />
+                          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
+                          <span className="truncate">{d.name}</span>
+                          <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
+                        </button>
                       );
                     })}
-                  </SelectContent>
-                </Select>
+                  </PopoverContent>
+                </Popover>
               )}
             </div>
 
@@ -772,7 +805,7 @@ const Campaigns = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4">
               {[
-                { label: "Instância", value: selectedDeviceData?.name || "—" },
+                { label: "Instância(s)", value: selectedDevicesData.length > 0 ? selectedDevicesData.map(d => d.name).join(", ") : "—" },
                 { label: "Contatos", value: String(validContacts.length) },
                 { label: "Limite", value: `${messageLimit} msgs` },
                 { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s` },
@@ -797,12 +830,12 @@ const Campaigns = () => {
             </div>
 
             {/* Warnings */}
-            {(!campaignName || !selectedDevice || validContacts.length === 0 || !message) && (
+            {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
               <div className="flex items-center gap-2 text-[11px] text-destructive bg-destructive/5 rounded-md px-3 py-2">
                 <AlertTriangle className="w-3 h-3 shrink-0" />
                 <span>
                   {!campaignName && "Nome ausente. "}
-                  {!selectedDevice && "Sem instância. "}
+                  {selectedDevices.length === 0 && "Sem instância. "}
                   {validContacts.length === 0 && "Sem contatos. "}
                   {!message && "Mensagem vazia."}
                 </span>
@@ -820,7 +853,7 @@ const Campaigns = () => {
               <Button
                 className="gap-2 h-9 px-6 text-xs font-medium"
                 onClick={handleSendCampaign}
-                disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || !selectedDevice || validContacts.length === 0 || !message}
+                disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
               >
                 <Send className="w-3.5 h-3.5" />
                 {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : "Enviar agora"}
