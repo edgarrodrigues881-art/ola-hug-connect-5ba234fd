@@ -16,7 +16,7 @@ import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
   Smile, List, RotateCcw, Image, Code, FileText, AlertTriangle, Link, MousePointerClick, X, CalendarIcon, Clock
 } from "lucide-react";
-import { useCreateCampaign } from "@/hooks/useCampaigns";
+import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,6 +44,7 @@ interface CTAButton {
 const Campaigns = () => {
   const { toast } = useToast();
   const createCampaign = useCreateCampaign();
+  const startCampaign = useStartCampaign();
   const { data: savedTemplates = [] } = useTemplates();
   const [contacts, setContacts] = useState<Contact[]>([
     { id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" },
@@ -76,8 +77,17 @@ const Campaigns = () => {
       buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
     }, {
-      onSuccess: () => {
-        toast({ title: "Campanha criada!", description: `${validContacts.length} contatos adicionados.` });
+      onSuccess: (newCampaign) => {
+        toast({ title: "Campanha criada!", description: `${validContacts.length} contatos adicionados. Iniciando envio...` });
+        // Automatically start sending
+        startCampaign.mutate({ campaignId: newCampaign.id }, {
+          onSuccess: (result) => {
+            toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` });
+          },
+          onError: (err: any) => {
+            toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
+          },
+        });
         setCampaignName("");
         setMessage("");
         setContacts([{ id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" }]);
@@ -570,8 +580,8 @@ const Campaigns = () => {
               <Button variant="outline" className="gap-1.5 text-sm">
                 <Eye className="w-4 h-4" /> Pré-visualização
               </Button>
-              <Button className="gap-1.5 text-sm bg-primary hover:bg-primary/90" onClick={handleSendCampaign} disabled={createCampaign.isPending}>
-                <Send className="w-4 h-4" /> {createCampaign.isPending ? "Salvando..." : schedule ? "Agendar envio" : "Enviar agora"}
+              <Button className="gap-1.5 text-sm bg-primary hover:bg-primary/90" onClick={handleSendCampaign} disabled={createCampaign.isPending || startCampaign.isPending}>
+                <Send className="w-4 h-4" /> {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : schedule ? "Agendar envio" : "Enviar agora"}
               </Button>
             </div>
           </div>
