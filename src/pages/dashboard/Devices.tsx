@@ -141,14 +141,24 @@ const Devices = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (device: { name: string; login_type: string; whapi_token?: string }) => {
-      const { error } = await supabase.from("devices").insert({
+    mutationFn: async (device: { name: string; login_type: string }) => {
+      const { data, error } = await supabase.from("devices").insert({
         name: device.name,
         login_type: device.login_type,
         user_id: session?.user.id,
-        whapi_token: device.whapi_token || null,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
+
+      // Auto-create Whapi channel
+      try {
+        const result = await callWhapi({ action: "createChannel", deviceId: data.id, channelName: device.name });
+        if (result?.token) {
+          toast({ title: "Canal Whapi criado automaticamente" });
+        }
+      } catch (err) {
+        console.error("Auto-create channel error:", err);
+        // Device created but channel creation failed - user can retry via edit
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -193,10 +203,9 @@ const Devices = () => {
       toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ name: instanceName, login_type: loginType, whapi_token: instanceToken || undefined });
+    createMutation.mutate({ name: instanceName, login_type: loginType });
     setCreateOpen(false);
     setInstanceName("");
-    setInstanceToken("");
     setLoginType("qr");
   };
 
@@ -408,10 +417,25 @@ const Devices = () => {
   };
 
   // Connect
-  const openConnect = (device: Device) => {
+  const openConnect = async (device: Device) => {
     if (!device.whapi_token) {
-      toast({ title: "Token Whapi não configurado", description: "Edite a instância e adicione o token Whapi antes de conectar.", variant: "destructive" });
-      return;
+      // Auto-create channel
+      toast({ title: "Criando canal Whapi...", description: "Aguarde enquanto o canal é criado automaticamente." });
+      try {
+        const result = await callWhapi({ action: "createChannel", deviceId: device.id, channelName: device.name });
+        if (!result?.token) throw new Error("Token não retornado");
+        // Refresh devices to get updated token
+        await queryClient.invalidateQueries({ queryKey: ["devices"] });
+        toast({ title: "Canal criado!", description: "Agora você pode conectar." });
+        // Re-fetch device with token
+        const { data: updatedDevice } = await supabase.from("devices").select("*").eq("id", device.id).single();
+        if (updatedDevice) {
+          device = { ...device, whapi_token: updatedDevice.whapi_token };
+        }
+      } catch (err: any) {
+        toast({ title: "Erro ao criar canal", description: err?.message || "Verifique a API Key da conta Whapi.", variant: "destructive" });
+        return;
+      }
     }
     setConnectingDevice(device);
     setConnectStep("choose");
