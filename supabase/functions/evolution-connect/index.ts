@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const WHAPI_BASE = "https://gate.whapi.cloud";
+const WHAPI_MANAGER = "https://manager.whapi.cloud";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -213,6 +214,72 @@ Deno.serve(async (req) => {
 
       const data = await res.json();
       return new Response(JSON.stringify({ success: res.ok, status: res.status, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: createChannel - Create a new Whapi channel automatically
+    if (action === "createChannel") {
+      const accountKey = Deno.env.get("WHAPI_ACCOUNT_API_KEY");
+      if (!accountKey) {
+        return new Response(JSON.stringify({ error: "WHAPI_ACCOUNT_API_KEY not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const managerHeaders = {
+        "Authorization": `Bearer ${accountKey}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      };
+
+      // Get projectId
+      const projRes = await fetch(`${WHAPI_MANAGER}/projects`, {
+        method: "GET",
+        headers: managerHeaders,
+      });
+      const projData = await projRes.json();
+      console.log("PROJECTS:", JSON.stringify(projData).substring(0, 500));
+
+      const projectId = projData?.[0]?.id;
+      if (!projectId) {
+        throw new Error("Nenhum projeto encontrado na conta Whapi");
+      }
+
+      // Create channel
+      const channelName = body.channelName || `channel-${Date.now()}`;
+      const createRes = await fetch(`${WHAPI_MANAGER}/channels`, {
+        method: "POST",
+        headers: managerHeaders,
+        body: JSON.stringify({ projectId, name: channelName }),
+      });
+      const channelData = await createRes.json();
+      console.log("CHANNEL CREATED:", JSON.stringify(channelData).substring(0, 500));
+
+      if (!createRes.ok) {
+        throw new Error(`Erro ao criar canal: ${JSON.stringify(channelData)}`);
+      }
+
+      const channelToken = channelData.token;
+      if (!channelToken) {
+        throw new Error("Canal criado mas token não retornado");
+      }
+
+      // Save token to device
+      if (deviceId) {
+        await supabase
+          .from("devices")
+          .update({ whapi_token: channelToken })
+          .eq("id", deviceId);
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        token: channelToken, 
+        channelId: channelData.id,
+        channelName: channelData.name,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
