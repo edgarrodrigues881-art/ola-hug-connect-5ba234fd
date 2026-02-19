@@ -233,6 +233,32 @@ Deno.serve(async (req) => {
 
       console.log(`Starting campaign ${campaignId} via device ${device.name} (${device.id})`);
 
+      // Check warmup session for this device
+      const { data: warmupSessions } = await supabase
+        .from("warmup_sessions")
+        .select("*")
+        .eq("device_id", device.id)
+        .eq("status", "running")
+        .limit(1);
+
+      const warmup = warmupSessions?.[0];
+      let warmupLimit = Infinity;
+      let minDelay = 1000;
+      let maxDelay = 3000;
+
+      if (warmup) {
+        // Calculate today's limit based on warmup progression
+        warmupLimit = Math.min(
+          warmup.messages_per_day + (warmup.current_day - 1) * warmup.daily_increment,
+          warmup.max_messages_per_day
+        );
+        const remaining = warmupLimit - warmup.messages_sent_today;
+        warmupLimit = Math.max(0, remaining);
+        minDelay = warmup.min_delay_seconds * 1000;
+        maxDelay = warmup.max_delay_seconds * 1000;
+        console.log(`Warmup active: limit=${warmupLimit} remaining today, delay=${warmup.min_delay_seconds}-${warmup.max_delay_seconds}s`);
+      }
+
       // Get pending contacts
       const { data: contacts, error: contactsErr } = await supabase
         .from("campaign_contacts")
@@ -250,12 +276,20 @@ Deno.serve(async (req) => {
 
       let sentCount = 0;
       let failedCount = 0;
+      let skippedByWarmup = 0;
       const messageContent = campaign.message_content || "";
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
 
       for (const contact of contacts || []) {
+        // Check warmup limit
+        if (warmup && sentCount >= warmupLimit) {
+          console.log(`Warmup limit reached (${warmupLimit}). Pausing remaining contacts.`);
+          skippedByWarmup = (contacts || []).length - sentCount - failedCount;
+          break;
+        }
+
         const phone = contact.phone.replace(/\D/g, "");
         if (phone.length < 10) {
           await supabase
@@ -281,8 +315,8 @@ Deno.serve(async (req) => {
 
           console.log(`Sent to ${phone} (${sentCount}/${(contacts || []).length})`);
 
-          // Random delay between 1-3 seconds to avoid spam detection
-          const delay = 1000 + Math.random() * 2000;
+          // Use warmup delay or default 1-3 seconds
+          const delay = minDelay + Math.random() * (maxDelay - minDelay);
           await new Promise(resolve => setTimeout(resolve, delay));
 
         } catch (err: any) {
@@ -295,15 +329,27 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Update warmup session counters
+      if (warmup && sentCount > 0) {
+        await supabase
+          .from("warmup_sessions")
+          .update({
+            messages_sent_today: warmup.messages_sent_today + sentCount,
+            messages_sent_total: warmup.messages_sent_total + sentCount,
+          })
+          .eq("id", warmup.id);
+      }
+
       // Update campaign with final counts
+      const finalStatus = skippedByWarmup > 0 ? "paused" : "completed";
       await supabase
         .from("campaigns")
         .update({
-          status: "completed",
+          status: finalStatus,
           sent_count: sentCount,
           failed_count: failedCount,
           delivered_count: sentCount,
-          completed_at: new Date().toISOString(),
+          completed_at: finalStatus === "completed" ? new Date().toISOString() : null,
         })
         .eq("id", campaignId);
 
@@ -312,8 +358,11 @@ Deno.serve(async (req) => {
           success: true,
           sent: sentCount,
           failed: failedCount,
+          skipped_warmup: skippedByWarmup,
           total: (contacts || []).length,
           device: device.name,
+          warmup_active: !!warmup,
+          status: finalStatus,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
