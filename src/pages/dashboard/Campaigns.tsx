@@ -374,7 +374,7 @@ const Campaigns = () => {
               {/* Message type grid */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Tipo de mensagem <span className="text-destructive">*</span></Label>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {messageTypes.map(mt => {
                     const Icon = mt.icon;
                     const isSelected = messageType === mt.value;
@@ -383,17 +383,33 @@ const Campaigns = () => {
                         key={mt.value}
                         onClick={() => setMessageType(mt.value)}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-lg border text-xs transition-all text-left",
+                          "group relative flex items-center gap-4 p-4 rounded-xl border text-sm transition-all duration-200 text-left overflow-hidden",
                           isSelected
-                            ? "bg-primary/10 border-primary/40 text-primary"
-                            : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            ? "bg-primary/10 border-primary/40 text-primary shadow-[0_0_15px_-3px_hsl(var(--primary)/0.25)]"
+                            : "bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40 hover:border-border hover:text-foreground"
                         )}
                       >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <div className="flex flex-col">
-                          <span className="font-medium leading-tight">{mt.label}</span>
-                          <span className="text-[10px] opacity-70">{mt.desc}</span>
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+                        )}
+                        <div className={cn(
+                          "relative flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors",
+                          isSelected
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted/50 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
+                        )}>
+                          <Icon className="w-4.5 h-4.5" />
                         </div>
+                        <div className="relative flex flex-col gap-0.5">
+                          <span className="font-semibold leading-tight">{mt.label}</span>
+                          <span className={cn(
+                            "text-[11px] leading-tight",
+                            isSelected ? "text-primary/60" : "text-muted-foreground/70"
+                          )}>{mt.desc}</span>
+                        </div>
+                        {isSelected && (
+                          <div className="relative ml-auto w-2 h-2 rounded-full bg-primary shrink-0" />
+                        )}
                       </button>
                     );
                   })}
