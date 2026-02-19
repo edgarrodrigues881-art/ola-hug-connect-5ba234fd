@@ -118,9 +118,9 @@ const Campaigns = () => {
   const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
   const selectedDeviceData = selectedDevicesData[0];
-  const validContacts = contacts.filter(c => c.numero.trim());
-  const invalidContacts = contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
-  const duplicateCount = contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size;
+  const validContacts = useMemo(() => contacts.filter(c => c.numero.trim()), [contacts]);
+  const invalidContacts = useMemo(() => contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, ""))), [contacts]);
+  const duplicateCount = useMemo(() => contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size, [contacts]);
   const showButtons = messageType === "texto-botao" || messageType === "imagem-botao";
 
   // Paginated contacts for table performance
