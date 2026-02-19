@@ -1,10 +1,57 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const WHAPI_BASE = "https://gate.whapi.cloud";
+
+async function sendWhapiMessage(token: string, to: string, body: string, mediaUrl?: string | null) {
+  const phone = to.replace(/\D/g, "");
+  
+  if (mediaUrl) {
+    // Send media message
+    const res = await fetch(`${WHAPI_BASE}/messages/image`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        to: phone,
+        media: { url: mediaUrl },
+        caption: body || undefined,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `Whapi error ${res.status}`);
+    return data;
+  }
+
+  // Send text message
+  const res = await fetch(`${WHAPI_BASE}/messages/text`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({ to: phone, body }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `Whapi error ${res.status}`);
+  return data;
+}
+
+function replaceVariables(template: string, contact: any): string {
+  return template
+    .replace(/\{\{nome\}\}/gi, contact.name || "")
+    .replace(/\{\{numero\}\}/gi, contact.phone || "")
+    .replace(/\{\{telefone\}\}/gi, contact.phone || "");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,19 +72,18 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-  if (claimsError || !claimsData?.claims) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const userId = claimsData.claims.sub;
+  const userId = user.id;
 
   try {
-    const { action, campaignId } = await req.json();
+    const { action, campaignId, deviceId } = await req.json();
 
     if (action === "start") {
       // Get campaign
@@ -54,7 +100,32 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get campaign contacts
+      // Get device with Whapi token - use specified deviceId or first Ready device
+      let deviceQuery = supabase
+        .from("devices")
+        .select("id, whapi_token, name")
+        .eq("user_id", userId)
+        .not("whapi_token", "is", null);
+
+      if (deviceId) {
+        deviceQuery = deviceQuery.eq("id", deviceId);
+      } else {
+        deviceQuery = deviceQuery.eq("status", "Ready");
+      }
+
+      const { data: devices } = await deviceQuery.limit(1);
+      const device = devices?.[0];
+
+      if (!device?.whapi_token) {
+        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token Whapi encontrado. Conecte um dispositivo primeiro." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Starting campaign ${campaignId} via device ${device.name} (${device.id})`);
+
+      // Get pending contacts
       const { data: contacts, error: contactsErr } = await supabase
         .from("campaign_contacts")
         .select("*")
@@ -63,18 +134,18 @@ Deno.serve(async (req) => {
 
       if (contactsErr) throw contactsErr;
 
-      // Update campaign status to processing
+      // Update campaign status
       await supabase
         .from("campaigns")
         .update({ status: "processing", started_at: new Date().toISOString() })
         .eq("id", campaignId);
 
-      // Simulate processing each contact
       let sentCount = 0;
       let failedCount = 0;
+      const messageContent = campaign.message_content || "";
+      const mediaUrl = campaign.media_url || null;
 
       for (const contact of contacts || []) {
-        // Validate phone number
         const phone = contact.phone.replace(/\D/g, "");
         if (phone.length < 10) {
           await supabase
@@ -85,12 +156,33 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Mark as sent (in real integration, this would call WhatsApp API)
-        await supabase
-          .from("campaign_contacts")
-          .update({ status: "sent", sent_at: new Date().toISOString() })
-          .eq("id", contact.id);
-        sentCount++;
+        try {
+          // Replace variables in message
+          const personalizedMessage = replaceVariables(messageContent, contact);
+
+          // Send via Whapi
+          await sendWhapiMessage(device.whapi_token, phone, personalizedMessage, mediaUrl);
+
+          await supabase
+            .from("campaign_contacts")
+            .update({ status: "sent", sent_at: new Date().toISOString() })
+            .eq("id", contact.id);
+          sentCount++;
+
+          console.log(`Sent to ${phone} (${sentCount}/${(contacts || []).length})`);
+
+          // Random delay between 1-3 seconds to avoid spam detection
+          const delay = 1000 + Math.random() * 2000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+
+        } catch (err: any) {
+          console.error(`Failed to send to ${phone}:`, err.message);
+          await supabase
+            .from("campaign_contacts")
+            .update({ status: "failed", error_message: err.message || "Erro ao enviar" })
+            .eq("id", contact.id);
+          failedCount++;
+        }
       }
 
       // Update campaign with final counts
@@ -111,6 +203,7 @@ Deno.serve(async (req) => {
           sent: sentCount,
           failed: failedCount,
           total: (contacts || []).length,
+          device: device.name,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -138,7 +231,8 @@ Deno.serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (err: any) {
+    console.error("Process campaign error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
