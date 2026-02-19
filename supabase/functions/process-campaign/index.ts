@@ -51,51 +51,65 @@ async function sendWhapiMessage(
 
   // Interactive message with buttons (quick_reply, url, call)
   if (hasButtons && (messageType === "botoes" || messageType === "botao-midia")) {
-    const interactivePayload: any = {
-      to: phone,
-      type: "button",
-      body: { text: body },
-      action: {
-        buttons: buttons.map((b, i) => {
-          if (b.type === "reply") {
-            return {
-              type: "quick_reply",
-              title: b.text.substring(0, 25),
-              id: `btn_${i}`,
-            };
-          }
-          if (b.type === "url") {
-            return {
-              type: "url",
-              title: b.text.substring(0, 25),
-              id: `url_${i}`,
-              url: (b.value && !b.value.startsWith("http") ? "https://" + b.value : b.value) || "",
-            };
-          }
-          if (b.type === "phone") {
+    const replyButtons = buttons.filter(b => b.type === "reply");
+    const ctaButtons = buttons.filter(b => b.type === "url" || b.type === "phone");
+
+    // Whapi does NOT allow mixing quick_reply with url/call buttons.
+    // If we have both, send them as separate messages.
+    const results: any[] = [];
+
+    if (replyButtons.length > 0) {
+      const replyPayload: any = {
+        to: phone,
+        type: "button",
+        body: { text: body },
+        action: {
+          buttons: replyButtons.map((b, i) => ({
+            type: "quick_reply",
+            title: b.text.substring(0, 25),
+            id: `btn_${i}`,
+          })),
+        },
+      };
+      if (mediaUrl) {
+        replyPayload.header = { image: { link: mediaUrl } };
+      }
+      console.log("Sending quick_reply buttons:", JSON.stringify(replyPayload).substring(0, 500));
+      results.push(await whapiRequest(token, "/messages/interactive", replyPayload));
+    }
+
+    if (ctaButtons.length > 0) {
+      const ctaPayload: any = {
+        to: phone,
+        type: "button",
+        body: { text: replyButtons.length > 0 ? "👇 Links:" : body },
+        action: {
+          buttons: ctaButtons.map((b, i) => {
+            if (b.type === "url") {
+              return {
+                type: "url",
+                title: b.text.substring(0, 25),
+                id: `url_${i}`,
+                url: (b.value && !b.value.startsWith("http") ? "https://" + b.value : b.value) || "",
+              };
+            }
             return {
               type: "call",
               title: b.text.substring(0, 25),
               id: `call_${i}`,
               phone_number: b.value || "",
             };
-          }
-          return {
-            type: "quick_reply",
-            title: b.text.substring(0, 25),
-            id: `btn_${i}`,
-          };
-        }),
-      },
-    };
-
-    // Add header with media if present
-    if (mediaUrl) {
-      interactivePayload.header = { image: { link: mediaUrl } };
+          }),
+        },
+      };
+      if (mediaUrl && replyButtons.length === 0) {
+        ctaPayload.header = { image: { link: mediaUrl } };
+      }
+      console.log("Sending CTA buttons:", JSON.stringify(ctaPayload).substring(0, 500));
+      results.push(await whapiRequest(token, "/messages/interactive", ctaPayload));
     }
 
-    console.log("Sending interactive button:", JSON.stringify(interactivePayload).substring(0, 500));
-    return await whapiRequest(token, "/messages/interactive", interactivePayload);
+    return results[0];
   }
 
   // List message
