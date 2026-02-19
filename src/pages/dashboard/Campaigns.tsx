@@ -374,7 +374,7 @@ const Campaigns = () => {
               {/* Message type grid */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Tipo de mensagem <span className="text-destructive">*</span></Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="flex flex-col gap-2">
                   {messageTypes.map(mt => {
                     const Icon = mt.icon;
                     const isSelected = messageType === mt.value;
@@ -383,14 +383,17 @@ const Campaigns = () => {
                         key={mt.value}
                         onClick={() => setMessageType(mt.value)}
                         className={cn(
-                          "flex flex-col items-center gap-1.5 p-3 rounded-lg border text-xs transition-all",
+                          "flex items-center gap-3 p-3 rounded-lg border text-xs transition-all text-left",
                           isSelected
                             ? "bg-primary/10 border-primary/40 text-primary"
                             : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span className="font-medium text-center leading-tight">{mt.label}</span>
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="font-medium leading-tight">{mt.label}</span>
+                          <span className="text-[10px] opacity-70">{mt.desc}</span>
+                        </div>
                       </button>
                     );
                   })}
