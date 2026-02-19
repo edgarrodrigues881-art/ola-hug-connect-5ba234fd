@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       token = device?.whapi_token;
     }
 
-    if (!token && action !== "checkToken" && action !== "createChannel") {
+    if (!token && action !== "checkToken") {
       return new Response(
         JSON.stringify({ error: "Token Whapi não configurado para este dispositivo" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -214,84 +214,6 @@ Deno.serve(async (req) => {
 
       const data = await res.json();
       return new Response(JSON.stringify({ success: res.ok, status: res.status, ...data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ACTION: createChannel - Create a new Whapi channel automatically
-    if (action === "createChannel") {
-      const accountKey = Deno.env.get("WHAPI_ACCOUNT_API_KEY");
-      if (!accountKey) {
-        return new Response(JSON.stringify({ error: "WHAPI_ACCOUNT_API_KEY not configured" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const managerHeaders = {
-        "Authorization": `Bearer ${accountKey}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      };
-
-      // Get projectId
-      const projRes = await fetch(`${WHAPI_MANAGER}/projects`, {
-        method: "GET",
-        headers: managerHeaders,
-      });
-      const projText = await projRes.text();
-      console.log("PROJECTS response:", projRes.status, projText.substring(0, 500));
-
-      let projData: any;
-      try { projData = JSON.parse(projText); } catch {
-        throw new Error(`Whapi projects response not JSON: ${projText.substring(0, 200)}`);
-      }
-
-      // Projects can be an array or have a data/projects field
-      const projects = Array.isArray(projData) ? projData : (projData?.projects || projData?.data || []);
-      const projectId = projects?.[0]?.id;
-      if (!projectId) {
-        throw new Error(`Nenhum projeto encontrado na conta Whapi. Response: ${projText.substring(0, 200)}`);
-      }
-
-      // Create channel (PUT method per Whapi Partner API)
-      const channelName = body.channelName || `channel-${Date.now()}`;
-      const createRes = await fetch(`${WHAPI_MANAGER}/channels`, {
-        method: "PUT",
-        headers: managerHeaders,
-        body: JSON.stringify({ projectId, name: channelName }),
-      });
-      const channelText = await createRes.text();
-      console.log("CHANNEL response:", createRes.status, channelText.substring(0, 500));
-
-      let channelData: any;
-      try { channelData = JSON.parse(channelText); } catch {
-        throw new Error(`Whapi channel response not JSON: ${channelText.substring(0, 200)}`);
-      }
-
-      if (!createRes.ok) {
-        throw new Error(`Erro ao criar canal: ${channelText.substring(0, 300)}`);
-      }
-
-      const channelToken = channelData.token;
-      if (!channelToken) {
-        throw new Error(`Canal criado mas token não retornado: ${channelText.substring(0, 300)}`);
-      }
-
-      // Save token to device
-      if (deviceId) {
-        await supabase
-          .from("devices")
-          .update({ whapi_token: channelToken })
-          .eq("id", deviceId);
-      }
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        token: channelToken, 
-        channelId: channelData.id,
-        channelName: channelData.name,
-      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
