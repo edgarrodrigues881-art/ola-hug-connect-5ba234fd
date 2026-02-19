@@ -231,7 +231,7 @@ const Campaigns = () => {
   ];
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="space-y-8 w-full pb-12">
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold text-foreground tracking-tight">Enviar Mensagem</h1>
