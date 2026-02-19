@@ -330,6 +330,74 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_sessions: {
+        Row: {
+          created_at: string
+          current_day: number
+          daily_increment: number
+          device_id: string
+          end_time: string
+          id: string
+          max_delay_seconds: number
+          max_messages_per_day: number
+          messages_per_day: number
+          messages_sent_today: number
+          messages_sent_total: number
+          min_delay_seconds: number
+          start_time: string
+          status: string
+          total_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_day?: number
+          daily_increment?: number
+          device_id: string
+          end_time?: string
+          id?: string
+          max_delay_seconds?: number
+          max_messages_per_day?: number
+          messages_per_day?: number
+          messages_sent_today?: number
+          messages_sent_total?: number
+          min_delay_seconds?: number
+          start_time?: string
+          status?: string
+          total_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_day?: number
+          daily_increment?: number
+          device_id?: string
+          end_time?: string
+          id?: string
+          max_delay_seconds?: number
+          max_messages_per_day?: number
+          messages_per_day?: number
+          messages_sent_today?: number
+          messages_sent_total?: number
+          min_delay_seconds?: number
+          start_time?: string
+          status?: string
+          total_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
