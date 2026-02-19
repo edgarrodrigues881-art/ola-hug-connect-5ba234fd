@@ -302,7 +302,6 @@ const Campaigns = () => {
         setImportProgress(80);
 
         const imported: Contact[] = [];
-        const totalRows = rows.length - startRow;
         for (let i = startRow; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0) continue;
