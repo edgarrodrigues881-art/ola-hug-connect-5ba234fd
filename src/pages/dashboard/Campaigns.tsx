@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -101,6 +102,9 @@ const Campaigns = () => {
   const [showContactTable, setShowContactTable] = useState(false);
   const [manualPhone, setManualPhone] = useState("");
   const [manualName, setManualName] = useState("");
+  const [previewContacts, setPreviewContacts] = useState<Contact[] | null>(null);
+  const [contactPage, setContactPage] = useState(0);
+  const CONTACTS_PER_PAGE = 50;
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
@@ -118,6 +122,23 @@ const Campaigns = () => {
   const invalidContacts = contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
   const duplicateCount = contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size;
   const showButtons = messageType === "texto-botao" || messageType === "imagem-botao";
+
+  // Paginated contacts for table performance
+  const totalPages = Math.ceil(contacts.length / CONTACTS_PER_PAGE);
+  const paginatedContacts = useMemo(() =>
+    contacts.slice(contactPage * CONTACTS_PER_PAGE, (contactPage + 1) * CONTACTS_PER_PAGE),
+    [contacts, contactPage, CONTACTS_PER_PAGE]
+  );
+
+  const confirmPreviewImport = useCallback(() => {
+    if (previewContacts) {
+      setContacts(previewContacts);
+      setShowContactTable(true);
+      setContactPage(0);
+      toast({ title: `${previewContacts.length} contatos importados` });
+      setPreviewContacts(null);
+    }
+  }, [previewContacts, toast]);
 
   const getRiskLevel = () => {
     if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10" };
@@ -292,9 +313,7 @@ const Campaigns = () => {
           });
         }
         if (imported.length > 0) {
-          setContacts(imported);
-          setShowContactTable(true);
-          toast({ title: `${imported.length} contatos importados` });
+          setPreviewContacts(imported);
         } else {
           toast({ title: "Nenhum contato encontrado", description: "Nenhum número válido (8+ dígitos) foi encontrado.", variant: "destructive" });
         }
@@ -726,43 +745,56 @@ const Campaigns = () => {
               </div>
 
               {showContactTable && (
-                <div className="max-h-[320px] overflow-auto rounded-lg border border-border/20 bg-card/20">
-                  <table className="w-full text-[11px]">
-                    <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
-                      <tr className="border-b border-border/20">
-                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">SN</th>
-                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
-                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
-                        {[1,2,3,4,5,6,7].map(n => (
-                          <th key={n} className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var {n}</th>
-                        ))}
-                        <th className="text-center px-2 py-1.5 text-muted-foreground font-medium w-16">Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contacts.map((contact, idx) => (
-                        <tr key={contact.id} className="border-b border-border/10 hover:bg-muted/10 group">
-                          <td className="px-2 py-1 text-muted-foreground/50">{idx + 1}</td>
-                          <td className="px-1 py-1">
-                            <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[80px]" />
-                          </td>
-                          <td className="px-1 py-1">
-                            <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] font-mono bg-transparent border-border/20 min-w-[100px]" />
-                          </td>
-                          {(["var1","var2","var3","var4","var5","var6","var7"] as const).map(varKey => (
-                            <td key={varKey} className="px-1 py-1">
-                              <Input value={contact[varKey]} onChange={(e) => updateContact(contact.id, varKey, e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[70px]" />
-                            </td>
+                <div>
+                  <div className="max-h-[320px] overflow-auto rounded-lg border border-border/20 bg-card/20">
+                    <table className="w-full text-[11px]">
+                      <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
+                        <tr className="border-b border-border/20">
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">SN</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
+                          {[1,2,3,4,5,6,7].map(n => (
+                            <th key={n} className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var {n}</th>
                           ))}
-                          <td className="px-2 py-1 text-center">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/40 hover:text-destructive" onClick={() => removeContact(contact.id)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </td>
+                          <th className="text-center px-2 py-1.5 text-muted-foreground font-medium w-16">Ação</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {paginatedContacts.map((contact, idx) => (
+                          <tr key={contact.id} className="border-b border-border/10 hover:bg-muted/10 group">
+                            <td className="px-2 py-1 text-muted-foreground/50">{contactPage * CONTACTS_PER_PAGE + idx + 1}</td>
+                            <td className="px-1 py-1">
+                              <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[80px]" />
+                            </td>
+                            <td className="px-1 py-1">
+                              <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] font-mono bg-transparent border-border/20 min-w-[100px]" />
+                            </td>
+                            {(["var1","var2","var3","var4","var5","var6","var7"] as const).map(varKey => (
+                              <td key={varKey} className="px-1 py-1">
+                                <Input value={contact[varKey]} onChange={(e) => updateContact(contact.id, varKey, e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[70px]" />
+                              </td>
+                            ))}
+                            <td className="px-2 py-1 text-center">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/40 hover:text-destructive" onClick={() => removeContact(contact.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-2 px-1">
+                      <span className="text-[10px] text-muted-foreground">
+                        {contactPage * CONTACTS_PER_PAGE + 1}-{Math.min((contactPage + 1) * CONTACTS_PER_PAGE, contacts.length)} de {contacts.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={contactPage === 0} onClick={() => setContactPage(p => p - 1)}>Anterior</Button>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={contactPage >= totalPages - 1} onClick={() => setContactPage(p => p + 1)}>Próximo</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -985,6 +1017,71 @@ const Campaigns = () => {
           </div>
         </div>
       )}
+
+      {/* Import Preview Dialog */}
+      <Dialog open={!!previewContacts} onOpenChange={(open) => !open && setPreviewContacts(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Preview da Importação</DialogTitle>
+          </DialogHeader>
+          {previewContacts && (
+            <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
+                  <p className="text-lg font-semibold text-foreground">{previewContacts.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                </div>
+                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
+                  <p className="text-lg font-semibold text-foreground">{previewContacts.filter(c => /^\d{10,15}$/.test(c.numero)).length}</p>
+                  <p className="text-[10px] text-muted-foreground">Válidos</p>
+                </div>
+                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
+                  <p className="text-lg font-semibold text-foreground">{new Set(previewContacts.map(c => c.numero)).size}</p>
+                  <p className="text-[10px] text-muted-foreground">Únicos</p>
+                </div>
+              </div>
+
+              {/* Sample rows */}
+              <div className="flex-1 overflow-auto rounded-lg border border-border/20 bg-card/20">
+                <table className="w-full text-[11px]">
+                  <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
+                    <tr className="border-b border-border/20">
+                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">#</th>
+                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
+                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
+                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var 1</th>
+                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var 2</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewContacts.slice(0, 10).map((c, i) => (
+                      <tr key={c.id} className="border-b border-border/10">
+                        <td className="px-2 py-1 text-muted-foreground/50">{i + 1}</td>
+                        <td className="px-2 py-1 text-foreground">{c.nome || "—"}</td>
+                        <td className="px-2 py-1 font-mono text-foreground">{c.numero}</td>
+                        <td className="px-2 py-1 text-muted-foreground">{c.var1 || "—"}</td>
+                        <td className="px-2 py-1 text-muted-foreground">{c.var2 || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {previewContacts.length > 10 && (
+                  <p className="text-[10px] text-muted-foreground text-center py-2">
+                    ...e mais {previewContacts.length - 10} contatos
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => setPreviewContacts(null)}>Cancelar</Button>
+            <Button size="sm" className="text-xs gap-1.5" onClick={confirmPreviewImport}>
+              <CheckCircle2 className="w-3 h-3" /> Confirmar importação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
