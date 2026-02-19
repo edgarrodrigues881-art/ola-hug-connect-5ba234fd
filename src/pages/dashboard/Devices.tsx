@@ -592,10 +592,6 @@ const Devices = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-4 pb-3">
                   <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelectDevice(d.id)}
-                    />
                     <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative">
                       <Smartphone className="w-4 h-4 text-muted-foreground" />
                       <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${d.status === "Ready" ? "bg-emerald-500" : d.status === "Loading" ? "bg-yellow-500" : "bg-muted-foreground/40"}`} />
