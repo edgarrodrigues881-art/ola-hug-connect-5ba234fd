@@ -401,8 +401,8 @@ const Campaigns = () => {
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{selectedDeviceData.number || "—"}</p>
+                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.number || selectedDeviceData.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedDeviceData.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
