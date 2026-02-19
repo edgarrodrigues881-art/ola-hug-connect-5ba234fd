@@ -12,6 +12,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import Devices from "./pages/dashboard/Devices";
 import Campaigns from "./pages/dashboard/Campaigns";
+import CampaignList from "./pages/dashboard/CampaignList";
 import Contacts from "./pages/dashboard/Contacts";
 import Reports from "./pages/dashboard/Reports";
 import Templates from "./pages/dashboard/Templates";
@@ -41,6 +42,7 @@ const App = () => (
                       <Route index element={<DashboardHome />} />
                       <Route path="devices" element={<Devices />} />
                       <Route path="campaigns" element={<Campaigns />} />
+                      <Route path="campaign-list" element={<CampaignList />} />
                       <Route path="templates" element={<Templates />} />
                       <Route path="contacts" element={<Contacts />} />
                       <Route path="auto-save" element={<AutoSaveNumber />} />
