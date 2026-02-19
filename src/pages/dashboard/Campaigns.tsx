@@ -194,19 +194,49 @@ const Campaigns = () => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target?.result, { type: "binary" });
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        
+        if (rows.length < 2) {
+          toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
+          return;
+        }
+
         const imported: Contact[] = [];
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          if (row && row[1]) imported.push({ id: Date.now() + i, nome: String(row[0] || ""), numero: String(row[1] || ""), var1: String(row[2] || ""), var2: String(row[3] || ""), var3: String(row[4] || ""), var4: String(row[5] || ""), var5: String(row[6] || ""), var6: String(row[7] || ""), var7: String(row[8] || "") });
+          if (!row || row.length === 0) continue;
+          const nome = String(row[0] ?? "").trim();
+          const numero = String(row[1] ?? "").trim();
+          if (!numero) continue;
+          imported.push({
+            id: Date.now() + i,
+            nome,
+            numero,
+            var1: String(row[2] ?? ""),
+            var2: String(row[3] ?? ""),
+            var3: String(row[4] ?? ""),
+            var4: String(row[5] ?? ""),
+            var5: String(row[6] ?? ""),
+            var6: String(row[7] ?? ""),
+            var7: String(row[8] ?? ""),
+          });
         }
-        if (imported.length > 0) { setContacts(imported); setShowContactTable(true); toast({ title: `${imported.length} contatos importados` }); }
-        else toast({ title: "Nenhum contato encontrado", variant: "destructive" });
-      } catch { toast({ title: "Erro ao ler arquivo", variant: "destructive" }); }
+        if (imported.length > 0) {
+          setContacts(imported);
+          setShowContactTable(true);
+          toast({ title: `${imported.length} contatos importados` });
+        } else {
+          toast({ title: "Nenhum contato encontrado", description: "Verifique se o número está na segunda coluna.", variant: "destructive" });
+        }
+      } catch (err) {
+        console.error("Import error:", err);
+        toast({ title: "Erro ao ler arquivo", description: "Formato não suportado.", variant: "destructive" });
+      }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
     if (fileRef.current) fileRef.current.value = "";
   };
 
