@@ -38,6 +38,15 @@ async function whapiRequest(token: string, endpoint: string, payload: any) {
   return JSON.parse(text);
 }
 
+function formatBrazilianPhone(raw: string): string {
+  // Brazilian numbers: 55 + DDD(2) + number(8 or 9 digits)
+  // The Whapi API / WhatsApp expects the number as stored in the user's contact list.
+  // Some numbers have 9 digits (mobile with leading 9), some have 8 digits (landline or old mobile).
+  // We try both formats: first the original, if that's 13 digits (55+2+9), also try without the 9th digit.
+  // This function returns the number as-is; the caller should handle retries.
+  return raw;
+}
+
 async function sendWhapiMessage(
   token: string, 
   to: string, 
@@ -152,6 +161,24 @@ async function sendWhapiMessage(
 
   // Plain text message
   return await whapiRequest(token, "/messages/text", { to: phone, body });
+}
+
+// For Brazilian mobile numbers (55 + 2-digit DDD + 9-digit number = 13 digits),
+// try sending without the extra 9 if the original fails or stays pending.
+// Many WhatsApp accounts are registered with 8-digit numbers (without the leading 9).
+function getBrazilianPhoneVariants(phone: string): string[] {
+  const raw = phone.replace(/\D/g, "");
+  const variants = [raw];
+  // If 13 digits starting with 55 and 3rd+4th digits are valid DDD, and 5th digit is 9
+  if (raw.length === 13 && raw.startsWith("55") && raw[4] === "9") {
+    // Try without the 9: 55 + DDD + 8 digits
+    variants.push(raw.slice(0, 4) + raw.slice(5));
+  }
+  // If 12 digits starting with 55, try adding 9 after DDD
+  if (raw.length === 12 && raw.startsWith("55")) {
+    variants.push(raw.slice(0, 4) + "9" + raw.slice(4));
+  }
+  return variants;
 }
 
 function replaceVariables(template: string, contact: any): string {
@@ -304,8 +331,27 @@ Deno.serve(async (req) => {
           // Replace variables in message
           const personalizedMessage = replaceVariables(messageContent, contact);
 
-          // Send via Whapi with buttons support
-          await sendWhapiMessage(device.whapi_token, phone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+          // Try all Brazilian phone variants (with/without extra 9)
+          const phoneVariants = getBrazilianPhoneVariants(phone);
+          let sendSuccess = false;
+          let lastError: any = null;
+
+          for (const variant of phoneVariants) {
+            try {
+              console.log(`Trying phone variant: ${variant}`);
+              await sendWhapiMessage(device.whapi_token, variant, personalizedMessage, mediaUrl, campaignButtons, msgType);
+              sendSuccess = true;
+              console.log(`Successfully sent to variant: ${variant}`);
+              break;
+            } catch (variantErr: any) {
+              lastError = variantErr;
+              console.log(`Variant ${variant} failed: ${variantErr.message}`);
+            }
+          }
+
+          if (!sendSuccess && lastError) {
+            throw lastError;
+          }
 
           await supabase
             .from("campaign_contacts")
