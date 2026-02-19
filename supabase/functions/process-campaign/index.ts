@@ -15,6 +15,7 @@ interface CampaignButton {
 }
 
 async function whapiRequest(token: string, endpoint: string, payload: any) {
+  console.log("Whapi request payload:", JSON.stringify(payload));
   const res = await fetch(`${WHAPI_BASE}${endpoint}`, {
     method: "POST",
     headers: {
@@ -24,9 +25,17 @@ async function whapiRequest(token: string, endpoint: string, payload: any) {
     },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || `Whapi error ${res.status}`);
-  return data;
+  const text = await res.text();
+  console.log("Whapi response:", res.status, text);
+  if (!res.ok) {
+    let errorMsg = `Whapi error ${res.status}`;
+    try {
+      const data = JSON.parse(text);
+      errorMsg = data?.error?.message || data?.message || text;
+    } catch { errorMsg = text; }
+    throw new Error(errorMsg);
+  }
+  return JSON.parse(text);
 }
 
 async function sendWhapiMessage(
@@ -60,7 +69,7 @@ async function sendWhapiMessage(
               type: "url",
               title: b.text.substring(0, 25),
               id: `url_${i}`,
-              url: b.value || "",
+              url: (b.value && !b.value.startsWith("http") ? "https://" + b.value : b.value) || "",
             };
           }
           if (b.type === "phone") {
