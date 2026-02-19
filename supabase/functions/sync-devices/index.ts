@@ -115,11 +115,32 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Try to get profile picture
+        let profilePicture = device.profile_picture || "";
+        try {
+          const picRes = await fetch(`${WHAPI_BASE}/users/profile/settings`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${device.whapi_token}`,
+              "Accept": "application/json",
+            },
+          });
+          if (picRes.ok) {
+            const picData = await picRes.json();
+            if (picData?.icon) {
+              profilePicture = picData.icon;
+            }
+          }
+        } catch (e) {
+          console.log(`Could not fetch profile pic for ${device.name}:`, e);
+        }
+
         await supabase
           .from("devices")
           .update({
             status: newStatus,
             number: formattedPhone || device.number || "",
+            profile_picture: profilePicture || null,
           })
           .eq("id", device.id);
 

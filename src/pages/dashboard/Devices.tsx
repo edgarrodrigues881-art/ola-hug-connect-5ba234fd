@@ -31,6 +31,7 @@ interface Device {
   login_type: string;
   proxy_id: string | null;
   whapi_token: string | null;
+  profile_picture: string | null;
 }
 
 const statusConfig = {
@@ -99,6 +100,7 @@ const Devices = () => {
         login_type: d.login_type,
         proxy_id: d.proxy_id,
         whapi_token: d.whapi_token || null,
+        profile_picture: d.profile_picture || null,
       })) as Device[];
     },
     enabled: !!session,
@@ -592,8 +594,12 @@ const Devices = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-4 pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative">
-                      <Smartphone className="w-4 h-4 text-muted-foreground" />
+                    <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative overflow-hidden">
+                      {d.profile_picture ? (
+                        <img src={d.profile_picture} alt="" className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <Smartphone className="w-4 h-4 text-muted-foreground" />
+                      )}
                       <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${d.status === "Ready" ? "bg-emerald-500" : d.status === "Loading" ? "bg-yellow-500" : "bg-muted-foreground/40"}`} />
                     </div>
                     <div>
