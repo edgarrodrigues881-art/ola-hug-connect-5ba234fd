@@ -101,6 +101,18 @@ export function useCreateCampaign() {
   });
 }
 
+export function useStartCampaign() {
+  return useMutation({
+    mutationFn: async ({ campaignId, deviceId }: { campaignId: string; deviceId?: string }) => {
+      const { data, error } = await supabase.functions.invoke("process-campaign", {
+        body: { action: "start", campaignId, deviceId },
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useDeleteCampaign() {
   const queryClient = useQueryClient();
 
