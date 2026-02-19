@@ -585,80 +585,70 @@ const Devices = () => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const StatusIcon = sc.icon;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
+          const isSelected = selectedDevices.includes(d.id);
           return (
-            <Card key={d.id} className={`glass-card ${selectedDevices.includes(d.id) ? "ring-2 ring-primary" : ""}`}>
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-start justify-between">
+            <Card key={d.id} className={`border bg-card/50 backdrop-blur-sm transition-all hover:shadow-md ${isSelected ? "ring-2 ring-primary" : ""}`}>
+              <CardContent className="p-0">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-4 pb-3">
                   <div className="flex items-center gap-3">
                     <Checkbox
-                      checked={selectedDevices.includes(d.id)}
+                      checked={isSelected}
                       onCheckedChange={() => toggleSelectDevice(d.id)}
-                      className="mt-0.5"
                     />
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 relative">
-                      <Smartphone className="w-5 h-5 text-muted-foreground" />
-                      {d.status === "Ready" && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background" />
-                      )}
-                      {d.status === "Disconnected" && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-background" />
-                      )}
+                    <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative">
+                      <Smartphone className="w-4 h-4 text-muted-foreground" />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${d.status === "Ready" ? "bg-emerald-500" : d.status === "Loading" ? "bg-yellow-500" : "bg-muted-foreground/40"}`} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">Instância {index + 1}</p>
+                      <p className="text-sm font-semibold text-foreground leading-tight">Instância {index + 1}</p>
                       <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
                     </div>
                   </div>
-                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => {
-                      if (d.status === "Ready") {
-                        setDeleteSingleDevice(d);
-                        setDeleteSingleOpen(true);
-                      } else {
-                        handleDelete(d.id);
-                      }
-                    }}>
-                     <Trash2 className="w-3.5 h-3.5" />
-                   </Button>
-                 </div>
-
-                <div className="flex items-center gap-2">
-                  <StatusIcon className={`w-4 h-4 ${sc.color}`} />
-                  <span className="text-sm font-medium text-foreground">{sc.label}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Status: {d.status === "Ready" ? "conectado" : d.status === "Loading" ? "carregando..." : "desconectado"}
-                </p>
-
-                {/* Token info */}
-                <div className="flex items-center gap-2">
-                  <Key className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    {d.whapi_token ? `Token: ...${d.whapi_token.slice(-8)}` : "Sem token Whapi"}
-                  </span>
+                  <Badge variant="outline" className={`text-[10px] font-medium ${sc.badgeClass}`}>
+                    {sc.label}
+                  </Badge>
                 </div>
 
-                {/* Proxy info */}
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    {assignedProxy ? assignedProxy.label : "Sem proxy"}
-                  </span>
+                {/* Info */}
+                <div className="px-5 pb-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+                  {assignedProxy && (
+                    <span className="flex items-center gap-1">
+                      <Shield className="w-3 h-3" /> {assignedProxy.label}
+                    </span>
+                  )}
+                  {d.whapi_token && (
+                    <span className="flex items-center gap-1">
+                      <Key className="w-3 h-3" /> ...{d.whapi_token.slice(-6)}
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => openEdit(d)}>
+                {/* Actions */}
+                <div className="border-t px-5 py-3 flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1" onClick={() => openEdit(d)}>
                     <Pencil className="w-3 h-3" /> Editar
                   </Button>
-                  {d.status === "Ready" && (
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => openLogout(d)}>
-                      <Power className="w-3 h-3" /> Sair
-                    </Button>
-                  )}
                   {d.status === "Disconnected" && (
-                    <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => openConnect(d)}>
+                    <Button size="sm" className="h-8 gap-1.5 text-xs flex-1 bg-primary hover:bg-primary/90" onClick={() => openConnect(d)}>
                       <Link2 className="w-3 h-3" /> Conectar
                     </Button>
                   )}
+                  {d.status === "Ready" && (
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1 text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
+                      <Power className="w-3 h-3" /> Sair
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={() => {
+                    if (d.status === "Ready") {
+                      setDeleteSingleDevice(d);
+                      setDeleteSingleOpen(true);
+                    } else {
+                      handleDelete(d.id);
+                    }
+                  }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
