@@ -412,10 +412,6 @@ const Campaigns = () => {
                       </div>
                     );
                   })()}
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <Shield className="w-3 h-3" />
-                    <span>Score: 85</span>
-                  </div>
                 </div>
               </div>
             </div>
