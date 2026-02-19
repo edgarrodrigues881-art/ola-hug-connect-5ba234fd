@@ -445,11 +445,11 @@ const Campaigns = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={minDelay} onChange={(e) => setMinDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={maxDelay} onChange={(e) => setMaxDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={minDelay} />
                   </div>
                 </div>
                 <p className="text-[9px] text-muted-foreground/60">Intervalo aleatório entre {minDelay}s e {maxDelay}s a cada envio</p>
@@ -463,11 +463,11 @@ const Campaigns = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">A cada (mín.)</label>
-                    <Input type="number" value={pauseEveryMin} onChange={(e) => setPauseEveryMin(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">A cada (máx.)</label>
-                    <Input type="number" value={pauseEveryMax} onChange={(e) => setPauseEveryMax(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseEveryMin} />
                   </div>
                 </div>
                 <p className="text-[9px] text-muted-foreground/60">Pausa aleatória entre cada {pauseEveryMin} a {pauseEveryMax} mensagens enviadas</p>
@@ -481,11 +481,11 @@ const Campaigns = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={pauseDurationMin} onChange={(e) => setPauseDurationMin(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={pauseDurationMax} onChange={(e) => setPauseDurationMax(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                    <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseDurationMin} />
                   </div>
                 </div>
                 <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
