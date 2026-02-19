@@ -67,6 +67,23 @@ Deno.serve(async (req) => {
 
     // ACTION: connect - Get QR code for login
     if (action === "connect") {
+      const forceNew = body.forceNew !== false; // default true: always logout first for fresh QR
+      
+      if (forceNew) {
+        // Logout first to ensure a fresh QR code is generated
+        try {
+          await fetch(`${WHAPI_BASE}/users/logout`, {
+            method: "POST",
+            headers: whapiHeaders,
+          });
+          console.log("Pre-connect logout done (forcing fresh QR)");
+        } catch (e) {
+          console.log("Pre-connect logout skipped:", e);
+        }
+        // Small delay for Whapi to process the logout
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
       const res = await fetch(`${WHAPI_BASE}/users/login`, {
         method: "GET",
         headers: whapiHeaders,
