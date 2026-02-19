@@ -81,9 +81,44 @@ Deno.serve(async (req) => {
         throw new Error(`Whapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
       }
 
-      // 409 means already authenticated
+      // 409 means already authenticated - fetch info and update device
       if (res.status === 409) {
-        return new Response(JSON.stringify({ success: true, alreadyConnected: true, ...data }), {
+        // Fetch phone number and status
+        const meRes = await fetch(`${WHAPI_BASE}/users/me`, {
+          method: "GET",
+          headers: whapiHeaders,
+        });
+        const meData = meRes.ok ? await meRes.json() : {};
+        const phone = meData.phone || "";
+        let formattedPhone = "";
+        if (phone) {
+          const raw = phone.replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12) {
+            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          } else if (raw) {
+            formattedPhone = `+${raw}`;
+          }
+        }
+
+        // Update device in DB
+        if (deviceId) {
+          const serviceClient = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+          await serviceClient
+            .from("devices")
+            .update({ status: "Ready", number: formattedPhone })
+            .eq("id", deviceId);
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          alreadyConnected: true, 
+          phone: formattedPhone,
+          status: "Ready",
+          ...meData 
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

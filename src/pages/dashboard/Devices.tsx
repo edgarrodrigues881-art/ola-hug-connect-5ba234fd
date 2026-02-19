@@ -451,16 +451,12 @@ const Devices = () => {
 
           // Already connected
           if (connectResult.alreadyConnected) {
-            setConnectStep("done");
-            toast({ title: "Já conectado!", description: "Esta instância já está autenticada." });
-            // Sync
-            const { data: { session: s } } = await supabase.auth.getSession();
-            if (s) {
-              await supabase.functions.invoke("sync-devices", {
-                headers: { Authorization: `Bearer ${s.access_token}` },
-              });
-            }
+            // Device already updated by edge function, just refresh
             queryClient.invalidateQueries({ queryKey: ["devices"] });
+            setConnectStep("done");
+            const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
+            toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
+            setConnectOpen(false);
             return;
           }
 
