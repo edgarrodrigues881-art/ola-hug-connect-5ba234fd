@@ -198,30 +198,97 @@ const Campaigns = () => {
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        
-        if (rows.length < 2) {
+
+        if (rows.length < 1) {
           toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
           return;
         }
 
+        // Smart column detection
+        const normalize = (s: string) =>
+          String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
+
+        const findCol = (headers: string[], names: string[]): number => {
+          const nh = headers.map(h => normalize(String(h)));
+          const nn = names.map(normalize);
+          for (const n of nn) { const i = nh.indexOf(n); if (i !== -1) return i; }
+          for (const n of nn) { const i = nh.findIndex(h => h.startsWith(n)); if (i !== -1) return i; }
+          for (const n of nn) { const i = nh.findIndex(h => h.includes(n)); if (i !== -1) return i; }
+          return -1;
+        };
+
+        // Check if first row looks like a header
+        const firstRow = rows[0] || [];
+        const hasHeader = firstRow.some((c: any) => {
+          const s = normalize(String(c));
+          return ["nome", "name", "numero", "number", "telefone", "phone", "contato", "contact", "whatsapp", "celular", "var"].some(k => s.includes(k));
+        });
+
+        let nameCol = -1;
+        let numCol = -1;
+        let startRow = 0;
+
+        if (hasHeader) {
+          const headers = firstRow.map((c: any) => String(c));
+          nameCol = findCol(headers, ["nome", "name", "contato", "contact", "cliente", "customer"]);
+          numCol = findCol(headers, ["numero", "number", "telefone", "phone", "whatsapp", "celular", "fone", "tel"]);
+          startRow = 1;
+        }
+
+        // Fallback: detect by content — find first column with phone-like numbers
+        if (numCol === -1) {
+          for (let ci = 0; ci < (rows[hasHeader ? 1 : 0]?.length || 0); ci++) {
+            const sample = String(rows[hasHeader ? 1 : 0]?.[ci] ?? "").replace(/\D/g, "");
+            if (sample.length >= 8) { numCol = ci; break; }
+          }
+        }
+
+        // If still no number column, try every column across first rows
+        if (numCol === -1) {
+          for (let ri = 0; ri < Math.min(5, rows.length); ri++) {
+            const row = rows[ri];
+            if (!row) continue;
+            for (let ci = 0; ci < row.length; ci++) {
+              const val = String(row[ci] ?? "").replace(/\D/g, "");
+              if (val.length >= 8) { numCol = ci; startRow = hasHeader ? 1 : 0; break; }
+            }
+            if (numCol !== -1) break;
+          }
+        }
+
+        if (numCol === -1) {
+          toast({ title: "Coluna de número não encontrada", description: "Certifique-se que a planilha tem uma coluna com números de telefone.", variant: "destructive" });
+          return;
+        }
+
+        // Name column defaults to the one before number, or first non-number column
+        if (nameCol === -1) nameCol = numCol === 0 ? 1 : 0;
+
         const imported: Contact[] = [];
-        for (let i = 1; i < rows.length; i++) {
+        for (let i = startRow; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0) continue;
-          const nome = String(row[0] ?? "").trim();
-          const numero = String(row[1] ?? "").trim();
-          if (!numero) continue;
+          const rawNum = String(row[numCol] ?? "").trim().replace(/\D/g, "");
+          if (rawNum.length < 8) continue;
+          const nome = String(row[nameCol] ?? "").trim();
+
+          // Map remaining columns to vars, skipping name and number cols
+          const otherCols = [];
+          for (let c = 0; c < row.length; c++) {
+            if (c !== nameCol && c !== numCol) otherCols.push(String(row[c] ?? ""));
+          }
+
           imported.push({
             id: Date.now() + i,
             nome,
-            numero,
-            var1: String(row[2] ?? ""),
-            var2: String(row[3] ?? ""),
-            var3: String(row[4] ?? ""),
-            var4: String(row[5] ?? ""),
-            var5: String(row[6] ?? ""),
-            var6: String(row[7] ?? ""),
-            var7: String(row[8] ?? ""),
+            numero: rawNum,
+            var1: otherCols[0] ?? "",
+            var2: otherCols[1] ?? "",
+            var3: otherCols[2] ?? "",
+            var4: otherCols[3] ?? "",
+            var5: otherCols[4] ?? "",
+            var6: otherCols[5] ?? "",
+            var7: otherCols[6] ?? "",
           });
         }
         if (imported.length > 0) {
@@ -229,7 +296,7 @@ const Campaigns = () => {
           setShowContactTable(true);
           toast({ title: `${imported.length} contatos importados` });
         } else {
-          toast({ title: "Nenhum contato encontrado", description: "Verifique se o número está na segunda coluna.", variant: "destructive" });
+          toast({ title: "Nenhum contato encontrado", description: "Nenhum número válido (8+ dígitos) foi encontrado.", variant: "destructive" });
         }
       } catch (err) {
         console.error("Import error:", err);
