@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       token = device?.whapi_token;
     }
 
-    if (!token && action !== "checkToken") {
+    if (!token && action !== "checkToken" && action !== "createChannel") {
       return new Response(
         JSON.stringify({ error: "Token Whapi não configurado para este dispositivo" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -239,31 +239,43 @@ Deno.serve(async (req) => {
         method: "GET",
         headers: managerHeaders,
       });
-      const projData = await projRes.json();
-      console.log("PROJECTS:", JSON.stringify(projData).substring(0, 500));
+      const projText = await projRes.text();
+      console.log("PROJECTS response:", projRes.status, projText.substring(0, 500));
 
-      const projectId = projData?.[0]?.id;
-      if (!projectId) {
-        throw new Error("Nenhum projeto encontrado na conta Whapi");
+      let projData: any;
+      try { projData = JSON.parse(projText); } catch {
+        throw new Error(`Whapi projects response not JSON: ${projText.substring(0, 200)}`);
       }
 
-      // Create channel
+      // Projects can be an array or have a data/projects field
+      const projects = Array.isArray(projData) ? projData : (projData?.projects || projData?.data || []);
+      const projectId = projects?.[0]?.id;
+      if (!projectId) {
+        throw new Error(`Nenhum projeto encontrado na conta Whapi. Response: ${projText.substring(0, 200)}`);
+      }
+
+      // Create channel (PUT method per Whapi Partner API)
       const channelName = body.channelName || `channel-${Date.now()}`;
       const createRes = await fetch(`${WHAPI_MANAGER}/channels`, {
-        method: "POST",
+        method: "PUT",
         headers: managerHeaders,
         body: JSON.stringify({ projectId, name: channelName }),
       });
-      const channelData = await createRes.json();
-      console.log("CHANNEL CREATED:", JSON.stringify(channelData).substring(0, 500));
+      const channelText = await createRes.text();
+      console.log("CHANNEL response:", createRes.status, channelText.substring(0, 500));
+
+      let channelData: any;
+      try { channelData = JSON.parse(channelText); } catch {
+        throw new Error(`Whapi channel response not JSON: ${channelText.substring(0, 200)}`);
+      }
 
       if (!createRes.ok) {
-        throw new Error(`Erro ao criar canal: ${JSON.stringify(channelData)}`);
+        throw new Error(`Erro ao criar canal: ${channelText.substring(0, 300)}`);
       }
 
       const channelToken = channelData.token;
       if (!channelToken) {
-        throw new Error("Canal criado mas token não retornado");
+        throw new Error(`Canal criado mas token não retornado: ${channelText.substring(0, 300)}`);
       }
 
       // Save token to device
