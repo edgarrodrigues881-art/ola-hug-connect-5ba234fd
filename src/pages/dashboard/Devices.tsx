@@ -504,20 +504,8 @@ const Devices = () => {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {selectedDevices.length > 0 && (
-            <>
-              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setDeleteSelectedOpen(true)}>
-                <Trash2 className="w-3.5 h-3.5" /> Apagar {selectedDevices.length} selecionada{selectedDevices.length !== 1 ? "s" : ""}
-              </Button>
-            </>
-          )}
-          {devices.some(d => d.status === "Disconnected") && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteDisconnectedOpen(true)}>
-              <XCircle className="w-3.5 h-3.5" /> Apagar desconectadas
-            </Button>
-          )}
-          {devices.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
-              <Trash2 className="w-3.5 h-3.5" /> Apagar todas
+            <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setDeleteSelectedOpen(true)}>
+              <Trash2 className="w-3.5 h-3.5" /> Apagar {selectedDevices.length} selecionada{selectedDevices.length !== 1 ? "s" : ""}
             </Button>
           )}
           <DropdownMenu>
