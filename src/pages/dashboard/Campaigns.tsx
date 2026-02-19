@@ -496,20 +496,20 @@ const Campaigns = () => {
           <Card className="glass-card">
             <CardContent className="p-5 space-y-4">
               {/* Import options */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">Contatos ({validContacts.length})</span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="grid grid-cols-2 sm:flex items-center gap-2">
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleDownloadSample}>
-                    <Download className="w-3.5 h-3.5" /> Modelo Excel
+                    <Download className="w-3.5 h-3.5" /> Modelo
                   </Button>
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileRef.current?.click()}>
-                    <Upload className="w-3.5 h-3.5" /> Importar arquivo
+                    <Upload className="w-3.5 h-3.5" /> Importar
                   </Button>
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setImportFromContacts(true)}>
-                    <Users className="w-3.5 h-3.5" /> Da lista de contatos
+                    <Users className="w-3.5 h-3.5" /> Contatos
                   </Button>
                   <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={addContact}>
                     <Plus className="w-3.5 h-3.5" /> Adicionar
@@ -570,20 +570,30 @@ const Campaigns = () => {
                 {contacts.map((contact, idx) => (
                   <div
                     key={contact.id}
-                    className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/20 border border-border group hover:border-primary/20 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg bg-muted/20 border border-border group hover:border-primary/20 transition-colors"
                   >
-                    <span className="text-xs text-muted-foreground w-6 text-center shrink-0">{idx + 1}</span>
-                    <Input
-                      value={contact.nome}
-                      onChange={(e) => updateContact(contact.id, "nome", e.target.value)}
-                      placeholder="Nome"
-                      className="h-8 text-xs flex-1 min-w-[100px]"
-                    />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <span className="text-xs text-muted-foreground w-6 text-center shrink-0">{idx + 1}</span>
+                      <Input
+                        value={contact.nome}
+                        onChange={(e) => updateContact(contact.id, "nome", e.target.value)}
+                        placeholder="Nome"
+                        className="h-8 text-xs flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0 sm:hidden"
+                        onClick={() => removeContact(contact.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                     <Input
                       value={contact.numero}
                       onChange={(e) => updateContact(contact.id, "numero", e.target.value)}
                       placeholder="Número (ex: 5511999999999)"
-                      className="h-8 text-xs flex-1 min-w-[160px] font-mono"
+                      className="h-8 text-xs flex-1 font-mono"
                     />
                     <Input
                       value={contact.var1}
@@ -606,7 +616,7 @@ const Campaigns = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0 hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeContact(contact.id)}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
