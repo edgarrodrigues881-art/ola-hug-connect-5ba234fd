@@ -18,12 +18,7 @@ export interface ChipHealth {
 
 export interface DashboardStats {
   chipsActive: number;
-  chipsAtRisk: number;
-  chipsBanned: number;
-  deliveryRate: number;
-  avgHealthScore: number;
-  chips: ChipHealth[];
-  hourlyData: Array<{ hora: string; enviadas: number; entregues: number; bloqueios: number }>;
+  totalSent: number;
   recentCampaigns: Array<{
     id: string;
     name: string;
@@ -35,12 +30,6 @@ export interface DashboardStats {
     responseRate: number;
     techStatus: "ok" | "warning" | "risk";
   }>;
-  proxyStats: {
-    total: number;
-    active: number;
-    burned: number;
-    healthy: number;
-  };
 }
 
 function calculateChipScore(
@@ -180,19 +169,8 @@ export function useDashboardStats() {
 
       return {
         chipsActive,
-        chipsAtRisk,
-        chipsBanned,
-        deliveryRate,
-        avgHealthScore,
-        chips,
-        hourlyData,
+        totalSent,
         recentCampaigns,
-        proxyStats: {
-          total: proxies.length,
-          active: activeProxies.length,
-          burned: burnedProxies.length,
-          healthy: healthyProxies.length,
-        },
       };
     },
     enabled: !!user,
