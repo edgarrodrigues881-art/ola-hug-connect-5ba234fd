@@ -8,42 +8,134 @@ const corsHeaders = {
 
 const WHAPI_BASE = "https://gate.whapi.cloud";
 
-async function sendWhapiMessage(token: string, to: string, body: string, mediaUrl?: string | null) {
-  const phone = to.replace(/\D/g, "");
-  
-  if (mediaUrl) {
-    // Send media message
-    const res = await fetch(`${WHAPI_BASE}/messages/image`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        to: phone,
-        media: { url: mediaUrl },
-        caption: body || undefined,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || `Whapi error ${res.status}`);
-    return data;
-  }
+interface CampaignButton {
+  type: "reply" | "url" | "phone";
+  text: string;
+  value?: string;
+}
 
-  // Send text message
-  const res = await fetch(`${WHAPI_BASE}/messages/text`, {
+async function whapiRequest(token: string, endpoint: string, payload: any) {
+  const res = await fetch(`${WHAPI_BASE}${endpoint}`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Accept": "application/json",
     },
-    body: JSON.stringify({ to: phone, body }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message || `Whapi error ${res.status}`);
   return data;
+}
+
+async function sendWhapiMessage(
+  token: string, 
+  to: string, 
+  body: string, 
+  mediaUrl?: string | null,
+  buttons?: CampaignButton[],
+  messageType?: string
+) {
+  const phone = to.replace(/\D/g, "");
+  const hasButtons = buttons && buttons.length > 0;
+  const hasQuickReplies = hasButtons && buttons.some(b => b.type === "reply");
+  const hasCTA = hasButtons && buttons.some(b => b.type === "url" || b.type === "phone");
+
+  // Interactive message with buttons
+  if (hasButtons && (messageType === "botoes" || messageType === "botao-midia" || hasQuickReplies || hasCTA)) {
+    const interactivePayload: any = {
+      to: phone,
+      body: { text: body },
+    };
+
+    // Add header with media if present
+    if (mediaUrl) {
+      interactivePayload.header = { image: { link: mediaUrl } };
+    }
+
+    // Build action based on button types
+    const replyButtons = buttons.filter(b => b.type === "reply");
+    const ctaButtons = buttons.filter(b => b.type === "url" || b.type === "phone");
+
+    if (replyButtons.length > 0 && ctaButtons.length === 0) {
+      // Quick reply buttons only
+      interactivePayload.action = {
+        buttons: replyButtons.map((b, i) => ({
+          type: "reply",
+          reply: { id: `btn_${i}`, title: b.text.substring(0, 20) },
+        })),
+      };
+    } else if (ctaButtons.length > 0 && replyButtons.length === 0) {
+      // CTA buttons only
+      interactivePayload.action = {
+        buttons: ctaButtons.map((b, i) => {
+          if (b.type === "url") {
+            return { type: "url", url: { display_text: b.text.substring(0, 20), url: b.value } };
+          }
+          return { type: "phone_number", phone_number: { display_text: b.text.substring(0, 20), phone: b.value } };
+        }),
+      };
+    } else {
+      // Mixed: CTA takes priority (Whapi doesn't support mixing reply + CTA)
+      // Send CTA buttons
+      interactivePayload.action = {
+        buttons: [
+          ...ctaButtons.map((b) => {
+            if (b.type === "url") {
+              return { type: "url", url: { display_text: b.text.substring(0, 20), url: b.value } };
+            }
+            return { type: "phone_number", phone_number: { display_text: b.text.substring(0, 20), phone: b.value } };
+          }),
+          ...replyButtons.map((b, i) => ({
+            type: "reply",
+            reply: { id: `btn_${i}`, title: b.text.substring(0, 20) },
+          })),
+        ],
+      };
+    }
+
+    console.log("Sending interactive:", JSON.stringify(interactivePayload).substring(0, 500));
+    return await whapiRequest(token, "/messages/interactive", interactivePayload);
+  }
+
+  // List message
+  if (messageType === "lista" || messageType === "lista-midia") {
+    const listPayload: any = {
+      to: phone,
+      body: { text: body },
+      action: {
+        button: "Ver opções",
+        sections: [{
+          title: "Opções",
+          rows: (buttons || []).map((b, i) => ({
+            id: `opt_${i}`,
+            title: b.text.substring(0, 24),
+            description: b.value || "",
+          })),
+        }],
+      },
+    };
+
+    if (mediaUrl) {
+      listPayload.header = { image: { link: mediaUrl } };
+    }
+
+    console.log("Sending list:", JSON.stringify(listPayload).substring(0, 500));
+    return await whapiRequest(token, "/messages/interactive", listPayload);
+  }
+
+  // Media message (no buttons)
+  if (mediaUrl) {
+    return await whapiRequest(token, "/messages/image", {
+      to: phone,
+      media: { url: mediaUrl },
+      caption: body || undefined,
+    });
+  }
+
+  // Plain text message
+  return await whapiRequest(token, "/messages/text", { to: phone, body });
 }
 
 function replaceVariables(template: string, contact: any): string {
@@ -144,6 +236,8 @@ Deno.serve(async (req) => {
       let failedCount = 0;
       const messageContent = campaign.message_content || "";
       const mediaUrl = campaign.media_url || null;
+      const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
+      const msgType = campaign.message_type || "texto";
 
       for (const contact of contacts || []) {
         const phone = contact.phone.replace(/\D/g, "");
@@ -160,8 +254,8 @@ Deno.serve(async (req) => {
           // Replace variables in message
           const personalizedMessage = replaceVariables(messageContent, contact);
 
-          // Send via Whapi
-          await sendWhapiMessage(device.whapi_token, phone, personalizedMessage, mediaUrl);
+          // Send via Whapi with buttons support
+          await sendWhapiMessage(device.whapi_token, phone, personalizedMessage, mediaUrl, campaignButtons, msgType);
 
           await supabase
             .from("campaign_contacts")
