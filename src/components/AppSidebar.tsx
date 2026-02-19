@@ -2,19 +2,9 @@ import {
   LayoutDashboard,
   Smartphone,
   Send,
-  HandMetal,
-  Bot,
   FileText,
   Users,
-  Ban,
-  Filter,
-  UsersRound,
   BarChart3,
-  MessageSquare,
-  Plug,
-  Settings,
-  Cog,
-  Contact,
   Flame,
   Shield,
   Save,
@@ -41,36 +31,12 @@ const mainItems = [
   { title: "Painel", url: "/dashboard", icon: LayoutDashboard },
   { title: "Dispositivos", url: "/dashboard/devices", icon: Smartphone },
   { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
-];
-
-const automationItems = [
-  { title: "Boas-vindas", url: "/dashboard/welcome", icon: HandMetal },
-  { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: Bot },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
 
 const contactItems = [
   { title: "Contatos", url: "/dashboard/contacts", icon: Users },
   { title: "Número Auto Save", url: "/dashboard/auto-save", icon: Save },
-  { title: "Cancelar Inscrição", url: "/dashboard/unsubscribe", icon: Ban },
-  { title: "Filtro Numérico", url: "/dashboard/number-filter", icon: Filter },
-  { title: "Capturador de Grupo", url: "/dashboard/group-capture", icon: UsersRound },
-];
-
-const analyticsItems = [
-  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
-  { title: "Mensagens Recebidas", url: "/dashboard/inbox", icon: MessageSquare },
-];
-
-const systemItems = [
-  { title: "WhatsApp", url: "/dashboard/whatsapp", icon: MessageSquare },
-  { title: "Integrações", url: "/dashboard/integrations", icon: Plug },
-  { title: "Contexto", url: "/dashboard/context", icon: Cog },
-  { title: "Configurações", url: "/dashboard/settings", icon: Settings },
-];
-
-const crmItems = [
-  { title: "CRM", url: "/dashboard/crm", icon: Contact },
 ];
 
 const warmupItems = [
@@ -78,14 +44,15 @@ const warmupItems = [
   { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
 ];
 
+const analyticsItems = [
+  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
+];
+
 const groups = [
   { label: "Principal", items: mainItems },
-  { label: "Automação", items: automationItems },
-  { label: "CRM", items: crmItems },
-  { label: "Aquecimento", items: warmupItems },
   { label: "Contatos", items: contactItems },
+  { label: "Aquecimento", items: warmupItems },
   { label: "Análise", items: analyticsItems },
-  { label: "Sistema", items: systemItems },
 ];
 
 export function AppSidebar() {
