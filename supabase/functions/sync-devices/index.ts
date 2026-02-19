@@ -115,25 +115,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Try to get profile picture
-        let profilePicture = device.profile_picture || "";
-        try {
-          const picRes = await fetch(`${WHAPI_BASE}/users/profile/settings`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${device.whapi_token}`,
-              "Accept": "application/json",
-            },
-          });
-          if (picRes.ok) {
-            const picData = await picRes.json();
-            if (picData?.icon) {
-              profilePicture = picData.icon;
-            }
-          }
-        } catch (e) {
-          console.log(`Could not fetch profile pic for ${device.name}:`, e);
-        }
+        // Get profile picture from health response
+        const profilePicture = data.user?.profile_pic || device.profile_picture || null;
 
         await supabase
           .from("devices")
