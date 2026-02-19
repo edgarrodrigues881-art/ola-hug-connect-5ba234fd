@@ -38,14 +38,6 @@ async function whapiRequest(token: string, endpoint: string, payload: any) {
   return JSON.parse(text);
 }
 
-function formatBrazilianPhone(raw: string): string {
-  // Brazilian numbers: 55 + DDD(2) + number(8 or 9 digits)
-  // The Whapi API / WhatsApp expects the number as stored in the user's contact list.
-  // Some numbers have 9 digits (mobile with leading 9), some have 8 digits (landline or old mobile).
-  // We try both formats: first the original, if that's 13 digits (55+2+9), also try without the 9th digit.
-  // This function returns the number as-is; the caller should handle retries.
-  return raw;
-}
 
 async function sendWhapiMessage(
   token: string, 
