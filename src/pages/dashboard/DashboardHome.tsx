@@ -1,63 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
-  Smartphone, TrendingUp, AlertTriangle, ShieldAlert, ShieldCheck,
-  Activity, BarChart3, Wifi, WifiOff, Globe,
+  Smartphone, TrendingUp, BarChart3, Wifi, Globe,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { useDashboardStats, ChipHealth } from "@/hooks/useDashboardStats";
-
-const scoreColor = {
-  healthy: "text-success",
-  warning: "text-yellow-500",
-  risk: "text-destructive",
-};
-
-const scoreBg = {
-  healthy: "bg-success/15 border-success/30",
-  warning: "bg-yellow-500/15 border-yellow-500/30",
-  risk: "bg-destructive/15 border-destructive/30",
-};
-
-const scoreLabel = {
-  healthy: "Saudável",
-  warning: "Atenção",
-  risk: "Risco",
-};
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 const techStatusConfig = {
   ok: { label: "OK", className: "bg-success/15 text-success border-success/30" },
   warning: { label: "Warning", className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
   risk: { label: "Risk", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
-
-const ChipCard = ({ chip }: { chip: ChipHealth }) => (
-  <div className={`p-3 rounded-xl border ${scoreBg[chip.classification]} space-y-2`}>
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Smartphone className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground truncate">{chip.name}</span>
-      </div>
-      <Badge variant="outline" className={`text-[10px] ${scoreBg[chip.classification]} ${scoreColor[chip.classification]}`}>
-        {scoreLabel[chip.classification]}
-      </Badge>
-    </div>
-    <div className="flex items-center gap-3">
-      <div className="flex-1">
-        <Progress value={chip.score} className="h-2" />
-      </div>
-      <span className={`text-sm font-bold ${scoreColor[chip.classification]}`}>{chip.score}</span>
-    </div>
-    <div className="flex justify-between text-[11px] text-muted-foreground">
-      <span>{chip.number || "Sem número"}</span>
-      <span>{chip.daysActive}d ativo</span>
-      {chip.warmupDay && <span>Dia {chip.warmupDay}/{chip.warmupTotal}</span>}
-    </div>
-  </div>
-);
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
@@ -66,23 +21,9 @@ const DashboardHome = () => {
     {
       label: "Chips Ativos",
       value: stats?.chipsActive ?? 0,
-      icon: ShieldCheck,
+      icon: Smartphone,
       color: "text-success",
       bg: "bg-success/10",
-    },
-    {
-      label: "Chips em Risco",
-      value: stats?.chipsAtRisk ?? 0,
-      icon: AlertTriangle,
-      color: "text-yellow-500",
-      bg: "bg-yellow-500/10",
-    },
-    {
-      label: "Chips Banidos",
-      value: stats?.chipsBanned ?? 0,
-      icon: ShieldAlert,
-      color: "text-destructive",
-      bg: "bg-destructive/10",
     },
     {
       label: "Taxa de Entrega",
@@ -92,9 +33,9 @@ const DashboardHome = () => {
       bg: "bg-primary/10",
     },
     {
-      label: "Score Médio",
-      value: stats?.avgHealthScore ?? 0,
-      icon: Activity,
+      label: "Proxies",
+      value: stats?.proxyStats.total ?? 0,
+      icon: Globe,
       color: "text-primary",
       bg: "bg-primary/10",
     },
@@ -105,8 +46,8 @@ const DashboardHome = () => {
       {/* Header with system status */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Painel de Saúde</h1>
-          <p className="text-sm text-muted-foreground">Monitoramento inteligente dos seus chips</p>
+          <h1 className="text-2xl font-bold text-foreground">Painel</h1>
+          <p className="text-sm text-muted-foreground">Visão geral do seu sistema</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/30">
           <Wifi className="w-3.5 h-3.5 text-success" />
@@ -115,7 +56,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Top Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {topCards.map((s) => (
           <Card key={s.label} className="glass-card">
             <CardContent className="p-4">
@@ -175,7 +116,7 @@ const DashboardHome = () => {
           </CardContent>
         </Card>
 
-        {/* Campanhas Recentes Melhoradas */}
+        {/* Campanhas Recentes */}
         <Card className="glass-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -206,54 +147,6 @@ const DashboardHome = () => {
                 );
               })
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Chip Health Grid + Proxy Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="glass-card lg:col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-foreground">Saúde dos Chips</CardTitle>
-              <Activity className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {!stats?.chips?.length ? (
-              <p className="text-xs text-muted-foreground text-center py-6">Nenhum dispositivo cadastrado</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {stats.chips.map((chip) => (
-                  <ChipCard key={chip.id} chip={chip} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Proxy Intelligence */}
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-foreground">Proxies</CardTitle>
-              <Globe className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2.5">
-              {[
-                { label: "Total", value: stats?.proxyStats.total ?? 0, color: "text-foreground" },
-                { label: "Saudáveis", value: stats?.proxyStats.healthy ?? 0, color: "text-success" },
-                { label: "Em uso", value: stats?.proxyStats.active ?? 0, color: "text-yellow-500" },
-                { label: "Queimadas", value: stats?.proxyStats.burned ?? 0, color: "text-destructive" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className={`text-lg font-bold ${item.color}`}>{isLoading ? "..." : item.value}</span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>
