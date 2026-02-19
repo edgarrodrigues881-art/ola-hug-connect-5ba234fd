@@ -35,6 +35,10 @@ interface Contact {
   var1: string;
   var2: string;
   var3: string;
+  var4: string;
+  var5: string;
+  var6: string;
+  var7: string;
 }
 
 interface QuickReplyButton {
@@ -152,7 +156,7 @@ const Campaigns = () => {
   const updateQuickReply = (id: number, text: string) => setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
   const updateCTAButton = (id: number, field: "text" | "value", val: string) => setCTAButtons(ctaButtons.map(b => b.id === id ? { ...b, [field]: val } : b));
 
-  const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "" }]); setShowContactTable(true); };
+  const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
   const removeContact = (id: number) => setContacts(contacts.filter(c => c.id !== id));
 
@@ -176,7 +180,7 @@ const Campaigns = () => {
   const handleImportFromDB = () => {
     let filtered = savedContacts;
     if (selectedContactTags.length > 0) filtered = filtered.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
-    const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "" }));
+    const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }));
     if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
     setContacts(imported);
     setImportFromContacts(false);
@@ -196,7 +200,7 @@ const Campaigns = () => {
         const imported: Contact[] = [];
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          if (row && row[1]) imported.push({ id: Date.now() + i, nome: String(row[0] || ""), numero: String(row[1] || ""), var1: String(row[2] || ""), var2: String(row[3] || ""), var3: String(row[4] || "") });
+          if (row && row[1]) imported.push({ id: Date.now() + i, nome: String(row[0] || ""), numero: String(row[1] || ""), var1: String(row[2] || ""), var2: String(row[3] || ""), var3: String(row[4] || ""), var4: String(row[5] || ""), var5: String(row[6] || ""), var6: String(row[7] || ""), var7: String(row[8] || "") });
         }
         if (imported.length > 0) { setContacts(imported); setShowContactTable(true); toast({ title: `${imported.length} contatos importados` }); }
         else toast({ title: "Nenhum contato encontrado", variant: "destructive" });
@@ -207,7 +211,7 @@ const Campaigns = () => {
   };
 
   const handleDownloadSample = () => {
-    const ws = XLSX.utils.aoa_to_sheet([["Nome", "Número", "Variável 1", "Variável 2", "Variável 3"], ["João Silva", "5511999999999", "valor1", "valor2", "valor3"]]);
+    const ws = XLSX.utils.aoa_to_sheet([["Nome", "Número", "Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"], ["João Silva", "5511999999999", "valor1", "valor2", "valor3", "valor4", "valor5", "valor6", "valor7"]]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Contatos");
     XLSX.writeFile(wb, "modelo-contatos.xlsx");
@@ -568,14 +572,14 @@ const Campaigns = () => {
               <Input value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} placeholder="5511999999999" className="h-8 text-xs bg-background/50 border-border/30 flex-1 font-mono"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && manualPhone.trim()) {
-                    setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "" }]);
+                    setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]);
                     setManualPhone(""); setManualName(""); setShowContactTable(true);
                   }
                 }}
               />
               <Button size="sm" className="h-8 text-xs gap-1 shrink-0" disabled={!manualPhone.trim()}
                 onClick={() => {
-                  setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "" }]);
+                  setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]);
                   setManualPhone(""); setManualName(""); setShowContactTable(true);
                 }}
               >
@@ -624,17 +628,43 @@ const Campaigns = () => {
               </div>
 
               {showContactTable && (
-                <div className="space-y-1 max-h-[280px] overflow-y-auto rounded-lg border border-border/20 bg-card/20 p-2">
-                  {contacts.map((contact, idx) => (
-                    <div key={contact.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/10 group">
-                      <span className="text-[9px] text-muted-foreground/50 w-4 text-right shrink-0">{idx + 1}</span>
-                      <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Nome" className="h-7 text-[11px] flex-1 bg-transparent border-border/20 min-w-0" />
-                      <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="5511999999999" className="h-7 text-[11px] flex-1 font-mono bg-transparent border-border/20 min-w-0" />
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeContact(contact.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="max-h-[320px] overflow-auto rounded-lg border border-border/20 bg-card/20">
+                  <table className="w-full text-[11px]">
+                    <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
+                      <tr className="border-b border-border/20">
+                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">SN</th>
+                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
+                        <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
+                        {[1,2,3,4,5,6,7].map(n => (
+                          <th key={n} className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var {n}</th>
+                        ))}
+                        <th className="text-center px-2 py-1.5 text-muted-foreground font-medium w-16">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contacts.map((contact, idx) => (
+                        <tr key={contact.id} className="border-b border-border/10 hover:bg-muted/10 group">
+                          <td className="px-2 py-1 text-muted-foreground/50">{idx + 1}</td>
+                          <td className="px-1 py-1">
+                            <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[80px]" />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] font-mono bg-transparent border-border/20 min-w-[100px]" />
+                          </td>
+                          {(["var1","var2","var3","var4","var5","var6","var7"] as const).map(varKey => (
+                            <td key={varKey} className="px-1 py-1">
+                              <Input value={contact[varKey]} onChange={(e) => updateContact(contact.id, varKey, e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[70px]" />
+                            </td>
+                          ))}
+                          <td className="px-2 py-1 text-center">
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/40 hover:text-destructive" onClick={() => removeContact(contact.id)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -687,7 +717,7 @@ const Campaigns = () => {
                     </button>
                   ))}
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
-                  {["Variável 1", "Variável 2", "Variável 3"].map((v, i) => (
+                  {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
                     <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
                       onClick={() => setMessage(prev => prev + `{{var${i + 1}}}`)}>
                       <span>{v}</span>
