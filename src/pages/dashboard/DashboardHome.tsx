@@ -82,7 +82,7 @@ const DashboardHome = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-foreground">Campanhas Recentes</CardTitle>
             <button
-              onClick={() => navigate("/dashboard/campaigns")}
+              onClick={() => navigate("/dashboard/campaign-list")}
               className="text-xs text-primary hover:underline"
             >
               Ver todas
