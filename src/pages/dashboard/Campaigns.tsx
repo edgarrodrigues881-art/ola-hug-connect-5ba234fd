@@ -350,8 +350,33 @@ const Campaigns = () => {
                     const tmpl = savedTemplates.find(t => t.id === val);
                     if (tmpl) {
                       setMessage(tmpl.content);
-                      setMessageType(tmpl.type === "text" ? "texto" : tmpl.type);
+                      // Map DB template types to UI types
+                      const typeMap: Record<string, string> = {
+                        text: "texto",
+                        "text-media": "texto-midia",
+                        buttons: "botoes",
+                        "buttons-media": "botao-midia",
+                        list: "lista",
+                        poll: "enquete",
+                      };
+                      setMessageType(typeMap[tmpl.type] || tmpl.type);
+                      // Sync buttons from template
+                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
+                        const replyBtns = tmpl.buttons.filter((b: any) => b.type === "reply");
+                        const ctaBtns = tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone");
+                        setQuickReplyButtons(replyBtns.map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
+                        setCTAButtons(ctaBtns.map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
+                      } else {
+                        setQuickReplyButtons([]);
+                        setCTAButtons([]);
+                      }
                     }
+                  } else {
+                    // Reset when "Nova mensagem" is selected
+                    setMessage("");
+                    setMessageType("texto");
+                    setQuickReplyButtons([]);
+                    setCTAButtons([]);
                   }
                 }}>
                   <SelectTrigger className="h-10 text-sm">
