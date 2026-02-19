@@ -51,8 +51,9 @@ interface CTAButton {
 
 const messageTypes = [
   { value: "texto", label: "Texto", description: "Mensagem de texto simples", icon: Type },
-  { value: "texto-midia", label: "Texto + Mídia", description: "Texto com imagem ou vídeo", icon: ImageIcon },
-  { value: "botoes", label: "Botões", description: "Mensagem com botões interativos", icon: MousePointerClick },
+  { value: "texto-imagem", label: "Texto + Imagem", description: "Texto com imagem anexa", icon: ImageIcon },
+  { value: "texto-botao", label: "Texto + Botão", description: "Texto com botões interativos", icon: MousePointerClick },
+  { value: "imagem-botao", label: "Imagem + Botão", description: "Imagem com botões interativos", icon: Image },
 ];
 
 const Campaigns = () => {
@@ -120,7 +121,7 @@ const Campaigns = () => {
   const validContacts = contacts.filter(c => c.numero.trim());
   const invalidContacts = contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
   const duplicateCount = contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size;
-  const showButtons = messageType === "botoes";
+  const showButtons = messageType === "texto-botao" || messageType === "imagem-botao";
 
   const getRiskLevel = () => {
     if (warmupMode) return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
@@ -289,7 +290,7 @@ const Campaigns = () => {
                   const tmpl = savedTemplates.find(t => t.id === val);
                   if (tmpl) {
                     setMessage(tmpl.content);
-                    const typeMap: Record<string, string> = { text: "texto", "text-media": "texto-midia", buttons: "botoes" };
+                    const typeMap: Record<string, string> = { text: "texto", "text-image": "texto-imagem", "text-button": "texto-botao", "image-button": "imagem-botao" };
                     setMessageType(typeMap[tmpl.type] || tmpl.type);
                     if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
                       setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
