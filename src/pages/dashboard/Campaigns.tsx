@@ -16,7 +16,8 @@ import {
   Smile, Image, Code, FileText, AlertTriangle, Link, MousePointerClick,
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
-  Zap, Clock, Hash, ArrowUpRight, Wifi, WifiOff, RefreshCw
+  Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
+  CheckCircle2, XCircle, Copy
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -49,9 +50,9 @@ interface CTAButton {
 }
 
 const messageTypes = [
-  { value: "texto", label: "Texto", icon: Type },
-  { value: "texto-midia", label: "Texto + Mídia", icon: ImageIcon },
-  { value: "botoes", label: "Botões", icon: MousePointerClick },
+  { value: "texto", label: "Texto", description: "Mensagem de texto simples", icon: Type },
+  { value: "texto-midia", label: "Texto + Mídia", description: "Texto com imagem ou vídeo", icon: ImageIcon },
+  { value: "botoes", label: "Botões", description: "Mensagem com botões interativos", icon: MousePointerClick },
 ];
 
 const Campaigns = () => {
@@ -78,9 +79,7 @@ const Campaigns = () => {
 
   // State
   const [step, setStep] = useState(1);
-  const [contacts, setContacts] = useState<Contact[]>([
-    { id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" },
-  ]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [messageType, setMessageType] = useState("texto");
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
@@ -91,6 +90,10 @@ const Campaigns = () => {
   const [importFromContacts, setImportFromContacts] = useState(false);
   const [selectedContactTags, setSelectedContactTags] = useState<string[]>([]);
   const [showInstancePicker, setShowInstancePicker] = useState(false);
+  const [showContactTools, setShowContactTools] = useState(false);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [showContactTable, setShowContactTable] = useState(false);
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
@@ -115,67 +118,37 @@ const Campaigns = () => {
   const selectedDeviceData = devices.find(d => d.id === selectedDevice);
   const validContacts = contacts.filter(c => c.numero.trim());
   const invalidContacts = contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
+  const duplicateCount = contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size;
   const showButtons = messageType === "botoes";
 
-  // Risk estimation
   const getRiskLevel = () => {
-    if (warmupMode) return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" };
-    if (messageLimit > 200 || minDelay < 10) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" };
-    if (messageLimit > 100 || minDelay < 15) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" };
-    return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" };
+    if (warmupMode) return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
+    if (messageLimit > 200 || minDelay < 10) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10" };
+    if (messageLimit > 100 || minDelay < 15) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10" };
+    return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
   };
-
   const risk = getRiskLevel();
 
   // Handlers
   const handleSendCampaign = () => {
-    if (!campaignName.trim()) {
-      toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" });
-      return;
-    }
-    if (!selectedDevice) {
-      toast({ title: "Instância obrigatória", description: "Selecione uma instância.", variant: "destructive" });
-      return;
-    }
-    if (validContacts.length === 0) {
-      toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" });
-      return;
-    }
-    if (!message.trim()) {
-      toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" });
-      return;
-    }
-
+    if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
+    if (!selectedDevice) { toast({ title: "Instância obrigatória", description: "Selecione uma instância.", variant: "destructive" }); return; }
+    if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
+    if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
-      name: campaignName,
-      message_type: messageType,
-      message_content: message,
-      buttons: [
-        ...quickReplyButtons.map(b => ({ type: "reply", text: b.text })),
-        ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value })),
-      ],
+      name: campaignName, message_type: messageType, message_content: message,
+      buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
     }, {
       onSuccess: (newCampaign) => {
         toast({ title: "Campanha criada!", description: `${validContacts.length} contatos. Iniciando envio...` });
         startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevice }, {
-          onSuccess: (result) => {
-            toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` });
-          },
-          onError: (err: any) => {
-            toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
-          },
+          onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
+          onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
-        setCampaignName("");
-        setMessage("");
-        setContacts([{ id: 1, nome: "", numero: "", var1: "", var2: "", var3: "" }]);
-        setQuickReplyButtons([]);
-        setCTAButtons([]);
-        setStep(1);
+        setCampaignName(""); setMessage(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1);
       },
-      onError: (err: any) => {
-        toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" });
-      },
+      onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
     });
   };
 
@@ -186,9 +159,26 @@ const Campaigns = () => {
   const updateQuickReply = (id: number, text: string) => setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
   const updateCTAButton = (id: number, field: "text" | "value", val: string) => setCTAButtons(ctaButtons.map(b => b.id === id ? { ...b, [field]: val } : b));
 
-  const addContact = () => setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "" }]);
+  const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
-  const removeContact = (id: number) => { if (contacts.length > 1) setContacts(contacts.filter(c => c.id !== id)); };
+  const removeContact = (id: number) => setContacts(contacts.filter(c => c.id !== id));
+
+  const removeDuplicates = () => {
+    const seen = new Set<string>();
+    const unique = contacts.filter(c => {
+      const num = c.numero.trim();
+      if (!num || seen.has(num)) return false;
+      seen.add(num);
+      return true;
+    });
+    setContacts(unique);
+    toast({ title: "Duplicados removidos" });
+  };
+
+  const removeInvalid = () => {
+    setContacts(contacts.filter(c => !c.numero.trim() || /^\d{10,15}$/.test(c.numero.replace(/\D/g, ""))));
+    toast({ title: "Inválidos removidos" });
+  };
 
   const handleImportFromDB = () => {
     let filtered = savedContacts;
@@ -197,6 +187,7 @@ const Campaigns = () => {
     if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
     setContacts(imported);
     setImportFromContacts(false);
+    setShowContactTable(true);
     toast({ title: `${imported.length} contatos importados` });
   };
 
@@ -212,11 +203,9 @@ const Campaigns = () => {
         const imported: Contact[] = [];
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          if (row && row[1]) {
-            imported.push({ id: Date.now() + i, nome: String(row[0] || ""), numero: String(row[1] || ""), var1: String(row[2] || ""), var2: String(row[3] || ""), var3: String(row[4] || "") });
-          }
+          if (row && row[1]) imported.push({ id: Date.now() + i, nome: String(row[0] || ""), numero: String(row[1] || ""), var1: String(row[2] || ""), var2: String(row[3] || ""), var3: String(row[4] || "") });
         }
-        if (imported.length > 0) { setContacts(imported); toast({ title: `${imported.length} contatos importados` }); }
+        if (imported.length > 0) { setContacts(imported); setShowContactTable(true); toast({ title: `${imported.length} contatos importados` }); }
         else toast({ title: "Nenhum contato encontrado", variant: "destructive" });
       } catch { toast({ title: "Erro ao ler arquivo", variant: "destructive" }); }
     };
@@ -231,53 +220,55 @@ const Campaigns = () => {
     XLSX.writeFile(wb, "modelo-contatos.xlsx");
   };
 
-  const steps = [
-    { num: 1, label: "Configuração" },
-    { num: 2, label: "Contatos" },
-    { num: 3, label: "Mensagem" },
-    { num: 4, label: "Revisão" },
-  ];
-
-  // Status helpers
   const getDeviceStatus = (status: string) => {
     if (status === "Ready") return { label: "Online", icon: Wifi, color: "text-emerald-400" };
     if (status === "QR") return { label: "QR Pendente", icon: RefreshCw, color: "text-amber-400" };
     return { label: "Offline", icon: WifiOff, color: "text-red-400" };
   };
 
+  const steps = [
+    { num: 1, label: "Configuração", icon: Settings2 },
+    { num: 2, label: "Contatos", icon: Users },
+    { num: 3, label: "Mensagem", icon: MessageSquare },
+    { num: 4, label: "Enviar", icon: Send },
+  ];
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-3xl mx-auto pb-12">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-foreground tracking-tight">Nova Campanha</h1>
-        <p className="text-xs text-muted-foreground">Configure, controle e envie com segurança</p>
+      <div>
+        <h1 className="text-lg font-semibold text-foreground tracking-tight">Enviar Mensagem</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Configure e envie com controle total</p>
       </div>
 
-      {/* Stepper - minimal */}
-      <div className="flex items-center gap-1">
+      {/* Stepper */}
+      <div className="flex items-center gap-0">
         {steps.map((s, i) => {
           const isActive = step === s.num;
           const isDone = step > s.num;
+          const Icon = s.icon;
           return (
-            <div key={s.num} className="flex items-center gap-1 flex-1">
+            <div key={s.num} className="flex items-center flex-1">
               <button
                 onClick={() => setStep(s.num)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all w-full justify-center",
-                  isActive && "bg-primary/10 text-primary",
-                  isDone && "bg-muted/60 text-foreground",
-                  !isActive && !isDone && "text-muted-foreground hover:text-foreground",
+                  "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs transition-all",
+                  isActive && "bg-primary/8 text-primary",
+                  isDone && "text-foreground/80",
+                  !isActive && !isDone && "text-muted-foreground",
                 )}
               >
-                <span className={cn(
-                  "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-all",
                   isActive && "bg-primary text-primary-foreground",
-                  isDone && "bg-foreground/20 text-foreground",
+                  isDone && "bg-emerald-500/20 text-emerald-400",
                   !isActive && !isDone && "bg-muted text-muted-foreground",
-                )}>{isDone ? "✓" : s.num}</span>
-                <span className="hidden sm:inline">{s.label}</span>
+                )}>
+                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
+                </div>
+                <span className="hidden sm:inline font-medium">{s.label}</span>
               </button>
-              {i < steps.length - 1 && <div className="w-4 h-px bg-border shrink-0" />}
+              {i < steps.length - 1 && <div className="w-6 h-px bg-border/40 shrink-0" />}
             </div>
           );
         })}
@@ -285,263 +276,185 @@ const Campaigns = () => {
 
       {/* ===== STEP 1: Configuration ===== */}
       {step === 1 && (
-        <div className="space-y-5">
-          {/* Campaign name */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Nome da campanha</Label>
-            <Input
-              value={campaignName}
-              onChange={(e) => setCampaignName(e.target.value)}
-              placeholder="Ex: Promoção Black Friday"
-              className="h-9 text-sm bg-card border-border/50"
-            />
+        <div className="space-y-6">
+          {/* 3-column: Template, Instance, Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Template */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
+              <Select value={selectedTemplate} onValueChange={(val) => {
+                setSelectedTemplate(val);
+                if (val !== "nova") {
+                  const tmpl = savedTemplates.find(t => t.id === val);
+                  if (tmpl) {
+                    setMessage(tmpl.content);
+                    const typeMap: Record<string, string> = { text: "texto", "text-media": "texto-midia", buttons: "botoes" };
+                    setMessageType(typeMap[tmpl.type] || tmpl.type);
+                    if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
+                      setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
+                      setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
+                    } else { setQuickReplyButtons([]); setCTAButtons([]); }
+                  }
+                } else { setMessage(""); setMessageType("texto"); setQuickReplyButtons([]); setCTAButtons([]); }
+              }}>
+                <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
+                  <SelectValue placeholder="Nova mensagem" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  <SelectItem value="nova">Nova mensagem</SelectItem>
+                  {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Instance */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância</Label>
+              {devices.length === 0 ? (
+                <div className="h-9 rounded-md border border-dashed border-border/40 bg-card/30 flex items-center justify-center gap-1.5 px-2">
+                  <WifiOff className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Nenhuma conectada</span>
+                </div>
+              ) : (
+                <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+                  <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {devices.map(d => {
+                      const s = getDeviceStatus(d.status);
+                      return (
+                        <SelectItem key={d.id} value={d.id}>
+                          <div className="flex items-center gap-2">
+                            <div className={cn("w-1.5 h-1.5 rounded-full", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
+                            <span>{d.name}</span>
+                            <span className="text-muted-foreground text-[10px]">{s.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Message Type */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo</Label>
+              <Select value={messageType} onValueChange={setMessageType}>
+                <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {messageTypes.map(mt => {
+                    const Icon = mt.icon;
+                    return (
+                      <SelectItem key={mt.value} value={mt.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                          <div>
+                            <span className="text-xs">{mt.label}</span>
+                            <span className="text-[10px] text-muted-foreground ml-1.5">{mt.description}</span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* 1️⃣ Instance Card */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Instância</Label>
-            {selectedDeviceData ? (
-              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
-                      <Smartphone className="w-4 h-4 text-foreground/70" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{selectedDeviceData.name}</p>
-                      <p className="text-[11px] text-muted-foreground font-mono">{selectedDeviceData.number || "Sem número"}</p>
-                    </div>
+          {/* Instance card (when selected) */}
+          {selectedDeviceData && (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
+                    <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
                   </div>
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={() => setShowInstancePicker(true)}>
-                    Trocar
-                  </Button>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.name}</p>
+                    <p className="text-[10px] text-muted-foreground font-mono">{selectedDeviceData.number || "—"}</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="flex items-center gap-3">
                   {(() => {
                     const s = getDeviceStatus(selectedDeviceData.status);
                     const StatusIcon = s.icon;
                     return (
-                      <div className="flex items-center gap-1.5 text-[11px]">
+                      <div className="flex items-center gap-1 text-[10px]">
                         <StatusIcon className={cn("w-3 h-3", s.color)} />
                         <span className={s.color}>{s.label}</span>
                       </div>
                     );
                   })()}
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Activity className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Shield className="w-3 h-3" />
                     <span>Score: 85</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Hash className="w-3 h-3" />
-                    <span>0 enviadas hoje</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px]">
-                    <Shield className="w-3 h-3 text-emerald-400" />
-                    <span className="text-emerald-400">Risco baixo</span>
-                  </div>
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => setShowInstancePicker(true)}
-                className="w-full rounded-xl border border-dashed border-border/60 bg-card p-6 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors"
-              >
-                <Smartphone className="w-5 h-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Selecionar instância</span>
-              </button>
-            )}
-
-            {/* Instance picker modal */}
-            {showInstancePicker && (
-              <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2">
-                {devices.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma instância disponível</p>
-                ) : (
-                  devices.map(d => {
-                    const s = getDeviceStatus(d.status);
-                    const StatusIcon = s.icon;
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() => { setSelectedDevice(d.id); setShowInstancePicker(false); }}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all",
-                          d.id === selectedDevice
-                            ? "bg-primary/5 border border-primary/20"
-                            : "hover:bg-muted/40 border border-transparent"
-                        )}
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                          <Smartphone className="w-3.5 h-3.5 text-foreground/60" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono">{d.number || "—"}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <StatusIcon className={cn("w-3 h-3", s.color)} />
-                          <span className={cn("text-[10px]", s.color)}>{s.label}</span>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 2️⃣ Message Type */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Tipo de mensagem</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {messageTypes.map(mt => {
-                const Icon = mt.icon;
-                const isSelected = messageType === mt.value;
-                return (
-                  <button
-                    key={mt.value}
-                    onClick={() => setMessageType(mt.value)}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all",
-                      isSelected
-                        ? "bg-primary/5 border-primary/30 text-primary"
-                        : "bg-card border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-[11px] font-medium">{mt.label}</span>
-                  </button>
-                );
-              })}
             </div>
+          )}
 
-            {/* Dynamic personalization toggle */}
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Personalização dinâmica</span>
-                <span className="text-[10px] text-muted-foreground/60">{"{{nome}}"}</span>
+          {/* No instance warning */}
+          {devices.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border/40 bg-card/20 p-8 flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-muted/30 flex items-center justify-center">
+                <WifiOff className="w-4 h-4 text-muted-foreground" />
               </div>
-              <Switch checked={dynamicPersonalization} onCheckedChange={setDynamicPersonalization} />
+              <p className="text-xs text-muted-foreground">Nenhuma instância conectada</p>
+              <Button variant="outline" size="sm" className="text-xs h-8 border-border/40">
+                Conectar agora
+              </Button>
             </div>
-          </div>
+          )}
 
-          {/* Template selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Modelo</Label>
-            <Select value={selectedTemplate} onValueChange={(val) => {
-              setSelectedTemplate(val);
-              if (val !== "nova") {
-                const tmpl = savedTemplates.find(t => t.id === val);
-                if (tmpl) {
-                  setMessage(tmpl.content);
-                  const typeMap: Record<string, string> = { text: "texto", "text-media": "texto-midia", buttons: "botoes" };
-                  setMessageType(typeMap[tmpl.type] || tmpl.type);
-                  if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                    const replyBtns = tmpl.buttons.filter((b: any) => b.type === "reply");
-                    const ctaBtns = tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone");
-                    setQuickReplyButtons(replyBtns.map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
-                    setCTAButtons(ctaBtns.map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
-                  } else { setQuickReplyButtons([]); setCTAButtons([]); }
-                }
-              } else { setMessage(""); setMessageType("texto"); setQuickReplyButtons([]); setCTAButtons([]); }
-            }}>
-              <SelectTrigger className="h-9 text-sm bg-card border-border/50">
-                <SelectValue placeholder="Nova mensagem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nova">Nova mensagem</SelectItem>
-                {savedTemplates.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 3️⃣ Send Control */}
+          {/* Send Control */}
           <div className="space-y-3">
-            <Label className="text-xs text-muted-foreground">Controle de envio</Label>
-            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] text-muted-foreground">Limite de mensagens</label>
-                  <Input
-                    type="number"
-                    value={messageLimit}
-                    onChange={(e) => setMessageLimit(Number(e.target.value))}
-                    className="h-8 text-sm bg-muted/20 border-border/30"
-                  />
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Controle de Envio</Label>
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Limite</label>
+                  <Input type="number" value={messageLimit} onChange={(e) => setMessageLimit(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] text-muted-foreground">Intervalo mín. (s)</label>
-                  <Input
-                    type="number"
-                    value={minDelay}
-                    onChange={(e) => setMinDelay(Number(e.target.value))}
-                    className="h-8 text-sm bg-muted/20 border-border/30"
-                  />
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Mín. (s)</label>
+                  <Input type="number" value={minDelay} onChange={(e) => setMinDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] text-muted-foreground">Intervalo máx. (s)</label>
-                  <Input
-                    type="number"
-                    value={maxDelay}
-                    onChange={(e) => setMaxDelay(Number(e.target.value))}
-                    className="h-8 text-sm bg-muted/20 border-border/30"
-                  />
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Máx. (s)</label>
+                  <Input type="number" value={maxDelay} onChange={(e) => setMaxDelay(Number(e.target.value))} className="h-8 text-xs bg-background/50 border-border/30" />
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Delay aleatório</span>
-                </div>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Delay aleatório</span>
                 <Switch checked={randomDelay} onCheckedChange={setRandomDelay} />
               </div>
 
-              <div className="border-t border-border/30 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Personalização dinâmica <code className="text-[9px] text-muted-foreground/50 ml-1">{"{{nome}}"}</code></span>
+                <Switch checked={dynamicPersonalization} onCheckedChange={setDynamicPersonalization} />
+              </div>
+
+              {/* Warmup */}
+              <div className="border-t border-border/20 pt-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Flame className={cn("w-3.5 h-3.5", warmupMode ? "text-amber-400" : "text-muted-foreground")} />
-                    <span className={cn("text-xs font-medium", warmupMode ? "text-foreground" : "text-muted-foreground")}>Modo Aquecimento</span>
-                  </div>
+                  <span className={cn("text-[11px] font-medium flex items-center gap-1.5", warmupMode ? "text-amber-400" : "text-muted-foreground")}><Flame className="w-3 h-3" /> Modo Aquecimento</span>
                   <Switch checked={warmupMode} onCheckedChange={setWarmupMode} />
                 </div>
-
                 {warmupMode && (
-                  <div className="mt-3 space-y-3 pl-5 border-l-2 border-amber-500/20">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] text-muted-foreground">Escalonamento diário</label>
-                        <span className="text-[11px] text-foreground font-mono">+{dailyEscalation}/dia</span>
-                      </div>
-                      <Slider
-                        value={[dailyEscalation]}
-                        onValueChange={([v]) => setDailyEscalation(v)}
-                        min={1}
-                        max={20}
-                        step={1}
-                        className="w-full"
-                      />
+                  <div className="mt-3 space-y-3 pl-4 border-l-2 border-amber-500/20">
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1"><span>Escalonamento diário</span><span className="font-mono text-foreground">+{dailyEscalation}/dia</span></div>
+                      <Slider value={[dailyEscalation]} onValueChange={([v]) => setDailyEscalation(v)} min={1} max={20} step={1} />
                     </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] text-muted-foreground">Volume progressivo inicial</label>
-                        <span className="text-[11px] text-foreground font-mono">{progressiveVolume} msgs</span>
-                      </div>
-                      <Slider
-                        value={[progressiveVolume]}
-                        onValueChange={([v]) => setProgressiveVolume(v)}
-                        min={5}
-                        max={100}
-                        step={5}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400/70">
-                      <Flame className="w-3 h-3" />
-                      <span>Intervalo humanizado será aplicado automaticamente</span>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1"><span>Volume inicial</span><span className="font-mono text-foreground">{progressiveVolume} msgs</span></div>
+                      <Slider value={[progressiveVolume]} onValueChange={([v]) => setProgressiveVolume(v)} min={5} max={100} step={5} />
                     </div>
                   </div>
                 )}
@@ -549,55 +462,37 @@ const Campaigns = () => {
             </div>
           </div>
 
-          {/* 4️⃣ Security - Collapsible */}
-          <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-            <button
-              onClick={() => setSecurityExpanded(!securityExpanded)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/20 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Segurança</span>
-              </div>
-              <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", securityExpanded && "rotate-180")} />
+          {/* Security - Collapsible */}
+          <div className="rounded-lg border border-border/30 bg-card/40 overflow-hidden">
+            <button onClick={() => setSecurityExpanded(!securityExpanded)} className="w-full flex items-center justify-between p-3 text-left transition-colors hover:bg-muted/10">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5"><ShieldAlert className="w-3 h-3" /> Segurança</span>
+              <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", securityExpanded && "rotate-180")} />
             </button>
             {securityExpanded && (
-              <div className="px-4 pb-4 space-y-3 border-t border-border/30">
-                <div className="flex items-center justify-between pt-3">
+              <div className="px-3 pb-3 space-y-2.5 border-t border-border/20">
+                <div className="flex items-center justify-between pt-2.5">
                   <div className="flex items-center gap-2">
                     <Checkbox checked={stopOnBlockRate} onCheckedChange={(v) => setStopOnBlockRate(!!v)} />
-                    <span className="text-xs text-muted-foreground">Parar se taxa de bloqueio &gt;</span>
+                    <span className="text-[11px] text-muted-foreground">Parar se bloqueio &gt;</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      value={blockRateThreshold}
-                      onChange={(e) => setBlockRateThreshold(Number(e.target.value))}
-                      className="h-7 w-14 text-xs text-center bg-muted/20 border-border/30"
-                      disabled={!stopOnBlockRate}
-                    />
-                    <span className="text-xs text-muted-foreground">%</span>
+                    <Input type="number" value={blockRateThreshold} onChange={(e) => setBlockRateThreshold(Number(e.target.value))} className="h-6 w-12 text-[10px] text-center bg-background/50 border-border/30" disabled={!stopOnBlockRate} />
+                    <span className="text-[10px] text-muted-foreground">%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Checkbox checked={stopOnConsecutiveErrors} onCheckedChange={(v) => setStopOnConsecutiveErrors(!!v)} />
-                    <span className="text-xs text-muted-foreground">Parar se erros consecutivos &gt;</span>
+                    <span className="text-[11px] text-muted-foreground">Parar se erros consecutivos &gt;</span>
                   </div>
-                  <Input
-                    type="number"
-                    value={consecutiveErrorsThreshold}
-                    onChange={(e) => setConsecutiveErrorsThreshold(Number(e.target.value))}
-                    className="h-7 w-14 text-xs text-center bg-muted/20 border-border/30"
-                    disabled={!stopOnConsecutiveErrors}
-                  />
+                  <Input type="number" value={consecutiveErrorsThreshold} onChange={(e) => setConsecutiveErrorsThreshold(Number(e.target.value))} className="h-6 w-12 text-[10px] text-center bg-background/50 border-border/30" disabled={!stopOnConsecutiveErrors} />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-sm">
+          <div className="flex justify-end">
+            <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
               Continuar <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -606,89 +501,135 @@ const Campaigns = () => {
 
       {/* ===== STEP 2: Contacts ===== */}
       {step === 2 && (
-        <div className="space-y-5">
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-foreground/60" />
-                <span className="text-sm font-medium text-foreground">{validContacts.length} contatos</span>
+        <div className="space-y-6">
+          {/* Summary card */}
+          <div className="rounded-lg border border-border/30 bg-card/40 p-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xl font-semibold text-foreground">{validContacts.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Carregados</p>
               </div>
-              <div className="grid grid-cols-2 sm:flex gap-2">
-                <Button variant="outline" size="sm" className="text-xs h-8 border-border/50" onClick={handleDownloadSample}>
-                  <Download className="w-3 h-3 mr-1.5" /> Modelo
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs h-8 border-border/50" onClick={() => fileRef.current?.click()}>
-                  <Upload className="w-3 h-3 mr-1.5" /> Importar
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs h-8 border-border/50" onClick={() => setImportFromContacts(true)}>
-                  <Users className="w-3 h-3 mr-1.5" /> Contatos
-                </Button>
-                <Button size="sm" className="text-xs h-8" onClick={addContact}>
-                  <Plus className="w-3 h-3 mr-1.5" /> Adicionar
-                </Button>
+              <div>
+                <p className={cn("text-xl font-semibold", invalidContacts.length > 0 ? "text-amber-400" : "text-foreground")}>{invalidContacts.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Inválidos</p>
+              </div>
+              <div>
+                <p className={cn("text-xl font-semibold", duplicateCount > 0 ? "text-amber-400" : "text-foreground")}>{duplicateCount}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Duplicados</p>
               </div>
             </div>
+          </div>
 
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => fileRef.current?.click()}>
+              <Upload className="w-3 h-3" /> Importar
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => setImportFromContacts(true)}>
+              <Users className="w-3 h-3" /> Criar lista
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={addContact}>
+              <Plus className="w-3 h-3" /> Adicionar
+            </Button>
 
-            {importFromContacts && (
-              <div className="p-3 rounded-lg bg-muted/20 border border-border/30 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">Importar da lista</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setImportFromContacts(false)}><X className="w-3.5 h-3.5" /></Button>
-                </div>
-                {allTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {allTags.map(tag => (
-                      <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                        className={cn("px-2 py-0.5 rounded-full text-[10px] border transition-all",
-                          selectedContactTags.includes(tag) ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/30 border-border/50 text-muted-foreground"
-                        )}>{tag}</button>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">
-                    {selectedContactTags.length > 0
-                      ? `${savedContacts.filter(c => c.tags?.some(t => selectedContactTags.includes(t))).length} contatos`
-                      : `${savedContacts.length} contatos`}
-                  </span>
-                  <Button size="sm" className="text-xs h-7" onClick={handleImportFromDB}>Importar</Button>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5 max-h-[350px] overflow-y-auto">
-              {contacts.map((contact, idx) => (
-                <div key={contact.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 p-2 rounded-lg bg-muted/10 border border-border/30 group">
-                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <span className="text-[10px] text-muted-foreground w-5 text-center shrink-0">{idx + 1}</span>
-                    <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Nome" className="h-7 text-xs flex-1 bg-transparent border-border/30" />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0 sm:hidden" onClick={() => removeContact(contact.id)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="5511999999999" className="h-7 text-xs flex-1 font-mono bg-transparent border-border/30" />
-                  <Input value={contact.var1} onChange={(e) => updateContact(contact.id, "var1", e.target.value)} placeholder="Var 1" className="h-7 text-xs w-20 hidden lg:block bg-transparent border-border/30" />
-                  <Input value={contact.var2} onChange={(e) => updateContact(contact.id, "var2", e.target.value)} placeholder="Var 2" className="h-7 text-xs w-20 hidden lg:block bg-transparent border-border/30" />
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0 hidden sm:flex opacity-0 group-hover:opacity-100" onClick={() => removeContact(contact.id)}>
-                    <Trash2 className="w-3 h-3" />
+            {/* Tools menu */}
+            {contacts.length > 0 && (
+              <Popover open={showContactTools} onOpenChange={setShowContactTools}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs h-8 text-muted-foreground gap-1">
+                    <Settings2 className="w-3 h-3" /> Ferramentas
                   </Button>
-                </div>
-              ))}
-            </div>
-
-            {invalidContacts.length > 0 && (
-              <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/10 rounded-lg px-3 py-2">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                <span>{invalidContacts.length} número(s) possivelmente inválido(s)</span>
-              </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1 bg-popover border-border z-50" align="start">
+                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeDuplicates(); setShowContactTools(false); }}>
+                    <Copy className="w-3 h-3" /> Remover duplicados
+                  </button>
+                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeInvalid(); setShowContactTools(false); }}>
+                    <XCircle className="w-3 h-3" /> Limpar inválidos
+                  </button>
+                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={handleDownloadSample}>
+                    <Download className="w-3 h-3" /> Baixar modelo
+                  </button>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
 
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
+
+          {/* Import from contacts modal */}
+          {importFromContacts && (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">Importar da lista de contatos</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setImportFromContacts(false)}><X className="w-3 h-3" /></Button>
+              </div>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {allTags.map(tag => (
+                    <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                      className={cn("px-2.5 py-1 rounded-full text-[10px] border transition-all",
+                        selectedContactTags.includes(tag) ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/20 border-border/40 text-muted-foreground"
+                      )}>{tag}</button>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">
+                  {selectedContactTags.length > 0 ? `${savedContacts.filter(c => c.tags?.some(t => selectedContactTags.includes(t))).length} contatos` : `${savedContacts.length} contatos`}
+                </span>
+                <Button size="sm" className="text-xs h-7" onClick={handleImportFromDB}>Importar</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Contact table - compact, shown after data */}
+          {contacts.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <button onClick={() => setShowContactTable(!showContactTable)} className="text-[11px] text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors">
+                  <ChevronDown className={cn("w-3 h-3 transition-transform", !showContactTable && "-rotate-90")} />
+                  {showContactTable ? "Ocultar lista" : "Mostrar lista"}
+                </button>
+                <span className="text-[10px] text-muted-foreground">{contacts.length} linha(s)</span>
+              </div>
+
+              {showContactTable && (
+                <div className="space-y-1 max-h-[280px] overflow-y-auto rounded-lg border border-border/20 bg-card/20 p-2">
+                  {contacts.map((contact, idx) => (
+                    <div key={contact.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/10 group">
+                      <span className="text-[9px] text-muted-foreground/50 w-4 text-right shrink-0">{idx + 1}</span>
+                      <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Nome" className="h-7 text-[11px] flex-1 bg-transparent border-border/20 min-w-0" />
+                      <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="5511999999999" className="h-7 text-[11px] flex-1 font-mono bg-transparent border-border/20 min-w-0" />
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeContact(contact.id)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {contacts.length === 0 && (
+            <div className="rounded-lg border border-dashed border-border/30 p-8 flex flex-col items-center gap-2 text-center">
+              <Users className="w-5 h-5 text-muted-foreground/40" />
+              <p className="text-xs text-muted-foreground">Nenhum contato adicionado</p>
+              <p className="text-[10px] text-muted-foreground/60">Importe uma planilha ou adicione manualmente</p>
+            </div>
+          )}
+
+          {invalidContacts.length > 0 && (
+            <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/5 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              <span>{invalidContacts.length} número(s) possivelmente inválido(s)</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-xs text-muted-foreground">Voltar</Button>
-            <Button onClick={() => setStep(3)} className="gap-1.5 h-9 px-5 text-sm">
+            <Button onClick={() => setStep(3)} className="gap-1.5 h-9 px-5 text-xs font-medium">
               Continuar <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -697,54 +638,59 @@ const Campaigns = () => {
 
       {/* ===== STEP 3: Message ===== */}
       {step === 3 && (
-        <div className="space-y-5">
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-foreground/60" />
-              <span className="text-sm font-medium text-foreground">Mensagem</span>
-            </div>
-
-            {/* Toolbar */}
-            <div className="flex items-center gap-0.5 p-1 rounded-lg bg-muted/20 border border-border/30 flex-wrap">
+        <div className="space-y-6">
+          <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+            {/* Toolbar - simplified */}
+            <div className="flex items-center gap-1 flex-wrap">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary">
-                    <FileText className="w-3 h-3" /> Variável
+                  <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1 border-border/40">
+                    <FileText className="w-3 h-3" /> Inserir variável
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-40 p-1" align="start">
-                  {["Nome", "Número", "Variável 1", "Variável 2", "Variável 3"].map(v => (
-                    <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors"
-                      onClick={() => {
-                        const tag = v === "Nome" ? "{{nome}}" : v === "Número" ? "{{numero}}" : `{{var${v.split(" ")[1]}}}`;
-                        setMessage(prev => prev + tag);
-                      }}>{v}</button>
+                <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
+                  {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
+                    <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                      onClick={() => setMessage(prev => prev + v.tag)}>
+                      <span>{v.label}</span>
+                      <code className="text-[9px] text-muted-foreground">{v.tag}</code>
+                    </button>
+                  ))}
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
+                  {["Variável 1", "Variável 2", "Variável 3"].map((v, i) => (
+                    <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                      onClick={() => setMessage(prev => prev + `{{var${i + 1}}}`)}>
+                      <span>{v}</span>
+                      <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
+                    </button>
                   ))}
                 </PopoverContent>
               </Popover>
-              <div className="w-px h-4 bg-border/50 mx-0.5" />
+
+              <div className="h-4 w-px bg-border/30 mx-1" />
               {[
                 { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
                 { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
                 { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
                 { icon: Code, label: "Código", wrap: ["```", "```"] },
               ].map(({ icon: Icon, label, wrap }) => (
-                <Button key={label} variant="ghost" size="icon" className="h-7 w-7" title={label}
+                <Button key={label} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title={label}
                   onClick={() => setMessage(prev => prev + wrap[0] + wrap[1])}>
                   <Icon className="w-3 h-3" />
                 </Button>
               ))}
-              <div className="w-px h-4 bg-border/50 mx-0.5" />
-              <Button variant="ghost" size="icon" className="h-7 w-7"><Smile className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7"><Image className="w-3 h-3" /></Button>
+              <div className="h-4 w-px bg-border/30 mx-1" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Smile className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Image className="w-3 h-3" /></Button>
             </div>
 
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite sua mensagem..."
-              rows={6}
-              className="text-sm leading-relaxed bg-transparent border-border/30 resize-none"
+              placeholder="Digite sua mensagem aqui..."
+              rows={8}
+              className="text-sm leading-relaxed bg-background/30 border-border/20 resize-none focus:border-primary/30"
             />
 
             <div className="flex items-center justify-between">
@@ -754,56 +700,35 @@ const Campaigns = () => {
 
           {/* Buttons section */}
           {showButtons && (
-            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
-              <span className="text-sm font-medium text-foreground">Botões Interativos</span>
-
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+              <span className="text-xs font-medium text-foreground">Botões Interativos</span>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MousePointerClick className="w-3.5 h-3.5 text-foreground/60" />
-                    <span className="text-xs text-muted-foreground">Resposta Rápida</span>
-                    <span className="text-[10px] text-muted-foreground">{quickReplyButtons.length}/3</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={addQuickReply} disabled={quickReplyButtons.length >= 3}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar
-                  </Button>
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><MousePointerClick className="w-3 h-3" /> Resposta Rápida <span className="text-[9px]">{quickReplyButtons.length}/3</span></span>
+                  <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={addQuickReply} disabled={quickReplyButtons.length >= 3}><Plus className="w-3 h-3 mr-1" /> Adicionar</Button>
                 </div>
-                {quickReplyButtons.map((btn, idx) => (
+                {quickReplyButtons.map(btn => (
                   <div key={btn.id} className="flex items-center gap-2">
-                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-transparent border-border/30" maxLength={20} />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeQuickReply(btn.id)}>
-                      <X className="w-3 h-3" />
-                    </Button>
+                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-background/30 border-border/20" maxLength={20} />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
               </div>
-
-              <div className="border-t border-border/30" />
-
+              <div className="border-t border-border/20" />
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Link className="w-3.5 h-3.5 text-foreground/60" />
-                    <span className="text-xs text-muted-foreground">Link / Ligação</span>
-                    <span className="text-[10px] text-muted-foreground">{ctaButtons.length}/2</span>
-                  </div>
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Link className="w-3 h-3" /> Link / Ligação <span className="text-[9px]">{ctaButtons.length}/2</span></span>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => addCTAButton("url")} disabled={ctaButtons.length >= 2}>
-                      <Link className="w-3 h-3 mr-1" /> URL
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => addCTAButton("phone")} disabled={ctaButtons.length >= 2}>
-                      <Phone className="w-3 h-3 mr-1" /> Tel
-                    </Button>
+                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("url")} disabled={ctaButtons.length >= 2}><Link className="w-3 h-3 mr-1" /> URL</Button>
+                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("phone")} disabled={ctaButtons.length >= 2}><Phone className="w-3 h-3 mr-1" /> Tel</Button>
                   </div>
                 </div>
                 {ctaButtons.map(btn => (
                   <div key={btn.id} className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-[10px]">{btn.type === "url" ? "URL" : "TEL"}</Badge>
-                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-transparent border-border/30" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+55..."} className="h-7 text-xs flex-1 bg-transparent border-border/30" />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCTAButton(btn.id)}>
-                      <X className="w-3 h-3" />
-                    </Button>
+                    <Badge variant="secondary" className="text-[9px] h-5">{btn.type === "url" ? "URL" : "TEL"}</Badge>
+                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-background/30 border-border/20" maxLength={20} />
+                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+55..."} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
               </div>
@@ -812,63 +737,69 @@ const Campaigns = () => {
 
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-xs text-muted-foreground">Voltar</Button>
-            <Button onClick={() => setStep(4)} className="gap-1.5 h-9 px-5 text-sm">
+            <Button onClick={() => setStep(4)} className="gap-1.5 h-9 px-5 text-xs font-medium">
               Continuar <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* ===== STEP 4: Review ===== */}
+      {/* ===== STEP 4: Final Config + Review ===== */}
       {step === 4 && (
-        <div className="space-y-5">
-          <div className="rounded-xl border border-border/50 bg-card p-5 space-y-5">
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-foreground/60" />
-              <span className="text-sm font-medium text-foreground">Revisão</span>
-            </div>
+        <div className="space-y-6">
+          {/* Campaign name */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Nome da campanha</Label>
+            <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Ex: Black Friday 2025" className="h-9 text-sm bg-card/60 border-border/40" />
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Instância</span>
-                <p className="text-sm font-medium text-foreground truncate">{selectedDeviceData?.name || "—"}</p>
+          {/* Schedule toggle */}
+          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Agendar envio</span>
+              <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+            </div>
+            {scheduleEnabled && (
+              <div className="mt-3">
+                <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-8 text-xs bg-background/50 border-border/30" />
               </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Contatos</span>
-                <p className="text-sm font-medium text-foreground">{validContacts.length}</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Limite</span>
-                <p className="text-sm font-medium text-foreground">{messageLimit} msgs</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Intervalo</span>
-                <p className="text-sm font-medium text-foreground">{minDelay}s – {maxDelay}s</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Modo</span>
-                <p className="text-sm font-medium text-foreground">{warmupMode ? "Aquecimento" : "Normal"}</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Risco estimado</span>
-                <p className={cn("text-sm font-medium", risk.color)}>{risk.label}</p>
-              </div>
+            )}
+          </div>
+
+          {/* Review summary */}
+          <div className="rounded-lg border border-border/30 bg-card/40 p-5 space-y-4">
+            <span className="text-xs font-medium text-foreground flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-muted-foreground" /> Revisão</span>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4">
+              {[
+                { label: "Instância", value: selectedDeviceData?.name || "—" },
+                { label: "Contatos", value: String(validContacts.length) },
+                { label: "Limite", value: `${messageLimit} msgs` },
+                { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s` },
+                { label: "Modo", value: warmupMode ? "Aquecimento" : "Normal" },
+                { label: "Risco", value: risk.label, className: risk.color },
+              ].map(item => (
+                <div key={item.label} className="space-y-0.5">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">{item.label}</p>
+                  <p className={cn("text-sm font-medium text-foreground", (item as any).className)}>{item.value}</p>
+                </div>
+              ))}
             </div>
 
             {/* Message preview */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Mensagem</span>
-              <div className="p-3 rounded-lg bg-muted/20 border border-border/30 max-h-36 overflow-y-auto">
-                <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                  {message || <span className="text-muted-foreground italic">Vazia</span>}
+            <div className="space-y-1">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">Mensagem</p>
+              <div className="p-3 rounded-md bg-background/30 max-h-28 overflow-y-auto">
+                <p className="text-xs text-foreground/70 whitespace-pre-wrap leading-relaxed">
+                  {message || <span className="text-muted-foreground/50 italic">Vazia</span>}
                 </p>
               </div>
             </div>
 
             {/* Warnings */}
             {(!campaignName || !selectedDevice || validContacts.length === 0 || !message) && (
-              <div className="flex items-center gap-2 text-[11px] text-destructive bg-destructive/5 border border-destructive/10 rounded-lg px-3 py-2">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <div className="flex items-center gap-2 text-[11px] text-destructive bg-destructive/5 rounded-md px-3 py-2">
+                <AlertTriangle className="w-3 h-3 shrink-0" />
                 <span>
                   {!campaignName && "Nome ausente. "}
                   {!selectedDevice && "Sem instância. "}
@@ -879,16 +810,22 @@ const Campaigns = () => {
             )}
           </div>
 
+          {/* Action buttons */}
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-xs text-muted-foreground">Voltar</Button>
-            <Button
-              className="gap-2 h-10 px-8 text-sm font-medium"
-              onClick={handleSendCampaign}
-              disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || !selectedDevice || validContacts.length === 0 || !message}
-            >
-              <Send className="w-4 h-4" />
-              {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : "Iniciar Campanha"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="text-xs h-9 border-border/40 gap-1.5" onClick={() => setStep(3)}>
+                <Eye className="w-3 h-3" /> Pré-visualizar
+              </Button>
+              <Button
+                className="gap-2 h-9 px-6 text-xs font-medium"
+                onClick={handleSendCampaign}
+                disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || !selectedDevice || validContacts.length === 0 || !message}
+              >
+                <Send className="w-3.5 h-3.5" />
+                {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : "Enviar agora"}
+              </Button>
+            </div>
           </div>
         </div>
       )}
