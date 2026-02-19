@@ -95,6 +95,8 @@ const Campaigns = () => {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [showContactTable, setShowContactTable] = useState(false);
+  const [manualPhone, setManualPhone] = useState("");
+  const [manualName, setManualName] = useState("");
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
@@ -558,7 +560,31 @@ const Campaigns = () => {
             )}
           </div>
 
-          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
+          {/* Manual phone input */}
+          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
+            <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Phone className="w-3 h-3" /> Adicionar número manualmente</span>
+            <div className="flex items-center gap-2">
+              <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Nome (opcional)" className="h-8 text-xs bg-background/50 border-border/30 flex-1" />
+              <Input value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} placeholder="5511999999999" className="h-8 text-xs bg-background/50 border-border/30 flex-1 font-mono"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && manualPhone.trim()) {
+                    setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "" }]);
+                    setManualPhone(""); setManualName(""); setShowContactTable(true);
+                  }
+                }}
+              />
+              <Button size="sm" className="h-8 text-xs gap-1 shrink-0" disabled={!manualPhone.trim()}
+                onClick={() => {
+                  setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "" }]);
+                  setManualPhone(""); setManualName(""); setShowContactTable(true);
+                }}
+              >
+                <Plus className="w-3 h-3" /> Adicionar
+              </Button>
+            </div>
+          </div>
+
+
 
           {/* Import from contacts modal */}
           {importFromContacts && (
