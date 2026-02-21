@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   MessageSquare, Search, Send, ArrowLeft, Smartphone, RefreshCw,
   Check, CheckCheck, Smile, MoreVertical, Mic, Image as ImageIcon, Paperclip, X,
-  FileText, Camera, Film, FileAudio, Loader2,
+  FileText, Camera, Film, FileAudio, Loader2, Square,
 }from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -74,9 +74,14 @@ const Conversations = () => {
   const [mediaAttachment, setMediaAttachment] = useState<MediaAttachment | null>(null);
   const [mediaCaption, setMediaCaption] = useState("");
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const selectedChatRef = useRef<WhapiChat | null>(null);
   const selectedDeviceRef = useRef("");
 
@@ -246,6 +251,98 @@ const Conversations = () => {
     } finally {
       setUploadingMedia(false);
     }
+  };
+
+  // ─── Audio recording ──────────────────────────────────────
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
+      });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+        setIsRecording(false);
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size < 500) return; // too short
+
+        // Upload and send
+        setUploadingMedia(true);
+        try {
+          const ext = mimeType.includes("webm") ? "webm" : "mp4";
+          const fileName = `media/${Date.now()}_audio.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(fileName, blob, { upsert: true, contentType: mimeType });
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+          const chat = selectedChatRef.current;
+          const device = selectedDeviceRef.current;
+          if (!chat || !device) return;
+
+          await supabase.functions.invoke(
+            `whapi-chats?action=send_media&device_id=${device}`,
+            {
+              method: "POST",
+              body: { to: chat.id, media_url: urlData.publicUrl, media_type: "audio" },
+            }
+          );
+          await loadMessages(chat);
+        } catch (err: any) {
+          toast({ title: "Erro ao enviar áudio", description: err.message, variant: "destructive" });
+        } finally {
+          setUploadingMedia(false);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(1000);
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch (err: any) {
+      toast({ title: "Acesso ao microfone negado", description: "Verifique as permissões do navegador.", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+        setIsRecording(false);
+      };
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const formatRecordingTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   // ─── Formatters ────────────────────────────────────────────
@@ -671,12 +768,26 @@ const Conversations = () => {
                       style={{ minHeight: "38px", maxHeight: "120px" }}
                     />
                   </div>
-                  {reply.trim() ? (
+                  {isRecording ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={cancelRecording}>
+                        <X className="w-5 h-5" />
+                      </Button>
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                        <span className="text-sm text-destructive font-mono">{formatRecordingTime(recordingTime)}</span>
+                        <span className="text-xs text-muted-foreground">Gravando...</span>
+                      </div>
+                      <Button size="icon" className="shrink-0 h-9 w-9 rounded-full" onClick={stopRecording} disabled={uploadingMedia}>
+                        {uploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  ) : reply.trim() ? (
                     <Button size="icon" className="shrink-0 h-9 w-9 rounded-full" onClick={() => sendMessage()} disabled={sending}>
                       <Send className={`w-4 h-4 ${sending ? "animate-pulse" : ""}`} />
                     </Button>
                   ) : (
-                    <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground" onClick={startRecording}>
                       <Mic className="w-5 h-5" />
                     </Button>
                   )}
