@@ -10,6 +10,7 @@ import {
   Shield,
   Save,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,7 @@ import {
 const mainItems = [
   { title: "Painel", url: "/dashboard", icon: LayoutDashboard },
   { title: "Dispositivos", url: "/dashboard/devices", icon: Smartphone },
+  { title: "Conversas", url: "/dashboard/conversations", icon: MessageCircle },
   { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
   { title: "Campanha", url: "/dashboard/campaign-list", icon: Megaphone },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
