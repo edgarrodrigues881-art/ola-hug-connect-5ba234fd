@@ -83,11 +83,11 @@ const CampaignList = () => {
                 <TableRow>
                   <TableHead className="text-xs">Nome</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-center">Contatos</TableHead>
+                  <TableHead className="text-xs text-center hidden sm:table-cell">Contatos</TableHead>
                   <TableHead className="text-xs text-center">Enviadas</TableHead>
-                  <TableHead className="text-xs text-center">Entregues</TableHead>
-                  <TableHead className="text-xs text-center">Falhas</TableHead>
-                  <TableHead className="text-xs">Criada em</TableHead>
+                  <TableHead className="text-xs text-center hidden md:table-cell">Entregues</TableHead>
+                  <TableHead className="text-xs text-center hidden md:table-cell">Falhas</TableHead>
+                  <TableHead className="text-xs hidden lg:table-cell">Criada em</TableHead>
                   <TableHead className="text-xs text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -115,15 +115,15 @@ const CampaignList = () => {
                             {cfg.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-center text-muted-foreground">{c.total_contacts}</TableCell>
+                        <TableCell className="text-sm text-center text-muted-foreground hidden sm:table-cell">{c.total_contacts}</TableCell>
                         <TableCell className="text-sm text-center text-muted-foreground">{c.sent_count}</TableCell>
-                        <TableCell className="text-sm text-center text-muted-foreground">{c.delivered_count}</TableCell>
-                        <TableCell className="text-sm text-center">
+                        <TableCell className="text-sm text-center text-muted-foreground hidden md:table-cell">{c.delivered_count}</TableCell>
+                        <TableCell className="text-sm text-center hidden md:table-cell">
                           <span className={c.failed_count > 0 ? "text-destructive" : "text-muted-foreground"}>
                             {c.failed_count}
                           </span>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
                           {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
                         </TableCell>
                         <TableCell className="text-right">
