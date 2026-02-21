@@ -56,15 +56,6 @@ interface DeviceInfo {
   profile_picture: string | null;
 }
 
-// ─── Constants ───────────────────────────────────────────────
-const QUICK_REPLIES = [
-  "Olá! Tudo bem? 😊",
-  "Obrigado pelo contato!",
-  "Vou verificar e retorno em breve.",
-  "Pode me enviar mais detalhes?",
-  "Perfeito, vamos prosseguir! 👍",
-];
-
 const AUTO_REFRESH_MS = 15000; // 15s for messages, 30s for chat list
 
 // ─── Component ───────────────────────────────────────────────
@@ -80,7 +71,6 @@ const Conversations = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
-  const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [mediaAttachment, setMediaAttachment] = useState<MediaAttachment | null>(null);
   const [mediaCaption, setMediaCaption] = useState("");
   const [uploadingMedia, setUploadingMedia] = useState(false);
@@ -128,7 +118,6 @@ const Conversations = () => {
     if (!silent) {
       setSelectedChat(chat);
       setLoadingMessages(true);
-      setShowQuickReplies(false);
     }
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -169,7 +158,7 @@ const Conversations = () => {
     const msg = text || reply.trim();
     if (!msg || !selectedChat || !selectedDevice) return;
     setSending(true);
-    setShowQuickReplies(false);
+    
     try {
       const { error } = await supabase.functions.invoke(
         `whapi-chats?action=send_message&device_id=${selectedDevice}`,
@@ -594,17 +583,6 @@ const Conversations = () => {
                   )}
                 </div>
 
-                {/* Quick replies strip */}
-                {showQuickReplies && (
-                  <div className="px-3 py-2 border-t border-border bg-muted/30 flex gap-2 overflow-x-auto scrollbar-hide">
-                    {QUICK_REPLIES.map((qr, i) => (
-                      <button key={i} onClick={() => sendMessage(qr)}
-                        className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20 whitespace-nowrap">
-                        {qr}
-                      </button>
-                    ))}
-                  </div>
-                )}
 
                 {/* Media preview bar */}
                 {mediaAttachment && (
@@ -646,8 +624,7 @@ const Conversations = () => {
 
                 {/* Input bar — WhatsApp Web style */}
                 <div className="px-3 py-2 bg-muted/40 border-t border-border flex items-end gap-2 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowQuickReplies(!showQuickReplies)}>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground">
                     <Smile className="w-5 h-5" />
                   </Button>
 
