@@ -78,23 +78,23 @@ const Templates = () => {
 
   return (
     <div className="space-y-6 animate-fade-up">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Modelos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus templates de mensagem</p>
         </div>
-        <Button onClick={openCreate} className="gap-1.5 bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4" /> Adicionar modelo
+        <Button onClick={openCreate} size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
+          <Plus className="w-4 h-4" /> Adicionar
         </Button>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative">
+        <div className="relative flex-1 min-w-[140px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar" className="pl-8 h-9 text-sm w-48" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar" className="pl-8 h-9 text-sm w-full" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="h-9 w-48 text-sm"><SelectValue placeholder="Tipo de mensagem" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-36 sm:w-48 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="text">Texto</SelectItem>
@@ -106,51 +106,47 @@ const Templates = () => {
       </div>
 
       <div className="border border-border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead className="text-xs w-12">SN</TableHead>
-              <TableHead className="text-xs">Nome</TableHead>
-              <TableHead className="text-xs">Tipo</TableHead>
-              <TableHead className="text-xs">Mensagem</TableHead>
-              <TableHead className="text-xs">Pré-visualização</TableHead>
-              <TableHead className="text-xs">Criado em</TableHead>
-              <TableHead className="text-xs">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : paginated.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Nenhum modelo encontrado</TableCell></TableRow>
-            ) : (
-              paginated.map((t, idx) => (
-                <TableRow key={t.id}>
-                  <TableCell className="text-xs text-muted-foreground">{(currentPage - 1) * perPage + idx + 1}</TableCell>
-                  <TableCell className="text-sm font-medium">{t.name}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{typeLabel(t.type)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{t.content}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }}>
-                      Pré-visualização
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" onClick={() => openEdit(t)}>
-                        <Pencil className="w-3 h-3" /> Editar
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-xs h-7 gap-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDelete(t.id)}>
-                        <Trash2 className="w-3 h-3" /> Excluir
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead className="text-xs w-12 hidden sm:table-cell">SN</TableHead>
+                <TableHead className="text-xs">Nome</TableHead>
+                <TableHead className="text-xs hidden sm:table-cell">Tipo</TableHead>
+                <TableHead className="text-xs hidden md:table-cell">Mensagem</TableHead>
+                <TableHead className="text-xs hidden lg:table-cell">Criado em</TableHead>
+                <TableHead className="text-xs">Ação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
+              ) : paginated.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Nenhum modelo encontrado</TableCell></TableRow>
+              ) : (
+                paginated.map((t, idx) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{(currentPage - 1) * perPage + idx + 1}</TableCell>
+                    <TableCell className="text-sm font-medium">{t.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{typeLabel(t.type)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate hidden md:table-cell">{t.content}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(t)} title="Editar">
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(t.id)} title="Excluir">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
         <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-border text-xs text-muted-foreground">
           <span>{(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} de {filtered.length}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
