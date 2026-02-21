@@ -1,8 +1,16 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
 
@@ -36,10 +44,43 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground shrink-0">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sidebar-primary rounded-full ring-2 ring-card" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground shrink-0">
+                  <Bell className="w-[18px] h-[18px]" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sidebar-primary rounded-full ring-2 ring-card" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72 bg-popover border-border">
+                <DropdownMenuLabel className="text-xs font-medium text-foreground">Notificações</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Campanha concluída</p>
+                    <p className="text-xs text-muted-foreground">A campanha "teste" foi finalizada com sucesso.</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Chip desconectado</p>
+                    <p className="text-xs text-muted-foreground">Um dispositivo perdeu conexão. Verifique.</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
+                  <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Atualização do sistema</p>
+                    <p className="text-xs text-muted-foreground">Nova versão disponível com melhorias.</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-center text-xs text-primary justify-center cursor-pointer">
+                  Ver todas as notificações
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
