@@ -11,6 +11,7 @@ import {
   Save,
   LogOut,
   MessageCircle,
+  UserCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ const mainItems = [
 
 const contactItems = [
   { title: "Contatos", url: "/dashboard/contacts", icon: Users },
+  { title: "CRM", url: "/dashboard/crm", icon: UserCheck },
   { title: "Número Auto Save", url: "/dashboard/auto-save", icon: Save },
 ];
 
