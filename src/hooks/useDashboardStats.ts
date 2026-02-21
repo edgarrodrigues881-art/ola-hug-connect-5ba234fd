@@ -16,9 +16,21 @@ export interface ChipHealth {
   proxyName: string | null;
 }
 
+export interface DeviceInfo {
+  id: string;
+  name: string;
+  number: string | null;
+  status: string;
+  profile_picture: string | null;
+}
+
 export interface DashboardStats {
   chipsActive: number;
   totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  deliveryRate: number;
+  devices: DeviceInfo[];
   recentCampaigns: Array<{
     id: string;
     name: string;
@@ -29,7 +41,9 @@ export interface DashboardStats {
     failedCount: number;
     responseRate: number;
     techStatus: "ok" | "warning" | "risk";
+    createdAt: string;
   }>;
+  activityData: Array<{ label: string; enviadas: number; entregues: number }>;
 }
 
 function calculateChipScore(
@@ -159,18 +173,42 @@ export function useDashboardStats() {
           failedCount: failed,
           responseRate: sent > 0 ? Math.round((delivered / sent) * 100) : 0,
           techStatus,
+          createdAt: c.created_at,
         };
       });
 
-      // Proxy stats
-      const activeProxies = proxies.filter((p) => p.active);
-      const burnedProxies = proxies.filter((p) => p.status === "USADA");
-      const healthyProxies = proxies.filter((p) => p.status === "NOVA" || p.status === "USANDO");
+      // Activity data from campaigns (last 7 days)
+      const now = new Date();
+      const activityData = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (6 - i));
+        const dayLabel = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+        const dayCampaigns = campaigns.filter((c) => {
+          const cd = new Date(c.created_at);
+          return cd.toDateString() === d.toDateString();
+        });
+        return {
+          label: dayLabel,
+          enviadas: dayCampaigns.reduce((a, c) => a + (c.sent_count || 0), 0),
+          entregues: dayCampaigns.reduce((a, c) => a + (c.delivered_count || 0), 0),
+        };
+      });
 
       return {
         chipsActive,
         totalSent,
+        totalDelivered,
+        totalFailed,
+        deliveryRate,
+        devices: devices.map((d) => ({
+          id: d.id,
+          name: d.name,
+          number: d.number,
+          status: d.status,
+          profile_picture: d.profile_picture,
+        })),
         recentCampaigns,
+        activityData,
       };
     },
     enabled: !!user,
