@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       // body: { to, media_url, media_type, caption?, filename? }
       const mediaType = body.media_type || "image";
-      const endpoint = mediaType === "document" ? "document" : mediaType === "audio" || mediaType === "ptt" ? "audio" : mediaType === "video" ? "video" : "image";
+      const endpoint = mediaType === "document" ? "document" : mediaType === "ptt" ? "voice" : mediaType === "audio" ? "audio" : mediaType === "video" ? "video" : "image";
       
       const payload: Record<string, unknown> = {
         to: body.to,
