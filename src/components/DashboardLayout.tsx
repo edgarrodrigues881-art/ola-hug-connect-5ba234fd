@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, Search, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck } from "lucide-react";
+import { Bell, Search, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,7 @@ const typeColors = {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   return (
     <SidebarProvider>
@@ -116,6 +116,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       </DropdownMenuItem>
                     );
                   })
+                )}
+                {notifications.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="flex items-center justify-center gap-1.5 text-xs text-destructive cursor-pointer"
+                      onClick={(e) => { e.preventDefault(); clearAll(); }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Limpar todas
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
