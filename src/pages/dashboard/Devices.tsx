@@ -630,7 +630,19 @@ const Devices = () => {
                     {/* Enhanced avatar */}
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center relative overflow-hidden ring-1 ring-white/[0.05] shrink-0">
                       {d.profile_picture ? (
-                        <img src={d.profile_picture} alt="" className="w-full h-full object-cover rounded-full" />
+                        <>
+                          <img
+                            src={d.profile_picture}
+                            alt=""
+                            className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                              const fallback = e.currentTarget.nextElementSibling;
+                              if (fallback) (fallback as HTMLElement).style.display = "block";
+                            }}
+                          />
+                          <span className="text-sm font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
+                        </>
                       ) : (
                         <span className="text-sm font-bold text-muted-foreground">{initials}</span>
                       )}
