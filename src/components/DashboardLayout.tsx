@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, Search, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Bell, Search, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +13,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
+import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const typeIcons = {
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  error: XCircle,
+  info: Info,
+};
+
+const typeColors = {
+  success: "text-emerald-400",
+  warning: "text-yellow-400",
+  error: "text-destructive",
+  info: "text-blue-400",
+};
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
 
   return (
     <SidebarProvider>
@@ -48,37 +66,57 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground shrink-0">
                   <Bell className="w-[18px] h-[18px]" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sidebar-primary rounded-full ring-2 ring-card" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-sidebar-primary text-sidebar-primary-foreground rounded-full flex items-center justify-center ring-2 ring-card">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72 bg-popover border-border">
-                <DropdownMenuLabel className="text-xs font-medium text-foreground">Notificações</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-80 bg-popover border-border max-h-[400px] overflow-y-auto">
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <DropdownMenuLabel className="text-xs font-medium text-foreground p-0">Notificações</DropdownMenuLabel>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); markAllAsRead(); }}
+                      className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                      Marcar todas como lidas
+                    </button>
+                  )}
+                </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">Campanha concluída</p>
-                    <p className="text-xs text-muted-foreground">A campanha "teste" foi finalizada com sucesso.</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">Chip desconectado</p>
-                    <p className="text-xs text-muted-foreground">Um dispositivo perdeu conexão. Verifique.</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start gap-3 py-3 cursor-pointer">
-                  <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">Atualização do sistema</p>
-                    <p className="text-xs text-muted-foreground">Nova versão disponível com melhorias.</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center text-xs text-primary justify-center cursor-pointer">
-                  Ver todas as notificações
-                </DropdownMenuItem>
+
+                {loading ? (
+                  <div className="py-6 text-center text-xs text-muted-foreground">Carregando...</div>
+                ) : notifications.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-muted-foreground">Nenhuma notificação</div>
+                ) : (
+                  notifications.map((n) => {
+                    const Icon = typeIcons[n.type] || Info;
+                    const color = typeColors[n.type] || "text-muted-foreground";
+                    return (
+                      <DropdownMenuItem
+                        key={n.id}
+                        className={`flex items-start gap-3 py-3 cursor-pointer ${!n.read ? "bg-muted/30" : ""}`}
+                        onClick={() => { if (!n.read) markAsRead(n.id); }}
+                      >
+                        <Icon className={`w-4 h-4 ${color} mt-0.5 shrink-0`} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-sm truncate ${!n.read ? "font-medium text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
+                            {!n.read && <span className="w-1.5 h-1.5 bg-sidebar-primary rounded-full shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
