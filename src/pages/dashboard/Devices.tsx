@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,12 +34,13 @@ interface Device {
   proxy_id: string | null;
   whapi_token: string | null;
   profile_picture: string | null;
+  created_at: string;
 }
 
 const statusConfig = {
-  Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Ready", badgeClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  Disconnected: { icon: XCircle, color: "text-blue-500", bg: "bg-blue-500/10", label: "Disconnected", badgeClass: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
-  Loading: { icon: Loader2, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "Loading", badgeClass: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
+  Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Online", badgeClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", dot: "bg-emerald-500 animate-pulse" },
+  Disconnected: { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", label: "Offline", badgeClass: "bg-red-500/15 text-red-500 border-red-500/30", dot: "bg-red-400" },
+  Loading: { icon: Loader2, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "Connecting", badgeClass: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30", dot: "bg-yellow-500 animate-pulse" },
 };
 
 const Devices = () => {
@@ -72,6 +75,9 @@ const Devices = () => {
   const [deleteSingleOpen, setDeleteSingleOpen] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [deleteSingleDevice, setDeleteSingleDevice] = useState<Device | null>(null);
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEditName, setInlineEditName] = useState("");
+  const inlineInputRef = useRef<HTMLInputElement>(null);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -101,6 +107,7 @@ const Devices = () => {
         proxy_id: d.proxy_id,
         whapi_token: d.whapi_token || null,
         profile_picture: d.profile_picture || null,
+        created_at: d.created_at,
       })) as Device[];
     },
     enabled: !!session,
@@ -326,6 +333,21 @@ const Devices = () => {
     toast({ title: "Proxy atualizado" });
     setEditProxyOpen(false);
     setEditProxyDevice(null);
+  };
+
+  // Inline edit name
+  const startInlineEdit = (device: Device) => {
+    setInlineEditId(device.id);
+    setInlineEditName(device.name);
+    setTimeout(() => inlineInputRef.current?.focus(), 50);
+  };
+
+  const commitInlineEdit = () => {
+    if (inlineEditId && inlineEditName.trim()) {
+      updateMutation.mutate({ id: inlineEditId, updates: { name: inlineEditName.trim() } });
+      toast({ title: "Nome atualizado" });
+    }
+    setInlineEditId(null);
   };
 
   // Logout
@@ -585,11 +607,18 @@ const Devices = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {devices.map((d, index) => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
-          const StatusIcon = sc.icon;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const isSelected = selectedDevices.includes(d.id);
+          const isEditing = inlineEditId === d.id;
+          const initials = (d.number || d.name).replace(/\D/g, "").slice(-2) || "?";
+          const uptime = formatDistanceToNow(new Date(d.created_at), { locale: ptBR });
+
           return (
-            <Card key={d.id} className={`border bg-card/50 backdrop-blur-sm transition-all hover:shadow-md ${isSelected ? "ring-2 ring-primary" : ""}`}>
+            <Card
+              key={d.id}
+              className={`border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-fade-in ${isSelected ? "ring-2 ring-primary" : ""}`}
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
               <CardContent className="p-0">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-4 pb-3">
@@ -598,17 +627,40 @@ const Devices = () => {
                       checked={isSelected}
                       onCheckedChange={() => toggleSelectDevice(d.id)}
                     />
-                    <div className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center relative overflow-hidden">
+                    {/* Enhanced avatar */}
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center relative overflow-hidden ring-1 ring-white/[0.05] shrink-0">
                       {d.profile_picture ? (
                         <img src={d.profile_picture} alt="" className="w-full h-full object-cover rounded-full" />
                       ) : (
-                        <Smartphone className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-bold text-muted-foreground">{initials}</span>
                       )}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${d.status === "Ready" ? "bg-emerald-500" : d.status === "Loading" ? "bg-yellow-500" : "bg-muted-foreground/40"}`} />
+                      {/* Pulsating status dot */}
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${sc.dot}`} />
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground leading-tight">Instância {index + 1}</p>
-                      <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
+                    <div className="min-w-0">
+                      {/* Inline editable name */}
+                      {isEditing ? (
+                        <input
+                          ref={inlineInputRef}
+                          value={inlineEditName}
+                          onChange={(e) => setInlineEditName(e.target.value)}
+                          onBlur={commitInlineEdit}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitInlineEdit();
+                            if (e.key === "Escape") setInlineEditId(null);
+                          }}
+                          className="text-sm font-semibold text-foreground bg-transparent border-b border-primary outline-none w-full leading-tight"
+                        />
+                      ) : (
+                        <p
+                          className="text-sm font-semibold text-foreground leading-tight cursor-pointer hover:text-primary transition-colors truncate"
+                          onClick={() => startInlineEdit(d)}
+                          title="Clique para renomear"
+                        >
+                          {d.name}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground truncate">{d.number || "Sem número"}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className={`text-[10px] font-medium ${sc.badgeClass}`}>
@@ -616,8 +668,11 @@ const Devices = () => {
                   </Badge>
                 </div>
 
-                {/* Info */}
-                <div className="px-5 pb-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+                {/* Info row with uptime */}
+                <div className="px-5 pb-3 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1" title="Tempo desde criação">
+                    <Smartphone className="w-3 h-3" /> {uptime}
+                  </span>
                   {assignedProxy && (
                     <span className="flex items-center gap-1">
                       <Shield className="w-3 h-3" /> {assignedProxy.label}
@@ -631,7 +686,7 @@ const Devices = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="border-t px-5 py-3 flex items-center gap-2">
+                <div className="border-t border-border/40 px-5 py-3 flex items-center gap-2">
                   <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1" onClick={() => openEdit(d)}>
                     <Pencil className="w-3 h-3" /> Editar
                   </Button>
