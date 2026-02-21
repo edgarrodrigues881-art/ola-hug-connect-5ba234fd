@@ -3,6 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Smartphone, Send, Megaphone } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useNavigate } from "react-router-dom";
+import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
+import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { DeviceStatusList } from "@/components/dashboard/DeviceStatusList";
+import { DeliveryRateCard } from "@/components/dashboard/DeliveryRateCard";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import { ActivityTimeline, type TimelineEvent } from "@/components/dashboard/ActivityTimeline";
 
 const techStatusConfig = {
   ok: { label: "OK", className: "bg-success/15 text-success border-success/30" },
@@ -23,8 +30,6 @@ const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
   const navigate = useNavigate();
 
-  const totalSent = stats?.totalSent ?? 0;
-
   const topCards = [
     {
       label: "Chips Ativos",
@@ -37,7 +42,7 @@ const DashboardHome = () => {
     },
     {
       label: "Mensagens Enviadas",
-      value: totalSent,
+      value: stats?.totalSent ?? 0,
       icon: Send,
       gradient: "from-violet-500/20 to-violet-500/5",
       glow: "shadow-violet-500/10",
@@ -55,12 +60,21 @@ const DashboardHome = () => {
     },
   ];
 
+  // Build timeline from campaigns
+  const timelineEvents: TimelineEvent[] = (stats?.recentCampaigns || []).map((c) => ({
+    id: c.id,
+    type: "campaign" as const,
+    title: c.name,
+    description: `${statusLabels[c.status] || c.status} — ${c.sentCount} enviadas`,
+    timestamp: c.createdAt,
+  }));
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-foreground">Painel</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do seu sistema</p>
+      {/* Header + Quick Actions */}
+      <div className="animate-fade-in flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <GreetingHeader />
+        <QuickActions />
       </div>
 
       {/* Top Stats */}
@@ -68,11 +82,10 @@ const DashboardHome = () => {
         {topCards.map((s, i) => (
           <div
             key={s.label}
-            className="animate-fade-up"
+            className="animate-fade-in"
             style={{ animationDelay: `${i * 100 + 100}ms` }}
           >
-            <Card className={`relative overflow-hidden border-border/50 bg-gradient-to-br ${s.gradient} backdrop-blur-sm shadow-lg ${s.glow} hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}>
-              {/* Subtle glow border */}
+            <Card className={`relative overflow-hidden border-border/50 bg-gradient-to-br ${s.gradient} backdrop-blur-sm shadow-lg ${s.glow} hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer`}>
               <div className="absolute inset-0 rounded-xl border border-white/[0.05]" />
               <CardContent className="p-5 relative">
                 <div className="flex items-center gap-4">
@@ -81,13 +94,13 @@ const DashboardHome = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground/80 tracking-wide uppercase">{s.label}</p>
-                    <p className="text-2xl font-bold text-foreground mt-0.5">
+                    <div className="text-2xl font-bold text-foreground mt-0.5">
                       {isLoading ? (
                         <span className="inline-block w-8 h-6 bg-muted/50 rounded animate-pulse" />
                       ) : (
-                        s.value
+                        <AnimatedCounter value={s.value} />
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -96,8 +109,27 @@ const DashboardHome = () => {
         ))}
       </div>
 
+      {/* Chart + Delivery Rate */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "400ms" }}>
+        <div className="lg:col-span-2">
+          <ActivityChart data={stats?.activityData || []} />
+        </div>
+        <DeliveryRateCard
+          rate={stats?.deliveryRate ?? 100}
+          totalSent={stats?.totalSent ?? 0}
+          totalDelivered={stats?.totalDelivered ?? 0}
+          totalFailed={stats?.totalFailed ?? 0}
+        />
+      </div>
+
+      {/* Devices + Timeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: "500ms" }}>
+        <DeviceStatusList devices={stats?.devices || []} loading={isLoading} />
+        <ActivityTimeline events={timelineEvents} />
+      </div>
+
       {/* Campanhas Recentes */}
-      <div className="animate-fade-up" style={{ animationDelay: "400ms" }}>
+      <div className="animate-fade-in" style={{ animationDelay: "600ms" }}>
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
