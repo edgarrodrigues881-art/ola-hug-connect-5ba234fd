@@ -6,12 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
   MessageSquare, Search, Send, ArrowLeft, Smartphone, RefreshCw,
-  Check, CheckCheck, Smile, MoreVertical, Phone, Video, Mic, Image, Paperclip, X,
-} from "lucide-react";
+  Check, CheckCheck, Smile, MoreVertical, Mic, Image as ImageIcon, Paperclip, X,
+  FileText, Camera, Film, FileAudio, Loader2,
+}from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
 interface WhapiChat {
@@ -28,11 +30,21 @@ interface WhapiMessage {
   id: string;
   from_me: boolean;
   text?: { body?: string };
+  image?: { link?: string; caption?: string };
+  video?: { link?: string; caption?: string };
+  audio?: { link?: string };
+  document?: { link?: string; filename?: string; caption?: string };
   timestamp: number;
   type: string;
   from?: string;
   chat_id?: string;
   status?: string;
+}
+
+interface MediaAttachment {
+  file: File;
+  previewUrl: string;
+  type: "image" | "video" | "audio" | "document";
 }
 
 interface DeviceInfo {
@@ -69,8 +81,12 @@ const Conversations = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [mediaAttachment, setMediaAttachment] = useState<MediaAttachment | null>(null);
+  const [mediaCaption, setMediaCaption] = useState("");
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedChatRef = useRef<WhapiChat | null>(null);
   const selectedDeviceRef = useRef("");
 
@@ -168,6 +184,78 @@ const Conversations = () => {
     } finally {
       setSending(false);
       inputRef.current?.focus();
+    }
+  };
+
+  // ─── File handling & media send ────────────────────────────
+  const detectMediaType = (file: File): MediaAttachment["type"] => {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    return "document";
+  };
+
+  const handleFileSelect = (accept: string) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = accept;
+      fileInputRef.current.click();
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo de 16 MB", variant: "destructive" });
+      return;
+    }
+    const type = detectMediaType(file);
+    const previewUrl = type === "image" || type === "video" ? URL.createObjectURL(file) : "";
+    setMediaAttachment({ file, previewUrl, type });
+    setMediaCaption("");
+    e.target.value = "";
+  };
+
+  const clearMedia = () => {
+    if (mediaAttachment?.previewUrl) URL.revokeObjectURL(mediaAttachment.previewUrl);
+    setMediaAttachment(null);
+    setMediaCaption("");
+  };
+
+  const sendMedia = async () => {
+    if (!mediaAttachment || !selectedChat || !selectedDevice) return;
+    setUploadingMedia(true);
+    try {
+      // Upload to storage then send URL
+      const fileName = `media/${Date.now()}_${mediaAttachment.file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, mediaAttachment.file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      const mediaUrl = urlData.publicUrl;
+
+      const { error } = await supabase.functions.invoke(
+        `whapi-chats?action=send_media&device_id=${selectedDevice}`,
+        {
+          method: "POST",
+          body: {
+            to: selectedChat.id,
+            media_url: mediaUrl,
+            media_type: mediaAttachment.type,
+            caption: mediaCaption || undefined,
+            filename: mediaAttachment.file.name,
+          },
+        }
+      );
+      if (error) throw error;
+      clearMedia();
+      await loadMessages(selectedChat);
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar mídia", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingMedia(false);
     }
   };
 
@@ -437,10 +525,14 @@ const Conversations = () => {
                               {group.label}
                             </span>
                           </div>
-                          {group.messages.map((msg) => (
+                          {group.messages.map((msg) => {
+                            const hasMedia = ["image", "video", "audio", "ptt", "document"].includes(msg.type) && msg.type !== "text";
+                            const mediaLink = msg.image?.link || msg.video?.link || msg.audio?.link || msg.document?.link;
+                            const caption = msg.image?.caption || msg.video?.caption || msg.document?.caption;
+                            return (
                             <div key={msg.id} className={`flex mb-[3px] ${msg.from_me ? "justify-end" : "justify-start"}`}>
                               <div
-                                className={`relative max-w-[85%] sm:max-w-[65%] pl-3 pr-[50px] py-[6px] text-[13.5px] leading-[19px] shadow-sm ${
+                                className={`relative max-w-[85%] sm:max-w-[65%] ${hasMedia && mediaLink ? "p-1" : "pl-3 pr-[50px] py-[6px]"} text-[13.5px] leading-[19px] shadow-sm ${
                                   msg.from_me
                                     ? "bg-primary/90 text-primary-foreground rounded-lg rounded-tr-none"
                                     : "bg-card text-foreground border border-border/60 rounded-lg rounded-tl-none"
@@ -455,8 +547,35 @@ const Conversations = () => {
                                   }`}
                                   style={{ width: 0, height: 0 }}
                                 />
-                                <p className="break-words whitespace-pre-wrap">{getMessageText(msg)}</p>
-                                {/* Timestamp + status — floated right */}
+
+                                {/* Media content */}
+                                {msg.type === "image" && mediaLink && (
+                                  <img src={mediaLink} alt="" className="rounded-md max-w-full max-h-[300px] object-cover mb-1 cursor-pointer" onClick={() => window.open(mediaLink, "_blank")} />
+                                )}
+                                {msg.type === "video" && mediaLink && (
+                                  <video src={mediaLink} controls className="rounded-md max-w-full max-h-[300px] mb-1" />
+                                )}
+                                {(msg.type === "audio" || msg.type === "ptt") && mediaLink && (
+                                  <audio src={mediaLink} controls className="max-w-full mb-1 min-w-[200px]" />
+                                )}
+                                {msg.type === "document" && mediaLink && (
+                                  <a href={mediaLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-background/20 mb-1 hover:bg-background/30 transition-colors">
+                                    <FileText className="w-8 h-8 shrink-0 text-muted-foreground" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-medium truncate">{msg.document?.filename || "Documento"}</p>
+                                      <p className="text-[10px] text-muted-foreground">Clique para abrir</p>
+                                    </div>
+                                  </a>
+                                )}
+
+                                {/* Text / caption */}
+                                {(msg.text?.body || caption || (!hasMedia)) && (
+                                  <p className={`break-words whitespace-pre-wrap ${hasMedia && mediaLink ? "px-2 pb-4 pt-0.5" : "pr-0"}`}>
+                                    {msg.text?.body || caption || getMessageText(msg)}
+                                  </p>
+                                )}
+
+                                {/* Timestamp + status */}
                                 <span className={`absolute bottom-[4px] right-[6px] flex items-center gap-0.5 text-[10px] ${
                                   msg.from_me ? "text-primary-foreground/60" : "text-muted-foreground"
                                 }`}>
@@ -465,7 +584,9 @@ const Conversations = () => {
                                 </span>
                               </div>
                             </div>
-                          ))}
+                          );
+                          })}
+
                         </div>
                       ))}
                       <div ref={messagesEndRef} />
@@ -485,12 +606,78 @@ const Conversations = () => {
                   </div>
                 )}
 
+                {/* Media preview bar */}
+                {mediaAttachment && (
+                  <div className="px-3 py-2 border-t border-border bg-muted/30">
+                    <div className="flex items-start gap-3 max-w-md">
+                      <div className="relative shrink-0">
+                        {mediaAttachment.type === "image" && mediaAttachment.previewUrl ? (
+                          <img src={mediaAttachment.previewUrl} alt="" className="w-20 h-20 rounded-lg object-cover" />
+                        ) : mediaAttachment.type === "video" && mediaAttachment.previewUrl ? (
+                          <video src={mediaAttachment.previewUrl} className="w-20 h-20 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
+                            {mediaAttachment.type === "audio" ? <FileAudio className="w-8 h-8 text-muted-foreground" /> : <FileText className="w-8 h-8 text-muted-foreground" />}
+                          </div>
+                        )}
+                        <button onClick={clearMedia} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <p className="text-xs text-muted-foreground truncate">{mediaAttachment.file.name}</p>
+                        <Input
+                          placeholder="Adicionar legenda..."
+                          value={mediaCaption}
+                          onChange={(e) => setMediaCaption(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendMedia(); } }}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <Button size="icon" className="shrink-0 h-9 w-9 rounded-full mt-4" onClick={sendMedia} disabled={uploadingMedia}>
+                        {uploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden file input */}
+                <input ref={fileInputRef} type="file" className="hidden" onChange={onFileChange} />
+
                 {/* Input bar — WhatsApp Web style */}
                 <div className="px-3 py-2 bg-muted/40 border-t border-border flex items-end gap-2 shrink-0">
                   <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowQuickReplies(!showQuickReplies)}>
                     <Smile className="w-5 h-5" />
                   </Button>
+
+                  {/* Attachment menu */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground">
+                        <Paperclip className="w-5 h-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" className="w-auto p-2 grid grid-cols-2 gap-1.5" align="start">
+                      <button onClick={() => handleFileSelect("image/*")} className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-muted transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-violet-500/10 flex items-center justify-center"><ImageIcon className="w-5 h-5 text-violet-500" /></div>
+                        <span className="text-[11px] text-muted-foreground">Fotos</span>
+                      </button>
+                      <button onClick={() => handleFileSelect("video/*")} className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-muted transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center"><Film className="w-5 h-5 text-rose-500" /></div>
+                        <span className="text-[11px] text-muted-foreground">Vídeos</span>
+                      </button>
+                      <button onClick={() => handleFileSelect("audio/*")} className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-muted transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center"><FileAudio className="w-5 h-5 text-orange-500" /></div>
+                        <span className="text-[11px] text-muted-foreground">Áudio</span>
+                      </button>
+                      <button onClick={() => handleFileSelect("*/*")} className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-muted transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center"><FileText className="w-5 h-5 text-blue-500" /></div>
+                        <span className="text-[11px] text-muted-foreground">Documento</span>
+                      </button>
+                    </PopoverContent>
+                  </Popover>
+
                   <div className="flex-1">
                     <textarea
                       ref={inputRef}
