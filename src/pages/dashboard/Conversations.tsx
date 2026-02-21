@@ -77,6 +77,9 @@ const Conversations = () => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [msgSearch, setMsgSearch] = useState("");
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [msgSearchIndex, setMsgSearchIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -421,6 +424,32 @@ const Conversations = () => {
     return groups;
   }, [messages]);
 
+  // ─── Message search results ───────────────────────────────
+  const msgSearchResults = useMemo(() => {
+    if (!msgSearch.trim()) return [];
+    const q = msgSearch.toLowerCase();
+    return messages.filter((m) => {
+      const text = m.text?.body || m.image?.caption || m.video?.caption || m.document?.caption || "";
+      return text.toLowerCase().includes(q);
+    });
+  }, [messages, msgSearch]);
+
+  useEffect(() => {
+    if (msgSearchResults.length > 0) {
+      setMsgSearchIndex(0);
+      const el = document.getElementById(`msg-${msgSearchResults[0].id}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [msgSearchResults]);
+
+  const navigateMsgSearch = (dir: 1 | -1) => {
+    if (msgSearchResults.length === 0) return;
+    const next = (msgSearchIndex + dir + msgSearchResults.length) % msgSearchResults.length;
+    setMsgSearchIndex(next);
+    const el = document.getElementById(`msg-${msgSearchResults[next].id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   // ─── Status checks component ──────────────────────────────
   const StatusIcon = ({ status, fromMe }: { status?: string; fromMe: boolean }) => {
     if (!fromMe) return null;
@@ -573,6 +602,9 @@ const Conversations = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setShowMsgSearch(!showMsgSearch); setMsgSearch(""); }}>
+                      <Search className="w-4 h-4" />
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><MoreVertical className="w-4 h-4" /></Button>
@@ -588,6 +620,39 @@ const Conversations = () => {
                     </DropdownMenu>
                   </div>
                 </div>
+
+                {/* Message search bar */}
+                {showMsgSearch && (
+                  <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center gap-2 shrink-0">
+                    <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <Input
+                      placeholder="Buscar na conversa..."
+                      value={msgSearch}
+                      onChange={(e) => setMsgSearch(e.target.value)}
+                      className="h-8 text-xs flex-1"
+                      autoFocus
+                    />
+                    {msgSearchResults.length > 0 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {msgSearchIndex + 1}/{msgSearchResults.length}
+                        </span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateMsgSearch(-1)}>
+                          <ArrowLeft className="w-3 h-3 rotate-90" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateMsgSearch(1)}>
+                          <ArrowLeft className="w-3 h-3 -rotate-90" />
+                        </Button>
+                      </div>
+                    )}
+                    {msgSearch && msgSearchResults.length === 0 && (
+                      <span className="text-[11px] text-muted-foreground shrink-0">Sem resultados</span>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setShowMsgSearch(false); setMsgSearch(""); }}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
 
                 {/* Messages area — WhatsApp wallpaper */}
                 <div
@@ -619,14 +684,16 @@ const Conversations = () => {
                             const hasMedia = ["image", "video", "audio", "ptt", "document"].includes(msg.type) && msg.type !== "text";
                             const mediaLink = msg.image?.link || msg.video?.link || msg.audio?.link || msg.document?.link;
                             const caption = msg.image?.caption || msg.video?.caption || msg.document?.caption;
+                            const isSearchMatch = msgSearch && msgSearchResults.some((r) => r.id === msg.id);
+                            const isCurrentMatch = msgSearch && msgSearchResults[msgSearchIndex]?.id === msg.id;
                             return (
-                            <div key={msg.id} className={`flex mb-[3px] ${msg.from_me ? "justify-end" : "justify-start"}`}>
+                            <div key={msg.id} id={`msg-${msg.id}`} className={`flex mb-[3px] ${msg.from_me ? "justify-end" : "justify-start"}`}>
                               <div
                                 className={`relative max-w-[85%] sm:max-w-[65%] ${hasMedia && mediaLink ? "p-1" : "pl-3 pr-[50px] py-[6px]"} text-[13.5px] leading-[19px] shadow-sm ${
                                   msg.from_me
                                     ? "bg-primary/90 text-primary-foreground rounded-lg rounded-tr-none"
                                     : "bg-card text-foreground border border-border/60 rounded-lg rounded-tl-none"
-                                }`}
+                                } ${isCurrentMatch ? "ring-2 ring-yellow-400 ring-offset-1" : isSearchMatch ? "ring-1 ring-yellow-400/50" : ""}`}
                               >
                                 {/* Bubble tail */}
                                 <div
