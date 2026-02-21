@@ -110,6 +110,32 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Send media (image, document, audio, video)
+    if (action === "send_media" && req.method === "POST") {
+      const body = await req.json();
+      // body: { to, media_url, media_type, caption?, filename? }
+      const mediaType = body.media_type || "image";
+      const endpoint = mediaType === "document" ? "document" : mediaType === "audio" || mediaType === "ptt" ? "audio" : mediaType === "video" ? "video" : "image";
+      
+      const payload: Record<string, unknown> = {
+        to: body.to,
+        media: body.media_url,
+      };
+      if (body.caption) payload.caption = body.caption;
+      if (body.filename) payload.filename = body.filename;
+
+      const res = await fetch(`${whapiBase}/messages/${endpoint}`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
