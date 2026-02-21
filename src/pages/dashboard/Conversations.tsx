@@ -220,8 +220,9 @@ const Conversations = () => {
     if (!mediaAttachment || !selectedChat || !selectedDevice) return;
     setUploadingMedia(true);
     try {
-      // Upload to storage then send URL
-      const fileName = `media/${Date.now()}_${mediaAttachment.file.name}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const fileName = `${user.id}/media/${Date.now()}_${mediaAttachment.file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(fileName, mediaAttachment.file, { upsert: true });
@@ -284,7 +285,9 @@ const Conversations = () => {
         setUploadingMedia(true);
         try {
           const ext = mimeType.includes("webm") ? "webm" : "mp4";
-          const fileName = `media/${Date.now()}_audio.${ext}`;
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Não autenticado");
+          const fileName = `${user.id}/media/${Date.now()}_audio.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("avatars")
             .upload(fileName, blob, { upsert: true, contentType: mimeType });
