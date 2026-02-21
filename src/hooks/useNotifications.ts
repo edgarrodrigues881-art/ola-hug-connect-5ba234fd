@@ -55,6 +55,14 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
+  // Clear all notifications
+  const clearAll = useCallback(async () => {
+    if (!user) return;
+    await supabase.from("notifications").delete().eq("user_id", user.id);
+    setNotifications([]);
+    setUnreadCount(0);
+  }, [user]);
+
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
@@ -86,5 +94,5 @@ export function useNotifications() {
     };
   }, [user]);
 
-  return { notifications, unreadCount, loading, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll };
 }
