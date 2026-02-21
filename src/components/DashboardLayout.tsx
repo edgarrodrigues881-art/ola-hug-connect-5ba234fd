@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +38,7 @@ const typeColors = {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   return (
@@ -129,6 +131,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     </DropdownMenuItem>
                   </>
                 )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-center text-xs text-primary justify-center cursor-pointer"
+                  onClick={() => navigate("/dashboard/notifications")}
+                >
+                  Ver todas as notificações
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
