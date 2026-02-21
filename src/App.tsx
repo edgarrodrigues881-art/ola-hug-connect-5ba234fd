@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,18 +10,26 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/DashboardLayout";
-import DashboardHome from "./pages/dashboard/DashboardHome";
-import Devices from "./pages/dashboard/Devices";
-import Campaigns from "./pages/dashboard/Campaigns";
-import CampaignList from "./pages/dashboard/CampaignList";
-import Contacts from "./pages/dashboard/Contacts";
-import Reports from "./pages/dashboard/Reports";
-import Templates from "./pages/dashboard/Templates";
-import Warmup from "./pages/dashboard/Warmup";
-import Proxy from "./pages/dashboard/Proxy";
-import AutoSaveNumber from "./pages/dashboard/AutoSaveNumber";
+
+// Lazy-loaded dashboard pages
+const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
+const Devices = lazy(() => import("./pages/dashboard/Devices"));
+const Campaigns = lazy(() => import("./pages/dashboard/Campaigns"));
+const CampaignList = lazy(() => import("./pages/dashboard/CampaignList"));
+const Contacts = lazy(() => import("./pages/dashboard/Contacts"));
+const Reports = lazy(() => import("./pages/dashboard/Reports"));
+const Templates = lazy(() => import("./pages/dashboard/Templates"));
+const Warmup = lazy(() => import("./pages/dashboard/Warmup"));
+const Proxy = lazy(() => import("./pages/dashboard/Proxy"));
+const AutoSaveNumber = lazy(() => import("./pages/dashboard/AutoSaveNumber"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-48">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -38,18 +47,20 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <Routes>
-                      <Route index element={<DashboardHome />} />
-                      <Route path="devices" element={<Devices />} />
-                      <Route path="campaigns" element={<Campaigns />} />
-                      <Route path="campaign-list" element={<CampaignList />} />
-                      <Route path="templates" element={<Templates />} />
-                      <Route path="contacts" element={<Contacts />} />
-                      <Route path="auto-save" element={<AutoSaveNumber />} />
-                      <Route path="warmup" element={<Warmup />} />
-                      <Route path="proxy" element={<Proxy />} />
-                      <Route path="reports" element={<Reports />} />
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route index element={<DashboardHome />} />
+                        <Route path="devices" element={<Devices />} />
+                        <Route path="campaigns" element={<Campaigns />} />
+                        <Route path="campaign-list" element={<CampaignList />} />
+                        <Route path="templates" element={<Templates />} />
+                        <Route path="contacts" element={<Contacts />} />
+                        <Route path="auto-save" element={<AutoSaveNumber />} />
+                        <Route path="warmup" element={<Warmup />} />
+                        <Route path="proxy" element={<Proxy />} />
+                        <Route path="reports" element={<Reports />} />
+                      </Routes>
+                    </Suspense>
                   </DashboardLayout>
                 </ProtectedRoute>
               }
