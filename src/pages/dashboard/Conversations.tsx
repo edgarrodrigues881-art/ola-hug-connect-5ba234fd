@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import AudioPlayer from "@/components/dashboard/AudioPlayer";
 import {
   MessageSquare, Search, Send, ArrowLeft, Smartphone, RefreshCw,
   Check, CheckCheck, Smile, MoreVertical, Mic, Image as ImageIcon, Paperclip, X,
@@ -302,7 +303,7 @@ const Conversations = () => {
             `whapi-chats?action=send_media&device_id=${device}`,
             {
               method: "POST",
-              body: { to: chat.id, media_url: urlData.publicUrl, media_type: "audio" },
+              body: { to: chat.id, media_url: urlData.publicUrl, media_type: "ptt" },
             }
           );
           await loadMessages(chat);
@@ -645,7 +646,7 @@ const Conversations = () => {
                                   <video src={mediaLink} controls className="rounded-md max-w-full max-h-[300px] mb-1" />
                                 )}
                                 {(msg.type === "audio" || msg.type === "ptt") && mediaLink && (
-                                  <audio src={mediaLink} controls className="max-w-full mb-1 min-w-[200px]" />
+                                  <AudioPlayer src={mediaLink} fromMe={msg.from_me} isPtt={msg.type === "ptt"} />
                                 )}
                                 {msg.type === "document" && mediaLink && (
                                   <a href={mediaLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-background/20 mb-1 hover:bg-background/30 transition-colors">
