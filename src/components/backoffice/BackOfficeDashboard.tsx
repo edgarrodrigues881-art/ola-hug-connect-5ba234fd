@@ -29,6 +29,7 @@ const BackOfficeDashboard = () => {
         plans={store.plans}
         addClient={store.addClient}
         deleteClient={store.deleteClient}
+        toggleClientActive={store.toggleClientActive}
         updateInstance={store.updateInstance}
       />
     </div>
