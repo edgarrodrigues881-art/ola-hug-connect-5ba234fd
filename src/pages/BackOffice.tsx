@@ -18,31 +18,54 @@ const BackOffice = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session) checkAdmin(data.session.user.id);
-      else setLoading(false);
-    });
+    let isMounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) checkAdmin(session.user.id);
-      else { setIsAdmin(false); setLoading(false); }
-    });
+    const checkAdminRole = async (userId: string) => {
+      try {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (isMounted) setIsAdmin(!!data);
+      } catch {
+        if (isMounted) setIsAdmin(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+        if (newSession?.user) {
+          setTimeout(() => checkAdminRole(newSession.user.id), 0);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setSession(s);
+        if (s?.user) {
+          await checkAdminRole(s.user.id);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
-
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
-    setLoading(false);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
