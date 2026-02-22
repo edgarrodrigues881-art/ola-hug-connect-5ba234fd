@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 
 const PositioningSection = () => (
-  <section className="py-24 border-t border-border">
+  <section className="py-24">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

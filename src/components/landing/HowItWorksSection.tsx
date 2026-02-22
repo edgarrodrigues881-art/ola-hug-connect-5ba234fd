@@ -8,7 +8,7 @@ const forWhom = [
 ];
 
 const HowItWorksSection = () => (
-  <section id="para-quem" className="py-24 bg-secondary/30 border-t border-border">
+  <section id="para-quem" className="py-24 bg-secondary/30">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

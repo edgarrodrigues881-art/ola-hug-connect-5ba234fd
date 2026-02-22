@@ -18,13 +18,6 @@ const HeroSection = () => {
 
   return (
     <section ref={sectionRef} className="relative min-h-screen flex items-center overflow-hidden">
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(220 10% 20% / 0.3) 1px, transparent 0)`,
-          backgroundSize: '40px 40px',
-        }}
-      />
 
       <motion.div
         className="container relative z-10 py-20 lg:py-28"
