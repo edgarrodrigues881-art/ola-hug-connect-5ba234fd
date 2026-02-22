@@ -83,12 +83,10 @@ const HeroSection = () => {
             <Button
               size="lg"
               variant="outline"
-              onClick={() => {
-                document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" });
-              }}
+              onClick={() => navigate("/planos")}
               className="h-14 px-12 text-base font-semibold rounded-lg border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 hover:scale-[1.03]"
             >
-              Ver funcionamento
+              Ver Planos
             </Button>
           </motion.div>
         </div>
