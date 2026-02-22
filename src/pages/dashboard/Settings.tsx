@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Shield, BarChart3, CreditCard, Clock } from "lucide-react";
 
 const Settings = () => {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "profile";
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState({ name: "", company: "", phone: "" });
@@ -34,7 +37,7 @@ const Settings = () => {
         <p className="text-sm text-muted-foreground">Perfil, plano, segurança e logs</p>
       </div>
 
-      <Tabs defaultValue="profile">
+      <Tabs defaultValue={defaultTab} key={defaultTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="profile" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           <TabsTrigger value="plan" className="gap-1.5 text-xs"><CreditCard className="w-3.5 h-3.5" /> Plano</TabsTrigger>
