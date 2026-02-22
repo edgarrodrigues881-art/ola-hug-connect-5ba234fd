@@ -28,16 +28,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Single effect: init auth + handle "Manter conectado"
   useEffect(() => {
     let isMounted = true;
+    let isClearing = false;
 
     // 1. Check "remember me" BEFORE doing anything
     const remember = localStorage.getItem("dg_remember_me");
     const sessionAlive = sessionStorage.getItem("dg_session_alive");
     const shouldClearSession = remember === "false" && !sessionAlive;
 
+    // If we need to clear, do it FIRST before setting up any listeners
+    // This prevents the listener from reacting to the signOut
+    if (shouldClearSession) {
+      isClearing = true;
+      localStorage.removeItem("dg_remember_me");
+      sessionStorage.removeItem("dg_session_alive");
+      // Clear the token synchronously to prevent Supabase client from using it
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      if (projectId) {
+        localStorage.removeItem(`sb-${projectId}-auth-token`);
+      }
+    }
+
     // 2. Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        if (!isMounted) return;
+        if (!isMounted || isClearing) return;
 
         if (event === "SIGNED_OUT") {
           setSession(null);
@@ -56,9 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initAuth = async () => {
       try {
         if (shouldClearSession) {
-          // Browser was closed with "Manter conectado" off → sign out
-          localStorage.removeItem("dg_remember_me");
+          // Sign out properly, then allow listener to work
           await supabase.auth.signOut();
+          isClearing = false;
           if (isMounted) {
             setSession(null);
             setUser(null);
@@ -76,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (err) {
         console.error("Error initializing auth:", err);
+        isClearing = false;
       } finally {
         if (isMounted) {
           setLoading(false);
