@@ -63,14 +63,13 @@ const Auth = () => {
     setShowForgot(false);
   }, [searchParams]);
 
-  // Auto-redirect if already logged in
+  // Auto-redirect if already logged in (check once on mount)
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard", { replace: true });
       }
     });
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
