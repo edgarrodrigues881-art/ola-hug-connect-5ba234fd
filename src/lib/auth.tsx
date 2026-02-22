@@ -23,19 +23,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialised, setInitialised] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Listen for ONGOING auth changes (does NOT control loading)
+    // 1. Listen for ONGOING auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         if (!isMounted) return;
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        // Only flip loading off here if initial load already done
-        if (initialised) return;
       }
     );
 
@@ -50,7 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error initializing auth:", err);
       } finally {
         if (isMounted) {
-          setInitialised(true);
           setLoading(false);
         }
       }
@@ -58,39 +54,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initAuth();
 
-    // Sign out on tab close if "Manter conectado" is off
-    const handleBeforeUnload = () => {
-      const remember = localStorage.getItem("dg_remember_me");
-      if (remember === "false") {
-        const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
-        const raw = localStorage.getItem(storageKey);
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            const token = parsed?.access_token;
-            if (token) {
-              const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/logout`;
-              navigator.sendBeacon(
-                url,
-                new Blob([JSON.stringify({})], { type: "application/json" })
-              );
-            }
-          } catch { /* ignore */ }
-        }
-        localStorage.removeItem(storageKey);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [initialised]);
+  }, []);
 
   const signOut = async () => {
+    localStorage.removeItem("dg_remember_me");
     await supabase.auth.signOut();
   };
 
