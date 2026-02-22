@@ -21,7 +21,7 @@ const PlansSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section id="planos" className="py-24 border-t border-border">
+    <section id="planos" className="py-24">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

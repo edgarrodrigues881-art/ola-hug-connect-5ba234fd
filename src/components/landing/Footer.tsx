@@ -1,7 +1,7 @@
 import logo from "@/assets/logo.png";
 
 const Footer = () => (
-  <footer className="border-t border-border py-10">
+  <footer className="py-10">
     <div className="container flex flex-col items-center gap-5">
       <div className="flex items-center gap-2.5">
         <img src={logo} alt="DG Contingência" className="w-7 h-7 rounded-lg" />
