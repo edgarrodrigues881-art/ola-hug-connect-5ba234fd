@@ -185,7 +185,7 @@ const Auth = () => {
       </div>
       {/* Back button */}
       <button
-        onClick={() => showForgot ? setShowForgot(false) : (window.history.length > 1 ? navigate(-1) : navigate("/"))}
+        onClick={() => showForgot ? setShowForgot(false) : navigate("/")}
         className="absolute top-6 left-6 flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
       >
         <ArrowLeft className="w-4 h-4" />
