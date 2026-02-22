@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Plans from "./pages/Plans";
 import NotFound from "./pages/NotFound";
+const BackOffice = lazy(() => import("./pages/BackOffice"));
 import DashboardLayout from "./components/DashboardLayout";
 
 // Lazy-loaded dashboard pages
@@ -79,6 +80,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/backoffice" element={<Suspense fallback={<PageLoader />}><BackOffice /></Suspense>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
