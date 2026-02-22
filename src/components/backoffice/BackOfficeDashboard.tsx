@@ -3,6 +3,7 @@ import StatsCards from "./StatsCards";
 import PlansSection from "./PlansSection";
 import ClientsSection from "./ClientsSection";
 import InstanciasGlobal from "./InstanciasGlobal";
+import ExpiredClients from "./ExpiredClients";
 
 const BackOfficeDashboard = () => {
   const store = useBackOfficeStore();
@@ -13,6 +14,7 @@ const BackOfficeDashboard = () => {
         totalClients={store.totalClients}
         totalConnected={store.totalConnected}
       />
+      <ExpiredClients clients={store.clients} plans={store.plans} />
       <InstanciasGlobal
         clients={store.clients}
         plans={store.plans}
