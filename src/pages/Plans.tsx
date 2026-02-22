@@ -18,7 +18,7 @@ const plans = [
   {
     name: "Start",
     instances: 10,
-    price: 197,
+    price: 149.90,
     popular: false,
     features: [
       "10 instâncias WhatsApp",
@@ -30,7 +30,7 @@ const plans = [
   {
     name: "Pro",
     instances: 30,
-    price: 497,
+    price: 349.90,
     popular: true,
     features: [
       "30 instâncias WhatsApp",
@@ -43,7 +43,7 @@ const plans = [
   {
     name: "Scale",
     instances: 50,
-    price: 797,
+    price: 549.90,
     popular: false,
     features: [
       "50 instâncias WhatsApp",
@@ -57,7 +57,7 @@ const plans = [
   {
     name: "Elite",
     instances: 100,
-    price: 1497,
+    price: 899.90,
     popular: false,
     features: [
       "100 instâncias WhatsApp",
