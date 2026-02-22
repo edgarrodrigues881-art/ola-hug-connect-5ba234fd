@@ -32,6 +32,12 @@ const Navbar = () => {
             Como funciona
           </button>
           <button
+            onClick={() => navigate("/planos")}
+            className="text-sm text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.04]"
+          >
+            Planos
+          </button>
+          <button
             onClick={() => window.open("https://wa.me/5562994192500?text=Ol%C3%A1%20DG%2C%20vim%20do%20site%20e%20preciso%20de%20suporte!", "_blank")}
             className="text-sm text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.04] flex items-center gap-1.5"
           >
