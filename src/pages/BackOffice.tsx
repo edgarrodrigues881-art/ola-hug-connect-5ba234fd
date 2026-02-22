@@ -11,6 +11,8 @@ const BackOffice = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const { toast } = useToast();
@@ -52,6 +54,22 @@ const BackOffice = () => {
     setLogging(false);
   };
 
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) { toast({ title: "Digite seu e-mail", variant: "destructive" }); return; }
+    setResetting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetting(false);
+    if (error) {
+      toast({ title: "Erro ao enviar e-mail", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+      setShowReset(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -69,30 +87,57 @@ const BackOffice = () => {
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
-        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 bg-zinc-800 p-8 rounded-2xl border border-zinc-700">
-          <div className="flex items-center gap-2 justify-center text-purple-400 mb-2">
-            <Lock size={24} />
-            <h1 className="text-xl font-bold text-zinc-100">Back-Office</h1>
-          </div>
-          <Input
-            placeholder="E-mail"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100"
-          />
-          <Input
-            type="password"
-            placeholder="Senha"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100"
-          />
-          <Button type="submit" disabled={logging} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-            {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Entrar
-          </Button>
-        </form>
+        {showReset ? (
+          <form onSubmit={handleReset} className="w-full max-w-sm space-y-4 bg-zinc-800 p-8 rounded-2xl border border-zinc-700">
+            <div className="flex items-center gap-2 justify-center text-purple-400 mb-2">
+              <Lock size={24} />
+              <h1 className="text-xl font-bold text-zinc-100">Redefinir Senha</h1>
+            </div>
+            <p className="text-sm text-zinc-400 text-center">Digite seu e-mail para receber o link de redefinição.</p>
+            <Input
+              placeholder="E-mail"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-zinc-900 border-zinc-700 text-zinc-100"
+            />
+            <Button type="submit" disabled={resetting} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+              {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Enviar Link
+            </Button>
+            <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-purple-400 hover:underline">
+              Voltar ao login
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 bg-zinc-800 p-8 rounded-2xl border border-zinc-700">
+            <div className="flex items-center gap-2 justify-center text-purple-400 mb-2">
+              <Lock size={24} />
+              <h1 className="text-xl font-bold text-zinc-100">Back-Office</h1>
+            </div>
+            <Input
+              placeholder="E-mail"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-zinc-900 border-zinc-700 text-zinc-100"
+            />
+            <Input
+              type="password"
+              placeholder="Senha"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              className="bg-zinc-900 border-zinc-700 text-zinc-100"
+            />
+            <Button type="submit" disabled={logging} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+              {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Entrar
+            </Button>
+            <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-zinc-400 hover:text-purple-400">
+              Esqueci minha senha
+            </button>
+          </form>
+        )}
       </div>
     );
   }
