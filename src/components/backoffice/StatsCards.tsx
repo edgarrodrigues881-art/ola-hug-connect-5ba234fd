@@ -1,11 +1,8 @@
-import { Users, Wifi, Zap } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Users, Wifi } from "lucide-react";
 
 interface Props {
   totalClients: number;
   totalConnected: number;
-  credits: number;
-  setCredits: (v: number) => void;
 }
 
 const Card = ({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) => (
@@ -20,21 +17,13 @@ const Card = ({ icon: Icon, label, children }: { icon: React.ElementType; label:
   </div>
 );
 
-const StatsCards = ({ totalClients, totalConnected, credits, setCredits }: Props) => (
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+const StatsCards = ({ totalClients, totalConnected }: Props) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <Card icon={Users} label="Clientes ativos">
       <p className="text-2xl font-bold">{totalClients}</p>
     </Card>
     <Card icon={Wifi} label="Instâncias conectadas">
       <p className="text-2xl font-bold">{totalConnected}</p>
-    </Card>
-    <Card icon={Zap} label="Créditos de disparo">
-      <Input
-        type="number"
-        value={credits}
-        onChange={(e) => setCredits(Number(e.target.value))}
-        className="w-32 h-9 bg-zinc-900 border-zinc-700 text-zinc-100 text-lg font-bold"
-      />
     </Card>
   </div>
 );
