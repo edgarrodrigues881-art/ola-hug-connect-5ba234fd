@@ -28,6 +28,7 @@ const Proxy = lazy(() => import("./pages/dashboard/Proxy"));
 const AutoSaveNumber = lazy(() => import("./pages/dashboard/AutoSaveNumber"));
 const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
 const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
+const AdminPanel = lazy(() => import("./pages/dashboard/AdminPanel"));
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
                         <Route path="reports" element={<Reports />} />
                         <Route path="notifications" element={<Notifications />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="admin" element={<AdminPanel />} />
                       </Routes>
                     </Suspense>
                   </DashboardLayout>
