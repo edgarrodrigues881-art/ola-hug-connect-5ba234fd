@@ -21,6 +21,16 @@ export function useAdminDashboard() {
           created_at: string;
           last_sign_in_at: string | null;
         }>;
+        devices: Array<{
+          id: string;
+          name: string;
+          number: string | null;
+          status: string;
+          user_id: string;
+          owner_name: string;
+          created_at: string;
+          profile_picture: string | null;
+        }>;
         stats: {
           total_users: number;
           total_devices: number;

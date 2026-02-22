@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       const { data: roles } = await adminClient.from("user_roles").select("*");
       const { data: devices } = await adminClient.from("devices").select("*");
       const { data: campaigns } = await adminClient.from("campaigns").select("*");
-      const { data: contacts } = await adminClient.from("contacts").select("count").select("*");
+      const { data: contacts } = await adminClient.from("contacts").select("*");
 
       const usersWithProfiles = users?.users?.map((u) => {
         const profile = profiles?.find((p) => p.id === u.id);
@@ -83,6 +83,16 @@ Deno.serve(async (req) => {
         };
       }) || [];
 
+      // Map devices with owner info
+      const devicesWithOwner = (devices || []).map((d) => {
+        const profile = profiles?.find((p) => p.id === d.user_id);
+        const ownerUser = users?.users?.find((u) => u.id === d.user_id);
+        return {
+          ...d,
+          owner_name: profile?.full_name || ownerUser?.email || "Desconhecido",
+        };
+      });
+
       const stats = {
         total_users: users?.users?.length || 0,
         total_devices: devices?.length || 0,
@@ -91,7 +101,7 @@ Deno.serve(async (req) => {
         total_contacts: contacts?.length || 0,
       };
 
-      return new Response(JSON.stringify({ users: usersWithProfiles, stats }), {
+      return new Response(JSON.stringify({ users: usersWithProfiles, devices: devicesWithOwner, stats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

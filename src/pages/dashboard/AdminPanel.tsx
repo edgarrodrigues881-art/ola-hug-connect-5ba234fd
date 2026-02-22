@@ -45,6 +45,7 @@ const AdminPanel = () => {
 
   const stats = data?.stats;
   const users = data?.users || [];
+  const devices = data?.devices || [];
 
   const statCards = [
     { label: "Usuários", value: stats?.total_users || 0, icon: Users, color: "text-blue-500" },
@@ -207,14 +208,29 @@ const AdminPanel = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.flatMap((u) =>
-                        Array.from({ length: u.devices_count }, (_, i) => (
-                          <TableRow key={`${u.id}-${i}`}>
-                            <TableCell className="text-sm">—</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px]">—</Badge></TableCell>
-                            <TableCell className="text-xs">{u.full_name || u.email}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                      {devices.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                            Nenhum dispositivo cadastrado
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        devices.map((d) => (
+                          <TableRow key={d.id}>
+                            <TableCell className="text-sm font-medium">{d.name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{d.number || "—"}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={d.status === "Connected" ? "default" : "outline"}
+                                className="text-[10px]"
+                              >
+                                {d.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{d.owner_name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {format(new Date(d.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
