@@ -24,24 +24,6 @@ const Landing = () => (
           `,
         }}
       />
-      <div
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage: `
-            radial-gradient(1px 1px at 10% 15%, hsl(0 0% 100% / 0.4) 50%, transparent 50%),
-            radial-gradient(1px 1px at 30% 45%, hsl(0 0% 100% / 0.3) 50%, transparent 50%),
-            radial-gradient(1.5px 1.5px at 55% 10%, hsl(0 0% 100% / 0.5) 50%, transparent 50%),
-            radial-gradient(1px 1px at 70% 65%, hsl(0 0% 100% / 0.35) 50%, transparent 50%),
-            radial-gradient(1px 1px at 85% 30%, hsl(0 0% 100% / 0.25) 50%, transparent 50%),
-            radial-gradient(1.5px 1.5px at 40% 80%, hsl(0 0% 100% / 0.4) 50%, transparent 50%),
-            radial-gradient(1px 1px at 95% 55%, hsl(0 0% 100% / 0.3) 50%, transparent 50%),
-            radial-gradient(1px 1px at 15% 70%, hsl(0 0% 100% / 0.2) 50%, transparent 50%),
-            radial-gradient(1.5px 1.5px at 60% 90%, hsl(0 0% 100% / 0.35) 50%, transparent 50%),
-            radial-gradient(1px 1px at 25% 25%, hsl(0 0% 100% / 0.3) 50%, transparent 50%)
-          `,
-          backgroundSize: '100% 100%',
-        }}
-      />
     </div>
 
     <div className="relative z-10">
