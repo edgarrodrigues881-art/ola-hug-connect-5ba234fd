@@ -9,7 +9,6 @@ import GalacticParticles from "@/components/landing/GalacticParticles";
 
 const Landing = () => (
   <div className="landing-dark min-h-screen bg-background scroll-smooth relative overflow-hidden">
-    {/* Galactic gradient background */}
     <div className="fixed inset-0 pointer-events-none z-0">
       <GalacticParticles />
       <div
@@ -25,7 +24,6 @@ const Landing = () => (
           `,
         }}
       />
-      {/* Starfield subtle dots */}
       <div
         className="absolute inset-0 opacity-60"
         style={{
