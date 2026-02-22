@@ -193,7 +193,7 @@ const Auth = () => {
           Voltar
         </button>
         <button
-          onClick={() => navigate("/#planos")}
+          onClick={() => navigate("/planos")}
           className="flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 border border-[#1E2330] rounded-lg px-3 py-1.5"
         >
           Ver planos
