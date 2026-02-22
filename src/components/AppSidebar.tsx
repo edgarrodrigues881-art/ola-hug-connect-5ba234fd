@@ -15,6 +15,7 @@ import {
   Settings,
   User,
   ChevronUp,
+  Crown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,6 +162,10 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=security")} className="gap-2 cursor-pointer">
               <Settings className="w-4 h-4" />
               Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/admin")} className="gap-2 cursor-pointer">
+              <Crown className="w-4 h-4" />
+              Painel Admin
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
