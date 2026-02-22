@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, ChevronDown, ChevronRight, Wifi, WifiOff, QrCode, Send, Flame } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, Wifi, WifiOff, QrCode, Send, Flame, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -19,12 +19,13 @@ interface Props {
   plans: Plan[];
   addClient: (c: { name: string; email: string; whatsapp: string; planId: string }) => void;
   deleteClient: (id: string) => void;
+  toggleClientActive: (id: string) => void;
   updateInstance: (clientId: string, instanceId: string, data: Partial<Instance>) => void;
 }
 
 const EVOLUTION_BASE = "http://localhost:3000";
 
-const ClientsSection = ({ clients, plans, addClient, deleteClient, updateInstance }: Props) => {
+const ClientsSection = ({ clients, plans, addClient, deleteClient, toggleClientActive, updateInstance }: Props) => {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", whatsapp: "", planId: "" });
@@ -172,7 +173,7 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, updateInstanc
 
       <div className="space-y-2">
         {clients.map((c) => (
-          <div key={c.id} className="border border-zinc-700 rounded-xl overflow-hidden">
+          <div key={c.id} className={`border border-zinc-700 rounded-xl overflow-hidden ${c.active === false ? 'opacity-50' : ''}`}>
             {/* Client row */}
             <div
               className="flex items-center gap-3 px-4 py-3 bg-zinc-800 cursor-pointer hover:bg-zinc-800/80"
@@ -180,10 +181,14 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, updateInstanc
             >
               {expanded === c.id ? <ChevronDown size={16} className="text-zinc-400" /> : <ChevronRight size={16} className="text-zinc-400" />}
               <span className="font-medium flex-1">{c.name}</span>
+              {c.active === false && <Badge className="bg-red-600/80 text-white text-[10px] px-2">Inativo</Badge>}
               <span className="text-xs text-zinc-400">{c.email}</span>
               <span className="text-xs text-zinc-500 ml-2">{planName(c.planId)}</span>
               <span className="text-xs text-zinc-500 ml-2">Exp: {new Date(c.expiresAt).toLocaleDateString("pt-BR")}</span>
-              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteClient(c.id); }} className="text-red-400 hover:text-red-300 h-7 w-7 ml-2">
+              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); toggleClientActive(c.id); }} className={`h-7 w-7 ml-1 ${c.active === false ? 'text-green-400 hover:text-green-300' : 'text-yellow-400 hover:text-yellow-300'}`} title={c.active === false ? 'Ativar' : 'Desativar'}>
+                {c.active === false ? <UserCheck size={14} /> : <UserX size={14} />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteClient(c.id); }} className="text-red-400 hover:text-red-300 h-7 w-7 ml-1">
                 <Trash2 size={14} />
               </Button>
             </div>

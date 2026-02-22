@@ -25,6 +25,7 @@ export interface Client {
   planId: string;
   createdAt: string;
   expiresAt: string;
+  active: boolean;
   instances: Instance[];
 }
 
@@ -103,6 +104,7 @@ export function useBackOfficeStore() {
       {
         id: clientId,
         ...client,
+        active: true,
         createdAt: now.toISOString(),
         expiresAt: expires.toISOString(),
         instances,
@@ -112,6 +114,10 @@ export function useBackOfficeStore() {
 
   const deleteClient = useCallback((id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id));
+  }, [setClients]);
+
+  const toggleClientActive = useCallback((id: string) => {
+    setClients((prev) => prev.map((c) => c.id === id ? { ...c, active: !c.active } : c));
   }, [setClients]);
 
   const updateInstance = useCallback((clientId: string, instanceId: string, data: Partial<Instance>) => {
@@ -124,12 +130,12 @@ export function useBackOfficeStore() {
     );
   }, [setClients]);
 
-  const totalClients = clients.length;
-  const totalConnected = clients.reduce((sum, c) => sum + c.instances.filter((i) => i.status === "CONECTADA").length, 0);
+  const totalClients = clients.filter((c) => c.active !== false).length;
+  const totalConnected = clients.filter((c) => c.active !== false).reduce((sum, c) => sum + c.instances.filter((i) => i.status === "CONECTADA").length, 0);
 
   return {
     plans, addPlan, updatePlan, deletePlan,
-    clients, addClient, deleteClient, updateInstance,
+    clients, addClient, deleteClient, toggleClientActive, updateInstance,
     credits, setCredits,
     totalClients, totalConnected,
   };
