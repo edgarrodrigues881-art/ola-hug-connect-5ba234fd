@@ -12,8 +12,6 @@ const BackOfficeDashboard = () => {
       <StatsCards
         totalClients={store.totalClients}
         totalConnected={store.totalConnected}
-        credits={store.credits}
-        setCredits={store.setCredits}
       />
       <InstanciasGlobal
         clients={store.clients}
