@@ -28,87 +28,90 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Single effect: init auth + handle "Manter conectado"
   useEffect(() => {
     let isMounted = true;
-    let isClearing = false;
 
-    // 1. Check "remember me" BEFORE doing anything
-    const remember = localStorage.getItem("dg_remember_me");
-    const sessionAlive = sessionStorage.getItem("dg_session_alive");
-    const shouldClearSession = remember === "false" && !sessionAlive;
+    const initAuth = async () => {
+      // 1. Check "remember me" BEFORE doing anything
+      const remember = localStorage.getItem("dg_remember_me");
+      const sessionAlive = sessionStorage.getItem("dg_session_alive");
+      const shouldClearSession = remember === "false" && !sessionAlive;
 
-    // If we need to clear, do it FIRST before setting up any listeners
-    // This prevents the listener from reacting to the signOut
-    if (shouldClearSession) {
-      isClearing = true;
-      localStorage.removeItem("dg_remember_me");
-      sessionStorage.removeItem("dg_session_alive");
-      // Clear the token synchronously to prevent Supabase client from using it
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      if (projectId) {
-        localStorage.removeItem(`sb-${projectId}-auth-token`);
-      }
-    }
-
-    // 2. Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        if (!isMounted || isClearing) return;
-
-        if (event === "SIGNED_OUT") {
+      if (shouldClearSession) {
+        // Clear EVERYTHING before Supabase client can use the token
+        localStorage.removeItem("dg_remember_me");
+        sessionStorage.removeItem("dg_session_alive");
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        if (projectId) {
+          localStorage.removeItem(`sb-${projectId}-auth-token`);
+        }
+        // Sign out to clear Supabase client internal state
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // Ignore errors during cleanup signout
+        }
+        if (isMounted) {
           setSession(null);
           setUser(null);
-          return;
+          setLoading(false);
         }
-
-        if (newSession) {
-          setSession(newSession);
-          setUser(newSession.user ?? null);
-        }
+        return null; // No need to set up listener
       }
-    );
 
-    // 3. Init auth
-    const initAuth = async () => {
+      // 2. Normal flow: get session first
       try {
-        if (shouldClearSession) {
-          // Sign out properly, then allow listener to work
-          await supabase.auth.signOut();
-          isClearing = false;
-          if (isMounted) {
-            setSession(null);
-            setUser(null);
-          }
-        } else {
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (!isMounted) return;
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!isMounted) return null;
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-          // Set sessionStorage flag if remember is false (tab still open)
-          if (remember === "false") {
-            sessionStorage.setItem("dg_session_alive", "true");
-          }
+        if (remember === "false") {
+          sessionStorage.setItem("dg_session_alive", "true");
         }
       } catch (err) {
         console.error("Error initializing auth:", err);
-        isClearing = false;
       } finally {
         if (isMounted) {
           setLoading(false);
         }
       }
+
+      // 3. Set up listener AFTER initial load (for ongoing changes only)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, newSession) => {
+          if (!isMounted) return;
+
+          if (event === "SIGNED_OUT") {
+            setSession(null);
+            setUser(null);
+            return;
+          }
+
+          if (newSession) {
+            setSession(newSession);
+            setUser(newSession.user ?? null);
+          }
+        }
+      );
+
+      return subscription;
     };
 
-    initAuth();
+    let subscription: ReturnType<typeof supabase.auth.onAuthStateChange>["data"]["subscription"] | null = null;
+
+    initAuth().then((sub) => {
+      subscription = sub;
+    });
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     isSigningOut.current = true;
     localStorage.removeItem("dg_remember_me");
+    sessionStorage.removeItem("dg_session_alive");
     setSession(null);
     setUser(null);
     await supabase.auth.signOut();
