@@ -12,12 +12,22 @@ import {
   LogOut,
   MessageCircle,
   UserCheck,
+  Settings,
+  User,
+  ChevronUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import logo from "@/assets/logo.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -121,29 +131,44 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* User profile + Logout */}
-      <div className="mt-auto border-t border-sidebar-border p-2 space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={fullName} className="w-8 h-8 rounded-full shrink-0 object-cover" />
-          ) : (
-            <div className="w-8 h-8 rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
-              <span className="text-xs font-semibold text-primary">{initials}</span>
-            </div>
-          )}
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{fullName}</p>
-            </div>
-          )}
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-colors"
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && <span className="text-sm">Sair</span>}
-        </button>
+      {/* User profile dropdown */}
+      <div className="mt-auto border-t border-sidebar-border p-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-sidebar-accent/60 transition-colors">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={fullName} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
+                  <span className="text-xs font-semibold text-primary">{initials}</span>
+                </div>
+              )}
+              {!collapsed && (
+                <>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">{fullName}</p>
+                  </div>
+                  <ChevronUp className="w-4 h-4 text-sidebar-foreground/50 shrink-0" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
+              <User className="w-4 h-4" />
+              Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
+              <Settings className="w-4 h-4" />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+              <LogOut className="w-4 h-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </Sidebar>
   );
