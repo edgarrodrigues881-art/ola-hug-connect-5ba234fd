@@ -103,6 +103,11 @@ const Auth = () => {
         });
         if (error) throw error;
         localStorage.setItem("dg_remember_me", rememberMe ? "true" : "false");
+        if (!rememberMe) {
+          sessionStorage.setItem("dg_session_alive", "true");
+        } else {
+          sessionStorage.removeItem("dg_session_alive");
+        }
         navigate("/dashboard");
       } else {
         const { error } = await supabase.auth.signUp({

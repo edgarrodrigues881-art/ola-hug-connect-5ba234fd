@@ -25,21 +25,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const isSigningOut = useRef(false);
 
-  // Handle "Manter conectado" — clear session when browser closes if unchecked
+  // Handle "Manter conectado" — if user chose not to stay logged in,
+  // we use sessionStorage as a browser-close detector.
+  // sessionStorage is cleared automatically when the browser/tab closes.
+  // On mount: if "dg_remember_me" is "false" AND the sessionStorage flag is missing,
+  // it means the browser was closed → clear the Supabase session.
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      const remember = localStorage.getItem("dg_remember_me");
-      if (remember === "false") {
-        // Clear Supabase session from localStorage so user must login again
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        if (projectId) {
-          localStorage.removeItem(`sb-${projectId}-auth-token`);
-        }
-      }
-    };
+    const remember = localStorage.getItem("dg_remember_me");
+    const sessionAlive = sessionStorage.getItem("dg_session_alive");
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    if (remember === "false" && !sessionAlive) {
+      // Browser was closed since last login — clear auth
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      if (projectId) {
+        localStorage.removeItem(`sb-${projectId}-auth-token`);
+      }
+      localStorage.removeItem("dg_remember_me");
+    }
+
+    // Always set the flag so we know the tab is still open
+    if (remember === "false") {
+      sessionStorage.setItem("dg_session_alive", "true");
+    }
   }, []);
 
   useEffect(() => {
