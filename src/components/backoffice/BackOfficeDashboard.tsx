@@ -2,6 +2,7 @@ import { useBackOfficeStore } from "@/hooks/useBackOfficeStore";
 import StatsCards from "./StatsCards";
 import PlansSection from "./PlansSection";
 import ClientsSection from "./ClientsSection";
+import InstanciasGlobal from "./InstanciasGlobal";
 
 const BackOfficeDashboard = () => {
   const store = useBackOfficeStore();
@@ -13,6 +14,11 @@ const BackOfficeDashboard = () => {
         totalConnected={store.totalConnected}
         credits={store.credits}
         setCredits={store.setCredits}
+      />
+      <InstanciasGlobal
+        clients={store.clients}
+        plans={store.plans}
+        updateInstance={store.updateInstance}
       />
       <PlansSection
         plans={store.plans}
