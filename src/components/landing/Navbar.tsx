@@ -7,7 +7,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
       <div className="container flex items-center justify-between h-16">
         <div className="flex items-center gap-2.5">
           <img src={logo} alt="DG Contingência" className="w-9 h-9 rounded-lg" />
