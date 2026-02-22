@@ -25,6 +25,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const isSigningOut = useRef(false);
 
+  // Handle "Manter conectado" — clear session when browser closes if unchecked
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const remember = localStorage.getItem("dg_remember_me");
+      if (remember === "false") {
+        // Clear Supabase session from localStorage so user must login again
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        if (projectId) {
+          localStorage.removeItem(`sb-${projectId}-auth-token`);
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
