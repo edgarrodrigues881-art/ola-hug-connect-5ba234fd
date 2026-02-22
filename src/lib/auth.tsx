@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -23,16 +23,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isSigningOut = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Listen for ONGOING auth changes
+    // 1. Set up listener FIRST (before getSession) per Supabase best practices
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
         if (!isMounted) return;
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+
+        // Only clear session on explicit sign out
+        if (event === "SIGNED_OUT") {
+          setSession(null);
+          setUser(null);
+          return;
+        }
+
+        // For all other events, only update if we have a valid session
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user ?? null);
+        }
       }
     );
 
@@ -61,7 +73,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    isSigningOut.current = true;
     localStorage.removeItem("dg_remember_me");
+    setSession(null);
+    setUser(null);
     await supabase.auth.signOut();
   };
 
@@ -78,7 +93,7 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!loading && !session) {
-      navigate("/auth");
+      navigate("/auth", { replace: true });
     }
   }, [session, loading, navigate]);
 
