@@ -13,7 +13,7 @@ const BackOffice = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (user === "admin" && pass === "123456") {
+    if (user === "edgarrodrigues881@gmail.com" && pass === "Edgar0304050609.") {
       sessionStorage.setItem("bo_auth", "1");
       setLoggedIn(true);
     } else {
