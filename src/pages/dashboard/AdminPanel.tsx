@@ -14,6 +14,8 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const PRIMARY_ADMIN_EMAIL = "edgarrodrigues881@gmail.com";
+
 const AdminPanel = () => {
   const { data, isLoading, error } = useAdminDashboard();
   const setRole = useSetUserRole();
@@ -163,16 +165,20 @@ const AdminPanel = () => {
                                 : "Nunca"}
                             </TableCell>
                             <TableCell>
-                              <Button
-                                size="sm"
-                                variant={isAdmin ? "destructive" : "outline"}
-                                className="h-7 text-xs gap-1"
-                                onClick={() => handleRoleToggle(u.id, "admin", isAdmin)}
-                                disabled={setRole.isPending}
-                              >
-                                {isAdmin ? <ShieldOff className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                                {isAdmin ? "Remover Admin" : "Tornar Admin"}
-                              </Button>
+                              {u.email === PRIMARY_ADMIN_EMAIL ? (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground">Admin Principal</Badge>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant={isAdmin ? "destructive" : "outline"}
+                                  className="h-7 text-xs gap-1"
+                                  onClick={() => handleRoleToggle(u.id, "admin", isAdmin)}
+                                  disabled={setRole.isPending}
+                                >
+                                  {isAdmin ? <ShieldOff className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                                  {isAdmin ? "Remover Admin" : "Tornar Admin"}
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
