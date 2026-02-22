@@ -109,6 +109,15 @@ Deno.serve(async (req) => {
     if (action === "set-role" && req.method === "POST") {
       const { target_user_id, role, remove } = await req.json();
 
+      // Protect primary admin
+      const PRIMARY_ADMIN_ID = "86d67880-af22-4c3f-a2c4-fa324a354737";
+      if (target_user_id === PRIMARY_ADMIN_ID && remove) {
+        return new Response(JSON.stringify({ error: "Não é possível remover o admin principal" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (remove) {
         await adminClient.from("user_roles").delete().eq("user_id", target_user_id).eq("role", role);
       } else {

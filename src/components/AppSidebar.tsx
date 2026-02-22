@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Smartphone,
@@ -81,6 +82,18 @@ export function AppSidebar() {
   const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
   const avatarUrl = user?.user_metadata?.avatar_url;
   const initials = fullName.slice(0, 2).toUpperCase();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -163,10 +176,12 @@ export function AppSidebar() {
               <Settings className="w-4 h-4" />
               Configurações
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/admin")} className="gap-2 cursor-pointer">
-              <Crown className="w-4 h-4" />
-              Painel Admin
-            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => navigate("/dashboard/admin")} className="gap-2 cursor-pointer">
+                <Crown className="w-4 h-4" />
+                Painel Admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4" />
