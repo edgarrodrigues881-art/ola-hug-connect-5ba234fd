@@ -1,26 +1,31 @@
 import { motion } from "framer-motion";
-import { Timer, RefreshCw, QrCode, BarChart3 } from "lucide-react";
+import { Layers, Megaphone, SlidersHorizontal, Activity, TrendingUp } from "lucide-react";
 
 const features = [
   {
-    icon: Timer,
-    title: "Simulação avançada de envio humano",
-    description: "Configure intervalos personalizados entre mensagens para replicar padrões de envio humano e proteger seus números.",
+    icon: Layers,
+    title: "Gestão centralizada de instâncias",
+    description: "Visualize, organize e controle todas as suas instâncias WhatsApp em um único painel. Sem dispersão, sem perda de controle.",
   },
   {
-    icon: RefreshCw,
-    title: "Rotação inteligente para máxima entregabilidade",
-    description: "Alterne variações de mensagens automaticamente, reduzindo padrões detectáveis e aumentando a taxa de entrega.",
+    icon: Megaphone,
+    title: "Organização de campanhas",
+    description: "Estruture suas campanhas com clareza: defina listas, mensagens e cronogramas de forma organizada para execuções previsíveis.",
   },
   {
-    icon: QrCode,
-    title: "Vinculação segura via QR Code",
-    description: "Conecte seus números em segundos com autenticação via QR Code. Processo simples, rápido e seguro.",
+    icon: SlidersHorizontal,
+    title: "Configuração personalizada de envio",
+    description: "Ajuste intervalos, variações de mensagens e parâmetros de envio de acordo com a sua estratégia operacional.",
   },
   {
-    icon: BarChart3,
-    title: "Painel analítico com métricas em tempo real",
-    description: "Acompanhe mensagens enviadas, entregues e lidas com dados atualizados em tempo real no dashboard.",
+    icon: Activity,
+    title: "Monitoramento operacional",
+    description: "Acompanhe o status de cada instância, campanha e envio em tempo real. Identifique gargalos antes que se tornem problemas.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Estrutura escalável",
+    description: "De 10 a 100 instâncias, a plataforma acompanha o crescimento da sua operação sem perder performance ou organização.",
   },
 ];
 
@@ -35,7 +40,7 @@ const item = {
 };
 
 const FeaturesSection = () => (
-  <section id="diferenciais" className="py-24">
+  <section id="recursos" className="py-24">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -45,10 +50,10 @@ const FeaturesSection = () => (
         className="text-center mb-16"
       >
         <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
-          Diferenciais
+          Recursos
         </span>
         <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-          Infraestrutura para operações profissionais
+          Ferramentas para uma operação estruturada
         </h2>
       </motion.div>
 
@@ -57,7 +62,7 @@ const FeaturesSection = () => (
         initial="hidden"
         whileInView="show"
         viewport={{ once: true }}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
       >
         {features.map((feature, i) => (
           <motion.div

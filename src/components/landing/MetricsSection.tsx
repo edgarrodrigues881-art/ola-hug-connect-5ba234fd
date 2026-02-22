@@ -1,60 +1,27 @@
 import { motion } from "framer-motion";
-import { Users, Activity, Shield, Signal } from "lucide-react";
 
-const metrics = [
-  {
-    icon: Users,
-    value: "+3.000",
-    label: "Números conectados",
-  },
-  {
-    icon: Activity,
-    value: "Real-time",
-    label: "Monitoramento em tempo real",
-  },
-  {
-    icon: Shield,
-    value: "Ativa",
-    label: "Proteção anti-bloqueio",
-  },
-  {
-    icon: Signal,
-    value: "99.2%",
-    label: "Controle de entregabilidade",
-  },
-];
-
-const MetricsSection = () => (
-  <section className="py-20 border-t border-border">
+const PositioningSection = () => (
+  <section className="py-24 border-t border-border">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-6"
+        className="max-w-3xl mx-auto text-center"
       >
-        {metrics.map((metric, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: i * 0.1 }}
-            className="bg-secondary rounded-xl p-6 border border-border hover:border-primary/20 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5"
-          >
-            <metric.icon className="w-5 h-5 text-primary mb-4" />
-            <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-              {metric.value}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {metric.label}
-            </p>
-          </motion.div>
-        ))}
+        <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
+          Posicionamento
+        </span>
+        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+          Construído para quem leva operação a sério
+        </h2>
+        <p className="text-lg text-muted-foreground leading-relaxed">
+          A plataforma foi desenvolvida para operadores que precisam de organização, estrutura e previsibilidade no gerenciamento de múltiplos números. Não vendemos promessas irreais. Entregamos ferramentas para estruturar sua estratégia com controle.
+        </p>
       </motion.div>
     </div>
   </section>
 );
 
-export default MetricsSection;
+export default PositioningSection;
