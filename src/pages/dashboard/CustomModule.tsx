@@ -4,7 +4,7 @@ import { Box } from "lucide-react";
 const CustomModule = () => {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Módulo Personalizado</h1>
+      <h1 className="text-2xl font-bold text-foreground">Roteiros de Aquecimento</h1>
 
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader>

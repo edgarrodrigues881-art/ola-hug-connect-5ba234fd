@@ -63,7 +63,7 @@ const warmupItems = [
 
 const analyticsItems = [
   { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
-  { title: "Módulo", url: "/dashboard/custom-module", icon: Box },
+  { title: "Roteiros de Aquecimento", url: "/dashboard/custom-module", icon: Box },
 ];
 
 const groups = [
