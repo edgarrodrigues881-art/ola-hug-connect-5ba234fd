@@ -9,6 +9,7 @@ import {
   Flame,
   Shield,
   Save,
+  Box,
   LogOut,
   MessageCircle,
   UserCheck,
@@ -62,6 +63,7 @@ const warmupItems = [
 
 const analyticsItems = [
   { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
+  { title: "Módulo", url: "/dashboard/custom-module", icon: Box },
 ];
 
 const groups = [
