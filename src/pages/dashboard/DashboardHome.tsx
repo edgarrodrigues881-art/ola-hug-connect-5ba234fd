@@ -10,7 +10,7 @@ import { DeviceStatusList } from "@/components/dashboard/DeviceStatusList";
 import { DeliveryRateCard } from "@/components/dashboard/DeliveryRateCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { ActivityTimeline, type TimelineEvent } from "@/components/dashboard/ActivityTimeline";
-import { GuidanceSection } from "@/components/dashboard/GuidanceSection";
+
 
 const techStatusConfig = {
   ok: { label: "OK", className: "bg-success/15 text-success border-success/30" },
@@ -175,10 +175,6 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      {/* Guia de Orientação */}
-      <div className="animate-fade-in" style={{ animationDelay: "700ms" }}>
-        <GuidanceSection />
-      </div>
     </div>
   );
 };
