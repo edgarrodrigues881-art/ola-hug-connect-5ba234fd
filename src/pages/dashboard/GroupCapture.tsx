@@ -155,9 +155,13 @@ const GroupCapture = () => {
             <Card key={g.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <UsersRound className="w-5 h-5 text-primary" />
-                  </div>
+                  {g.name?.includes("DG CONTINGÊNCIA") ? (
+                    <img src={dgLogo} alt={g.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <UsersRound className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-foreground">{g.name}</p>
