@@ -123,19 +123,11 @@ const GroupCapture = () => {
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-foreground">{sg.name}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 shrink-0"
-                        onClick={() => addMutation.mutate({ name: sg.name, link: sg.link })}
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Salvar
-                      </Button>
+                      <CopyButton text={sg.link} />
                     </div>
                     <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
                       <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <span className="text-xs text-muted-foreground break-all select-all">{sg.link}</span>
-                      <CopyButton text={sg.link} />
                     </div>
                   </div>
                 </div>
