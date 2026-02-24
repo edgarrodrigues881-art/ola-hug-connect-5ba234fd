@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       
       let deviceQuery = serviceClient
         .from("devices")
-        .select("id, name, uazapi_token, uazapi_base_url, whapi_token")
+        .select("id, name, uazapi_token, uazapi_base_url")
         .eq("user_id", userId);
 
       if (deviceId) {

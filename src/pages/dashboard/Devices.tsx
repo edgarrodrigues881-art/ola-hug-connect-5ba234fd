@@ -37,6 +37,7 @@ interface Device {
   created_at: string;
   uazapi_token: string | null;
   uazapi_base_url: string | null;
+  has_api_config: boolean;
 }
 
 const statusConfig = {
@@ -114,6 +115,7 @@ const Devices = () => {
         created_at: d.created_at,
         uazapi_token: d.uazapi_token || null,
         uazapi_base_url: d.uazapi_base_url || null,
+        has_api_config: !!(d.uazapi_token && d.uazapi_base_url),
       })) as Device[];
     },
     enabled: !!session,
@@ -372,13 +374,11 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Call logout if token exists
-    if (loggingOutDevice.whapi_token) {
-      try {
-        await callWhapi({ action: "logout", deviceId: loggingOutDevice.id });
-      } catch (err) {
-        console.error("Logout API error:", err);
-      }
+    // Call logout via API
+    try {
+      await callApi({ action: "logout", deviceId: loggingOutDevice.id });
+    } catch (err) {
+      console.error("Logout API error:", err);
     }
     if (loggingOutDevice.proxy_id) {
       await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", loggingOutDevice.proxy_id);
@@ -394,7 +394,7 @@ const Devices = () => {
   };
 
   // Helper to call evolution-connect edge function
-  const callWhapi = async (body: Record<string, any>) => {
+  const callApi = async (body: Record<string, any>) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Not authenticated");
     const response = await supabase.functions.invoke("evolution-connect", {
@@ -418,10 +418,10 @@ const Devices = () => {
     stopPolling();
     const interval = setInterval(async () => {
       try {
-        const result = await callWhapi({ action: "status", deviceId });
-        const whapiStatus = result?.status;
-        console.log("Polling status result:", whapiStatus);
-        if (whapiStatus === "authenticated") {
+        const result = await callApi({ action: "status", deviceId });
+        const apiStatus = result?.status;
+        console.log("Polling status result:", apiStatus);
+        if (apiStatus === "authenticated") {
           clearInterval(interval);
           setPollingInterval(null);
           // Mark as done FIRST, then sync in background
@@ -486,7 +486,7 @@ const Devices = () => {
       let qrFound = false;
       console.log("QR: initial connect call");
       try {
-        const connectResult = await callWhapi({
+        const connectResult = await callApi({
           action: "connect",
           deviceId: connectingDevice.id,
         });
@@ -515,7 +515,7 @@ const Devices = () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
           console.log(`QR status poll ${attempt}/10`);
           try {
-            const statusResult = await callWhapi({
+            const statusResult = await callApi({
               action: "status",
               deviceId: connectingDevice.id,
             });
@@ -718,9 +718,9 @@ const Devices = () => {
                       <Shield className="w-3 h-3" /> {assignedProxy.label}
                     </span>
                   )}
-                  {d.whapi_token && (
+                  {d.has_api_config && (
                     <span className="flex items-center gap-1">
-                      <Key className="w-3 h-3" /> ...{d.whapi_token.slice(-6)}
+                      <Key className="w-3 h-3" /> Configurado
                     </span>
                   )}
                 </div>
@@ -788,12 +788,12 @@ const Devices = () => {
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Token UaZapi</Label>
-              <Input value={editUazapiToken} onChange={e => setEditUazapiToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" />
+              <Label className="text-xs">Token da Instância</Label>
+              <Input value={editUazapiToken} onChange={e => setEditUazapiToken(e.target.value)} placeholder="Token de autenticação" className="h-9 text-sm font-mono" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">URL Base UaZapi</Label>
-              <Input value={editUazapiBaseUrl} onChange={e => setEditUazapiBaseUrl(e.target.value)} placeholder="https://sua-instancia.uazapi.com" className="h-9 text-sm font-mono" />
+              <Label className="text-xs">URL da API</Label>
+              <Input value={editUazapiBaseUrl} onChange={e => setEditUazapiBaseUrl(e.target.value)} placeholder="https://sua-api.com" className="h-9 text-sm font-mono" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
@@ -969,7 +969,7 @@ const Devices = () => {
                 className="gap-1.5 text-xs mt-1"
                 onClick={async () => {
                   try {
-                    const result = await callWhapi({ action: "status", deviceId: connectingDevice!.id });
+                    const result = await callApi({ action: "status", deviceId: connectingDevice!.id });
                     console.log("Sync button result:", JSON.stringify(result));
                     const state = result?.status;
                     if (state === "authenticated") {

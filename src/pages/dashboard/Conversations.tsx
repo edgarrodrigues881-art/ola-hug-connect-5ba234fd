@@ -17,7 +17,7 @@ import {
 }from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
-interface WhapiChat {
+interface ChatItem {
   id: string;
   name?: string;
   chat_pic?: string;
@@ -27,7 +27,7 @@ interface WhapiChat {
   unread_count?: number;
 }
 
-interface WhapiMessage {
+interface ChatMessage {
   id: string;
   from_me: boolean;
   text?: { body?: string };
@@ -64,9 +64,9 @@ const Conversations = () => {
   const { toast } = useToast();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState("");
-  const [chats, setChats] = useState<WhapiChat[]>([]);
-  const [selectedChat, setSelectedChat] = useState<WhapiChat | null>(null);
-  const [messages, setMessages] = useState<WhapiMessage[]>([]);
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ const Conversations = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const selectedChatRef = useRef<WhapiChat | null>(null);
+  const selectedChatRef = useRef<ChatItem | null>(null);
   const selectedDeviceRef = useRef("");
 
   // Keep refs in sync
@@ -123,7 +123,7 @@ const Conversations = () => {
     }
   }, [toast]);
 
-  const loadMessages = useCallback(async (chat: WhapiChat, silent = false) => {
+  const loadMessages = useCallback(async (chat: ChatItem, silent = false) => {
     if (!silent) {
       setSelectedChat(chat);
       setLoadingMessages(true);
@@ -134,7 +134,7 @@ const Conversations = () => {
         { method: "GET" }
       );
       if (error) throw error;
-      const sorted = (data?.messages || []).sort((a: WhapiMessage, b: WhapiMessage) => a.timestamp - b.timestamp);
+      const sorted = (data?.messages || []).sort((a: ChatMessage, b: ChatMessage) => a.timestamp - b.timestamp);
       setMessages(sorted);
     } catch (err: any) {
       if (!silent) toast({ title: "Erro ao carregar mensagens", description: err.message, variant: "destructive" });
@@ -377,10 +377,10 @@ const Conversations = () => {
     return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
   };
 
-  const getChatName = (chat: WhapiChat) =>
+  const getChatName = (chat: ChatItem) =>
     chat.name || chat.id?.replace("@s.whatsapp.net", "")?.replace("@g.us", "") || "Sem nome";
 
-  const getMessageText = (msg: WhapiMessage) => {
+  const getMessageText = (msg: ChatMessage) => {
     if (msg.text?.body) return msg.text.body;
     const map: Record<string, string> = {
       image: "📷 Foto", video: "🎥 Vídeo", audio: "🎤 Áudio", ptt: "🎤 Mensagem de voz",
@@ -390,7 +390,7 @@ const Conversations = () => {
     return map[msg.type] || `[${msg.type}]`;
   };
 
-  const getLastPreview = (chat: WhapiChat) => {
+  const getLastPreview = (chat: ChatItem) => {
     const prefix = chat.last_message?.from_me ? "Você: " : "";
     if (chat.last_message?.text?.body) return prefix + chat.last_message.text.body;
     if (chat.last_message?.type) {
@@ -410,7 +410,7 @@ const Conversations = () => {
 
   // ─── Grouped messages ─────────────────────────────────────
   const groupedMessages = useMemo(() => {
-    const groups: { label: string; messages: WhapiMessage[] }[] = [];
+    const groups: { label: string; messages: ChatMessage[] }[] = [];
     let currentDate = "";
     messages.forEach((msg) => {
       const dateKey = new Date(msg.timestamp * 1000).toDateString();
