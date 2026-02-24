@@ -2,18 +2,32 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { UsersRound, Plus, Trash2, Link2, Loader2 } from "lucide-react";
+import { UsersRound, Plus, Trash2, Link2, Loader2, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import dgLogo from "@/assets/dg-contingencia.jpeg";
 
 const SUGGESTED_GROUPS = [
   { name: "DG CONTINGÊNCIA #01", link: "https://chat.whatsapp.com/I1gvz1bfEhrEIM9iMFsCik?mode=gi_t" },
   { name: "DG CONTINGÊNCIA #02", link: "https://chat.whatsapp.com/BZNGH9zeFxF5UOj2pD2Wbk?mode=gi_t" },
   { name: "DG CONTINGÊNCIA #03", link: "https://chat.whatsapp.com/JnIfueI6qZsFgWuoYimS85?mode=gi_t" },
 ];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={copy}>
+      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+    </Button>
+  );
+}
 
 const GroupCapture = () => {
   const { toast } = useToast();
@@ -87,19 +101,8 @@ const GroupCapture = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
-            <Input
-              placeholder="Nome do grupo"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Link do grupo (https://chat.whatsapp.com/...)"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              className="flex-[2]"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
+            <Input placeholder="Nome do grupo" value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
+            <Input placeholder="Link do grupo (https://chat.whatsapp.com/...)" value={link} onChange={(e) => setLink(e.target.value)} className="flex-[2]" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
             <Button onClick={handleAdd} disabled={addMutation.isPending} className="gap-1.5 shrink-0">
               {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Adicionar
@@ -114,29 +117,28 @@ const GroupCapture = () => {
           <h2 className="text-sm font-semibold text-foreground">Grupos Sugeridos</h2>
           {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
             <Card key={sg.link} className="border-border/50 bg-card/80 backdrop-blur-sm border-dashed">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                    <UsersRound className="w-5 h-5 text-accent-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{sg.name}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                      <Link2 className="w-3 h-3 shrink-0" />
-                      {sg.link}
-                    </p>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <img src={dgLogo} alt={sg.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">{sg.name}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 shrink-0"
+                        onClick={() => addMutation.mutate({ name: sg.name, link: sg.link })}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Salvar
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
+                      <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground break-all select-all">{sg.link}</span>
+                      <CopyButton text={sg.link} />
+                    </div>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 shrink-0"
-                  onClick={() => {
-                    addMutation.mutate({ name: sg.name, link: sg.link });
-                  }}
-                >
-                  <Plus className="w-3.5 h-3.5" /> Salvar
-                </Button>
               </CardContent>
             </Card>
           ))}
@@ -159,28 +161,31 @@ const GroupCapture = () => {
         ) : (
           groups.map((g: any) => (
             <Card key={g.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <UsersRound className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                      <Link2 className="w-3 h-3 shrink-0" />
-                      {g.link}
-                    </p>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">{g.name}</p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => deleteMutation.mutate(g.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
+                      <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground break-all select-all">{g.link}</span>
+                      <CopyButton text={g.link} />
+                    </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                  onClick={() => deleteMutation.mutate(g.id)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </CardContent>
             </Card>
           ))
