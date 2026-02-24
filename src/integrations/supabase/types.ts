@@ -182,6 +182,8 @@ export type Database = {
           profile_picture: string | null
           proxy_id: string | null
           status: string
+          uazapi_base_url: string | null
+          uazapi_token: string | null
           updated_at: string
           user_id: string
           whapi_token: string | null
@@ -195,6 +197,8 @@ export type Database = {
           profile_picture?: string | null
           proxy_id?: string | null
           status?: string
+          uazapi_base_url?: string | null
+          uazapi_token?: string | null
           updated_at?: string
           user_id: string
           whapi_token?: string | null
@@ -208,6 +212,8 @@ export type Database = {
           profile_picture?: string | null
           proxy_id?: string | null
           status?: string
+          uazapi_base_url?: string | null
+          uazapi_token?: string | null
           updated_at?: string
           user_id?: string
           whapi_token?: string | null

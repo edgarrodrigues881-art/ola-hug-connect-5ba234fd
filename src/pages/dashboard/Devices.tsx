@@ -35,6 +35,8 @@ interface Device {
   whapi_token: string | null;
   profile_picture: string | null;
   created_at: string;
+  uazapi_token: string | null;
+  uazapi_base_url: string | null;
 }
 
 const statusConfig = {
@@ -60,6 +62,8 @@ const Devices = () => {
   const [editName, setEditName] = useState("");
   const [editNumber, setEditNumber] = useState("");
   const [editToken, setEditToken] = useState("");
+  const [editUazapiToken, setEditUazapiToken] = useState("");
+  const [editUazapiBaseUrl, setEditUazapiBaseUrl] = useState("");
 
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -108,6 +112,8 @@ const Devices = () => {
         whapi_token: d.whapi_token || null,
         profile_picture: d.profile_picture || null,
         created_at: d.created_at,
+        uazapi_token: d.uazapi_token || null,
+        uazapi_base_url: d.uazapi_base_url || null,
       })) as Device[];
     },
     enabled: !!session,
@@ -300,6 +306,8 @@ const Devices = () => {
     setEditingDevice(device);
     setEditName(device.name);
     setEditToken(device.whapi_token || "");
+    setEditUazapiToken(device.uazapi_token || "");
+    setEditUazapiBaseUrl(device.uazapi_base_url || "");
     setEditProxyValue(device.proxy_id || "none");
     setEditOpen(true);
   };
@@ -309,7 +317,13 @@ const Devices = () => {
     const proxyId = editProxyValue === "none" ? null : editProxyValue;
     updateMutation.mutate({
       id: editingDevice.id,
-      updates: { name: editName, proxy_id: proxyId, whapi_token: editToken || null },
+      updates: {
+        name: editName,
+        proxy_id: proxyId,
+        whapi_token: editToken || null,
+        uazapi_token: editUazapiToken || null,
+        uazapi_base_url: editUazapiBaseUrl || null,
+      },
     });
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
@@ -772,6 +786,14 @@ const Devices = () => {
             <div className="space-y-2">
               <Label className="text-xs">Nome da instância</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Token UaZapi</Label>
+              <Input value={editUazapiToken} onChange={e => setEditUazapiToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">URL Base UaZapi</Label>
+              <Input value={editUazapiBaseUrl} onChange={e => setEditUazapiBaseUrl(e.target.value)} placeholder="https://sua-instancia.uazapi.com" className="h-9 text-sm font-mono" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
