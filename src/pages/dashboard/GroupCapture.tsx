@@ -92,24 +92,8 @@ const GroupCapture = () => {
     <div className="space-y-6 animate-fade-up">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Grupos de Aquecimento</h1>
-        <p className="text-sm text-muted-foreground">Cadastre links de grupos do WhatsApp para aquecimento</p>
+        <p className="text-sm text-muted-foreground">Links dos grupos do WhatsApp para aquecimento</p>
       </div>
-
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Adicionar Grupo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input placeholder="Nome do grupo" value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
-            <Input placeholder="Link do grupo (https://chat.whatsapp.com/...)" value={link} onChange={(e) => setLink(e.target.value)} className="flex-[2]" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-            <Button onClick={handleAdd} disabled={addMutation.isPending} className="gap-1.5 shrink-0">
-              {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Adicionar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Grupos de Aquecimento</h2>
