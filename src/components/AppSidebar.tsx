@@ -58,7 +58,7 @@ const warmupItems = [
 ];
 
 const analyticsItems = [
-  { title: "Roteiros de Aquecimento", url: "/dashboard/custom-module", icon: Box },
+  { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
 ];
 
 const groups = [
