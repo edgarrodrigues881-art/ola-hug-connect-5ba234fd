@@ -92,11 +92,13 @@ Deno.serve(async (req) => {
 
           console.log(`Joining group inviteCode=${inviteCode} for device ${device.name}`);
 
-          // UaZapi: POST /group/joinGroup with token in header
-          const response = await fetch(`${uazapiBase}/group/joinGroup`, {
-            method: "POST",
-            headers: uazapiHeaders,
-            body: JSON.stringify({ inviteCode }),
+          // UaZapi: GET /group/joinGroup with inviteCode as query param
+          const response = await fetch(`${uazapiBase}/group/joinGroup?inviteCode=${encodeURIComponent(inviteCode)}`, {
+            method: "GET",
+            headers: {
+              "token": UAZAPI_TOKEN,
+              "Accept": "application/json",
+            },
           });
 
           const data = await response.json();
