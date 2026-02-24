@@ -38,13 +38,26 @@ Deno.serve(async (req) => {
     const { action, deviceId, number, text } = body;
     console.log("ACTION:", action, "DEVICE:", deviceId);
 
-    // Get UaZapi config
-    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
-    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+    // Get global UaZapi config as fallback
+    let UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    let UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+
+    // If deviceId provided, try to use per-device token/url
+    if (deviceId) {
+      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: device } = await serviceClient
+        .from("devices")
+        .select("uazapi_token, uazapi_base_url")
+        .eq("id", deviceId)
+        .single();
+      if (device?.uazapi_token) UAZAPI_TOKEN = device.uazapi_token;
+      if (device?.uazapi_base_url) UAZAPI_BASE_URL = device.uazapi_base_url;
+      console.log("Using per-device config:", !!device?.uazapi_token, !!device?.uazapi_base_url);
+    }
 
     if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "API de conexão não configurada. Entre em contato com o administrador." }),
+        JSON.stringify({ error: "API de conexão não configurada. Configure o token UaZapi no dispositivo." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
