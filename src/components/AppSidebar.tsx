@@ -4,15 +4,15 @@ import {
   Send,
   Megaphone,
   FileText,
-  Users,
+  
   BarChart3,
   Flame,
   Shield,
-  Save,
+  
   Box,
   LogOut,
   
-  UserCheck,
+  
   Settings,
   User,
   ChevronUp,
@@ -50,11 +50,6 @@ const mainItems = [
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
 
-const contactItems = [
-  { title: "Contatos", url: "/dashboard/contacts", icon: Users },
-  { title: "CRM", url: "/dashboard/crm", icon: UserCheck },
-  { title: "Número Auto Save", url: "/dashboard/auto-save", icon: Save },
-];
 
 const warmupItems = [
   { title: "Aquecimento Automático", url: "/dashboard/warmup", icon: Flame },
@@ -68,7 +63,6 @@ const analyticsItems = [
 
 const groups = [
   { label: "Principal", items: mainItems },
-  { label: "Contatos", items: contactItems },
   { label: "Aquecimento", items: warmupItems },
   { label: "Análise", items: analyticsItems },
 ];
