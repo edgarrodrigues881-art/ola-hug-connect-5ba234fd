@@ -431,10 +431,6 @@ const Devices = () => {
 
   // Connect
   const openConnect = async (device: Device) => {
-    if (!device.whapi_token) {
-      toast({ title: "Token não configurado", description: "Edite a instância e adicione o token UaZapi antes de conectar.", variant: "destructive" });
-      return;
-    }
     setConnectingDevice(device);
     setConnectStep("choose");
     setQrCodeBase64("");
