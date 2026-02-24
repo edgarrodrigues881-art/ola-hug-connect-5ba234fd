@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { UsersRound, Plus, Trash2, Link2, Loader2, Copy, Check, LogIn } from "lucide-react";
+import { UsersRound, Link2, Loader2, Copy, Check, LogIn, Pause, Play, Square, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dgLogo from "@/assets/dg-contingencia.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 
 const SUGGESTED_GROUPS = [
   { name: "DG CONTINGÊNCIA #01", link: "https://chat.whatsapp.com/I1gvz1bfEhrEIM9iMFsCik?mode=gi_t" },
@@ -31,6 +33,9 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+type JoinStatus = "idle" | "running" | "paused" | "cancelled" | "done";
+type JoinResult = { device: string; group: string; status: string; error?: string };
+
 const GroupCapture = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -40,6 +45,19 @@ const GroupCapture = () => {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [delaySeconds, setDelaySeconds] = useState(10);
+
+  // Join process state
+  const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
+  const [joinProgress, setJoinProgress] = useState(0);
+  const [joinTotal, setJoinTotal] = useState(0);
+  const [joinCurrent, setJoinCurrent] = useState("");
+  const [joinResults, setJoinResults] = useState<JoinResult[]>([]);
+  const [countdown, setCountdown] = useState(0);
+
+  const pausedRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["warmup-groups"],
@@ -68,71 +86,136 @@ const GroupCapture = () => {
     enabled: !!user,
   });
 
-  const addMutation = useMutation({
-    mutationFn: async (params: { name: string; link: string }) => {
-      const { error } = await supabase.from("warmup_groups" as any).insert({
-        user_id: user!.id,
-        name: params.name,
-        link: params.link,
-      } as any);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["warmup-groups"] });
-      setName("");
-      setLink("");
-      toast({ title: "Grupo adicionado", description: "Grupo salvo com sucesso." });
-    },
-    onError: () => {
-      toast({ title: "Erro", description: "Não foi possível salvar o grupo.", variant: "destructive" });
-    },
-  });
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("warmup_groups" as any).delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["warmup-groups"] });
-      toast({ title: "Grupo removido" });
-    },
-  });
-
-  const joinMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("join-group", {
-        body: { groupLinks: selectedGroups, deviceIds: selectedDevices },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      const results = data?.results || [];
-      const successCount = results.filter((r: any) => r.status === "success").length;
-      const skippedCount = results.filter((r: any) => r.status === "skipped").length;
-      const errorCount = results.filter((r: any) => r.status === "error").length;
-
-      toast({
-        title: "Processo concluído",
-        description: `${successCount} sucesso, ${skippedCount} pulados, ${errorCount} erros`,
-        variant: errorCount > 0 ? "destructive" : "default",
-      });
-      setJoinModalOpen(false);
-      setSelectedGroups([]);
-      setSelectedDevices([]);
-    },
-    onError: () => {
-      toast({ title: "Erro", description: "Falha ao entrar nos grupos.", variant: "destructive" });
-    },
-  });
-
-  const handleAdd = () => {
-    if (!name.trim() || !link.trim()) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
+  const waitForResume = useCallback(async () => {
+    while (pausedRef.current && !cancelledRef.current) {
+      await sleep(300);
     }
-    addMutation.mutate({ name: name.trim(), link: link.trim() });
+  }, []);
+
+  const startCountdown = useCallback((seconds: number): Promise<void> => {
+    return new Promise((resolve) => {
+      let remaining = seconds;
+      setCountdown(remaining);
+      countdownRef.current = setInterval(() => {
+        if (cancelledRef.current) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          setCountdown(0);
+          resolve();
+          return;
+        }
+        if (!pausedRef.current) {
+          remaining--;
+          setCountdown(remaining);
+          if (remaining <= 0) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            setCountdown(0);
+            resolve();
+          }
+        }
+      }, 1000);
+    });
+  }, []);
+
+  const startJoinProcess = useCallback(async () => {
+    pausedRef.current = false;
+    cancelledRef.current = false;
+    setJoinStatus("running");
+    setJoinResults([]);
+
+    const pairs: { groupLink: string; groupName: string; deviceId: string }[] = [];
+    const uniqueGrps = [
+      ...SUGGESTED_GROUPS.map((sg) => ({ name: sg.name, link: sg.link })),
+      ...groups.map((g: any) => ({ name: g.name, link: g.link })),
+    ].filter((g, i, arr) => arr.findIndex((x) => x.link === g.link) === i);
+
+    for (const deviceId of selectedDevices) {
+      for (const groupLink of selectedGroups) {
+        const grp = uniqueGrps.find((g) => g.link === groupLink);
+        pairs.push({ groupLink, groupName: grp?.name || groupLink, deviceId });
+      }
+    }
+
+    setJoinTotal(pairs.length);
+    setJoinProgress(0);
+
+    const results: JoinResult[] = [];
+
+    for (let i = 0; i < pairs.length; i++) {
+      if (cancelledRef.current) break;
+      await waitForResume();
+      if (cancelledRef.current) break;
+
+      const { groupLink, groupName, deviceId } = pairs[i];
+      const deviceName = devices.find((d) => d.id === deviceId)?.name || deviceId;
+      setJoinCurrent(`${deviceName} → ${groupName}`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("join-group", {
+          body: { groupLinks: [groupLink], deviceIds: [deviceId] },
+        });
+
+        const result: JoinResult = {
+          device: deviceName,
+          group: groupName,
+          status: error ? "error" : (data?.results?.[0]?.status || "success"),
+          error: error ? String(error) : data?.results?.[0]?.error,
+        };
+        results.push(result);
+        setJoinResults([...results]);
+      } catch (err) {
+        results.push({ device: deviceName, group: groupName, status: "error", error: String(err) });
+        setJoinResults([...results]);
+      }
+
+      setJoinProgress(i + 1);
+
+      // Delay before next (skip if last)
+      if (i < pairs.length - 1 && !cancelledRef.current) {
+        await startCountdown(delaySeconds);
+      }
+    }
+
+    setJoinStatus(cancelledRef.current ? "cancelled" : "done");
+    setJoinCurrent("");
+    setCountdown(0);
+
+    const successCount = results.filter((r) => r.status === "success").length;
+    const errorCount = results.filter((r) => r.status === "error").length;
+    toast({
+      title: cancelledRef.current ? "Processo cancelado" : "Processo concluído",
+      description: `${successCount} sucesso, ${errorCount} erros de ${results.length} tentativas`,
+      variant: errorCount > 0 ? "destructive" : "default",
+    });
+  }, [selectedGroups, selectedDevices, devices, groups, delaySeconds, waitForResume, startCountdown, toast]);
+
+  const handlePause = () => {
+    pausedRef.current = true;
+    setJoinStatus("paused");
+  };
+
+  const handleResume = () => {
+    pausedRef.current = false;
+    setJoinStatus("running");
+  };
+
+  const handleCancel = () => {
+    cancelledRef.current = true;
+    pausedRef.current = false;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(0);
+  };
+
+  const handleCloseModal = () => {
+    if (joinStatus === "running" || joinStatus === "paused") return;
+    setJoinModalOpen(false);
+    setJoinStatus("idle");
+    setJoinProgress(0);
+    setJoinTotal(0);
+    setJoinResults([]);
+    setSelectedGroups([]);
+    setSelectedDevices([]);
   };
 
   const toggleGroup = (link: string) => {
@@ -147,34 +230,20 @@ const GroupCapture = () => {
     );
   };
 
-  const allGroupLinks = [
-    ...SUGGESTED_GROUPS.map((sg) => sg.link),
-    ...groups.map((g: any) => g.link),
-  ];
-  const allGroupsMap = [
+  const uniqueGroups = [
     ...SUGGESTED_GROUPS.map((sg) => ({ name: sg.name, link: sg.link })),
     ...groups.map((g: any) => ({ name: g.name, link: g.link })),
-  ];
-  // Deduplicate
-  const uniqueGroups = allGroupsMap.filter(
-    (g, i, arr) => arr.findIndex((x) => x.link === g.link) === i
-  );
+  ].filter((g, i, arr) => arr.findIndex((x) => x.link === g.link) === i);
 
   const selectAllGroups = () => {
-    if (selectedGroups.length === uniqueGroups.length) {
-      setSelectedGroups([]);
-    } else {
-      setSelectedGroups(uniqueGroups.map((g) => g.link));
-    }
+    setSelectedGroups(selectedGroups.length === uniqueGroups.length ? [] : uniqueGroups.map((g) => g.link));
   };
 
   const selectAllDevices = () => {
-    if (selectedDevices.length === devices.length) {
-      setSelectedDevices([]);
-    } else {
-      setSelectedDevices(devices.map((d) => d.id));
-    }
+    setSelectedDevices(selectedDevices.length === devices.length ? [] : devices.map((d) => d.id));
   };
+
+  const isProcessing = joinStatus === "running" || joinStatus === "paused";
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -255,98 +324,169 @@ const GroupCapture = () => {
       </div>
 
       {/* Modal de Entrar nos Grupos */}
-      <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
+      <Dialog open={joinModalOpen} onOpenChange={handleCloseModal}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Entrar nos Grupos</DialogTitle>
             <DialogDescription>
-              Selecione os grupos e as instâncias que devem entrar automaticamente.
+              Selecione os grupos, instâncias e configure o delay entre entradas.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Seleção de Grupos */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Grupos</h3>
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllGroups}>
-                  {selectedGroups.length === uniqueGroups.length ? "Desmarcar todos" : "Selecionar todos"}
-                </Button>
-              </div>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
-                {uniqueGroups.map((g) => (
-                  <label
-                    key={g.link}
-                    className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedGroups.includes(g.link)}
-                      onCheckedChange={() => toggleGroup(g.link)}
-                    />
-                    <span className="text-sm truncate">{g.name}</span>
-                  </label>
-                ))}
-                {uniqueGroups.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
-                )}
-              </div>
-            </div>
+          {!isProcessing && joinStatus !== "done" && joinStatus !== "cancelled" ? (
+            <>
+              <div className="space-y-4">
+                {/* Seleção de Grupos */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">Grupos</h3>
+                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllGroups}>
+                      {selectedGroups.length === uniqueGroups.length ? "Desmarcar todos" : "Selecionar todos"}
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
+                    {uniqueGroups.map((g) => (
+                      <label key={g.link} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                        <Checkbox checked={selectedGroups.includes(g.link)} onCheckedChange={() => toggleGroup(g.link)} />
+                        <span className="text-sm truncate">{g.name}</span>
+                      </label>
+                    ))}
+                    {uniqueGroups.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
+                    )}
+                  </div>
+                </div>
 
-            {/* Seleção de Instâncias */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Instâncias (Dispositivos)</h3>
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllDevices}>
-                  {selectedDevices.length === devices.length ? "Desmarcar todos" : "Selecionar todos"}
-                </Button>
-              </div>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
-                {devices.map((d) => (
-                  <label
-                    key={d.id}
-                    className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedDevices.includes(d.id)}
-                      onCheckedChange={() => toggleDevice(d.id)}
-                    />
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm truncate">{d.name}</span>
-                      {d.number && (
-                        <span className="text-xs text-muted-foreground">{d.number}</span>
-                      )}
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
-                          d.status === "Connected" ? "bg-emerald-400" : "bg-destructive/60"
-                        }`}
-                      />
-                    </div>
-                  </label>
-                ))}
-                {devices.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-2">Nenhuma instância cadastrada</p>
-                )}
-              </div>
-            </div>
-          </div>
+                {/* Seleção de Instâncias */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">Instâncias (Dispositivos)</h3>
+                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllDevices}>
+                      {selectedDevices.length === devices.length ? "Desmarcar todos" : "Selecionar todos"}
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
+                    {devices.map((d) => (
+                      <label key={d.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                        <Checkbox checked={selectedDevices.includes(d.id)} onCheckedChange={() => toggleDevice(d.id)} />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm truncate">{d.name}</span>
+                          {d.number && <span className="text-xs text-muted-foreground">{d.number}</span>}
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${d.status === "Connected" ? "bg-emerald-400" : "bg-destructive/60"}`} />
+                        </div>
+                      </label>
+                    ))}
+                    {devices.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">Nenhuma instância cadastrada</p>
+                    )}
+                  </div>
+                </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setJoinModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => joinMutation.mutate()}
-              disabled={selectedGroups.length === 0 || selectedDevices.length === 0 || joinMutation.isPending}
-              className="gap-2"
-            >
-              {joinMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <LogIn className="w-4 h-4" />
+                {/* Delay */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Delay entre entradas</h3>
+                    <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground ml-auto">
+                      {delaySeconds}s
+                    </span>
+                  </div>
+                  <Slider
+                    value={[delaySeconds]}
+                    onValueChange={([v]) => setDelaySeconds(v)}
+                    min={3}
+                    max={120}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>3s</span>
+                    <span>120s</span>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseModal}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={startJoinProcess}
+                  disabled={selectedGroups.length === 0 || selectedDevices.length === 0}
+                  className="gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Iniciar ({selectedGroups.length}g × {selectedDevices.length}i)
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            /* Progress View */
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Progresso</span>
+                  <span className="font-mono text-foreground">{joinProgress}/{joinTotal}</span>
+                </div>
+                <Progress value={joinTotal > 0 ? (joinProgress / joinTotal) * 100 : 0} className="h-2" />
+              </div>
+
+              {joinCurrent && (
+                <div className="flex items-center gap-2 text-sm bg-muted/30 rounded-md p-2.5 border border-border/30">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+                  <span className="truncate text-foreground">{joinCurrent}</span>
+                  {countdown > 0 && (
+                    <span className="ml-auto text-xs font-mono text-muted-foreground shrink-0">
+                      ⏳ {countdown}s
+                    </span>
+                  )}
+                </div>
               )}
-              Entrar ({selectedGroups.length}g × {selectedDevices.length}i)
-            </Button>
-          </DialogFooter>
+
+              {joinStatus === "paused" && (
+                <div className="flex items-center gap-2 text-sm bg-accent/30 rounded-md p-2.5 border border-accent/50">
+                  <Pause className="w-3.5 h-3.5 text-accent-foreground" />
+                  <span className="text-accent-foreground">Pausado</span>
+                </div>
+              )}
+
+              {/* Results log */}
+              {joinResults.length > 0 && (
+                <div className="max-h-32 overflow-y-auto space-y-1 text-xs rounded-md border border-border/50 p-2">
+                  {joinResults.map((r, i) => (
+                    <div key={i} className={`flex items-center gap-1.5 ${r.status === "success" ? "text-emerald-400" : r.status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                      <span>{r.status === "success" ? "✓" : r.status === "error" ? "✗" : "⊘"}</span>
+                      <span className="truncate">{r.device} → {r.group}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Controls */}
+              {isProcessing && (
+                <div className="flex gap-2">
+                  {joinStatus === "running" ? (
+                    <Button variant="outline" onClick={handlePause} className="flex-1 gap-2">
+                      <Pause className="w-4 h-4" /> Pausar
+                    </Button>
+                  ) : (
+                    <Button variant="outline" onClick={handleResume} className="flex-1 gap-2">
+                      <Play className="w-4 h-4" /> Retomar
+                    </Button>
+                  )}
+                  <Button variant="destructive" onClick={handleCancel} className="flex-1 gap-2">
+                    <Square className="w-4 h-4" /> Cancelar
+                  </Button>
+                </div>
+              )}
+
+              {(joinStatus === "done" || joinStatus === "cancelled") && (
+                <DialogFooter>
+                  <Button onClick={handleCloseModal}>Fechar</Button>
+                </DialogFooter>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
