@@ -12,8 +12,8 @@ interface CampaignButton {
   value?: string;
 }
 
-// UaZapi request helper - supports both GET (query params) and POST (body)
-async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "GET" | "POST" = "GET") {
+// UaZapi request helper - supports POST by default, with fallback to GET when needed
+async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
   let url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = {
     "token": token,
@@ -22,7 +22,6 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
 
   let fetchOptions: RequestInit;
   if (method === "GET") {
-    // Convert payload to query params
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(payload)) {
       if (value !== undefined && value !== null) params.append(key, String(value));
@@ -39,10 +38,10 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
   const text = await res.text();
   console.log("UaZapi response:", res.status, text.substring(0, 300));
 
-  // If GET returns 405, retry with POST
-  if (res.status === 405 && method === "GET") {
-    console.log("GET returned 405, retrying with POST...");
-    return uazapiRequest(baseUrl, token, endpoint, payload, "POST");
+  // Some gateways only allow GET on specific routes
+  if (res.status === 405 && method === "POST") {
+    console.log("POST returned 405, retrying with GET...");
+    return uazapiRequest(baseUrl, token, endpoint, payload, "GET");
   }
 
   if (!res.ok) {
@@ -50,9 +49,12 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
     try {
       const data = JSON.parse(text);
       errorMsg = data?.message || data?.error || text;
-    } catch { errorMsg = text; }
+    } catch {
+      errorMsg = text;
+    }
     throw new Error(errorMsg);
   }
+
   return JSON.parse(text);
 }
 
@@ -95,20 +97,21 @@ async function sendUazapiMessage(
   }
 
   // Plain text message
-  return await uazapiRequest(baseUrl, token, "/message/send-text", {
-    phone,
-    message: body,
+  return await uazapiRequest(baseUrl, token, "/send/text", {
+    number: phone,
+    text: body,
   });
 }
 
-// Brazilian phone number normalization
+// Brazilian phone number normalization (keep 9th digit; only sanitize + optional country code)
 function normalizeBrazilianPhone(phone: string): string {
   const raw = phone.replace(/\D/g, "");
-  if (raw.length === 13 && raw.startsWith("55") && raw[4] === "9") {
-    const normalized = raw.slice(0, 4) + raw.slice(5);
-    console.log(`Normalized BR phone: ${raw} → ${normalized}`);
-    return normalized;
+
+  // If number comes without country code (10/11 digits BR), prefix 55
+  if ((raw.length === 10 || raw.length === 11) && !raw.startsWith("55")) {
+    return `55${raw}`;
   }
+
   return raw;
 }
 
