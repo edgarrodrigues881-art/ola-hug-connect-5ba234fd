@@ -207,8 +207,17 @@ const GroupCapture = () => {
     setCountdown(0);
   };
 
-  const handleCloseModal = () => {
-    if (joinStatus === "running" || joinStatus === "paused") return;
+  const handleCloseModal = (openState?: boolean | React.MouseEvent) => {
+    if (openState === true) return;
+    
+    // If process is running/paused, cancel it first
+    if (joinStatus === "running" || joinStatus === "paused") {
+      cancelledRef.current = true;
+      pausedRef.current = false;
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      setCountdown(0);
+    }
+    
     setJoinModalOpen(false);
     setJoinStatus("idle");
     setJoinProgress(0);
@@ -407,7 +416,7 @@ const GroupCapture = () => {
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={handleCloseModal}>
+                <Button variant="outline" onClick={() => handleCloseModal()}>
                   Cancelar
                 </Button>
                 <Button
@@ -479,7 +488,7 @@ const GroupCapture = () => {
 
               {(joinStatus === "done" || joinStatus === "cancelled") && (
                 <DialogFooter>
-                  <Button onClick={handleCloseModal}>Fechar</Button>
+                  <Button onClick={() => handleCloseModal()}>Fechar</Button>
                 </DialogFooter>
               )}
             </div>
