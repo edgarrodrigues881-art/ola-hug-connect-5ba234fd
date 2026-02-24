@@ -43,7 +43,7 @@ import {
 
 const mainItems = [
   { title: "Painel", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Dispositivos", url: "/dashboard/devices", icon: Smartphone },
+  { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
   
   { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
   { title: "Campanha", url: "/dashboard/campaign-list", icon: Megaphone },
