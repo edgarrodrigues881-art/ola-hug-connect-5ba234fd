@@ -231,17 +231,7 @@ const GroupCapture = () => {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-foreground">{g.name}</p>
-                        <div className="flex items-center gap-1">
-                          <CopyButton text={g.link} />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-destructive/70 hover:text-destructive"
-                            onClick={() => deleteMutation.mutate(g.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                        <CopyButton text={g.link} />
                       </div>
                       <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
