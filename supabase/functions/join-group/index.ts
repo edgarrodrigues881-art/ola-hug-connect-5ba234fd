@@ -45,28 +45,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get UaZapi config
+    // Get global UaZapi config as fallback
     const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
     const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
-
-    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
-      return new Response(
-        JSON.stringify({ error: "API não configurada. Configure UAZAPI_BASE_URL e UAZAPI_TOKEN." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
-    const uazapiHeaders = {
-      "token": UAZAPI_TOKEN,
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    };
 
     // Fetch devices
     const { data: devices, error: devError } = await supabase
       .from("devices")
-      .select("id, name")
+      .select("id, name, uazapi_token, uazapi_base_url")
       .in("id", deviceIds)
       .eq("user_id", user.id);
 
@@ -92,11 +78,24 @@ Deno.serve(async (req) => {
 
           console.log(`Joining group inviteCode=${inviteCode} for device ${device.name}`);
 
-          // UaZapi: GET /group/joinGroup with inviteCode as query param
-          const response = await fetch(`${uazapiBase}/group/joinGroup?inviteCode=${encodeURIComponent(inviteCode)}`, {
+          // Use per-device token/url, fallback to global secrets
+          const deviceToken = device.uazapi_token || UAZAPI_TOKEN;
+          const deviceBaseUrl = (device.uazapi_base_url || UAZAPI_BASE_URL || "").replace(/\/+$/, "");
+
+          if (!deviceToken || !deviceBaseUrl) {
+            results.push({
+              device: device.name,
+              group: link,
+              status: "error",
+              error: "Token ou URL UaZapi não configurado para este dispositivo",
+            });
+            continue;
+          }
+
+          const response = await fetch(`${deviceBaseUrl}/group/joinGroup?inviteCode=${encodeURIComponent(inviteCode)}`, {
             method: "GET",
             headers: {
-              "token": UAZAPI_TOKEN,
+              "token": deviceToken,
               "Accept": "application/json",
             },
           });
