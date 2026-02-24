@@ -142,8 +142,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Return QR code from status response
-      const qrCode = statusData.qrcode || statusData.qr || statusData.base64 || connectData.qrcode || connectData.qr || connectData.base64;
+      // Return QR code from status response (UaZapi nests it inside "instance")
+      const inst = statusData.instance || {};
+      const connInst = connectData.instance || {};
+      const qrCode = inst.qrcode || statusData.qrcode || statusData.qr || statusData.base64 || connInst.qrcode || connectData.qrcode || connectData.qr || connectData.base64;
+      console.log("QR code found:", !!qrCode, "length:", qrCode?.length || 0);
 
       return new Response(JSON.stringify({
         success: true,
