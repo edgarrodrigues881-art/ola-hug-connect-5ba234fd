@@ -82,15 +82,21 @@ Deno.serve(async (req) => {
     for (const device of devices) {
       for (const link of groupLinks) {
         try {
-          // Send full link to UaZapi
-          const fullLink = link.startsWith("http") ? link : `https://chat.whatsapp.com/${link}`;
-          console.log(`Joining group ${fullLink} for device ${device.name}`);
+          // Extract invite code: remove URL prefix and query params
+          const inviteCode = link
+            .replace("https://chat.whatsapp.com/", "")
+            .replace("http://chat.whatsapp.com/", "")
+            .split("?")[0]
+            .split("/")[0]
+            .trim();
 
-          // UaZapi: POST /group/join with token in header
-          const response = await fetch(`${uazapiBase}/group/join`, {
-            method: "POST",
+          console.log(`Joining group inviteCode=${inviteCode} for device ${device.name}`);
+
+          // UaZapi v2: PUT /group/joinGroup with token in header
+          const response = await fetch(`${uazapiBase}/group/joinGroup`, {
+            method: "PUT",
             headers: uazapiHeaders,
-            body: JSON.stringify({ link: fullLink }),
+            body: JSON.stringify({ inviteCode }),
           });
 
           const data = await response.json();
