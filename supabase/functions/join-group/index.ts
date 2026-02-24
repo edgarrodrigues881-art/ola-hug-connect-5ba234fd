@@ -92,9 +92,9 @@ Deno.serve(async (req) => {
 
           console.log(`Joining group inviteCode=${inviteCode} for device ${device.name}`);
 
-          // UaZapi v2: PUT /group/joinGroup with token in header
+          // UaZapi: POST /group/joinGroup with token in header
           const response = await fetch(`${uazapiBase}/group/joinGroup`, {
-            method: "PUT",
+            method: "POST",
             headers: uazapiHeaders,
             body: JSON.stringify({ inviteCode }),
           });
