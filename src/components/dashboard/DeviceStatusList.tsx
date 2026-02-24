@@ -27,7 +27,7 @@ export function DeviceStatusList({ devices, loading }: Props) {
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-emerald-400" />
-          Dispositivos
+          Conexões
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
