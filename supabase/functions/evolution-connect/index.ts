@@ -49,8 +49,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // UaZapi uses token in URL path: BASE_URL/TOKEN/endpoint
+    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
+    const apiUrl = (endpoint: string) => `${uazapiBase}/${UAZAPI_TOKEN}${endpoint}`;
+
     const uazapiHeaders = {
-      "token": UAZAPI_TOKEN,
       "Accept": "application/json",
       "Content-Type": "application/json",
     };
@@ -59,7 +62,7 @@ Deno.serve(async (req) => {
     if (action === "connect") {
       // First disconnect to ensure fresh QR
       try {
-        await fetch(`${UAZAPI_BASE_URL}/instance/disconnect`, {
+        await fetch(apiUrl("/instance/disconnect"), {
           method: "POST",
           headers: uazapiHeaders,
         });
@@ -70,7 +73,7 @@ Deno.serve(async (req) => {
       await new Promise(r => setTimeout(r, 1000));
 
       // Call connect to initiate QR generation
-      const connectRes = await fetch(`${UAZAPI_BASE_URL}/instance/connect`, {
+      const connectRes = await fetch(apiUrl("/instance/connect"), {
         method: "POST",
         headers: uazapiHeaders,
         body: JSON.stringify({}), // No phone = QR code mode
@@ -87,7 +90,7 @@ Deno.serve(async (req) => {
       }
 
       // Now check status to get QR code
-      const statusRes = await fetch(`${UAZAPI_BASE_URL}/instance/status`, {
+      const statusRes = await fetch(apiUrl("/instance/status"), {
         method: "GET",
         headers: uazapiHeaders,
       });
@@ -153,7 +156,7 @@ Deno.serve(async (req) => {
 
     // ACTION: status - Check connection state
     if (action === "status") {
-      const res = await fetch(`${UAZAPI_BASE_URL}/instance/status`, {
+      const res = await fetch(apiUrl("/instance/status"), {
         method: "GET",
         headers: uazapiHeaders,
       });
@@ -177,7 +180,7 @@ Deno.serve(async (req) => {
 
     // ACTION: logout - Disconnect the instance
     if (action === "logout") {
-      const res = await fetch(`${UAZAPI_BASE_URL}/instance/disconnect`, {
+      const res = await fetch(apiUrl("/instance/disconnect"), {
         method: "POST",
         headers: uazapiHeaders,
       });
@@ -204,7 +207,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const res = await fetch(`${UAZAPI_BASE_URL}/message/send-text`, {
+      const res = await fetch(apiUrl("/message/send-text"), {
         method: "POST",
         headers: uazapiHeaders,
         body: JSON.stringify({
