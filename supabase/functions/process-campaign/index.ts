@@ -6,163 +6,86 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const WHAPI_BASE = "https://gate.whapi.cloud";
-
 interface CampaignButton {
   type: "reply" | "url" | "phone";
   text: string;
   value?: string;
 }
 
-async function whapiRequest(token: string, endpoint: string, payload: any) {
-  console.log("Whapi request payload:", JSON.stringify(payload));
-  const res = await fetch(`${WHAPI_BASE}${endpoint}`, {
+// UaZapi request helper
+async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any) {
+  const url = `${baseUrl}${endpoint}`;
+  console.log("UaZapi request:", url, JSON.stringify(payload).substring(0, 300));
+  const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
+      "token": token,
       "Accept": "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
   const text = await res.text();
-  console.log("Whapi response:", res.status, text);
+  console.log("UaZapi response:", res.status, text.substring(0, 300));
   if (!res.ok) {
-    let errorMsg = `Whapi error ${res.status}`;
+    let errorMsg = `API error ${res.status}`;
     try {
       const data = JSON.parse(text);
-      errorMsg = data?.error?.message || data?.message || text;
+      errorMsg = data?.message || data?.error || text;
     } catch { errorMsg = text; }
     throw new Error(errorMsg);
   }
   return JSON.parse(text);
 }
 
-
-async function sendWhapiMessage(
-  token: string, 
-  to: string, 
-  body: string, 
+async function sendUazapiMessage(
+  baseUrl: string,
+  token: string,
+  to: string,
+  body: string,
   mediaUrl?: string | null,
   buttons?: CampaignButton[],
   messageType?: string
 ) {
   const phone = to.replace(/\D/g, "");
-  const hasButtons = buttons && buttons.length > 0;
 
-  // Interactive message with buttons (quick_reply, url, call)
-  if (hasButtons && (messageType === "botoes" || messageType === "botao-midia")) {
-    const replyButtons = buttons.filter(b => b.type === "reply");
-    const ctaButtons = buttons.filter(b => b.type === "url" || b.type === "phone");
-
-    // Whapi does NOT allow mixing quick_reply with url/call buttons.
-    // If we have both, send them as separate messages.
-    const results: any[] = [];
-
-    if (replyButtons.length > 0) {
-      const replyPayload: any = {
-        to: phone,
-        type: "button",
-        body: { text: body },
-        action: {
-          buttons: replyButtons.map((b, i) => ({
-            type: "quick_reply",
-            title: b.text.substring(0, 25),
-            id: `btn_${i}`,
-          })),
-        },
-      };
-      if (mediaUrl) {
-        replyPayload.header = { image: { link: mediaUrl } };
-      }
-      console.log("Sending quick_reply buttons:", JSON.stringify(replyPayload).substring(0, 500));
-      results.push(await whapiRequest(token, "/messages/interactive", replyPayload));
-    }
-
-    if (ctaButtons.length > 0) {
-      const ctaPayload: any = {
-        to: phone,
-        type: "button",
-        body: { text: replyButtons.length > 0 ? "👇 Links:" : body },
-        action: {
-          buttons: ctaButtons.map((b, i) => {
-            if (b.type === "url") {
-              return {
-                type: "url",
-                title: b.text.substring(0, 25),
-                id: `url_${i}`,
-                url: (b.value && !b.value.startsWith("http") ? "https://" + b.value : b.value) || "",
-              };
-            }
-            return {
-              type: "call",
-              title: b.text.substring(0, 25),
-              id: `call_${i}`,
-              phone_number: b.value || "",
-            };
-          }),
-        },
-      };
-      if (mediaUrl && replyButtons.length === 0) {
-        ctaPayload.header = { image: { link: mediaUrl } };
-      }
-      console.log("Sending CTA buttons:", JSON.stringify(ctaPayload).substring(0, 500));
-      results.push(await whapiRequest(token, "/messages/interactive", ctaPayload));
-    }
-
-    return results[0];
-  }
-
-  // List message
-  if (messageType === "lista" || messageType === "lista-midia") {
-    const listPayload: any = {
-      to: phone,
-      type: "list",
-      body: { text: body },
-      action: {
-        list: {
-          label: "Ver opções",
-          sections: [{
-            title: "Opções",
-            rows: (buttons || []).map((b, i) => ({
-              id: `opt_${i}`,
-              title: b.text.substring(0, 24),
-              description: b.value || "",
-            })),
-          }],
-        },
-      },
-    };
-
-    if (mediaUrl) {
-      listPayload.header = { image: { link: mediaUrl } };
-    }
-
-    console.log("Sending list:", JSON.stringify(listPayload).substring(0, 500));
-    return await whapiRequest(token, "/messages/interactive", listPayload);
-  }
-
-  // Media message (no buttons)
-  if (mediaUrl) {
-    return await whapiRequest(token, "/messages/image", {
-      to: phone,
-      media: { url: mediaUrl },
+  // Media message (image + optional caption)
+  if (mediaUrl && (messageType === "imagem" || messageType === "botao-midia" || messageType === "imagem-texto")) {
+    return await uazapiRequest(baseUrl, token, "/message/send-media", {
+      phone,
+      media: mediaUrl,
       caption: body || undefined,
+      type: "image",
     });
   }
 
+  // Buttons message
+  if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia")) {
+    // Try sending as button message
+    const buttonPayload: any = {
+      phone,
+      message: body,
+      buttons: buttons.map((b, i) => ({
+        id: `btn_${i}`,
+        text: b.text.substring(0, 25),
+      })),
+    };
+    if (mediaUrl) {
+      buttonPayload.media = mediaUrl;
+    }
+    return await uazapiRequest(baseUrl, token, "/message/send-buttons", buttonPayload);
+  }
+
   // Plain text message
-  return await whapiRequest(token, "/messages/text", { to: phone, body });
+  return await uazapiRequest(baseUrl, token, "/message/send-text", {
+    phone,
+    message: body,
+  });
 }
 
-// Brazilian phone number normalization for WhatsApp.
-// WhatsApp registers Brazilian numbers WITHOUT the extra 9th digit for many accounts.
-// The Whapi API accepts both formats but only delivers to the registered format.
-// Strategy: normalize to the format without the 9 (12 digits) for Brazilian numbers,
-// since WhatsApp internally handles the routing.
+// Brazilian phone number normalization
 function normalizeBrazilianPhone(phone: string): string {
   const raw = phone.replace(/\D/g, "");
-  // Brazilian number with 13 digits: 55 + DDD(2) + 9 + number(8) → remove the 9
   if (raw.length === 13 && raw.startsWith("55") && raw[4] === "9") {
     const normalized = raw.slice(0, 4) + raw.slice(5);
     console.log(`Normalized BR phone: ${raw} → ${normalized}`);
@@ -225,12 +148,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get device with Whapi token - use specified deviceId or first Ready device
-      let deviceQuery = supabase
+      // Get device with UaZapi token - use per-device config
+      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      
+      let deviceQuery = serviceClient
         .from("devices")
-        .select("id, whapi_token, name")
-        .eq("user_id", userId)
-        .not("whapi_token", "is", null);
+        .select("id, name, uazapi_token, uazapi_base_url, whapi_token")
+        .eq("user_id", userId);
 
       if (deviceId) {
         deviceQuery = deviceQuery.eq("id", deviceId);
@@ -241,14 +165,18 @@ Deno.serve(async (req) => {
       const { data: devices } = await deviceQuery.limit(1);
       const device = devices?.[0];
 
-      if (!device?.whapi_token) {
-        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token Whapi encontrado. Conecte um dispositivo primeiro." }), {
+      // Resolve token and base URL (per-device or global fallback)
+      const deviceToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
+      const deviceBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+      if (!device || !deviceToken || !deviceBaseUrl) {
+        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token configurado encontrado. Configure o token no dispositivo primeiro." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      console.log(`Starting campaign ${campaignId} via device ${device.name} (${device.id})`);
+      console.log(`Starting campaign ${campaignId} via device ${device.name} (${device.id}), base=${deviceBaseUrl}`);
 
       // Check warmup session for this device
       const { data: warmupSessions } = await supabase
@@ -264,7 +192,6 @@ Deno.serve(async (req) => {
       let maxDelay = 3000;
 
       if (warmup) {
-        // Calculate today's limit based on warmup progression
         warmupLimit = Math.min(
           warmup.messages_per_day + (warmup.current_day - 1) * warmup.daily_increment,
           warmup.max_messages_per_day
@@ -300,7 +227,6 @@ Deno.serve(async (req) => {
       const msgType = campaign.message_type || "texto";
 
       for (const contact of contacts || []) {
-        // Check warmup limit
         if (warmup && sentCount >= warmupLimit) {
           console.log(`Warmup limit reached (${warmupLimit}). Pausing remaining contacts.`);
           skippedByWarmup = (contacts || []).length - sentCount - failedCount;
@@ -318,14 +244,11 @@ Deno.serve(async (req) => {
         }
 
         try {
-          // Replace variables in message
           const personalizedMessage = replaceVariables(messageContent, contact);
-
-          // Normalize Brazilian phone number (remove extra 9)
           const normalizedPhone = normalizeBrazilianPhone(phone);
 
-          // Send via Whapi with buttons support
-          await sendWhapiMessage(device.whapi_token, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+          // Send via UaZapi
+          await sendUazapiMessage(deviceBaseUrl, deviceToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
 
           await supabase
             .from("campaign_contacts")
@@ -335,7 +258,6 @@ Deno.serve(async (req) => {
 
           console.log(`Sent to ${phone} (${sentCount}/${(contacts || []).length})`);
 
-          // Use warmup delay or default 1-3 seconds
           const delay = minDelay + Math.random() * (maxDelay - minDelay);
           await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -360,7 +282,6 @@ Deno.serve(async (req) => {
           .eq("id", warmup.id);
       }
 
-      // Update campaign with final counts
       const finalStatus = skippedByWarmup > 0 ? "paused" : "completed";
       await supabase
         .from("campaigns")
