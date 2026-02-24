@@ -45,10 +45,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch devices with their tokens
+    // Get UaZapi config
+    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+
+    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
+      return new Response(
+        JSON.stringify({ error: "API não configurada. Configure UAZAPI_BASE_URL e UAZAPI_TOKEN." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
+    const uazapiHeaders = {
+      "token": UAZAPI_TOKEN,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    };
+
+    // Fetch devices
     const { data: devices, error: devError } = await supabase
       .from("devices")
-      .select("id, name, whapi_token")
+      .select("id, name")
       .in("id", deviceIds)
       .eq("user_id", user.id);
 
@@ -59,49 +77,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    const uazapiBaseUrl = Deno.env.get("UAZAPI_BASE_URL");
-
     const results: Array<{ device: string; group: string; status: string; error?: string }> = [];
 
     for (const device of devices) {
       for (const link of groupLinks) {
         try {
-          if (!uazapiBaseUrl || !device.whapi_token) {
-            results.push({
-              device: device.name,
-              group: link,
-              status: "skipped",
-              error: !uazapiBaseUrl
-                ? "UAZAPI_BASE_URL não configurada"
-                : "Token do dispositivo não configurado",
-            });
-            continue;
-          }
-
           // Extract invite code from WhatsApp link
           const inviteCode = link
             .replace("https://chat.whatsapp.com/", "")
             .split("?")[0];
 
-          // UaZapi endpoint: PUT /group/joinGroup/{instance}
-          const response = await fetch(
-            `${uazapiBaseUrl}/group/joinGroup/${device.whapi_token}`,
-            {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ link: inviteCode }),
-            }
-          );
+          console.log(`Joining group ${inviteCode} for device ${device.name}`);
+
+          // UaZapi: POST /group/join with token in header
+          const response = await fetch(`${uazapiBase}/group/join`, {
+            method: "POST",
+            headers: uazapiHeaders,
+            body: JSON.stringify({ link: inviteCode }),
+          });
 
           const data = await response.json();
+          console.log(`Join result for ${device.name}:`, response.status, JSON.stringify(data).substring(0, 300));
 
           results.push({
             device: device.name,
             group: link,
             status: response.ok ? "success" : "error",
-            error: response.ok ? undefined : JSON.stringify(data),
+            error: response.ok ? undefined : (data.message || JSON.stringify(data)),
           });
         } catch (err) {
+          console.error(`Join error for ${device.name}:`, err);
           results.push({
             device: device.name,
             group: link,
