@@ -8,6 +8,7 @@ import {
   BarChart3,
   Flame,
   Shield,
+  UsersRound,
   
   Box,
   LogOut,
@@ -54,6 +55,7 @@ const mainItems = [
 const warmupItems = [
   { title: "Aquecimento Automático", url: "/dashboard/warmup", icon: Flame },
   { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+  { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
   { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
 ];
 

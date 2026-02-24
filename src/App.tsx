@@ -30,6 +30,7 @@ const AutoSaveNumber = lazy(() => import("./pages/dashboard/AutoSaveNumber"));
 const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
 const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
 const CustomModule = lazy(() => import("./pages/dashboard/CustomModule"));
+const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
 
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
                         <Route path="auto-save" element={<AutoSaveNumber />} />
                         <Route path="warmup" element={<Warmup />} />
                         <Route path="proxy" element={<Proxy />} />
+                        <Route path="groups" element={<Groups />} />
                         <Route path="reports" element={<Reports />} />
                         <Route path="custom-module" element={<CustomModule />} />
                         <Route path="notifications" element={<Notifications />} />
