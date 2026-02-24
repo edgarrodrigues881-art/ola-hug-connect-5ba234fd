@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
               "Accept": "application/json",
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ invitecode: groupLink }),
+            body: JSON.stringify({ invitecode: inviteCode }),
           });
 
           const data = await response.json();
