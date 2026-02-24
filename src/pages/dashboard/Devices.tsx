@@ -524,7 +524,7 @@ const Devices = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dispositivos ({devices.length})</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus números conectados via UaZapi</p>
+          <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {selectedDevices.length > 0 && (
