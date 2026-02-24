@@ -405,22 +405,28 @@ const Devices = () => {
     const interval = setInterval(async () => {
       try {
         const result = await callWhapi({ action: "status", deviceId });
-        // Status field: "authenticated" means connected
         const whapiStatus = result?.status;
+        console.log("Polling status result:", whapiStatus);
         if (whapiStatus === "authenticated") {
           clearInterval(interval);
           setPollingInterval(null);
-          // Sync all devices
-          const { data: { session: s } } = await supabase.auth.getSession();
-          if (s) {
-            await supabase.functions.invoke("sync-devices", {
-              headers: { Authorization: `Bearer ${s.access_token}` },
-            });
-          }
+          // Mark as done FIRST, then sync in background
+          setConnectStep("done");
           queryClient.invalidateQueries({ queryKey: ["devices"] });
           queryClient.invalidateQueries({ queryKey: ["proxies"] });
-          setConnectStep("done");
           toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
+          // Sync in background (non-blocking)
+          try {
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s) {
+              await supabase.functions.invoke("sync-devices", {
+                headers: { Authorization: `Bearer ${s.access_token}` },
+              });
+              queryClient.invalidateQueries({ queryKey: ["devices"] });
+            }
+          } catch (syncErr) {
+            console.error("Background sync error:", syncErr);
+          }
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -942,22 +948,32 @@ const Devices = () => {
                 onClick={async () => {
                   try {
                     const result = await callWhapi({ action: "status", deviceId: connectingDevice!.id });
+                    console.log("Sync button result:", JSON.stringify(result));
                     const state = result?.status;
                     if (state === "authenticated") {
-                      const { data: { session: s } } = await supabase.auth.getSession();
-                      if (s) {
-                        await supabase.functions.invoke("sync-devices", {
-                          headers: { Authorization: `Bearer ${s.access_token}` },
-                        });
-                      }
-                      queryClient.invalidateQueries({ queryKey: ["devices"] });
+                      // Mark done FIRST
+                      stopPolling();
                       setConnectStep("done");
+                      queryClient.invalidateQueries({ queryKey: ["devices"] });
                       toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
+                      // Sync in background
+                      try {
+                        const { data: { session: s } } = await supabase.auth.getSession();
+                        if (s) {
+                          await supabase.functions.invoke("sync-devices", {
+                            headers: { Authorization: `Bearer ${s.access_token}` },
+                          });
+                          queryClient.invalidateQueries({ queryKey: ["devices"] });
+                        }
+                      } catch (e) {
+                        console.error("Background sync error:", e);
+                      }
                     } else {
-                      toast({ title: "Ainda não conectado", description: "Escaneie o QR Code no celular e tente novamente.", variant: "destructive" });
+                      toast({ title: "Ainda não conectado", description: `Status atual: ${state || "desconhecido"}. Escaneie o QR Code e tente novamente.`, variant: "destructive" });
                     }
-                  } catch {
-                    toast({ title: "Erro ao verificar", variant: "destructive" });
+                  } catch (err: any) {
+                    console.error("Sync button error:", err);
+                    toast({ title: "Erro ao verificar", description: err?.message || "Tente novamente", variant: "destructive" });
                   }
                 }}
               >
