@@ -80,7 +80,7 @@ async function sendUazapiMessage(
   }
 
   // Buttons message - uses /send/menu with type "button"
-  if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia")) {
+  if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia" || messageType === "texto-botao")) {
     const payload: any = {
       number: phone,
       type: "button",
