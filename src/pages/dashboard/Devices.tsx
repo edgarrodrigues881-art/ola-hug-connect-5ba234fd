@@ -740,11 +740,6 @@ const Devices = () => {
               <Label className="text-xs text-destructive">*Nome da instância</Label>
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Token da Instância</Label>
-              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Cole o token da instância" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Cole o token da sua instância</p>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
@@ -763,11 +758,6 @@ const Devices = () => {
             <div className="space-y-2">
               <Label className="text-xs">Nome da instância</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Token da Instância</Label>
-              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Cole o token da instância" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Cole o token da sua instância</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
