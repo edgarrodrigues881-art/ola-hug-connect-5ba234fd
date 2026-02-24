@@ -12,21 +12,39 @@ interface CampaignButton {
   value?: string;
 }
 
-// UaZapi request helper
-async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any) {
-  const url = `${baseUrl}${endpoint}`;
-  console.log("UaZapi request:", url, JSON.stringify(payload).substring(0, 300));
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "token": token,
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+// UaZapi request helper - supports both GET (query params) and POST (body)
+async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "GET" | "POST" = "GET") {
+  let url = `${baseUrl}${endpoint}`;
+  const headers: Record<string, string> = {
+    "token": token,
+    "Accept": "application/json",
+  };
+
+  let fetchOptions: RequestInit;
+  if (method === "GET") {
+    // Convert payload to query params
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(payload)) {
+      if (value !== undefined && value !== null) params.append(key, String(value));
+    }
+    url += `?${params.toString()}`;
+    fetchOptions = { method: "GET", headers };
+  } else {
+    headers["Content-Type"] = "application/json";
+    fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
+  }
+
+  console.log(`UaZapi ${method} request:`, url);
+  const res = await fetch(url, fetchOptions);
   const text = await res.text();
   console.log("UaZapi response:", res.status, text.substring(0, 300));
+
+  // If GET returns 405, retry with POST
+  if (res.status === 405 && method === "GET") {
+    console.log("GET returned 405, retrying with POST...");
+    return uazapiRequest(baseUrl, token, endpoint, payload, "POST");
+  }
+
   if (!res.ok) {
     let errorMsg = `API error ${res.status}`;
     try {
