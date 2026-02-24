@@ -12,6 +12,24 @@ interface CampaignButton {
   value?: string;
 }
 
+function buildMenuChoice(button: CampaignButton, index: number): string | null {
+  const text = (button.text || "").trim();
+  if (!text) return null;
+
+  if (button.type === "url") {
+    const url = (button.value || "").trim();
+    return url ? `${text}|url:${url}` : text;
+  }
+
+  if (button.type === "phone") {
+    const phone = (button.value || "").trim();
+    return phone ? `${text}|call:${phone}` : text;
+  }
+
+  const replyId = (button.value || `btn_${index}`).trim();
+  return `${text}|${replyId}`;
+}
+
 // UaZapi request helper - supports POST by default, with fallback to GET when needed
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
   let url = `${baseUrl}${endpoint}`;
@@ -81,15 +99,28 @@ async function sendUazapiMessage(
 
   // Buttons message - uses /send/menu with type "button"
   if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia" || messageType === "texto-botao")) {
+    const choices = buttons
+      .map((b, i) => buildMenuChoice(b, i))
+      .filter((choice): choice is string => Boolean(choice));
+
+    if (choices.length === 0) {
+      return await uazapiRequest(baseUrl, token, "/send/text", {
+        number: phone,
+        text: body,
+      });
+    }
+
     const payload: any = {
       number: phone,
       type: "button",
       text: body,
-      choices: buttons.map((b) => b.text.substring(0, 25)),
+      choices,
     };
+
     if (mediaUrl) {
-      payload.media = mediaUrl;
+      payload.imageButton = mediaUrl;
     }
+
     return await uazapiRequest(baseUrl, token, "/send/menu", payload);
   }
 
