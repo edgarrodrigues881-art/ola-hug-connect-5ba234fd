@@ -741,9 +741,9 @@ const Devices = () => {
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Token Whapi</Label>
-              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Token do canal Whapi" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Cole o token do canal criado em whapi.cloud</p>
+              <Label className="text-xs">Token da Instância (UaZapi)</Label>
+              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Cole o token da instância criada na UaZapi</p>
             </div>
           </div>
           <DialogFooter>
