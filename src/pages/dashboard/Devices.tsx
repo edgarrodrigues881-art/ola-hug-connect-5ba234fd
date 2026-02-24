@@ -497,8 +497,8 @@ const Devices = () => {
 
       // If first call didn't return QR, poll with status (no disconnect)
       if (!qrFound) {
-        for (let attempt = 1; attempt <= 10; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        for (let attempt = 1; attempt <= 15; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
           console.log(`QR status poll ${attempt}/10`);
           try {
             const statusResult = await callWhapi({
