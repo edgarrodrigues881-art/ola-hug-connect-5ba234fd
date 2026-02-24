@@ -6,8 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const WHAPI_BASE = "https://gate.whapi.cloud";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,6 +36,24 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
+    // Get UaZapi config
+    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+
+    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
+      return new Response(
+        JSON.stringify({ error: "API não configurada" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
+    const uazapiHeaders = {
+      "token": UAZAPI_TOKEN,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    };
+
     // Get user's devices
     const { data: devices, error: devError } = await supabase
       .from("devices")
@@ -48,96 +64,56 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
 
+    // Check UaZapi instance status (shared instance for all devices)
+    let instanceStatus: any = null;
+    try {
+      const res = await fetch(`${uazapiBase}/instance/status`, {
+        method: "GET",
+        headers: uazapiHeaders,
+      });
+      const data = await res.json();
+      console.log("UaZapi status:", res.status, JSON.stringify(data).substring(0, 300));
+      instanceStatus = data;
+    } catch (err) {
+      console.error("Error fetching UaZapi status:", err);
+    }
+
+    const inst = instanceStatus?.instance || instanceStatus || {};
+    const state = inst.status || instanceStatus?.state;
+    const isConnected = state === "connected" || state === "authenticated";
+    const phone = inst.owner || inst.phone || instanceStatus?.phone || "";
+
+    let formattedPhone = "";
+    if (phone) {
+      const raw = String(phone).replace(/\D/g, "");
+      if (raw.startsWith("55") && raw.length >= 12) {
+        formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+      } else if (raw) {
+        formattedPhone = `+${raw}`;
+      }
+    }
+
+    const profilePicture = inst.profilePicUrl || null;
+
     for (const device of (devices || [])) {
-      // Skip devices without whapi_token
-      if (!device.whapi_token) {
-        results.push({ id: device.id, name: device.name, found: false, reason: "no_token" });
-        continue;
-      }
+      const newStatus = isConnected ? "Ready" : "Disconnected";
 
-      try {
-        // Check channel health via /health
-        const res = await fetch(`${WHAPI_BASE}/health`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${device.whapi_token}`,
-            "Accept": "application/json",
-          },
-        });
-
-        const rawText = await res.text();
-        console.log(`Device ${device.name} /health status: ${res.status}, body: ${rawText.substring(0, 500)}`);
-
-        let data: any = {};
-        try { data = JSON.parse(rawText); } catch {}
-
-        if (!res.ok) {
-          // Fallback: check /users/login for 409
-          const loginRes = await fetch(`${WHAPI_BASE}/users/login`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${device.whapi_token}`,
-              "Accept": "application/json",
-            },
-          });
-          const loginText = await loginRes.text();
-          
-          if (loginRes.status === 409) {
-            await supabase
-              .from("devices")
-              .update({ status: "Ready" })
-              .eq("id", device.id);
-            results.push({ id: device.id, name: device.name, found: true, status: "Ready" });
-          } else {
-            await supabase
-              .from("devices")
-              .update({ status: "Disconnected", number: "" })
-              .eq("id", device.id);
-            results.push({ id: device.id, name: device.name, found: false, reason: "api_error" });
-          }
-          await loginRes.text().catch(() => {});
-          continue;
-        }
-
-        // Extract phone from health response - user.id contains the phone number
-        const phone = data.user?.id || data.phone || data.user?.phone || data.wid || "";
-        const statusText = (data.status?.text || data.status || "").toString().toUpperCase();
-        const isConnected = statusText === "AUTH" || statusText === "AUTHENTICATED" || statusText === "CONNECTED" || !!phone;
-        const newStatus = isConnected ? "Ready" : "Disconnected";
-
-        let formattedPhone = "";
-        if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12) {
-            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          } else if (raw) {
-            formattedPhone = `+${raw}`;
-          }
-        }
-
-        // Get profile picture from health response
-        const profilePicture = data.user?.profile_pic || device.profile_picture || null;
-
-        await supabase
-          .from("devices")
-          .update({
-            status: newStatus,
-            number: formattedPhone || device.number || "",
-            profile_picture: profilePicture || null,
-          })
-          .eq("id", device.id);
-
-        results.push({
-          id: device.id,
-          name: device.name,
-          found: true,
+      await supabase
+        .from("devices")
+        .update({
           status: newStatus,
-          phone: formattedPhone,
-        });
-      } catch (err) {
-        console.error(`Error syncing device ${device.name}:`, err);
-        results.push({ id: device.id, name: device.name, found: false, reason: "exception" });
-      }
+          number: isConnected ? (formattedPhone || device.number || "") : (device.number || ""),
+          profile_picture: profilePicture || device.profile_picture || null,
+        })
+        .eq("id", device.id);
+
+      results.push({
+        id: device.id,
+        name: device.name,
+        found: true,
+        status: newStatus,
+        phone: formattedPhone,
+      });
     }
 
     // Sync proxy statuses
