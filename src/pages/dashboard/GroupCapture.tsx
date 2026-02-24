@@ -111,80 +111,82 @@ const GroupCapture = () => {
         </CardContent>
       </Card>
 
-      {/* Grupos sugeridos */}
-      {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">Grupos Sugeridos</h2>
-          {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
-            <Card key={sg.link} className="border-border/50 bg-card/80 backdrop-blur-sm border-dashed">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <img src={dgLogo} alt={sg.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">{sg.name}</p>
-                      <CopyButton text={sg.link} />
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
-                      <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-xs text-muted-foreground break-all select-all">{sg.link}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Grupos Cadastrados ({groups.length})</h2>
+        <h2 className="text-sm font-semibold text-foreground">Grupos de Aquecimento</h2>
 
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : groups.length === 0 ? (
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Nenhum grupo cadastrado ainda. Adicione o primeiro acima.
-            </CardContent>
-          </Card>
         ) : (
-          groups.map((g: any) => (
-            <Card key={g.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  {g.name?.includes("DG CONTINGÊNCIA") ? (
-                    <img src={dgLogo} alt={g.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <UsersRound className="w-5 h-5 text-primary" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">{g.name}</p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                        onClick={() => deleteMutation.mutate(g.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
-                      <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-xs text-muted-foreground break-all select-all">{g.link}</span>
-                      <CopyButton text={g.link} />
+          <>
+            {/* Grupos sugeridos (não cadastrados ainda) */}
+            {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
+              <Card key={sg.link} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <img src={dgLogo} alt={sg.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-foreground">{sg.name}</p>
+                        <CopyButton text={sg.link} />
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
+                        <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground break-all select-all">{sg.link}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Grupos cadastrados */}
+            {groups.map((g: any) => (
+              <Card key={g.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {g.name?.includes("DG CONTINGÊNCIA") ? (
+                      <img src={dgLogo} alt={g.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <UsersRound className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-foreground">{g.name}</p>
+                        <div className="flex items-center gap-1">
+                          <CopyButton text={g.link} />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => deleteMutation.mutate(g.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
+                        <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground break-all select-all">{g.link}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {groups.length === 0 && SUGGESTED_GROUPS.length === 0 && (
+              <Card className="border-border/50 bg-card/80">
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Nenhum grupo cadastrado ainda. Adicione o primeiro acima.
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
       </div>
     </div>
