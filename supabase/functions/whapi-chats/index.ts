@@ -114,11 +114,20 @@ Deno.serve(async (req) => {
 
     if (action === "send_message" && req.method === "POST") {
       const body = await req.json();
-      const res = await fetch(`${apiBaseUrl}/message/send-text`, {
-        method: "POST",
-        headers: apiHeaders,
-        body: JSON.stringify({ phone: body.to?.replace(/\D/g, ""), message: body.message }),
+      const phone = body.to?.replace(/\D/g, "");
+      const message = body.message;
+      // Try GET first, fallback to POST
+      let res = await fetch(`${apiBaseUrl}/message/send-text?phone=${encodeURIComponent(phone)}&message=${encodeURIComponent(message)}`, {
+        method: "GET",
+        headers: { "token": apiToken, "Accept": "application/json" },
       });
+      if (res.status === 405) {
+        res = await fetch(`${apiBaseUrl}/message/send-text`, {
+          method: "POST",
+          headers: apiHeaders,
+          body: JSON.stringify({ phone, message }),
+        });
+      }
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
