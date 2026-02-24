@@ -71,29 +71,26 @@ async function sendUazapiMessage(
 
   // Media message (image + optional caption)
   if (mediaUrl && (messageType === "imagem" || messageType === "botao-midia" || messageType === "imagem-texto")) {
-    return await uazapiRequest(baseUrl, token, "/message/send-media", {
-      phone,
+    return await uazapiRequest(baseUrl, token, "/send/media", {
+      number: phone,
       media: mediaUrl,
       caption: body || undefined,
       type: "image",
     });
   }
 
-  // Buttons message
+  // Buttons message - uses /send/menu with type "button"
   if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia")) {
-    // Try sending as button message
-    const buttonPayload: any = {
-      phone,
-      message: body,
-      buttons: buttons.map((b, i) => ({
-        id: `btn_${i}`,
-        text: b.text.substring(0, 25),
-      })),
+    const payload: any = {
+      number: phone,
+      type: "button",
+      text: body,
+      choices: buttons.map((b) => b.text.substring(0, 25)),
     };
     if (mediaUrl) {
-      buttonPayload.media = mediaUrl;
+      payload.media = mediaUrl;
     }
-    return await uazapiRequest(baseUrl, token, "/message/send-buttons", buttonPayload);
+    return await uazapiRequest(baseUrl, token, "/send/menu", payload);
   }
 
   // Plain text message
