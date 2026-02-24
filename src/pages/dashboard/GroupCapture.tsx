@@ -9,6 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+const SUGGESTED_GROUPS = [
+  { name: "DG CONTINGÊNCIA #01", link: "https://chat.whatsapp.com/I1gvz1bfEhrEIM9iMFsCik?mode=gi_t" },
+  { name: "DG CONTINGÊNCIA #02", link: "https://chat.whatsapp.com/BZNGH9zeFxF5UOj2pD2Wbk?mode=gi_t" },
+  { name: "DG CONTINGÊNCIA #03", link: "https://chat.whatsapp.com/JnIfueI6qZsFgWuoYimS85?mode=gi_t" },
+];
+
 const GroupCapture = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -30,11 +36,11 @@ const GroupCapture = () => {
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { name: string; link: string }) => {
       const { error } = await supabase.from("warmup_groups" as any).insert({
         user_id: user!.id,
-        name: name.trim(),
-        link: link.trim(),
+        name: params.name,
+        link: params.link,
       } as any);
       if (error) throw error;
     },
@@ -65,7 +71,7 @@ const GroupCapture = () => {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
       return;
     }
-    addMutation.mutate();
+    addMutation.mutate({ name: name.trim(), link: link.trim() });
   };
 
   return (
@@ -101,6 +107,41 @@ const GroupCapture = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Grupos sugeridos */}
+      {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Grupos Sugeridos</h2>
+          {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
+            <Card key={sg.link} className="border-border/50 bg-card/80 backdrop-blur-sm border-dashed">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                    <UsersRound className="w-5 h-5 text-accent-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{sg.name}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                      <Link2 className="w-3 h-3 shrink-0" />
+                      {sg.link}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={() => {
+                    addMutation.mutate({ name: sg.name, link: sg.link });
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5" /> Salvar
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Grupos Cadastrados ({groups.length})</h2>
