@@ -49,11 +49,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // UaZapi uses token in URL path: BASE_URL/TOKEN/endpoint
+    // UaZapi v2: token goes in 'token' header
     const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
-    const apiUrl = (endpoint: string) => `${uazapiBase}/${UAZAPI_TOKEN}${endpoint}`;
+    const apiUrl = (endpoint: string) => `${uazapiBase}${endpoint}`;
 
     const uazapiHeaders = {
+      "token": UAZAPI_TOKEN,
       "Accept": "application/json",
       "Content-Type": "application/json",
     };
