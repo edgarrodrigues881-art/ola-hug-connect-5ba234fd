@@ -358,7 +358,7 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Call UaZapi logout if token exists
+    // Call logout if token exists
     if (loggingOutDevice.whapi_token) {
       try {
         await callWhapi({ action: "logout", deviceId: loggingOutDevice.id });
@@ -379,7 +379,7 @@ const Devices = () => {
     setLoggingOutDevice(null);
   };
 
-  // Helper to call evolution-connect edge function (UaZapi)
+  // Helper to call evolution-connect edge function
   const callWhapi = async (body: Record<string, any>) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Not authenticated");
@@ -399,13 +399,13 @@ const Devices = () => {
     }
   };
 
-  // Poll connection status via UaZapi
+  // Poll connection status
   const startPolling = (deviceId: string, proxyId: string | null) => {
     stopPolling();
     const interval = setInterval(async () => {
       try {
         const result = await callWhapi({ action: "status", deviceId });
-        // UaZapi returns status field: "authenticated" means connected
+        // Status field: "authenticated" means connected
         const whapiStatus = result?.status;
         if (whapiStatus === "authenticated") {
           clearInterval(interval);
@@ -462,7 +462,7 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Call UaZapi to get QR code
+      // Call API to get QR code
       let qrFound = false;
       for (let attempt = 1; attempt <= 8; attempt++) {
         console.log(`QR poll attempt ${attempt}/8`);
@@ -502,14 +502,14 @@ const Devices = () => {
       }
 
       if (!qrFound) {
-        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique o token UaZapi.");
+        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique sua configuração.");
       }
 
       // Start polling for connection status
       startPolling(connectingDevice.id, proxyId);
     } catch (err: any) {
       console.error("Connect error:", err);
-      setConnectError(err?.message || "Erro ao conectar com a UaZapi");
+      setConnectError(err?.message || "Erro ao conectar");
       toast({ title: "Erro ao gerar QR Code", description: err?.message, variant: "destructive" });
     }
   };
@@ -569,12 +569,12 @@ const Devices = () => {
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
 
                 toast({
-                  title: "Sincronizado com UaZapi!",
+                  title: "Sincronizado!",
                   description: `${found} instância(s) encontrada(s), ${notFound} não encontrada(s), ${proxiesUpdated} proxy(s) atualizada(s).`,
                 });
               } catch (err: any) {
                 console.error("Sync error:", err);
-                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique os tokens UaZapi.", variant: "destructive" });
+                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique sua configuração.", variant: "destructive" });
               } finally {
                 setSyncLoading(false);
               }

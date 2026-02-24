@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "UaZapi não configurada. Configure UAZAPI_BASE_URL e UAZAPI_TOKEN." }),
+        JSON.stringify({ error: "API de conexão não configurada. Entre em contato com o administrador." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
