@@ -19,7 +19,7 @@ const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
 const Devices = lazy(() => import("./pages/dashboard/Devices"));
 const Campaigns = lazy(() => import("./pages/dashboard/Campaigns"));
 const CampaignList = lazy(() => import("./pages/dashboard/CampaignList"));
-const Conversations = lazy(() => import("./pages/dashboard/Conversations"));
+
 const CRM = lazy(() => import("./pages/dashboard/CRM"));
 const Contacts = lazy(() => import("./pages/dashboard/Contacts"));
 const Reports = lazy(() => import("./pages/dashboard/Reports"));
@@ -64,7 +64,7 @@ const App = () => (
                         <Route path="devices" element={<Devices />} />
                         <Route path="campaigns" element={<Campaigns />} />
                         <Route path="campaign-list" element={<CampaignList />} />
-                        <Route path="conversations" element={<Conversations />} />
+                        
                         <Route path="crm" element={<CRM />} />
                         <Route path="templates" element={<Templates />} />
                         <Route path="contacts" element={<Contacts />} />
