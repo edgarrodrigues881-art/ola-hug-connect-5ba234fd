@@ -36,26 +36,13 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // Get UaZapi config
-    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
-    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+    // Get global UaZapi config as fallback
+    const GLOBAL_UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    const GLOBAL_UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
 
-    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
-      return new Response(
-        JSON.stringify({ error: "API não configurada" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
-    const uazapiHeaders = {
-      "token": UAZAPI_TOKEN,
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    };
-
-    // Get user's devices
-    const { data: devices, error: devError } = await supabase
+    // Get user's devices with per-device config
+    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: devices, error: devError } = await serviceClient
       .from("devices")
       .select("*")
       .eq("user_id", userId);
@@ -64,46 +51,54 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
 
-    // Check UaZapi instance status (shared instance for all devices)
-    let instanceStatus: any = null;
-    try {
-      const res = await fetch(`${uazapiBase}/instance/status`, {
-        method: "GET",
-        headers: uazapiHeaders,
-      });
-      const data = await res.json();
-      console.log("UaZapi status:", res.status, JSON.stringify(data).substring(0, 300));
-      instanceStatus = data;
-    } catch (err) {
-      console.error("Error fetching UaZapi status:", err);
-    }
-
-    const inst = instanceStatus?.instance || instanceStatus || {};
-    const state = inst.status || instanceStatus?.state;
-    const isConnected = state === "connected" || state === "authenticated";
-    const phone = inst.owner || inst.phone || instanceStatus?.phone || "";
-
-    let formattedPhone = "";
-    if (phone) {
-      const raw = String(phone).replace(/\D/g, "");
-      if (raw.startsWith("55") && raw.length >= 12) {
-        formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-      } else if (raw) {
-        formattedPhone = `+${raw}`;
-      }
-    }
-
-    const profilePicture = inst.profilePicUrl || null;
-
     for (const device of (devices || [])) {
-      const newStatus = isConnected ? "Ready" : "Disconnected";
+      // Use per-device token/url, fallback to global
+      const deviceToken = device.uazapi_token || GLOBAL_UAZAPI_TOKEN;
+      const deviceBaseUrl = (device.uazapi_base_url || GLOBAL_UAZAPI_BASE_URL || "").replace(/\/+$/, "");
 
-      await supabase
+      if (!deviceToken || !deviceBaseUrl) {
+        results.push({ id: device.id, name: device.name, found: false, status: device.status, error: "No token configured" });
+        continue;
+      }
+
+      let newStatus = "Disconnected";
+      let formattedPhone = device.number || "";
+      let profilePicture = device.profile_picture || null;
+
+      try {
+        const res = await fetch(`${deviceBaseUrl}/instance/status`, {
+          method: "GET",
+          headers: { "token": deviceToken, "Accept": "application/json" },
+        });
+        const data = await res.json();
+        console.log(`Device ${device.name} status:`, res.status, JSON.stringify(data).substring(0, 300));
+
+        const inst = data.instance || data || {};
+        const state = inst.status || data.state;
+        const isConnected = state === "connected" || state === "authenticated";
+        const phone = inst.owner || inst.phone || data.phone || "";
+
+        if (phone) {
+          const raw = String(phone).replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12) {
+            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          } else if (raw) {
+            formattedPhone = `+${raw}`;
+          }
+        }
+
+        profilePicture = inst.profilePicUrl || device.profile_picture || null;
+        newStatus = isConnected ? "Ready" : "Disconnected";
+      } catch (err) {
+        console.error(`Error syncing device ${device.name}:`, err);
+      }
+
+      await serviceClient
         .from("devices")
         .update({
           status: newStatus,
-          number: isConnected ? (formattedPhone || device.number || "") : (device.number || ""),
-          profile_picture: profilePicture || device.profile_picture || null,
+          number: formattedPhone,
+          profile_picture: profilePicture,
         })
         .eq("id", device.id);
 
