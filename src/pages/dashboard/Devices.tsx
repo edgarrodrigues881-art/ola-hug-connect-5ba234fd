@@ -358,7 +358,7 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Call Whapi logout if token exists
+    // Call UaZapi logout if token exists
     if (loggingOutDevice.whapi_token) {
       try {
         await callWhapi({ action: "logout", deviceId: loggingOutDevice.id });
@@ -379,7 +379,7 @@ const Devices = () => {
     setLoggingOutDevice(null);
   };
 
-  // Helper to call evolution-connect edge function (now Whapi)
+  // Helper to call evolution-connect edge function (UaZapi)
   const callWhapi = async (body: Record<string, any>) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Not authenticated");
@@ -399,13 +399,13 @@ const Devices = () => {
     }
   };
 
-  // Poll connection status via Whapi
+  // Poll connection status via UaZapi
   const startPolling = (deviceId: string, proxyId: string | null) => {
     stopPolling();
     const interval = setInterval(async () => {
       try {
         const result = await callWhapi({ action: "status", deviceId });
-        // Whapi returns status field: "authenticated" means connected
+        // UaZapi returns status field: "authenticated" means connected
         const whapiStatus = result?.status;
         if (whapiStatus === "authenticated") {
           clearInterval(interval);
@@ -432,7 +432,7 @@ const Devices = () => {
   // Connect
   const openConnect = async (device: Device) => {
     if (!device.whapi_token) {
-      toast({ title: "Token não configurado", description: "Edite a instância e adicione o token Whapi antes de conectar.", variant: "destructive" });
+      toast({ title: "Token não configurado", description: "Edite a instância e adicione o token UaZapi antes de conectar.", variant: "destructive" });
       return;
     }
     setConnectingDevice(device);
@@ -466,7 +466,7 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Call Whapi to get QR code
+      // Call UaZapi to get QR code
       let qrFound = false;
       for (let attempt = 1; attempt <= 8; attempt++) {
         console.log(`QR poll attempt ${attempt}/8`);
@@ -506,14 +506,14 @@ const Devices = () => {
       }
 
       if (!qrFound) {
-        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique o token Whapi.");
+        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique o token UaZapi.");
       }
 
       // Start polling for connection status
       startPolling(connectingDevice.id, proxyId);
     } catch (err: any) {
       console.error("Connect error:", err);
-      setConnectError(err?.message || "Erro ao conectar com a Whapi");
+      setConnectError(err?.message || "Erro ao conectar com a UaZapi");
       toast({ title: "Erro ao gerar QR Code", description: err?.message, variant: "destructive" });
     }
   };
@@ -524,7 +524,7 @@ const Devices = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dispositivos ({devices.length})</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus números conectados via Whapi</p>
+          <p className="text-sm text-muted-foreground">Gerencie seus números conectados via UaZapi</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {selectedDevices.length > 0 && (
@@ -573,12 +573,12 @@ const Devices = () => {
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
 
                 toast({
-                  title: "Sincronizado com Whapi!",
+                  title: "Sincronizado com UaZapi!",
                   description: `${found} instância(s) encontrada(s), ${notFound} não encontrada(s), ${proxiesUpdated} proxy(s) atualizada(s).`,
                 });
               } catch (err: any) {
                 console.error("Sync error:", err);
-                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique os tokens Whapi.", variant: "destructive" });
+                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique os tokens UaZapi.", variant: "destructive" });
               } finally {
                 setSyncLoading(false);
               }
@@ -765,9 +765,9 @@ const Devices = () => {
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Token Whapi</Label>
-              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Token do canal Whapi" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Token do canal na Whapi.cloud</p>
+              <Label className="text-xs">Token da Instância (UaZapi)</Label>
+              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Token da instância na UaZapi</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
