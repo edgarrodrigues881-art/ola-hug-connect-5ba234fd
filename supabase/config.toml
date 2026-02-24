@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.admin-data]
 verify_jwt = false
+
+[functions.join-group]
+verify_jwt = false
