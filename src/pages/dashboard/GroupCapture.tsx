@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { UsersRound, Link2, Loader2, Copy, Check, LogIn, Pause, Play, Square, Timer } from "lucide-react";
+import { UsersRound, Link2, Loader2, Copy, Check, LogIn, Pause, Play, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -474,9 +474,6 @@ const GroupCapture = () => {
                       <Play className="w-4 h-4" /> Retomar
                     </Button>
                   )}
-                  <Button variant="destructive" onClick={handleCancel} className="flex-1 gap-2">
-                    <Square className="w-4 h-4" /> Cancelar
-                  </Button>
                 </div>
               )}
 
