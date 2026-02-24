@@ -62,60 +62,17 @@ Deno.serve(async (req) => {
 
     // ACTION: connect - Start connection and get QR code
     if (action === "connect") {
-      // First disconnect to ensure fresh QR
+      // Check current status first - skip disconnect if already disconnected
+      let currentStatus = "";
       try {
-        await fetch(apiUrl("/instance/disconnect"), {
-          method: "POST",
-          headers: uazapiHeaders,
-        });
-        console.log("Pre-connect disconnect done (forcing fresh QR)");
-      } catch (e) {
-        console.log("Pre-connect disconnect skipped:", e);
-      }
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Call connect to initiate QR generation
-      const connectRes = await fetch(apiUrl("/instance/connect"), {
-        method: "POST",
-        headers: uazapiHeaders,
-        body: JSON.stringify({}), // No phone = QR code mode
-      });
-
-      const connectText = await connectRes.text();
-      console.log("CONNECT status:", connectRes.status, "body:", connectText.substring(0, 500));
-
-      let connectData;
-      try {
-        connectData = JSON.parse(connectText);
-      } catch {
-        throw new Error(`UaZapi returned non-JSON (status ${connectRes.status}): ${connectText.substring(0, 200)}`);
-      }
-
-      // Now check status to get QR code
-      const statusRes = await fetch(apiUrl("/instance/status"), {
-        method: "GET",
-        headers: uazapiHeaders,
-      });
-
-      const statusText = await statusRes.text();
-      console.log("STATUS after connect:", statusRes.status, "body:", statusText.substring(0, 500));
-
-      let statusData;
-      try {
-        statusData = JSON.parse(statusText);
-      } catch {
-        throw new Error(`UaZapi status non-JSON (status ${statusRes.status}): ${statusText.substring(0, 200)}`);
-      }
-
-      // Check if already connected
-      if (statusData.state === "connected" || statusData.status === "connected") {
-        // Update device in DB
-        if (deviceId) {
-          const serviceClient = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-          );
-          const phone = statusData.phone || statusData.number || "";
+        const checkRes = await fetch(apiUrl("/instance/status"), { method: "GET", headers: uazapiHeaders });
+        const checkData = await checkRes.json();
+        const inst = checkData.instance || {};
+        currentStatus = inst.status || "";
+        
+        // Already connected? Return immediately
+        if (currentStatus === "connected") {
+          const phone = inst.owner || "";
           let formattedPhone = "";
           if (phone) {
             const raw = String(phone).replace(/\D/g, "");
@@ -125,38 +82,71 @@ Deno.serve(async (req) => {
               formattedPhone = `+${raw}`;
             }
           }
-          await serviceClient
-            .from("devices")
-            .update({ status: "Ready", number: formattedPhone })
-            .eq("id", deviceId);
+          if (deviceId) {
+            const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+            await serviceClient.from("devices").update({ status: "Ready", number: formattedPhone }).eq("id", deviceId);
+          }
+          return new Response(JSON.stringify({
+            success: true, alreadyConnected: true, phone: formattedPhone, status: "authenticated",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        return new Response(JSON.stringify({
-          success: true,
-          alreadyConnected: true,
-          phone: statusData.phone || statusData.number || "",
-          status: "Ready",
-          ...statusData,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Has QR already? Return it without reconnecting
+        if (inst.qrcode && currentStatus === "connecting") {
+          console.log("QR already available, returning immediately");
+          return new Response(JSON.stringify({
+            success: true, base64: inst.qrcode, qr: inst.qrcode, status: "connecting",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      } catch (e) {
+        console.log("Status check skipped:", e);
       }
 
-      // Return QR code from status response (UaZapi nests it inside "instance")
-      const inst = statusData.instance || {};
+      // Only disconnect if not already disconnected
+      if (currentStatus && currentStatus !== "disconnected") {
+        try {
+          await fetch(apiUrl("/instance/disconnect"), { method: "POST", headers: uazapiHeaders });
+          console.log("Pre-connect disconnect done");
+        } catch (e) {
+          console.log("Pre-connect disconnect skipped:", e);
+        }
+        // Minimal delay after disconnect
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // Call connect
+      const connectRes = await fetch(apiUrl("/instance/connect"), {
+        method: "POST",
+        headers: uazapiHeaders,
+        body: JSON.stringify({}),
+      });
+
+      const connectText = await connectRes.text();
+      let connectData;
+      try { connectData = JSON.parse(connectText); } catch {
+        throw new Error(`UaZapi non-JSON (${connectRes.status}): ${connectText.substring(0, 200)}`);
+      }
+
+      // Try to get QR from connect response directly
       const connInst = connectData.instance || {};
-      const qrCode = inst.qrcode || statusData.qrcode || statusData.qr || statusData.base64 || connInst.qrcode || connectData.qrcode || connectData.qr || connectData.base64;
-      console.log("QR code found:", !!qrCode, "length:", qrCode?.length || 0);
+      let qrCode = connInst.qrcode || connectData.qrcode;
+      
+      // If no QR in connect response, check status
+      if (!qrCode) {
+        const statusRes = await fetch(apiUrl("/instance/status"), { method: "GET", headers: uazapiHeaders });
+        const statusData = await statusRes.json();
+        const inst = statusData.instance || {};
+        qrCode = inst.qrcode || statusData.qrcode;
+      }
+
+      console.log("QR found:", !!qrCode, "length:", qrCode?.length || 0);
 
       return new Response(JSON.stringify({
         success: true,
         base64: qrCode || null,
         qr: qrCode || null,
-        status: statusData.state || statusData.status || "connecting",
-        ...statusData,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        status: qrCode ? "connecting" : "waiting",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ACTION: status - Check connection state
