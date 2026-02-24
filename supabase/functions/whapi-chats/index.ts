@@ -26,111 +26,118 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
 
+    const userId = user.id;
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "list_chats";
     const deviceId = url.searchParams.get("device_id");
     const chatId = url.searchParams.get("chat_id");
 
-    // Get device with whapi_token
+    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // No device selected - return device list
     if (!deviceId) {
-      // Return all devices for device selection
-      const { data: devices } = await supabase
+      const { data: devices } = await serviceClient
         .from("devices")
-        .select("id, name, number, status, whapi_token, profile_picture")
-        .eq("user_id", userId)
-        .not("whapi_token", "is", null);
+        .select("id, name, number, status, uazapi_token, uazapi_base_url, profile_picture")
+        .eq("user_id", userId);
 
       return new Response(
-        JSON.stringify({ devices: (devices || []).map((d: any) => ({ ...d, whapi_token: undefined, has_token: !!d.whapi_token })) }),
+        JSON.stringify({
+          devices: (devices || []).map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            number: d.number,
+            status: d.status,
+            profile_picture: d.profile_picture,
+            has_token: !!(d.uazapi_token && d.uazapi_base_url),
+          })),
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { data: device } = await supabase
+    // Get device config
+    const { data: device } = await serviceClient
       .from("devices")
-      .select("whapi_token")
+      .select("uazapi_token, uazapi_base_url")
       .eq("id", deviceId)
       .eq("user_id", userId)
       .single();
 
-    if (!device?.whapi_token) {
-      return new Response(JSON.stringify({ error: "Device not found or no token" }), {
+    const apiToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
+    const apiBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+    if (!apiToken || !apiBaseUrl) {
+      return new Response(JSON.stringify({ error: "Dispositivo não configurado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const whapiBase = "https://gate.whapi.cloud";
-    const headers = {
-      Authorization: `Bearer ${device.whapi_token}`,
-      Accept: "application/json",
+    const apiHeaders = {
+      "token": apiToken,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
     };
 
     if (action === "list_chats") {
       const count = url.searchParams.get("count") || "30";
-      const res = await fetch(`${whapiBase}/chats?count=${count}`, { headers });
+      const res = await fetch(`${apiBaseUrl}/chat/listChats?count=${count}`, {
+        method: "GET",
+        headers: apiHeaders,
+      });
       const data = await res.json();
-
-      return new Response(JSON.stringify({ chats: data.chats || [] }), {
+      return new Response(JSON.stringify({ chats: data.chats || data || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "get_messages" && chatId) {
       const count = url.searchParams.get("count") || "50";
-      const res = await fetch(`${whapiBase}/messages/list/${chatId}?count=${count}`, { headers });
+      const res = await fetch(`${apiBaseUrl}/chat/getMessages?chatId=${encodeURIComponent(chatId)}&count=${count}`, {
+        method: "GET",
+        headers: apiHeaders,
+      });
       const data = await res.json();
-
-      return new Response(JSON.stringify({ messages: data.messages || [] }), {
+      return new Response(JSON.stringify({ messages: data.messages || data || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "send_message" && req.method === "POST") {
       const body = await req.json();
-      const res = await fetch(`${whapiBase}/messages/text`, {
+      const res = await fetch(`${apiBaseUrl}/message/send-text`, {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ to: body.to, body: body.message }),
+        headers: apiHeaders,
+        body: JSON.stringify({ phone: body.to?.replace(/\D/g, ""), message: body.message }),
       });
       const data = await res.json();
-
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Send media (image, document, audio, video)
     if (action === "send_media" && req.method === "POST") {
       const body = await req.json();
-      // body: { to, media_url, media_type, caption?, filename? }
-      const mediaType = body.media_type || "image";
-      const endpoint = mediaType === "document" ? "document" : mediaType === "ptt" ? "voice" : mediaType === "audio" ? "audio" : mediaType === "video" ? "video" : "image";
-      
-      const payload: Record<string, unknown> = {
-        to: body.to,
-        media: body.media_url,
-      };
-      if (body.caption) payload.caption = body.caption;
-      if (body.filename) payload.filename = body.filename;
-
-      const res = await fetch(`${whapiBase}/messages/${endpoint}`, {
+      const res = await fetch(`${apiBaseUrl}/message/send-media`, {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: apiHeaders,
+        body: JSON.stringify({
+          phone: body.to?.replace(/\D/g, ""),
+          media: body.media_url,
+          type: body.media_type || "image",
+          caption: body.caption || undefined,
+        }),
       });
       const data = await res.json();
-
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -141,7 +148,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("whapi-chats error:", err);
+    console.error("Chat API error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
