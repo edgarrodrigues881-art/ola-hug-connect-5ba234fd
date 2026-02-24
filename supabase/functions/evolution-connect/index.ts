@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
     // UaZapi v2: token goes in 'token' header
     const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
     const apiUrl = (endpoint: string) => `${uazapiBase}${endpoint}`;
+    console.log("BASE URL:", uazapiBase, "| TOKEN length:", UAZAPI_TOKEN.length);
 
     const uazapiHeaders = {
       "token": UAZAPI_TOKEN,
