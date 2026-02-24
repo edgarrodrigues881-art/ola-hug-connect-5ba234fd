@@ -462,43 +462,55 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Call API to get QR code
+      // First call: connect (triggers disconnect + fresh QR)
       let qrFound = false;
-      for (let attempt = 1; attempt <= 8; attempt++) {
-        console.log(`QR poll attempt ${attempt}/8`);
-        try {
-          const connectResult = await callWhapi({
-            action: "connect",
-            deviceId: connectingDevice.id,
-          });
+      console.log("QR: initial connect call");
+      try {
+        const connectResult = await callWhapi({
+          action: "connect",
+          deviceId: connectingDevice.id,
+        });
 
-          // Already connected
-          if (connectResult.alreadyConnected) {
-            // Device already updated by edge function, just refresh
-            queryClient.invalidateQueries({ queryKey: ["devices"] });
-            setConnectStep("done");
-            const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
-            toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
-            setConnectOpen(false);
-            return;
-          }
-
-          if (connectResult.base64) {
-            const b64 = connectResult.base64;
-            setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-            qrFound = true;
-            break;
-          }
-          if (connectResult.qr) {
-            setQrCodeBase64(connectResult.qr.startsWith("data:") ? connectResult.qr : `data:image/png;base64,${connectResult.qr}`);
-            qrFound = true;
-            break;
-          }
-        } catch (e) {
-          console.log(`QR poll attempt ${attempt} error:`, e);
+        if (connectResult.alreadyConnected) {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+          setConnectStep("done");
+          const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
+          toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
+          setConnectOpen(false);
+          return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 2000 + attempt * 500));
+        const b64 = connectResult.base64 || connectResult.qr;
+        if (b64) {
+          setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+          qrFound = true;
+        }
+      } catch (e) {
+        console.log("QR initial connect error:", e);
+      }
+
+      // If first call didn't return QR, poll with status (no disconnect)
+      if (!qrFound) {
+        for (let attempt = 1; attempt <= 10; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log(`QR status poll ${attempt}/10`);
+          try {
+            const statusResult = await callWhapi({
+              action: "status",
+              deviceId: connectingDevice.id,
+            });
+
+            // Check if QR is in the response (edge function also returns instance fields)
+            const b64 = statusResult.base64 || statusResult.qr || statusResult.qrcode || statusResult.instance?.qrcode;
+            if (b64) {
+              setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+              qrFound = true;
+              break;
+            }
+          } catch (e) {
+            console.log(`QR status poll ${attempt} error:`, e);
+          }
+        }
       }
 
       if (!qrFound) {

@@ -170,13 +170,17 @@ Deno.serve(async (req) => {
       console.log("STATUS:", res.status, JSON.stringify(data).substring(0, 300));
 
       // Map UaZapi status to our expected format
-      const state = data.state || data.status;
+      const inst = data.instance || {};
+      const state = inst.status || data.state || data.status;
       const isConnected = state === "connected";
+      const qrCode = inst.qrcode || data.qrcode || data.qr || data.base64;
 
       return new Response(JSON.stringify({
         success: true,
         status: isConnected ? "authenticated" : state,
-        phone: data.phone || data.number || "",
+        phone: inst.owner || data.phone || data.number || "",
+        base64: qrCode || null,
+        qr: qrCode || null,
         ...data,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
