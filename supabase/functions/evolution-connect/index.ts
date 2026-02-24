@@ -6,9 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const WHAPI_BASE = "https://gate.whapi.cloud";
-const WHAPI_MANAGER = "https://manager.whapi.cloud";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,141 +35,161 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, deviceId, whapiToken, number, text } = body;
+    const { action, deviceId, number, text } = body;
     console.log("ACTION:", action, "DEVICE:", deviceId);
 
-    // Get whapi token from body or from device record
-    let token = whapiToken;
-    if (!token && deviceId) {
-      const { data: device } = await supabase
-        .from("devices")
-        .select("whapi_token")
-        .eq("id", deviceId)
-        .single();
-      token = device?.whapi_token;
-    }
+    // Get UaZapi config
+    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
+    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
 
-    if (!token && action !== "checkToken") {
+    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "Token Whapi não configurado para este dispositivo" }),
+        JSON.stringify({ error: "UaZapi não configurada. Configure UAZAPI_BASE_URL e UAZAPI_TOKEN." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const whapiHeaders = {
-      "Authorization": `Bearer ${token}`,
+    const uazapiHeaders = {
+      "token": UAZAPI_TOKEN,
       "Accept": "application/json",
       "Content-Type": "application/json",
     };
 
-    // ACTION: connect - Get QR code for login
+    // ACTION: connect - Start connection and get QR code
     if (action === "connect") {
-      const forceNew = body.forceNew !== false; // default true: always logout first for fresh QR
-      
-      if (forceNew) {
-        // Logout first to ensure a fresh QR code is generated
-        try {
-          await fetch(`${WHAPI_BASE}/users/logout`, {
-            method: "POST",
-            headers: whapiHeaders,
-          });
-          console.log("Pre-connect logout done (forcing fresh QR)");
-        } catch (e) {
-          console.log("Pre-connect logout skipped:", e);
-        }
-        // Small delay for Whapi to process the logout
-        await new Promise(r => setTimeout(r, 1000));
+      // First disconnect to ensure fresh QR
+      try {
+        await fetch(`${UAZAPI_BASE_URL}/instance/disconnect`, {
+          method: "POST",
+          headers: uazapiHeaders,
+        });
+        console.log("Pre-connect disconnect done (forcing fresh QR)");
+      } catch (e) {
+        console.log("Pre-connect disconnect skipped:", e);
       }
+      await new Promise(r => setTimeout(r, 1000));
 
-      const res = await fetch(`${WHAPI_BASE}/users/login`, {
-        method: "GET",
-        headers: whapiHeaders,
+      // Call connect to initiate QR generation
+      const connectRes = await fetch(`${UAZAPI_BASE_URL}/instance/connect`, {
+        method: "POST",
+        headers: uazapiHeaders,
+        body: JSON.stringify({}), // No phone = QR code mode
       });
 
-      const rawText = await res.text();
-      console.log("CONNECT status:", res.status, "body:", rawText.substring(0, 500));
+      const connectText = await connectRes.text();
+      console.log("CONNECT status:", connectRes.status, "body:", connectText.substring(0, 500));
 
-      let data;
+      let connectData;
       try {
-        data = JSON.parse(rawText);
+        connectData = JSON.parse(connectText);
       } catch {
-        throw new Error(`Whapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
+        throw new Error(`UaZapi returned non-JSON (status ${connectRes.status}): ${connectText.substring(0, 200)}`);
       }
 
-      // 409 means already authenticated - fetch info and update device
-      if (res.status === 409) {
-        // Fetch phone number and status
-        const meRes = await fetch(`${WHAPI_BASE}/users/me`, {
-          method: "GET",
-          headers: whapiHeaders,
-        });
-        const meData = meRes.ok ? await meRes.json() : {};
-        const phone = meData.phone || "";
-        let formattedPhone = "";
-        if (phone) {
-          const raw = phone.replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12) {
-            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          } else if (raw) {
-            formattedPhone = `+${raw}`;
-          }
-        }
+      // Now check status to get QR code
+      const statusRes = await fetch(`${UAZAPI_BASE_URL}/instance/status`, {
+        method: "GET",
+        headers: uazapiHeaders,
+      });
 
+      const statusText = await statusRes.text();
+      console.log("STATUS after connect:", statusRes.status, "body:", statusText.substring(0, 500));
+
+      let statusData;
+      try {
+        statusData = JSON.parse(statusText);
+      } catch {
+        throw new Error(`UaZapi status non-JSON (status ${statusRes.status}): ${statusText.substring(0, 200)}`);
+      }
+
+      // Check if already connected
+      if (statusData.state === "connected" || statusData.status === "connected") {
         // Update device in DB
         if (deviceId) {
           const serviceClient = createClient(
             Deno.env.get("SUPABASE_URL")!,
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
           );
+          const phone = statusData.phone || statusData.number || "";
+          let formattedPhone = "";
+          if (phone) {
+            const raw = String(phone).replace(/\D/g, "");
+            if (raw.startsWith("55") && raw.length >= 12) {
+              formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+            } else if (raw) {
+              formattedPhone = `+${raw}`;
+            }
+          }
           await serviceClient
             .from("devices")
             .update({ status: "Ready", number: formattedPhone })
             .eq("id", deviceId);
         }
 
-        return new Response(JSON.stringify({ 
-          success: true, 
-          alreadyConnected: true, 
-          phone: formattedPhone,
+        return new Response(JSON.stringify({
+          success: true,
+          alreadyConnected: true,
+          phone: statusData.phone || statusData.number || "",
           status: "Ready",
-          ...meData 
+          ...statusData,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (!res.ok) {
-        throw new Error(`Whapi connect failed [${res.status}]: ${JSON.stringify(data)}`);
-      }
+      // Return QR code from status response
+      const qrCode = statusData.qrcode || statusData.qr || statusData.base64 || connectData.qrcode || connectData.qr || connectData.base64;
 
-      return new Response(JSON.stringify({ success: true, ...data }), {
+      return new Response(JSON.stringify({
+        success: true,
+        base64: qrCode || null,
+        qr: qrCode || null,
+        status: statusData.state || statusData.status || "connecting",
+        ...statusData,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ACTION: status - Check connection state via /users/me
+    // ACTION: status - Check connection state
     if (action === "status") {
-      const res = await fetch(`${WHAPI_BASE}/users/me`, {
+      const res = await fetch(`${UAZAPI_BASE_URL}/instance/status`, {
         method: "GET",
-        headers: whapiHeaders,
+        headers: uazapiHeaders,
       });
 
       const data = await res.json();
       console.log("STATUS:", res.status, JSON.stringify(data).substring(0, 300));
 
-      return new Response(JSON.stringify({ success: true, ...data }), {
+      // Map UaZapi status to our expected format
+      const state = data.state || data.status;
+      const isConnected = state === "connected";
+
+      return new Response(JSON.stringify({
+        success: true,
+        status: isConnected ? "authenticated" : state,
+        phone: data.phone || data.number || "",
+        ...data,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ACTION: logout - Disconnect the channel
+    // ACTION: logout - Disconnect the instance
     if (action === "logout") {
-      const res = await fetch(`${WHAPI_BASE}/users/logout`, {
+      const res = await fetch(`${UAZAPI_BASE_URL}/instance/disconnect`, {
         method: "POST",
-        headers: whapiHeaders,
+        headers: uazapiHeaders,
       });
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { message: rawText };
+      }
+
       return new Response(JSON.stringify({ success: true, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -187,12 +204,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      const res = await fetch(`${WHAPI_BASE}/messages/text`, {
+      const res = await fetch(`${UAZAPI_BASE_URL}/message/send-text`, {
         method: "POST",
-        headers: whapiHeaders,
+        headers: uazapiHeaders,
         body: JSON.stringify({
-          to: number.replace(/\D/g, ""),
-          body: text,
+          phone: number.replace(/\D/g, ""),
+          message: text,
         }),
       });
 
@@ -201,7 +218,7 @@ Deno.serve(async (req) => {
       try {
         data = JSON.parse(rawText);
       } catch {
-        throw new Error(`Whapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
+        throw new Error(`UaZapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
       }
       if (!res.ok) {
         throw new Error(`sendText failed [${res.status}]: ${JSON.stringify(data)}`);
@@ -212,35 +229,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: checkToken - Validate a Whapi token
-    if (action === "checkToken") {
-      if (!whapiToken) {
-        return new Response(JSON.stringify({ error: "whapiToken is required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const res = await fetch(`${WHAPI_BASE}/settings`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${whapiToken}`,
-          "Accept": "application/json",
-        },
-      });
-
-      const data = await res.json();
-      return new Response(JSON.stringify({ success: res.ok, status: res.status, ...data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Whapi error:", error);
+    console.error("UaZapi error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
