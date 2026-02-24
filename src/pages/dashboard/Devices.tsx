@@ -741,9 +741,9 @@ const Devices = () => {
               <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Token da Instância (UaZapi)</Label>
-              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Cole o token da instância criada na UaZapi</p>
+              <Label className="text-xs">Token da Instância</Label>
+              <Input value={instanceToken} onChange={e => setInstanceToken(e.target.value)} placeholder="Cole o token da instância" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Cole o token da sua instância</p>
             </div>
           </div>
           <DialogFooter>
@@ -765,9 +765,9 @@ const Devices = () => {
               <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Token da Instância (UaZapi)</Label>
-              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Token da instância UaZapi" className="h-9 text-sm font-mono" type="password" />
-              <p className="text-[11px] text-muted-foreground">Token da instância na UaZapi</p>
+              <Label className="text-xs">Token da Instância</Label>
+              <Input value={editToken} onChange={e => setEditToken(e.target.value)} placeholder="Cole o token da instância" className="h-9 text-sm font-mono" type="password" />
+              <p className="text-[11px] text-muted-foreground">Cole o token da sua instância</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Proxy</Label>
