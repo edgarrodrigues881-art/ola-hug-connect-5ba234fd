@@ -346,100 +346,99 @@ const Proxy = () => {
       </Dialog>
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <span className="text-emerald-500">✓</span> Proxy
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            📂 Importar
-          </Button>
-          <div className="relative">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
-              📤 Exportar
-            </Button>
-            {exportMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
-                  {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => handleExport(s)}
-                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <span className="text-emerald-500">✓</span> Proxy
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={async () => {
-              try {
-                // Get all proxies
-                const { data: allProxies } = await supabase.from("proxies").select("id, status");
-                // Get all devices with proxy linked
-                const { data: allDevices } = await supabase.from("devices").select("proxy_id");
-                const linkedProxyIds = new Set((allDevices || []).map(d => d.proxy_id).filter(Boolean));
-
-                let updated = 0;
-                for (const proxy of (allProxies || [])) {
-                  const isLinked = linkedProxyIds.has(proxy.id);
-                  let correctStatus: string;
-                  if (isLinked) {
-                    correctStatus = "USANDO";
-                  } else if (proxy.status === "USANDO") {
-                    correctStatus = "USADA";
-                  } else {
-                    correctStatus = proxy.status;
+          <div className="flex items-center gap-2">
+            <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+              📂 Importar
+            </Button>
+            <div className="relative">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+                📤 Exportar
+              </Button>
+              {exportMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+                    {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleExport(s)}
+                        className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={async () => {
+                try {
+                  const { data: allProxies } = await supabase.from("proxies").select("id, status");
+                  const { data: allDevices } = await supabase.from("devices").select("proxy_id");
+                  const linkedProxyIds = new Set((allDevices || []).map(d => d.proxy_id).filter(Boolean));
+                  let updated = 0;
+                  for (const proxy of (allProxies || [])) {
+                    const isLinked = linkedProxyIds.has(proxy.id);
+                    let correctStatus: string;
+                    if (isLinked) {
+                      correctStatus = "USANDO";
+                    } else if (proxy.status === "USANDO") {
+                      correctStatus = "USADA";
+                    } else {
+                      correctStatus = proxy.status;
+                    }
+                    if (proxy.status !== correctStatus) {
+                      await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
+                      updated++;
+                    }
                   }
-                  if (proxy.status !== correctStatus) {
-                    await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
-                    updated++;
-                  }
+                  queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                  toast.success(`Sincronizado! ${updated} proxy(s) atualizada(s).`);
+                } catch {
+                  toast.error("Erro ao sincronizar");
                 }
-                queryClient.invalidateQueries({ queryKey: ["proxies"] });
-                toast.success(`Sincronizado! ${updated} proxy(s) atualizada(s).`);
-              } catch {
-                toast.error("Erro ao sincronizar");
-              }
-            }}
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
-          </Button>
+              }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Filter chips */}
-      <div className="flex items-center gap-2">
-        {[
-          { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
-          { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
-          { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
-          { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
-        ].map((chip) => (
-          <button
-            key={chip.label}
-            onClick={() => setStatusFilter(chip.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              statusFilter === chip.key
-                ? chip.activeClass
-                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
-            }`}
-          >
-            <span className="text-[11px]">{chip.icon}</span>
-            {chip.label}
-          </button>
-        ))}
+        {/* Filter chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
+            { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
+            { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
+            { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
+          ].map((chip) => (
+            <button
+              key={chip.label}
+              onClick={() => setStatusFilter(chip.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                statusFilter === chip.key
+                  ? chip.activeClass
+                  : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
+              }`}
+            >
+              <span className="text-[11px]">{chip.icon}</span>
+              {chip.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Add form */}
