@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { UsersRound, Plus, Trash2, Link2, Loader2, Copy, Check } from "lucide-react";
+import { UsersRound, Plus, Trash2, Link2, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -113,7 +113,14 @@ const GroupCapture = () => {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-foreground">{sg.name}</p>
-                        <CopyButton text={sg.link} />
+                        <div className="flex items-center gap-1">
+                          <CopyButton text={sg.link} />
+                          <a href={sg.link} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="h-6 gap-1 text-xs px-2">
+                              <ExternalLink className="w-3 h-3" /> Entrar
+                            </Button>
+                          </a>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -140,7 +147,14 @@ const GroupCapture = () => {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-foreground">{g.name}</p>
-                        <CopyButton text={g.link} />
+                        <div className="flex items-center gap-1">
+                          <CopyButton text={g.link} />
+                          <a href={g.link} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="h-6 gap-1 text-xs px-2">
+                              <ExternalLink className="w-3 h-3" /> Entrar
+                            </Button>
+                          </a>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
