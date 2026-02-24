@@ -935,6 +935,34 @@ const Devices = () => {
                 <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
                 <p className="text-xs text-muted-foreground">Aguardando leitura do QR Code...</p>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs mt-1"
+                onClick={async () => {
+                  try {
+                    const result = await callWhapi({ action: "status", deviceId: connectingDevice!.id });
+                    const state = result?.status;
+                    if (state === "authenticated") {
+                      const { data: { session: s } } = await supabase.auth.getSession();
+                      if (s) {
+                        await supabase.functions.invoke("sync-devices", {
+                          headers: { Authorization: `Bearer ${s.access_token}` },
+                        });
+                      }
+                      queryClient.invalidateQueries({ queryKey: ["devices"] });
+                      setConnectStep("done");
+                      toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
+                    } else {
+                      toast({ title: "Ainda não conectado", description: "Escaneie o QR Code no celular e tente novamente.", variant: "destructive" });
+                    }
+                  } catch {
+                    toast({ title: "Erro ao verificar", variant: "destructive" });
+                  }
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Já escaneei, sincronizar
+              </Button>
             </div>
           )}
 
