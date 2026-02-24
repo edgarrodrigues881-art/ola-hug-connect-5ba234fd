@@ -223,12 +223,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      const res = await fetch(apiUrl("/message/send-text"), {
+      const res = await fetch(apiUrl("/send/text"), {
         method: "POST",
         headers: uazapiHeaders,
         body: JSON.stringify({
-          phone: number.replace(/\D/g, ""),
-          message: text,
+          number: number.replace(/\D/g, ""),
+          text: text,
         }),
       });
 

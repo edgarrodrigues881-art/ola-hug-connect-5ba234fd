@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     if (action === "list_chats") {
       const count = url.searchParams.get("count") || "30";
-      const res = await fetch(`${apiBaseUrl}/chat/listChats?count=${count}`, {
+      const res = await fetch(`${apiBaseUrl}/chat/chats?count=${count}`, {
         method: "GET",
         headers: apiHeaders,
       });
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
 
     if (action === "get_messages" && chatId) {
       const count = url.searchParams.get("count") || "50";
-      const res = await fetch(`${apiBaseUrl}/chat/getMessages?chatId=${encodeURIComponent(chatId)}&count=${count}`, {
+      const res = await fetch(`${apiBaseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=${count}`, {
         method: "GET",
         headers: apiHeaders,
       });
@@ -116,18 +116,11 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const phone = body.to?.replace(/\D/g, "");
       const message = body.message;
-      // Try GET first, fallback to POST
-      let res = await fetch(`${apiBaseUrl}/message/send-text?phone=${encodeURIComponent(phone)}&message=${encodeURIComponent(message)}`, {
-        method: "GET",
-        headers: { "token": apiToken, "Accept": "application/json" },
+      const res = await fetch(`${apiBaseUrl}/send/text`, {
+        method: "POST",
+        headers: apiHeaders,
+        body: JSON.stringify({ number: phone, text: message }),
       });
-      if (res.status === 405) {
-        res = await fetch(`${apiBaseUrl}/message/send-text`, {
-          method: "POST",
-          headers: apiHeaders,
-          body: JSON.stringify({ phone, message }),
-        });
-      }
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,11 +129,11 @@ Deno.serve(async (req) => {
 
     if (action === "send_media" && req.method === "POST") {
       const body = await req.json();
-      const res = await fetch(`${apiBaseUrl}/message/send-media`, {
+      const res = await fetch(`${apiBaseUrl}/send/media`, {
         method: "POST",
         headers: apiHeaders,
         body: JSON.stringify({
-          phone: body.to?.replace(/\D/g, ""),
+          number: body.to?.replace(/\D/g, ""),
           media: body.media_url,
           type: body.media_type || "image",
           caption: body.caption || undefined,
