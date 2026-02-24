@@ -92,12 +92,14 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          const response = await fetch(`${deviceBaseUrl}/group/joinGroup?inviteCode=${encodeURIComponent(inviteCode)}`, {
-            method: "GET",
+          const response = await fetch(`${deviceBaseUrl}/group/join`, {
+            method: "POST",
             headers: {
               "token": deviceToken,
               "Accept": "application/json",
+              "Content-Type": "application/json",
             },
+            body: JSON.stringify({ invitecode: groupLink }),
           });
 
           const data = await response.json();
