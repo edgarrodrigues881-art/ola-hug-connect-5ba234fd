@@ -347,20 +347,44 @@ const Proxy = () => {
 
       {/* Header */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <span className="text-emerald-500">✓</span> Proxy
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <span className="text-emerald-500">✓</span> Proxy
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
+        </div>
+
+        {/* All actions in one scrollable bar */}
+        <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex items-center gap-2 min-w-max">
+            {[
+              { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
+              { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
+              { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
+              { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                onClick={() => setStatusFilter(chip.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                  statusFilter === chip.key
+                    ? chip.activeClass
+                    : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
+                }`}
+              >
+                <span className="text-[11px]">{chip.icon}</span>
+                {chip.label}
+              </button>
+            ))}
+
+            <div className="w-px h-6 bg-border mx-1" />
+
             <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
               📂 Importar
             </Button>
             <div className="relative">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs whitespace-nowrap" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
                 📤 Exportar
               </Button>
               {exportMenuOpen && (
@@ -383,7 +407,7 @@ const Proxy = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs"
+              className="gap-1.5 text-xs whitespace-nowrap"
               onClick={async () => {
                 try {
                   const { data: allProxies } = await supabase.from("proxies").select("id, status");
@@ -415,29 +439,6 @@ const Proxy = () => {
               <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
             </Button>
           </div>
-        </div>
-
-        {/* Filter chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {[
-            { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
-            { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
-            { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
-            { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
-          ].map((chip) => (
-            <button
-              key={chip.label}
-              onClick={() => setStatusFilter(chip.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                statusFilter === chip.key
-                  ? chip.activeClass
-                  : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
-              }`}
-            >
-              <span className="text-[11px]">{chip.icon}</span>
-              {chip.label}
-            </button>
-          ))}
         </div>
       </div>
 
