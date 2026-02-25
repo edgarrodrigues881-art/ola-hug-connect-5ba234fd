@@ -652,42 +652,73 @@ const Campaigns = () => {
             </div>
           </div>
 
-          {/* Buttons section */}
-          {showButtons && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
-              <span className="text-xs font-medium text-foreground">Botões Interativos</span>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><MousePointerClick className="w-3 h-3" /> Resposta Rápida <span className="text-[9px]">{quickReplyButtons.length}/3</span></span>
-                  <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={addQuickReply} disabled={quickReplyButtons.length >= 3}><Plus className="w-3 h-3 mr-1" /> Adicionar</Button>
-                </div>
+          {/* Buttons section - always available */}
+          <div className="space-y-3">
+            {/* Added buttons list */}
+            {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
+              <div className="rounded-lg border border-border/30 bg-card/40 p-3 space-y-2">
                 {quickReplyButtons.map(btn => (
                   <div key={btn.id} className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[9px] h-5 shrink-0">Resposta</Badge>
                     <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-background/30 border-border/20" maxLength={20} />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
-              </div>
-              <div className="border-t border-border/20" />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Link className="w-3 h-3" /> Link / Ligação <span className="text-[9px]">{ctaButtons.length}/2</span></span>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("url")} disabled={ctaButtons.length >= 2}><Link className="w-3 h-3 mr-1" /> URL</Button>
-                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("phone")} disabled={ctaButtons.length >= 2}><Phone className="w-3 h-3 mr-1" /> Tel</Button>
-                  </div>
-                </div>
                 {ctaButtons.map(btn => (
                   <div key={btn.id} className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-[9px] h-5">{btn.type === "url" ? "URL" : "TEL"}</Badge>
+                    <Badge variant="secondary" className="text-[9px] h-5 shrink-0">{btn.type === "url" ? "URL" : "Ligar"}</Badge>
                     <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-background/30 border-border/20" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+55..."} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
+                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Add button trigger */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border/40 border-dashed w-full justify-center">
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Botão
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
+                <button
+                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
+                  onClick={addQuickReply}
+                  disabled={quickReplyButtons.length >= 3}
+                >
+                  <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">Resposta Rápida</p>
+                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length}/3 · Botão de resposta simples</p>
+                  </div>
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
+                  onClick={() => addCTAButton("url")}
+                  disabled={ctaButtons.length >= 2}
+                >
+                  <Link className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">Link (URL)</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.length}/2 · Abre um link no navegador</p>
+                  </div>
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
+                  onClick={() => addCTAButton("phone")}
+                  disabled={ctaButtons.length >= 2}
+                >
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">Ligar (Telefone)</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.length}/2 · Inicia uma ligação</p>
+                  </div>
+                </button>
+              </PopoverContent>
+            </Popover>
+          </div>
 
           <div className="flex justify-end">
             <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
