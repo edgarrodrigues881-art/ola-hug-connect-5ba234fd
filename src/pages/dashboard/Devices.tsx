@@ -482,7 +482,27 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // First call: connect (triggers disconnect + fresh QR)
+      // If device has no instance token, create instance on UaZapi first
+      if (!connectingDevice.uazapi_token) {
+        console.log("No instance token, creating instance on UaZapi...");
+        try {
+          const createResult = await callApi({
+            action: "createInstance",
+            deviceId: connectingDevice.id,
+            instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+          });
+          console.log("Instance created:", createResult);
+          // Update local device state with new token
+          connectingDevice.uazapi_token = createResult.instanceToken;
+          connectingDevice.uazapi_base_url = createResult.baseUrl;
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        } catch (createErr: any) {
+          console.error("Create instance error:", createErr);
+          throw new Error("Erro ao criar instância na UaZapi: " + (createErr?.message || "Erro desconhecido"));
+        }
+      }
+
+      // Now connect (triggers QR)
       let qrFound = false;
       console.log("QR: initial connect call");
       try {
