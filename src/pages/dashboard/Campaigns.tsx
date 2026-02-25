@@ -361,9 +361,9 @@ const Campaigns = () => {
   };
 
   const steps = [
-    { num: 1, label: "Configuração", icon: Settings2 },
+    { num: 1, label: "Mensagem", icon: MessageSquare },
     { num: 2, label: "Contatos", icon: Users },
-    { num: 3, label: "Mensagem", icon: MessageSquare },
+    { num: 3, label: "Configuração", icon: Settings2 },
     { num: 4, label: "Enviar", icon: Send },
   ];
 
@@ -408,11 +408,11 @@ const Campaigns = () => {
         })}
       </div>
 
-      {/* ===== STEP 1: Configuration ===== */}
+      {/* ===== STEP 1: Message ===== */}
       {step === 1 && (
         <div className="space-y-6">
-          {/* 3-column: Template, Instance, Type */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Template & Type selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Template */}
             <div className="space-y-1.5">
               <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
@@ -439,69 +439,6 @@ const Campaigns = () => {
                   {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Instance (Multi-select) */}
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância{selectedDevices.length > 1 ? `s (${selectedDevices.length})` : ""}</Label>
-              {devices.length === 0 ? (
-                <div className="h-9 rounded-md border border-dashed border-border/40 bg-card/30 flex items-center justify-center gap-1.5 px-2">
-                  <WifiOff className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">Nenhuma conectada</span>
-                </div>
-              ) : (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-9 w-full justify-between text-xs bg-card/60 border-border/40 font-normal">
-                      <span className="truncate">
-                        {selectedDevices.length === 0 ? "Selecionar" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
-                      </span>
-                      <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2 space-y-1" align="start">
-                    {/* Select All */}
-                    <button
-                      onClick={() => {
-                        if (selectedDevices.length === devices.length) setSelectedDevices([]);
-                        else setSelectedDevices(devices.map(d => d.id));
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
-                        selectedDevices.length === devices.length && "bg-accent"
-                      )}
-                    >
-                      <Checkbox checked={selectedDevices.length === devices.length} className="h-3.5 w-3.5" />
-                      <span className="font-medium">Selecionar todas</span>
-                      <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
-                    </button>
-                    <div className="h-px bg-border/30 my-1" />
-                    {devices.map(d => {
-                      const s = getDeviceStatus(d.status);
-                      const isSelected = selectedDevices.includes(d.id);
-                      return (
-                        <button
-                          key={d.id}
-                          onClick={() => {
-                            setSelectedDevices(prev =>
-                              isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id]
-                            );
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
-                            isSelected && "bg-accent/60"
-                          )}
-                        >
-                          <Checkbox checked={isSelected} className="h-3.5 w-3.5" />
-                          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
-                          <span className="truncate">{d.name}</span>
-                          <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
-                        </button>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
-              )}
             </div>
 
             {/* Message Type */}
@@ -531,111 +468,102 @@ const Campaigns = () => {
             </div>
           </div>
 
-          {/* Instance card (when selected) */}
-          {selectedDeviceData && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {selectedDeviceData.profile_picture ? (
-                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-8 h-8 rounded-lg object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
-                      <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.number || selectedDeviceData.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{selectedDeviceData.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    const s = getDeviceStatus(selectedDeviceData.status);
-                    const StatusIcon = s.icon;
-                    return (
-                      <div className="flex items-center gap-1 text-[10px]">
-                        <StatusIcon className={cn("w-3 h-3", s.color)} />
-                        <span className={s.color}>{s.label}</span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
+          {/* Message editor */}
+          <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+            {/* Toolbar */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1 border-border/40">
+                    <FileText className="w-3 h-3" /> Inserir variável
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
+                  {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
+                    <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                      onClick={() => setMessage(prev => prev + v.tag)}>
+                      <span>{v.label}</span>
+                      <code className="text-[9px] text-muted-foreground">{v.tag}</code>
+                    </button>
+                  ))}
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
+                  {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
+                    <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                      onClick={() => setMessage(prev => prev + `{{var${i + 1}}}`)}>
+                      <span>{v}</span>
+                      <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+
+              <div className="h-4 w-px bg-border/30 mx-1" />
+              {[
+                { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
+                { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
+                { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
+                { icon: Code, label: "Código", wrap: ["```", "```"] },
+              ].map(({ icon: Icon, label, wrap }) => (
+                <Button key={label} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title={label}
+                  onClick={() => setMessage(prev => prev + wrap[0] + wrap[1])}>
+                  <Icon className="w-3 h-3" />
+                </Button>
+              ))}
+              <div className="h-4 w-px bg-border/30 mx-1" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Smile className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Image className="w-3 h-3" /></Button>
             </div>
-          )}
 
-          {/* No instance warning */}
-          {devices.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border/40 bg-card/20 p-8 flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted/30 flex items-center justify-center">
-                <WifiOff className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">Nenhuma instância conectada</p>
-              <Button variant="outline" size="sm" className="text-xs h-8 border-border/40">
-                Conectar agora
-              </Button>
-            </div>
-          )}
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Digite sua mensagem aqui..."
+              rows={8}
+              className="text-sm leading-relaxed bg-background/30 border-border/20 resize-none focus:border-primary/30"
+            />
 
-          {/* Send Control */}
-          <div className="space-y-3">
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Controle de Envio</Label>
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-5">
-
-              {/* Delay between messages */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Intervalo entre mensagens</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={minDelay} />
-                  </div>
-                </div>
-                <p className="text-[9px] text-muted-foreground/60">Intervalo aleatório entre {minDelay}s e {maxDelay}s a cada envio</p>
-              </div>
-
-              <div className="h-px bg-border/20" />
-
-              {/* Pause every X messages */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Pausa a cada X mensagens</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">A cada (mín.)</label>
-                    <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">A cada (máx.)</label>
-                    <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseEveryMin} />
-                  </div>
-                </div>
-                <p className="text-[9px] text-muted-foreground/60">Pausa aleatória entre cada {pauseEveryMin} a {pauseEveryMax} mensagens enviadas</p>
-              </div>
-
-              <div className="h-px bg-border/20" />
-
-              {/* Pause duration */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Activity className="w-3 h-3" /> Duração da pausa</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseDurationMin} />
-                  </div>
-                </div>
-                <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
-              </div>
-
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
             </div>
           </div>
+
+          {/* Buttons section */}
+          {showButtons && (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+              <span className="text-xs font-medium text-foreground">Botões Interativos</span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><MousePointerClick className="w-3 h-3" /> Resposta Rápida <span className="text-[9px]">{quickReplyButtons.length}/3</span></span>
+                  <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={addQuickReply} disabled={quickReplyButtons.length >= 3}><Plus className="w-3 h-3 mr-1" /> Adicionar</Button>
+                </div>
+                {quickReplyButtons.map(btn => (
+                  <div key={btn.id} className="flex items-center gap-2">
+                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-background/30 border-border/20" maxLength={20} />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-border/20" />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Link className="w-3 h-3" /> Link / Ligação <span className="text-[9px]">{ctaButtons.length}/2</span></span>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("url")} disabled={ctaButtons.length >= 2}><Link className="w-3 h-3 mr-1" /> URL</Button>
+                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("phone")} disabled={ctaButtons.length >= 2}><Phone className="w-3 h-3 mr-1" /> Tel</Button>
+                  </div>
+                </div>
+                {ctaButtons.map(btn => (
+                  <div key={btn.id} className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="secondary" className="text-[9px] h-5">{btn.type === "url" ? "URL" : "TEL"}</Badge>
+                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-background/30 border-border/20" maxLength={20} />
+                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+55..."} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end">
             <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
@@ -846,104 +774,176 @@ const Campaigns = () => {
         </div>
       )}
 
-      {/* ===== STEP 3: Message ===== */}
+      {/* ===== STEP 3: Configuration (Instance + Delay) ===== */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
-            {/* Toolbar - simplified */}
-            <div className="flex items-center gap-1 flex-wrap">
+          {/* Instance (Multi-select) */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância{selectedDevices.length > 1 ? `s (${selectedDevices.length})` : ""}</Label>
+            {devices.length === 0 ? (
+              <div className="h-9 rounded-md border border-dashed border-border/40 bg-card/30 flex items-center justify-center gap-1.5 px-2">
+                <WifiOff className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground">Nenhuma conectada</span>
+              </div>
+            ) : (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1 border-border/40">
-                    <FileText className="w-3 h-3" /> Inserir variável
+                  <Button variant="outline" className="h-9 w-full justify-between text-xs bg-card/60 border-border/40 font-normal">
+                    <span className="truncate">
+                      {selectedDevices.length === 0 ? "Selecionar" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
-                  {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
-                    <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => setMessage(prev => prev + v.tag)}>
-                      <span>{v.label}</span>
-                      <code className="text-[9px] text-muted-foreground">{v.tag}</code>
-                    </button>
-                  ))}
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
-                  {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
-                    <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => setMessage(prev => prev + `{{var${i + 1}}}`)}>
-                      <span>{v}</span>
-                      <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
-                    </button>
-                  ))}
+                <PopoverContent className="w-64 p-2 space-y-1" align="start">
+                  <button
+                    onClick={() => {
+                      if (selectedDevices.length === devices.length) setSelectedDevices([]);
+                      else setSelectedDevices(devices.map(d => d.id));
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
+                      selectedDevices.length === devices.length && "bg-accent"
+                    )}
+                  >
+                    <Checkbox checked={selectedDevices.length === devices.length} className="h-3.5 w-3.5" />
+                    <span className="font-medium">Selecionar todas</span>
+                    <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
+                  </button>
+                  <div className="h-px bg-border/30 my-1" />
+                  {devices.map(d => {
+                    const s = getDeviceStatus(d.status);
+                    const isSelected = selectedDevices.includes(d.id);
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => {
+                          setSelectedDevices(prev =>
+                            isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id]
+                          );
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
+                          isSelected && "bg-accent/60"
+                        )}
+                      >
+                        <Checkbox checked={isSelected} className="h-3.5 w-3.5" />
+                        <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
+                        <span className="truncate">{d.name}</span>
+                        <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
+                      </button>
+                    );
+                  })}
                 </PopoverContent>
               </Popover>
-
-              <div className="h-4 w-px bg-border/30 mx-1" />
-              {[
-                { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
-                { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
-                { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
-                { icon: Code, label: "Código", wrap: ["```", "```"] },
-              ].map(({ icon: Icon, label, wrap }) => (
-                <Button key={label} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title={label}
-                  onClick={() => setMessage(prev => prev + wrap[0] + wrap[1])}>
-                  <Icon className="w-3 h-3" />
-                </Button>
-              ))}
-              <div className="h-4 w-px bg-border/30 mx-1" />
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Smile className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Image className="w-3 h-3" /></Button>
-            </div>
-
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite sua mensagem aqui..."
-              rows={8}
-              className="text-sm leading-relaxed bg-background/30 border-border/20 resize-none focus:border-primary/30"
-            />
-
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
-            </div>
+            )}
           </div>
 
-          {/* Buttons section */}
-          {showButtons && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
-              <span className="text-xs font-medium text-foreground">Botões Interativos</span>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><MousePointerClick className="w-3 h-3" /> Resposta Rápida <span className="text-[9px]">{quickReplyButtons.length}/3</span></span>
-                  <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={addQuickReply} disabled={quickReplyButtons.length >= 3}><Plus className="w-3 h-3 mr-1" /> Adicionar</Button>
-                </div>
-                {quickReplyButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-2">
-                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-background/30 border-border/20" maxLength={20} />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t border-border/20" />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Link className="w-3 h-3" /> Link / Ligação <span className="text-[9px]">{ctaButtons.length}/2</span></span>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("url")} disabled={ctaButtons.length >= 2}><Link className="w-3 h-3 mr-1" /> URL</Button>
-                    <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => addCTAButton("phone")} disabled={ctaButtons.length >= 2}><Phone className="w-3 h-3 mr-1" /> Tel</Button>
+          {/* Instance card (when selected) */}
+          {selectedDeviceData && (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {selectedDeviceData.profile_picture ? (
+                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-8 h-8 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
+                      <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.number || selectedDeviceData.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedDeviceData.name}</p>
                   </div>
                 </div>
-                {ctaButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-[9px] h-5">{btn.type === "url" ? "URL" : "TEL"}</Badge>
-                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-background/30 border-border/20" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+55..."} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
-                  </div>
-                ))}
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const s = getDeviceStatus(selectedDeviceData.status);
+                    const StatusIcon = s.icon;
+                    return (
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <StatusIcon className={cn("w-3 h-3", s.color)} />
+                        <span className={s.color}>{s.label}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           )}
+
+          {/* No instance warning */}
+          {devices.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border/40 bg-card/20 p-8 flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-muted/30 flex items-center justify-center">
+                <WifiOff className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">Nenhuma instância conectada</p>
+              <Button variant="outline" size="sm" className="text-xs h-8 border-border/40">
+                Conectar agora
+              </Button>
+            </div>
+          )}
+
+          {/* Send Control */}
+          <div className="space-y-3">
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Controle de Envio</Label>
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-5">
+
+              {/* Delay between messages */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Intervalo entre mensagens</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
+                    <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
+                    <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={minDelay} />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground/60">Intervalo aleatório entre {minDelay}s e {maxDelay}s a cada envio</p>
+              </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Pause every X messages */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Pausa a cada X mensagens</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">A cada (mín.)</label>
+                    <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">A cada (máx.)</label>
+                    <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseEveryMin} />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground/60">Pausa aleatória entre cada {pauseEveryMin} a {pauseEveryMax} mensagens enviadas</p>
+              </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Pause duration */}
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Activity className="w-3 h-3" /> Duração da pausa</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
+                    <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
+                    <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseDurationMin} />
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
+              </div>
+
+            </div>
+          </div>
 
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-xs text-muted-foreground">Voltar</Button>
