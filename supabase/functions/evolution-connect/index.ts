@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { action, deviceId, number, text, instanceName } = body;
-    console.log("ACTION:", action, "DEVICE:", deviceId);
+    console.log("v2 ACTION:", action, "DEVICE:", deviceId);
 
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
