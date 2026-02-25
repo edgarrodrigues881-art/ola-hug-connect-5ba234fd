@@ -70,6 +70,10 @@ const Campaigns = () => {
   const { data: savedTemplates = [] } = useTemplates();
   const { data: savedContacts = [] } = useContacts();
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState("");
 
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
@@ -157,6 +161,7 @@ const Campaigns = () => {
     if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
       name: campaignName, message_type: messageType, message_content: message,
+      media_url: mediaUrl || undefined,
       buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
     }, {
@@ -166,7 +171,7 @@ const Campaigns = () => {
           onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
           onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
-        setCampaignName(""); setMessage(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1);
+        setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1);
       },
       onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
     });
@@ -178,6 +183,45 @@ const Campaigns = () => {
   const removeCTAButton = (id: number) => setCTAButtons(ctaButtons.filter(b => b.id !== id));
   const updateQuickReply = (id: number, text: string) => setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
   const updateCTAButton = (id: number, field: "text" | "value", val: string) => setCTAButtons(ctaButtons.map(b => b.id === id ? { ...b, [field]: val } : b));
+
+  const wrapSelectedText = (before: string, after: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) { setMessage(prev => prev + before + after); return; }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = message.substring(start, end);
+    const newText = message.substring(0, start) + before + selected + after + message.substring(end);
+    setMessage(newText);
+    // Restore cursor position after state update
+    setTimeout(() => {
+      textarea.focus();
+      if (selected.length > 0) {
+        textarea.setSelectionRange(start + before.length, end + before.length);
+      } else {
+        textarea.setSelectionRange(start + before.length, start + before.length);
+      }
+    }, 0);
+  };
+
+  const insertAtCursor = (text: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) { setMessage(prev => prev + text); return; }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newText = message.substring(0, start) + text + message.substring(end);
+    setMessage(newText);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + text.length, start + text.length);
+    }, 0);
+  };
+
+  const commonEmojis = [
+    "😀", "😂", "🤣", "😊", "😍", "🥰", "😎", "🤩",
+    "👍", "👋", "🙏", "💪", "🎉", "🔥", "❤️", "💙",
+    "✅", "⭐", "💰", "🚀", "📱", "💬", "📢", "🎯",
+    "⚡", "🏆", "💎", "🤝", "📞", "✨", "🛒", "🎁",
+  ];
 
   const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
@@ -482,7 +526,7 @@ const Campaigns = () => {
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
                   {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
                     <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => setMessage(prev => prev + v.tag)}>
+                      onClick={() => insertAtCursor(v.tag)}>
                       <span>{v.label}</span>
                       <code className="text-[9px] text-muted-foreground">{v.tag}</code>
                     </button>
@@ -490,7 +534,7 @@ const Campaigns = () => {
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
                   {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
                     <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => setMessage(prev => prev + `{{var${i + 1}}}`)}>
+                      onClick={() => insertAtCursor(`{{var${i + 1}}}`)}>
                       <span>{v}</span>
                       <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
                     </button>
@@ -506,16 +550,67 @@ const Campaigns = () => {
                 { icon: Code, label: "Código", wrap: ["```", "```"] },
               ].map(({ icon: Icon, label, wrap }) => (
                 <Button key={label} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title={label}
-                  onClick={() => setMessage(prev => prev + wrap[0] + wrap[1])}>
+                  onClick={() => wrapSelectedText(wrap[0], wrap[1])}>
                   <Icon className="w-3 h-3" />
                 </Button>
               ))}
               <div className="h-4 w-px bg-border/30 mx-1" />
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Smile className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Image className="w-3 h-3" /></Button>
+
+              {/* Emoji Picker */}
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Emoji">
+                    <Smile className="w-3 h-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[260px] p-2 bg-popover border-border z-50" align="start">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-1 pb-1.5">Emojis</p>
+                  <div className="grid grid-cols-8 gap-0.5">
+                    {commonEmojis.map(emoji => (
+                      <button
+                        key={emoji}
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-base"
+                        onClick={() => { insertAtCursor(emoji); setShowEmojiPicker(false); }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Media URL */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", mediaUrl && "text-primary")} title="Mídia (imagem/vídeo)">
+                    <Image className="w-3 h-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-3 bg-popover border-border z-50 space-y-2" align="start">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">URL da mídia</p>
+                  <Input
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    className="h-8 text-xs bg-background/50 border-border/30"
+                  />
+                  <p className="text-[9px] text-muted-foreground/60">Cole a URL de uma imagem, vídeo ou documento</p>
+                  {mediaUrl && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
+                        <img src={mediaUrl} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
+                        <X className="w-3 h-3 mr-1" /> Remover
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
 
             <Textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Digite sua mensagem aqui..."
@@ -525,6 +620,11 @@ const Campaigns = () => {
 
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
+              {mediaUrl && (
+                <span className="text-[10px] text-primary flex items-center gap-1">
+                  <Image className="w-3 h-3" /> Mídia anexada
+                </span>
+              )}
             </div>
           </div>
 
