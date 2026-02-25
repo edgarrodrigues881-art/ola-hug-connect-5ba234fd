@@ -35,57 +35,116 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, deviceId, number, text } = body;
+    const { action, deviceId, number, text, instanceName } = body;
     console.log("ACTION:", action, "DEVICE:", deviceId);
 
-    // Get global UaZapi config as fallback
-    let UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
-    let UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // If deviceId provided, try to use per-device token/url
+    // Get global UaZapi config (admin credentials)
+    const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+    const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+    // Helper to build URL
+    const apiUrl = (base: string, endpoint: string) => `${base}${endpoint}`;
+
+    // ACTION: createInstance - Create a new instance on UaZapi using admin token
+    if (action === "createInstance") {
+      if (!ADMIN_BASE_URL || !ADMIN_TOKEN) {
+        return new Response(
+          JSON.stringify({ error: "Admin token ou URL da UaZapi não configurados." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const name = instanceName || `inst-${Date.now()}`;
+      console.log("Creating instance:", name, "on", ADMIN_BASE_URL);
+
+      const res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+        method: "POST",
+        headers: {
+          "admintoken": ADMIN_TOKEN,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      const resText = await res.text();
+      let data;
+      try { data = JSON.parse(resText); } catch {
+        throw new Error(`UaZapi non-JSON (${res.status}): ${resText.substring(0, 300)}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(`Create instance failed [${res.status}]: ${JSON.stringify(data)}`);
+      }
+
+      // Extract instance token from response
+      const instanceToken = data.token || data.instance?.token;
+      const instanceId = data.id || data.instance?.id;
+
+      console.log("Instance created, token received:", !!instanceToken);
+
+      // If deviceId provided, save the instance token to the device
+      if (deviceId && instanceToken) {
+        await serviceClient.from("devices").update({
+          uazapi_token: instanceToken,
+          uazapi_base_url: ADMIN_BASE_URL,
+        }).eq("id", deviceId);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        instanceToken,
+        instanceId,
+        instanceName: name,
+        baseUrl: ADMIN_BASE_URL,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // For all other actions, get per-device token (instance token)
+    let INSTANCE_BASE_URL = ADMIN_BASE_URL;
+    let INSTANCE_TOKEN = "";
+
     if (deviceId) {
-      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const { data: device } = await serviceClient
         .from("devices")
         .select("uazapi_token, uazapi_base_url")
         .eq("id", deviceId)
         .single();
-      if (device?.uazapi_token) UAZAPI_TOKEN = device.uazapi_token;
-      if (device?.uazapi_base_url) UAZAPI_BASE_URL = device.uazapi_base_url;
+      if (device?.uazapi_token) INSTANCE_TOKEN = device.uazapi_token;
+      if (device?.uazapi_base_url) INSTANCE_BASE_URL = device.uazapi_base_url.replace(/\/+$/, "");
       console.log("Using per-device config:", !!device?.uazapi_token, !!device?.uazapi_base_url);
     }
 
-    if (!UAZAPI_BASE_URL || !UAZAPI_TOKEN) {
+    if (!INSTANCE_BASE_URL || !INSTANCE_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "API de conexão não configurada. Configure o token UaZapi no dispositivo." }),
+        JSON.stringify({ error: "Token da instância não configurado. Crie a instância primeiro." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // UaZapi v2: token goes in 'token' header
-    const uazapiBase = UAZAPI_BASE_URL.replace(/\/+$/, "");
-    const apiUrl = (endpoint: string) => `${uazapiBase}${endpoint}`;
-    console.log("BASE URL:", uazapiBase, "| TOKEN length:", UAZAPI_TOKEN.length);
-
-    const uazapiHeaders = {
-      "token": UAZAPI_TOKEN,
+    const instanceHeaders = {
+      "token": INSTANCE_TOKEN,
       "Accept": "application/json",
       "Content-Type": "application/json",
     };
 
+    console.log("BASE URL:", INSTANCE_BASE_URL, "| INSTANCE TOKEN length:", INSTANCE_TOKEN.length);
+
     // ACTION: connect - Start connection and get QR code
     if (action === "connect") {
-      // Check current status first - skip disconnect if already disconnected
+      // Check current status first
       let currentStatus = "";
       try {
-        const checkRes = await fetch(apiUrl("/instance/status"), { method: "GET", headers: uazapiHeaders });
+        const checkRes = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/status"), { method: "GET", headers: instanceHeaders });
         const checkData = await checkRes.json();
-        const inst = checkData.instance || {};
-        currentStatus = inst.status || "";
-        
+        const inst = checkData.instance || checkData;
+        currentStatus = inst.status || checkData.status || "";
+
         // Already connected? Return immediately
         if (currentStatus === "connected") {
-          const phone = inst.owner || "";
+          const phone = inst.owner || inst.phone || "";
           let formattedPhone = "";
           if (phone) {
             const raw = String(phone).replace(/\D/g, "");
@@ -96,7 +155,6 @@ Deno.serve(async (req) => {
             }
           }
           if (deviceId) {
-            const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
             await serviceClient.from("devices").update({ status: "Ready", number: formattedPhone }).eq("id", deviceId);
           }
           return new Response(JSON.stringify({
@@ -104,11 +162,12 @@ Deno.serve(async (req) => {
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // Has QR already? Return it without reconnecting
-        if (inst.qrcode && currentStatus === "connecting") {
+        // Has QR already? Return it
+        const existingQr = inst.qrcode || checkData.qrcode;
+        if (existingQr && currentStatus === "connecting") {
           console.log("QR already available, returning immediately");
           return new Response(JSON.stringify({
-            success: true, base64: inst.qrcode, qr: inst.qrcode, status: "connecting",
+            success: true, base64: existingQr, qr: existingQr, status: "connecting",
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       } catch (e) {
@@ -118,19 +177,18 @@ Deno.serve(async (req) => {
       // Only disconnect if not already disconnected
       if (currentStatus && currentStatus !== "disconnected") {
         try {
-          await fetch(apiUrl("/instance/disconnect"), { method: "POST", headers: uazapiHeaders });
+          await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/disconnect"), { method: "POST", headers: instanceHeaders });
           console.log("Pre-connect disconnect done");
         } catch (e) {
           console.log("Pre-connect disconnect skipped:", e);
         }
-        // Minimal delay after disconnect
         await new Promise(r => setTimeout(r, 500));
       }
 
       // Call connect
-      const connectRes = await fetch(apiUrl("/instance/connect"), {
+      const connectRes = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/connect"), {
         method: "POST",
-        headers: uazapiHeaders,
+        headers: instanceHeaders,
         body: JSON.stringify({}),
       });
 
@@ -140,16 +198,24 @@ Deno.serve(async (req) => {
         throw new Error(`UaZapi non-JSON (${connectRes.status}): ${connectText.substring(0, 200)}`);
       }
 
-      // Try to get QR from connect response directly
-      const connInst = connectData.instance || {};
+      // Try to get QR from connect response
+      const connInst = connectData.instance || connectData;
       let qrCode = connInst.qrcode || connectData.qrcode;
-      
-      // If no QR in connect response, check status
+
+      // If no QR, poll status
       if (!qrCode) {
-        const statusRes = await fetch(apiUrl("/instance/status"), { method: "GET", headers: uazapiHeaders });
-        const statusData = await statusRes.json();
-        const inst = statusData.instance || {};
-        qrCode = inst.qrcode || statusData.qrcode;
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const statusRes = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/status"), { method: "GET", headers: instanceHeaders });
+            const statusData = await statusRes.json();
+            const inst = statusData.instance || statusData;
+            qrCode = inst.qrcode || statusData.qrcode;
+            if (qrCode) break;
+          } catch (e) {
+            console.log(`QR poll ${attempt} error:`, e);
+          }
+        }
       }
 
       console.log("QR found:", !!qrCode, "length:", qrCode?.length || 0);
@@ -164,23 +230,20 @@ Deno.serve(async (req) => {
 
     // ACTION: status - Check connection state
     if (action === "status") {
-      const res = await fetch(apiUrl("/instance/status"), {
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/status"), {
         method: "GET",
-        headers: uazapiHeaders,
+        headers: instanceHeaders,
       });
 
       const data = await res.json();
-      
-      // Map UaZapi status to our expected format
-      const inst = data.instance || {};
+      const inst = data.instance || data;
       const state = inst.status || data.state || data.status;
       const isConnected = state === "connected";
       const qrCode = inst.qrcode || data.qrcode || data.qr || data.base64;
       const mappedStatus = isConnected ? "authenticated" : (state || "unknown");
-      
+
       console.log("STATUS mapped:", state, "->", mappedStatus, "| connected:", isConnected);
 
-      // IMPORTANT: Don't spread ...data to avoid field conflicts
       return new Response(JSON.stringify({
         success: true,
         status: mappedStatus,
@@ -196,18 +259,14 @@ Deno.serve(async (req) => {
 
     // ACTION: logout - Disconnect the instance
     if (action === "logout") {
-      const res = await fetch(apiUrl("/instance/disconnect"), {
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/disconnect"), {
         method: "POST",
-        headers: uazapiHeaders,
+        headers: instanceHeaders,
       });
 
       const rawText = await res.text();
       let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        data = { message: rawText };
-      }
+      try { data = JSON.parse(rawText); } catch { data = { message: rawText }; }
 
       return new Response(JSON.stringify({ success: true, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -223,9 +282,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      const res = await fetch(apiUrl("/send/text"), {
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/send/text"), {
         method: "POST",
-        headers: uazapiHeaders,
+        headers: instanceHeaders,
         body: JSON.stringify({
           number: number.replace(/\D/g, ""),
           text: text,
@@ -234,9 +293,7 @@ Deno.serve(async (req) => {
 
       const rawText = await res.text();
       let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
+      try { data = JSON.parse(rawText); } catch {
         throw new Error(`UaZapi returned non-JSON (status ${res.status}): ${rawText.substring(0, 200)}`);
       }
       if (!res.ok) {
