@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.join-group]
 verify_jwt = false
+
+[functions.warmup-execute]
+verify_jwt = false
