@@ -3,20 +3,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Flame, Plus, Play, Pause, Trash2, Smartphone, Clock, MessageSquare, TrendingUp, Settings2,
+  Zap, X, Send, RefreshCw,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useWarmupSessions, useCreateWarmup, useUpdateWarmup, useDeleteWarmup } from "@/hooks/useWarmup";
+import { useWarmupMessages, useCreateWarmupMessage, useDeleteWarmupMessage } from "@/hooks/useWarmupMessages";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 const statusConfig = {
   running: { label: "Rodando", color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
@@ -31,6 +36,10 @@ const Warmup = () => {
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
   const deleteWarmup = useDeleteWarmup();
+
+  const { data: warmupMessages = [] } = useWarmupMessages();
+  const createMessage = useCreateWarmupMessage();
+  const deleteMessage = useDeleteWarmupMessage();
 
   const { data: devices = [] } = useQuery({
     queryKey: ["devices-for-warmup", user?.id],
@@ -54,6 +63,9 @@ const Warmup = () => {
   const [formMaxDelay, setFormMaxDelay] = useState("120");
   const [formStartTime, setFormStartTime] = useState("08:00");
   const [formEndTime, setFormEndTime] = useState("18:00");
+
+  const [newMessage, setNewMessage] = useState("");
+  const [executingId, setExecutingId] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!formDeviceId) {
@@ -93,6 +105,49 @@ const Warmup = () => {
     });
   };
 
+  const executeNow = async (sessionId: string) => {
+    setExecutingId(sessionId);
+    try {
+      const { data, error } = await supabase.functions.invoke("warmup-execute", {
+        body: { sessionId },
+      });
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (result?.status === "ok") {
+        toast({ title: "Warmup executado!", description: `${result.sent} mensagens enviadas` });
+      } else {
+        toast({ title: "Warmup", description: result?.reason || "Nenhuma mensagem enviada", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setExecutingId(null);
+    }
+  };
+
+  const handleAddMessage = () => {
+    if (!newMessage.trim()) return;
+    createMessage.mutate(newMessage.trim(), {
+      onSuccess: () => { setNewMessage(""); toast({ title: "Mensagem adicionada!" }); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
+  };
+
+  const addDefaultMessages = () => {
+    const defaults = [
+      "Bom dia! 😊", "Boa tarde pessoal!", "Boa noite! 🌙",
+      "Alguém sabe de alguma novidade?", "Como vocês estão?",
+      "Valeu pessoal! 👍", "Ótima informação, obrigado!",
+      "Concordo totalmente 👏", "Interessante isso!", "Show de bola! 🔥",
+      "Boa semana a todos!", "Obrigado por compartilhar!",
+      "Muito bom isso!", "Top demais 🚀", "Verdade!",
+      "Com certeza!", "Excelente ponto!", "Parabéns pelo conteúdo 🎉",
+      "Adorei essa dica!", "Muito útil, valeu!",
+    ];
+    defaults.forEach(msg => createMessage.mutate(msg));
+    toast({ title: "20 mensagens padrão adicionadas!" });
+  };
+
   const getDeviceName = (deviceId: string) => {
     const device = devices.find(d => d.id === deviceId);
     return device ? `${device.name}${device.number ? ` (${device.number})` : ""}` : deviceId.slice(0, 8);
@@ -109,7 +164,7 @@ const Warmup = () => {
           <h1 className="text-2xl font-bold text-foreground">Aquecimento Automático</h1>
           <p className="text-sm text-muted-foreground">Aqueça suas instâncias gradualmente para evitar bloqueios</p>
         </div>
-        <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" className="gap-1.5 text-xs" onClick={() => setDialogOpen(true)}>
           <Plus className="w-3.5 h-3.5" /> Nova Sessão
         </Button>
       </div>
@@ -120,7 +175,7 @@ const Warmup = () => {
           { label: "Sessões Ativas", value: activeCount, icon: Flame, color: "text-orange-500" },
           { label: "Total Sessões", value: sessions.length, icon: Smartphone, color: "text-primary" },
           { label: "Msgs Enviadas", value: totalMessages, icon: MessageSquare, color: "text-emerald-500" },
-          { label: "Média/Dia", value: sessions.length > 0 ? Math.round(totalMessages / Math.max(1, sessions.reduce((a, s) => a + s.current_day, 0))) : 0, icon: TrendingUp, color: "text-blue-500" },
+          { label: "Msgs Cadastradas", value: warmupMessages.length, icon: Zap, color: "text-blue-500" },
         ].map(s => (
           <Card key={s.label} className="glass-card">
             <CardContent className="p-4 flex items-center gap-3">
@@ -136,90 +191,174 @@ const Warmup = () => {
         ))}
       </div>
 
-      {/* Sessions */}
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        </div>
-      ) : sessions.length === 0 ? (
-        <div className="border border-border rounded-lg flex flex-col items-center justify-center py-20">
-          <Flame className="w-12 h-12 text-muted-foreground/40 mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">Nenhuma sessão de aquecimento ativa</p>
-          <Button onClick={() => setDialogOpen(true)} className="bg-primary hover:bg-primary/90 gap-1.5">
-            <Plus className="w-4 h-4" /> Nova Sessão
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sessions.map(session => {
-            const progress = Math.round((session.current_day / session.total_days) * 100);
-            const sc = statusConfig[session.status] || statusConfig.paused;
-            const currentLimit = Math.min(
-              session.messages_per_day + (session.current_day - 1) * session.daily_increment,
-              session.max_messages_per_day
-            );
-            return (
-              <Card key={session.id} className="glass-card">
-                <CardContent className="p-5 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                        <Flame className="w-5 h-5 text-orange-500" />
+      <Tabs defaultValue="sessions" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="sessions" className="gap-1.5 text-xs">
+            <Flame className="w-3.5 h-3.5" /> Sessões
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="gap-1.5 text-xs">
+            <MessageSquare className="w-3.5 h-3.5" /> Mensagens
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ===== SESSIONS TAB ===== */}
+        <TabsContent value="sessions" className="space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="border border-border rounded-lg flex flex-col items-center justify-center py-20">
+              <Flame className="w-12 h-12 text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">Nenhuma sessão de aquecimento ativa</p>
+              <Button onClick={() => setDialogOpen(true)} className="gap-1.5">
+                <Plus className="w-4 h-4" /> Nova Sessão
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sessions.map(session => {
+                const progress = Math.round((session.current_day / session.total_days) * 100);
+                const sc = statusConfig[session.status] || statusConfig.paused;
+                const currentLimit = Math.min(
+                  session.messages_per_day + (session.current_day - 1) * session.daily_increment,
+                  session.max_messages_per_day
+                );
+                const isExecuting = executingId === session.id;
+                return (
+                  <Card key={session.id} className="glass-card">
+                    <CardContent className="p-5 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                            <Flame className="w-5 h-5 text-orange-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{getDeviceName(session.device_id)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Limite hoje: {currentLimit} msgs | Delay: {session.min_delay_seconds}-{session.max_delay_seconds}s
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] ${sc.color}`}>{sc.label}</Badge>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{getDeviceName(session.device_id)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Limite hoje: {currentLimit} msgs | Delay: {session.min_delay_seconds}-{session.max_delay_seconds}s
-                        </p>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Dia {session.current_day} de {session.total_days}</span>
+                          <span>{Math.min(progress, 100)}%</span>
+                        </div>
+                        <Progress value={Math.min(progress, 100)} className="h-2" />
                       </div>
-                    </div>
-                    <Badge variant="outline" className={`text-[10px] ${sc.color}`}>{sc.label}</Badge>
-                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Dia {session.current_day} de {session.total_days}</span>
-                      <span>{Math.min(progress, 100)}%</span>
-                    </div>
-                    <Progress value={Math.min(progress, 100)} className="h-2" />
-                  </div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <MessageSquare className="w-3 h-3" />
+                          <span>{session.messages_sent_total} total | {session.messages_sent_today} hoje</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span>{session.start_time} - {session.end_time}</span>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <MessageSquare className="w-3 h-3" />
-                      <span>{session.messages_sent_total} total | {session.messages_sent_today} hoje</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{session.start_time} - {session.end_time}</span>
-                    </div>
-                  </div>
+                      <div className="flex items-center gap-2 pt-1 border-t border-border">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-xs flex-1"
+                          onClick={() => toggleStatus(session.id, session.status)}
+                          disabled={session.status === "completed"}
+                        >
+                          {session.status === "running" ? <><Pause className="w-3 h-3" /> Pausar</> : <><Play className="w-3 h-3" /> Retomar</>}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-xs"
+                          onClick={() => executeNow(session.id)}
+                          disabled={isExecuting || session.status !== "running"}
+                        >
+                          {isExecuting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                          {isExecuting ? "Enviando..." : "Executar"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                          onClick={() => removeSession(session.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+        {/* ===== MESSAGES TAB ===== */}
+        <TabsContent value="messages" className="space-y-4">
+          <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-foreground">Mensagens para Aquecimento</span>
+              {warmupMessages.length === 0 && (
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={addDefaultMessages}>
+                  <Zap className="w-3 h-3" /> Carregar padrão
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Mensagens aleatórias que serão enviadas nos grupos de aquecimento. Quanto mais variadas, mais natural parece.
+            </p>
+
+            {/* Add new message */}
+            <div className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Digite uma mensagem de aquecimento..."
+                className="h-8 text-xs bg-background/50 border-border/30 flex-1"
+                onKeyDown={(e) => e.key === "Enter" && handleAddMessage()}
+              />
+              <Button size="sm" className="h-8 text-xs gap-1 shrink-0" onClick={handleAddMessage} disabled={!newMessage.trim()}>
+                <Plus className="w-3 h-3" /> Adicionar
+              </Button>
+            </div>
+
+            {/* Message list */}
+            {warmupMessages.length === 0 ? (
+              <div className="border border-dashed border-border/30 rounded-lg p-6 flex flex-col items-center gap-2 text-center">
+                <MessageSquare className="w-5 h-5 text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">Nenhuma mensagem cadastrada</p>
+                <p className="text-[10px] text-muted-foreground/60">Adicione mensagens ou carregue as mensagens padrão</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                {warmupMessages.map(msg => (
+                  <div key={msg.id} className="flex items-center gap-2 group rounded-md px-2 py-1.5 hover:bg-muted/20 transition-colors">
+                    <span className="text-xs text-foreground flex-1">{msg.content}</span>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 text-xs flex-1"
-                      onClick={() => toggleStatus(session.id, session.status)}
-                      disabled={session.status === "completed"}
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0 transition-opacity"
+                      onClick={() => deleteMessage.mutate(msg.id)}
                     >
-                      {session.status === "running" ? <><Pause className="w-3 h-3" /> Pausar</> : <><Play className="w-3 h-3" /> Retomar</>}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => removeSession(session.id)}
-                    >
-                      <Trash2 className="w-3 h-3" /> Remover
+                      <X className="w-3 h-3" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                ))}
+              </div>
+            )}
+
+            <div className="text-[10px] text-muted-foreground/60 pt-1 border-t border-border/20">
+              {warmupMessages.length} mensagens cadastradas • Se nenhuma for cadastrada, mensagens padrão serão usadas
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -295,11 +434,12 @@ const Warmup = () => {
               <p>• Dia 3: {Number(formMsgsPerDay) + 2 * Number(formIncrement)} mensagens</p>
               <p>• Máximo: {formMaxPerDay} mensagens/dia</p>
               <p>• Delay aleatório de {formMinDelay}s a {formMaxDelay}s entre cada envio</p>
+              <p>• Envia mensagens aleatórias nos seus grupos de aquecimento</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={createWarmup.isPending} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleCreate} disabled={createWarmup.isPending}>
               {createWarmup.isPending ? "Criando..." : "Iniciar Aquecimento"}
             </Button>
           </DialogFooter>

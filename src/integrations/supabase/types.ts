@@ -420,6 +420,30 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_messages: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       warmup_sessions: {
         Row: {
           created_at: string
@@ -428,6 +452,7 @@ export type Database = {
           device_id: string
           end_time: string
           id: string
+          last_executed_at: string | null
           max_delay_seconds: number
           max_messages_per_day: number
           messages_per_day: number
@@ -447,6 +472,7 @@ export type Database = {
           device_id: string
           end_time?: string
           id?: string
+          last_executed_at?: string | null
           max_delay_seconds?: number
           max_messages_per_day?: number
           messages_per_day?: number
@@ -466,6 +492,7 @@ export type Database = {
           device_id?: string
           end_time?: string
           id?: string
+          last_executed_at?: string | null
           max_delay_seconds?: number
           max_messages_per_day?: number
           messages_per_day?: number
