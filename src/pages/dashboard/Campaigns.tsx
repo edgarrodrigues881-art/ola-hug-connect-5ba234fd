@@ -216,12 +216,16 @@ const Campaigns = () => {
     }, 0);
   };
 
-  const commonEmojis = [
-    "😀", "😂", "🤣", "😊", "😍", "🥰", "😎", "🤩",
-    "👍", "👋", "🙏", "💪", "🎉", "🔥", "❤️", "💙",
-    "✅", "⭐", "💰", "🚀", "📱", "💬", "📢", "🎯",
-    "⚡", "🏆", "💎", "🤝", "📞", "✨", "🛒", "🎁",
-  ];
+  const commonEmojis = {
+    "Mais usados": ["😀", "😂", "🤣", "😊", "😍", "🥰", "😎", "🤩", "😘", "🤗", "😁", "😉", "🥺", "😢", "😤", "🤔"],
+    "Gestos": ["👍", "👋", "🙏", "💪", "🤝", "👏", "✌️", "🤞", "👊", "🫶", "☝️", "👆", "👇", "👉", "👈", "🫡"],
+    "Negócios": ["✅", "⭐", "💰", "🚀", "📱", "💬", "📢", "🎯", "⚡", "🏆", "💎", "📞", "✨", "🛒", "🎁", "📊"],
+    "Símbolos": ["❤️", "💙", "💚", "💛", "🧡", "💜", "🖤", "🤍", "🔥", "💥", "⚠️", "🔔", "🎉", "🎊", "💯", "🆕"],
+  };
+
+  const [emojiCategory, setEmojiCategory] = useState<string>("Mais usados");
+
+  const showMediaInput = messageType === "texto-imagem" || messageType === "imagem-botao";
 
   const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
@@ -455,62 +459,102 @@ const Campaigns = () => {
       {/* ===== STEP 1: Message ===== */}
       {step === 1 && (
         <div className="space-y-6">
-          {/* Template & Type selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Template */}
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
-              <Select value={selectedTemplate} onValueChange={(val) => {
-                setSelectedTemplate(val);
-                if (val !== "nova") {
-                  const tmpl = savedTemplates.find(t => t.id === val);
-                  if (tmpl) {
-                    setMessage(tmpl.content);
-                    const typeMap: Record<string, string> = { text: "texto", "text-image": "texto-imagem", "text-button": "texto-botao", "image-button": "imagem-botao" };
-                    setMessageType(typeMap[tmpl.type] || tmpl.type);
-                    if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                      setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
-                      setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
-                    } else { setQuickReplyButtons([]); setCTAButtons([]); }
-                  }
-                } else { setMessage(""); setMessageType("texto"); setQuickReplyButtons([]); setCTAButtons([]); }
-              }}>
-                <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
-                  <SelectValue placeholder="Nova mensagem" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border z-50">
-                  <SelectItem value="nova">Nova mensagem</SelectItem>
-                  {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Template selector */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
+            <Select value={selectedTemplate} onValueChange={(val) => {
+              setSelectedTemplate(val);
+              if (val !== "nova") {
+                const tmpl = savedTemplates.find(t => t.id === val);
+                if (tmpl) {
+                  setMessage(tmpl.content);
+                  const typeMap: Record<string, string> = { text: "texto", "text-image": "texto-imagem", "text-button": "texto-botao", "image-button": "imagem-botao" };
+                  setMessageType(typeMap[tmpl.type] || tmpl.type);
+                  if (tmpl.media_url) setMediaUrl(tmpl.media_url);
+                  if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
+                    setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
+                    setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
+                  } else { setQuickReplyButtons([]); setCTAButtons([]); }
+                }
+              } else { setMessage(""); setMessageType("texto"); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
+            }}>
+              <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40 max-w-xs">
+                <SelectValue placeholder="Nova mensagem" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border z-50">
+                <SelectItem value="nova">Nova mensagem</SelectItem>
+                {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Message Type */}
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo</Label>
-              <Select value={messageType} onValueChange={setMessageType}>
-                <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border z-50">
-                  {messageTypes.map(mt => {
-                    const Icon = mt.icon;
-                    return (
-                      <SelectItem key={mt.value} value={mt.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                          <div>
-                            <span className="text-xs">{mt.label}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1.5">{mt.description}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+          {/* Message Type Cards */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo de Mensagem</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {messageTypes.map(mt => {
+                const Icon = mt.icon;
+                const isActive = messageType === mt.value;
+                return (
+                  <button
+                    key={mt.value}
+                    onClick={() => setMessageType(mt.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all",
+                      isActive
+                        ? "border-primary/50 bg-primary/8 text-primary"
+                        : "border-border/30 bg-card/30 text-muted-foreground hover:bg-card/60 hover:border-border/50"
+                    )}
+                  >
+                    <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                    <span className="text-[11px] font-medium leading-tight">{mt.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Media URL Input - visible when image types selected */}
+          {showMediaInput && (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" /> URL da Mídia
+                </span>
+                {mediaUrl && (
+                  <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
+                    <X className="w-3 h-3 mr-1" /> Remover
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                placeholder="https://exemplo.com/imagem.jpg"
+                className="h-9 text-xs bg-background/50 border-border/30"
+              />
+              {mediaUrl && (
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-lg border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
+                    <img
+                      src={mediaUrl}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        el.style.display = 'none';
+                        el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground">Sem preview</span>';
+                      }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground break-all line-clamp-2">{mediaUrl}</span>
+                </div>
+              )}
+              {!mediaUrl && (
+                <p className="text-[9px] text-muted-foreground/60">Cole a URL de uma imagem, vídeo ou documento para enviar junto com a mensagem</p>
+              )}
+            </div>
+          )}
 
           {/* Message editor */}
           <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
@@ -563,10 +607,24 @@ const Campaigns = () => {
                     <Smile className="w-3 h-3" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[260px] p-2 bg-popover border-border z-50" align="start">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-1 pb-1.5">Emojis</p>
+                <PopoverContent className="w-[280px] p-2 bg-popover border-border z-50" align="start">
+                  {/* Category tabs */}
+                  <div className="flex items-center gap-0.5 mb-2 border-b border-border/20 pb-1.5">
+                    {Object.keys(commonEmojis).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setEmojiCategory(cat)}
+                        className={cn(
+                          "px-2 py-1 rounded text-[10px] transition-colors",
+                          emojiCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-accent"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                   <div className="grid grid-cols-8 gap-0.5">
-                    {commonEmojis.map(emoji => (
+                    {(commonEmojis[emojiCategory as keyof typeof commonEmojis] || []).map(emoji => (
                       <button
                         key={emoji}
                         className="w-7 h-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-base"
@@ -576,35 +634,6 @@ const Campaigns = () => {
                       </button>
                     ))}
                   </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* Media URL */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", mediaUrl && "text-primary")} title="Mídia (imagem/vídeo)">
-                    <Image className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-3 bg-popover border-border z-50 space-y-2" align="start">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">URL da mídia</p>
-                  <Input
-                    value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="h-8 text-xs bg-background/50 border-border/30"
-                  />
-                  <p className="text-[9px] text-muted-foreground/60">Cole a URL de uma imagem, vídeo ou documento</p>
-                  {mediaUrl && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
-                        <img src={mediaUrl} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
-                        <X className="w-3 h-3 mr-1" /> Remover
-                      </Button>
-                    </div>
-                  )}
                 </PopoverContent>
               </Popover>
             </div>
@@ -620,11 +649,6 @@ const Campaigns = () => {
 
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
-              {mediaUrl && (
-                <span className="text-[10px] text-primary flex items-center gap-1">
-                  <Image className="w-3 h-3" /> Mídia anexada
-                </span>
-              )}
             </div>
           </div>
 
