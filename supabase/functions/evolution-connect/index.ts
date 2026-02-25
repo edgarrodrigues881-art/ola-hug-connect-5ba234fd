@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
       }
 
       const name = instanceName || `inst-${Date.now()}`;
-      console.log("Creating instance:", name, "on", ADMIN_BASE_URL);
+      console.log("Creating instance:", name, "on", ADMIN_BASE_URL, "token length:", ADMIN_TOKEN.length);
 
-      const res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+      // Try with admintoken header first, then token header as fallback
+      let res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
         method: "POST",
         headers: {
           "admintoken": ADMIN_TOKEN,
@@ -68,6 +69,36 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ name }),
       });
+
+      // If 401 with admintoken, try with token header
+      if (res.status === 401) {
+        console.log("admintoken header failed, trying token header...");
+        res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+          method: "POST",
+          headers: {
+            "token": ADMIN_TOKEN,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name }),
+        });
+      }
+
+      // If still 401, try Authorization Bearer
+      if (res.status === 401) {
+        console.log("token header failed, trying Authorization Bearer...");
+        res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${ADMIN_TOKEN}`,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name }),
+        });
+      }
+
+      console.log("Create instance response status:", res.status);
 
       const resText = await res.text();
       let data;
