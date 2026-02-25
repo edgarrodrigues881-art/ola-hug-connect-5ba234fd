@@ -686,34 +686,31 @@ const Campaigns = () => {
                 <button
                   className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
                   onClick={addQuickReply}
-                  disabled={quickReplyButtons.length >= 3}
                 >
                   <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Resposta Rápida</p>
-                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length}/3 · Botão de resposta simples</p>
+                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length} adicionados · Botão de resposta simples</p>
                   </div>
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
+                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5"
                   onClick={() => addCTAButton("url")}
-                  disabled={ctaButtons.length >= 2}
                 >
                   <Link className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Link (URL)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.length}/2 · Abre um link no navegador</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "url").length} adicionados · Abre um link no navegador</p>
                   </div>
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
+                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5"
                   onClick={() => addCTAButton("phone")}
-                  disabled={ctaButtons.length >= 2}
                 >
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Ligar (Telefone)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.length}/2 · Inicia uma ligação</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "phone").length} adicionados · Inicia uma ligação</p>
                   </div>
                 </button>
               </PopoverContent>
