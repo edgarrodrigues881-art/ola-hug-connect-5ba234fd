@@ -8,7 +8,7 @@ import Footer from "@/components/landing/Footer";
 import GalacticParticles from "@/components/landing/GalacticParticles";
 
 const Landing = () => (
-  <div className="min-h-screen bg-background scroll-smooth relative overflow-hidden">
+  <div className="min-h-screen bg-black scroll-smooth relative overflow-hidden">
     <div className="fixed inset-0 pointer-events-none z-0">
       <GalacticParticles />
       <div
