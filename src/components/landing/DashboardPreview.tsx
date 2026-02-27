@@ -141,21 +141,23 @@ const DashboardPreview = () => (
               <span className="text-sm font-medium text-white/50">Atividade de aquecimento</span>
               <span className="text-[11px] text-[#07C160]/70 font-medium">Últimos 7 dias</span>
             </div>
-            <div className="flex items-end gap-3 h-28">
+            <div className="flex items-end gap-3" style={{ height: "112px" }}>
               {chartData.map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    whileInView={{ height: `${h}%`, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.7 + i * 0.06, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="w-full rounded-md relative"
-                    style={{
-                      background: `linear-gradient(to top, rgba(7,193,96,${0.12 + (h / 400)}), rgba(7,193,96,${0.25 + (h / 300)}))`,
-                      boxShadow: h > 70 ? "0 0 12px -4px rgba(7,193,96,0.15)" : "none",
-                    }}
-                  />
-                  <span className="text-[9px] text-white/20 font-medium">{days[i]}</span>
+                <div key={i} className="flex-1 flex flex-col items-center h-full">
+                  <div className="flex-1 w-full flex items-end">
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      whileInView={{ height: `${h}%`, opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.7 + i * 0.06, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className="w-full rounded-md"
+                      style={{
+                        background: `linear-gradient(to top, rgba(7,193,96,${0.12 + (h / 400)}), rgba(7,193,96,${0.25 + (h / 300)}))`,
+                        boxShadow: h > 70 ? "0 0 12px -4px rgba(7,193,96,0.15)" : "none",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-white/20 font-medium mt-1.5">{days[i]}</span>
                 </div>
               ))}
             </div>
