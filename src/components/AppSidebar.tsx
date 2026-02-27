@@ -172,11 +172,7 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=profile")} className="gap-2 cursor-pointer">
-              <User className="w-4 h-4" />
-              Meu Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=security")} className="gap-2 cursor-pointer">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
               <Settings className="w-4 h-4" />
               Configurações
             </DropdownMenuItem>
