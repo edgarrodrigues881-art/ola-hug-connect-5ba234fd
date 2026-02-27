@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Megaphone, Search, Trash2, Eye, Play, Pause, RefreshCw } from "lucide-react";
+import { Megaphone, Search, Trash2, Eye, Play, Pause, RefreshCw, Pencil } from "lucide-react";
 import { useCampaigns, useDeleteCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { CampaignDetailDialog } from "@/components/campaigns/CampaignDetailDialog";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pendente", className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
@@ -26,7 +27,7 @@ const CampaignList = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-
+  const [detailCampaign, setDetailCampaign] = useState<{ id: string; name: string } | null>(null);
   const filtered = campaigns.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -128,6 +129,15 @@ const CampaignList = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-primary"
+                              onClick={() => setDetailCampaign({ id: c.id, name: c.name })}
+                              title="Ver detalhes"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
                             {(c.status === "pending" || c.status === "scheduled") && (
                               <Button
                                 variant="ghost"
@@ -159,6 +169,14 @@ const CampaignList = () => {
           </div>
         </CardContent>
       </Card>
+      {detailCampaign && (
+        <CampaignDetailDialog
+          open={!!detailCampaign}
+          onOpenChange={(open) => !open && setDetailCampaign(null)}
+          campaignId={detailCampaign.id}
+          campaignName={detailCampaign.name}
+        />
+      )}
     </div>
   );
 };
