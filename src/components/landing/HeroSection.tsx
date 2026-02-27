@@ -101,7 +101,20 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[280px]"
                 style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
-                {/* Animated glow border */}
+                {/* Outer glow */}
+                <motion.div
+                  className="absolute -inset-[6px] rounded-[2.6rem] z-0 blur-md"
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+                    backgroundSize: "300% 300%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                {/* Animated border */}
                 <motion.div
                   className="absolute -inset-[2px] rounded-[2.4rem] z-0"
                   style={{
