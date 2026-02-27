@@ -37,40 +37,40 @@ const differentials = [
   {
     icon: LayoutDashboard,
     title: "Controle total",
-    desc: "Gerencie suas instâncias com autonomia e visão estratégica.",
+    desc: "Autonomia completa sobre suas instâncias e sua estrutura operacional.",
   },
   {
     icon: RefreshCw,
     title: "Automação inteligente",
-    desc: "Sistema estruturado para simular uso gradual e reduzir riscos operacionais.",
+    desc: "Simulação gradual de uso para reduzir riscos operacionais.",
   },
   {
     icon: Zap,
     title: "Interface intuitiva",
-    desc: "Painel direto ao ponto, organizado para decisões rápidas.",
+    desc: "Painel organizado para decisões rápidas e controle eficiente.",
   },
   {
     icon: TrendingUp,
     title: "Monitoramento em tempo real",
-    desc: "Acompanhe métricas, progresso e status ao vivo.",
+    desc: "Acompanhamento contínuo de métricas e status.",
   },
   {
     icon: Shield,
     title: "Segurança em primeiro lugar",
-    desc: "Ambiente protegido com criptografia e boas práticas de infraestrutura.",
+    desc: "Infraestrutura protegida com boas práticas e criptografia.",
   },
   {
     icon: Server,
     title: "Performance otimizada",
-    desc: "Arquitetura estável e preparada para crescimento contínuo.",
+    desc: "Arquitetura estável preparada para crescimento contínuo.",
   },
 ];
 
 const authorityBullets = [
   { icon: TrendingUp, text: "Monitoramento contínuo de aquecimento" },
   { icon: Zap, text: "Controle de disparos por instância" },
-  { icon: Server, text: "Status de conexão em tempo real" },
-  { icon: LayoutDashboard, text: "Indicadores claros de performance operacional" },
+  { icon: Server, text: "Indicadores claros de progresso" },
+  { icon: LayoutDashboard, text: "Status de conexão atualizado" },
 ];
 
 const plans = [
@@ -78,12 +78,13 @@ const plans = [
     name: "Start",
     instances: 10,
     price: "149,90",
-    subtitle: "Ideal para início de operação controlada.",
+    subtitle: "Ideal para início de operação estruturada.",
     cta: "Ativar Plano",
     popular: false,
     features: [
+      "Aquecimento automatizado incluso",
+      "Disparador interativo incluso",
       "Painel centralizado",
-      "Gerenciamento de instâncias",
       "Monitoramento em tempo real",
       "Suporte padrão",
     ],
@@ -93,13 +94,14 @@ const plans = [
     instances: 30,
     price: "349,90",
     subtitle: "Estrutura ideal para operadores ativos.",
-    cta: "Iniciar Operação",
+    cta: "Iniciar Estrutura",
     popular: true,
     features: [
-      "Painel centralizado",
+      "Aquecimento automatizado incluso",
+      "Disparador interativo incluso",
       "Gestão avançada de instâncias",
       "Monitoramento completo",
-      "Prioridade no suporte",
+      "Suporte prioritário",
     ],
   },
   {
@@ -110,7 +112,8 @@ const plans = [
     cta: "Ativar Plano",
     popular: false,
     features: [
-      "Painel centralizado",
+      "Aquecimento automatizado incluso",
+      "Disparador interativo incluso",
       "Gestão avançada",
       "Monitoramento em tempo real",
       "Suporte prioritário",
@@ -124,10 +127,11 @@ const plans = [
     cta: "Falar com Especialista",
     popular: false,
     features: [
-      "Infraestrutura dedicada",
+      "Aquecimento automatizado incluso",
+      "Disparador interativo incluso",
       "Gestão completa de instâncias",
       "Monitoramento avançado",
-      "Suporte prioritário",
+      "Atendimento prioritário dedicado",
     ],
   },
 ];
@@ -186,13 +190,12 @@ export default function Plans() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6">
-              Infraestrutura profissional para escalar sua operação no WhatsApp com{" "}
-              <span className="text-emerald-400/90">estabilidade</span>.
+              Infraestrutura profissional para escalar operações no WhatsApp com{" "}
+              <span className="text-emerald-400/90">estabilidade real</span>.
             </h1>
 
             <p className="text-base text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Disparador inteligente com botão interativo e aquecimento automatizado.
-              Controle total das suas instâncias em tempo real, em um único painel.
+              Aquecimento automatizado, disparador interativo e controle total das suas instâncias em um único painel.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -210,7 +213,7 @@ export default function Plans() {
                 Ver planos
               </button>
             </div>
-            <p className="text-white/20 text-xs mt-5">Em poucos cliques, sua estrutura fica ativa e automatizada.</p>
+            <p className="text-white/20 text-xs mt-5">Em poucos passos, sua estrutura fica ativa e automatizada.</p>
           </motion.div>
         </section>
 
@@ -292,7 +295,7 @@ export default function Plans() {
               variants={fadeUp} custom={0}
               className="text-2xl md:text-3xl font-bold mb-10"
             >
-              Visualize, acompanhe e gerencie com <span className="text-white/60">dados em tempo real</span>
+              Visualize, acompanhe e gerencie com <span className="text-white/60">dados operacionais em tempo real</span>
             </motion.h2>
 
             <div className="flex flex-wrap justify-center gap-4">
