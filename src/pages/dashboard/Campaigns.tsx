@@ -20,7 +20,7 @@ import {
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
-  CheckCircle2, XCircle, Copy, Eraser, Sparkles
+  CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -92,6 +92,8 @@ const Campaigns = () => {
   const mediaFileRef = useRef<HTMLInputElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaFileName, setMediaFileName] = useState("");
 
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
@@ -178,7 +180,7 @@ const Campaigns = () => {
   }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, quickReplyButtons, ctaButtons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
 
   const clearAllForm = () => {
-    setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]);
+    setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]);
     setQuickReplyButtons([]); setCTAButtons([]); setSelectedDevices([]);
     setMessageType("texto"); setStep(1); setSelectedTemplate("nova");
     setScheduleEnabled(false); setScheduleDate(""); setShowContactTable(false);
@@ -237,7 +239,7 @@ const Campaigns = () => {
           onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
           onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
-        setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1); localStorage.removeItem(DRAFT_KEY);
+        setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1); localStorage.removeItem(DRAFT_KEY);
       },
       onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
     });
@@ -580,16 +582,48 @@ const Campaigns = () => {
             </Select>
           </div>
 
-          {/* Media toggle */}
+          {/* Media upload */}
           {!mediaUrl ? (
             <div>
+              <input
+                type="file"
+                ref={mediaFileRef}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 20 * 1024 * 1024) {
+                    toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" });
+                    return;
+                  }
+                  setMediaUploading(true);
+                  try {
+                    const ext = file.name.split(".").pop() || "bin";
+                    const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                    const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+                    setMediaUrl(urlData.publicUrl);
+                    setMediaFileName(file.name);
+                    toast({ title: "Mídia enviada!" });
+                  } catch (err: any) {
+                    toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+                  } finally {
+                    setMediaUploading(false);
+                    if (mediaFileRef.current) mediaFileRef.current.value = "";
+                  }
+                }}
+              />
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-[11px] h-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
-                onClick={() => setMediaUrl(" ")}
+                onClick={() => mediaFileRef.current?.click()}
+                disabled={mediaUploading}
               >
-                <Image className="w-3.5 h-3.5" /> Adicionar Mídia
+                {mediaUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                {mediaUploading ? "Enviando..." : "Adicionar Mídia"}
               </Button>
             </div>
           ) : (
@@ -598,26 +632,17 @@ const Campaigns = () => {
                 <span className="text-[11px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
                   <Image className="w-3.5 h-3.5" /> Mídia
                 </span>
-                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive/70 hover:text-destructive" onClick={() => setMediaUrl("")}>
+                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive/70 hover:text-destructive" onClick={() => { setMediaUrl(""); setMediaFileName(""); }}>
                   <X className="w-3 h-3 mr-1" /> Remover
                 </Button>
               </div>
-              <Input
-                value={mediaUrl.trim() ? mediaUrl : ""}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                placeholder="https://exemplo.com/imagem.jpg"
-                className="h-9 text-xs bg-background/30 border-border/15"
-                autoFocus={!mediaUrl.trim()}
-              />
-              {mediaUrl.trim() && (
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-lg border border-border/15 overflow-hidden bg-muted/10 flex items-center justify-center shrink-0">
-                    <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
-                      onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground/40">Sem preview</span>'; }} />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground/40 break-all line-clamp-2">{mediaUrl}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-lg border border-border/15 overflow-hidden bg-muted/10 flex items-center justify-center shrink-0">
+                  <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
+                    onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground/40">📎</span>'; }} />
                 </div>
-              )}
+                <span className="text-[10px] text-muted-foreground/60 break-all line-clamp-2">{mediaFileName || mediaUrl}</span>
+              </div>
             </div>
           )}
 
