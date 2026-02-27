@@ -1,13 +1,21 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Wifi, ShieldCheck, BarChart3, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const floatingItems = [
-  { label: "+ Interações", icon: Zap, x: -40, y: -20 },
-  { label: "Simulação natural", icon: Wifi, x: 40, y: 30 },
-  { label: "Conexão segura", icon: ShieldCheck, x: -50, y: 60 },
-  { label: "Monitoramento", icon: BarChart3, x: 50, y: -40 },
+// Realistic chat data - varied, natural
+const chats = [
+  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6" },
+  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
+  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6" },
+  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
+  { name: "Juliana Costa", msg: "Foto", time: "10:15", unread: 1, avatar: "JC", color: "#10B981" },
+  { name: "Roberto Silva", msg: "Pode ser na quinta então", time: "09:58", unread: 0, avatar: "RS", color: "#6366F1" },
+  { name: "Fernanda Lima", msg: "Áudio (0:23)", time: "09:44", unread: 0, avatar: "FL", color: "#F43F5E" },
+  { name: "Grupo Vendas", msg: "Marina: fechamos 3 contratos hoje", time: "09:30", unread: 12, avatar: "GV", color: "#14B8A6" },
+  { name: "Diego Alves", msg: "Show, valeu pela indicação!", time: "09:12", unread: 0, avatar: "DA", color: "#A855F7" },
+  { name: "Patrícia Rocha", msg: "Segue o documento atualizado", time: "08:55", unread: 0, avatar: "PR", color: "#0EA5E9" },
+  { name: "Marcos Oliveira", msg: "Bom dia! Tudo certo por aí?", time: "08:30", unread: 3, avatar: "MO", color: "#EF4444" },
 ];
 
 const HeroSection = () => {
@@ -15,156 +23,243 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      <div className="container relative z-10 py-16 lg:py-24">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left - Copy */}
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
+      {/* Subtle ambient particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-px h-px rounded-full bg-white/20"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              opacity: [0, 0.3, 0],
+              scale: [0, 1.5, 0],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 4,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="container relative z-10 py-16 lg:py-20">
+        <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+          {/* Left — Copy */}
+          <div className="max-w-lg">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold text-white leading-[1.1] mb-6 tracking-tight"
+              transition={{ duration: 0.7 }}
             >
-              Aqueça seu WhatsApp{" "}
-              <span className="text-[#07C160]">automaticamente</span>
-              <br />
-              <span className="text-white/70 text-3xl sm:text-4xl lg:text-[2.5rem] font-bold">
-                Conecte o QR Code e deixe o sistema trabalhar
-              </span>
+              <p className="text-[#07C160] text-xs font-medium tracking-[0.2em] uppercase mb-6">
+                Dg Contingencia PRO
+              </p>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
+            >
+              Automação inteligente para preparar seu WhatsApp com{" "}
+              <span className="text-[#07C160]">segurança.</span>
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-              className="text-base lg:text-lg text-white/50 max-w-xl mb-10 leading-relaxed"
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
-              Automação inteligente que simula interações naturais para preparar seu número para uso intenso, com acompanhamento em tempo real.
+              Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="flex flex-col sm:flex-row items-start gap-4"
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-start gap-3"
             >
               <Button
-                size="lg"
                 onClick={() => navigate("/auth")}
-                className="h-14 px-10 text-base font-semibold rounded-xl gap-2 bg-[#07C160] hover:bg-[#06a050] text-white shadow-[0_0_30px_rgba(7,193,96,0.3)] hover:shadow-[0_0_40px_rgba(7,193,96,0.4)] transition-all"
+                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(7,193,96,0.2)]"
               >
                 Conectar WhatsApp
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button
-                size="lg"
-                variant="outline"
+                variant="ghost"
                 onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-14 px-10 text-base font-semibold rounded-xl border-white/10 text-white/70 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all"
+                className="h-12 px-8 text-sm font-medium rounded-xl text-white/50 hover:text-white hover:bg-white/[0.04] border border-white/[0.06] transition-all duration-300"
               >
-                Como funciona
+                Ver como funciona
               </Button>
             </motion.div>
           </div>
 
-          {/* Right - Phone Mockup */}
+          {/* Right — Phone + Progress Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4 }}
             className="relative flex items-center justify-center"
           >
-            {/* Glow */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-72 h-72 lg:w-96 lg:h-96 rounded-full bg-[#07C160]/10 blur-[80px]" />
-            </div>
-
-            {/* Phone */}
-            <div className="relative w-[280px] lg:w-[300px] bg-[#1A1A1A] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden">
-              {/* Notch */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-24 h-5 bg-[#0D0D0D] rounded-full" />
-              </div>
-
-              {/* Progress bar */}
-              <div className="mx-4 mb-3 p-3 bg-[#07C160]/10 border border-[#07C160]/20 rounded-xl">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-semibold text-[#07C160]">Aquecimento em andamento</span>
-                  <span className="text-[10px] font-bold text-white">89%</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "89%" }}
-                    transition={{ duration: 2, delay: 1 }}
-                    className="h-full bg-[#07C160] rounded-full"
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[9px] text-white/40">Status: <span className="text-[#07C160]">Ativo</span></span>
-                  <span className="text-[9px] text-white/40">Risco: <span className="text-[#07C160]">Baixo</span></span>
-                </div>
-              </div>
-
-              {/* WhatsApp header */}
-              <div className="mx-4 mb-2 flex items-center gap-2 p-2 bg-[#075E54]/30 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-[#075E54] flex items-center justify-center text-white text-xs font-bold">W</div>
-                <div>
-                  <p className="text-[11px] font-semibold text-white">WhatsApp</p>
-                  <p className="text-[9px] text-white/40">Simulação ativa</p>
-                </div>
-              </div>
-
-              {/* Chat messages */}
-              <div className="mx-4 mb-4 space-y-2">
-                {[
-                  { text: "Oi, tudo bem? 😊", sent: false },
-                  { text: "Tudo sim! E com você?", sent: true },
-                  { text: "Ótimo! Vamos conversar mais tarde?", sent: false },
-                  { text: "Claro, sem problemas! 👍", sent: true },
-                ].map((msg, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.2 + i * 0.4 }}
-                    className={`flex ${msg.sent ? "justify-end" : "justify-start"}`}
-                  >
-                    <div className={`max-w-[75%] px-3 py-1.5 rounded-xl text-[10px] ${
-                      msg.sent
-                        ? "bg-[#07C160]/20 text-white/90 rounded-br-sm"
-                        : "bg-white/5 text-white/70 rounded-bl-sm"
-                    }`}>
-                      {msg.text}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Bottom bar */}
-              <div className="mx-4 mb-4 h-8 bg-white/5 rounded-full flex items-center px-3">
-                <span className="text-[9px] text-white/20">Mensagem...</span>
-              </div>
-            </div>
-
-            {/* Floating badges */}
-            {floatingItems.map((item, i) => (
+            {/* Ambient glow behind phone */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 lg:w-[420px] lg:h-[420px]">
               <motion.div
-                key={item.label}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.5 + i * 0.2 }}
-                className="absolute hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#1A1A1A]/80 backdrop-blur-sm border border-white/10 rounded-full"
+                className="w-full h-full rounded-full bg-[#07C160]/[0.04] blur-[100px]"
+                animate={{ opacity: [0.4, 0.7, 0.4] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+
+            {/* Phone with 3D perspective */}
+            <div
+              className="relative"
+              style={{
+                perspective: "1200px",
+              }}
+            >
+              <div
+                className="relative w-[270px] lg:w-[290px]"
                 style={{
-                  top: `${30 + item.y}%`,
-                  left: item.x > 0 ? `${75 + item.x / 5}%` : undefined,
-                  right: item.x < 0 ? `${75 + Math.abs(item.x) / 5}%` : undefined,
+                  transform: "rotateY(-8deg) rotateX(2deg)",
+                  transformStyle: "preserve-3d",
                 }}
               >
-                <item.icon className="w-3 h-3 text-[#07C160]" />
-                <span className="text-[10px] text-white/70 whitespace-nowrap">{item.label}</span>
-              </motion.div>
-            ))}
+                {/* Phone body */}
+                <div className="relative bg-[#1C1C1E] rounded-[2.8rem] border border-white/[0.08] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
+                  {/* Glass reflection */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none z-20 rounded-[2.8rem]" />
+                  
+                  {/* Dynamic Island */}
+                  <div className="flex justify-center pt-3 pb-1 relative z-10">
+                    <div className="w-[90px] h-[28px] bg-black rounded-full" />
+                  </div>
+
+                  {/* Screen content */}
+                  <div className="mx-[6px] mb-[6px] rounded-b-[2.4rem] overflow-hidden bg-[#0B0F14]">
+                    {/* WhatsApp header */}
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <h3 className="text-[14px] font-bold text-white">Conversas</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full border border-white/20" />
+                        <div className="w-4 h-1 bg-white/20 rounded" />
+                      </div>
+                    </div>
+
+                    {/* Search bar */}
+                    <div className="mx-3 mb-2">
+                      <div className="h-7 bg-white/[0.05] rounded-lg flex items-center px-3">
+                        <span className="text-[10px] text-white/20">Pesquisar</span>
+                      </div>
+                    </div>
+
+                    {/* Chat list */}
+                    <div className="divide-y divide-white/[0.03]">
+                      {chats.map((chat, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+                          {/* Avatar */}
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                            style={{ backgroundColor: chat.color + "30", color: chat.color }}
+                          >
+                            {chat.avatar}
+                          </div>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[11px] ${chat.unread > 0 ? "font-semibold text-white" : "font-medium text-white/80"} truncate`}>
+                                {chat.name}
+                              </span>
+                              <span className={`text-[9px] flex-shrink-0 ml-2 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                                {chat.time}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <span className="text-[10px] text-white/30 truncate pr-2">
+                                {chat.msg}
+                              </span>
+                              {chat.unread > 0 && (
+                                <span className="flex-shrink-0 w-4 h-4 rounded-full bg-[#07C160] text-[8px] font-bold text-white flex items-center justify-center">
+                                  {chat.unread}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom nav */}
+                    <div className="flex items-center justify-around py-2.5 border-t border-white/[0.04] mt-1">
+                      {["Conversas", "Status", "Ligações"].map((tab, i) => (
+                        <span
+                          key={tab}
+                          className={`text-[9px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}
+                        >
+                          {tab}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone shadow */}
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-6 bg-black/40 blur-2xl rounded-full" />
+              </div>
+            </div>
+
+            {/* Progress card — positioned to the right */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 1 }}
+              className="absolute -right-4 lg:right-[-60px] top-1/2 -translate-y-1/2 w-[220px] lg:w-[240px]"
+            >
+              <div className="bg-[#111827] border border-white/[0.06] rounded-2xl p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]"
+                style={{
+                  boxShadow: "0 20px 60px -15px rgba(0,0,0,0.5), 0 0 40px -20px rgba(7,193,96,0.1)",
+                }}
+              >
+                <p className="text-[10px] text-white/30 font-medium tracking-wider uppercase mb-4">
+                  Aquecimento em execução
+                </p>
+
+                {/* Progress bar */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: "89%" }}
+                      transition={{ duration: 2.5, delay: 1.5, ease: "easeOut" }}
+                      className="h-full bg-[#07C160] rounded-full"
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-white tabular-nums">89%</span>
+                </div>
+
+                {/* Meta info */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#07C160]" />
+                    <span className="text-[11px] text-white/50">Status: <span className="text-white/80">Ativo</span></span>
+                  </div>
+                  <p className="text-[11px] text-white/30 leading-relaxed">
+                    Simulação comportamental inteligente
+                  </p>
+                  <p className="text-[11px] text-white/30 leading-relaxed">
+                    Conexão segura via QR Code
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
