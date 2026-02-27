@@ -127,47 +127,47 @@ const HeroSection = () => {
               }}
             >
               <div
-                className="relative w-[270px] lg:w-[290px]"
+                className="relative w-[220px] lg:w-[240px]"
                 style={{
                   transform: "rotateY(-8deg) rotateX(2deg)",
                   transformStyle: "preserve-3d",
                 }}
               >
                 {/* Phone body */}
-                <div className="relative bg-[#1C1C1E] rounded-[2.8rem] border border-white/[0.08] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
+                <div className="relative bg-[#1C1C1E] rounded-[2.2rem] border border-white/[0.08] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
                   {/* Glass reflection */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none z-20 rounded-[2.8rem]" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none z-20 rounded-[2.2rem]" />
                   
                   {/* Dynamic Island */}
-                  <div className="flex justify-center pt-3 pb-1 relative z-10">
-                    <div className="w-[90px] h-[28px] bg-black rounded-full" />
+                  <div className="flex justify-center pt-2 pb-1 relative z-10">
+                    <div className="w-[70px] h-[22px] bg-black rounded-full" />
                   </div>
 
                   {/* Screen content */}
-                  <div className="mx-[6px] mb-[6px] rounded-b-[2.4rem] overflow-hidden bg-[#0B0F14]">
+                  <div className="mx-[4px] mb-[4px] rounded-b-[1.9rem] overflow-hidden bg-[#0B0F14]">
                     {/* WhatsApp header */}
-                    <div className="px-4 py-3 flex items-center justify-between">
-                      <h3 className="text-[14px] font-bold text-white">Conversas</h3>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full border border-white/20" />
-                        <div className="w-4 h-1 bg-white/20 rounded" />
+                    <div className="px-3 py-2 flex items-center justify-between">
+                      <h3 className="text-[11px] font-bold text-white">Conversas</h3>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full border border-white/20" />
+                        <div className="w-3 h-0.5 bg-white/20 rounded" />
                       </div>
                     </div>
 
                     {/* Search bar */}
-                    <div className="mx-3 mb-2">
-                      <div className="h-7 bg-white/[0.05] rounded-lg flex items-center px-3">
-                        <span className="text-[10px] text-white/20">Pesquisar</span>
+                    <div className="mx-2 mb-1">
+                      <div className="h-5 bg-white/[0.05] rounded-md flex items-center px-2">
+                        <span className="text-[8px] text-white/20">Pesquisar</span>
                       </div>
                     </div>
 
                     {/* Chat list */}
                     <div className="divide-y divide-white/[0.03]">
-                      {chats.map((chat, i) => (
-                        <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+                      {chats.slice(0, 8).map((chat, i) => (
+                        <div key={i} className="flex items-center gap-2 px-2 py-1.5">
                           {/* Avatar */}
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0"
                             style={{ backgroundColor: chat.color + "30", color: chat.color }}
                           >
                             {chat.avatar}
@@ -175,19 +175,19 @@ const HeroSection = () => {
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <span className={`text-[11px] ${chat.unread > 0 ? "font-semibold text-white" : "font-medium text-white/80"} truncate`}>
+                              <span className={`text-[8px] ${chat.unread > 0 ? "font-semibold text-white" : "font-medium text-white/80"} truncate`}>
                                 {chat.name}
                               </span>
-                              <span className={`text-[9px] flex-shrink-0 ml-2 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                              <span className={`text-[7px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
                                 {chat.time}
                               </span>
                             </div>
                             <div className="flex items-center justify-between mt-0.5">
-                              <span className="text-[10px] text-white/30 truncate pr-2">
+                              <span className="text-[7px] text-white/30 truncate pr-1">
                                 {chat.msg}
                               </span>
                               {chat.unread > 0 && (
-                                <span className="flex-shrink-0 w-4 h-4 rounded-full bg-[#07C160] text-[8px] font-bold text-white flex items-center justify-center">
+                                <span className="flex-shrink-0 w-3 h-3 rounded-full bg-[#07C160] text-[6px] font-bold text-white flex items-center justify-center">
                                   {chat.unread}
                                 </span>
                               )}
@@ -198,11 +198,11 @@ const HeroSection = () => {
                     </div>
 
                     {/* Bottom nav */}
-                    <div className="flex items-center justify-around py-2.5 border-t border-white/[0.04] mt-1">
+                    <div className="flex items-center justify-around py-2 border-t border-white/[0.04] mt-1">
                       {["Conversas", "Status", "Ligações"].map((tab, i) => (
                         <span
                           key={tab}
-                          className={`text-[9px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}
+                          className={`text-[7px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}
                         >
                           {tab}
                         </span>
