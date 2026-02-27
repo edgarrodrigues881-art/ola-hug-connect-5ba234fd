@@ -97,16 +97,33 @@ const DashboardPreview = () => (
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
-                className="group p-4 rounded-xl border border-white/[0.06] hover:border-[#07C160]/20 transition-all duration-500"
+                whileHover={{ y: -3, transition: { duration: 0.25 } }}
+                className="group relative p-4 rounded-xl border border-white/[0.06] hover:border-[#07C160]/25 transition-colors duration-500 overflow-hidden"
                 style={{
                   background: "linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
                 }}
               >
-                <div className="w-8 h-8 rounded-lg bg-[#07C160]/[0.07] flex items-center justify-center mb-3 group-hover:bg-[#07C160]/[0.12] transition-colors duration-500">
+                {/* Shimmer top */}
+                <motion.div
+                  className="absolute top-0 left-0 h-[1.5px] w-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.5), transparent)" }}
+                  animate={{ left: ["0%", "100%"] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                />
+                {/* Hover glow */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+                  style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.05) 0%, transparent 70%)" }}
+                />
+
+                <motion.div
+                  className="w-8 h-8 rounded-lg bg-[#07C160]/[0.07] flex items-center justify-center mb-3 group-hover:bg-[#07C160]/[0.15] transition-colors duration-500"
+                  whileHover={{ rotate: [0, -5, 5, 0], transition: { duration: 0.4 } }}
+                >
                   <stat.icon className="w-4 h-4 text-[#07C160]/70 group-hover:text-[#07C160] transition-colors duration-500" />
-                </div>
+                </motion.div>
                 <Counter value={stat.value} suffix={stat.suffix} format={stat.format} text={stat.text} />
-                <p className="text-[11px] text-white/30">{stat.label}</p>
+                <p className="text-[11px] text-white/30 group-hover:text-white/45 transition-colors duration-500">{stat.label}</p>
               </motion.div>
             ))}
           </div>
