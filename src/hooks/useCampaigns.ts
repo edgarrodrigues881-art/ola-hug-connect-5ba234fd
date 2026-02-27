@@ -102,6 +102,8 @@ export function useCreateCampaign() {
 }
 
 export function useStartCampaign() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ campaignId, deviceId }: { campaignId: string; deviceId?: string }) => {
       const { data, error } = await supabase.functions.invoke("process-campaign", {
@@ -110,6 +112,7 @@ export function useStartCampaign() {
       if (error) throw error;
       return data;
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }
 
