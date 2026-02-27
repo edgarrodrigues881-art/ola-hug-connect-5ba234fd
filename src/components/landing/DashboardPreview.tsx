@@ -141,7 +141,7 @@ const DashboardPreview = () => (
               <span className="text-sm font-medium text-white/50">Atividade de aquecimento</span>
               <span className="text-[11px] text-[#07C160]/70 font-medium">Últimos 7 dias</span>
             </div>
-            <div className="flex items-end gap-3" style={{ height: "112px" }}>
+            <div className="flex items-end gap-3" style={{ height: "180px" }}>
               {chartData.map((h, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center h-full">
                   <div className="flex-1 w-full flex items-end">
