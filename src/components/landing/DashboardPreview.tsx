@@ -18,7 +18,7 @@ const DashboardPreview = () => (
         className="text-center mb-16"
       >
         <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-3 block">Painel</span>
-        <h2 className="text-3xl lg:text-4xl font-bold text-white">Controle total em um painel</h2>
+        <h2 className="text-3xl lg:text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Controle total em um painel</h2>
       </motion.div>
 
       <motion.div
