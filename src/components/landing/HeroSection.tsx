@@ -137,11 +137,6 @@ const HeroSection = () => {
                     boxShadow: "0 50px 100px -20px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3)",
                   }}
                 >
-                  {/* Frame edge highlights */}
-                  <div className="absolute top-[2px] left-[2px] right-[2px] h-[1px] bg-gradient-to-r from-transparent via-white/[0.15] to-transparent rounded-full" />
-                  <div className="absolute bottom-[2px] left-[2px] right-[2px] h-[1px] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent rounded-full" />
-                  <div className="absolute top-[2px] right-[2px] bottom-[2px] w-[1px] bg-gradient-to-b from-white/[0.12] via-white/[0.06] to-white/[0.08]" />
-                  <div className="absolute top-[2px] left-[2px] bottom-[2px] w-[1px] bg-gradient-to-b from-white/[0.08] via-white/[0.03] to-white/[0.04]" />
 
                   {/* Inner bezel */}
                   <div className="relative bg-[#000] rounded-[2rem] overflow-hidden">
