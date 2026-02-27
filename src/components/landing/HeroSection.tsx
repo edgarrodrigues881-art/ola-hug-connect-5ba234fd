@@ -393,7 +393,7 @@ const HeroSection = () => {
                     </svg>
                   </div>
                   <div>
-                    <span className="text-[11px] text-white/70 font-medium block">3 instâncias</span>
+                    <span className="text-[11px] text-white/70 font-medium block">43 instâncias</span>
                     <span className="text-[8px] text-[#07C160]/60">Todas online</span>
                   </div>
                 </div>
