@@ -6,7 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Random message templates used when user has no custom messages
 const defaultMessages = [
   "Bom dia! 😊",
   "Boa tarde pessoal!",
@@ -28,13 +27,29 @@ const defaultMessages = [
   "Parabéns pelo conteúdo 🎉",
   "Adorei essa dica!",
   "Muito útil, valeu!",
+  "Tô acompanhando 👀",
+  "Boa! Vou aplicar isso",
+  "Sensacional 💯",
+  "Que legal, não sabia disso",
+  "Perfeito, obrigado!",
+  "Salvei aqui, valeu!",
+  "Bom demais 🙌",
+  "Isso aí, concordo",
+  "Exatamente!",
+  "Massa demais!",
 ];
 
-async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
+async function uazapiRequest(
+  baseUrl: string,
+  token: string,
+  endpoint: string,
+  payload: any,
+  method: "POST" | "GET" = "POST"
+) {
   let url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = {
-    "token": token,
-    "Accept": "application/json",
+    token: token,
+    Accept: "application/json",
   };
 
   let fetchOptions: RequestInit;
@@ -43,25 +58,31 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
     for (const [key, value] of Object.entries(payload)) {
       if (value !== undefined && value !== null) params.append(key, String(value));
     }
-    url += `?${params.toString()}`;
+    if (params.toString()) url += `?${params.toString()}`;
     fetchOptions = { method: "GET", headers };
   } else {
     headers["Content-Type"] = "application/json";
     fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
   }
 
-  console.log(`UaZapi ${method}:`, url);
+  console.log(`UaZapi ${method}: ${url}`);
   const res = await fetch(url, fetchOptions);
   const text = await res.text();
-  console.log("UaZapi response:", res.status, text.substring(0, 300));
+  console.log(`UaZapi response: ${res.status} ${text.substring(0, 300)}`);
 
+  // Method fallback: POST -> GET on 405
   if (res.status === 405 && method === "POST") {
     return uazapiRequest(baseUrl, token, endpoint, payload, "GET");
   }
 
   if (!res.ok) {
     let errorMsg = `API error ${res.status}`;
-    try { const d = JSON.parse(text); errorMsg = d?.message || d?.error || text; } catch { errorMsg = text; }
+    try {
+      const d = JSON.parse(text);
+      errorMsg = d?.message || d?.error || text;
+    } catch {
+      errorMsg = text;
+    }
     throw new Error(errorMsg);
   }
   return JSON.parse(text);
@@ -73,22 +94,75 @@ function pickRandom<T>(arr: T[]): T {
 
 function randomDelay(minSec: number, maxSec: number): Promise<void> {
   const ms = (minSec + Math.random() * (maxSec - minSec)) * 1000;
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function isWithinTimeWindow(startTime: string, endTime: string): boolean {
   const now = new Date();
-  // Use UTC-3 (Brasilia time) as default
   const brHour = (now.getUTCHours() - 3 + 24) % 24;
   const brMin = now.getUTCMinutes();
   const currentMinutes = brHour * 60 + brMin;
-  
+
   const [startH, startM] = startTime.split(":").map(Number);
   const [endH, endM] = endTime.split(":").map(Number);
   const startMinutes = startH * 60 + startM;
   const endMinutes = endH * 60 + endM;
-  
+
   return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+}
+
+/**
+ * Fetch all groups the device is currently in from UaZapi.
+ * Returns array of { jid, name }.
+ */
+async function fetchDeviceGroups(
+  baseUrl: string,
+  token: string
+): Promise<Array<{ jid: string; name: string }>> {
+  const results: Array<{ jid: string; name: string }> = [];
+
+  try {
+    // Try GET /group/list first (UaZapi V2)
+    const data = await uazapiRequest(baseUrl, token, "/group/list", {}, "GET");
+
+    if (Array.isArray(data)) {
+      for (const g of data) {
+        const jid = g.jid || g.id || g.groupJid;
+        const name = g.name || g.subject || g.groupName || "";
+        if (jid && jid.includes("@g.us")) {
+          results.push({ jid, name });
+        }
+      }
+    } else if (data?.groups && Array.isArray(data.groups)) {
+      for (const g of data.groups) {
+        const jid = g.jid || g.id || g.groupJid;
+        const name = g.name || g.subject || g.groupName || "";
+        if (jid && jid.includes("@g.us")) {
+          results.push({ jid, name });
+        }
+      }
+    }
+  } catch (e) {
+    console.log("group/list failed, trying chat/getChats:", e);
+    // Fallback: get all chats and filter groups
+    try {
+      const chats = await uazapiRequest(baseUrl, token, "/chat/getChats", {}, "GET");
+      if (Array.isArray(chats)) {
+        for (const c of chats) {
+          const jid = c.id || c.jid;
+          const name = c.name || c.subject || "";
+          if (jid && jid.includes("@g.us")) {
+            results.push({ jid, name });
+          }
+        }
+      }
+    } catch (e2) {
+      console.error("chat/getChats also failed:", e2);
+    }
+  }
+
+  console.log(`Found ${results.length} groups for device`);
+  return results;
 }
 
 Deno.serve(async (req) => {
@@ -100,15 +174,13 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Support both cron (no auth) and manual trigger (with auth)
   let targetUserId: string | null = null;
   let targetSessionId: string | null = null;
 
   try {
     const body = await req.json().catch(() => ({}));
     targetSessionId = body.sessionId || null;
-    
-    // If manual trigger, verify auth
+
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
@@ -118,26 +190,22 @@ Deno.serve(async (req) => {
   } catch {}
 
   try {
-    // Get active warmup sessions
     let query = supabase
       .from("warmup_sessions")
       .select("*")
       .eq("status", "running");
 
-    if (targetSessionId) {
-      query = query.eq("id", targetSessionId);
-    }
-    if (targetUserId) {
-      query = query.eq("user_id", targetUserId);
-    }
+    if (targetSessionId) query = query.eq("id", targetSessionId);
+    if (targetUserId) query = query.eq("user_id", targetUserId);
 
     const { data: sessions, error: sessErr } = await query;
     if (sessErr) throw sessErr;
 
     if (!sessions || sessions.length === 0) {
-      return new Response(JSON.stringify({ message: "No active warmup sessions" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ message: "No active warmup sessions" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const results: any[] = [];
@@ -150,7 +218,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Calculate today's limit
+        // Calculate today's limit with progressive curve
         const dailyLimit = Math.min(
           session.messages_per_day + (session.current_day - 1) * session.daily_increment,
           session.max_messages_per_day
@@ -177,14 +245,23 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get user's warmup groups
-        const { data: groups } = await supabase
-          .from("warmup_groups")
-          .select("*")
-          .eq("user_id", session.user_id);
+        // Check device is online
+        const onlineStatuses = ["Connected", "Ready", "authenticated", "ready"];
+        if (device?.status && !onlineStatuses.includes(device.status)) {
+          results.push({ session_id: session.id, status: "error", reason: "device_offline", deviceStatus: device.status });
+          
+          // Safety: if device is offline, set session to alert state
+          if (session.safety_state === "normal") {
+            await supabase.from("warmup_sessions").update({ safety_state: "alerta" }).eq("id", session.id);
+          }
+          continue;
+        }
 
-        if (!groups || groups.length === 0) {
-          results.push({ session_id: session.id, status: "error", reason: "no_groups" });
+        // Fetch groups the device is currently in
+        const deviceGroups = await fetchDeviceGroups(deviceBaseUrl, deviceToken);
+
+        if (deviceGroups.length === 0) {
+          results.push({ session_id: session.id, status: "error", reason: "no_groups_found" });
           continue;
         }
 
@@ -194,121 +271,115 @@ Deno.serve(async (req) => {
           .select("content")
           .eq("user_id", session.user_id);
 
-        const messagePool = (userMessages && userMessages.length > 0)
-          ? userMessages.map(m => m.content)
-          : defaultMessages;
+        const messagePool =
+          userMessages && userMessages.length > 0
+            ? userMessages.map((m) => m.content)
+            : defaultMessages;
 
-        // Decide how many messages to send this execution (1-3 per run for natural behavior)
-        const batchSize = Math.min(remaining, Math.floor(Math.random() * 3) + 1);
+        // Decide batch size: 1-3 messages per execution for natural behavior
+        // Reduced for "novo" and "recuperacao" profiles
+        const maxBatch = session.quality_profile === "novo" ? 2 : session.quality_profile === "recuperacao" ? 1 : 3;
+        const batchSize = Math.min(remaining, Math.floor(Math.random() * maxBatch) + 1);
+        
         let sentCount = 0;
+        let errorCount = 0;
 
         for (let i = 0; i < batchSize; i++) {
+          const group = pickRandom(deviceGroups);
+          const message = pickRandom(messagePool);
+
           try {
-            const group = pickRandom(groups);
-            const message = pickRandom(messagePool);
+            console.log(`Warmup: sending to group ${group.name} (${group.jid}) for session ${session.id}`);
 
-            // Extract group JID from link (use group name as fallback)
-            // We need to get chats to find group JIDs
-            // For UaZapi, send to group using the group link's invite code
-            // Actually, we need to send to group chat ID. Let's get chats first.
-            
-            // Try to get group chats from UaZapi
-            let groupJid: string | null = null;
-            
-            try {
-              const chatsRes = await uazapiRequest(deviceBaseUrl, deviceToken, "/chat/getChats", {}, "GET");
-              if (Array.isArray(chatsRes)) {
-                // Find groups (JIDs ending with @g.us)
-                const groupChats = chatsRes.filter((c: any) => 
-                  c.id?.includes("@g.us") || c.jid?.includes("@g.us")
-                );
-                
-                if (groupChats.length > 0) {
-                  const randomGroup = pickRandom(groupChats);
-                  groupJid = randomGroup.id || randomGroup.jid;
-                }
-              }
-            } catch (e) {
-              console.log("Could not fetch chats, trying send to group by name:", e);
-            }
-
-            if (!groupJid) {
-              // Fallback: try to find by group name or use a known group
-              console.log(`No group JID found for session ${session.id}, skipping this message`);
-              continue;
-            }
-
-            // Send message to group
             await uazapiRequest(deviceBaseUrl, deviceToken, "/send/text", {
-              number: groupJid,
+              number: group.jid,
               text: message,
             });
 
             sentCount++;
-            console.log(`Warmup: sent "${message.substring(0, 30)}..." to group ${groupJid} for session ${session.id}`);
+            console.log(`Warmup: sent "${message.substring(0, 30)}..." to ${group.name}`);
 
-            // Log the sent message
+            // Log success
             await supabase.from("warmup_logs").insert({
               session_id: session.id,
               user_id: session.user_id,
               device_id: session.device_id,
-              group_jid: groupJid,
+              group_jid: group.jid,
+              group_name: group.name,
               message_content: message,
               status: "sent",
             });
 
-            // Random delay between messages within batch
+            // Random delay between messages
             if (i < batchSize - 1) {
               await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
             }
           } catch (msgErr: any) {
-            console.error(`Warmup message error:`, msgErr.message);
-            // Log the error
-            await supabase.from("warmup_logs").insert({
-              session_id: session.id,
-              user_id: session.user_id,
-              device_id: session.device_id,
-              message_content: message || "unknown",
-              status: "error",
-              error_message: msgErr.message,
-            }).catch(() => {});
+            errorCount++;
+            console.error(`Warmup message error for group ${group.name}:`, msgErr.message);
+
+            await supabase
+              .from("warmup_logs")
+              .insert({
+                session_id: session.id,
+                user_id: session.user_id,
+                device_id: session.device_id,
+                group_jid: group.jid,
+                group_name: group.name,
+                message_content: message,
+                status: "error",
+                error_message: msgErr.message,
+              })
+              .catch(() => {});
           }
         }
 
         // Update session counters
-        if (sentCount > 0) {
-          await supabase
-            .from("warmup_sessions")
-            .update({
-              messages_sent_today: session.messages_sent_today + sentCount,
-              messages_sent_total: session.messages_sent_total + sentCount,
-              last_executed_at: new Date().toISOString(),
-            })
-            .eq("id", session.id);
-        }
-
-        // Check if we need to advance to next day (reset daily counter)
-        // This happens if it's past end_time or if daily limit is reached
         const newSentToday = session.messages_sent_today + sentCount;
-        if (newSentToday >= dailyLimit && session.current_day < session.total_days) {
-          // Will be reset by the daily reset logic (separate check)
+        const newSentTotal = session.messages_sent_total + sentCount;
+
+        const updates: Record<string, any> = {
+          messages_sent_today: newSentToday,
+          messages_sent_total: newSentTotal,
+          last_executed_at: new Date().toISOString(),
+        };
+
+        // Safety state management
+        if (errorCount > 0 && sentCount === 0) {
+          // All messages failed - escalate safety
+          if (session.safety_state === "normal") {
+            updates.safety_state = "alerta";
+            console.log(`Session ${session.id}: escalated to ALERTA`);
+          } else if (session.safety_state === "alerta") {
+            updates.safety_state = "recuo";
+            console.log(`Session ${session.id}: escalated to RECUO`);
+          } else if (session.safety_state === "recuo") {
+            // Too many errors, pause session
+            updates.status = "paused";
+            console.log(`Session ${session.id}: PAUSED due to persistent errors`);
+          }
+        } else if (sentCount > 0 && session.safety_state !== "normal") {
+          // Successful send - recover safety state
+          updates.safety_state = "normal";
+          console.log(`Session ${session.id}: recovered to NORMAL`);
         }
 
         // Check if warmup is complete
         if (session.current_day >= session.total_days && newSentToday >= dailyLimit) {
-          await supabase
-            .from("warmup_sessions")
-            .update({ status: "completed" })
-            .eq("id", session.id);
+          updates.status = "completed";
         }
+
+        await supabase.from("warmup_sessions").update(updates).eq("id", session.id);
 
         results.push({
           session_id: session.id,
           device: device?.name,
           status: "ok",
           sent: sentCount,
+          errors: errorCount,
           daily_limit: dailyLimit,
           sent_today: newSentToday,
+          groups_available: deviceGroups.length,
         });
       } catch (sessionErr: any) {
         console.error(`Session ${session.id} error:`, sessionErr.message);
@@ -316,8 +387,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Daily reset check: reset messages_sent_today and increment current_day
-    // for sessions that haven't been executed today
+    // Daily reset check
     const { data: allSessions } = await supabase
       .from("warmup_sessions")
       .select("id, last_executed_at, current_day, total_days, status")
@@ -331,14 +401,10 @@ Deno.serve(async (req) => {
         if (s.last_executed_at) {
           const lastDate = new Date(s.last_executed_at).toISOString().split("T")[0];
           if (lastDate < todayStr) {
-            // New day - reset daily counter and increment day
             const newDay = Math.min(s.current_day + 1, s.total_days);
             await supabase
               .from("warmup_sessions")
-              .update({
-                messages_sent_today: 0,
-                current_day: newDay,
-              })
+              .update({ messages_sent_today: 0, current_day: newDay })
               .eq("id", s.id);
             console.log(`Reset daily counter for session ${s.id}, now day ${newDay}`);
           }
