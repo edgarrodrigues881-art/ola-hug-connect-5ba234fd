@@ -212,13 +212,33 @@ const HeroSection = () => {
                 </p>
 
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="flex-1 h-[6px] bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className="relative flex-1 h-[6px] bg-white/[0.06] rounded-full overflow-visible">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: "89%" }}
                       transition={{ duration: 2, delay: 1.8, ease: "easeOut" }}
-                      className="h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#0AD47C]"
-                    />
+                      className="h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#0AD47C] relative"
+                    >
+                      {/* Fire icon at the end of the bar */}
+                      <motion.svg
+                        className="absolute -right-[5px] -top-[9px] w-[14px] h-[14px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        animate={{ y: [0, -1.5, 0], opacity: [0.8, 1, 0.8] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <path d="M12 2C12 2 7 8 7 12C7 15 9 17 12 17C15 17 17 15 17 12C17 8 12 2 12 2Z" fill="url(#barFireOuter)" />
+                        <path d="M12 8C12 8 10 11 10 13C10 14.5 11 15.5 12 15.5C13 15.5 14 14.5 14 13C14 11 12 8 12 8Z" fill="url(#barFireInner)" />
+                        <defs>
+                          <linearGradient id="barFireOuter" x1="12" y1="2" x2="12" y2="17" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#FF6B35" /><stop offset="100%" stopColor="#FF9500" />
+                          </linearGradient>
+                          <linearGradient id="barFireInner" x1="12" y1="8" x2="12" y2="15.5" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#FFD93D" /><stop offset="100%" stopColor="#FF8C00" />
+                          </linearGradient>
+                        </defs>
+                      </motion.svg>
+                    </motion.div>
                   </div>
                   <span className="text-[13px] font-bold text-white tabular-nums">89%</span>
                 </div>
