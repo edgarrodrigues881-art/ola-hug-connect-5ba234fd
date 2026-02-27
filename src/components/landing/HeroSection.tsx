@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Realistic chat data - varied, natural
 const chats = [
   { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6" },
   { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
@@ -12,10 +11,9 @@ const chats = [
   { name: "Juliana Costa", msg: "Foto", time: "10:15", unread: 1, avatar: "JC", color: "#10B981" },
   { name: "Roberto Silva", msg: "Pode ser na quinta então", time: "09:58", unread: 0, avatar: "RS", color: "#6366F1" },
   { name: "Fernanda Lima", msg: "Áudio (0:23)", time: "09:44", unread: 0, avatar: "FL", color: "#F43F5E" },
-  { name: "Grupo Vendas", msg: "Marina: fechamos 3 contratos hoje", time: "09:30", unread: 12, avatar: "GV", color: "#14B8A6" },
+  { name: "Grupo Vendas", msg: "Marina: fechamos 3 contratos", time: "09:30", unread: 12, avatar: "GV", color: "#14B8A6" },
   { name: "Diego Alves", msg: "Show, valeu pela indicação!", time: "09:12", unread: 0, avatar: "DA", color: "#A855F7" },
   { name: "Patrícia Rocha", msg: "Segue o documento atualizado", time: "08:55", unread: 0, avatar: "PR", color: "#0EA5E9" },
-  { name: "Marcos Oliveira", msg: "Bom dia! Tudo certo por aí?", time: "08:30", unread: 3, avatar: "MO", color: "#EF4444" },
 ];
 
 const HeroSection = () => {
@@ -25,24 +23,13 @@ const HeroSection = () => {
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
       {/* Subtle ambient particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
+        {Array.from({ length: 25 }).map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-px h-px rounded-full bg-white/20"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              opacity: [0, 0.3, 0],
-              scale: [0, 1.5, 0],
-            }}
-            transition={{
-              duration: 4 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 5,
-              ease: "easeInOut",
-            }}
+            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+            animate={{ opacity: [0, 0.3, 0], scale: [0, 1.5, 0] }}
+            transition={{ duration: 4 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 5, ease: "easeInOut" }}
           />
         ))}
       </div>
@@ -51,7 +38,6 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left — Copy */}
           <div className="max-w-lg">
-
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -94,160 +80,152 @@ const HeroSection = () => {
             </motion.div>
           </div>
 
-          {/* Right — Phone + Progress Card */}
+          {/* Right — Phone + Progress Badge */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4 }}
             className="relative flex items-center justify-center"
           >
-            {/* Ambient glow behind phone */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 lg:w-[420px] lg:h-[420px]">
+            {/* Ambient glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-80 lg:h-80">
               <motion.div
-                className="w-full h-full rounded-full bg-[#07C160]/[0.04] blur-[100px]"
+                className="w-full h-full rounded-full bg-[#07C160]/[0.05] blur-[100px]"
                 animate={{ opacity: [0.4, 0.7, 0.4] }}
                 transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
 
-            {/* Phone with 3D perspective */}
-            <div
-              className="relative"
-              style={{
-                perspective: "1200px",
-              }}
-            >
+            {/* Phone */}
+            <div className="relative" style={{ perspective: "1200px" }}>
               <div
-                className="relative w-[220px] lg:w-[240px]"
-                style={{
-                  transform: "rotateY(-8deg) rotateX(2deg)",
-                  transformStyle: "preserve-3d",
-                }}
+                className="relative w-[240px] lg:w-[260px]"
+                style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
-                {/* Phone body */}
-                <div className="relative bg-[#1C1C1E] rounded-[2.2rem] border border-white/[0.08] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
-                  {/* Glass reflection */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none z-20 rounded-[2.2rem]" />
-                  
-                  {/* Dynamic Island */}
-                  <div className="flex justify-center pt-2 pb-1 relative z-10">
-                    <div className="w-[70px] h-[22px] bg-black rounded-full" />
-                  </div>
+                {/* Phone chassis */}
+                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.5rem] p-[3px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)]">
+                  {/* Inner bezel */}
+                  <div className="relative bg-[#000] rounded-[2.3rem] overflow-hidden">
+                    {/* Side highlight (glass edge reflection) */}
+                    <div className="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-white/10 via-white/[0.03] to-transparent z-30" />
+                    <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-white/[0.05] via-transparent to-transparent z-30" />
 
-                  {/* Screen content */}
-                  <div className="mx-[4px] mb-[4px] rounded-b-[1.9rem] overflow-hidden bg-[#0B0F14]">
-                    {/* WhatsApp header */}
-                    <div className="px-3 py-2 flex items-center justify-between">
-                      <h3 className="text-[11px] font-bold text-white">Conversas</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full border border-white/20" />
-                        <div className="w-3 h-0.5 bg-white/20 rounded" />
-                      </div>
+                    {/* Dynamic Island */}
+                    <div className="flex justify-center pt-[10px] pb-[6px] relative z-10 bg-[#000]">
+                      <div className="w-[80px] h-[24px] bg-[#000] rounded-full border border-white/[0.03]" />
                     </div>
 
-                    {/* Search bar */}
-                    <div className="mx-2 mb-1">
-                      <div className="h-5 bg-white/[0.05] rounded-md flex items-center px-2">
-                        <span className="text-[8px] text-white/20">Pesquisar</span>
-                      </div>
-                    </div>
-
-                    {/* Chat list */}
-                    <div className="divide-y divide-white/[0.03]">
-                      {chats.slice(0, 8).map((chat, i) => (
-                        <div key={i} className="flex items-center gap-2 px-2 py-1.5">
-                          {/* Avatar */}
-                          <div
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0"
-                            style={{ backgroundColor: chat.color + "30", color: chat.color }}
-                          >
-                            {chat.avatar}
-                          </div>
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className={`text-[8px] ${chat.unread > 0 ? "font-semibold text-white" : "font-medium text-white/80"} truncate`}>
-                                {chat.name}
-                              </span>
-                              <span className={`text-[7px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
-                                {chat.time}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between mt-0.5">
-                              <span className="text-[7px] text-white/30 truncate pr-1">
-                                {chat.msg}
-                              </span>
-                              {chat.unread > 0 && (
-                                <span className="flex-shrink-0 w-3 h-3 rounded-full bg-[#07C160] text-[6px] font-bold text-white flex items-center justify-center">
-                                  {chat.unread}
-                                </span>
-                              )}
-                            </div>
+                    {/* Screen */}
+                    <div className="bg-[#0A0A0A]">
+                      {/* Status bar */}
+                      <div className="flex items-center justify-between px-5 py-1">
+                        <span className="text-[8px] text-white/40 font-medium">9:41</span>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-1.5 border border-white/30 rounded-[2px]">
+                            <div className="w-[70%] h-full bg-white/40 rounded-[1px]" />
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
 
-                    {/* Bottom nav */}
-                    <div className="flex items-center justify-around py-2 border-t border-white/[0.04] mt-1">
-                      {["Conversas", "Status", "Ligações"].map((tab, i) => (
-                        <span
-                          key={tab}
-                          className={`text-[7px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}
-                        >
-                          {tab}
-                        </span>
-                      ))}
+                      {/* WhatsApp header */}
+                      <div className="px-4 pt-1 pb-2">
+                        <h3 className="text-[13px] font-bold text-white tracking-tight">Conversas</h3>
+                      </div>
+
+                      {/* Search */}
+                      <div className="mx-3 mb-2">
+                        <div className="h-[26px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full border border-white/15" />
+                          <span className="text-[9px] text-white/20">Pesquisar</span>
+                        </div>
+                      </div>
+
+                      {/* Chat list */}
+                      <div>
+                        {chats.map((chat, i) => (
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-[7px] hover:bg-white/[0.02] border-b border-white/[0.02] last:border-0">
+                            <div
+                              className="w-[32px] h-[32px] rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
+                              style={{ backgroundColor: chat.color + "20", color: chat.color }}
+                            >
+                              {chat.avatar}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-[2px]">
+                                <span className={`text-[10px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                                  {chat.name}
+                                </span>
+                                <span className={`text-[8px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                                  {chat.time}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[8px] text-white/25 truncate pr-2">{chat.msg}</span>
+                                {chat.unread > 0 && (
+                                  <span className="flex-shrink-0 min-w-[14px] h-[14px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
+                                    {chat.unread}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Bottom nav */}
+                      <div className="flex items-center justify-around py-[10px] border-t border-white/[0.04]">
+                        {["Conversas", "Atualizações", "Ligações"].map((tab, i) => (
+                          <div key={tab} className="flex flex-col items-center gap-0.5">
+                            <div className={`w-5 h-[3px] rounded-full ${i === 0 ? "bg-[#07C160]" : "bg-transparent"}`} />
+                            <span className={`text-[8px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}>{tab}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Home indicator */}
+                      <div className="flex justify-center pb-2 pt-1">
+                        <div className="w-[100px] h-[4px] bg-white/10 rounded-full" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Phone shadow */}
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-6 bg-black/40 blur-2xl rounded-full" />
+                {/* Shadow beneath phone */}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[65%] h-8 bg-[#07C160]/[0.06] blur-3xl rounded-full" />
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[75%] h-6 bg-black/50 blur-2xl rounded-full" />
               </div>
             </div>
 
-            {/* Progress card — positioned to the right */}
+            {/* Progress badge — compact, matching the screenshot style */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-              className="absolute -right-4 lg:right-[-60px] top-1/2 -translate-y-1/2 w-[220px] lg:w-[240px]"
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 1.2 }}
+              className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px]"
             >
-              <div className="bg-[#111827] border border-white/[0.06] rounded-2xl p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]"
-                style={{
-                  boxShadow: "0 20px 60px -15px rgba(0,0,0,0.5), 0 0 40px -20px rgba(7,193,96,0.1)",
-                }}
+              <div
+                className="bg-[#111827]/95 backdrop-blur-sm border border-white/[0.08] rounded-2xl px-4 py-3.5"
+                style={{ boxShadow: "0 16px 48px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.05)" }}
               >
-                <p className="text-[10px] text-white/30 font-medium tracking-wider uppercase mb-4">
+                <p className="text-[9px] text-white/30 font-semibold tracking-[0.15em] uppercase mb-3">
                   Aquecimento em execução
                 </p>
 
-                {/* Progress bar */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex-1 h-[6px] bg-white/[0.06] rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: "89%" }}
-                      transition={{ duration: 2.5, delay: 1.5, ease: "easeOut" }}
-                      className="h-full bg-[#07C160] rounded-full"
+                      transition={{ duration: 2, delay: 1.8, ease: "easeOut" }}
+                      className="h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#0AD47C]"
                     />
                   </div>
-                  <span className="text-sm font-semibold text-white tabular-nums">89%</span>
+                  <span className="text-[13px] font-bold text-white tabular-nums">89%</span>
                 </div>
 
-                {/* Meta info */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#07C160]" />
-                    <span className="text-[11px] text-white/50">Status: <span className="text-white/80">Ativo</span></span>
-                  </div>
-                  <p className="text-[11px] text-white/30 leading-relaxed">
-                    Simulação comportamental inteligente
-                  </p>
-                  <p className="text-[11px] text-white/30 leading-relaxed">
-                    Conexão segura via QR Code
-                  </p>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-[5px] h-[5px] rounded-full bg-[#07C160] animate-pulse" />
+                  <span className="text-[10px] text-white/40">Status: <span className="text-white/70 font-medium">Ativo</span></span>
                 </div>
               </div>
             </motion.div>
