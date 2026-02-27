@@ -95,26 +95,7 @@ const PlansSection = () => {
   return (
     <section id="planos" className="py-20 px-6 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        {/* Launch banner */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          custom={0}
-          className="mb-10 text-center"
-        >
-          <div className="inline-flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-full px-5 py-2 text-sm text-white/50">
-            <span>🔥</span>
-            <span>
-              Lançamento:{" "}
-              <span className="text-emerald-400/90 font-medium">
-                50% OFF
-              </span>{" "}
-              na primeira mensalidade por tempo limitado.
-            </span>
-          </div>
-        </motion.div>
+
 
         <motion.h2
           initial="hidden"
@@ -180,17 +161,8 @@ const PlansSection = () => {
                 )}
                 {!plan.extraCopy && <div className="mb-3" />}
 
-                <div className="mb-1">
-                  <span className="text-3xl font-bold text-white/90">
-                    R$ {plan.price}
-                  </span>
-                </div>
-                <p className="text-[10px] text-white/15 mb-0.5 uppercase tracking-wide">mês</p>
-                <p className="text-[11px] text-white/25 mb-6">
-                  R$ {plan.perInstance} por instância
-                </p>
 
-                <div className="h-px bg-white/[0.05] mb-6" />
+
 
                 <div className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
