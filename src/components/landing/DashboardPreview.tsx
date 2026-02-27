@@ -64,38 +64,12 @@ const DashboardPreview = () => (
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.7, ease: "easeOut" }}
-        className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden"
+        className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden border border-white/[0.06]"
         style={{
           background: "linear-gradient(160deg, rgba(12,18,28,0.98), rgba(8,12,20,0.95))",
-          boxShadow: "0 25px 80px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(7,193,96,0.1)",
+          boxShadow: "0 25px 80px -20px rgba(0,0,0,0.7)",
         }}
       >
-        {/* Outer glow — animated (same as phone) */}
-        <motion.div
-          className="absolute -inset-[6px] rounded-[1.2rem] z-0 blur-md pointer-events-none"
-          style={{
-            background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-            backgroundSize: "300% 300%",
-          }}
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Border — animated gradient (same as phone) */}
-        <motion.div
-          className="absolute -inset-[1.5px] rounded-[1.1rem] z-0 pointer-events-none"
-          style={{
-            background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-            backgroundSize: "300% 300%",
-          }}
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-          }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        />
-
         <div className="relative p-6 lg:p-8">
           {/* Top bar */}
           <div className="flex items-center gap-2 mb-8">
