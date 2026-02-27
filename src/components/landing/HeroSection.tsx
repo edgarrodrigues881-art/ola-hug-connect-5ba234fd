@@ -55,7 +55,7 @@ const HeroSection = () => {
                 onClick={() => navigate("/auth")}
                 className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(7,193,96,0.2)]"
               >
-                Conectar WhatsApp
+                Começar Agora
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button
