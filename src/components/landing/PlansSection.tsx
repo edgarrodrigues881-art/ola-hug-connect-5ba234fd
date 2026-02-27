@@ -167,9 +167,6 @@ const PlansSection = () => {
                   </span>
                   <span className="text-white/20 text-sm"> / mês</span>
                 </div>
-                <p className="text-[11px] text-white/25 mb-6">
-                  R$ {plan.perInstance} por instância
-                </p>
 
                 <div className="h-px bg-white/[0.05] mb-6" />
 
