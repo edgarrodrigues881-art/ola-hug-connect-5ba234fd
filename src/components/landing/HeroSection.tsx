@@ -130,13 +130,21 @@ const HeroSection = () => {
                 />
 
 
-                {/* Phone chassis */}
-                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.4rem] p-[3px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10">
+                {/* Phone chassis — thick metallic frame like iPhone 16 */}
+                <div className="relative rounded-[2.4rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10"
+                  style={{
+                    background: "linear-gradient(145deg, #3A3A3E 0%, #4A4A4E 20%, #555 40%, #4A4A4E 60%, #3A3A3E 80%, #2A2A2E 100%)",
+                    boxShadow: "0 50px 100px -20px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3)",
+                  }}
+                >
+                  {/* Frame edge highlights */}
+                  <div className="absolute top-[2px] left-[2px] right-[2px] h-[1px] bg-gradient-to-r from-transparent via-white/[0.15] to-transparent rounded-full" />
+                  <div className="absolute bottom-[2px] left-[2px] right-[2px] h-[1px] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent rounded-full" />
+                  <div className="absolute top-[2px] right-[2px] bottom-[2px] w-[1px] bg-gradient-to-b from-white/[0.12] via-white/[0.06] to-white/[0.08]" />
+                  <div className="absolute top-[2px] left-[2px] bottom-[2px] w-[1px] bg-gradient-to-b from-white/[0.08] via-white/[0.03] to-white/[0.04]" />
+
                   {/* Inner bezel */}
-                  <div className="relative bg-[#000] rounded-[2.2rem] overflow-hidden">
-                    {/* Side highlight (glass edge reflection) */}
-                    <div className="absolute top-0 right-0 w-[3px] h-full bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-white/[0.08] z-30" />
-                    <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-white/[0.06] via-transparent to-transparent z-30" />
+                  <div className="relative bg-[#000] rounded-[2rem] overflow-hidden">
 
                     {/* Glass reflection overlay */}
                     <div
