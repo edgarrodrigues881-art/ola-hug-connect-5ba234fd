@@ -336,6 +336,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: try POST first, fallback to GET on 405
+    const fetchWithFallback = async (endpoint: string, payload: Record<string, any>) => {
+      let res = await fetch(apiUrl(INSTANCE_BASE_URL, endpoint), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) {
+        console.log(`POST 405 on ${endpoint}, retrying with PUT...`);
+        res = await fetch(apiUrl(INSTANCE_BASE_URL, endpoint), {
+          method: "PUT",
+          headers: instanceHeaders,
+          body: JSON.stringify(payload),
+        });
+      }
+      if (res.status === 405) {
+        console.log(`PUT 405 on ${endpoint}, retrying with GET + query...`);
+        const qs = new URLSearchParams(Object.entries(payload).map(([k, v]) => [k, String(v)]));
+        res = await fetch(`${apiUrl(INSTANCE_BASE_URL, endpoint)}?${qs}`, {
+          method: "GET",
+          headers: instanceHeaders,
+        });
+      }
+      const data = await res.json().catch(() => ({}));
+      console.log(`${endpoint} result:`, res.status, JSON.stringify(data).substring(0, 200));
+      return { res, data };
+    };
+
     // ACTION: updateProfileName - Update WhatsApp profile name
     if (action === "updateProfileName") {
       if (!profileName) {
@@ -343,13 +371,11 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfileName"), {
-        method: "POST",
-        headers: instanceHeaders,
-        body: JSON.stringify({ name: profileName }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log("updateProfileName result:", res.status, JSON.stringify(data).substring(0, 200));
+      const { res, data } = await fetchWithFallback("/instance/updateProfileName", { name: profileName });
+      // Save to DB
+      if (res.ok && deviceId) {
+        await serviceClient.from("devices").update({ profile_name: profileName }).eq("id", deviceId);
+      }
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -362,13 +388,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfileStatus"), {
-        method: "POST",
-        headers: instanceHeaders,
-        body: JSON.stringify({ status: profileStatus }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log("updateProfileStatus result:", res.status, JSON.stringify(data).substring(0, 200));
+      const { res, data } = await fetchWithFallback("/instance/updateProfileStatus", { status: profileStatus });
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -381,13 +401,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfilePicture"), {
-        method: "POST",
-        headers: instanceHeaders,
-        body: JSON.stringify({ url: profilePictureUrl }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log("updateProfilePicture result:", res.status, JSON.stringify(data).substring(0, 200));
+      const { res, data } = await fetchWithFallback("/instance/updateProfilePicture", { url: profilePictureUrl });
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
