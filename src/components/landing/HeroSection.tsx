@@ -10,10 +10,6 @@ const chats = [
   { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
   { name: "Juliana Costa", msg: "Foto", time: "10:15", unread: 1, avatar: "JC", color: "#10B981" },
   { name: "Roberto Silva", msg: "Pode ser na quinta então", time: "09:58", unread: 0, avatar: "RS", color: "#6366F1" },
-  { name: "Fernanda Lima", msg: "Áudio (0:23)", time: "09:44", unread: 0, avatar: "FL", color: "#F43F5E" },
-  { name: "Grupo Vendas", msg: "Marina: fechamos 3 contratos", time: "09:30", unread: 12, avatar: "GV", color: "#14B8A6" },
-  { name: "Diego Alves", msg: "Show, valeu pela indicação!", time: "09:12", unread: 0, avatar: "DA", color: "#A855F7" },
-  { name: "Patrícia Rocha", msg: "Segue o documento atualizado", time: "08:55", unread: 0, avatar: "PR", color: "#0EA5E9" },
 ];
 
 const HeroSection = () => {
