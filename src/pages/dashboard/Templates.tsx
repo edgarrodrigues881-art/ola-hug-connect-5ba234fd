@@ -507,57 +507,81 @@ const Templates = () => {
       </Dialog>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Pré-visualização: {previewTemplate?.name}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Tipo: {previewTemplate ? typeLabel(previewTemplate.type) : ""}</p>
+        <DialogContent className="sm:max-w-sm max-h-[85vh] overflow-y-auto p-0">
+          <DialogHeader className="px-4 pt-4 pb-0"><DialogTitle className="text-sm">Pré-visualização</DialogTitle></DialogHeader>
+          
+          {/* WhatsApp-style chat background */}
+          <div className="bg-[#0b141a] px-4 py-6 min-h-[300px] flex flex-col justify-end gap-1.5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23ffffff08\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill=\'url(%23p)\' width=\'200\' height=\'200\'/%3E%3C/svg%3E")' }}>
             
-            {/* Media preview */}
-            {previewTemplate?.media_url && (() => {
+            {previewTemplate && (() => {
               const files = parseMediaFiles(previewTemplate.media_url);
-              if (files.length === 0) return null;
+              const beforeFiles = files.filter((f: MediaFile) => f.sendMode === "before");
+              const withFile = files.find((f: MediaFile) => f.sendMode === "with");
+              const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
               return (
-                <div className="space-y-2">
-                  {files.map((file: MediaFile, i: number) => (
-                    <div key={i} className="border border-border rounded-md overflow-hidden">
-                      {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-32 object-cover" />}
-                      {file.type === "video" && <video src={file.url} controls className="w-full max-h-32" />}
-                      {file.type === "audio" && (
-                        <div className="p-2 flex items-center gap-2 bg-muted/30">
-                          <Mic className="w-3.5 h-3.5 text-primary" />
-                          <audio src={file.url} controls className="w-full h-7" />
+                <>
+                  {/* Files sent BEFORE the message */}
+                  {beforeFiles.map((file: MediaFile, i: number) => (
+                    <div key={`before-${i}`} className="self-end max-w-[85%]">
+                      <div className="bg-[#005c4b] rounded-lg overflow-hidden shadow-sm">
+                        {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-48 object-cover" />}
+                        {file.type === "video" && <video src={file.url} controls className="w-full max-h-48" />}
+                        {file.type === "audio" && (
+                          <div className="px-3 py-2 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-[#00a884] flex items-center justify-center shrink-0">
+                              <Mic className="w-4 h-4 text-white" />
+                            </div>
+                            <audio src={file.url} controls className="w-full h-7 [&::-webkit-media-controls-panel]:bg-transparent" />
+                          </div>
+                        )}
+                        {file.type === "document" && (
+                          <div className="px-3 py-2 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-md bg-[#00a884]/20 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4 text-[#00a884]" />
+                            </div>
+                            <span className="text-[11px] text-[#e9edef] truncate">{file.name}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-end px-2 pb-1">
+                          <span className="text-[10px] text-[#ffffff99]">{time} ✓✓</span>
                         </div>
-                      )}
-                      {file.type === "document" && (
-                        <div className="p-2 flex items-center gap-2 bg-muted/30">
-                          <FileText className="w-3.5 h-3.5 text-primary" />
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate">{file.name}</a>
-                        </div>
-                      )}
-                      <div className="px-2 py-1 border-t border-border bg-muted/10 flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[9px]">{file.sendMode === "before" ? "Antes da msg" : "Com a msg"}</Badge>
-                        <span className="text-[9px] text-muted-foreground truncate">{file.name}</span>
                       </div>
                     </div>
                   ))}
-                </div>
+
+                  {/* Main message bubble (with optional "with" media) */}
+                  <div className="self-end max-w-[85%]">
+                    <div className="bg-[#005c4b] rounded-lg overflow-hidden shadow-sm">
+                      {withFile && (
+                        <>
+                          {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-48 object-cover" />}
+                          {withFile.type === "video" && <video src={withFile.url} controls className="w-full max-h-48" />}
+                        </>
+                      )}
+                      <div className="px-2.5 py-1.5">
+                        <p className="text-[13px] text-[#e9edef] whitespace-pre-wrap leading-snug">{previewTemplate.content}</p>
+                        <div className="flex justify-end mt-0.5">
+                          <span className="text-[10px] text-[#ffffff99]">{time} ✓✓</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  {previewTemplate.buttons && previewTemplate.buttons.length > 0 && (
+                    <div className="self-end max-w-[85%] space-y-1">
+                      {previewTemplate.buttons.map((btn: any, i: number) => (
+                        <div key={i} className="bg-[#005c4b] rounded-lg px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm">
+                          {btn.type === "url" ? <Link className="w-3 h-3 text-[#00a884]" /> : btn.type === "phone" ? <Phone className="w-3 h-3 text-[#00a884]" /> : <MessageSquare className="w-3 h-3 text-[#00a884]" />}
+                          <span className="text-[12px] text-[#00a884] font-medium">{btn.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
-
-            <div className="bg-background rounded-md p-3 text-sm whitespace-pre-wrap border border-border">{previewTemplate?.content}</div>
-
-            {/* Buttons preview */}
-            {previewTemplate?.buttons && previewTemplate.buttons.length > 0 && (
-              <div className="space-y-1.5">
-                {previewTemplate.buttons.map((btn: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2 border border-border rounded-md px-3 py-1.5 bg-muted/20">
-                    {btn.type === "url" ? <Link className="w-3 h-3 text-primary" /> : btn.type === "phone" ? <Phone className="w-3 h-3 text-primary" /> : <MessageSquare className="w-3 h-3 text-primary" />}
-                    <span className="text-xs">{btn.text}</span>
-                    {btn.value && <span className="text-[10px] text-muted-foreground ml-auto truncate max-w-[120px]">{btn.value}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>
