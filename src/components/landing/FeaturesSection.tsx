@@ -40,7 +40,7 @@ const item = {
 };
 
 const FeaturesSection = () => (
-  <section id="recursos" className="py-24">
+  <section id="recursos" className="py-24 bg-transparent">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}

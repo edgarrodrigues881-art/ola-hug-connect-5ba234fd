@@ -45,7 +45,7 @@ const chartData = [35, 50, 45, 65, 55, 80, 89];
 const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const DashboardPreview = () => (
-  <section id="dashboard" className="relative py-24 lg:py-32">
+  <section id="dashboard" className="relative py-24 lg:py-32 bg-transparent">
     <div className="container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
