@@ -437,6 +437,29 @@ const Devices = () => {
     setProfileOpen(true);
   };
 
+  const wpFileRef = useRef<HTMLInputElement>(null);
+  const [wpUploading, setWpUploading] = useState(false);
+
+  const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !session?.user?.id) return;
+    setWpUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${session.user.id}/wp-profile-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("media").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+      setWpPhotoUrl(urlData.publicUrl);
+      toast({ title: "Foto carregada" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
+    } finally {
+      setWpUploading(false);
+      if (wpFileRef.current) wpFileRef.current.value = "";
+    }
+  };
+
   const handleProfileUpdate = async () => {
     if (!wpName && !wpStatus && !wpPhotoUrl) {
       toast({ title: "Preencha ao menos um campo", variant: "destructive" });
@@ -452,8 +475,8 @@ const Devices = () => {
         if (wpName.trim()) {
           await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
         }
-        if (wpStatus || wpStatus === "") {
-          await callApi({ action: "updateProfileStatus", deviceId: device.id, profileStatus: wpStatus });
+        if (wpStatus.trim()) {
+          await callApi({ action: "updateProfileStatus", deviceId: device.id, profileStatus: wpStatus.trim() });
         }
         if (wpPhotoUrl.trim()) {
           await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureUrl: wpPhotoUrl.trim() });
@@ -462,7 +485,6 @@ const Devices = () => {
 
       toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
       setProfileOpen(false);
-      // Re-sync to update profile pictures
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Profile update error:", err);
@@ -1402,14 +1424,28 @@ const Devices = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5" /> Foto do perfil (URL da imagem)
+                <Camera className="w-3.5 h-3.5" /> Foto do perfil
               </Label>
-              <Input
-                value={wpPhotoUrl}
-                onChange={e => setWpPhotoUrl(e.target.value)}
-                placeholder="https://exemplo.com/foto.jpg"
-                className="h-9 text-sm font-mono"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={wpPhotoUrl}
+                  onChange={e => setWpPhotoUrl(e.target.value)}
+                  placeholder="URL da imagem ou importe abaixo"
+                  className="h-9 text-sm font-mono flex-1"
+                />
+                <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 shrink-0"
+                  onClick={() => wpFileRef.current?.click()}
+                  disabled={wpUploading}
+                >
+                  {wpUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  Importar
+                </Button>
+              </div>
               {wpPhotoUrl && (
                 <div className="flex justify-center">
                   <img src={wpPhotoUrl} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-border" onError={e => (e.currentTarget.style.display = "none")} />
