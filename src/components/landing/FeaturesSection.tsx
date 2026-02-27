@@ -52,7 +52,7 @@ const FeaturesSection = () => (
         <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
           Recursos
         </span>
-        <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white">
           Ferramentas para uma operação estruturada
         </h2>
       </motion.div>
@@ -68,15 +68,15 @@ const FeaturesSection = () => (
           <motion.div
             key={i}
             variants={item}
-            className="bg-secondary rounded-xl p-7 border border-border hover:border-primary/20 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5"
+            className="bg-gray-900 rounded-xl p-7 border border-gray-800 hover:border-primary/20 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5"
           >
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
               <feature.icon className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <h3 className="text-lg font-semibold text-white mb-2">
               {feature.title}
             </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-gray-400 leading-relaxed">
               {feature.description}
             </p>
           </motion.div>

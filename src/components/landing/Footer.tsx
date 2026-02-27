@@ -5,12 +5,12 @@ const Footer = () => (
     <div className="container flex flex-col items-center gap-5">
       <div className="flex items-center gap-2.5">
         <img src={logo} alt="DG Contingência" className="w-7 h-7 rounded-lg" />
-        <span className="text-sm font-medium text-foreground">DG Contingência</span>
+        <span className="text-sm font-medium text-white">DG Contingência</span>
       </div>
-      <p className="text-xs text-muted-foreground text-center max-w-xl leading-relaxed">
+      <p className="text-xs text-gray-500 text-center max-w-xl leading-relaxed">
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-gray-500">
         © {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.
       </p>
     </div>
