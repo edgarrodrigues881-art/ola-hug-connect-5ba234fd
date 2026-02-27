@@ -23,7 +23,7 @@ const plans = [
     perInstance: "14,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null,
-    cta: "Falar com atendente",
+    cta: "Começar agora",
     popular: false,
     features: [
       "Aquecimento automatizado incluso",
@@ -40,7 +40,7 @@ const plans = [
     perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
     extraCopy: "Plano mais escolhido por operadores ativos.",
-    cta: "Falar com atendente",
+    cta: "Contratar Plano",
     popular: true,
     features: [
       "Aquecimento automatizado incluso",
@@ -57,7 +57,7 @@ const plans = [
     perInstance: "10,99",
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
     extraCopy: null,
-    cta: "Falar com atendente",
+    cta: "Iniciar Estrutura",
     popular: false,
     features: [
       "Aquecimento automatizado incluso",
@@ -74,7 +74,7 @@ const plans = [
     perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
-    cta: "Falar com atendente",
+    cta: "Falar com especialista",
     popular: false,
     features: [
       "Aquecimento automatizado incluso",
