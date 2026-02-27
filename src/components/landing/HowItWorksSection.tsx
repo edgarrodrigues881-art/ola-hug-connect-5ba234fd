@@ -87,9 +87,24 @@ const HowItWorksSection = () => (
           className="relative rounded-2xl p-6 overflow-hidden"
           style={{
             background: "linear-gradient(135deg, rgba(239,68,68,0.05), rgba(17,24,39,0.95), rgba(239,68,68,0.03))",
-            boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.12), inset 0 1px 0 rgba(255,255,255,0.03)",
           }}
         >
+          {/* Animated red border glow */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{
+              boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)",
+            }}
+            animate={{
+              boxShadow: [
+                "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.12), 0 0 15px -3px rgba(239,68,68,0.08)",
+                "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.35), 0 0 25px -3px rgba(239,68,68,0.2)",
+                "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.12), 0 0 15px -3px rgba(239,68,68,0.08)",
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+
           {/* Animated shimmer top */}
           <motion.div
             className="absolute top-0 left-0 right-0 h-[1px]"
@@ -98,8 +113,13 @@ const HowItWorksSection = () => (
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           />
 
-          {/* Left red accent bar */}
-          <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-red-500/50 via-red-400/30 to-transparent" />
+          {/* Animated left red accent bar */}
+          <motion.div
+            className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
+            style={{ background: "linear-gradient(to bottom, rgba(239,68,68,0.5), rgba(239,68,68,0.3), transparent)" }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          />
 
           <div className="pl-4">
             <div className="flex items-center gap-3 mb-4">
