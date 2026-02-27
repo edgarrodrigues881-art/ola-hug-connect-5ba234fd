@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Flame, Plus, Play, Pause, Trash2, Clock, MessageSquare, TrendingUp,
   Zap, X, Send, RefreshCw, BarChart3, ScrollText, CheckCircle2, XCircle, ChevronDown,
-  Shield, Activity, AlertTriangle, Sparkles,
+  Shield, Activity, AlertTriangle, Sparkles, Radio,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -74,7 +74,6 @@ const Warmup = () => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("sessions");
 
-  // Computed summary for the modal
   const planSummary = getPlanSummary(formDuration, formProfile);
 
   const handleCreate = () => {
@@ -89,7 +88,6 @@ const Warmup = () => {
       ...params,
     }, {
       onSuccess: () => {
-        // Also update quality_profile on the session
         toast({ title: "Aquecimento iniciado com Modo Humano!" });
         setDialogOpen(false);
         setFormDeviceId("");
@@ -171,6 +169,7 @@ const Warmup = () => {
   const errorCount = logs.filter(l => l.status === "error").length;
 
   const hasSessions = sessions.length > 0;
+  const isMotorActive = activeCount > 0;
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -197,36 +196,78 @@ const Warmup = () => {
         )}
       </div>
 
+      {/* Motor status indicator */}
+      <div className={cn(
+        "flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all",
+        isMotorActive
+          ? "bg-emerald-500/5 border-emerald-500/20"
+          : "bg-muted/20 border-border/20"
+      )}>
+        <div className="relative flex items-center justify-center">
+          <Radio className={cn("w-4 h-4", isMotorActive ? "text-emerald-400" : "text-muted-foreground/40")} />
+          {isMotorActive && (
+            <span className="absolute inset-0 rounded-full animate-ping bg-emerald-400/30" style={{ animationDuration: "2s" }} />
+          )}
+        </div>
+        <span className={cn("text-xs font-medium", isMotorActive ? "text-emerald-400" : "text-muted-foreground/60")}>
+          {isMotorActive ? "Motor ativo" : "Nenhuma execução no momento"}
+        </span>
+        {isMotorActive && (
+          <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+            {activeCount} sessão{activeCount > 1 ? "ões" : ""} em execução
+          </span>
+        )}
+      </div>
+
       {/* Stats (4 cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Sessões Ativas", value: activeCount, icon: Activity, active: activeCount > 0, activeColor: "text-emerald-400", activeBg: "from-emerald-500/15 to-emerald-500/5" },
-          { label: "Execuções Hoje", value: todayActions, icon: Zap, active: todayActions > 0, activeColor: "text-blue-400", activeBg: "from-blue-500/15 to-blue-500/5" },
-          { label: "Total de Ações", value: totalActions, icon: MessageSquare, active: false, activeColor: "text-muted-foreground", activeBg: "from-muted/15 to-muted/5" },
-          { label: "Erros", value: errorCount, icon: AlertTriangle, active: errorCount > 0, activeColor: "text-red-400", activeBg: "from-red-500/15 to-red-500/5" },
-        ].map(s => (
-          <Card key={s.label} className="border-border/20 overflow-hidden">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={cn(
-                "w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center shrink-0",
-                s.active ? s.activeBg : "from-muted/10 to-muted/5"
-              )}>
-                <s.icon className={cn("w-4 h-4", s.active ? s.activeColor : "text-muted-foreground/50")} />
-              </div>
-              <div>
+          { label: "Sessões Ativas", value: activeCount, icon: Activity, highlight: activeCount > 0 ? "emerald" as const : null },
+          { label: "Execuções Hoje", value: todayActions, icon: Zap, highlight: todayActions > 0 ? "blue" as const : null },
+          { label: "Total de Ações", value: totalActions, icon: MessageSquare, highlight: null },
+          { label: "Erros", value: errorCount, icon: AlertTriangle, highlight: errorCount > 0 ? "red" as const : null },
+        ].map(s => {
+          const borderColor = s.highlight === "emerald"
+            ? "border-emerald-500/30 shadow-emerald-500/5"
+            : s.highlight === "red"
+              ? "border-red-500/30 shadow-red-500/5"
+              : s.highlight === "blue"
+                ? "border-blue-500/20"
+                : "border-border/15";
+          const iconColor = s.highlight === "emerald"
+            ? "text-emerald-400"
+            : s.highlight === "red"
+              ? "text-red-400"
+              : s.highlight === "blue"
+                ? "text-blue-400"
+                : "text-muted-foreground/40";
+
+          return (
+            <Card
+              key={s.label}
+              className={cn(
+                "overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group",
+                borderColor,
+                s.highlight && "shadow-lg"
+              )}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <s.icon className={cn("w-4 h-4 transition-colors", iconColor)} />
+                </div>
                 <p className={cn(
-                  "text-2xl font-bold tabular-nums leading-none",
-                  s.active ? "text-foreground" : "text-muted-foreground"
+                  "text-3xl font-bold tabular-nums leading-none tracking-tight",
+                  s.highlight ? "text-foreground" : "text-muted-foreground/70"
                 )}>{s.value}</p>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium mt-1">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium mt-2">{s.label}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Main tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
         <TabsList className="bg-transparent border-b border-border/20 rounded-none p-0 h-auto gap-0">
           {[
             { value: "sessions", label: "Sessões", icon: Flame },
@@ -237,7 +278,7 @@ const Warmup = () => {
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="relative gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-colors"
+              className="relative gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-all duration-200"
             >
               <tab.icon className="w-3.5 h-3.5" /> {tab.label}
             </TabsTrigger>
@@ -252,7 +293,7 @@ const Warmup = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25 }}
               className="space-y-3"
             >
               {isLoading ? (
@@ -289,42 +330,59 @@ const Warmup = () => {
                   const deviceNumber = getDeviceNumber(session.device_id);
                   const profileLabel = PROFILES[(session as any).quality_profile as QualityProfile]?.label || "—";
                   const safety = safetyLabels[(session as any).safety_state] || safetyLabels.normal;
+                  const isRunning = session.status === "running";
 
                   return (
-                    <Card key={session.id} className="border-border/20 overflow-hidden">
+                    <Card
+                      key={session.id}
+                      className={cn(
+                        "overflow-hidden transition-all duration-300 hover:shadow-lg",
+                        isRunning ? "border-emerald-500/15 shadow-md" : "border-border/15"
+                      )}
+                    >
                       <CardContent className="p-0">
-                        <div className="p-5">
+                        {/* === Identity area === */}
+                        <div className="p-5 pb-4">
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
-                              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500/15 to-amber-500/5 flex items-center justify-center">
-                                <Flame className={cn("w-5 h-5", session.status === "running" ? "text-orange-500" : "text-muted-foreground/50")} />
+                              <div className={cn(
+                                "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
+                                isRunning
+                                  ? "bg-gradient-to-br from-orange-500/15 to-amber-500/10"
+                                  : "bg-muted/20"
+                              )}>
+                                <Flame className={cn("w-5 h-5", isRunning ? "text-orange-500" : "text-muted-foreground/40")} />
                               </div>
-                              <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background", sc.dot)} />
+                              {/* Pulsing dot for running */}
+                              {isRunning && (
+                                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border-2 border-card" />
+                                </span>
+                              )}
+                              {!isRunning && (
+                                <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card", sc.dot)} />
+                              )}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-0.5">
                                 <p className="text-sm font-semibold text-foreground truncate">{getDeviceName(session.device_id)}</p>
                                 <Badge variant="outline" className={cn("text-[9px] h-5 shrink-0", sc.color)}>{sc.label}</Badge>
-                                <Badge variant="outline" className="text-[9px] h-5 shrink-0 bg-primary/5 text-primary/80 border-primary/20">{profileLabel}</Badge>
                               </div>
-                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                                {deviceNumber && <span className="font-mono">{deviceNumber}</span>}
+                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                {deviceNumber && <span className="font-mono text-muted-foreground/70">{deviceNumber}</span>}
                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{session.start_time}–{session.end_time}</span>
-                                <span>Dia {session.current_day}/{session.total_days}</span>
-                                <span className={cn("flex items-center gap-1", safety.color)}>
-                                  <Shield className="w-3 h-3" />{safety.label}
-                                </span>
                               </div>
                             </div>
 
                             <div className="hidden sm:flex items-center gap-5">
                               <div className="text-center">
-                                <p className="text-lg font-bold text-foreground tabular-nums">{session.messages_sent_today}</p>
+                                <p className="text-xl font-bold text-foreground tabular-nums">{session.messages_sent_today}</p>
                                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hoje</p>
                               </div>
                               <div className="text-center">
-                                <p className="text-lg font-bold text-foreground tabular-nums">{session.messages_sent_total}</p>
+                                <p className="text-xl font-bold text-foreground tabular-nums">{session.messages_sent_total}</p>
                                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total</p>
                               </div>
                             </div>
@@ -335,73 +393,120 @@ const Warmup = () => {
                               className="h-8 w-8 shrink-0"
                               onClick={() => setExpandedSession(isExpanded ? null : session.id)}
                             >
-                              <ChevronDown className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")} />
+                              <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-180")} />
                             </Button>
                           </div>
+                        </div>
 
-                          {/* Progress bars */}
-                          <div className="mt-4 grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between text-[10px] text-muted-foreground">
-                                <span>Progresso diário</span>
-                                <span className="tabular-nums">{session.messages_sent_today}/{currentLimit}</span>
-                              </div>
-                              <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
-                                  style={{ width: `${Math.min(dailyProgress, 100)}%` }}
+                        {/* === Plan summary strip === */}
+                        <div className="px-5 pb-3">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <span className="text-muted-foreground">Perfil:</span>
+                              <Badge variant="outline" className="text-[9px] h-5 bg-primary/5 text-primary/80 border-primary/20">{profileLabel}</Badge>
+                            </div>
+                            <div className="w-px h-3 bg-border/20" />
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <span className="text-muted-foreground">Duração:</span>
+                              <span className="text-foreground font-medium">{session.total_days} dias</span>
+                            </div>
+                            <div className="w-px h-3 bg-border/20" />
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <span className="text-muted-foreground">Estado:</span>
+                              <span className={cn("flex items-center gap-1 font-medium", safety.color)}>
+                                <Shield className="w-3 h-3" />{safety.label}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* === Progress bars === */}
+                        <div className="px-5 pb-5">
+                          <div className="grid grid-cols-2 gap-5">
+                            {/* Daily progress */}
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Progresso de hoje</p>
+                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(dailyProgress, 100)}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
                                 />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-foreground/80 font-medium">
+                                  {session.messages_sent_today} de {currentLimit} ações
+                                </span>
+                                <span className="text-[10px] text-muted-foreground tabular-nums">{Math.min(dailyProgress, 100)}%</span>
                               </div>
                             </div>
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between text-[10px] text-muted-foreground">
-                                <span>Ciclo geral</span>
-                                <span className="tabular-nums">Dia {session.current_day}/{session.total_days}</span>
-                              </div>
-                              <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-500"
-                                  style={{ width: `${Math.min(progress, 100)}%` }}
+
+                            {/* Cycle progress */}
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Progresso do ciclo</p>
+                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(progress, 100)}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
                                 />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-foreground/80 font-medium">
+                                  Dia {session.current_day} de {session.total_days}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground tabular-nums">{Math.min(progress, 100)}%</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Expanded */}
-                        {isExpanded && (
-                          <div className="border-t border-border/15 bg-muted/5 p-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5 text-xs flex-1"
-                                onClick={() => toggleStatus(session.id, session.status)}
-                                disabled={session.status === "completed"}
-                              >
-                                {session.status === "running" ? <><Pause className="w-3 h-3" /> Pausar</> : <><Play className="w-3 h-3" /> Retomar</>}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5 text-xs flex-1"
-                                onClick={() => executeNow(session.id)}
-                                disabled={isExecuting || session.status !== "running"}
-                              >
-                                {isExecuting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                                {isExecuting ? "Executando..." : "Executar Agora"}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
-                                onClick={() => removeSession(session.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                        {/* Expanded actions */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="border-t border-border/10 bg-muted/5 p-4 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5 text-xs flex-1"
+                                    onClick={() => toggleStatus(session.id, session.status)}
+                                    disabled={session.status === "completed"}
+                                  >
+                                    {session.status === "running" ? <><Pause className="w-3 h-3" /> Pausar</> : <><Play className="w-3 h-3" /> Retomar</>}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5 text-xs flex-1"
+                                    onClick={() => executeNow(session.id)}
+                                    disabled={isExecuting || session.status !== "running"}
+                                  >
+                                    {isExecuting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                                    {isExecuting ? "Executando..." : "Executar Agora"}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={() => removeSession(session.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </CardContent>
                     </Card>
                   );
@@ -414,8 +519,8 @@ const Warmup = () => {
         {/* ===== CHART TAB ===== */}
         <TabsContent value="chart">
           <AnimatePresence mode="wait">
-            <motion.div key="chart" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <Card className="border-border/20">
+            <motion.div key="chart" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+              <Card className="border-border/15 shadow-md">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -423,7 +528,7 @@ const Warmup = () => {
                       <p className="text-[11px] text-muted-foreground mt-0.5">Ações realizadas por dia</p>
                     </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> {dailyStats.length} dias
+                      <TrendingUp className="w-3.5 h-3.5 text-primary" /> {dailyStats.length} dias
                     </span>
                   </div>
 
@@ -461,8 +566,8 @@ const Warmup = () => {
         {/* ===== LOGS TAB ===== */}
         <TabsContent value="logs">
           <AnimatePresence mode="wait">
-            <motion.div key="logs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <Card className="border-border/20">
+            <motion.div key="logs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+              <Card className="border-border/15 shadow-md">
                 <CardContent className="p-0">
                   {logsLoading ? (
                     <div className="flex justify-center py-16">
@@ -511,8 +616,8 @@ const Warmup = () => {
         {/* ===== MESSAGES TAB ===== */}
         <TabsContent value="messages">
           <AnimatePresence mode="wait">
-            <motion.div key="messages" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <Card className="border-border/20">
+            <motion.div key="messages" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+              <Card className="border-border/15 shadow-md">
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -580,7 +685,7 @@ const Warmup = () => {
         </TabsContent>
       </Tabs>
 
-      {/* ===== CREATE DIALOG - Modo Humano ===== */}
+      {/* ===== CREATE DIALOG ===== */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -651,7 +756,7 @@ const Warmup = () => {
               </div>
             </div>
 
-            {/* Plan Summary (auto-computed) */}
+            {/* Plan Summary */}
             <div className="rounded-xl border border-border/20 bg-muted/10 p-4 space-y-3">
               <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-primary" /> Resumo do plano
