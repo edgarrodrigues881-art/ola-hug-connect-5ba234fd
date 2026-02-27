@@ -58,45 +58,14 @@ const TrustSection = () => (
             viewport={{ once: true }}
             transition={{ delay: 0.1 + i * 0.08, duration: 0.5 }}
             whileHover={{ y: -3, transition: { duration: 0.25 } }}
-            className="group relative rounded-2xl p-5 overflow-hidden border border-[#07C160]/15 cursor-default"
+            className="group relative rounded-2xl p-5 overflow-hidden border border-white/[0.06] hover:border-[#07C160]/20 transition-colors duration-500 cursor-default"
             style={{
               background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))",
             }}
           >
-            {/* Shimmer top */}
-            <motion.div
-              className="absolute top-0 left-0 h-[2px] w-[60px] rounded-full"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
-              animate={{ left: ["0%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Shimmer bottom */}
-            <motion.div
-              className="absolute bottom-0 right-0 h-[2px] w-[60px] rounded-full"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
-              animate={{ right: ["0%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Left bar */}
-            <motion.div
-              className="absolute left-0 w-[3px] h-8 rounded-full"
-              style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.5), transparent)" }}
-              animate={{ top: ["10%", "70%", "10%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-
-            {/* Hover glow */}
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-              style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.05) 0%, transparent 70%)" }}
-            />
-
-            <motion.div
-              className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.15] transition-colors duration-500"
-              whileHover={{ rotate: [0, -5, 5, 0], transition: { duration: 0.4 } }}
-            >
+            <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.12] transition-colors duration-500">
               <item.icon className="w-5 h-5 text-[#07C160]/70 group-hover:text-[#07C160] transition-colors duration-500" />
-            </motion.div>
+            </div>
 
             <h3 className="text-[15px] font-semibold text-white mb-1.5">{item.title}</h3>
             <p className="text-[12px] text-white/35 leading-relaxed">{item.desc}</p>
