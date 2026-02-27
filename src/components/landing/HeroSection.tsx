@@ -229,6 +229,63 @@ const HeroSection = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* Badge — Conexão Segura (left side) */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 1.5 }}
+              className="absolute left-[-30px] lg:left-[-50px] top-[60%] hidden lg:block"
+            >
+              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
+                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
+              >
+                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Conexão segura</span>
+              </div>
+            </motion.div>
+
+            {/* Badge — Simulação Natural (bottom left) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.8 }}
+              className="absolute left-[5%] lg:left-[-20px] bottom-[10%] hidden lg:block"
+            >
+              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
+                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
+              >
+                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Simulação natural</span>
+              </div>
+            </motion.div>
+
+            {/* Badge — Monitoramento (bottom right) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 2.1 }}
+              className="absolute right-[-20px] lg:right-[-30px] bottom-[5%] hidden lg:block"
+            >
+              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
+                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
+              >
+                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Monitoramento</span>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
