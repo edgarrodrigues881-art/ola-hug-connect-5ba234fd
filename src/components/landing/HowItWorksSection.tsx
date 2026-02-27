@@ -58,7 +58,7 @@ const HowItWorksSection = () => (
               className="absolute top-0 left-0 right-0 h-[1px]"
               style={{ background: "linear-gradient(90deg, transparent, #07C160, transparent)", backgroundSize: "200% 100%" }}
               animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: i * 0.5 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
             
             {/* Icon */}
@@ -105,20 +105,26 @@ const HowItWorksSection = () => (
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Animated shimmer top */}
+          {/* Animated shimmer — travels around border */}
           <motion.div
-            className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.4), transparent)", backgroundSize: "200% 100%" }}
-            animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+            className="absolute top-0 left-0 h-[2px] w-[60px] rounded-full"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.6), transparent)" }}
+            animate={{ left: ["0%", "100%"], top: ["0px", "0px"] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-0 h-[2px] w-[60px] rounded-full"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.6), transparent)" }}
+            animate={{ right: ["0%", "100%"] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           />
 
-          {/* Animated left red accent bar */}
+          {/* Animated left red accent bar — moves up and down */}
           <motion.div
-            className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
-            style={{ background: "linear-gradient(to bottom, rgba(239,68,68,0.5), rgba(239,68,68,0.3), transparent)" }}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-0 w-[3px] h-8 rounded-full"
+            style={{ background: "linear-gradient(to bottom, transparent, rgba(239,68,68,0.6), transparent)" }}
+            animate={{ top: ["10%", "70%", "10%"] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
           <div className="pl-4">
