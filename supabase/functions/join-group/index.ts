@@ -49,15 +49,16 @@ async function tryJoin(
     "Content-Type": "application/json",
   };
 
-  const payload = JSON.stringify({ inviteCode });
-
-  // Strategy 1: PUT /group/acceptInviteGroup (UaZapi V2)
+  // UaZapi V2 documented endpoint: POST /group/join with { invitecode: "code_or_url" }
   const endpoints = [
-    { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: payload },
-    { method: "POST", url: `${baseUrl}/group/acceptInviteGroup`, body: payload },
-    // Strategy 2: GET with url query param (Z-API / UaZapi alternative)
-    { method: "GET", url: `${baseUrl}/accept-invite-group?url=${encodeURIComponent(groupLink)}`, body: undefined },
-    { method: "GET", url: `${baseUrl}/group/acceptInviteGroup?inviteCode=${inviteCode}`, body: undefined },
+    // Primary: POST /group/join (official UaZapi V2 docs)
+    { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: groupLink }) },
+    // Fallback: POST /group/join with just the code
+    { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
+    // Legacy: PUT /group/acceptInviteGroup
+    { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
+    // Legacy: POST /group/acceptInviteGroup
+    { method: "POST", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
   ];
 
   for (const ep of endpoints) {
@@ -85,6 +86,7 @@ async function tryJoin(
 
   return { ok: false, status: 405, body: { message: "Nenhum método HTTP aceito pelo servidor" }, raw: "", endpoint: "all failed" };
 }
+
 function interpretResult(status: number, body: any): { joinStatus: JoinResult["status"]; error?: string } {
   if (status >= 200 && status < 300) {
     const msg = (body?.message || body?.msg || "").toLowerCase();
