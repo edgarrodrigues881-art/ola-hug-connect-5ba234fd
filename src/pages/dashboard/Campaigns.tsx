@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import {
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
-  CheckCircle2, XCircle, Copy, Eraser
+  CheckCircle2, XCircle, Copy, Eraser, Sparkles
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -29,6 +30,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
+
+// Animation variants
+const fadeInUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.06 } },
+};
+
+const staggerItem = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 interface Contact {
   id: number;
@@ -467,25 +484,53 @@ const Campaigns = () => {
   return (
     <div className="space-y-8 w-full pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div>
-          <h1 className="text-lg font-semibold text-foreground tracking-tight">Enviar Mensagem</h1>
+          <h1 className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
+            Enviar Mensagem
+            <motion.span
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <Sparkles className="w-4 h-4 text-primary/60" />
+            </motion.span>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">Configure e envie com controle total</p>
         </div>
-        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
-          <Eraser className="w-3 h-3" /> Limpar tudo
-        </Button>
-      </div>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
+            <Eraser className="w-3 h-3" /> Limpar tudo
+          </Button>
+        </motion.div>
+      </motion.div>
 
       {/* Stepper */}
-      <div className="flex items-center gap-0">
+      <motion.div 
+        className="flex items-center gap-0 relative"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        {/* Progress bar background */}
+        <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-border/20 -translate-y-1/2 rounded-full z-0" />
+        <motion.div 
+          className="absolute top-1/2 left-0 h-[2px] bg-primary/40 -translate-y-1/2 rounded-full z-0"
+          initial={{ width: "0%" }}
+          animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        />
         {steps.map((s, i) => {
           const isActive = step === s.num;
           const isDone = step > s.num;
           const Icon = s.icon;
           return (
-            <div key={s.num} className="flex items-center flex-1">
-              <button
+            <div key={s.num} className="flex items-center flex-1 relative z-10">
+              <motion.button
                 onClick={() => setStep(s.num)}
                 className={cn(
                   "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs transition-all",
@@ -493,28 +538,48 @@ const Campaigns = () => {
                   isDone && "text-foreground/80",
                   !isActive && !isDone && "text-muted-foreground",
                 )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-all",
-                  isActive && "bg-primary text-primary-foreground",
-                  isDone && "bg-emerald-500/20 text-emerald-400",
-                  !isActive && !isDone && "bg-muted text-muted-foreground",
-                )}>
-                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
-                </div>
+                <motion.div 
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-all relative",
+                    isActive && "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)]",
+                    isDone && "bg-emerald-500/20 text-emerald-400",
+                    !isActive && !isDone && "bg-muted text-muted-foreground",
+                  )}
+                  animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {isDone ? (
+                    <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 300 }}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </motion.div>
+                  ) : s.num}
+                </motion.div>
                 <span className="hidden sm:inline font-medium">{s.label}</span>
-              </button>
-              {i < steps.length - 1 && <div className="w-6 h-px bg-border/40 shrink-0" />}
+              </motion.button>
             </div>
           );
         })}
-      </div>
+      </motion.div>
 
+      {/* Step content with animations */}
+      <AnimatePresence mode="wait">
       {/* ===== STEP 1: Message ===== */}
       {step === 1 && (
-        <div className="space-y-6">
+        <motion.div 
+          key="step-1"
+          className="space-y-6"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          {...fadeInUp}
+          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+        >
           {/* Template selector */}
-          <div className="space-y-1.5">
+          <motion.div className="space-y-1.5" variants={staggerItem}>
             <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
             <Select value={selectedTemplate} onValueChange={(val) => {
               setSelectedTemplate(val);
@@ -522,9 +587,7 @@ const Campaigns = () => {
                 const tmpl = savedTemplates.find(t => t.id === val);
                 if (tmpl) {
                   setMessage(tmpl.content);
-                   // message type is auto-detected now
-                   if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
-                  if (tmpl.media_url) setMediaUrl(tmpl.media_url);
+                  if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
                   if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
                     setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
                     setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
@@ -540,7 +603,7 @@ const Campaigns = () => {
                 {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
+          </motion.div>
 
           {/* Media section - always available as toggle */}
           {!mediaUrl ? (
@@ -744,17 +807,28 @@ const Campaigns = () => {
             </Popover>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
-              Continuar <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
+          <motion.div className="flex justify-end" variants={staggerItem}>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
+                Continuar <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* ===== STEP 2: Contacts ===== */}
       {step === 2 && (
-        <div className="space-y-6">
+        <motion.div 
+          key="step-2"
+          className="space-y-6"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          {...fadeInUp}
+          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+        >
           {/* Summary card */}
           <div className="rounded-lg border border-border/30 bg-card/40 p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
