@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2, FileText, Video, Mic, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2, FileText, Video, Mic, ArrowUp, ArrowDown, GripVertical, Eye } from "lucide-react";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -281,6 +281,9 @@ const Templates = () => {
                     <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }} title="Pré-visualizar">
+                          <Eye className="w-3 h-3" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(t)} title="Editar">
                           <Pencil className="w-3 h-3" />
                         </Button>
@@ -504,11 +507,57 @@ const Templates = () => {
       </Dialog>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Pré-visualização: {previewTemplate?.name}</DialogTitle></DialogHeader>
-          <div className="bg-muted/30 rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">Tipo: {previewTemplate ? typeLabel(previewTemplate.type) : ""}</p>
-            <div className="bg-background rounded-md p-3 text-sm whitespace-pre-wrap">{previewTemplate?.content}</div>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Tipo: {previewTemplate ? typeLabel(previewTemplate.type) : ""}</p>
+            
+            {/* Media preview */}
+            {previewTemplate?.media_url && (() => {
+              const files = parseMediaFiles(previewTemplate.media_url);
+              if (files.length === 0) return null;
+              return (
+                <div className="space-y-2">
+                  {files.map((file: MediaFile, i: number) => (
+                    <div key={i} className="border border-border rounded-md overflow-hidden">
+                      {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-32 object-cover" />}
+                      {file.type === "video" && <video src={file.url} controls className="w-full max-h-32" />}
+                      {file.type === "audio" && (
+                        <div className="p-2 flex items-center gap-2 bg-muted/30">
+                          <Mic className="w-3.5 h-3.5 text-primary" />
+                          <audio src={file.url} controls className="w-full h-7" />
+                        </div>
+                      )}
+                      {file.type === "document" && (
+                        <div className="p-2 flex items-center gap-2 bg-muted/30">
+                          <FileText className="w-3.5 h-3.5 text-primary" />
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate">{file.name}</a>
+                        </div>
+                      )}
+                      <div className="px-2 py-1 border-t border-border bg-muted/10 flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[9px]">{file.sendMode === "before" ? "Antes da msg" : "Com a msg"}</Badge>
+                        <span className="text-[9px] text-muted-foreground truncate">{file.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            <div className="bg-background rounded-md p-3 text-sm whitespace-pre-wrap border border-border">{previewTemplate?.content}</div>
+
+            {/* Buttons preview */}
+            {previewTemplate?.buttons && previewTemplate.buttons.length > 0 && (
+              <div className="space-y-1.5">
+                {previewTemplate.buttons.map((btn: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 border border-border rounded-md px-3 py-1.5 bg-muted/20">
+                    {btn.type === "url" ? <Link className="w-3 h-3 text-primary" /> : btn.type === "phone" ? <Phone className="w-3 h-3 text-primary" /> : <MessageSquare className="w-3 h-3 text-primary" />}
+                    <span className="text-xs">{btn.text}</span>
+                    {btn.value && <span className="text-[10px] text-muted-foreground ml-auto truncate max-w-[120px]">{btn.value}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
