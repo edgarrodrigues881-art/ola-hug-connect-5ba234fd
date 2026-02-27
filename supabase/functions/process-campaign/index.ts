@@ -88,17 +88,22 @@ async function sendUazapiMessage(
   const phone = to.replace(/\D/g, "");
 
   // Media message (image + optional caption)
-  if (mediaUrl && (messageType === "imagem" || messageType === "botao-midia" || messageType === "imagem-texto")) {
-    return await uazapiRequest(baseUrl, token, "/send/media", {
-      number: phone,
-      media: mediaUrl,
-      caption: body || undefined,
-      type: "image",
-    });
+  if (mediaUrl && (messageType === "texto-imagem" || messageType === "imagem-botao")) {
+    // If also has buttons, handle below
+    if (buttons && buttons.length > 0 && messageType === "imagem-botao") {
+      // Fall through to button handler
+    } else {
+      return await uazapiRequest(baseUrl, token, "/send/media", {
+        number: phone,
+        media: mediaUrl,
+        caption: body || undefined,
+        type: "image",
+      });
+    }
   }
 
   // Buttons message - uses /send/menu with type "button"
-  if (buttons && buttons.length > 0 && (messageType === "botoes" || messageType === "botao-midia" || messageType === "texto-botao")) {
+  if (buttons && buttons.length > 0 && (messageType === "texto-botao" || messageType === "imagem-botao")) {
     const choices = buttons
       .map((b, i) => buildMenuChoice(b, i))
       .filter((choice): choice is string => Boolean(choice));
