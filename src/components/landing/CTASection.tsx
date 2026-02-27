@@ -33,7 +33,7 @@ const PlansSection = () => {
           <span className="inline-block text-xs font-semibold text-[#07C160] tracking-widest uppercase mb-3">
             Planos
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Escolha o plano ideal para sua operação
           </h2>
         </motion.div>

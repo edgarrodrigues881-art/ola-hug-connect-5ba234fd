@@ -28,7 +28,7 @@ const HeroSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.3 }}
-              className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
+              className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
               <span className="text-[#07C160]">segurança.</span>
