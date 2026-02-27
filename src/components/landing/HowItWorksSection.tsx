@@ -71,7 +71,7 @@ const HowItWorksSection = () => (
             <motion.div
               className="absolute left-0 w-[3px] h-8 rounded-full"
               style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.5), transparent)" }}
-              animate={{ top: ["10%", "60%", "10%"] }}
+              animate={{ top: ["10%", "70%", "10%"] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
             
@@ -123,7 +123,7 @@ const HowItWorksSection = () => (
           <motion.div
             className="absolute top-0 left-0 h-[2px] w-[60px] rounded-full"
             style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.6), transparent)" }}
-            animate={{ left: ["0%", "100%"], top: ["0px", "0px"] }}
+            animate={{ left: ["0%", "100%"] }}
             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           />
           <motion.div
