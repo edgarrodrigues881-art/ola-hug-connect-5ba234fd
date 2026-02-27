@@ -2,20 +2,19 @@ import { Check, ArrowRight, Lock, Activity, TrendingUp, Crown } from "lucide-rea
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const whatsappUrl =
-  "https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20quero%20contratar%20o%20plano%20Elite.";
+const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
+  const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência Pro – ${plan.instances} Instâncias no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
+  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+};
 
 const plans = [
   {
     name: "Start",
     instances: 10,
     price: "149,90",
-    perInstance: "14,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null,
-    cta: "Ativar Plano",
     popular: false,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -28,12 +27,9 @@ const plans = [
     name: "Pro",
     instances: 30,
     price: "349,90",
-    perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
     extraCopy: "Plano mais escolhido por operadores ativos.",
-    cta: "Contratar Plano",
     popular: true,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -46,12 +42,9 @@ const plans = [
     name: "Scale",
     instances: 50,
     price: "549,90",
-    perInstance: "10,99",
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
     extraCopy: null,
-    cta: "Contratar Plano",
     popular: false,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -64,12 +57,9 @@ const plans = [
     name: "Elite",
     instances: 100,
     price: "899,90",
-    perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
-    cta: "Falar com especialista",
     popular: false,
-    whatsapp: true,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -136,28 +126,19 @@ const MyPlan = () => {
                 ))}
               </div>
 
-              {plan.whatsapp ? (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 bg-muted/50 text-foreground hover:bg-muted border border-border/50"
-                >
-                  {plan.cta}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              ) : (
-                <button
-                  className={`w-full py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                    plan.popular
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted/50 text-foreground hover:bg-muted border border-border/50"
-                  }`}
-                >
-                  {plan.cta}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <a
+                href={buildWhatsappUrl(plan)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                  plan.popular
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted/50 text-foreground hover:bg-muted border border-border/50"
+                }`}
+              >
+                Falar com especialista
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </CardContent>
           </Card>
         ))}
