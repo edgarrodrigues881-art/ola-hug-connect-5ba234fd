@@ -44,7 +44,7 @@ const staggerContainer = {
 
 const staggerItem = {
   initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
 };
 
 interface Contact {
@@ -475,10 +475,10 @@ const Campaigns = () => {
   };
 
   const steps = [
-    { num: 1, label: "Mensagem", icon: MessageSquare },
-    { num: 2, label: "Contatos", icon: Users },
-    { num: 3, label: "Configuração", icon: Settings2 },
-    { num: 4, label: "Enviar", icon: Send },
+    { num: 1, label: "Conteúdo da Campanha", icon: MessageSquare },
+    { num: 2, label: "Público de Destino", icon: Users },
+    { num: 3, label: "Parâmetros de Envio", icon: Settings2 },
+    { num: 4, label: "Iniciar Campanha", icon: Send },
   ];
 
   return (
@@ -492,7 +492,7 @@ const Campaigns = () => {
       >
         <div>
           <h1 className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
-            Enviar Mensagem
+            Configuração de Campanha
             <motion.span
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -500,7 +500,7 @@ const Campaigns = () => {
               <Sparkles className="w-4 h-4 text-primary/60" />
             </motion.span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Configure e envie com controle total</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Monte, segmente e dispare com controle total</p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
@@ -564,8 +564,7 @@ const Campaigns = () => {
         })}
       </motion.div>
 
-      {/* Step content with animations */}
-      <AnimatePresence mode="wait">
+      {/* Step content */}
       {/* ===== STEP 1: Message ===== */}
       {step === 1 && (
         <motion.div 
@@ -740,6 +739,7 @@ const Campaigns = () => {
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
             </div>
+            <p className="text-[9px] text-muted-foreground/50 italic">Evite repetições excessivas e links encurtados para melhor entregabilidade.</p>
           </div>
 
           {/* Buttons section - always available */}
@@ -769,7 +769,7 @@ const Campaigns = () => {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border/40 border-dashed w-full justify-center">
-                  <Plus className="w-3.5 h-3.5" /> Adicionar Botão
+                  <Plus className="w-3.5 h-3.5" /> Inserir CTA Interativo
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
@@ -854,7 +854,7 @@ const Campaigns = () => {
               <Upload className="w-3 h-3" /> Importar
             </Button>
             <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => setImportFromContacts(true)}>
-              <Users className="w-3 h-3" /> Criar lista
+              <Users className="w-3 h-3" /> Importar Base de Contatos
             </Button>
             <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={addContact}>
               <Plus className="w-3 h-3" /> Adicionar
@@ -1024,7 +1024,7 @@ const Campaigns = () => {
               Continuar <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* ===== STEP 3: Configuration (Instance + Delay) ===== */}
@@ -1280,12 +1280,12 @@ const Campaigns = () => {
                 <Eye className="w-3 h-3" /> Pré-visualizar
               </Button>
               <Button
-                className="gap-2 h-9 px-6 text-xs font-medium"
+                className="gap-2 h-10 px-8 text-xs font-bold tracking-wider uppercase shadow-lg shadow-primary/20"
                 onClick={handleSendCampaign}
                 disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
               >
                 <Send className="w-3.5 h-3.5" />
-                {startCampaign.isPending ? "Enviando..." : createCampaign.isPending ? "Salvando..." : "Enviar agora"}
+                {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
               </Button>
             </div>
           </div>
