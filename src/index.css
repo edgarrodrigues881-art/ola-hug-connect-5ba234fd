@@ -187,8 +187,14 @@ html {
   body {
     @apply text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
-    background: radial-gradient(ellipse at center, #121212 0%, #0B0B0B 40%, #0A0A0A 100%);
+    position: relative;
+    background: radial-gradient(ellipse at center, #121212 0%, #0A0A0A 100%);
   }
+}
+
+@keyframes pulse-bg {
+  0%, 100% { filter: brightness(1) contrast(1); }
+  50% { filter: brightness(1.05) contrast(1.02); }
 }
 
 @layer utilities {
