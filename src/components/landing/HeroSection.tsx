@@ -18,28 +18,16 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      {/* Subtle ambient particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 25 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-px h-px rounded-full bg-white/20"
-            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
-            animate={{ opacity: [0, 0.3, 0], scale: [0, 1.5, 0] }}
-            transition={{ duration: 4 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 5, ease: "easeInOut" }}
-          />
-        ))}
-      </div>
 
       <div className="container relative z-10 py-16 lg:py-20">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left — Copy */}
           <div className="max-w-lg">
             <motion.h1
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
               className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
@@ -47,20 +35,20 @@ const HeroSection = () => {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
               className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
               className="flex flex-col sm:flex-row items-start gap-3"
             >
               <Button
@@ -82,19 +70,15 @@ const HeroSection = () => {
 
           {/* Right — Phone + Progress Badge */}
           <motion.div
-            initial={{ opacity: 0, x: 80, rotateY: -15 }}
-            whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-            viewport={{ once: false, amount: 0.3 }}
-            transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
-            {/* Ambient glow */}
+            {/* Ambient glow — static, no animation */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-80 lg:h-80">
-              <motion.div
-                className="w-full h-full rounded-full bg-[#07C160]/[0.05] blur-[100px]"
-                animate={{ opacity: [0.4, 0.7, 0.4] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              />
+              <div className="w-full h-full rounded-full bg-[#07C160]/[0.06] blur-[100px] opacity-50" />
             </div>
 
             {/* Phone */}
@@ -103,30 +87,15 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform" }}
               >
-                {/* Outer glow */}
-                <motion.div
-                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 blur-md"
-                  style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-                    backgroundSize: "300% 300%",
-                  }}
-                  animate={{
-                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-                    opacity: [0.3, 0.6, 0.3],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                {/* Outer glow — static */}
+                <div
+                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 blur-md opacity-40"
+                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, transparent)" }}
                 />
-                {/* Animated border */}
-                <motion.div
+                {/* Border */}
+                <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
-                  style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-                    backgroundSize: "300% 300%",
-                  }}
-                  animate={{
-                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, transparent)" }}
                 />
 
                 {/* Phone chassis */}
@@ -257,10 +226,10 @@ const HeroSection = () => {
 
             {/* Progress badge — compact, matching the screenshot style */}
             <motion.div
-              initial={{ opacity: 0, y: 15, scale: 0.9 }}
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
               className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px]"
             >
               <div
@@ -279,25 +248,15 @@ const HeroSection = () => {
                       transition={{ duration: 2, delay: 1.8, ease: "easeOut" }}
                       className="h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#0AD47C] relative"
                     >
-                      {/* Fire icon at the end of the bar */}
-                      <motion.svg
+                      {/* Fire icon */}
+                      <svg
                         className="absolute -right-[8px] -top-[7px] w-[20px] h-[20px]"
                         viewBox="0 0 24 24"
                         fill="none"
-                        animate={{ y: [0, -1.5, 0], opacity: [0.8, 1, 0.8] }}
-                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        <path d="M12 2C12 2 7 8 7 12C7 15 9 17 12 17C15 17 17 15 17 12C17 8 12 2 12 2Z" fill="url(#barFireOuter)" />
-                        <path d="M12 8C12 8 10 11 10 13C10 14.5 11 15.5 12 15.5C13 15.5 14 14.5 14 13C14 11 12 8 12 8Z" fill="url(#barFireInner)" />
-                        <defs>
-                          <linearGradient id="barFireOuter" x1="12" y1="2" x2="12" y2="17" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stopColor="#FF6B35" /><stop offset="100%" stopColor="#FF9500" />
-                          </linearGradient>
-                          <linearGradient id="barFireInner" x1="12" y1="8" x2="12" y2="15.5" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stopColor="#FFD93D" /><stop offset="100%" stopColor="#FF8C00" />
-                          </linearGradient>
-                        </defs>
-                      </motion.svg>
+                        <path d="M12 2C12 2 7 8 7 12C7 15 9 17 12 17C15 17 17 15 17 12C17 8 12 2 12 2Z" fill="#FF6B35" />
+                        <path d="M12 8C12 8 10 11 10 13C10 14.5 11 15.5 12 15.5C13 15.5 14 14.5 14 13C14 11 12 8 12 8Z" fill="#FFD93D" />
+                      </svg>
                     </motion.div>
                   </div>
                   <span className="text-[13px] font-bold text-white tabular-nums">89%</span>
