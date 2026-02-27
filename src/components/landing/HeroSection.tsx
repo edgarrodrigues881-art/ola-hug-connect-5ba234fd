@@ -87,15 +87,30 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform" }}
               >
-                {/* Outer glow — static */}
-                <div
-                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 blur-md opacity-40"
-                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, transparent)" }}
+                {/* Outer glow — animated */}
+                <motion.div
+                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 blur-md"
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+                    backgroundSize: "300% 300%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                    opacity: [0.3, 0.5, 0.3],
+                  }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* Border */}
-                <div
+                {/* Border — animated */}
+                <motion.div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
-                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, transparent)" }}
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+                    backgroundSize: "300% 300%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                  }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 />
 
                 {/* Phone chassis */}
