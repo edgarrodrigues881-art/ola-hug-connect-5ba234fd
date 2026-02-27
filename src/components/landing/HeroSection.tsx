@@ -249,11 +249,58 @@ const HeroSection = () => {
               </div>
             </motion.div>
 
+            {/* Badge — Chip Aquecendo with fire (left top) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 1.8 }}
+              className="absolute left-[5%] lg:left-[-30px] top-[20%] hidden lg:block"
+            >
+              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 flex items-center gap-2.5"
+                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5), 0 0 20px -8px rgba(255,120,30,0.08)" }}
+              >
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                  <motion.div
+                    className="absolute inset-0 rounded-lg bg-orange-500/10 blur-md"
+                    animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <svg className="w-5 h-5 text-white/70 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                    <path d="M9 6V3M15 6V3M9 21v-3M15 21v-3M6 9H3M6 15H3M21 9h-3M21 15h-3" />
+                    <rect x="9" y="9" width="6" height="6" rx="0.5" className="fill-white/10" />
+                  </svg>
+                  <motion.svg
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-4 z-20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    animate={{ y: [0, -1, 0], opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <path d="M12 2C12 2 8 7 8 11C8 13.5 9.5 15.5 12 16C14.5 15.5 16 13.5 16 11C16 7 12 2 12 2Z" fill="url(#fireGrad)" opacity="0.9" />
+                    <path d="M12 8C12 8 10 10.5 10 12.5C10 13.9 11 14.8 12 15C13 14.8 14 13.9 14 12.5C14 10.5 12 8 12 8Z" fill="url(#fireInner)" opacity="0.95" />
+                    <defs>
+                      <linearGradient id="fireGrad" x1="12" y1="2" x2="12" y2="16" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#FF6B35" /><stop offset="100%" stopColor="#FF9500" />
+                      </linearGradient>
+                      <linearGradient id="fireInner" x1="12" y1="8" x2="12" y2="15" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#FFD93D" /><stop offset="100%" stopColor="#FF8C00" />
+                      </linearGradient>
+                    </defs>
+                  </motion.svg>
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/70 font-medium">Chip aquecendo</p>
+                  <p className="text-[8px] text-white/30">Simulação ativa</p>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Badge — Simulação Natural (bottom left) */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.8 }}
+              transition={{ duration: 0.6, delay: 2.1 }}
               className="absolute left-[5%] lg:left-[-20px] bottom-[10%] hidden lg:block"
             >
               <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
