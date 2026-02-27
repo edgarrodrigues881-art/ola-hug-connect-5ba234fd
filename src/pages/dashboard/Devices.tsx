@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera, MessageSquare,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +88,15 @@ const Devices = () => {
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEditName, setInlineEditName] = useState("");
   const inlineInputRef = useRef<HTMLInputElement>(null);
+
+  // WhatsApp Profile dialog
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileDevice, setProfileDevice] = useState<Device | null>(null);
+  const [wpName, setWpName] = useState("");
+  const [wpStatus, setWpStatus] = useState("");
+  const [wpPhotoUrl, setWpPhotoUrl] = useState("");
+  const [wpApplyAll, setWpApplyAll] = useState(false);
+  const [wpSaving, setWpSaving] = useState(false);
 
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
@@ -416,6 +425,51 @@ const Devices = () => {
   const openLogout = (device: Device) => {
     setLoggingOutDevice(device);
     setLogoutOpen(true);
+  };
+
+  // WhatsApp Profile edit
+  const openProfileEdit = (device: Device) => {
+    setProfileDevice(device);
+    setWpName("");
+    setWpStatus("");
+    setWpPhotoUrl("");
+    setWpApplyAll(false);
+    setProfileOpen(true);
+  };
+
+  const handleProfileUpdate = async () => {
+    if (!wpName && !wpStatus && !wpPhotoUrl) {
+      toast({ title: "Preencha ao menos um campo", variant: "destructive" });
+      return;
+    }
+    setWpSaving(true);
+    try {
+      const targetDevices = wpApplyAll
+        ? devices.filter(d => d.status === "Ready")
+        : profileDevice ? [profileDevice] : [];
+
+      for (const device of targetDevices) {
+        if (wpName.trim()) {
+          await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
+        }
+        if (wpStatus || wpStatus === "") {
+          await callApi({ action: "updateProfileStatus", deviceId: device.id, profileStatus: wpStatus });
+        }
+        if (wpPhotoUrl.trim()) {
+          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureUrl: wpPhotoUrl.trim() });
+        }
+      }
+
+      toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
+      setProfileOpen(false);
+      // Re-sync to update profile pictures
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    } catch (err: any) {
+      console.error("Profile update error:", err);
+      toast({ title: "Erro ao atualizar perfil", description: err?.message || "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setWpSaving(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -796,6 +850,11 @@ const Devices = () => {
                   <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1" onClick={() => openEdit(d)}>
                     <Pencil className="w-3 h-3" /> Editar
                   </Button>
+                  {d.status === "Ready" && (
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openProfileEdit(d)}>
+                      <UserCircle className="w-3 h-3" /> Perfil
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openQuickToken(d)}>
                     <Key className="w-3 h-3" /> Token
                   </Button>
@@ -1301,6 +1360,79 @@ const Devices = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* WhatsApp Profile Edit Dialog */}
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle className="w-5 h-5 text-primary" />
+              Perfil do WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Altere o nome, recado e foto do perfil de <span className="font-medium text-foreground">{profileDevice?.number || profileDevice?.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <UserCircle className="w-3.5 h-3.5" /> Nome do perfil
+              </Label>
+              <Input
+                value={wpName}
+                onChange={e => setWpName(e.target.value)}
+                placeholder="Nome exibido no WhatsApp"
+                className="h-9 text-sm"
+                maxLength={25}
+              />
+              <p className="text-[10px] text-muted-foreground">{wpName.length}/25 caracteres</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" /> Recado (About)
+              </Label>
+              <Input
+                value={wpStatus}
+                onChange={e => setWpStatus(e.target.value)}
+                placeholder="Seu recado / status"
+                className="h-9 text-sm"
+                maxLength={139}
+              />
+              <p className="text-[10px] text-muted-foreground">{wpStatus.length}/139 caracteres</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" /> Foto do perfil (URL da imagem)
+              </Label>
+              <Input
+                value={wpPhotoUrl}
+                onChange={e => setWpPhotoUrl(e.target.value)}
+                placeholder="https://exemplo.com/foto.jpg"
+                className="h-9 text-sm font-mono"
+              />
+              {wpPhotoUrl && (
+                <div className="flex justify-center">
+                  <img src={wpPhotoUrl} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-border" onError={e => (e.currentTarget.style.display = "none")} />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <Checkbox checked={wpApplyAll} onCheckedChange={(v) => setWpApplyAll(!!v)} />
+              <div>
+                <p className="text-xs font-medium">Aplicar para todos os chips conectados</p>
+                <p className="text-[10px] text-muted-foreground">Altera o perfil de todas as instâncias online</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileOpen(false)} disabled={wpSaving}>Cancelar</Button>
+            <Button onClick={handleProfileUpdate} disabled={wpSaving} className="bg-primary hover:bg-primary/90">
+              {wpSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

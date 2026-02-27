@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, deviceId, number, text, instanceName } = body;
+    const { action, deviceId, number, text, instanceName, profileName, profileStatus, profilePictureUrl } = body;
     console.log("v2 ACTION:", action, "DEVICE:", deviceId);
 
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -332,6 +332,63 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: updateProfileName - Update WhatsApp profile name
+    if (action === "updateProfileName") {
+      if (!profileName) {
+        return new Response(JSON.stringify({ error: "profileName is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfileName"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ name: profileName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfileName result:", res.status, JSON.stringify(data).substring(0, 200));
+      return new Response(JSON.stringify({ success: res.ok, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: updateProfileStatus - Update WhatsApp "recado" / about
+    if (action === "updateProfileStatus") {
+      if (!profileStatus && profileStatus !== "") {
+        return new Response(JSON.stringify({ error: "profileStatus is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfileStatus"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ status: profileStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfileStatus result:", res.status, JSON.stringify(data).substring(0, 200));
+      return new Response(JSON.stringify({ success: res.ok, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ACTION: updateProfilePicture - Update WhatsApp profile picture
+    if (action === "updateProfilePicture") {
+      if (!profilePictureUrl) {
+        return new Response(JSON.stringify({ error: "profilePictureUrl is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/updateProfilePicture"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ url: profilePictureUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfilePicture result:", res.status, JSON.stringify(data).substring(0, 200));
+      return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
