@@ -145,9 +145,9 @@ const HeroSection = () => {
                     <div className="bg-[#0A0A0A]">
                       {/* Status bar */}
                       <div className="flex items-center justify-between px-5 pt-[14px] pb-1">
-                        <span className="text-[8px] text-white/40 font-medium">9:41</span>
+                        <span className="text-[10px] text-white/40 font-medium">9:41</span>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[7px] text-white/30 font-semibold">5G</span>
+                          <span className="text-[9px] text-white/30 font-semibold">5G</span>
                           <div className="w-3 h-1.5 border border-white/30 rounded-[2px]">
                             <div className="w-[70%] h-full bg-white/40 rounded-[1px]" />
                           </div>
@@ -156,14 +156,14 @@ const HeroSection = () => {
 
                       {/* WhatsApp header */}
                       <div className="px-4 pt-1 pb-2">
-                        <h3 className="text-[13px] font-bold text-white tracking-tight">Conversas</h3>
+                        <h3 className="text-[15px] font-bold text-white tracking-tight">Conversas</h3>
                       </div>
 
                       {/* Search */}
                       <div className="mx-3 mb-2">
                         <div className="h-[26px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-1.5">
                           <div className="w-2.5 h-2.5 rounded-full border border-white/15" />
-                          <span className="text-[9px] text-white/20">Pesquisar</span>
+                          <span className="text-[11px] text-white/20">Pesquisar</span>
                         </div>
                       </div>
 
@@ -175,7 +175,7 @@ const HeroSection = () => {
                               <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" style={{ imageRendering: "auto" }} />
                             ) : (
                               <div
-                                className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                                className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
                                 style={{ backgroundColor: chat.color + "20", color: chat.color }}
                               >
                                 {chat.avatar}
@@ -183,17 +183,17 @@ const HeroSection = () => {
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-[2px]">
-                                <span className={`text-[11px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                                <span className={`text-[13px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
                                   {chat.name}
                                 </span>
-                                <span className={`text-[9px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                                <span className={`text-[10px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
                                   {chat.time}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-[9px] text-white/30 truncate pr-2">{chat.msg}</span>
+                                <span className="text-[11px] text-white/30 truncate pr-2">{chat.msg}</span>
                                 {chat.unread > 0 && (
-                                  <span className="flex-shrink-0 min-w-[14px] h-[14px] rounded-full bg-[#07C160] text-[6px] font-bold text-white flex items-center justify-center px-1">
+                                  <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
                                     {chat.unread >= 999 ? "999+" : chat.unread}
                                   </span>
                                 )}
