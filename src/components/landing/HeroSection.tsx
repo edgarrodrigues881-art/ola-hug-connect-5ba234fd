@@ -109,10 +109,8 @@ const HeroSection = () => {
                     <div className="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-white/10 via-white/[0.03] to-transparent z-30" />
                     <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-white/[0.05] via-transparent to-transparent z-30" />
 
-                    {/* Dynamic Island — slim like newer iPhones */}
-                    <div className="flex justify-center pt-[6px] pb-[3px] relative z-10 bg-[#000]">
-                      <div className="w-[72px] h-[16px] bg-[#000] rounded-full border border-white/[0.03]" />
-                    </div>
+                    {/* Dynamic Island — minimal pill */}
+                    <div className="absolute top-[6px] left-1/2 -translate-x-1/2 w-[60px] h-[12px] bg-[#000] rounded-full z-20" />
 
                     {/* Screen */}
                     <div className="bg-[#0A0A0A]">
