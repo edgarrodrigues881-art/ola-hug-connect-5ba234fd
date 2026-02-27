@@ -4,6 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const chats = [
+  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
+  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C" },
   { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6" },
   { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
   { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6" },
@@ -158,8 +160,8 @@ const HeroSection = () => {
                               <div className="flex items-center justify-between">
                                 <span className="text-[8px] text-white/25 truncate pr-2">{chat.msg}</span>
                                 {chat.unread > 0 && (
-                                  <span className="flex-shrink-0 min-w-[14px] h-[14px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
-                                    {chat.unread}
+                                  <span className="flex-shrink-0 min-w-[14px] h-[14px] rounded-full bg-[#07C160] text-[6px] font-bold text-white flex items-center justify-center px-1">
+                                    {chat.unread >= 999 ? "999+" : chat.unread}
                                   </span>
                                 )}
                               </div>
