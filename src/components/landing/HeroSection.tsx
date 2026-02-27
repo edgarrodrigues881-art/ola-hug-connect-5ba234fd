@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dgRemaster from "@/assets/dg-remaster.png";
+import iphoneFrame from "@/assets/iphone-frame.png";
 
 const chats = [
   { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
@@ -116,57 +117,37 @@ const HeroSection = () => {
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* Animated border */}
-                <motion.div
-                  className="absolute -inset-[2px] rounded-[2.6rem] z-0"
-                  style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-                    backgroundSize: "300% 300%",
-                  }}
-                  animate={{
-                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                />
 
-
-                {/* Phone chassis — thick metallic frame like iPhone 16 */}
-                <div className="relative rounded-[2.4rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10"
-                  style={{
-                    background: "linear-gradient(145deg, #3A3A3E 0%, #4A4A4E 20%, #555 40%, #4A4A4E 60%, #3A3A3E 80%, #2A2A2E 100%)",
-                    boxShadow: "0 50px 100px -20px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3)",
-                  }}
-                >
-
-                  {/* Inner bezel */}
-                  <div className="relative bg-[#000] rounded-[2rem] overflow-hidden">
-
-                    {/* Glass reflection overlay */}
-                    <div
-                      className="absolute inset-0 z-40 pointer-events-none rounded-[2.1rem]"
-                      style={{
-                        background: "linear-gradient(125deg, rgba(255,255,255,0.06) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.02) 100%)",
-                      }}
-                    />
-
-                    {/* Dynamic Island — minimal pill */}
-                    <div className="absolute top-[6px] left-1/2 -translate-x-1/2 w-[60px] h-[12px] bg-[#000] rounded-full z-20" />
-
-                    {/* Screen */}
-                    <div className="bg-[#0A0A0A]">
+                {/* Real iPhone frame */}
+                <div className="relative z-10">
+                  <img
+                    src={iphoneFrame}
+                    alt="iPhone"
+                    className="relative z-20 w-full h-auto pointer-events-none select-none"
+                    draggable={false}
+                  />
+                  {/* Screen content positioned inside the frame */}
+                  <div className="absolute z-10 overflow-hidden"
+                    style={{
+                      top: "2.8%",
+                      left: "5.5%",
+                      right: "5.5%",
+                      bottom: "2.8%",
+                      borderRadius: "2rem",
+                    }}
+                  >
+                    <div className="w-full h-full bg-[#0A0A0A] overflow-hidden">
                       {/* Status bar */}
-                      <div className="flex items-center justify-between px-5 pt-[14px] pb-1">
+                      <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
                         <span className="text-[10px] text-white/40 font-medium">9:41</span>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[9px] text-white/30 font-semibold">5G</span>
-                          {/* Signal bars */}
                           <div className="flex items-end gap-[1px]">
                             <div className="w-[2px] h-[4px] bg-white/40 rounded-[0.5px]" />
                             <div className="w-[2px] h-[6px] bg-white/40 rounded-[0.5px]" />
                             <div className="w-[2px] h-[8px] bg-white/40 rounded-[0.5px]" />
                             <div className="w-[2px] h-[10px] bg-white/15 rounded-[0.5px]" />
                           </div>
-                          {/* Battery */}
                           <div className="flex items-center gap-[1px]">
                             <div className="w-[14px] h-[7px] border border-white/30 rounded-[2px] p-[1px]">
                               <div className="w-[70%] h-full bg-[#07C160] rounded-[1px]" />
@@ -180,16 +161,13 @@ const HeroSection = () => {
                       <div className="px-4 pt-1 pb-2 flex items-center justify-between">
                         <h3 className="text-[15px] font-bold text-white tracking-tight">Conversas</h3>
                         <div className="flex items-center gap-3">
-                          {/* Camera icon */}
                           <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                             <circle cx="12" cy="13" r="3" />
                           </svg>
-                          {/* Search icon */}
                           <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
                           </svg>
-                          {/* More icon */}
                           <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <circle cx="12" cy="6" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="18" r="1" fill="currentColor" />
                           </svg>
@@ -209,9 +187,9 @@ const HeroSection = () => {
                       {/* Chat list */}
                       <div>
                         {chats.map((chat, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] hover:bg-white/[0.02] border-b border-white/[0.02] last:border-0" style={{ backfaceVisibility: "hidden" }}>
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
                             {chat.name.startsWith("DG CONTINGENCIA") ? (
-                              <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" style={{ imageRendering: "auto" }} />
+                              <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
                             ) : (
                               <div
                                 className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
@@ -231,7 +209,6 @@ const HeroSection = () => {
                               </div>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 truncate pr-2">
-                                  {/* Double check */}
                                   {chat.unread === 0 && (
                                     <svg className="w-[12px] h-[12px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                       <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
