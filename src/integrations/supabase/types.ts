@@ -231,6 +231,63 @@ export type Database = {
           },
         ]
       }
+      group_join_logs: {
+        Row: {
+          attempt: number
+          created_at: string
+          device_id: string
+          device_name: string
+          duration_ms: number | null
+          endpoint_called: string | null
+          error_message: string | null
+          group_link: string
+          group_name: string
+          id: string
+          invite_code: string
+          request_summary: string | null
+          response_body: string | null
+          response_status: number | null
+          result: string
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          device_id: string
+          device_name?: string
+          duration_ms?: number | null
+          endpoint_called?: string | null
+          error_message?: string | null
+          group_link?: string
+          group_name?: string
+          id?: string
+          invite_code?: string
+          request_summary?: string | null
+          response_body?: string | null
+          response_status?: number | null
+          result?: string
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          device_id?: string
+          device_name?: string
+          duration_ms?: number | null
+          endpoint_called?: string | null
+          error_message?: string | null
+          group_link?: string
+          group_name?: string
+          id?: string
+          invite_code?: string
+          request_summary?: string | null
+          response_body?: string | null
+          response_status?: number | null
+          result?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
