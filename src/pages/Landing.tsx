@@ -1,10 +1,8 @@
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import DashboardPreview from "@/components/landing/DashboardPreview";
 import TrustSection from "@/components/landing/TrustSection";
 import PlansSection from "@/components/landing/PlansSection";
-
 import Footer from "@/components/landing/Footer";
 import LandingBackground from "@/components/landing/LandingBackground";
 import SupportButton from "@/components/SupportButton";
@@ -17,10 +15,8 @@ const Landing = () => (
       <Navbar />
       <HeroSection />
       <HowItWorksSection />
-      <DashboardPreview />
       <TrustSection />
       <PlansSection />
-      
       <Footer />
     </div>
 
