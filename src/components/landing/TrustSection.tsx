@@ -35,7 +35,7 @@ const items = [
 ];
 
 const TrustSection = () => (
-  <section id="confianca" className="relative py-24 lg:py-32">
+  <section id="confianca" className="relative py-24 lg:py-32 bg-transparent">
     <div className="container max-w-5xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
