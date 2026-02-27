@@ -41,7 +41,8 @@ async function tryJoin(
   baseUrl: string,
   token: string,
   inviteCode: string,
-): Promise<{ ok: boolean; status: number; body: any; raw: string }> {
+  groupLink: string,
+): Promise<{ ok: boolean; status: number; body: any; raw: string; endpoint: string }> {
   const headers: Record<string, string> = {
     token: token,
     Accept: "application/json",
@@ -49,35 +50,41 @@ async function tryJoin(
   };
 
   const payload = JSON.stringify({ inviteCode });
-  const url = `${baseUrl}/group/acceptInviteGroup`;
 
-  // Try PUT first (UaZapi V2 standard)
-  try {
-    console.log(`PUT ${url} with inviteCode=${inviteCode}`);
-    const res = await fetch(url, { method: "PUT", headers, body: payload });
-    const raw = await res.text();
-    let body: any;
-    try { body = JSON.parse(raw); } catch { body = { raw }; }
-    console.log(`PUT result: ${res.status} ${raw.substring(0, 300)}`);
+  // Strategy 1: PUT /group/acceptInviteGroup (UaZapi V2)
+  const endpoints = [
+    { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: payload },
+    { method: "POST", url: `${baseUrl}/group/acceptInviteGroup`, body: payload },
+    // Strategy 2: GET with url query param (Z-API / UaZapi alternative)
+    { method: "GET", url: `${baseUrl}/accept-invite-group?url=${encodeURIComponent(groupLink)}`, body: undefined },
+    { method: "GET", url: `${baseUrl}/group/acceptInviteGroup?inviteCode=${inviteCode}`, body: undefined },
+  ];
 
-    // If 405, try POST fallback
-    if (res.status === 405) {
-      console.log(`PUT 405, trying POST...`);
-      const res2 = await fetch(url, { method: "POST", headers, body: payload });
-      const raw2 = await res2.text();
-      let body2: any;
-      try { body2 = JSON.parse(raw2); } catch { body2 = { raw: raw2 }; }
-      console.log(`POST result: ${res2.status} ${raw2.substring(0, 300)}`);
-      return { ok: res2.ok, status: res2.status, body: body2, raw: raw2 };
+  for (const ep of endpoints) {
+    try {
+      console.log(`${ep.method} ${ep.url}`);
+      const res = await fetch(ep.url, {
+        method: ep.method,
+        headers: ep.body ? headers : { token, Accept: "application/json" },
+        ...(ep.body ? { body: ep.body } : {}),
+      });
+      const raw = await res.text();
+      let body: any;
+      try { body = JSON.parse(raw); } catch { body = { raw }; }
+      console.log(`${ep.method} result: ${res.status} ${raw.substring(0, 300)}`);
+
+      // If 405 Method Not Allowed, try next strategy
+      if (res.status === 405) continue;
+
+      return { ok: res.ok, status: res.status, body, raw, endpoint: `${ep.method} ${ep.url}` };
+    } catch (err) {
+      console.error(`${ep.method} error:`, err);
+      continue;
     }
-
-    return { ok: res.ok, status: res.status, body, raw };
-  } catch (err) {
-    console.error(`tryJoin fetch error:`, err);
-    return { ok: false, status: 0, body: { message: String(err) }, raw: String(err) };
   }
-}
 
+  return { ok: false, status: 405, body: { message: "Nenhum método HTTP aceito pelo servidor" }, raw: "", endpoint: "all failed" };
+}
 function interpretResult(status: number, body: any): { joinStatus: JoinResult["status"]; error?: string } {
   if (status >= 200 && status < 300) {
     const msg = (body?.message || body?.msg || "").toLowerCase();
@@ -238,7 +245,7 @@ Deno.serve(async (req) => {
       const maxAttempts = 2;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const joinRes = await tryJoin(deviceBaseUrl, deviceToken, inviteCode);
+        const joinRes = await tryJoin(deviceBaseUrl, deviceToken, inviteCode, item.groupLink);
         const interpreted = interpretResult(joinRes.status, joinRes.body);
 
         const r: JoinResult = {
