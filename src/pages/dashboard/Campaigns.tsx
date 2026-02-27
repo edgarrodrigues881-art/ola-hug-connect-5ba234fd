@@ -716,55 +716,109 @@ const Campaigns = () => {
           </div>
 
           {/* ── Botões Interativos ── */}
-          <div className="space-y-4">
-            <span className="text-[11px] text-muted-foreground/50 font-semibold uppercase tracking-[0.15em]">Botões Interativos</span>
+          <div className="space-y-5 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] text-foreground/70 font-semibold uppercase tracking-[0.12em]">Botões Interativos</span>
+              {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
+                <span className="text-[10px] text-muted-foreground/30">{quickReplyButtons.length + ctaButtons.length} configurado(s)</span>
+              )}
+            </div>
             
-            {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-              <div className="rounded-2xl border border-border/12 bg-[hsl(var(--card)/0.25)] p-5 space-y-4">
-                {quickReplyButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-3">
-                    <span className="text-[9px] font-bold tracking-[0.1em] text-muted-foreground/50 uppercase w-20 shrink-0">Resposta</span>
-                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-10 text-sm flex-1 bg-background/15 border-border/10 font-medium" maxLength={20} />
-                    <button className="text-muted-foreground/25 hover:text-destructive transition-colors p-1" onClick={() => removeQuickReply(btn.id)}><X className="w-4 h-4" /></button>
+            {/* Button cards */}
+            <div className="space-y-3">
+              {quickReplyButtons.map(btn => (
+                <div key={btn.id} className="rounded-xl border border-border/12 bg-[hsl(var(--card)/0.2)] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MousePointerClick className="w-3.5 h-3.5 text-primary/50" />
+                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.1em]">Resposta Rápida</span>
+                    </div>
+                    <button className="text-muted-foreground/20 hover:text-destructive transition-colors" onClick={() => removeQuickReply(btn.id)}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                ))}
-                {ctaButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-3">
-                    <span className="text-[9px] font-bold tracking-[0.1em] text-muted-foreground/50 uppercase w-20 shrink-0">{btn.type === "url" ? "URL" : "Ligar"}</span>
-                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-10 text-sm w-32 bg-background/15 border-border/10 font-medium" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-10 text-sm flex-1 bg-background/15 border-border/10" />
-                    <button className="text-muted-foreground/25 hover:text-destructive transition-colors p-1" onClick={() => removeCTAButton(btn.id)}><X className="w-4 h-4" /></button>
+                  {/* WhatsApp-style preview */}
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center justify-center px-6 py-2 rounded-lg bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.15)] min-w-[140px]">
+                      <span className="text-[13px] font-medium text-primary">{btn.text || "Texto do botão"}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  {/* Edit field */}
+                  <Input 
+                    value={btn.text} 
+                    onChange={(e) => updateQuickReply(btn.id, e.target.value)} 
+                    placeholder="Texto exibido no botão" 
+                    className="h-9 text-xs bg-background/10 border-border/8 font-medium" 
+                    maxLength={20} 
+                  />
+                </div>
+              ))}
 
+              {ctaButtons.map(btn => (
+                <div key={btn.id} className="rounded-xl border border-border/12 bg-[hsl(var(--card)/0.2)] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {btn.type === "url" ? <Link className="w-3.5 h-3.5 text-primary/50" /> : <Phone className="w-3.5 h-3.5 text-primary/50" />}
+                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.1em]">{btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)"}</span>
+                    </div>
+                    <button className="text-muted-foreground/20 hover:text-destructive transition-colors" onClick={() => removeCTAButton(btn.id)}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {/* WhatsApp-style preview */}
+                  <div className="flex justify-center">
+                    <div className="inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.15)] min-w-[140px]">
+                      {btn.type === "url" ? <Link className="w-3 h-3 text-primary/70" /> : <Phone className="w-3 h-3 text-primary/70" />}
+                      <span className="text-[13px] font-medium text-primary">{btn.text || "Texto do botão"}</span>
+                    </div>
+                  </div>
+                  {/* Edit fields */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input 
+                      value={btn.text} 
+                      onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} 
+                      placeholder="Texto exibido" 
+                      className="h-9 text-xs bg-background/10 border-border/8 font-medium" 
+                      maxLength={20} 
+                    />
+                    <Input 
+                      value={btn.value} 
+                      onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} 
+                      placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} 
+                      className="h-9 text-xs bg-background/10 border-border/8 font-mono" 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add button */}
             <Popover>
               <PopoverTrigger asChild>
-                <button className="text-[11px] text-muted-foreground/35 hover:text-muted-foreground/60 transition-colors flex items-center gap-1.5 mx-auto">
-                  <Plus className="w-3 h-3" /> Adicionar botão
-                </button>
+                <Button variant="outline" size="sm" className="text-[11px] h-9 gap-2 border-border/15 border-dashed text-muted-foreground/50 hover:text-foreground hover:border-border/30 w-full justify-center transition-all">
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Novo Botão
+                </Button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
                 <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={addQuickReply}>
                   <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Resposta Rápida</p>
-                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length} adicionados</p>
+                    <p className="text-[10px] text-muted-foreground">Botão de resposta simples</p>
                   </div>
                 </button>
                 <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("url")}>
                   <Link className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Link (URL)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "url").length} adicionados</p>
+                    <p className="text-[10px] text-muted-foreground">Abre um link no navegador</p>
                   </div>
                 </button>
                 <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("phone")}>
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Ligar (Telefone)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "phone").length} adicionados</p>
+                    <p className="text-[10px] text-muted-foreground">Inicia uma ligação</p>
                   </div>
                 </button>
               </PopoverContent>
