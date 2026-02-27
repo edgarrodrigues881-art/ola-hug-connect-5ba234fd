@@ -1434,31 +1434,59 @@ const Devices = () => {
               <Label className="text-xs flex items-center gap-1.5">
                 <Camera className="w-3.5 h-3.5" /> Foto do perfil
               </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={wpPhotoUrl}
-                  onChange={e => setWpPhotoUrl(e.target.value)}
-                  placeholder="URL da imagem ou importe abaixo"
-                  className="h-9 text-sm font-mono flex-1"
-                />
-                <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 shrink-0"
-                  onClick={() => wpFileRef.current?.click()}
-                  disabled={wpUploading}
+              <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
+              <div className="flex justify-center">
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={() => {
+                    if (!wpPhotoUrl) wpFileRef.current?.click();
+                  }}
                 >
-                  {wpUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                  Importar
-                </Button>
-              </div>
-              {wpPhotoUrl && (
-                <div className="flex justify-center">
-                  <img src={wpPhotoUrl} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-border" onError={e => (e.currentTarget.style.display = "none")} />
+                  {wpPhotoUrl ? (
+                    <>
+                      <img
+                        src={wpPhotoUrl}
+                        alt="Foto do perfil"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                        onError={e => { e.currentTarget.src = ""; setWpPhotoUrl(""); }}
+                      />
+                      <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-white hover:bg-white/20"
+                          onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }}
+                          title="Trocar foto"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-white hover:bg-red-500/40"
+                          onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); }}
+                          title="Remover foto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors">
+                      {wpUploading ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          <Camera className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground">Importar</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
               <Checkbox checked={wpApplyAll} onCheckedChange={(v) => setWpApplyAll(!!v)} />
