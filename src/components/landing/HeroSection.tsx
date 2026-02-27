@@ -38,8 +38,9 @@ const HeroSection = () => {
           {/* Left — Copy */}
           <div className="max-w-lg">
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
             >
@@ -48,8 +49,9 @@ const HeroSection = () => {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
@@ -57,8 +59,9 @@ const HeroSection = () => {
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
               transition={{ duration: 0.7, delay: 0.3 }}
               className="flex flex-col sm:flex-row items-start gap-3"
             >
@@ -81,9 +84,10 @@ const HeroSection = () => {
 
           {/* Right — Phone + Progress Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4 }}
+            initial={{ opacity: 0, x: 80, rotateY: -15 }}
+            whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
             {/* Ambient glow */}
@@ -225,9 +229,10 @@ const HeroSection = () => {
 
             {/* Progress badge — compact, matching the screenshot style */}
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
+              initial={{ opacity: 0, y: 15, scale: 0.9 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
               className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px]"
             >
               <div
@@ -279,9 +284,10 @@ const HeroSection = () => {
 
             {/* Badge — Conexão Segura (left side) */}
             <motion.div
-              initial={{ opacity: 0, x: -15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 1.5 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
               className="absolute left-[-30px] lg:left-[-50px] top-[60%] hidden lg:block"
             >
               <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
@@ -298,9 +304,10 @@ const HeroSection = () => {
 
             {/* Badge — Chip Aquecendo with fire (left top) */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 1.8 }}
+              initial={{ opacity: 0, scale: 0.7 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: 1.0 }}
               className="absolute left-[5%] lg:left-[-30px] top-[20%] hidden lg:block"
             >
               <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 flex items-center gap-2.5"
@@ -345,9 +352,10 @@ const HeroSection = () => {
 
             {/* Badge — Simulação Natural (bottom left) */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 2.1 }}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: 1.2 }}
               className="absolute left-[5%] lg:left-[-20px] bottom-[10%] hidden lg:block"
             >
               <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
@@ -364,9 +372,10 @@ const HeroSection = () => {
 
             {/* Badge — Monitoramento (bottom right) */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 2.1 }}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ duration: 0.6, delay: 1.2 }}
               className="absolute right-[-20px] lg:right-[-30px] bottom-[5%] hidden lg:block"
             >
               <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
