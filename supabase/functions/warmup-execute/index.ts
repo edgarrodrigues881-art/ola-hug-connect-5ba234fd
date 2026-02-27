@@ -247,12 +247,31 @@ Deno.serve(async (req) => {
             sentCount++;
             console.log(`Warmup: sent "${message.substring(0, 30)}..." to group ${groupJid} for session ${session.id}`);
 
+            // Log the sent message
+            await supabase.from("warmup_logs").insert({
+              session_id: session.id,
+              user_id: session.user_id,
+              device_id: session.device_id,
+              group_jid: groupJid,
+              message_content: message,
+              status: "sent",
+            });
+
             // Random delay between messages within batch
             if (i < batchSize - 1) {
               await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
             }
           } catch (msgErr: any) {
             console.error(`Warmup message error:`, msgErr.message);
+            // Log the error
+            await supabase.from("warmup_logs").insert({
+              session_id: session.id,
+              user_id: session.user_id,
+              device_id: session.device_id,
+              message_content: message || "unknown",
+              status: "error",
+              error_message: msgErr.message,
+            }).catch(() => {});
           }
         }
 
