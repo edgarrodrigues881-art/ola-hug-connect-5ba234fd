@@ -102,16 +102,16 @@ const HeroSection = () => {
                 style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
                 {/* Phone chassis */}
-                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.5rem] p-[3px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)]">
+                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.2rem] p-[2px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)]">
                   {/* Inner bezel */}
-                  <div className="relative bg-[#000] rounded-[2.3rem] overflow-hidden">
+                  <div className="relative bg-[#000] rounded-[2.1rem] overflow-hidden">
                     {/* Side highlight (glass edge reflection) */}
                     <div className="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-white/10 via-white/[0.03] to-transparent z-30" />
                     <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-white/[0.05] via-transparent to-transparent z-30" />
 
-                    {/* Dynamic Island */}
-                    <div className="flex justify-center pt-[10px] pb-[6px] relative z-10 bg-[#000]">
-                      <div className="w-[80px] h-[24px] bg-[#000] rounded-full border border-white/[0.03]" />
+                    {/* Dynamic Island — slim like newer iPhones */}
+                    <div className="flex justify-center pt-[6px] pb-[3px] relative z-10 bg-[#000]">
+                      <div className="w-[72px] h-[16px] bg-[#000] rounded-full border border-white/[0.03]" />
                     </div>
 
                     {/* Screen */}
