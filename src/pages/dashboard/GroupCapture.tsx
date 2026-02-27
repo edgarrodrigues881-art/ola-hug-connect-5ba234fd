@@ -581,8 +581,8 @@ const GroupCapture = () => {
                           <span className="text-sm truncate">{d.name}</span>
                           {d.number && <span className="text-xs text-muted-foreground">{d.number}</span>}
                         </div>
-                        <Badge variant={d.status === "Connected" ? "default" : "destructive"} className="text-[10px] shrink-0">
-                          {d.status === "Connected" ? "Online" : "Offline"}
+                        <Badge variant={["Connected", "Ready", "authenticated"].includes(d.status) ? "default" : "destructive"} className="text-[10px] shrink-0">
+                          {["Connected", "Ready", "authenticated"].includes(d.status) ? "Online" : "Offline"}
                         </Badge>
                       </label>
                     ))}

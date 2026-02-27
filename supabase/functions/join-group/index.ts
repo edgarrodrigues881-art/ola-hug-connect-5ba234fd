@@ -229,7 +229,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      if (device.status !== "Connected" && device.status !== "authenticated") {
+      const onlineStatuses = ["Connected", "authenticated", "Ready", "ready"];
+      if (!onlineStatuses.includes(device.status)) {
         const r: JoinResult = {
           device: device.name,
           group: item.groupName,
