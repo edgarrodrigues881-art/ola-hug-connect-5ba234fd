@@ -58,13 +58,16 @@ const HeroSection = () => {
                 Começar Agora
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-12 px-8 text-sm font-medium rounded-xl text-white/50 hover:text-white hover:bg-white/[0.04] border border-white/[0.06] transition-all duration-300"
-              >
-                Ver como funciona
-              </Button>
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
+                <div className="w-8 h-8 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <p className="text-[12px] text-white/40 leading-snug">
+                  Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
+                </p>
+              </div>
             </motion.div>
           </div>
 
