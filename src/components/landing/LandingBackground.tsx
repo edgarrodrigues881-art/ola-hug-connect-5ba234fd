@@ -54,16 +54,6 @@ const LandingBackground = () => {
           WebkitMaskImage: "radial-gradient(ellipse at 50% 40%, black 0%, transparent 70%)",
         }}
       />
-
-      {/* Edge fade */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(to bottom, rgba(11,15,20,0.7) 0%, transparent 12%, transparent 88%, rgba(11,15,20,0.85) 100%)
-          `,
-        }}
-      />
     </div>
   );
 };
