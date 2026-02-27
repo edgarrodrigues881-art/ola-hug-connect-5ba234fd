@@ -102,8 +102,8 @@ const HeroSection = () => {
             {/* Phone */}
             <div className="relative" style={{ perspective: "1200px" }}>
               <div
-                className="relative w-[260px] lg:w-[280px]"
-                style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
+                className="relative w-[280px] lg:w-[300px]"
+                style={{ transform: "rotateY(-4deg) rotateX(1deg)", transformStyle: "preserve-3d", willChange: "transform", backfaceVisibility: "hidden" }}
               >
                 {/* Outer glow */}
                 <motion.div
@@ -170,12 +170,12 @@ const HeroSection = () => {
                       {/* Chat list */}
                       <div>
                         {chats.map((chat, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-[7px] hover:bg-white/[0.02] border-b border-white/[0.02] last:border-0">
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] hover:bg-white/[0.02] border-b border-white/[0.02] last:border-0" style={{ backfaceVisibility: "hidden" }}>
                             {chat.name.startsWith("DG CONTINGENCIA") ? (
-                              <img src={dgRemaster} alt="DG" className="w-[32px] h-[32px] rounded-full object-cover flex-shrink-0" />
+                              <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" style={{ imageRendering: "auto" }} />
                             ) : (
                               <div
-                                className="w-[32px] h-[32px] rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
+                                className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
                                 style={{ backgroundColor: chat.color + "20", color: chat.color }}
                               >
                                 {chat.avatar}
@@ -183,15 +183,15 @@ const HeroSection = () => {
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-[2px]">
-                                <span className={`text-[10px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                                <span className={`text-[11px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
                                   {chat.name}
                                 </span>
-                                <span className={`text-[8px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                                <span className={`text-[9px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
                                   {chat.time}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-[8px] text-white/25 truncate pr-2">{chat.msg}</span>
+                                <span className="text-[9px] text-white/30 truncate pr-2">{chat.msg}</span>
                                 {chat.unread > 0 && (
                                   <span className="flex-shrink-0 min-w-[14px] h-[14px] rounded-full bg-[#07C160] text-[6px] font-bold text-white flex items-center justify-center px-1">
                                     {chat.unread >= 999 ? "999+" : chat.unread}
