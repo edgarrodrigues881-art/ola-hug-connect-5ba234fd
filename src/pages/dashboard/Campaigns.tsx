@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import {
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
-  CheckCircle2, XCircle, Copy
+  CheckCircle2, XCircle, Copy, Eraser
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -88,6 +88,9 @@ const Campaigns = () => {
     enabled: !!session,
   });
 
+  // Draft persistence key
+  const DRAFT_KEY = "campaign_draft";
+
   // State
   const [step, setStep] = useState(1);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -111,6 +114,7 @@ const Campaigns = () => {
   const [contactPage, setContactPage] = useState(0);
   const [importProgress, setImportProgress] = useState<number | null>(null);
   const CONTACTS_PER_PAGE = 50;
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
@@ -120,6 +124,49 @@ const Campaigns = () => {
   const [pauseEveryMax, setPauseEveryMax] = useState(20);
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
+
+  // Restore draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.campaignName) setCampaignName(draft.campaignName);
+        if (draft.message) setMessage(draft.message);
+        if (draft.messageType) setMessageType(draft.messageType);
+        if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
+        if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
+        if (draft.quickReplyButtons?.length) setQuickReplyButtons(draft.quickReplyButtons);
+        if (draft.ctaButtons?.length) setCTAButtons(draft.ctaButtons);
+        if (draft.selectedDevices?.length) setSelectedDevices(draft.selectedDevices);
+        if (draft.minDelay) setMinDelay(draft.minDelay);
+        if (draft.maxDelay) setMaxDelay(draft.maxDelay);
+        if (draft.scheduleEnabled) setScheduleEnabled(draft.scheduleEnabled);
+        if (draft.scheduleDate) setScheduleDate(draft.scheduleDate);
+      }
+    } catch { /* ignore corrupt data */ }
+    setDraftLoaded(true);
+  }, []);
+
+  // Auto-save draft to localStorage whenever form changes
+  useEffect(() => {
+    if (!draftLoaded) return;
+    const draft = {
+      campaignName, message, messageType, mediaUrl, contacts,
+      quickReplyButtons, ctaButtons, selectedDevices,
+      minDelay, maxDelay, scheduleEnabled, scheduleDate,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, quickReplyButtons, ctaButtons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
+
+  const clearAllForm = () => {
+    setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]);
+    setQuickReplyButtons([]); setCTAButtons([]); setSelectedDevices([]);
+    setMessageType("texto"); setStep(1); setSelectedTemplate("nova");
+    setScheduleEnabled(false); setScheduleDate(""); setShowContactTable(false);
+    localStorage.removeItem(DRAFT_KEY);
+    toast({ title: "Formulário limpo", description: "Todos os campos foram resetados." });
+  };
 
   const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
@@ -171,7 +218,7 @@ const Campaigns = () => {
           onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
           onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
-        setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1);
+        setCampaignName(""); setMessage(""); setMediaUrl(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1); localStorage.removeItem(DRAFT_KEY);
       },
       onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
     });
@@ -418,9 +465,14 @@ const Campaigns = () => {
   return (
     <div className="space-y-8 w-full pb-12">
       {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-foreground tracking-tight">Enviar Mensagem</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Configure e envie com controle total</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground tracking-tight">Enviar Mensagem</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Configure e envie com controle total</p>
+        </div>
+        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
+          <Eraser className="w-3 h-3" /> Limpar tudo
+        </Button>
       </div>
 
       {/* Stepper */}
