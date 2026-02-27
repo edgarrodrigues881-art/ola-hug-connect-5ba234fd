@@ -24,10 +24,10 @@ const HeroSection = () => {
           {/* Left — Copy */}
           <div className="max-w-lg">
             <motion.h1
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.3 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
               className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
@@ -35,20 +35,20 @@ const HeroSection = () => {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.3, delay: 0.05 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
               className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
               className="flex flex-col sm:flex-row items-start gap-3"
             >
               <Button
@@ -73,10 +73,10 @@ const HeroSection = () => {
 
           {/* Right — Phone + Progress Badge */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+            viewport={{ once: true, amount: 0.1 }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
             className="relative flex items-center justify-center"
           >
             {/* Ambient glow — static, no animation */}
