@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,7 +105,7 @@ const GroupCapture = () => {
     enabled: !!user,
   });
 
-  const { data: devices = [] } = useQuery({
+  const { data: devices = [], refetch: refetchDevices } = useQuery({
     queryKey: ["devices-for-join"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -117,7 +117,19 @@ const GroupCapture = () => {
       return data;
     },
     enabled: !!user,
+    refetchInterval: 5000,
   });
+
+  // Realtime sync for device status
+  useEffect(() => {
+    const channel = supabase
+      .channel('devices-join-status')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices' }, () => {
+        refetchDevices();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetchDevices]);
 
   const { data: joinLogs = [], refetch: refetchLogs } = useQuery({
     queryKey: ["group-join-logs"],
