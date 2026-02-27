@@ -17,6 +17,7 @@ import {
   Settings,
   User,
   ChevronUp,
+  CreditCard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +156,10 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=profile")} className="gap-2 cursor-pointer">
               <User className="w-4 h-4" />
               Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=plan")} className="gap-2 cursor-pointer">
+              <CreditCard className="w-4 h-4" />
+              Meu Plano
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=security")} className="gap-2 cursor-pointer">
               <Settings className="w-4 h-4" />
