@@ -119,7 +119,7 @@ const HowItWorksSection = () => (
               {[
                 "Quem busca soluções milagrosas",
                 "Promessas de bloqueio zero",
-                "Uso para spam ou mensagens em massa",
+                "Quem espera aquecimento em 24 horas",
                 "Quem não quer investir tempo em configuração",
               ].map((text, i) => (
                 <motion.div
