@@ -111,8 +111,8 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.url === "/dashboard"}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
-                        activeClassName="bg-sidebar-primary/20 text-sidebar-primary font-medium"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm"
                       >
                         <item.icon className="w-[18px] h-[18px] shrink-0" />
                         {!collapsed && <span className="text-[13px] truncate">{item.title}</span>}

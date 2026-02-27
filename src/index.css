@@ -62,13 +62,13 @@ html {
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 20%;
+    --sidebar-background: 150 10% 97%;
+    --sidebar-foreground: 0 0% 25%;
     --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 151 80% 95%;
-    --sidebar-accent: 0 0% 92%;
-    --sidebar-accent-foreground: 0 0% 20%;
-    --sidebar-border: 0 0% 88%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 30% 93%;
+    --sidebar-accent-foreground: 142 50% 28%;
+    --sidebar-border: 0 0% 90%;
     --sidebar-ring: 142 76% 36%;
 
     --success: 142 71% 45%;
