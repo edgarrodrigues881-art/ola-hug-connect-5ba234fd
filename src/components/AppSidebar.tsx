@@ -4,21 +4,18 @@ import {
   Send,
   Megaphone,
   FileText,
-  
   BarChart3,
   Flame,
   Shield,
   UsersRound,
-  
   Box,
   LogOut,
-  
-  
   Settings,
   User,
   ChevronUp,
   CreditCard,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -46,12 +43,10 @@ import {
 const mainItems = [
   { title: "Painel", url: "/dashboard", icon: LayoutDashboard },
   { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
-  
   { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
   { title: "Campanha", url: "/dashboard/campaign-list", icon: Megaphone },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
-
 
 const warmupItems = [
   { title: "Aquecimento Automático", url: "/dashboard/warmup", icon: Flame },
@@ -77,9 +72,33 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
-  const avatarUrl = user?.user_metadata?.avatar_url;
-  const initials = fullName.slice(0, 2).toUpperCase();
+  const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("company, avatar_url, full_name")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfileData(data);
+      });
+
+    const channel = supabase
+      .channel('profile-sidebar')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+        const d = payload.new as any;
+        setProfileData({ company: d.company, avatar_url: d.avatar_url, full_name: d.full_name });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  const displayName = profileData?.company || profileData?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const avatarUrl = profileData?.avatar_url;
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -131,13 +150,12 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* User profile dropdown */}
       <div className="mt-auto border-t border-sidebar-border p-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-sidebar-accent/60 transition-colors">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={fullName} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+                <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full shrink-0 object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
                   <span className="text-xs font-semibold text-primary">{initials}</span>
@@ -146,7 +164,7 @@ export function AppSidebar() {
               {!collapsed && (
                 <>
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">{fullName}</p>
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
                   </div>
                   <ChevronUp className="w-4 h-4 text-sidebar-foreground/50 shrink-0" />
                 </>

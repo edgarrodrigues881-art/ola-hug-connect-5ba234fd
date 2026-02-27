@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,16 +7,18 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone, Pencil, Check, X } from "lucide-react";
+import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone, Pencil, Check, X, Camera, DollarSign, CalendarClock } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profile, setProfile] = useState({ name: "", company: "", phone: "" });
+  const [profile, setProfile] = useState({ name: "", company: "", phone: "", avatar_url: "" });
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -27,13 +29,14 @@ const Settings = () => {
   const [changingPassword, setChangingPassword] = useState(false);
 
   const [deviceCount, setDeviceCount] = useState(0);
+  const [planInfo, setPlanInfo] = useState<{ plan_name: string; plan_price: number; max_instances: number; expires_at: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     supabase
       .from("profiles")
-      .select("full_name, company, phone")
+      .select("full_name, company, phone, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -42,6 +45,7 @@ const Settings = () => {
             name: data.full_name || "",
             company: data.company || "",
             phone: data.phone || "",
+            avatar_url: data.avatar_url || "",
           });
         }
       });
@@ -52,6 +56,19 @@ const Settings = () => {
       .eq("user_id", user.id)
       .then(({ count }) => {
         setDeviceCount(count || 0);
+      });
+
+    supabase
+      .from("subscriptions")
+      .select("plan_name, plan_price, max_instances, expires_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setPlanInfo(data);
+        }
       });
   }, [user]);
 
@@ -93,6 +110,39 @@ const Settings = () => {
     setSaving(false);
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 2MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Erro no upload", description: uploadError.message, variant: "destructive" });
+      setUploadingAvatar(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await supabase.from("profiles").update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() }).eq("id", user.id);
+
+    setProfile((p) => ({ ...p, avatar_url: avatarUrl }));
+    toast({ title: "Foto atualizada" });
+    setUploadingAvatar(false);
+  };
+
   const handleChangePassword = async () => {
     if (newPassword.length < 8) {
       toast({ title: "Senha muito curta", description: "Mínimo 8 caracteres.", variant: "destructive" });
@@ -118,6 +168,12 @@ const Settings = () => {
   };
 
   const inputClass = "h-10 rounded-lg border-border/60 bg-background focus:border-primary focus:ring-0 text-sm";
+
+  const daysRemaining = planInfo?.expires_at
+    ? Math.max(0, Math.ceil((new Date(planInfo.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+
+  const initials = (profile.name || user?.email?.split("@")[0] || "U").slice(0, 2).toUpperCase();
 
   const renderEditableField = (
     field: string,
@@ -149,21 +205,10 @@ const Settings = () => {
                 if (e.key === "Escape") cancelEdit();
               }}
             />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => saveField(field)}
-              disabled={saving}
-              className="h-9 w-9 text-primary hover:text-primary/80 shrink-0"
-            >
+            <Button size="icon" variant="ghost" onClick={() => saveField(field)} disabled={saving} className="h-9 w-9 text-primary hover:text-primary/80 shrink-0">
               <Check className="w-4 h-4" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={cancelEdit}
-              className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-            >
+            <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -172,12 +217,7 @@ const Settings = () => {
             <div className={`flex-1 h-10 flex items-center px-3 rounded-lg border border-transparent text-sm ${value ? "text-foreground/60" : "text-muted-foreground/40"}`}>
               {value || placeholder}
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => startEdit(field, value)}
-              className="h-9 w-9 text-muted-foreground/40 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-            >
+            <Button size="icon" variant="ghost" onClick={() => startEdit(field, value)} className="h-9 w-9 text-muted-foreground/40 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
               <Pencil className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -205,6 +245,33 @@ const Settings = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                <div className="relative group">
+                  {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-border/50" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center border-2 border-border/50">
+                      <span className="text-lg font-semibold text-primary">{initials}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <Camera className="w-5 h-5 text-white" />
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{profile.name || "Sem nome"}</p>
+                  <p className="text-xs text-muted-foreground">{uploadingAvatar ? "Enviando..." : "Clique na foto para alterar"}</p>
+                </div>
+              </div>
+
+              <Separator className="bg-border/30" />
+
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Mail className="w-3 h-3" />
@@ -239,18 +306,8 @@ const Settings = () => {
                   Senha Atual
                 </Label>
                 <div className="relative">
-                  <Input
-                    type={showCurrent ? "text" : "password"}
-                    placeholder="Sua senha atual"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className={`${inputClass} pr-10`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground"
-                  >
+                  <Input type={showCurrent ? "text" : "password"} placeholder="Sua senha atual" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={`${inputClass} pr-10`} />
+                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
                     {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -262,19 +319,8 @@ const Settings = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Nova Senha</Label>
                   <div className="relative">
-                    <Input
-                      type={showNew ? "text" : "password"}
-                      placeholder="Mínimo 8 caracteres"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className={`${inputClass} pr-10`}
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground"
-                    >
+                    <Input type={showNew ? "text" : "password"} placeholder="Mínimo 8 caracteres" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={`${inputClass} pr-10`} minLength={8} />
+                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
                       {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -282,31 +328,15 @@ const Settings = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Confirmar Nova Senha</Label>
                   <div className="relative">
-                    <Input
-                      type={showConfirm ? "text" : "password"}
-                      placeholder="Repita a nova senha"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={`${inputClass} pr-10`}
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground"
-                    >
+                    <Input type={showConfirm ? "text" : "password"} placeholder="Repita a nova senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`${inputClass} pr-10`} minLength={8} />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
                       {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                onClick={handleChangePassword}
-                disabled={changingPassword || !newPassword || !confirmPassword}
-                className="border-border/60"
-              >
+              <Button variant="outline" onClick={handleChangePassword} disabled={changingPassword || !newPassword || !confirmPassword} className="border-border/60">
                 {changingPassword ? "Atualizando..." : "Atualizar Senha"}
               </Button>
             </CardContent>
@@ -326,12 +356,20 @@ const Settings = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Plano</span>
-                  <span className="text-sm font-medium text-foreground">Start</span>
+                  <span className="text-sm font-medium text-foreground">{planInfo?.plan_name || "Sem plano"}</span>
                 </div>
                 <Separator className="bg-border/30" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Limite</span>
-                  <span className="text-sm text-foreground">10 instâncias</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    Valor
+                  </span>
+                  <span className="text-sm text-foreground">{planInfo ? `R$ ${Number(planInfo.plan_price).toFixed(2)}` : "—"}</span>
+                </div>
+                <Separator className="bg-border/30" />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Instâncias</span>
+                  <span className="text-sm text-foreground">{planInfo?.max_instances ?? "—"}</span>
                 </div>
                 <Separator className="bg-border/30" />
                 <div className="flex items-center justify-between">
@@ -339,12 +377,17 @@ const Settings = () => {
                     <Smartphone className="w-3 h-3" />
                     Em uso
                   </span>
-                  <span className="text-sm text-foreground">{deviceCount} instâncias</span>
+                  <span className="text-sm text-foreground">{deviceCount}</span>
                 </div>
                 <Separator className="bg-border/30" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Renovação</span>
-                  <span className="text-sm text-foreground">—</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CalendarClock className="w-3 h-3" />
+                    Renovação
+                  </span>
+                  <span className="text-sm text-foreground">
+                    {daysRemaining !== null ? `${daysRemaining} dias` : "—"}
+                  </span>
                 </div>
               </div>
             </CardContent>
