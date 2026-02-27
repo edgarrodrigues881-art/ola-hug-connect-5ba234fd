@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,38 +8,27 @@ import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-
 import NotFound from "./pages/NotFound";
-const BackOffice = lazy(() => import("./pages/BackOffice"));
+import BackOffice from "./pages/BackOffice";
 import DashboardLayout from "./components/DashboardLayout";
-
-// Lazy-loaded dashboard pages
-const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
-const Devices = lazy(() => import("./pages/dashboard/Devices"));
-const Campaigns = lazy(() => import("./pages/dashboard/Campaigns"));
-const CampaignList = lazy(() => import("./pages/dashboard/CampaignList"));
-
-const CRM = lazy(() => import("./pages/dashboard/CRM"));
-const Contacts = lazy(() => import("./pages/dashboard/Contacts"));
-const Reports = lazy(() => import("./pages/dashboard/Reports"));
-const Templates = lazy(() => import("./pages/dashboard/Templates"));
-const Warmup = lazy(() => import("./pages/dashboard/Warmup"));
-const Proxy = lazy(() => import("./pages/dashboard/Proxy"));
-const AutoSaveNumber = lazy(() => import("./pages/dashboard/AutoSaveNumber"));
-const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
-const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
-const CustomModule = lazy(() => import("./pages/dashboard/CustomModule"));
-const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
-const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
-
+import DashboardHome from "./pages/dashboard/DashboardHome";
+import Devices from "./pages/dashboard/Devices";
+import Campaigns from "./pages/dashboard/Campaigns";
+import CampaignList from "./pages/dashboard/CampaignList";
+import CRM from "./pages/dashboard/CRM";
+import Contacts from "./pages/dashboard/Contacts";
+import Reports from "./pages/dashboard/Reports";
+import Templates from "./pages/dashboard/Templates";
+import Warmup from "./pages/dashboard/Warmup";
+import Proxy from "./pages/dashboard/Proxy";
+import AutoSaveNumber from "./pages/dashboard/AutoSaveNumber";
+import Notifications from "./pages/dashboard/Notifications";
+import SettingsPage from "./pages/dashboard/Settings";
+import CustomModule from "./pages/dashboard/CustomModule";
+import Groups from "./pages/dashboard/GroupCapture";
+import MyPlan from "./pages/dashboard/MyPlan";
 
 const queryClient = new QueryClient();
-
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-48">
-    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -52,7 +40,6 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
-            
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route
@@ -60,33 +47,29 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <Suspense fallback={<PageLoader />}>
-                      <Routes>
-                        <Route index element={<DashboardHome />} />
-                        <Route path="devices" element={<Devices />} />
-                        <Route path="campaigns" element={<Campaigns />} />
-                        <Route path="campaign-list" element={<CampaignList />} />
-                        
-                        <Route path="crm" element={<CRM />} />
-                        <Route path="templates" element={<Templates />} />
-                        <Route path="contacts" element={<Contacts />} />
-                        <Route path="auto-save" element={<AutoSaveNumber />} />
-                        <Route path="warmup" element={<Warmup />} />
-                        <Route path="proxy" element={<Proxy />} />
-                        <Route path="groups" element={<Groups />} />
-                        <Route path="reports" element={<Reports />} />
-                        <Route path="custom-module" element={<CustomModule />} />
-                        <Route path="notifications" element={<Notifications />} />
-                        <Route path="settings" element={<SettingsPage />} />
-                        <Route path="my-plan" element={<MyPlan />} />
-                        
-                      </Routes>
-                    </Suspense>
+                    <Routes>
+                      <Route index element={<DashboardHome />} />
+                      <Route path="devices" element={<Devices />} />
+                      <Route path="campaigns" element={<Campaigns />} />
+                      <Route path="campaign-list" element={<CampaignList />} />
+                      <Route path="crm" element={<CRM />} />
+                      <Route path="templates" element={<Templates />} />
+                      <Route path="contacts" element={<Contacts />} />
+                      <Route path="auto-save" element={<AutoSaveNumber />} />
+                      <Route path="warmup" element={<Warmup />} />
+                      <Route path="proxy" element={<Proxy />} />
+                      <Route path="groups" element={<Groups />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="custom-module" element={<CustomModule />} />
+                      <Route path="notifications" element={<Notifications />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="my-plan" element={<MyPlan />} />
+                    </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
-            <Route path="/backoffice" element={<Suspense fallback={<PageLoader />}><BackOffice /></Suspense>} />
+            <Route path="/backoffice" element={<BackOffice />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
