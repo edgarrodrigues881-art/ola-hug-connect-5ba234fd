@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, deviceId, number, text, instanceName, profileName, profileStatus, profilePictureUrl } = body;
+    const { action, deviceId, number, text, instanceName, profileName, profileStatus, profilePictureUrl, profilePictureData } = body;
     console.log("v2 ACTION:", action, "DEVICE:", deviceId);
 
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -408,18 +408,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: updateProfilePicture - Update WhatsApp profile picture
+    // ACTION: updateProfilePicture - Update or remove WhatsApp profile picture
     if (action === "updateProfilePicture") {
-      if (!profilePictureUrl) {
-        return new Response(JSON.stringify({ error: "profilePictureUrl is required" }), {
+      const imageData = profilePictureData || profilePictureUrl;
+      if (!imageData) {
+        return new Response(JSON.stringify({ error: "profilePictureData or profilePictureUrl is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       // UaZapi v2 endpoint: POST /profile/image
+      // Accepts: URL string, base64 data URI, or "remove" to delete
       const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/profile/image"), {
         method: "POST",
         headers: instanceHeaders,
-        body: JSON.stringify({ image: profilePictureUrl }),
+        body: JSON.stringify({ image: imageData }),
       });
       const data = await res.json().catch(() => ({}));
       console.log("updateProfilePicture result:", res.status, JSON.stringify(data).substring(0, 200));
