@@ -322,9 +322,13 @@ Deno.serve(async (req) => {
               status: "sent",
             });
 
-            // Random delay between messages
-            if (i < batchSize - 1) {
-              await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
+            // Random delay between messages (shorter for manual execution)
+            if (i < targetGroups.length - 1) {
+              if (forceExecute) {
+                await randomDelay(3, 8); // 3-8s for manual
+              } else {
+                await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
+              }
             }
           } catch (msgErr: any) {
             errorCount++;
