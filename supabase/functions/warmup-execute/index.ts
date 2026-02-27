@@ -278,16 +278,26 @@ Deno.serve(async (req) => {
             ? userMessages.map((m) => m.content)
             : defaultMessages;
 
-        // Decide batch size: 1-3 messages per execution for natural behavior
-        // Reduced for "novo" and "recuperacao" profiles
-        const maxBatch = session.quality_profile === "novo" ? 2 : session.quality_profile === "recuperacao" ? 1 : 3;
-        const batchSize = Math.min(remaining, Math.floor(Math.random() * maxBatch) + 1);
+        // Decide batch size
+        // When forceExecute, send to ALL groups; otherwise limit by profile
+        let batchSize: number;
+        if (forceExecute) {
+          batchSize = Math.min(remaining, deviceGroups.length);
+        } else {
+          const maxBatch = session.quality_profile === "novo" ? 2 : session.quality_profile === "recuperacao" ? 1 : 3;
+          batchSize = Math.min(remaining, Math.floor(Math.random() * maxBatch) + 1);
+        }
         
         let sentCount = 0;
         let errorCount = 0;
 
-        for (let i = 0; i < batchSize; i++) {
-          const group = pickRandom(deviceGroups);
+        // When forceExecute, send to each group; otherwise pick random
+        const targetGroups = forceExecute
+          ? deviceGroups.slice(0, batchSize)
+          : Array.from({ length: batchSize }, () => pickRandom(deviceGroups));
+
+        for (let i = 0; i < targetGroups.length; i++) {
+          const group = targetGroups[i];
           const message = pickRandom(messagePool);
 
           try {
