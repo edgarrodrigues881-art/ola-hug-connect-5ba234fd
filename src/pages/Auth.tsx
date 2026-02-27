@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, Eye, EyeOff, Building2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.png";
 
@@ -18,6 +18,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -124,6 +125,7 @@ const Auth = () => {
             data: {
               full_name: fullName.trim(),
               phone: phone.trim(),
+              company: company.trim(),
             },
             emailRedirectTo: window.location.origin,
           },
@@ -333,6 +335,25 @@ const Auth = () => {
                         className={inputClass}
                         required
                         maxLength={20}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="company" className="text-xs font-medium text-[#9CA3AF]">
+                      Nome fantasia
+                    </Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
+                      <Input
+                        id="company"
+                        type="text"
+                        placeholder="Nome da empresa"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        className={inputClass}
+                        required
+                        maxLength={100}
                       />
                     </div>
                   </div>
