@@ -41,7 +41,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   return (
     <SidebarProvider>
@@ -69,7 +69,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               className="text-muted-foreground hover:text-foreground shrink-0"
             >
               <Sun className="w-[18px] h-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
