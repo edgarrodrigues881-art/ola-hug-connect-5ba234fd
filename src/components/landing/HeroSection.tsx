@@ -51,15 +51,6 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left — Copy */}
           <div className="max-w-lg">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-            >
-              <p className="text-[#07C160] text-xs font-medium tracking-[0.2em] uppercase mb-6">
-                Dg Contingencia PRO
-              </p>
-            </motion.div>
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
