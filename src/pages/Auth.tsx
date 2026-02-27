@@ -167,19 +167,13 @@ const Auth = () => {
         />
       </div>
       {/* Back button */}
-      <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
+      <div className="absolute top-6 left-6">
         <button
           onClick={() => showForgot ? setShowForgot(false) : navigate("/")}
           className="flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar
-        </button>
-        <button
-          onClick={() => navigate("/planos")}
-          className="flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150 border border-[#1E2330] rounded-lg px-3 py-1.5"
-        >
-          Ver planos
         </button>
       </div>
 
