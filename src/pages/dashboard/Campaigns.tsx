@@ -491,22 +491,14 @@ const Campaigns = () => {
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <div>
-          <h1 className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Configuração de Campanha
-            <motion.span
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-            >
-              <Sparkles className="w-4 h-4 text-primary/60" />
-            </motion.span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Monte, segmente e dispare com controle total</p>
+          <p className="text-sm text-muted-foreground mt-1">Controle total sobre sua entrega e performance.</p>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
-            <Eraser className="w-3 h-3" /> Limpar tudo
-          </Button>
-        </motion.div>
+        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
+          <Eraser className="w-3 h-3" /> Limpar tudo
+        </Button>
       </motion.div>
 
       {/* Stepper */}
@@ -517,48 +509,40 @@ const Campaigns = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         {/* Progress bar background */}
-        <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-border/20 -translate-y-1/2 rounded-full z-0" />
+        <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-border/15 -translate-y-1/2 rounded-full z-0" />
         <motion.div 
-          className="absolute top-1/2 left-0 h-[2px] bg-primary/40 -translate-y-1/2 rounded-full z-0"
+          className="absolute top-1/2 left-0 h-[1px] bg-primary/50 -translate-y-1/2 rounded-full z-0"
           initial={{ width: "0%" }}
           animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
           transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
         />
-        {steps.map((s, i) => {
+        {steps.map((s) => {
           const isActive = step === s.num;
           const isDone = step > s.num;
-          const Icon = s.icon;
           return (
             <div key={s.num} className="flex items-center flex-1 relative z-10">
-              <motion.button
+              <button
                 onClick={() => setStep(s.num)}
                 className={cn(
-                  "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs transition-all",
-                  isActive && "bg-primary/8 text-primary",
-                  isDone && "text-foreground/80",
-                  !isActive && !isDone && "text-muted-foreground",
+                  "flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-xs transition-all",
+                  isActive && "text-primary",
+                  isDone && "text-foreground/70",
+                  !isActive && !isDone && "text-muted-foreground/50",
                 )}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
               >
-                <motion.div 
-                  className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 transition-all relative",
-                    isActive && "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)]",
-                    isDone && "bg-emerald-500/20 text-emerald-400",
-                    !isActive && !isDone && "bg-muted text-muted-foreground",
-                  )}
-                  animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {isDone ? (
-                    <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 300 }}>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    </motion.div>
-                  ) : s.num}
-                </motion.div>
-                <span className="hidden sm:inline font-medium">{s.label}</span>
-              </motion.button>
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all",
+                  isActive && "bg-primary text-primary-foreground",
+                  isDone && "bg-primary/15 text-primary",
+                  !isActive && !isDone && "bg-muted/40 text-muted-foreground/50",
+                )}>
+                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
+                </div>
+                <span className={cn(
+                  "hidden sm:inline transition-all",
+                  isActive ? "font-semibold text-[13px]" : "font-normal text-xs"
+                )}>{s.label}</span>
+              </button>
             </div>
           );
         })}
@@ -578,8 +562,8 @@ const Campaigns = () => {
           transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {/* Template selector */}
-          <motion.div className="space-y-1.5" variants={staggerItem}>
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Modelo</Label>
+          <motion.div className="space-y-2" variants={staggerItem}>
+            <Label className="text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-[0.15em]">Estrutura da Mensagem</Label>
             <Select value={selectedTemplate} onValueChange={(val) => {
               setSelectedTemplate(val);
               if (val !== "nova") {
@@ -594,11 +578,11 @@ const Campaigns = () => {
                 }
               } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
             }}>
-              <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40 max-w-xs">
-                <SelectValue placeholder="Nova mensagem" />
+              <SelectTrigger className="h-10 text-sm font-medium bg-card/30 border-border/20 max-w-sm hover:border-border/40 transition-colors">
+                <SelectValue placeholder="Campanha Padrão" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-50">
-                <SelectItem value="nova">Nova mensagem</SelectItem>
+                <SelectItem value="nova">Campanha Padrão</SelectItem>
                 {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -646,13 +630,13 @@ const Campaigns = () => {
           )}
 
           {/* Message editor */}
-          <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-4">
+          <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
             {/* Toolbar */}
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap pb-3 border-b border-border/10">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1 border-border/40">
-                    <FileText className="w-3 h-3" /> Inserir variável
+                  <Button variant="outline" size="sm" className="h-8 text-[11px] gap-1.5 border-border/30 font-medium">
+                    <FileText className="w-3.5 h-3.5" /> Inserir variável
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
@@ -675,25 +659,25 @@ const Campaigns = () => {
                 </PopoverContent>
               </Popover>
 
-              <div className="h-4 w-px bg-border/30 mx-1" />
+              <div className="h-5 w-px bg-border/20 mx-0.5" />
               {[
                 { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
                 { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
                 { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
                 { icon: Code, label: "Código", wrap: ["```", "```"] },
               ].map(({ icon: Icon, label, wrap }) => (
-                <Button key={label} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title={label}
+                <Button key={label} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title={label}
                   onClick={() => wrapSelectedText(wrap[0], wrap[1])}>
-                  <Icon className="w-3 h-3" />
+                  <Icon className="w-3.5 h-3.5" />
                 </Button>
               ))}
-              <div className="h-4 w-px bg-border/30 mx-1" />
+              <div className="h-5 w-px bg-border/20 mx-0.5" />
 
               {/* Emoji Picker */}
               <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Emoji">
-                    <Smile className="w-3 h-3" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Emoji">
+                    <Smile className="w-3.5 h-3.5" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[280px] p-2 bg-popover border-border z-50" align="start">
@@ -731,45 +715,45 @@ const Campaigns = () => {
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite sua mensagem aqui..."
-              rows={8}
-              className="text-sm leading-relaxed bg-background/30 border-border/20 resize-none focus:border-primary/30"
+              placeholder="Olá, {{nome}}.&#10;&#10;Você está recebendo esta comunicação oficial do DG Contingência Pro.&#10;&#10;Caso deseje continuar recebendo atualizações e materiais estratégicos, utilize o botão abaixo."
+              rows={10}
+              className="text-sm leading-relaxed bg-background/20 border-border/10 resize-none focus:border-primary/30 p-4"
             />
 
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">{message.length} caracteres</span>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[9px] text-muted-foreground/40 font-mono">{message.length} caracteres</span>
+              <span className="text-[9px] text-muted-foreground/30 italic">Evite repetições e links encurtados para melhor entregabilidade.</span>
             </div>
-            <p className="text-[9px] text-muted-foreground/50 italic">Evite repetições excessivas e links encurtados para melhor entregabilidade.</p>
           </div>
 
-          {/* Buttons section - always available */}
+          {/* Buttons section */}
           <div className="space-y-3">
             {/* Added buttons list */}
             {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-              <div className="rounded-lg border border-border/30 bg-card/40 p-3 space-y-2">
+              <div className="rounded-xl border border-border/20 bg-card/30 p-4 space-y-3">
                 {quickReplyButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[9px] h-5 shrink-0">Resposta</Badge>
-                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-7 text-xs flex-1 bg-background/30 border-border/20" maxLength={20} />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeQuickReply(btn.id)}><X className="w-3 h-3" /></Button>
+                  <div key={btn.id} className="flex items-center gap-3">
+                    <Badge variant="secondary" className="text-[9px] h-6 px-2.5 shrink-0 font-semibold tracking-wide">RESPOSTA</Badge>
+                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-9 text-xs flex-1 bg-background/20 border-border/15 font-medium" maxLength={20} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => removeQuickReply(btn.id)}><X className="w-3.5 h-3.5" /></Button>
                   </div>
                 ))}
                 {ctaButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-[9px] h-5 shrink-0">{btn.type === "url" ? "URL" : "Ligar"}</Badge>
-                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-7 text-xs w-24 bg-background/30 border-border/20" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-7 text-xs flex-1 bg-background/30 border-border/20" />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeCTAButton(btn.id)}><X className="w-3 h-3" /></Button>
+                  <div key={btn.id} className="flex items-center gap-3 flex-wrap">
+                    <Badge variant="secondary" className="text-[9px] h-6 px-2.5 shrink-0 font-semibold tracking-wide">{btn.type === "url" ? "URL" : "LIGAR"}</Badge>
+                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-9 text-xs w-28 bg-background/20 border-border/15 font-medium" maxLength={20} />
+                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-9 text-xs flex-1 bg-background/20 border-border/15" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => removeCTAButton(btn.id)}><X className="w-3.5 h-3.5" /></Button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Add button trigger */}
+            {/* Add button trigger - discrete */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border/40 border-dashed w-full justify-center">
-                  <Plus className="w-3.5 h-3.5" /> Inserir CTA Interativo
+                <Button variant="ghost" size="sm" className="text-[11px] h-7 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground w-full justify-center">
+                  <Plus className="w-3 h-3" /> Inserir CTA Interativo
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
@@ -780,7 +764,7 @@ const Campaigns = () => {
                   <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Resposta Rápida</p>
-                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length} adicionados · Botão de resposta simples</p>
+                    <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length} adicionados</p>
                   </div>
                 </button>
                 <button
@@ -790,7 +774,7 @@ const Campaigns = () => {
                   <Link className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Link (URL)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "url").length} adicionados · Abre um link no navegador</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "url").length} adicionados</p>
                   </div>
                 </button>
                 <button
@@ -800,20 +784,18 @@ const Campaigns = () => {
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Ligar (Telefone)</p>
-                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "phone").length} adicionados · Inicia uma ligação</p>
+                    <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "phone").length} adicionados</p>
                   </div>
                 </button>
               </PopoverContent>
             </Popover>
           </div>
 
-          <motion.div className="flex justify-end" variants={staggerItem}>
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Button onClick={() => setStep(2)} className="gap-1.5 h-9 px-5 text-xs font-medium">
-                Continuar <ChevronRight className="w-3.5 h-3.5" />
-              </Button>
-            </motion.div>
-          </motion.div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setStep(2)} className="gap-2 h-10 px-6 text-xs font-semibold tracking-wide">
+              Continuar <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </motion.div>
       )}
 
@@ -1280,11 +1262,11 @@ const Campaigns = () => {
                 <Eye className="w-3 h-3" /> Pré-visualizar
               </Button>
               <Button
-                className="gap-2 h-10 px-8 text-xs font-bold tracking-wider uppercase shadow-lg shadow-primary/20"
+                className="gap-2.5 h-11 px-10 text-sm font-bold tracking-[0.1em] uppercase shadow-lg shadow-primary/25"
                 onClick={handleSendCampaign}
                 disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
                 {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
               </Button>
             </div>
