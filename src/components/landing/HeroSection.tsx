@@ -28,7 +28,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold text-foreground leading-[1.1] mb-6 tracking-tight"
+            className="text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold text-white leading-[1.1] mb-6 tracking-tight"
           >
             Infraestrutura profissional para operações com{" "}
             <span className="text-primary">múltiplos números no WhatsApp</span>
@@ -38,7 +38,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             Gerencie instâncias, organize campanhas e mantenha controle total da sua operação em um único painel.
           </motion.p>
@@ -61,7 +61,7 @@ const HeroSection = () => {
               size="lg"
               variant="outline"
               onClick={() => navigate("/auth")}
-              className="h-14 px-12 text-base font-semibold rounded-lg border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 hover:scale-[1.03]"
+              className="h-14 px-12 text-base font-semibold rounded-lg border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-200 hover:scale-[1.03]"
             >
               <LogIn className="w-4 h-4 mr-2" />
               Acessar Plataforma

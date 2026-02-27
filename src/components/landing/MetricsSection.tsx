@@ -13,10 +13,10 @@ const PositioningSection = () => (
         <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
           Posicionamento
         </span>
-        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
           Construído para quem leva operação a sério
         </h2>
-        <p className="text-lg text-muted-foreground leading-relaxed">
+        <p className="text-lg text-gray-400 leading-relaxed">
           A plataforma foi desenvolvida para operadores que precisam de organização, estrutura e previsibilidade no gerenciamento de múltiplos números. Não vendemos promessas irreais. Entregamos ferramentas para estruturar sua estratégia com controle.
         </p>
       </motion.div>
