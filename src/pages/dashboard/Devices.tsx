@@ -66,6 +66,11 @@ const Devices = () => {
   const [editUazapiToken, setEditUazapiToken] = useState("");
   const [editUazapiBaseUrl, setEditUazapiBaseUrl] = useState("");
 
+  // Quick token dialog
+  const [tokenOpen, setTokenOpen] = useState(false);
+  const [tokenDevice, setTokenDevice] = useState<Device | null>(null);
+  const [quickToken, setQuickToken] = useState("");
+
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
@@ -364,6 +369,24 @@ const Devices = () => {
       toast({ title: "Nome atualizado" });
     }
     setInlineEditId(null);
+  };
+
+  // Quick token
+  const openQuickToken = (device: Device) => {
+    setTokenDevice(device);
+    setQuickToken(device.uazapi_token || "");
+    setTokenOpen(true);
+  };
+
+  const handleQuickToken = () => {
+    if (!tokenDevice) return;
+    updateMutation.mutate({
+      id: tokenDevice.id,
+      updates: { uazapi_token: quickToken || null },
+    });
+    toast({ title: "Token atualizado" });
+    setTokenOpen(false);
+    setTokenDevice(null);
   };
 
   // Logout
@@ -750,6 +773,9 @@ const Devices = () => {
                   <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1" onClick={() => openEdit(d)}>
                     <Pencil className="w-3 h-3" /> Editar
                   </Button>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openQuickToken(d)}>
+                    <Key className="w-3 h-3" /> Token
+                  </Button>
                   {d.status === "Disconnected" && (
                     <Button size="sm" className="h-8 gap-1.5 text-xs flex-1 bg-primary hover:bg-primary/90" onClick={() => openConnect(d)}>
                       <Link2 className="w-3 h-3" /> Conectar
@@ -845,6 +871,33 @@ const Devices = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleEdit} className="bg-primary hover:bg-primary/90">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Token Dialog */}
+      <Dialog open={tokenOpen} onOpenChange={setTokenOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Token da API</DialogTitle>
+            <DialogDescription>
+              Insira o token de autenticação para <span className="font-medium text-foreground">{tokenDevice?.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs">Token da Instância</Label>
+              <Input
+                value={quickToken}
+                onChange={e => setQuickToken(e.target.value)}
+                placeholder="Cole o token aqui"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTokenOpen(false)}>Cancelar</Button>
+            <Button onClick={handleQuickToken} className="bg-primary hover:bg-primary/90">Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
