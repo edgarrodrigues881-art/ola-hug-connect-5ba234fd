@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2, FileText, Video, Mic } from "lucide-react";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,13 @@ interface TemplateButton {
   type: "reply" | "url" | "phone";
   text: string;
   value: string;
+}
+
+interface MediaFile {
+  id: number;
+  url: string;
+  type: "image" | "video" | "audio" | "document";
+  name: string;
 }
 
 const Templates = () => {
@@ -36,6 +43,7 @@ const Templates = () => {
   const [formType, setFormType] = useState("text");
   const [formContent, setFormContent] = useState("");
   const [formMediaUrl, setFormMediaUrl] = useState("");
+  const [formMediaFiles, setFormMediaFiles] = useState<MediaFile[]>([]);
   const [formButtons, setFormButtons] = useState<TemplateButton[]>([]);
   const [uploading, setUploading] = useState(false);
   const mediaFileRef = useRef<HTMLInputElement>(null);
@@ -59,8 +67,24 @@ const Templates = () => {
     setFormType("text");
     setFormContent("");
     setFormMediaUrl("");
+    setFormMediaFiles([]);
     setFormButtons([]);
     setDialogOpen(true);
+  };
+
+  const parseMediaFiles = (mediaUrl: string | null): MediaFile[] => {
+    if (!mediaUrl) return [];
+    try {
+      const parsed = JSON.parse(mediaUrl);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+    // Legacy single URL
+    const ext = mediaUrl.split(".").pop()?.toLowerCase() || "";
+    const type = ["mp4", "webm", "mov", "avi"].includes(ext) ? "video"
+      : ["mp3", "wav", "ogg", "m4a", "opus"].includes(ext) ? "audio"
+      : ["pdf", "doc", "docx", "xls", "xlsx"].includes(ext) ? "document"
+      : "image";
+    return [{ id: 1, url: mediaUrl, type, name: mediaUrl.split("/").pop() || "arquivo" }];
   };
 
   const openEdit = (t: any) => {
@@ -69,6 +93,8 @@ const Templates = () => {
     setFormType(t.type);
     setFormContent(t.content);
     setFormMediaUrl(t.media_url || "");
+    const files = parseMediaFiles(t.media_url);
+    setFormMediaFiles(files);
     setFormButtons(
       (t.buttons || []).map((b: any, i: number) => ({
         id: Date.now() + i,
@@ -80,13 +106,55 @@ const Templates = () => {
     setDialogOpen(true);
   };
 
+  const detectFileType = (file: File): MediaFile["type"] => {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    return "document";
+  };
+
+  const handleMediaUpload = async (file: File) => {
+    if (!session) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 20MB", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${session.user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("media").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+      const newFile: MediaFile = {
+        id: Date.now(),
+        url: urlData.publicUrl,
+        type: detectFileType(file),
+        name: file.name,
+      };
+      setFormMediaFiles(prev => [...prev, newFile]);
+      toast({ title: "Arquivo enviado" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeMediaFile = (id: number) => {
+    setFormMediaFiles(prev => prev.filter(f => f.id !== id));
+  };
+
   const handleSave = () => {
     if (!formName.trim() || !formContent.trim()) return;
+    const mediaValue = formMediaFiles.length > 0
+      ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name })))
+      : formMediaUrl || undefined;
     const payload = {
       name: formName,
       type: formType,
       content: formContent,
-      media_url: formMediaUrl || undefined,
+      media_url: mediaValue,
       buttons: formButtons.map(b => ({ type: b.type, text: b.text, value: b.value })),
     };
     if (editingId) {
@@ -244,67 +312,84 @@ const Templates = () => {
             </div>
 
             {showMedia && (
-              <div className="space-y-2">
-                <Label className="text-xs">Imagem</Label>
-                {formMediaUrl ? (
-                  <div className="relative rounded-lg overflow-hidden border border-border">
-                    <img src={formMediaUrl} alt="Mídia" className="w-full max-h-48 object-cover" />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7"
-                      onClick={() => setFormMediaUrl("")}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Mídias</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => mediaFileRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                    Adicionar mídia
+                  </Button>
+                </div>
+
+                {formMediaFiles.length === 0 && (
                   <div
-                    className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                     onClick={() => mediaFileRef.current?.click()}
                   >
-                    {uploading ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                        <p className="text-xs text-muted-foreground">Enviando...</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-6 h-6 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Clique para enviar uma imagem</p>
-                        <p className="text-[10px] text-muted-foreground/60">JPG, PNG, WEBP até 5MB</p>
-                      </div>
-                    )}
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Clique para enviar arquivos</p>
+                      <p className="text-[10px] text-muted-foreground/60">Imagens, vídeos, áudios, PDFs — até 20MB cada</p>
+                    </div>
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  {formMediaFiles.map((file) => (
+                    <div key={file.id} className="border border-border rounded-lg overflow-hidden">
+                      {file.type === "image" && (
+                        <img src={file.url} alt={file.name} className="w-full max-h-40 object-cover" />
+                      )}
+                      {file.type === "video" && (
+                        <video src={file.url} controls className="w-full max-h-40" />
+                      )}
+                      {file.type === "audio" && (
+                        <div className="p-3 flex items-center gap-3 bg-muted/30">
+                          <Mic className="w-5 h-5 text-primary shrink-0" />
+                          <audio src={file.url} controls className="w-full h-8" />
+                        </div>
+                      )}
+                      {file.type === "document" && (
+                        <div className="p-3 flex items-center gap-3 bg-muted/30">
+                          <FileText className="w-5 h-5 text-primary shrink-0" />
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">{file.name}</a>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between px-3 py-1.5 border-t border-border bg-muted/10">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px]">
+                            {file.type === "image" && <><Image className="w-2.5 h-2.5 mr-0.5" /> Imagem</>}
+                            {file.type === "video" && <><Video className="w-2.5 h-2.5 mr-0.5" /> Vídeo</>}
+                            {file.type === "audio" && <><Mic className="w-2.5 h-2.5 mr-0.5" /> Áudio</>}
+                            {file.type === "document" && <><FileText className="w-2.5 h-2.5 mr-0.5" /> Documento</>}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{file.name}</span>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeMediaFile(file.id)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <input
                   ref={mediaFileRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
                   className="hidden"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (!file || !session) return;
-                    if (file.size > 5 * 1024 * 1024) {
-                      toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
-                      return;
-                    }
-                    setUploading(true);
-                    try {
-                      const ext = file.name.split(".").pop() || "jpg";
-                      const path = `${session.user.id}/${Date.now()}.${ext}`;
-                      const { error } = await supabase.storage.from("media").upload(path, file);
-                      if (error) throw error;
-                      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-                      setFormMediaUrl(urlData.publicUrl);
-                      toast({ title: "Imagem enviada" });
-                    } catch (err: any) {
-                      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
-                    } finally {
-                      setUploading(false);
-                      e.target.value = "";
-                    }
+                    if (!file) return;
+                    await handleMediaUpload(file);
+                    e.target.value = "";
                   }}
                 />
               </div>
