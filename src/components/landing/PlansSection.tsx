@@ -197,7 +197,7 @@ const PlansSection = () => {
                   </a>
                 ) : (
                   <button
-                    onClick={() => navigate("/auth")}
+                    onClick={() => navigate("/auth?redirect=/dashboard/my-plan")}
                     className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                       plan.popular
                         ? "bg-emerald-600 text-white hover:bg-emerald-700"
