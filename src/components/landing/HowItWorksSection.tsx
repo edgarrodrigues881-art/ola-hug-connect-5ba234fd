@@ -42,23 +42,32 @@ const HowItWorksSection = () => (
         {forWhom.map((item, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: i * 0.1 }}
-            className="group relative rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+            transition={{ duration: 0.5, delay: 0.15 + i * 0.15, ease: "easeOut" }}
+            whileHover={{ y: -4, scale: 1.03, transition: { duration: 0.25 } }}
+            className="group relative rounded-2xl p-6 overflow-hidden cursor-default"
             style={{
               background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))",
               boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(7,193,96,0.08), inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
-            {/* Top accent */}
-            <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
+            {/* Top accent — animated shimmer */}
+            <motion.div
+              className="absolute top-0 left-0 right-0 h-[1px]"
+              style={{ background: "linear-gradient(90deg, transparent, #07C160, transparent)", backgroundSize: "200% 100%" }}
+              animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: i * 0.5 }}
+            />
             
             {/* Icon */}
-            <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.12] transition-colors">
+            <motion.div
+              className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.15] transition-colors"
+              whileHover={{ rotate: [0, -5, 5, 0], transition: { duration: 0.4 } }}
+            >
               <item.icon className="w-5 h-5 text-[#07C160]" />
-            </div>
+            </motion.div>
 
             <h3 className="text-[15px] font-semibold text-white mb-2">{item.title}</h3>
             <p className="text-[13px] text-white/35 leading-relaxed">{item.desc}</p>
