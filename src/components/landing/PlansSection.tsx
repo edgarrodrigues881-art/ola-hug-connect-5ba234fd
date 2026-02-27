@@ -20,7 +20,7 @@ const plans = [
     instances: 10,
     price: "149,90",
     perInstance: "14,99",
-    subtitle: "Para quem está começando e quer estrutura profissional desde o primeiro número.",
+    subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null,
     cta: "Começar agora",
     popular: false,
@@ -105,7 +105,7 @@ const PlansSection = () => {
           custom={1}
           className="text-2xl md:text-3xl font-bold text-center mb-3 text-white"
         >
-          Escolha o nível da sua operação
+          Escolha o plano ideal para escalar sua operação com estabilidade
         </motion.h2>
         <motion.p
           initial="hidden"
@@ -115,8 +115,8 @@ const PlansSection = () => {
           custom={2}
           className="text-white/30 text-center text-sm mb-14 max-w-xl mx-auto leading-relaxed"
         >
-          Todos os planos incluem aquecimento automatizado, disparador interativo e monitoramento em tempo real.
-          <br />A diferença está na capacidade operacional.
+          Todos os planos incluem aquecimento automatizado, disparador inteligente e monitoramento em tempo real.
+          <br />A diferença está na capacidade operacional e nível de suporte.
         </motion.p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -161,8 +161,17 @@ const PlansSection = () => {
                 )}
                 {!plan.extraCopy && <div className="mb-3" />}
 
+                <div className="mb-1">
+                  <span className="text-3xl font-bold text-white/90">
+                    R$ {plan.price}
+                  </span>
+                  <span className="text-white/20 text-sm"> / mês</span>
+                </div>
+                <p className="text-[11px] text-white/25 mb-6">
+                  R$ {plan.perInstance} por instância
+                </p>
 
-
+                <div className="h-px bg-white/[0.05] mb-6" />
 
                 <div className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
