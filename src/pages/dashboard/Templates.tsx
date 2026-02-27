@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,9 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2 } from "lucide-react";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 interface TemplateButton {
   id: number;
@@ -20,6 +22,7 @@ interface TemplateButton {
 
 const Templates = () => {
   const { toast } = useToast();
+  const { session } = useAuth();
   const { data: templates = [], isLoading } = useTemplates();
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -34,6 +37,8 @@ const Templates = () => {
   const [formContent, setFormContent] = useState("");
   const [formMediaUrl, setFormMediaUrl] = useState("");
   const [formButtons, setFormButtons] = useState<TemplateButton[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -239,9 +244,69 @@ const Templates = () => {
             </div>
 
             {showMedia && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">URL da mídia</Label>
-                <Input value={formMediaUrl} onChange={e => setFormMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" className="h-9 text-sm font-mono" />
+              <div className="space-y-2">
+                <Label className="text-xs">Imagem</Label>
+                {formMediaUrl ? (
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img src={formMediaUrl} alt="Mídia" className="w-full max-h-48 object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => setFormMediaUrl("")}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => mediaFileRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        <p className="text-xs text-muted-foreground">Enviando...</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Clique para enviar uma imagem</p>
+                        <p className="text-[10px] text-muted-foreground/60">JPG, PNG, WEBP até 5MB</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <input
+                  ref={mediaFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !session) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+                      return;
+                    }
+                    setUploading(true);
+                    try {
+                      const ext = file.name.split(".").pop() || "jpg";
+                      const path = `${session.user.id}/${Date.now()}.${ext}`;
+                      const { error } = await supabase.storage.from("media").upload(path, file);
+                      if (error) throw error;
+                      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+                      setFormMediaUrl(urlData.publicUrl);
+                      toast({ title: "Imagem enviada" });
+                    } catch (err: any) {
+                      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+                    } finally {
+                      setUploading(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
               </div>
             )}
 
