@@ -7,7 +7,7 @@ import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 
 const Landing = () => (
-  <div className="min-h-screen bg-[#0B0F14] scroll-smooth relative overflow-hidden">
+  <div className="landing-dark min-h-screen bg-[#0B0F14] scroll-smooth relative overflow-hidden" style={{ isolation: "isolate" }}>
     {/* Ambient glow background — spread across the whole page */}
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {/* Top center */}
