@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
-const PARTICLE_COUNT = 30;
-const ORB_COUNT = 5;
+const PARTICLE_COUNT = 12;
+const ORB_COUNT = 2;
 
 const GalacticParticles = () => {
   const particles = useMemo(() => {
@@ -66,9 +66,9 @@ const GalacticParticles = () => {
               left: `${o.x}%`,
               top: `${o.y}%`,
               background: `radial-gradient(circle, hsl(${o.hue} 70% 45% / 0.3) 0%, transparent 70%)`,
-              animation: `orb-pulse ${o.duration}s ease-in-out ${o.delay}s infinite, orb-drift ${o.duration * 1.5}s ease-in-out ${o.delay}s infinite`,
-              filter: 'blur(40px)',
-              willChange: 'transform, opacity',
+              animation: `orb-pulse ${o.duration}s ease-in-out ${o.delay}s infinite`,
+              filter: 'blur(60px)',
+              willChange: 'opacity',
             }}
           />
         ))}
@@ -88,8 +88,8 @@ const GalacticParticles = () => {
               '--p-opacity': p.opacity,
               '--dx': `${p.driftX}px`,
               '--dy': `${p.driftY}px`,
-              animation: `particle-drift ${p.duration}s ease-in-out ${p.delay}s infinite${p.id % 3 === 0 ? `, twinkle ${Math.random() * 3 + 2}s ease-in-out ${p.delay}s infinite` : ''}`,
-              willChange: 'transform, opacity',
+              animation: `twinkle ${p.duration * 0.5}s ease-in-out ${p.delay}s infinite`,
+              willChange: 'opacity',
             } as React.CSSProperties}
           />
         ))}
