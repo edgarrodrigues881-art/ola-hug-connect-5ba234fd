@@ -62,7 +62,7 @@ const warmupItems = [
 
 const analyticsItems = [
   { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
-  { title: "Meu Plano", url: "/dashboard/settings?tab=plan", icon: CreditCard },
+  { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
 ];
 
 const groups = [

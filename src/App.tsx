@@ -31,6 +31,7 @@ const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
 const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
 const CustomModule = lazy(() => import("./pages/dashboard/CustomModule"));
 const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
+const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
 
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
                         <Route path="custom-module" element={<CustomModule />} />
                         <Route path="notifications" element={<Notifications />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="my-plan" element={<MyPlan />} />
                         
                       </Routes>
                     </Suspense>

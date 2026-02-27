@@ -63,14 +63,16 @@ const Auth = () => {
     setShowForgot(false);
   }, [searchParams]);
 
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+
   // Auto-redirect if already logged in (check once on mount)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard", { replace: true });
+        navigate(redirectTo, { replace: true });
       }
     });
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +110,7 @@ const Auth = () => {
         } else {
           sessionStorage.removeItem("dg_session_alive");
         }
-        navigate("/dashboard");
+        navigate(redirectTo);
       } else {
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
