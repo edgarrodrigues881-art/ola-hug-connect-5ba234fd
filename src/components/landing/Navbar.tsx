@@ -16,15 +16,24 @@ const Navbar = () => {
         </div>
 
         <nav className="hidden md:flex items-center gap-6">
-          {["Como funciona", "Dashboard", "Confiança"].map((label, i) => (
-            <button
-              key={label}
-              onClick={() => document.getElementById(["como-funciona", "dashboard", "confianca"][i])?.scrollIntoView({ behavior: "smooth" })}
-              className="text-sm text-white/50 hover:text-white transition-colors"
-            >
-              {label}
-            </button>
-          ))}
+          <button
+            onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" })}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            Como funciona
+          </button>
+          <button
+            onClick={() => navigate("/planos")}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            Planos
+          </button>
+          <button
+            onClick={() => document.getElementById("confianca")?.scrollIntoView({ behavior: "smooth" })}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            Confiança
+          </button>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
