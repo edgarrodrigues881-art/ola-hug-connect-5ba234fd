@@ -99,7 +99,7 @@ const HeroSection = () => {
             {/* Phone */}
             <div className="relative" style={{ perspective: "1200px" }}>
               <div
-                className="relative w-[190px] lg:w-[200px]"
+                className="relative w-[260px] lg:w-[280px]"
                 style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
                 {/* Phone chassis */}
