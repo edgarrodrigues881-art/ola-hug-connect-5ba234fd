@@ -129,51 +129,6 @@ const DashboardHome = () => {
         <ActivityTimeline events={timelineEvents} />
       </div>
 
-      {/* Campanhas Recentes */}
-      <div className="animate-fade-in" style={{ animationDelay: "600ms" }}>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-foreground">Campanhas Recentes</CardTitle>
-              <button
-                onClick={() => navigate("/dashboard/campaign-list")}
-                className="text-xs text-primary hover:underline"
-              >
-                Ver todas
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {!stats?.recentCampaigns?.length ? (
-              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma campanha ainda</p>
-            ) : (
-              stats.recentCampaigns.map((c) => {
-                const cfg = techStatusConfig[c.techStatus];
-                return (
-                  <div key={c.id} className="p-3 rounded-lg bg-muted/30 border border-border/30 space-y-1.5 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">
-                          {statusLabels[c.status] || c.status}
-                        </span>
-                        <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
-                          {cfg.label}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 text-[11px] text-muted-foreground">
-                      <span>{c.sentCount} enviadas</span>
-                      <span>{c.deliveredCount} entregues</span>
-                      <span className={c.failedCount > 0 ? "text-destructive" : ""}>{c.failedCount} falhas</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
     </div>
   );
