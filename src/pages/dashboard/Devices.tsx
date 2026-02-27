@@ -94,8 +94,9 @@ const Devices = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDevice, setProfileDevice] = useState<Device | null>(null);
   const [wpName, setWpName] = useState("");
-  const [wpStatus, setWpStatus] = useState("");
   const [wpPhotoUrl, setWpPhotoUrl] = useState("");
+  const [wpPhotoBase64, setWpPhotoBase64] = useState("");
+  const [wpRemovePhoto, setWpRemovePhoto] = useState(false);
   const [wpApplyAll, setWpApplyAll] = useState(false);
   const [wpSaving, setWpSaving] = useState(false);
 
@@ -433,8 +434,9 @@ const Devices = () => {
   const openProfileEdit = (device: Device) => {
     setProfileDevice(device);
     setWpName("");
-    setWpStatus("");
     setWpPhotoUrl("");
+    setWpPhotoBase64("");
+    setWpRemovePhoto(false);
     setWpApplyAll(false);
     setProfileOpen(true);
   };
@@ -444,26 +446,34 @@ const Devices = () => {
 
   const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !session?.user?.id) return;
+    if (!file) return;
     setWpUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${session.user.id}/wp-profile-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("media").upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-      setWpPhotoUrl(urlData.publicUrl);
-      toast({ title: "Foto carregada" });
+      // Convert to base64 for direct API upload
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setWpPhotoBase64(base64);
+        setWpPhotoUrl(URL.createObjectURL(file));
+        setWpRemovePhoto(false);
+        toast({ title: "Foto carregada" });
+        setWpUploading(false);
+      };
+      reader.onerror = () => {
+        toast({ title: "Erro ao ler foto", variant: "destructive" });
+        setWpUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err: any) {
       toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
-    } finally {
       setWpUploading(false);
+    } finally {
       if (wpFileRef.current) wpFileRef.current.value = "";
     }
   };
 
   const handleProfileUpdate = async () => {
-    if (!wpName && !wpStatus && !wpPhotoUrl) {
+    if (!wpName && !wpPhotoBase64 && !wpRemovePhoto) {
       toast({ title: "Preencha ao menos um campo", variant: "destructive" });
       return;
     }
@@ -477,11 +487,10 @@ const Devices = () => {
         if (wpName.trim()) {
           await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
         }
-        if (wpStatus.trim()) {
-          await callApi({ action: "updateProfileStatus", deviceId: device.id, profileStatus: wpStatus.trim() });
-        }
-        if (wpPhotoUrl.trim()) {
-          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureUrl: wpPhotoUrl.trim() });
+        if (wpRemovePhoto) {
+          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" });
+        } else if (wpPhotoBase64) {
+          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
         }
       }
 
@@ -1419,19 +1428,6 @@ const Devices = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5" /> Recado (About)
-              </Label>
-              <Input
-                value={wpStatus}
-                onChange={e => setWpStatus(e.target.value)}
-                placeholder="Seu recado / status"
-                className="h-9 text-sm"
-                maxLength={139}
-              />
-              <p className="text-[10px] text-muted-foreground">{wpStatus.length}/139 caracteres</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs flex items-center gap-1.5">
                 <Camera className="w-3.5 h-3.5" /> Foto do perfil
               </Label>
               <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
@@ -1439,16 +1435,16 @@ const Devices = () => {
                 <div
                   className="relative group cursor-pointer"
                   onClick={() => {
-                    if (!wpPhotoUrl) wpFileRef.current?.click();
+                    if (!wpPhotoUrl && !wpRemovePhoto) wpFileRef.current?.click();
                   }}
                 >
-                  {wpPhotoUrl ? (
+                  {wpPhotoUrl && !wpRemovePhoto ? (
                     <>
                       <img
                         src={wpPhotoUrl}
                         alt="Foto do perfil"
                         className="w-20 h-20 rounded-full object-cover border-2 border-border"
-                        onError={e => { e.currentTarget.src = ""; setWpPhotoUrl(""); }}
+                        onError={e => { e.currentTarget.src = ""; setWpPhotoUrl(""); setWpPhotoBase64(""); }}
                       />
                       <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                         <Button
@@ -1465,14 +1461,28 @@ const Devices = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-white hover:bg-red-500/40"
-                          onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); }}
+                          className="h-8 w-8 text-white hover:bg-destructive/40"
+                          onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }}
                           title="Remover foto"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </>
+                  ) : wpRemovePhoto ? (
+                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-destructive/40 flex flex-col items-center justify-center gap-1">
+                      <Trash2 className="w-5 h-5 text-destructive/60" />
+                      <span className="text-[9px] text-destructive/60">Remover</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute -bottom-1 text-[9px] h-5 px-2"
+                        onClick={(e) => { e.stopPropagation(); setWpRemovePhoto(false); }}
+                      >
+                        Desfazer
+                      </Button>
+                    </div>
                   ) : (
                     <div className="w-20 h-20 rounded-full border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors">
                       {wpUploading ? (
