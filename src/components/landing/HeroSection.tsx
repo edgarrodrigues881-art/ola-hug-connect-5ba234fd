@@ -130,12 +130,34 @@ const HeroSection = () => {
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* Physical buttons — left side (volume + mute) */}
-                <div className="absolute left-[-3px] top-[22%] w-[3px] h-[18px] bg-gradient-to-r from-[#3A3A3E] to-[#2A2A2E] rounded-l-sm z-20" />
-                <div className="absolute left-[-3px] top-[30%] w-[3px] h-[32px] bg-gradient-to-r from-[#3A3A3E] to-[#2A2A2E] rounded-l-sm z-20" />
-                <div className="absolute left-[-3px] top-[40%] w-[3px] h-[32px] bg-gradient-to-r from-[#3A3A3E] to-[#2A2A2E] rounded-l-sm z-20" />
-                {/* Physical button — right side (power) */}
-                <div className="absolute right-[-3px] top-[32%] w-[3px] h-[40px] bg-gradient-to-l from-[#3A3A3E] to-[#2A2A2E] rounded-r-sm z-20" />
+                {/* 3D side edge — visible right side frame due to rotation */}
+                <div
+                  className="absolute top-[2px] -right-[8px] w-[10px] bottom-[2px] rounded-r-lg z-[5]"
+                  style={{
+                    background: "linear-gradient(to right, #2A2A2E 0%, #3A3A3E 30%, #4A4A4E 50%, #3A3A3E 70%, #2A2A2E 100%)",
+                    borderRadius: "0 8px 8px 0",
+                    boxShadow: "2px 0 8px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {/* Edge highlights */}
+                  <div className="absolute top-0 left-0 w-[1px] h-full bg-white/[0.06]" />
+                  <div className="absolute top-0 right-[2px] w-[1px] h-full bg-white/[0.03]" />
+                  {/* Power button on the edge */}
+                  <div className="absolute top-[30%] -right-[1px] w-[3px] h-[40px] bg-gradient-to-r from-[#4A4A4E] to-[#3A3A3E] rounded-r-sm"
+                    style={{ boxShadow: "1px 0 3px rgba(0,0,0,0.3)" }}
+                  />
+                </div>
+
+                {/* Physical buttons — left side (mute + volume) */}
+                <div className="absolute left-[-3px] top-[22%] w-[3px] h-[18px] bg-gradient-to-r from-[#4A4A4E] to-[#2A2A2E] rounded-l-sm z-20"
+                  style={{ boxShadow: "-1px 0 3px rgba(0,0,0,0.3)" }}
+                />
+                <div className="absolute left-[-3px] top-[30%] w-[3px] h-[32px] bg-gradient-to-r from-[#4A4A4E] to-[#2A2A2E] rounded-l-sm z-20"
+                  style={{ boxShadow: "-1px 0 3px rgba(0,0,0,0.3)" }}
+                />
+                <div className="absolute left-[-3px] top-[40%] w-[3px] h-[32px] bg-gradient-to-r from-[#4A4A4E] to-[#2A2A2E] rounded-l-sm z-20"
+                  style={{ boxShadow: "-1px 0 3px rgba(0,0,0,0.3)" }}
+                />
 
                 {/* Phone chassis */}
                 <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.2rem] p-[2px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10">
