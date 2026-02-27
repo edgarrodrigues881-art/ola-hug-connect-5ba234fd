@@ -159,7 +159,11 @@ const Templates = () => {
   };
 
   const toggleSendMode = (id: number) => {
-    setFormMediaFiles(prev => prev.map(f => f.id === id ? { ...f, sendMode: f.sendMode === "before" ? "with" : "before" } : f));
+    setFormMediaFiles(prev => prev.map(f => {
+      if (f.id === id) return { ...f, sendMode: f.sendMode === "with" ? "before" : "with" };
+      // Only one can be "with" — reset others
+      return { ...f, sendMode: f.sendMode === "with" ? "before" : f.sendMode };
+    }));
   };
 
   const handleSave = () => {
