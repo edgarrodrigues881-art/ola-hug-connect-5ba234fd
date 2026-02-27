@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,19 +149,6 @@ const Auth = () => {
 
   const inputClass = "pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150";
 
-  const particles = useMemo(() => {
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: i,
-      size: Math.random() * 2.5 + 1,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      duration: Math.random() * 25 + 20,
-      delay: Math.random() * -30,
-      hue: 130 + Math.random() * 40,
-      opacity: Math.random() * 0.4 + 0.15,
-      variant: i % 4,
-    }));
-  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ backgroundColor: '#0F1115' }}>
@@ -178,23 +165,6 @@ const Auth = () => {
             `,
           }}
         />
-        {/* Animated particles */}
-        {particles.map((p) => (
-          <div
-            key={p.id}
-            className="absolute rounded-full"
-            style={{
-              width: p.size,
-              height: p.size,
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              background: `hsl(${p.hue} 70% 65%)`,
-              opacity: p.opacity,
-              animation: `particle-float-${p.variant} ${p.duration}s linear ${p.delay}s infinite`,
-              transform: 'translateZ(0)',
-            }}
-          />
-        ))}
       </div>
       {/* Back button */}
       <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
