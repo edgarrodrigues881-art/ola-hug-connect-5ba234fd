@@ -57,17 +57,50 @@ const PlansSection = () => {
               }`}
               style={{
                 background: plan.highlight
-                  ? "linear-gradient(160deg, rgba(7,193,96,0.08), rgba(10,15,25,0.95))"
+                  ? "linear-gradient(160deg, rgba(7,193,96,0.1), rgba(10,15,25,0.95), rgba(7,193,96,0.05))"
                   : "linear-gradient(160deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))",
+                boxShadow: plan.highlight
+                  ? "0 20px 50px -15px rgba(7,193,96,0.15), 0 0 0 1px rgba(7,193,96,0.2)"
+                  : "none",
               }}
             >
               {/* Gradient glow top */}
               <div
-                className={`absolute top-0 left-0 right-0 h-24 pointer-events-none transition-opacity duration-700 ${
+                className={`absolute top-0 left-0 right-0 h-32 pointer-events-none transition-opacity duration-700 ${
                   plan.highlight ? "opacity-100" : "opacity-0 group-hover:opacity-60"
                 }`}
-                style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.08) 0%, transparent 70%)" }}
+                style={{ background: `radial-gradient(ellipse at top, rgba(7,193,96,${plan.highlight ? '0.12' : '0.06'}) 0%, transparent 70%)` }}
               />
+
+              {/* Animated border shimmer — only on Pro */}
+              {plan.highlight && (
+                <>
+                  <motion.div
+                    className="absolute top-0 left-0 h-[2px] w-[80px] rounded-full"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.7), transparent)" }}
+                    animate={{ left: ["0%", "100%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className="absolute bottom-0 right-0 h-[2px] w-[80px] rounded-full"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.7), transparent)" }}
+                    animate={{ right: ["0%", "100%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className="absolute left-0 w-[3px] h-10 rounded-full"
+                    style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.6), transparent)" }}
+                    animate={{ top: ["10%", "70%", "10%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="absolute right-0 w-[3px] h-10 rounded-full"
+                    style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.6), transparent)" }}
+                    animate={{ top: ["70%", "10%", "70%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </>
+              )}
 
               <div className="relative">
                 {plan.highlight && (
