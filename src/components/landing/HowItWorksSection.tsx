@@ -75,26 +75,43 @@ const HowItWorksSection = () => (
         ))}
       </div>
 
-      {/* Warning */}
+      {/* Warning — redesigned */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        transition={{ duration: 0.4, delay: 0.5 }}
         className="max-w-4xl mx-auto"
       >
         <div
-          className="flex items-start gap-3 rounded-xl p-4 overflow-hidden relative"
+          className="relative rounded-2xl p-5 overflow-hidden"
           style={{
-            background: "linear-gradient(145deg, rgba(239,68,68,0.04), rgba(10,15,25,0.9))",
-            boxShadow: "0 0 0 1px rgba(239,68,68,0.12), inset 0 1px 0 rgba(255,255,255,0.02)",
+            background: "linear-gradient(135deg, rgba(239,68,68,0.06), rgba(17,24,39,0.95), rgba(239,68,68,0.03))",
+            boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.15), inset 0 1px 0 rgba(255,255,255,0.03)",
           }}
         >
-          <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-red-500/15 to-transparent" />
-          <XCircle className="w-5 h-5 text-red-400/70 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-white/40 leading-relaxed">
-            <span className="font-semibold text-white/70">Não é indicado</span> para quem busca soluções milagrosas ou promessas de bloqueio zero.
-          </p>
+          {/* Animated shimmer top */}
+          <motion.div
+            className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.4), transparent)", backgroundSize: "200% 100%" }}
+            animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+          
+          {/* Left red accent bar */}
+          <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-red-500/50 via-red-400/30 to-transparent" />
+          
+          <div className="flex items-center gap-4 pl-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/[0.08] border border-red-500/10 flex items-center justify-center flex-shrink-0">
+              <XCircle className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-white/80 mb-0.5">Não é indicado</p>
+              <p className="text-[12px] text-white/35 leading-relaxed">
+                Para quem busca soluções milagrosas ou promessas de bloqueio zero.
+              </p>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>
