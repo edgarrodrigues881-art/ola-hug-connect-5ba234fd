@@ -20,10 +20,7 @@ const commonFeatures = [
 const PlansSection = () => {
   const navigate = useNavigate();
 
-  return (
-    <section id="planos" className="py-24 bg-transparent">
-      <div className="container">
-        
+  return;
 
 
 
@@ -41,8 +38,6 @@ const PlansSection = () => {
 
 
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
-          {plans.map((plan, i) => {}
 
 
 
@@ -138,10 +133,15 @@ const PlansSection = () => {
 
 
 
-          )}
-        </div>
-      </div>
-    </section>);
+
+
+
+
+
+
+
+
+
 
 };
 
