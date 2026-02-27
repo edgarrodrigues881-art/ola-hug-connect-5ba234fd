@@ -53,12 +53,26 @@ const HowItWorksSection = () => (
               boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(7,193,96,0.08), inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
-            {/* Top accent — animated shimmer */}
+            {/* Shimmer top — moves across */}
             <motion.div
-              className="absolute top-0 left-0 right-0 h-[1px]"
-              style={{ background: "linear-gradient(90deg, transparent, #07C160, transparent)", backgroundSize: "200% 100%" }}
-              animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
+              className="absolute top-0 left-0 h-[2px] w-[60px] rounded-full"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
+              animate={{ left: ["0%", "100%"] }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            {/* Shimmer bottom — moves across reversed */}
+            <motion.div
+              className="absolute bottom-0 right-0 h-[2px] w-[60px] rounded-full"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
+              animate={{ right: ["0%", "100%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            {/* Left bar — moves up and down */}
+            <motion.div
+              className="absolute left-0 w-[3px] h-8 rounded-full"
+              style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.5), transparent)" }}
+              animate={{ top: ["10%", "60%", "10%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
             
             {/* Icon */}
