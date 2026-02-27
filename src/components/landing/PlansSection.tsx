@@ -39,7 +39,7 @@ const plans = [
     price: "349,90",
     perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
-    extraCopy: "🔥 Plano mais escolhido por operadores ativos.",
+    extraCopy: "Plano mais escolhido por operadores ativos.",
     cta: "Contratar Plano",
     popular: true,
     whatsapp: false,
