@@ -20,7 +20,7 @@ const plans = [
     instances: 10,
     price: "149,90",
     perInstance: "14,99",
-    subtitle: "Ideal para início de operação estruturada.",
+    subtitle: "Para quem está começando e quer estrutura profissional desde o primeiro número.",
     extraCopy: null,
     cta: "Começar agora",
     popular: false,
@@ -39,7 +39,7 @@ const plans = [
     price: "349,90",
     perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
-    extraCopy: "Melhor custo-benefício para operadores ativos.",
+    extraCopy: "🔥 Plano mais escolhido por operadores ativos.",
     cta: "Contratar Plano",
     popular: true,
     whatsapp: false,
@@ -56,7 +56,7 @@ const plans = [
     instances: 50,
     price: "549,90",
     perInstance: "10,99",
-    subtitle: "Para operações em expansão.",
+    subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
     extraCopy: null,
     cta: "Contratar Plano",
     popular: false,
@@ -75,7 +75,7 @@ const plans = [
     price: "899,90",
     perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
-    extraCopy: null,
+    extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
     cta: "Falar com especialista",
     popular: false,
     whatsapp: true,
@@ -132,10 +132,10 @@ const PlansSection = () => {
           viewport={{ once: true }}
           variants={fadeUp}
           custom={2}
-          className="text-white/30 text-center text-sm mb-14 max-w-lg mx-auto"
+          className="text-white/30 text-center text-sm mb-14 max-w-xl mx-auto leading-relaxed"
         >
-          Todos os planos incluem aquecimento automatizado e disparador
-          inteligente. A diferença está na capacidade operacional.
+          Todos os planos incluem aquecimento automatizado, disparador interativo e monitoramento em tempo real.
+          <br />A diferença está na capacidade operacional.
         </motion.p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -184,8 +184,8 @@ const PlansSection = () => {
                   <span className="text-3xl font-bold text-white/90">
                     R$ {plan.price}
                   </span>
-                  <span className="text-white/20 text-sm">/mês</span>
                 </div>
+                <p className="text-[10px] text-white/15 mb-0.5 uppercase tracking-wide">mês</p>
                 <p className="text-[11px] text-white/25 mb-6">
                   R$ {plan.perInstance} por instância
                 </p>
@@ -232,14 +232,37 @@ const PlansSection = () => {
           ))}
         </div>
 
-        {/* Trust pillars */}
+        {/* Security reassurance */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
           custom={8}
-          className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-white/20"
+          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-xs text-white/30"
+        >
+          <div className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            Sem fidelidade
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            Upgrade imediato
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            Garantia de 7 dias
+          </div>
+        </motion.div>
+
+        {/* Trust pillars */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          custom={9}
+          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-white/20"
         >
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5" />
