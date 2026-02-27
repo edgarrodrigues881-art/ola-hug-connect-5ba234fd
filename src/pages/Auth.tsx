@@ -67,11 +67,16 @@ const Auth = () => {
 
   // Auto-redirect if already logged in (check once on mount)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      // Validate the session is actually usable
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
         navigate(redirectTo, { replace: true });
       }
-    });
+    };
+    checkExistingSession();
   }, [navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
