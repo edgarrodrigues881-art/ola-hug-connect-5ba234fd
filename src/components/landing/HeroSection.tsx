@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import dgRemaster from "@/assets/dg-remaster.png";
 
 const chats = [
   { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
@@ -142,12 +143,16 @@ const HeroSection = () => {
                       <div>
                         {chats.map((chat, i) => (
                           <div key={i} className="flex items-center gap-2.5 px-3 py-[7px] hover:bg-white/[0.02] border-b border-white/[0.02] last:border-0">
-                            <div
-                              className="w-[32px] h-[32px] rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
-                              style={{ backgroundColor: chat.color + "20", color: chat.color }}
-                            >
-                              {chat.avatar}
-                            </div>
+                            {chat.name.startsWith("DG CONTINGENCIA") ? (
+                              <img src={dgRemaster} alt="DG" className="w-[32px] h-[32px] rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div
+                                className="w-[32px] h-[32px] rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0"
+                                style={{ backgroundColor: chat.color + "20", color: chat.color }}
+                              >
+                                {chat.avatar}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-[2px]">
                                 <span className={`text-[10px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
