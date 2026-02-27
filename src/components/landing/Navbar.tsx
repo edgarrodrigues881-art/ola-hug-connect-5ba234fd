@@ -23,7 +23,7 @@ const Navbar = () => {
             Como funciona
           </button>
           <button
-            onClick={() => navigate("/planos")}
+            onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })}
             className="text-sm text-white/50 hover:text-white transition-colors"
           >
             Planos
