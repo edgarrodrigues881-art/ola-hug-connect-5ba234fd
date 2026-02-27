@@ -33,7 +33,7 @@ const PlansSection = () => {
           <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
             Planos
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Escolha o plano ideal para sua operação
           </h2>
         </motion.div>
@@ -51,7 +51,7 @@ const PlansSection = () => {
               className={`rounded-xl p-6 border transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 ${
                 plan.highlight
                   ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
-                  : "bg-gray-900 border-gray-800"
+                  : "bg-card/50 backdrop-blur-sm border-border"
               }`}
             >
               {plan.highlight && (
@@ -59,12 +59,12 @@ const PlansSection = () => {
                   Recomendado
                 </span>
               )}
-              <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+              <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
               <p className="text-sm text-primary font-semibold mb-5">{plan.instances}</p>
 
               <ul className="space-y-2.5 mb-6">
                 {commonFeatures.map((feat, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-gray-400">
+                  <li key={j} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary flex-shrink-0" />
                     {feat}
                   </li>
@@ -75,9 +75,10 @@ const PlansSection = () => {
                 onClick={() => navigate("/planos")}
                 className={`w-full transition-all duration-200 ${
                   plan.highlight
-                    ? "bg-primary hover:bg-[hsl(142,71%,38%)] border-0 shadow-none"
-                    : "bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white"
+                    ? ""
+                    : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                 }`}
+                variant={plan.highlight ? "default" : "secondary"}
               >
                 Contratar Plano
                 <ArrowRight className="w-4 h-4 ml-1" />

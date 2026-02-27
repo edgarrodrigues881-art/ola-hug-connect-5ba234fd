@@ -20,7 +20,7 @@ const HowItWorksSection = () => (
         <span className="inline-block text-xs font-semibold text-primary tracking-widest uppercase mb-3">
           Público
         </span>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
           Para quem é essa plataforma?
         </h2>
       </motion.div>
@@ -36,10 +36,10 @@ const HowItWorksSection = () => (
           {forWhom.map((item, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 bg-gray-900 rounded-lg p-4 border border-gray-800"
+              className="flex items-center gap-3 bg-card/50 backdrop-blur-sm rounded-lg p-4 border border-border"
             >
               <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-              <span className="text-white font-medium">{item}</span>
+              <span className="text-foreground font-medium">{item}</span>
             </div>
           ))}
         </motion.div>
@@ -52,8 +52,8 @@ const HowItWorksSection = () => (
           className="flex items-start gap-3 bg-destructive/5 rounded-lg p-5 border border-destructive/20"
         >
           <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-gray-400 leading-relaxed">
-            <span className="font-semibold text-white">Não é indicado</span> para quem busca soluções milagrosas ou promessas de bloqueio zero.
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Não é indicado</span> para quem busca soluções milagrosas ou promessas de bloqueio zero.
           </p>
         </motion.div>
       </div>
