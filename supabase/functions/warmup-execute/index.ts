@@ -127,16 +127,16 @@ async function fetchDeviceGroups(
 
     if (Array.isArray(data)) {
       for (const g of data) {
-        const jid = g.jid || g.id || g.groupJid;
-        const name = g.name || g.subject || g.groupName || "";
+        const jid = g.jid || g.JID || g.id || g.groupJid;
+        const name = g.name || g.Name || g.subject || g.Subject || g.groupName || "";
         if (jid && jid.includes("@g.us")) {
           results.push({ jid, name });
         }
       }
     } else if (data?.groups && Array.isArray(data.groups)) {
       for (const g of data.groups) {
-        const jid = g.jid || g.id || g.groupJid;
-        const name = g.name || g.subject || g.groupName || "";
+        const jid = g.jid || g.JID || g.id || g.groupJid;
+        const name = g.name || g.Name || g.subject || g.Subject || g.groupName || "";
         if (jid && jid.includes("@g.us")) {
           results.push({ jid, name });
         }
@@ -149,8 +149,8 @@ async function fetchDeviceGroups(
       const chats = await uazapiRequest(baseUrl, token, "/chat/getChats", {}, "GET");
       if (Array.isArray(chats)) {
         for (const c of chats) {
-          const jid = c.id || c.jid;
-          const name = c.name || c.subject || "";
+          const jid = c.id || c.jid || c.JID;
+          const name = c.name || c.Name || c.subject || c.Subject || "";
           if (jid && jid.includes("@g.us")) {
             results.push({ jid, name });
           }
@@ -176,10 +176,12 @@ Deno.serve(async (req) => {
 
   let targetUserId: string | null = null;
   let targetSessionId: string | null = null;
+  let forceExecute = false;
 
   try {
     const body = await req.json().catch(() => ({}));
     targetSessionId = body.sessionId || null;
+    forceExecute = body.forceExecute === true;
 
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
@@ -212,8 +214,8 @@ Deno.serve(async (req) => {
 
     for (const session of sessions) {
       try {
-        // Check time window
-        if (!isWithinTimeWindow(session.start_time, session.end_time)) {
+        // Check time window (skip if manual execution)
+        if (!forceExecute && !isWithinTimeWindow(session.start_time, session.end_time)) {
           results.push({ session_id: session.id, status: "skipped", reason: "outside_time_window" });
           continue;
         }

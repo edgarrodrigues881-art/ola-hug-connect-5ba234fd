@@ -113,7 +113,7 @@ const Warmup = () => {
     setExecutingId(sessionId);
     try {
       const { data, error } = await supabase.functions.invoke("warmup-execute", {
-        body: { sessionId },
+        body: { sessionId, forceExecute: true },
       });
       if (error) throw error;
       const result = data?.results?.[0];
