@@ -62,6 +62,7 @@ const warmupItems = [
 
 const analyticsItems = [
   { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
+  { title: "Meu Plano", url: "/dashboard/settings?tab=plan", icon: CreditCard },
 ];
 
 const groups = [
@@ -156,10 +157,6 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=profile")} className="gap-2 cursor-pointer">
               <User className="w-4 h-4" />
               Meu Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=plan")} className="gap-2 cursor-pointer">
-              <CreditCard className="w-4 h-4" />
-              Meu Plano
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings?tab=security")} className="gap-2 cursor-pointer">
               <Settings className="w-4 h-4" />
