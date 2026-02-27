@@ -30,41 +30,50 @@ const fadeUp = {
 };
 
 const painPoints = [
-  "Instâncias sendo bloqueadas com frequência?",
-  "Aquecimento manual e improvisado?",
-  "Falta de controle sobre disparos?",
-  "Instabilidade em momentos críticos?",
-  "Suporte lento quando você mais precisa?",
+  "Quem busca resultados imediatos sem estratégia",
+  "Quem espera bloqueio zero como promessa",
+  "Quem não deseja investir tempo mínimo em configuração",
+  "Quem procura soluções improvisadas",
 ];
 
 const differentials = [
   {
+    icon: LayoutDashboard,
+    title: "Controle total",
+    desc: "Gerencie suas instâncias com autonomia e visão estratégica.",
+  },
+  {
     icon: RefreshCw,
-    title: "Aquecimento Automatizado Real",
-    desc: "Sistema programado para simular uso natural da instância de forma contínua.",
+    title: "Automação inteligente",
+    desc: "Sistema estruturado para simular uso gradual e reduzir riscos operacionais.",
   },
   {
     icon: Zap,
-    title: "Disparador Inteligente",
-    desc: "Envios estruturados com botão interativo e controle por instância.",
+    title: "Interface intuitiva",
+    desc: "Painel direto ao ponto, organizado para decisões rápidas.",
   },
   {
-    icon: LayoutDashboard,
-    title: "Gestão Centralizada",
-    desc: "Gerencie múltiplas instâncias em um único painel simples e organizado.",
+    icon: TrendingUp,
+    title: "Monitoramento em tempo real",
+    desc: "Acompanhe métricas, progresso e status ao vivo.",
+  },
+  {
+    icon: Shield,
+    title: "Segurança em primeiro lugar",
+    desc: "Ambiente protegido com criptografia e boas práticas de infraestrutura.",
   },
   {
     icon: Server,
-    title: "Infraestrutura Estável",
-    desc: "Ambiente otimizado para operação contínua, com foco em estabilidade.",
+    title: "Performance otimizada",
+    desc: "Arquitetura estável e preparada para crescimento contínuo.",
   },
 ];
 
 const authorityBullets = [
-  { icon: TrendingUp, text: "Plataforma em constante evolução" },
-  { icon: RefreshCw, text: "Atualizações frequentes" },
-  { icon: Headphones, text: "Suporte especializado" },
-  { icon: Server, text: "Estrutura pensada para escala" },
+  { icon: TrendingUp, text: "Monitoramento contínuo de aquecimento" },
+  { icon: Zap, text: "Controle de disparos por instância" },
+  { icon: Server, text: "Status de conexão em tempo real" },
+  { icon: LayoutDashboard, text: "Indicadores claros de performance operacional" },
 ];
 
 const plans = [
@@ -72,7 +81,7 @@ const plans = [
     name: "Start",
     instances: 10,
     price: "149,90",
-    cta: "Começar Agora",
+    cta: "Ativar Plano",
     popular: false,
     extras: [] as string[],
   },
@@ -80,7 +89,7 @@ const plans = [
     name: "Pro",
     instances: 30,
     price: "349,90",
-    cta: "Quero o Pro",
+    cta: "Iniciar Estrutura",
     popular: true,
     extras: ["Suporte prioritário"],
   },
@@ -88,7 +97,7 @@ const plans = [
     name: "Scale",
     instances: 50,
     price: "549,90",
-    cta: "Escalar Agora",
+    cta: "Ativar Plano",
     popular: false,
     extras: ["Suporte prioritário", "API de integração"],
   },
@@ -103,10 +112,11 @@ const plans = [
 ];
 
 const baseFeatures = [
-  "Aquecimento automatizado",
-  "Disparador interativo",
-  "Painel de gestão completo",
-  "Suporte",
+  "Aquecimento automatizado incluso",
+  "Disparador interativo incluso",
+  "Painel centralizado",
+  "Monitoramento em tempo real",
+  "Suporte técnico",
 ];
 
 const faqs = [
@@ -164,13 +174,13 @@ export default function Plans() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6">
-              Estruture e escale sua operação no WhatsApp com{" "}
-              <span className="text-green-400">estabilidade real</span>.
+              Infraestrutura profissional para escalar sua operação no WhatsApp com{" "}
+              <span className="text-green-400">estabilidade</span>.
             </h1>
 
             <p className="text-lg text-white/45 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Disparador inteligente com botão interativo + aquecimento 100% automático.
-              Controle total das suas instâncias em um único painel.
+              Disparador inteligente com botão interativo e aquecimento automatizado.
+              Controle total das suas instâncias em tempo real, em um único painel.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -178,7 +188,7 @@ export default function Plans() {
                 onClick={() => navigate("/auth")}
                 className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-black font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-green-500/20 text-base"
               >
-                Criar minha estrutura agora
+                Iniciar minha operação
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
@@ -188,6 +198,7 @@ export default function Plans() {
                 Ver planos
               </button>
             </div>
+            <p className="text-white/25 text-xs mt-5">Em poucos cliques, sua estrutura fica ativa e automatizada.</p>
           </motion.div>
         </section>
 
@@ -199,7 +210,7 @@ export default function Plans() {
               variants={fadeUp} custom={0}
               className="text-2xl md:text-3xl font-bold text-center mb-12"
             >
-              Sua operação está preparada para <span className="text-green-400">escalar</span>?
+              Esta plataforma <span className="text-green-400">não é indicada</span> para:
             </motion.h2>
 
             <div className="space-y-3">
@@ -218,10 +229,10 @@ export default function Plans() {
 
             <motion.p
               initial="hidden" whileInView="visible" viewport={{ once: true }}
-              variants={fadeUp} custom={7}
+              variants={fadeUp} custom={6}
               className="text-center text-white/30 mt-10 text-sm"
             >
-              Se você trabalha com volume, precisa de estrutura.
+              Construímos para quem opera com seriedade e visão de longo prazo.
             </motion.p>
           </div>
         </section>
@@ -234,7 +245,7 @@ export default function Plans() {
               variants={fadeUp} custom={0}
               className="text-2xl md:text-3xl font-bold text-center mb-3"
             >
-              Uma plataforma pensada para <span className="text-green-400">operações profissionais</span>
+              Tecnologia projetada para <span className="text-green-400">operações sustentáveis</span>
             </motion.h2>
             <motion.div
               initial="hidden" whileInView="visible" viewport={{ once: true }}
@@ -242,7 +253,7 @@ export default function Plans() {
               className="w-12 h-0.5 bg-green-500/40 mx-auto mb-14"
             />
 
-            <div className="grid md:grid-cols-2 gap-5">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {differentials.map((d, i) => (
                 <motion.div
                   key={i}
@@ -269,7 +280,7 @@ export default function Plans() {
               variants={fadeUp} custom={0}
               className="text-2xl md:text-3xl font-bold mb-10"
             >
-              Estrutura para quem leva <span className="text-green-400">operação a sério</span>
+              Visualize, acompanhe e gerencie com <span className="text-green-400">dados em tempo real</span>
             </motion.h2>
 
             <div className="flex flex-wrap justify-center gap-4">
@@ -303,7 +314,7 @@ export default function Plans() {
               variants={fadeUp} custom={1}
               className="text-white/35 text-center text-sm mb-14 max-w-lg mx-auto"
             >
-              Todos os planos incluem os mesmos recursos. A diferença está na capacidade.
+              Todos os planos incluem aquecimento automatizado e disparador inteligente. A diferença está na capacidade operacional.
             </motion.p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -463,7 +474,7 @@ export default function Plans() {
                 onClick={() => navigate("/auth")}
                 className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-black font-semibold px-10 py-4 rounded-xl transition-all shadow-lg shadow-green-500/20 text-base"
               >
-                Criar minha conta agora
+                Iniciar minha operação
                 <ArrowRight className="w-5 h-5" />
               </button>
             </motion.div>
@@ -472,8 +483,9 @@ export default function Plans() {
 
         {/* Footer */}
         <footer className="border-t border-white/[0.05] py-8 px-6">
-          <p className="text-center text-white/15 text-xs">
-            &copy; {new Date().getFullYear()} Todos os direitos reservados.
+          <p className="text-center text-white/15 text-xs max-w-xl mx-auto leading-relaxed">
+            A performance da operação depende da estratégia aplicada pelo usuário. Nossa plataforma fornece infraestrutura, automação e ferramentas de gestão para crescimento sustentável.
+            <br />&copy; {new Date().getFullYear()} Todos os direitos reservados.
           </p>
         </footer>
       </div>
