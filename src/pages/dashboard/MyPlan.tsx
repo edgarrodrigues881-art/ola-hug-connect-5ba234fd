@@ -124,9 +124,6 @@ const MyPlan = () => {
                 <span className="text-2xl font-bold text-foreground">R$ {plan.price}</span>
                 <span className="text-muted-foreground text-sm"> / mês</span>
               </div>
-              <p className="text-[11px] text-muted-foreground/60 mb-4">
-                R$ {plan.perInstance} por instância
-              </p>
 
               <div className="h-px bg-border/50 mb-4" />
 
