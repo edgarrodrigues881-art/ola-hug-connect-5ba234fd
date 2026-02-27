@@ -371,9 +371,16 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { res, data } = await fetchWithFallback("/instance/updateProfileName", { name: profileName });
-      // Save to DB
-      if (res.ok && deviceId) {
+      // UaZapi v2 endpoint: POST /profile/name
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/profile/name"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ name: profileName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfileName result:", res.status, JSON.stringify(data).substring(0, 200));
+      // Save to DB regardless (local record)
+      if (deviceId) {
         await serviceClient.from("devices").update({ profile_name: profileName }).eq("id", deviceId);
       }
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
@@ -388,7 +395,14 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { res, data } = await fetchWithFallback("/instance/updateProfileStatus", { status: profileStatus });
+      // UaZapi v2 endpoint: POST /profile/status (inferred from pattern)
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/profile/status"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ status: profileStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfileStatus result:", res.status, JSON.stringify(data).substring(0, 200));
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -401,7 +415,14 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { res, data } = await fetchWithFallback("/instance/updateProfilePicture", { url: profilePictureUrl });
+      // UaZapi v2 endpoint: POST /profile/image
+      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/profile/image"), {
+        method: "POST",
+        headers: instanceHeaders,
+        body: JSON.stringify({ image: profilePictureUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("updateProfilePicture result:", res.status, JSON.stringify(data).substring(0, 200));
       return new Response(JSON.stringify({ success: res.ok, ...data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
