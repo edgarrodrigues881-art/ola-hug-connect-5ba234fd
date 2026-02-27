@@ -59,17 +59,47 @@ const DashboardPreview = () => (
         </h2>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.97 }}
-        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden border border-white/[0.06]"
-        style={{
-          background: "linear-gradient(160deg, rgba(12,18,28,0.98), rgba(8,12,20,0.95))",
-          boxShadow: "0 25px 80px -20px rgba(0,0,0,0.7)",
-        }}
-      >
+      <div className="relative max-w-4xl mx-auto">
+        {/* Outer glow — animated */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="absolute -inset-[6px] rounded-[1.2rem] z-0 blur-md"
+          style={{
+            background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+            backgroundSize: "300% 300%",
+          }}
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Border — animated */}
+        <motion.div
+          className="absolute -inset-[2px] rounded-[1.1rem] z-0"
+          style={{
+            background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+            backgroundSize: "300% 300%",
+          }}
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="relative z-10 rounded-2xl overflow-hidden"
+          style={{
+            background: "linear-gradient(160deg, rgba(12,18,28,0.98), rgba(8,12,20,0.95))",
+            boxShadow: "0 25px 80px -20px rgba(0,0,0,0.7)",
+          }}
+        >
         <div className="relative p-6 lg:p-8">
           {/* Top bar */}
           <div className="flex items-center gap-2 mb-8">
@@ -155,6 +185,7 @@ const DashboardPreview = () => (
           </motion.div>
         </div>
       </motion.div>
+      </div>
     </div>
   </section>
 );
