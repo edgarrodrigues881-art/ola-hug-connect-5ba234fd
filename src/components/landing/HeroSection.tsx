@@ -293,18 +293,9 @@ const HeroSection = () => {
                         ))}
                       </div>
 
-                      {/* FAB WhatsApp */}
-                      <div className="relative">
-                        <div className="absolute bottom-3 right-3 w-[40px] h-[40px] rounded-full bg-[#07C160] flex items-center justify-center shadow-lg z-10">
-                          <svg className="w-[20px] h-[20px] text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.82.49 3.53 1.34 5L2 22l5.12-1.34A9.96 9.96 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm.03 3c.73 0 1.3.01 1.49.04.18.03.42.1.55.17.14.08.24.17.35.28l.02.02c.36.37.59.89.59 1.49 0 .3-.13.73-.29 1.01-.16.28-.5.66-.76.85l-.33.24c-.12.09-.14.13-.08.24.24.44.56.85.95 1.22.39.37.82.67 1.29.88.11.05.17.04.24-.04l.27-.32c.22-.26.51-.58.85-.58.17 0 .34.05.55.15l2.01 1.01c.22.11.36.22.43.38.07.16.1.42.04.73-.06.31-.35.75-.7 1.1-.35.35-.75.59-1.18.72-.43.13-.92.19-1.38.13-.82-.1-1.72-.49-2.6-1.02a12.14 12.14 0 01-3.36-3.05c-.72-.92-1.2-1.78-1.47-2.54-.27-.76-.29-1.39-.08-1.87.11-.25.28-.46.5-.63l.45-.33c.22-.16.44-.24.66-.24z" />
-                          </svg>
-                        </div>
-
-                        {/* Home indicator */}
-                        <div className="flex justify-center pb-2 pt-1">
-                          <div className="w-[100px] h-[4px] bg-white/10 rounded-full" />
-                        </div>
+                      {/* Home indicator */}
+                      <div className="flex justify-center pb-2 pt-1">
+                        <div className="w-[100px] h-[4px] bg-white/10 rounded-full" />
                       </div>
                     </div>
                   </div>
