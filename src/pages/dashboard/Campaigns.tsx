@@ -482,68 +482,63 @@ const Campaigns = () => {
   ];
 
   return (
-    <div className="space-y-8 w-full pb-12">
+    <div className="w-full pb-16">
       {/* Header */}
       <motion.div 
-        className="flex items-center justify-between"
+        className="flex items-center justify-between mb-10"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-[28px] font-bold text-foreground tracking-[-0.02em] leading-tight">
             Configuração de Campanha
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Controle total sobre sua entrega e performance.</p>
+          <p className="text-[13px] text-muted-foreground/60 mt-2 font-normal">Controle total sobre sua entrega e performance.</p>
         </div>
-        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5 h-8" onClick={clearAllForm}>
-          <Eraser className="w-3 h-3" /> Limpar tudo
+        <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground/50 gap-1.5 h-8 hover:text-muted-foreground" onClick={clearAllForm}>
+          <Eraser className="w-3 h-3" /> Limpar
         </Button>
       </motion.div>
 
       {/* Stepper */}
       <motion.div 
-        className="flex items-center gap-0 relative"
+        className="flex items-center relative mb-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        {/* Progress bar background */}
-        <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-border/15 -translate-y-1/2 rounded-full z-0" />
+        {/* Track */}
+        <div className="absolute top-[14px] left-[14px] right-[14px] h-[2px] bg-border/10 z-0" />
         <motion.div 
-          className="absolute top-1/2 left-0 h-[1px] bg-primary/50 -translate-y-1/2 rounded-full z-0"
+          className="absolute top-[14px] left-[14px] h-[2px] bg-primary/60 z-[1]"
+          style={{ originX: 0 }}
           initial={{ width: "0%" }}
           animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         />
         {steps.map((s) => {
           const isActive = step === s.num;
           const isDone = step > s.num;
           return (
-            <div key={s.num} className="flex items-center flex-1 relative z-10">
-              <button
-                onClick={() => setStep(s.num)}
-                className={cn(
-                  "flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-xs transition-all",
-                  isActive && "text-primary",
-                  isDone && "text-foreground/70",
-                  !isActive && !isDone && "text-muted-foreground/50",
-                )}
-              >
-                <div className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all",
-                  isActive && "bg-primary text-primary-foreground",
-                  isDone && "bg-primary/15 text-primary",
-                  !isActive && !isDone && "bg-muted/40 text-muted-foreground/50",
-                )}>
-                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
-                </div>
-                <span className={cn(
-                  "hidden sm:inline transition-all",
-                  isActive ? "font-semibold text-[13px]" : "font-normal text-xs"
-                )}>{s.label}</span>
-              </button>
-            </div>
+            <button
+              key={s.num}
+              onClick={() => setStep(s.num)}
+              className="flex-1 flex flex-col items-center gap-2 relative z-10 group"
+            >
+              <div className={cn(
+                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                isActive && "bg-primary text-primary-foreground ring-4 ring-primary/15",
+                isDone && "bg-primary/20 text-primary",
+                !isActive && !isDone && "bg-muted/30 text-muted-foreground/40",
+              )}>
+                {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
+              </div>
+              <span className={cn(
+                "text-[11px] transition-all duration-200 text-center leading-tight",
+                isActive ? "font-semibold text-foreground" : isDone ? "font-medium text-foreground/50" : "font-normal text-muted-foreground/35"
+              )}>{s.label}</span>
+            </button>
           );
         })}
       </motion.div>
@@ -553,17 +548,14 @@ const Campaigns = () => {
       {step === 1 && (
         <motion.div 
           key="step-1"
-          className="space-y-6"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          {...fadeInUp}
+          className="space-y-8"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {/* Template selector */}
-          <motion.div className="space-y-2" variants={staggerItem}>
-            <Label className="text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-[0.15em]">Estrutura da Mensagem</Label>
+          <div className="space-y-2.5">
+            <span className="text-[11px] text-muted-foreground/50 font-semibold uppercase tracking-[0.15em]">Estrutura da Mensagem</span>
             <Select value={selectedTemplate} onValueChange={(val) => {
               setSelectedTemplate(val);
               if (val !== "nova") {
@@ -578,7 +570,7 @@ const Campaigns = () => {
                 }
               } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
             }}>
-              <SelectTrigger className="h-10 text-sm font-medium bg-card/30 border-border/20 max-w-sm hover:border-border/40 transition-colors">
+              <SelectTrigger className="h-11 text-sm font-medium bg-card/20 border-border/15 max-w-sm hover:border-border/30 transition-colors">
                 <SelectValue placeholder="Campanha Padrão" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-50">
@@ -586,27 +578,27 @@ const Campaigns = () => {
                 {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
-          </motion.div>
+          </div>
 
-          {/* Media section - always available as toggle */}
+          {/* Media toggle */}
           {!mediaUrl ? (
             <div>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="text-xs h-8 gap-1.5 border-border/40 border-dashed"
+                className="text-[11px] h-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
                 onClick={() => setMediaUrl(" ")}
               >
                 <Image className="w-3.5 h-3.5" /> Adicionar Mídia
               </Button>
             </div>
           ) : (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-3 space-y-2">
+            <div className="rounded-xl border border-border/15 bg-card/20 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                  <Image className="w-3.5 h-3.5" /> Mídia anexada
+                <span className="text-[11px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" /> Mídia
                 </span>
-                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
+                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive/70 hover:text-destructive" onClick={() => setMediaUrl("")}>
                   <X className="w-3 h-3 mr-1" /> Remover
                 </Button>
               </div>
@@ -614,29 +606,29 @@ const Campaigns = () => {
                 value={mediaUrl.trim() ? mediaUrl : ""}
                 onChange={(e) => setMediaUrl(e.target.value)}
                 placeholder="https://exemplo.com/imagem.jpg"
-                className="h-8 text-xs bg-background/50 border-border/30"
+                className="h-9 text-xs bg-background/30 border-border/15"
                 autoFocus={!mediaUrl.trim()}
               />
               {mediaUrl.trim() && (
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-lg border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
+                  <div className="w-14 h-14 rounded-lg border border-border/15 overflow-hidden bg-muted/10 flex items-center justify-center shrink-0">
                     <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
-                      onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground">Sem preview</span>'; }} />
+                      onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground/40">Sem preview</span>'; }} />
                   </div>
-                  <span className="text-[10px] text-muted-foreground break-all line-clamp-2">{mediaUrl}</span>
+                  <span className="text-[10px] text-muted-foreground/40 break-all line-clamp-2">{mediaUrl}</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Message editor */}
-          <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
+          {/* ── Editor de Mensagem ── */}
+          <div className="rounded-2xl border border-border/12 bg-[hsl(var(--card)/0.25)] p-6 space-y-5">
             {/* Toolbar */}
-            <div className="flex items-center gap-1.5 flex-wrap pb-3 border-b border-border/10">
+            <div className="flex items-center gap-1 flex-wrap">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 text-[11px] gap-1.5 border-border/30 font-medium">
-                    <FileText className="w-3.5 h-3.5" /> Inserir variável
+                  <Button variant="ghost" size="sm" className="h-8 text-[11px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-medium">
+                    <FileText className="w-3.5 h-3.5" /> Variável
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
@@ -659,29 +651,27 @@ const Campaigns = () => {
                 </PopoverContent>
               </Popover>
 
-              <div className="h-5 w-px bg-border/20 mx-0.5" />
+              <div className="h-4 w-px bg-border/10 mx-1" />
               {[
                 { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
                 { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
                 { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
                 { icon: Code, label: "Código", wrap: ["```", "```"] },
               ].map(({ icon: Icon, label, wrap }) => (
-                <Button key={label} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title={label}
+                <Button key={label} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground transition-colors" title={label}
                   onClick={() => wrapSelectedText(wrap[0], wrap[1])}>
                   <Icon className="w-3.5 h-3.5" />
                 </Button>
               ))}
-              <div className="h-5 w-px bg-border/20 mx-0.5" />
+              <div className="h-4 w-px bg-border/10 mx-1" />
 
-              {/* Emoji Picker */}
               <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Emoji">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground" title="Emoji">
                     <Smile className="w-3.5 h-3.5" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[280px] p-2 bg-popover border-border z-50" align="start">
-                  {/* Category tabs */}
                   <div className="flex items-center gap-0.5 mb-2 border-b border-border/20 pb-1.5">
                     {Object.keys(commonEmojis).map(cat => (
                       <button
@@ -716,71 +706,61 @@ const Campaigns = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Olá, {{nome}}.&#10;&#10;Você está recebendo esta comunicação oficial do DG Contingência Pro.&#10;&#10;Caso deseje continuar recebendo atualizações e materiais estratégicos, utilize o botão abaixo."
-              rows={10}
-              className="text-sm leading-relaxed bg-background/20 border-border/10 resize-none focus:border-primary/30 p-4"
+              rows={12}
+              className="text-[14px] leading-[1.8] bg-transparent border-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 text-foreground/90 placeholder:text-muted-foreground/25"
             />
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[9px] text-muted-foreground/40 font-mono">{message.length} caracteres</span>
-              <span className="text-[9px] text-muted-foreground/30 italic">Evite repetições e links encurtados para melhor entregabilidade.</span>
+            <div className="flex items-center justify-end pt-2 border-t border-border/8">
+              <span className="text-[10px] text-muted-foreground/30 font-mono tabular-nums">{message.length} caracteres</span>
             </div>
           </div>
 
-          {/* Buttons section */}
-          <div className="space-y-3">
-            {/* Added buttons list */}
+          {/* ── Botões Interativos ── */}
+          <div className="space-y-4">
+            <span className="text-[11px] text-muted-foreground/50 font-semibold uppercase tracking-[0.15em]">Botões Interativos</span>
+            
             {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-              <div className="rounded-xl border border-border/20 bg-card/30 p-4 space-y-3">
+              <div className="rounded-2xl border border-border/12 bg-[hsl(var(--card)/0.25)] p-5 space-y-4">
                 {quickReplyButtons.map(btn => (
                   <div key={btn.id} className="flex items-center gap-3">
-                    <Badge variant="secondary" className="text-[9px] h-6 px-2.5 shrink-0 font-semibold tracking-wide">RESPOSTA</Badge>
-                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-9 text-xs flex-1 bg-background/20 border-border/15 font-medium" maxLength={20} />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => removeQuickReply(btn.id)}><X className="w-3.5 h-3.5" /></Button>
+                    <span className="text-[9px] font-bold tracking-[0.1em] text-muted-foreground/50 uppercase w-20 shrink-0">Resposta</span>
+                    <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto do botão" className="h-10 text-sm flex-1 bg-background/15 border-border/10 font-medium" maxLength={20} />
+                    <button className="text-muted-foreground/25 hover:text-destructive transition-colors p-1" onClick={() => removeQuickReply(btn.id)}><X className="w-4 h-4" /></button>
                   </div>
                 ))}
                 {ctaButtons.map(btn => (
-                  <div key={btn.id} className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="secondary" className="text-[9px] h-6 px-2.5 shrink-0 font-semibold tracking-wide">{btn.type === "url" ? "URL" : "LIGAR"}</Badge>
-                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-9 text-xs w-28 bg-background/20 border-border/15 font-medium" maxLength={20} />
-                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-9 text-xs flex-1 bg-background/20 border-border/15" />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => removeCTAButton(btn.id)}><X className="w-3.5 h-3.5" /></Button>
+                  <div key={btn.id} className="flex items-center gap-3">
+                    <span className="text-[9px] font-bold tracking-[0.1em] text-muted-foreground/50 uppercase w-20 shrink-0">{btn.type === "url" ? "URL" : "Ligar"}</span>
+                    <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto" className="h-10 text-sm w-32 bg-background/15 border-border/10 font-medium" maxLength={20} />
+                    <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-10 text-sm flex-1 bg-background/15 border-border/10" />
+                    <button className="text-muted-foreground/25 hover:text-destructive transition-colors p-1" onClick={() => removeCTAButton(btn.id)}><X className="w-4 h-4" /></button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Add button trigger - discrete */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-[11px] h-7 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground w-full justify-center">
-                  <Plus className="w-3 h-3" /> Inserir CTA Interativo
-                </Button>
+                <button className="text-[11px] text-muted-foreground/35 hover:text-muted-foreground/60 transition-colors flex items-center gap-1.5 mx-auto">
+                  <Plus className="w-3 h-3" /> Adicionar botão
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
-                <button
-                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5 disabled:opacity-40 disabled:pointer-events-none"
-                  onClick={addQuickReply}
-                >
+                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={addQuickReply}>
                   <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Resposta Rápida</p>
                     <p className="text-[10px] text-muted-foreground">{quickReplyButtons.length} adicionados</p>
                   </div>
                 </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5"
-                  onClick={() => addCTAButton("url")}
-                >
+                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("url")}>
                   <Link className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Link (URL)</p>
                     <p className="text-[10px] text-muted-foreground">{ctaButtons.filter(b => b.type === "url").length} adicionados</p>
                   </div>
                 </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent transition-colors flex items-center gap-2.5"
-                  onClick={() => addCTAButton("phone")}
-                >
+                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("phone")}>
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">Ligar (Telefone)</p>
@@ -791,9 +771,10 @@ const Campaigns = () => {
             </Popover>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => setStep(2)} className="gap-2 h-10 px-6 text-xs font-semibold tracking-wide">
-              Continuar <ChevronRight className="w-4 h-4" />
+          {/* Primary action */}
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-[13px] font-bold tracking-[0.08em] uppercase shadow-lg shadow-primary/20">
+              CONTINUAR <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </motion.div>
@@ -1262,7 +1243,7 @@ const Campaigns = () => {
                 <Eye className="w-3 h-3" /> Pré-visualizar
               </Button>
               <Button
-                className="gap-2.5 h-11 px-10 text-sm font-bold tracking-[0.1em] uppercase shadow-lg shadow-primary/25"
+                className="gap-2.5 h-12 px-12 text-[13px] font-bold tracking-[0.1em] uppercase shadow-lg shadow-primary/25"
                 onClick={handleSendCampaign}
                 disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
               >
