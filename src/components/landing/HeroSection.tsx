@@ -11,8 +11,6 @@ const chats = [
   { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
   { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6" },
   { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
-  { name: "Juliana Costa", msg: "Foto", time: "10:15", unread: 1, avatar: "JC", color: "#10B981" },
-  { name: "Roberto Silva", msg: "Pode ser na quinta então", time: "09:58", unread: 0, avatar: "RS", color: "#6366F1" },
 ];
 
 const HeroSection = () => {
