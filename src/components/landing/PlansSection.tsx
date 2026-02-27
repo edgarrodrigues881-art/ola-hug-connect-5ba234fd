@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
 
@@ -11,8 +10,10 @@ const fadeUp = {
   }),
 };
 
-const whatsappUrl =
-  "https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20quero%20contratar%20o%20plano%20Elite.";
+const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
+  const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência Pro – ${plan.instances} Instâncias no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
+  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+};
 
 const plans = [
   {
@@ -22,9 +23,8 @@ const plans = [
     perInstance: "14,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null,
-    cta: "Começar agora",
+    cta: "Falar com atendente",
     popular: false,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -40,9 +40,8 @@ const plans = [
     perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
     extraCopy: "Plano mais escolhido por operadores ativos.",
-    cta: "Contratar Plano",
+    cta: "Falar com atendente",
     popular: true,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -58,9 +57,8 @@ const plans = [
     perInstance: "10,99",
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
     extraCopy: null,
-    cta: "Contratar Plano",
+    cta: "Falar com atendente",
     popular: false,
-    whatsapp: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -76,9 +74,8 @@ const plans = [
     perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
-    cta: "Falar com especialista",
+    cta: "Falar com atendente",
     popular: false,
-    whatsapp: true,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -90,13 +87,9 @@ const plans = [
 ];
 
 const PlansSection = () => {
-  const navigate = useNavigate();
-
   return (
     <section id="planos" className="py-20 px-6 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-
-
         <motion.h2
           initial="hidden"
           whileInView="visible"
@@ -182,29 +175,19 @@ const PlansSection = () => {
                   ))}
                 </div>
 
-                {plan.whatsapp ? (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
-                  >
-                    {plan.cta}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
-                ) : (
-                  <button
-                    onClick={() => navigate("/auth?redirect=/dashboard/my-plan")}
-                    className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                      plan.popular
-                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                        : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
-                    }`}
-                  >
-                    {plan.cta}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <a
+                  href={buildWhatsappUrl(plan)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                    plan.popular
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
+                  }`}
+                >
+                  {plan.cta}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
               </div>
             </motion.div>
           ))}
