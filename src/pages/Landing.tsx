@@ -3,7 +3,6 @@ import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import TrustSection from "@/components/landing/TrustSection";
-import PlansSection from "@/components/landing/PlansSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 import LandingBackground from "@/components/landing/LandingBackground";
@@ -19,7 +18,6 @@ const Landing = () => (
       <HowItWorksSection />
       <DashboardPreview />
       <TrustSection />
-      <PlansSection />
       <CTASection />
       <Footer />
     </div>
