@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dgRemaster from "@/assets/dg-remaster.png";
-import iphoneFrame from "@/assets/iphone-frame.png";
 
 const chats = [
   { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
@@ -117,137 +116,135 @@ const HeroSection = () => {
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 />
+                {/* Animated border */}
+                <motion.div
+                  className="absolute -inset-[2px] rounded-[2.6rem] z-0"
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+                    backgroundSize: "300% 300%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
 
-                {/* Real iPhone frame */}
-                <div className="relative z-10">
-                  <img
-                    src={iphoneFrame}
-                    alt="iPhone"
-                    className="relative z-20 w-full h-auto pointer-events-none select-none"
-                    draggable={false}
-                  />
-                  {/* Screen content positioned inside the frame */}
-                  <div className="absolute z-10 overflow-hidden"
-                    style={{
-                      top: "2.8%",
-                      left: "5.5%",
-                      right: "5.5%",
-                      bottom: "2.8%",
-                      borderRadius: "2rem",
-                    }}
-                  >
-                    <div className="w-full h-full bg-[#0A0A0A] overflow-hidden">
-                      {/* Status bar */}
-                      <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
-                        <span className="text-[10px] text-white/40 font-medium">9:41</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] text-white/30 font-semibold">5G</span>
-                          <div className="flex items-end gap-[1px]">
-                            <div className="w-[2px] h-[4px] bg-white/40 rounded-[0.5px]" />
-                            <div className="w-[2px] h-[6px] bg-white/40 rounded-[0.5px]" />
-                            <div className="w-[2px] h-[8px] bg-white/40 rounded-[0.5px]" />
-                            <div className="w-[2px] h-[10px] bg-white/15 rounded-[0.5px]" />
+                {/* Phone chassis */}
+                <div className="relative rounded-[2.4rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10"
+                  style={{ background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)" }}
+                >
+                  {/* Screen bezel */}
+                  <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
+                    {/* Status bar */}
+                    <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
+                      <span className="text-[10px] text-white/40 font-medium">9:41</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] text-white/30 font-semibold">5G</span>
+                        <div className="flex items-end gap-[1px]">
+                          <div className="w-[2px] h-[4px] bg-white/40 rounded-[0.5px]" />
+                          <div className="w-[2px] h-[6px] bg-white/40 rounded-[0.5px]" />
+                          <div className="w-[2px] h-[8px] bg-white/40 rounded-[0.5px]" />
+                          <div className="w-[2px] h-[10px] bg-white/15 rounded-[0.5px]" />
+                        </div>
+                        <div className="flex items-center gap-[1px]">
+                          <div className="w-[14px] h-[7px] border border-white/30 rounded-[2px] p-[1px]">
+                            <div className="w-[70%] h-full bg-[#07C160] rounded-[1px]" />
                           </div>
-                          <div className="flex items-center gap-[1px]">
-                            <div className="w-[14px] h-[7px] border border-white/30 rounded-[2px] p-[1px]">
-                              <div className="w-[70%] h-full bg-[#07C160] rounded-[1px]" />
+                          <div className="w-[1px] h-[3px] bg-white/20 rounded-r-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* WhatsApp header */}
+                    <div className="px-4 pt-1 pb-2 flex items-center justify-between">
+                      <h3 className="text-[15px] font-bold text-white tracking-tight">Conversas</h3>
+                      <div className="flex items-center gap-3">
+                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <circle cx="12" cy="13" r="3" />
+                        </svg>
+                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
+                        </svg>
+                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <circle cx="12" cy="6" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="18" r="1" fill="currentColor" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="mx-3 mb-2">
+                      <div className="h-[28px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-1.5">
+                        <svg className="w-[10px] h-[10px] text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
+                        </svg>
+                        <span className="text-[11px] text-white/20">Pesquisar</span>
+                      </div>
+                    </div>
+
+                    {/* Chat list */}
+                    <div>
+                      {chats.map((chat, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
+                          {chat.name.startsWith("DG CONTINGENCIA") ? (
+                            <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div
+                              className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                              style={{ backgroundColor: chat.color + "20", color: chat.color }}
+                            >
+                              {chat.avatar}
                             </div>
-                            <div className="w-[1px] h-[3px] bg-white/20 rounded-r-full" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* WhatsApp header */}
-                      <div className="px-4 pt-1 pb-2 flex items-center justify-between">
-                        <h3 className="text-[15px] font-bold text-white tracking-tight">Conversas</h3>
-                        <div className="flex items-center gap-3">
-                          <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <circle cx="12" cy="13" r="3" />
-                          </svg>
-                          <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                            <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
-                          </svg>
-                          <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="12" cy="6" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="18" r="1" fill="currentColor" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Search */}
-                      <div className="mx-3 mb-2">
-                        <div className="h-[28px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-1.5">
-                          <svg className="w-[10px] h-[10px] text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
-                          </svg>
-                          <span className="text-[11px] text-white/20">Pesquisar</span>
-                        </div>
-                      </div>
-
-                      {/* Chat list */}
-                      <div>
-                        {chats.map((chat, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
-                            {chat.name.startsWith("DG CONTINGENCIA") ? (
-                              <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
-                            ) : (
-                              <div
-                                className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                                style={{ backgroundColor: chat.color + "20", color: chat.color }}
-                              >
-                                {chat.avatar}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-[2px]">
-                                <span className={`text-[13px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
-                                  {chat.name}
-                                </span>
-                                <span className={`text-[10px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
-                                  {chat.time}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1 truncate pr-2">
-                                  {chat.unread === 0 && (
-                                    <svg className="w-[12px] h-[12px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                                      <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
-                                      <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
-                                    </svg>
-                                  )}
-                                  <span className="text-[11px] text-white/30 truncate">{chat.msg}</span>
-                                </div>
-                                {chat.unread > 0 && (
-                                  <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
-                                    {chat.unread >= 999 ? "999+" : chat.unread}
-                                  </span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-[2px]">
+                              <span className={`text-[13px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                                {chat.name}
+                              </span>
+                              <span className={`text-[10px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                                {chat.time}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 truncate pr-2">
+                                {chat.unread === 0 && (
+                                  <svg className="w-[12px] h-[12px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
+                                    <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
+                                  </svg>
                                 )}
+                                <span className="text-[11px] text-white/30 truncate">{chat.msg}</span>
                               </div>
+                              {chat.unread > 0 && (
+                                <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
+                                  {chat.unread >= 999 ? "999+" : chat.unread}
+                                </span>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                    </div>
 
-                      {/* Bottom nav */}
-                      <div className="flex items-center justify-around py-[10px] border-t border-white/[0.04]">
-                        {[
-                          { name: "Conversas", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
-                          { name: "Atualizações", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
-                          { name: "Ligações", icon: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" },
-                        ].map((tab, i) => (
-                          <div key={tab.name} className="flex flex-col items-center gap-1">
-                            <svg className={`w-[14px] h-[14px] ${i === 0 ? "text-[#07C160]" : "text-white/20"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
-                            </svg>
-                            <span className={`text-[8px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}>{tab.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                    {/* Bottom nav */}
+                    <div className="flex items-center justify-around py-[10px] border-t border-white/[0.04]">
+                      {[
+                        { name: "Conversas", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
+                        { name: "Atualizações", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
+                        { name: "Ligações", icon: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" },
+                      ].map((tab, i) => (
+                        <div key={tab.name} className="flex flex-col items-center gap-1">
+                          <svg className={`w-[14px] h-[14px] ${i === 0 ? "text-[#07C160]" : "text-white/20"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+                          </svg>
+                          <span className={`text-[8px] ${i === 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}>{tab.name}</span>
+                        </div>
+                      ))}
+                    </div>
 
-                      {/* Home indicator */}
-                      <div className="flex justify-center pb-2 pt-1">
-                        <div className="w-[100px] h-[4px] bg-white/10 rounded-full" />
-                      </div>
+                    {/* Home indicator */}
+                    <div className="flex justify-center pb-2 pt-1">
+                      <div className="w-[100px] h-[4px] bg-white/10 rounded-full" />
                     </div>
                   </div>
                 </div>
