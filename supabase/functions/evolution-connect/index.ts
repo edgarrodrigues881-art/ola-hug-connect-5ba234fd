@@ -389,7 +389,7 @@ Deno.serve(async (req) => {
     }
 
     // ACTION: updateProfileStatus - Update WhatsApp "recado" / about
-    // Try multiple endpoint patterns since UaZapi free may not support all
+    // Try multiple endpoints with POST/PUT/GET fallback each
     if (action === "updateProfileStatus") {
       if (!profileStatus && profileStatus !== "") {
         return new Response(JSON.stringify({ error: "profileStatus is required" }), {
@@ -397,31 +397,31 @@ Deno.serve(async (req) => {
         });
       }
       
-      const endpoints = [
-        { path: "/profile/status", body: { status: profileStatus }, method: "POST" },
-        { path: "/profile/about", body: { about: profileStatus }, method: "POST" },
-        { path: "/instance/updateProfileStatus", body: { status: profileStatus }, method: "PUT" },
+      const endpointAttempts = [
+        { path: "/profile/status", payload: { status: profileStatus } },
+        { path: "/profile/about", payload: { about: profileStatus } },
+        { path: "/profile/setStatus", payload: { status: profileStatus } },
+        { path: "/chat/updateStatus", payload: { status: profileStatus } },
       ];
       
-      let lastRes: Response | null = null;
+      let success = false;
       let lastData: any = {};
       
-      for (const ep of endpoints) {
+      for (const ep of endpointAttempts) {
         try {
-          lastRes = await fetch(apiUrl(INSTANCE_BASE_URL, ep.path), {
-            method: ep.method,
-            headers: instanceHeaders,
-            body: JSON.stringify(ep.body),
-          });
-          lastData = await lastRes.json().catch(() => ({}));
-          console.log(`updateProfileStatus ${ep.path} (${ep.method}):`, lastRes.status, JSON.stringify(lastData).substring(0, 200));
-          if (lastRes.ok || (lastRes.status !== 404 && lastRes.status !== 405)) break;
+          const result = await fetchWithFallback(ep.path, ep.payload);
+          lastData = result.data;
+          if (result.res.ok) {
+            success = true;
+            console.log(`updateProfileStatus SUCCESS via ${ep.path}`);
+            break;
+          }
         } catch (e) {
           console.log(`updateProfileStatus ${ep.path} error:`, e);
         }
       }
       
-      return new Response(JSON.stringify({ success: lastRes?.ok ?? false, ...lastData }), {
+      return new Response(JSON.stringify({ success, ...lastData }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
