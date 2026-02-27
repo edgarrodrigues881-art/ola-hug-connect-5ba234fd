@@ -24,10 +24,10 @@ const HeroSection = () => {
           {/* Left — Copy */}
           <div className="max-w-lg">
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.3 }}
               className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
@@ -35,20 +35,20 @@ const HeroSection = () => {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+              transition={{ duration: 0.3, delay: 0.05 }}
               className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
               className="flex flex-col sm:flex-row items-start gap-3"
             >
               <Button
@@ -70,10 +70,10 @@ const HeroSection = () => {
 
           {/* Right — Phone + Progress Badge */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
             {/* Ambient glow — static, no animation */}
@@ -231,7 +231,7 @@ const HeroSection = () => {
                 initial={{ opacity: 0, x: -10, scale: 0.9 }}
                 whileInView={{ opacity: 1, x: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.5 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
                 className="absolute right-[-60px] top-[8%] w-[210px]"
               >
                 <div className="relative rounded-2xl p-4 overflow-hidden"
@@ -254,7 +254,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 1.2 }}
+                      transition={{ delay: 0.5 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-[#07C160]/[0.12] border border-[#07C160]/10 flex items-center px-2.5 gap-1.5">
@@ -271,7 +271,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 1.6 }}
+                      transition={{ delay: 0.7 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-[#07C160]/[0.12] border border-[#07C160]/10 flex items-center px-2.5 gap-1.5">
@@ -288,7 +288,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 2.0 }}
+                      transition={{ delay: 0.9 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-white/[0.03] border border-white/[0.04] flex items-center px-2.5 gap-1.5">
@@ -308,7 +308,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 2.2 }}
+                      transition={{ delay: 1.0 }}
                       className="text-[13px] font-bold text-white tabular-nums"
                     >342</motion.span>
                   </div>
@@ -320,7 +320,7 @@ const HeroSection = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.7 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
                 className="absolute left-[-55px] top-[25%]"
               >
                 <div className="relative rounded-2xl p-4 overflow-hidden"
@@ -342,7 +342,7 @@ const HeroSection = () => {
                           initial={{ strokeDashoffset: 2 * Math.PI * 20 }}
                           whileInView={{ strokeDashoffset: 2 * Math.PI * 20 * (1 - 0.89) }}
                           viewport={{ once: true }}
-                          transition={{ duration: 2, delay: 1.5, ease: "easeOut" }}
+                          transition={{ duration: 1.2, delay: 0.6, ease: "easeOut" }}
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -357,12 +357,12 @@ const HeroSection = () => {
                 </div>
               </motion.div>
 
-              {/* Notification 3 — Security shield (bottom left) */}
+              {/* Notification 3 — Instâncias conectadas (bottom left) */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.9 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
                 className="absolute left-[-30px] bottom-[12%]"
               >
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
@@ -374,12 +374,12 @@ const HeroSection = () => {
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                   <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
                     <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
                   <div>
-                    <span className="text-[11px] text-white/70 font-medium block">Anti-ban ativo</span>
-                    <span className="text-[8px] text-white/25">0 bloqueios</span>
+                    <span className="text-[11px] text-white/70 font-medium block">3 instâncias</span>
+                    <span className="text-[8px] text-[#07C160]/60">Todas online</span>
                   </div>
                 </div>
               </motion.div>
