@@ -101,8 +101,20 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[280px]"
                 style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
+                {/* Animated glow border */}
+                <motion.div
+                  className="absolute -inset-[2px] rounded-[2.4rem] z-0"
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+                    backgroundSize: "300% 300%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
                 {/* Phone chassis */}
-                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.2rem] p-[2px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)]">
+                <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.2rem] p-[2px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10">
                   {/* Inner bezel */}
                   <div className="relative bg-[#000] rounded-[2.1rem] overflow-hidden">
                     {/* Side highlight (glass edge reflection) */}
