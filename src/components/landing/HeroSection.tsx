@@ -101,7 +101,7 @@ const HeroSection = () => {
             <div className="relative" style={{ perspective: "900px" }}>
               <div
                 className="relative w-[260px] lg:w-[270px]"
-                style={{ transform: "rotateY(-18deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform" }}
+                style={{ transform: "rotateY(-8deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform" }}
               >
                 {/* Outer glow */}
                 <motion.div
@@ -129,41 +129,6 @@ const HeroSection = () => {
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                {/* 3D side edge — thick visible right frame */}
-                <div
-                  className="absolute top-[4px] -right-[14px] w-[16px] bottom-[4px] z-[5]"
-                  style={{
-                    background: "linear-gradient(to right, #1C1C1E 0%, #2A2A2E 15%, #3A3A3E 35%, #4A4A4E 50%, #3A3A3E 65%, #2A2A2E 85%, #1C1C1E 100%)",
-                    borderRadius: "0 12px 12px 0",
-                    boxShadow: "3px 0 12px rgba(0,0,0,0.5)",
-                  }}
-                >
-                  {/* Edge specular highlights */}
-                  <div className="absolute top-[3%] left-[1px] w-[1px] h-[94%] bg-white/[0.08] rounded-full" />
-                  <div className="absolute top-[5%] right-[3px] w-[1px] h-[90%] bg-white/[0.04] rounded-full" />
-                  <div className="absolute top-[2%] left-[3px] w-[2px] h-[96%] bg-gradient-to-b from-white/[0.03] via-white/[0.06] to-white/[0.02] rounded-full" />
-                  {/* Power button on edge */}
-                  <div className="absolute top-[28%] right-[0px] w-[3px] h-[45px] rounded-r-sm"
-                    style={{
-                      background: "linear-gradient(to right, #4A4A4E, #555)",
-                      boxShadow: "1px 0 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
-                    }}
-                  />
-                  {/* Top/bottom edge curves */}
-                  <div className="absolute top-0 left-0 right-0 h-[20px] bg-gradient-to-b from-white/[0.04] to-transparent rounded-tr-xl" />
-                  <div className="absolute bottom-0 left-0 right-0 h-[20px] bg-gradient-to-t from-white/[0.02] to-transparent rounded-br-xl" />
-                </div>
-
-                {/* Physical buttons — left side */}
-                <div className="absolute left-[-4px] top-[20%] w-[4px] h-[16px] rounded-l-sm z-20"
-                  style={{ background: "linear-gradient(to left, #2A2A2E, #3A3A3E, #4A4A4E)", boxShadow: "-2px 0 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" }}
-                />
-                <div className="absolute left-[-4px] top-[28%] w-[4px] h-[30px] rounded-l-sm z-20"
-                  style={{ background: "linear-gradient(to left, #2A2A2E, #3A3A3E, #4A4A4E)", boxShadow: "-2px 0 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" }}
-                />
-                <div className="absolute left-[-4px] top-[38%] w-[4px] h-[30px] rounded-l-sm z-20"
-                  style={{ background: "linear-gradient(to left, #2A2A2E, #3A3A3E, #4A4A4E)", boxShadow: "-2px 0 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" }}
-                />
 
                 {/* Phone chassis */}
                 <div className="relative bg-gradient-to-b from-[#2A2A2E] to-[#1C1C1E] rounded-[2.4rem] p-[3px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10">
