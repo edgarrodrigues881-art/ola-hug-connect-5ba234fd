@@ -6,6 +6,7 @@ import TrustSection from "@/components/landing/TrustSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 import LandingBackground from "@/components/landing/LandingBackground";
+import SupportButton from "@/components/SupportButton";
 
 const Landing = () => (
   <div className="landing-dark min-h-screen bg-[#0B0F14] scroll-smooth relative overflow-hidden" style={{ isolation: "isolate" }}>
@@ -20,6 +21,8 @@ const Landing = () => (
       <CTASection />
       <Footer />
     </div>
+
+    <SupportButton />
   </div>
 );
 
