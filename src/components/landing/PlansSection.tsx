@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -89,6 +90,15 @@ const plans = [
 
 const PlansSection = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
+
+  const handleContratarPlano = () => {
+    if (session) {
+      navigate("/dashboard/my-plan");
+    } else {
+      navigate("/auth?redirect=/dashboard/my-plan");
+    }
+  };
 
   return (
     <section id="planos" className="py-20 px-6 scroll-mt-24">
@@ -179,7 +189,7 @@ const PlansSection = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate("/auth?redirect=/dashboard/my-plan")}
+                  onClick={handleContratarPlano}
                   className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                     plan.popular
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"

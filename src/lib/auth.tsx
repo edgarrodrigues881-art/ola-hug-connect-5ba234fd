@@ -130,7 +130,10 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!loading && !session) {
-      navigate("/auth", { replace: true });
+      // Preserve current path so user returns here after login
+      const currentPath = window.location.pathname + window.location.search;
+      const redirectParam = currentPath !== "/auth" ? `?redirect=${encodeURIComponent(currentPath)}` : "";
+      navigate(`/auth${redirectParam}`, { replace: true });
     }
   }, [session, loading, navigate]);
 
