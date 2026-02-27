@@ -347,13 +347,13 @@ const Templates = () => {
 
                 {formMediaFiles.length === 0 && (
                   <div
-                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                     onClick={() => mediaFileRef.current?.click()}
                   >
-                    <div className="flex flex-col items-center gap-2">
-                      <Upload className="w-6 h-6 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">Clique para enviar arquivos</p>
-                      <p className="text-[10px] text-muted-foreground/60">Imagens, vídeos, áudios, PDFs — até 20MB cada</p>
+                    <div className="flex flex-col items-center gap-1">
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                      <p className="text-[10px] text-muted-foreground">Clique para enviar arquivos</p>
+                      <p className="text-[9px] text-muted-foreground/60">Imagens, vídeos, áudios, PDFs — até 20MB</p>
                     </div>
                   </div>
                 )}
@@ -362,21 +362,21 @@ const Templates = () => {
                   {formMediaFiles.map((file, idx) => (
                     <div key={file.id} className="border border-border rounded-lg overflow-hidden">
                       {file.type === "image" && (
-                        <img src={file.url} alt={file.name} className="w-full max-h-40 object-cover" />
+                        <img src={file.url} alt={file.name} className="w-full max-h-20 object-cover" />
                       )}
                       {file.type === "video" && (
-                        <video src={file.url} controls className="w-full max-h-40" />
+                        <video src={file.url} controls className="w-full max-h-20" />
                       )}
                       {file.type === "audio" && (
-                        <div className="p-3 flex items-center gap-3 bg-muted/30">
-                          <Mic className="w-5 h-5 text-primary shrink-0" />
-                          <audio src={file.url} controls className="w-full h-8" />
+                        <div className="p-2 flex items-center gap-2 bg-muted/30">
+                          <Mic className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <audio src={file.url} controls className="w-full h-7" />
                         </div>
                       )}
                       {file.type === "document" && (
-                        <div className="p-3 flex items-center gap-3 bg-muted/30">
-                          <FileText className="w-5 h-5 text-primary shrink-0" />
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">{file.name}</a>
+                        <div className="p-2 flex items-center gap-2 bg-muted/30">
+                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate">{file.name}</a>
                         </div>
                       )}
                       <div className="flex items-center justify-between px-3 py-1.5 border-t border-border bg-muted/10">
