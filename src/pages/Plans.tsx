@@ -7,96 +7,115 @@ import {
   Shield,
   ChevronDown,
   ArrowRight,
-  Sparkles,
+  Server,
   Crown,
+  AlertTriangle,
+  RefreshCw,
+  Zap,
+  LayoutDashboard,
+  CheckCircle2,
+  TrendingUp,
+  Headphones,
+  Code2,
+  UserCheck,
 } from "lucide-react";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.5, ease: "easeOut" as const },
+  }),
+};
+
+const painPoints = [
+  "Instâncias sendo bloqueadas com frequência?",
+  "Aquecimento manual e improvisado?",
+  "Falta de controle sobre disparos?",
+  "Instabilidade em momentos críticos?",
+  "Suporte lento quando você mais precisa?",
+];
+
+const differentials = [
+  {
+    icon: RefreshCw,
+    title: "Aquecimento Automatizado Real",
+    desc: "Sistema programado para simular uso natural da instância de forma contínua.",
+  },
+  {
+    icon: Zap,
+    title: "Disparador Inteligente",
+    desc: "Envios estruturados com botão interativo e controle por instância.",
+  },
+  {
+    icon: LayoutDashboard,
+    title: "Gestão Centralizada",
+    desc: "Gerencie múltiplas instâncias em um único painel simples e organizado.",
+  },
+  {
+    icon: Server,
+    title: "Infraestrutura Estável",
+    desc: "Ambiente otimizado para operação contínua, com foco em estabilidade.",
+  },
+];
+
+const authorityBullets = [
+  { icon: TrendingUp, text: "Plataforma em constante evolução" },
+  { icon: RefreshCw, text: "Atualizações frequentes" },
+  { icon: Headphones, text: "Suporte especializado" },
+  { icon: Server, text: "Estrutura pensada para escala" },
+];
 
 const plans = [
   {
     name: "Start",
     instances: 10,
-    price: 149.9,
-    popular: false,
+    price: "149,90",
     cta: "Começar Agora",
-    features: [
-      "10 instâncias WhatsApp",
-      "Aquecimento automatizado",
-      "Painel de gestão completo",
-      "Suporte via WhatsApp",
-    ],
+    popular: false,
+    extras: [] as string[],
   },
   {
     name: "Pro",
     instances: 30,
-    price: 349.9,
-    popular: true,
+    price: "349,90",
     cta: "Quero o Pro",
-    features: [
-      "30 instâncias WhatsApp",
-      "Aquecimento automatizado",
-      "Painel de gestão completo",
-      "Suporte prioritário",
-      "Relatórios avançados",
-    ],
+    popular: true,
+    extras: ["Suporte prioritário"],
   },
   {
     name: "Scale",
     instances: 50,
-    price: 549.9,
-    popular: false,
+    price: "549,90",
     cta: "Escalar Agora",
-    features: [
-      "50 instâncias WhatsApp",
-      "Aquecimento automatizado",
-      "Painel de gestão completo",
-      "Atendimento prioritário",
-      "Relatórios avançados",
-      "API de integração",
-    ],
+    popular: false,
+    extras: ["Suporte prioritário", "API de integração"],
   },
   {
     name: "Elite",
     instances: 100,
-    price: 899.9,
+    price: "899,90",
+    cta: "Falar com Especialista",
     popular: false,
-    cta: "Falar com Consultor",
-    features: [
-      "100 instâncias WhatsApp",
-      "Aquecimento automatizado",
-      "Painel de gestão completo",
-      "Gerente de conta dedicado",
-      "Relatórios avançados",
-      "API de integração",
-      "Onboarding personalizado",
-    ],
+    extras: ["Suporte prioritário", "API de integração", "Atendimento dedicado"],
   },
 ];
 
+const baseFeatures = [
+  "Aquecimento automatizado",
+  "Disparador interativo",
+  "Painel de gestão completo",
+  "Suporte",
+];
+
 const faqs = [
-  {
-    q: "E se eu não gostar?",
-    a: "Você tem 7 dias de garantia incondicional. Devolvemos 100% do valor, sem burocracia.",
-  },
-  {
-    q: "Preciso de conhecimento técnico?",
-    a: "Não. O painel é intuitivo e temos tutoriais passo-a-passo. Qualquer pessoa consegue usar.",
-  },
-  {
-    q: "Posso cancelar quando quiser?",
-    a: "Sim, sem multa e sem fidelidade. Cancele a qualquer momento com 2 cliques.",
-  },
-  {
-    q: "Posso mudar de plano depois?",
-    a: "Claro! Faça upgrade ou downgrade a qualquer momento. O valor é ajustado automaticamente.",
-  },
-  {
-    q: "Meus dados estão seguros?",
-    a: "Sim. Usamos criptografia e infraestrutura profissional com alta disponibilidade.",
-  },
-  {
-    q: "O aquecimento realmente funciona?",
-    a: "Sim. Nosso algoritmo simula comportamento humano real, protegendo seus números de banimentos.",
-  },
+  { q: "Preciso de conhecimento técnico?", a: "Não. A plataforma foi projetada para ser intuitiva. Você não precisa de experiência técnica para configurar e operar suas instâncias." },
+  { q: "Posso cancelar quando quiser?", a: "Sim. Não há fidelidade. Você pode cancelar sua assinatura a qualquer momento diretamente pelo painel." },
+  { q: "Como funciona o aquecimento?", a: "O sistema simula interações naturais de forma programada e contínua, preparando suas instâncias gradualmente para envios em volume." },
+  { q: "Preciso de VPS?", a: "Não. Toda a infraestrutura é gerenciada pela plataforma. Você não precisa configurar servidores ou ambientes externos." },
+  { q: "Meus dados estão seguros?", a: "Sim. Utilizamos criptografia e práticas de segurança rigorosas para proteger todas as informações da sua operação." },
+  { q: "Posso mudar de plano depois?", a: "Sim. Você pode fazer upgrade ou downgrade do seu plano a qualquer momento, sem perda de dados." },
 ];
 
 export default function Plans() {
@@ -104,11 +123,11 @@ export default function Plans() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen bg-[#0B0F14] text-white relative overflow-hidden">
-      {/* Background effects */}
+    <div className="min-h-screen bg-[#0B0F14] text-white relative overflow-hidden selection:bg-green-500/30">
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-[radial-gradient(ellipse,rgba(34,197,94,0.08),transparent_70%)]" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-[radial-gradient(ellipse,rgba(34,197,94,0.04),transparent_70%)]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-green-500/[0.04] rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-green-500/[0.03] rounded-full blur-[120px]" />
       </div>
 
       {/* Nav */}
@@ -123,7 +142,7 @@ export default function Plans() {
           </button>
           <button
             onClick={() => navigate("/auth")}
-            className="text-sm font-semibold bg-green-500 hover:bg-green-400 text-white px-5 py-2.5 rounded-lg transition-colors"
+            className="text-sm font-semibold bg-green-500 hover:bg-green-400 text-black px-5 py-2.5 rounded-lg transition-colors"
           >
             Entrar
           </button>
@@ -131,169 +150,274 @@ export default function Plans() {
       </nav>
 
       <div className="relative z-10">
-        {/* Hero */}
-        <section className="pt-32 pb-16 px-6 text-center">
+        {/* ═══════ HERO ═══════ */}
+        <section className="pt-32 pb-20 px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto"
           >
-            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1.5 text-xs font-medium text-green-400 mb-6">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 bg-green-500/[0.07] border border-green-500/20 rounded-full px-4 py-1.5 text-xs font-medium text-green-400 tracking-wide uppercase mb-8">
+              <Server className="w-3.5 h-3.5" />
               Infraestrutura profissional para WhatsApp
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] mb-6">
-              Escolha o tamanho da{" "}
-              <span className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
-                sua operação
-              </span>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6">
+              Estruture e escale sua operação no WhatsApp com{" "}
+              <span className="text-green-400">estabilidade real</span>.
             </h1>
-            <p className="text-lg text-white/50 max-w-lg mx-auto mb-8">
-              Todos os planos incluem os mesmos recursos.
-              A única diferença é o número de instâncias.
+
+            <p className="text-lg text-white/45 max-w-2xl mx-auto mb-10 leading-relaxed">
+              Disparador inteligente com botão interativo + aquecimento 100% automático.
+              Controle total das suas instâncias em um único painel.
             </p>
-            <a
-              href="#planos"
-              className="inline-flex items-center gap-2 text-base font-semibold bg-green-500 hover:bg-green-400 text-white px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-green-500/20"
-            >
-              Ver Planos
-              <ArrowRight className="w-4 h-4" />
-            </a>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => navigate("/auth")}
+                className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-black font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-green-500/20 text-base"
+              >
+                Criar minha estrutura agora
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })}
+                className="inline-flex items-center gap-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 px-8 py-3.5 rounded-xl transition-all text-base"
+              >
+                Ver planos
+              </button>
+            </div>
           </motion.div>
         </section>
 
-        {/* Plans */}
-        <section id="planos" className="px-6 pb-24 scroll-mt-24">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {plans.map((plan, i) => {
-                const perInstance = (plan.price / plan.instances).toFixed(2).replace(".", ",");
-                return (
-                  <motion.div
-                    key={plan.name}
-                    initial={{ opacity: 0, y: 25 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.1 }}
-                    transition={{ delay: i * 0.1, duration: 0.5 }}
-                    className={`group relative flex flex-col rounded-2xl p-[1px] transition-all duration-300 ${
-                      plan.popular
-                        ? "bg-gradient-to-b from-green-400/60 via-green-500/20 to-transparent shadow-2xl shadow-green-500/10 lg:scale-[1.04]"
-                        : "bg-white/[0.08] hover:bg-white/[0.12]"
-                    }`}
-                  >
-                    <div className={`relative flex flex-col rounded-2xl p-6 h-full ${
-                      plan.popular
-                        ? "bg-[#0d1318]"
-                        : "bg-[#0f1419]"
-                    }`}>
-                      {plan.popular && (
-                        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1 rounded-full shadow-lg shadow-green-500/30 flex items-center gap-1.5">
-                          <Crown className="w-3 h-3" />
-                          Mais Popular
-                        </span>
-                      )}
+        {/* ═══════ DOR ═══════ */}
+        <section className="py-20 px-6">
+          <div className="max-w-3xl mx-auto">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-2xl md:text-3xl font-bold text-center mb-12"
+            >
+              Sua operação está preparada para <span className="text-green-400">escalar</span>?
+            </motion.h2>
 
-                      <h3 className="text-lg font-bold mt-2 text-white">{plan.name}</h3>
-                      <p className="text-sm text-white/40">
-                        {plan.instances} instâncias
-                      </p>
+            <div className="space-y-3">
+              {painPoints.map((point, i) => (
+                <motion.div
+                  key={i}
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i + 1}
+                  className="flex items-center gap-4 p-4 rounded-lg bg-white/[0.03] border border-white/[0.05]"
+                >
+                  <AlertTriangle className="w-4.5 h-4.5 text-amber-400/70 shrink-0" />
+                  <span className="text-white/60 text-sm">{point}</span>
+                </motion.div>
+              ))}
+            </div>
 
-                      <div className="mt-5 mb-1">
-                        <p className="text-3xl font-extrabold text-white">
-                          R$ {plan.price.toFixed(2).replace(".", ",")}
-                          <span className="text-sm font-medium text-white/40">/mês</span>
-                        </p>
-                        <p className="text-xs text-green-400 font-medium mt-1">
-                          R$ {perInstance} por instância
-                        </p>
-                      </div>
+            <motion.p
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={7}
+              className="text-center text-white/30 mt-10 text-sm"
+            >
+              Se você trabalha com volume, precisa de estrutura.
+            </motion.p>
+          </div>
+        </section>
 
-                      <div className="my-5 h-px bg-white/[0.06]" />
+        {/* ═══════ DIFERENCIAIS ═══════ */}
+        <section className="py-20 px-6">
+          <div className="max-w-5xl mx-auto">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-2xl md:text-3xl font-bold text-center mb-3"
+            >
+              Uma plataforma pensada para <span className="text-green-400">operações profissionais</span>
+            </motion.h2>
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={1}
+              className="w-12 h-0.5 bg-green-500/40 mx-auto mb-14"
+            />
 
-                      <ul className="space-y-3 mb-8 flex-1">
-                        {plan.features.map((feat, fi) => (
-                          <li key={fi} className="flex items-start gap-2.5 text-sm text-white/60">
-                            <div className="w-4 h-4 rounded-full bg-green-500/15 flex items-center justify-center mt-0.5 shrink-0">
-                              <Check className="w-2.5 h-2.5 text-green-400" />
-                            </div>
-                            {feat}
-                          </li>
-                        ))}
-                      </ul>
-
-                      <button
-                        onClick={() => navigate("/auth")}
-                        className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                          plan.popular
-                            ? "bg-green-500 text-white hover:bg-green-400 shadow-lg shadow-green-500/20"
-                            : "bg-white/[0.06] text-white hover:bg-green-500 hover:shadow-lg hover:shadow-green-500/20 border border-white/[0.08] hover:border-green-500"
-                        }`}
-                      >
-                        {plan.cta}
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+            <div className="grid md:grid-cols-2 gap-5">
+              {differentials.map((d, i) => (
+                <motion.div
+                  key={i}
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i + 2}
+                  className="p-6 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-500/20 transition-colors duration-300"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                    <d.icon className="w-5 h-5 text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{d.title}</h3>
+                  <p className="text-white/40 text-sm leading-relaxed">{d.desc}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Guarantee */}
-        <section className="px-6 pb-20">
+        {/* ═══════ AUTORIDADE ═══════ */}
+        <section className="py-20 px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-2xl md:text-3xl font-bold mb-10"
+            >
+              Estrutura para quem leva <span className="text-green-400">operação a sério</span>
+            </motion.h2>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              {authorityBullets.map((b, i) => (
+                <motion.div
+                  key={i}
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i + 1}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-sm text-white/55"
+                >
+                  <b.icon className="w-4 h-4 text-green-400/70" />
+                  {b.text}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ PLANOS ═══════ */}
+        <section id="planos" className="py-20 px-6 scroll-mt-24">
+          <div className="max-w-6xl mx-auto">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-2xl md:text-3xl font-bold text-center mb-3"
+            >
+              Escolha o nível da sua <span className="text-green-400">operação</span>
+            </motion.h2>
+            <motion.p
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={1}
+              className="text-white/35 text-center text-sm mb-14 max-w-lg mx-auto"
+            >
+              Todos os planos incluem os mesmos recursos. A diferença está na capacidade.
+            </motion.p>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {plans.map((plan, i) => (
+                <motion.div
+                  key={plan.name}
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i + 2}
+                  className={`relative flex flex-col rounded-2xl p-[1px] ${
+                    plan.popular
+                      ? "bg-gradient-to-b from-green-400/50 via-green-500/15 to-transparent lg:scale-[1.04]"
+                      : "bg-white/[0.08]"
+                  }`}
+                >
+                  <div className={`relative flex flex-col rounded-2xl p-6 h-full ${
+                    plan.popular ? "bg-[#0d1318]" : "bg-[#0f1419]"
+                  }`}>
+                    {plan.popular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-black text-[10px] font-bold uppercase tracking-widest px-4 py-1 rounded-full shadow-lg shadow-green-500/30 flex items-center gap-1.5 whitespace-nowrap">
+                        <Crown className="w-3 h-3" />
+                        Mais Popular
+                      </span>
+                    )}
+
+                    <h3 className="text-lg font-bold mt-2">{plan.name}</h3>
+                    <p className="text-xs text-white/35 mb-5">{plan.instances} instâncias</p>
+
+                    <div className="mb-6">
+                      <span className="text-3xl font-bold">R$ {plan.price}</span>
+                      <span className="text-white/25 text-sm">/mês</span>
+                    </div>
+
+                    <div className="h-px bg-white/[0.06] mb-5" />
+
+                    <div className="space-y-2.5 mb-8 flex-1">
+                      {baseFeatures.map((f, fi) => (
+                        <div key={fi} className="flex items-center gap-2.5 text-sm text-white/50">
+                          <div className="w-4 h-4 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5 text-green-400" />
+                          </div>
+                          {f}
+                        </div>
+                      ))}
+                      {plan.extras.map((e, ei) => (
+                        <div key={ei} className="flex items-center gap-2.5 text-sm text-green-300/70 font-medium">
+                          <div className="w-4 h-4 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5 text-green-400" />
+                          </div>
+                          {e}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => navigate("/auth")}
+                      className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                        plan.popular
+                          ? "bg-green-500 text-black hover:bg-green-400 shadow-lg shadow-green-500/20"
+                          : "bg-white/[0.06] text-white hover:bg-green-500 hover:text-black hover:shadow-lg hover:shadow-green-500/20 border border-white/[0.08] hover:border-green-500"
+                      }`}
+                    >
+                      {plan.cta}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ GARANTIA ═══════ */}
+        <section className="py-20 px-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto bg-gradient-to-br from-green-500/[0.08] to-transparent border border-green-500/10 rounded-2xl p-8 sm:p-10 text-center"
+            initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={0}
+            className="max-w-2xl mx-auto bg-green-500/[0.04] border border-green-500/10 rounded-2xl p-10 text-center"
           >
             <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-5">
               <Shield className="w-7 h-7 text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-3 text-white">Garantia de 7 dias</h2>
-            <p className="text-white/50 text-sm max-w-md mx-auto mb-3">
-              Se por qualquer motivo você não ficar satisfeito nos primeiros 7 dias,
-              devolvemos <strong className="text-white">100% do seu investimento</strong>.
-              Sem perguntas.
-            </p>
-            <p className="text-xs text-white/30">
-              Risco zero. A decisão mais segura que você pode tomar.
+            <h3 className="text-2xl font-bold mb-3">Teste por 7 dias. Risco zero.</h3>
+            <p className="text-white/40 text-sm leading-relaxed max-w-md mx-auto">
+              Se não fizer sentido para sua operação nos primeiros 7 dias,
+              devolvemos 100% do valor. Sem burocracia.
             </p>
           </motion.div>
         </section>
 
-        {/* FAQ */}
-        <section className="px-6 pb-24">
+        {/* ═══════ FAQ ═══════ */}
+        <section className="py-20 px-6">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3 text-white">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-2xl md:text-3xl font-bold text-center mb-12"
+            >
               Ainda com dúvidas?
-            </h2>
-            <p className="text-center text-sm text-white/40 mb-10">
-              Respondemos as perguntas mais comuns.
-            </p>
+            </motion.h2>
+
             <div className="space-y-3">
               {faqs.map((faq, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05, duration: 0.4 }}
-                  className="bg-white/[0.04] border border-white/[0.06] rounded-xl overflow-hidden"
+                  initial="hidden" whileInView="visible" viewport={{ once: true }}
+                  variants={fadeUp} custom={i + 1}
+                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center gap-3 px-6 py-4 text-left text-sm font-medium text-white/80 hover:text-white hover:bg-white/[0.03] transition-colors"
+                    className="w-full flex items-center justify-between p-5 text-left hover:bg-white/[0.02] transition-colors"
                   >
-                    <span className="flex-1">{faq.q}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-white/30 shrink-0 transition-transform duration-200 ${
-                        openFaq === i ? "rotate-180" : ""
-                      }`}
-                    />
+                    <span className="text-sm font-medium text-white/75">{faq.q}</span>
+                    <ChevronDown className={`w-4 h-4 text-white/25 shrink-0 ml-4 transition-transform duration-200 ${openFaq === i ? "rotate-180" : ""}`} />
                   </button>
                   <AnimatePresence>
                     {openFaq === i && (
@@ -304,9 +428,7 @@ export default function Plans() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-6 pb-4 text-sm text-white/40">
-                          {faq.a}
-                        </div>
+                        <p className="px-5 pb-5 text-sm text-white/35 leading-relaxed">{faq.a}</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -316,35 +438,44 @@ export default function Plans() {
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="px-6 pb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto text-center"
-          >
-            <h2 className="text-2xl font-bold mb-3 text-white">
-              Comece agora.{" "}
-              <span className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
-                Sem risco.
-              </span>
-            </h2>
-            <p className="text-white/40 text-sm mb-8">
-              Ative seu plano, teste por 7 dias e veja os resultados.
-            </p>
-            <button
-              onClick={() =>
-                document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })
-              }
-              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-10 py-4 rounded-xl transition-all shadow-lg shadow-green-500/20 text-base"
+        {/* ═══════ CTA FINAL ═══════ */}
+        <section className="py-24 px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h2
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="text-3xl md:text-4xl font-bold mb-4"
             >
-              Escolher Meu Plano
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </motion.div>
+              Estruture sua operação <span className="text-green-400">hoje</span>.
+            </motion.h2>
+            <motion.p
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={1}
+              className="text-white/35 mb-10 max-w-md mx-auto text-sm"
+            >
+              Não dependa de ferramentas instáveis. Tenha controle, escala e previsibilidade.
+            </motion.p>
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={2}
+            >
+              <button
+                onClick={() => navigate("/auth")}
+                className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-black font-semibold px-10 py-4 rounded-xl transition-all shadow-lg shadow-green-500/20 text-base"
+              >
+                Criar minha conta agora
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </motion.div>
+          </div>
         </section>
+
+        {/* Footer */}
+        <footer className="border-t border-white/[0.05] py-8 px-6">
+          <p className="text-center text-white/15 text-xs">
+            &copy; {new Date().getFullYear()} Todos os direitos reservados.
+          </p>
+        </footer>
       </div>
     </div>
   );
