@@ -54,6 +54,7 @@ export function useCreateWarmup() {
       max_delay_seconds?: number;
       start_time?: string;
       end_time?: string;
+      quality_profile?: string;
     }) => {
       const { data, error } = await supabase
         .from("warmup_sessions" as any)

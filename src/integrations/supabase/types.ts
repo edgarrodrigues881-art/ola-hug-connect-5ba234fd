@@ -545,6 +545,8 @@ export type Database = {
           messages_sent_today: number
           messages_sent_total: number
           min_delay_seconds: number
+          quality_profile: string
+          safety_state: string
           start_time: string
           status: string
           total_days: number
@@ -565,6 +567,8 @@ export type Database = {
           messages_sent_today?: number
           messages_sent_total?: number
           min_delay_seconds?: number
+          quality_profile?: string
+          safety_state?: string
           start_time?: string
           status?: string
           total_days?: number
@@ -585,6 +589,8 @@ export type Database = {
           messages_sent_today?: number
           messages_sent_total?: number
           min_delay_seconds?: number
+          quality_profile?: string
+          safety_state?: string
           start_time?: string
           status?: string
           total_days?: number
