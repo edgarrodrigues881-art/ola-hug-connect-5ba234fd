@@ -389,21 +389,39 @@ Deno.serve(async (req) => {
     }
 
     // ACTION: updateProfileStatus - Update WhatsApp "recado" / about
+    // Try multiple endpoint patterns since UaZapi free may not support all
     if (action === "updateProfileStatus") {
       if (!profileStatus && profileStatus !== "") {
         return new Response(JSON.stringify({ error: "profileStatus is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // UaZapi v2 endpoint: POST /profile/status (inferred from pattern)
-      const res = await fetch(apiUrl(INSTANCE_BASE_URL, "/profile/status"), {
-        method: "POST",
-        headers: instanceHeaders,
-        body: JSON.stringify({ status: profileStatus }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log("updateProfileStatus result:", res.status, JSON.stringify(data).substring(0, 200));
-      return new Response(JSON.stringify({ success: res.ok, ...data }), {
+      
+      const endpoints = [
+        { path: "/profile/status", body: { status: profileStatus }, method: "POST" },
+        { path: "/profile/about", body: { about: profileStatus }, method: "POST" },
+        { path: "/instance/updateProfileStatus", body: { status: profileStatus }, method: "PUT" },
+      ];
+      
+      let lastRes: Response | null = null;
+      let lastData: any = {};
+      
+      for (const ep of endpoints) {
+        try {
+          lastRes = await fetch(apiUrl(INSTANCE_BASE_URL, ep.path), {
+            method: ep.method,
+            headers: instanceHeaders,
+            body: JSON.stringify(ep.body),
+          });
+          lastData = await lastRes.json().catch(() => ({}));
+          console.log(`updateProfileStatus ${ep.path} (${ep.method}):`, lastRes.status, JSON.stringify(lastData).substring(0, 200));
+          if (lastRes.ok || (lastRes.status !== 404 && lastRes.status !== 405)) break;
+        } catch (e) {
+          console.log(`updateProfileStatus ${ep.path} error:`, e);
+        }
+      }
+      
+      return new Response(JSON.stringify({ success: lastRes?.ok ?? false, ...lastData }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
