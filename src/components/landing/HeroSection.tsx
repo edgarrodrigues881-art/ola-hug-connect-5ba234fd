@@ -103,7 +103,7 @@ const HeroSection = () => {
             <div className="relative" style={{ perspective: "1200px" }}>
               <div
                 className="relative w-[280px] lg:w-[300px]"
-                style={{ transform: "rotateY(-4deg) rotateX(1deg)", transformStyle: "preserve-3d", willChange: "transform", backfaceVisibility: "hidden" }}
+                style={{ transform: "rotateY(-12deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform", backfaceVisibility: "hidden" }}
               >
                 {/* Outer glow */}
                 <motion.div
