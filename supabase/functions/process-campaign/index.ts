@@ -86,35 +86,19 @@ async function sendUazapiMessage(
   messageType?: string
 ) {
   const phone = to.replace(/\D/g, "");
+  const hasButtons = buttons && buttons.length > 0;
 
-  // Media message (image + optional caption)
-  if (mediaUrl && (messageType === "texto-imagem" || messageType === "imagem-botao")) {
-    // If also has buttons, handle below
-    if (buttons && buttons.length > 0 && messageType === "imagem-botao") {
-      // Fall through to button handler
-    } else {
-      return await uazapiRequest(baseUrl, token, "/send/media", {
-        number: phone,
-        media: mediaUrl,
-        caption: body || undefined,
-        type: "image",
-      });
-    }
-  }
+  console.log(`sendUazapiMessage: type=${messageType}, hasMedia=${!!mediaUrl}, buttons=${JSON.stringify(buttons)}, hasButtons=${hasButtons}`);
 
-  // Buttons message - uses /send/menu with type "button"
-  if (buttons && buttons.length > 0 && (messageType === "texto-botao" || messageType === "imagem-botao")) {
-    const choices = buttons
-      .map((b, i) => buildMenuChoice(b, i))
-      .filter((choice): choice is string => Boolean(choice));
+  // Build button choices if any exist
+  const choices = hasButtons
+    ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice))
+    : [];
 
-    if (choices.length === 0) {
-      return await uazapiRequest(baseUrl, token, "/send/text", {
-        number: phone,
-        text: body,
-      });
-    }
+  console.log(`Built choices: ${JSON.stringify(choices)}`);
 
+  // If we have valid buttons/choices, ALWAYS send via /send/menu
+  if (choices.length > 0) {
     const payload: any = {
       number: phone,
       type: "button",
@@ -126,7 +110,18 @@ async function sendUazapiMessage(
       payload.imageButton = mediaUrl;
     }
 
+    console.log(`Sending via /send/menu with payload:`, JSON.stringify(payload));
     return await uazapiRequest(baseUrl, token, "/send/menu", payload);
+  }
+
+  // Media message without buttons (image + optional caption)
+  if (mediaUrl) {
+    return await uazapiRequest(baseUrl, token, "/send/media", {
+      number: phone,
+      media: mediaUrl,
+      caption: body || undefined,
+      type: "image",
+    });
   }
 
   // Plain text message
