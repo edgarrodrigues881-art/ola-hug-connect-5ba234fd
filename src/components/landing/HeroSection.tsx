@@ -224,7 +224,7 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* Progress badge — compact, matching the screenshot style */}
+            {/* Progress badge — Aquecimento */}
             <motion.div
               initial={{ opacity: 0, y: 15, scale: 0.95 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -233,10 +233,16 @@ const HeroSection = () => {
               className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px]"
             >
               <div
-                className="bg-[#111827]/95 backdrop-blur-sm border border-white/[0.08] rounded-2xl px-4 py-3.5"
-                style={{ boxShadow: "0 16px 48px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.05)" }}
+                className="relative rounded-2xl px-4 py-3.5 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17,24,39,0.97), rgba(15,20,30,0.95))",
+                  boxShadow: "0 20px 50px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(7,193,96,0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
               >
-                <p className="text-[9px] text-white/30 font-semibold tracking-[0.15em] uppercase mb-3">
+                {/* Top accent line */}
+                <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
+                
+                <p className="text-[9px] text-[#07C160]/60 font-bold tracking-[0.18em] uppercase mb-3">
                   Aquecimento em execução
                 </p>
 
@@ -246,114 +252,107 @@ const HeroSection = () => {
                       initial={{ width: 0 }}
                       animate={{ width: "89%" }}
                       transition={{ duration: 2, delay: 1.8, ease: "easeOut" }}
-                      className="h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#0AD47C] relative"
+                      className="h-full rounded-full relative"
+                      style={{ background: "linear-gradient(90deg, #07C160, #0AD47C, #4ADE80)" }}
                     >
-                      {/* Fire icon */}
-                      <svg
-                        className="absolute -right-[8px] -top-[7px] w-[20px] h-[20px]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
+                      <svg className="absolute -right-[8px] -top-[7px] w-[20px] h-[20px]" viewBox="0 0 24 24" fill="none">
                         <path d="M12 2C12 2 7 8 7 12C7 15 9 17 12 17C15 17 17 15 17 12C17 8 12 2 12 2Z" fill="#FF6B35" />
                         <path d="M12 8C12 8 10 11 10 13C10 14.5 11 15.5 12 15.5C13 15.5 14 14.5 14 13C14 11 12 8 12 8Z" fill="#FFD93D" />
                       </svg>
                     </motion.div>
                   </div>
-                  <span className="text-[13px] font-bold text-white tabular-nums">89%</span>
+                  <span className="text-[14px] font-bold text-white tabular-nums">89%</span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <div className="w-[5px] h-[5px] rounded-full bg-[#07C160] animate-pulse" />
-                  <span className="text-[10px] text-white/40">Status: <span className="text-white/70 font-medium">Ativo</span></span>
+                  <span className="text-[10px] text-white/35">Status: <span className="text-[#07C160] font-semibold">Ativo</span></span>
                 </div>
               </div>
             </motion.div>
 
-            {/* Badge — Conexão Segura (left side) */}
+            {/* Badge — Chip aquecendo (left top) */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="absolute left-[-30px] lg:left-[-50px] top-[60%] hidden lg:block"
-            >
-              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
-                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
-              >
-                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Conexão segura</span>
-              </div>
-            </motion.div>
-
-            {/* Badge — Chip Aquecendo with fire (left top) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.7 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 1.0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
               className="absolute left-[5%] lg:left-[-30px] top-[20%] hidden lg:block"
             >
-              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 flex items-center gap-2.5"
-                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5), 0 0 20px -8px rgba(255,120,30,0.08)" }}
+              <div
+                className="relative rounded-xl p-3 flex items-center gap-2.5 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17,24,39,0.97), rgba(15,20,30,0.95))",
+                  boxShadow: "0 16px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
               >
+                <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
                 <div className="relative w-8 h-8 flex items-center justify-center">
-                  <motion.div
-                    className="absolute inset-0 rounded-lg bg-orange-500/10 blur-md"
-                    animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                  <svg className="w-5 h-5 text-white/70 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div className="absolute inset-0 rounded-lg bg-orange-500/[0.08]" />
+                  <svg className="w-4 h-4 text-white/60 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <rect x="6" y="6" width="12" height="12" rx="1.5" />
                     <path d="M9 6V3M15 6V3M9 21v-3M15 21v-3M6 9H3M6 15H3M21 9h-3M21 15h-3" />
                     <rect x="9" y="9" width="6" height="6" rx="0.5" className="fill-white/10" />
                   </svg>
-                  <motion.svg
-                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-4 z-20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    animate={{ y: [0, -1, 0], opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <path d="M12 2C12 2 8 7 8 11C8 13.5 9.5 15.5 12 16C14.5 15.5 16 13.5 16 11C16 7 12 2 12 2Z" fill="url(#fireGrad)" opacity="0.9" />
-                    <path d="M12 8C12 8 10 10.5 10 12.5C10 13.9 11 14.8 12 15C13 14.8 14 13.9 14 12.5C14 10.5 12 8 12 8Z" fill="url(#fireInner)" opacity="0.95" />
-                    <defs>
-                      <linearGradient id="fireGrad" x1="12" y1="2" x2="12" y2="16" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#FF6B35" /><stop offset="100%" stopColor="#FF9500" />
-                      </linearGradient>
-                      <linearGradient id="fireInner" x1="12" y1="8" x2="12" y2="15" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#FFD93D" /><stop offset="100%" stopColor="#FF8C00" />
-                      </linearGradient>
-                    </defs>
-                  </motion.svg>
+                  <svg className="absolute -top-1 left-1/2 -translate-x-1/2 w-3.5 h-3.5 z-20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C12 2 8 7 8 11C8 13.5 9.5 15.5 12 16C14.5 15.5 16 13.5 16 11C16 7 12 2 12 2Z" fill="#FF6B35" opacity="0.9" />
+                    <path d="M12 8C12 8 10 10.5 10 12.5C10 13.9 11 14.8 12 15C13 14.8 14 13.9 14 12.5C14 10.5 12 8 12 8Z" fill="#FFD93D" opacity="0.95" />
+                  </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/70 font-medium">Chip aquecendo</p>
-                  <p className="text-[8px] text-white/30">Simulação ativa</p>
+                  <p className="text-[11px] text-white/80 font-semibold leading-tight">Chip aquecendo</p>
+                  <p className="text-[9px] text-white/30 mt-0.5">Simulação ativa</p>
                 </div>
               </div>
             </motion.div>
 
-            {/* Badge — Simulação Natural (bottom left) */}
+            {/* Badge — Conexão segura (left middle) */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
+              className="absolute left-[-30px] lg:left-[-50px] top-[60%] hidden lg:block"
+            >
+              <div
+                className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17,24,39,0.97), rgba(15,20,30,0.95))",
+                  boxShadow: "0 16px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
+              >
+                <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
+                <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                  <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <span className="text-[11px] text-white/70 font-medium whitespace-nowrap">Conexão segura</span>
+              </div>
+            </motion.div>
+
+            {/* Badge — Simulação natural (bottom left) */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
               className="absolute left-[5%] lg:left-[-20px] bottom-[10%] hidden lg:block"
             >
-              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
-                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
+              <div
+                className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17,24,39,0.97), rgba(15,20,30,0.95))",
+                  boxShadow: "0 16px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
               >
-                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
+                <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                  <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Simulação natural</span>
+                <span className="text-[11px] text-white/70 font-medium whitespace-nowrap">Simulação natural</span>
               </div>
             </motion.div>
 
@@ -361,19 +360,24 @@ const HeroSection = () => {
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
               className="absolute right-[-20px] lg:right-[-30px] bottom-[5%] hidden lg:block"
             >
-              <div className="bg-[#111827]/90 backdrop-blur-sm border border-white/[0.08] rounded-xl px-3.5 py-2.5 flex items-center gap-2"
-                style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.5)" }}
+              <div
+                className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17,24,39,0.97), rgba(15,20,30,0.95))",
+                  boxShadow: "0 16px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
               >
-                <div className="w-6 h-6 rounded-lg bg-[#07C160]/10 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
+                <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                  <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <span className="text-[10px] text-white/60 font-medium whitespace-nowrap">Monitoramento</span>
+                <span className="text-[11px] text-white/70 font-medium whitespace-nowrap">Monitoramento</span>
               </div>
             </motion.div>
           </motion.div>
