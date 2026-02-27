@@ -65,14 +65,21 @@ const DashboardPreview = () => (
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="absolute -inset-[6px] rounded-[1.2rem] z-0 blur-md"
+          className="absolute -inset-[8px] rounded-[1.3rem] z-0 pointer-events-none"
           style={{
-            background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
+            border: "6px solid transparent",
+            backgroundImage: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
             backgroundSize: "300% 300%",
+            backgroundClip: "border-box",
+            mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            maskComposite: "exclude",
+            WebkitMaskComposite: "xor",
+            filter: "blur(4px)",
           }}
           animate={{
             backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-            opacity: [0.3, 0.5, 0.3],
+            opacity: [0.25, 0.45, 0.25],
           }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
