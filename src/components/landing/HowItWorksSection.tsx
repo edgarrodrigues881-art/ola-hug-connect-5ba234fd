@@ -75,19 +75,19 @@ const HowItWorksSection = () => (
         ))}
       </div>
 
-      {/* Warning — redesigned */}
+      {/* Warning — checklist style */}
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.4, delay: 0.5 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
         className="max-w-4xl mx-auto"
       >
         <div
-          className="relative rounded-2xl p-5 overflow-hidden"
+          className="relative rounded-2xl p-6 overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(239,68,68,0.06), rgba(17,24,39,0.95), rgba(239,68,68,0.03))",
-            boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.15), inset 0 1px 0 rgba(255,255,255,0.03)",
+            background: "linear-gradient(135deg, rgba(239,68,68,0.05), rgba(17,24,39,0.95), rgba(239,68,68,0.03))",
+            boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.12), inset 0 1px 0 rgba(255,255,255,0.03)",
           }}
         >
           {/* Animated shimmer top */}
@@ -97,19 +97,43 @@ const HowItWorksSection = () => (
             animate={{ backgroundPosition: ["100% 0%", "-100% 0%"] }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           />
-          
+
           {/* Left red accent bar */}
           <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-red-500/50 via-red-400/30 to-transparent" />
-          
-          <div className="flex items-center gap-4 pl-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/[0.08] border border-red-500/10 flex items-center justify-center flex-shrink-0">
-              <XCircle className="w-5 h-5 text-red-400" />
+
+          <div className="pl-4">
+            <div className="flex items-center gap-3 mb-4">
+              <motion.div
+                className="w-9 h-9 rounded-xl bg-red-500/[0.08] border border-red-500/10 flex items-center justify-center flex-shrink-0"
+                initial={{ rotate: 0 }}
+                whileInView={{ rotate: [0, -8, 8, -4, 0] }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+              >
+                <XCircle className="w-[18px] h-[18px] text-red-400" />
+              </motion.div>
+              <p className="text-[14px] font-semibold text-white/80">Não é indicado para:</p>
             </div>
-            <div>
-              <p className="text-[13px] font-semibold text-white/80 mb-0.5">Não é indicado</p>
-              <p className="text-[12px] text-white/35 leading-relaxed">
-                Para quem busca soluções milagrosas ou promessas de bloqueio zero.
-              </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 pl-1">
+              {[
+                "Quem busca soluções milagrosas",
+                "Promessas de bloqueio zero",
+                "Uso para spam ou mensagens em massa",
+                "Quem não quer investir tempo em configuração",
+              ].map((text, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: 0.7 + i * 0.1 }}
+                  className="flex items-center gap-2.5"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400/50 flex-shrink-0" />
+                  <p className="text-[12px] text-white/40 leading-relaxed">{text}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
