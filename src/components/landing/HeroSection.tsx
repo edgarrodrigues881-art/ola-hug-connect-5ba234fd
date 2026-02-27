@@ -69,11 +69,7 @@ const HeroSection = () => {
           </div>
 
           {/* Right — Phone + Progress Badge */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          <div
             className="relative flex items-center justify-center"
           >
             {/* Ambient glow — static, no animation */}
@@ -230,7 +226,7 @@ const HeroSection = () => {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px]"
+              className="absolute -right-2 lg:right-[-40px] top-[15%] w-[200px] hidden lg:block"
             >
               <div
                 className="relative rounded-2xl px-4 py-3.5 overflow-hidden"
@@ -380,7 +376,7 @@ const HeroSection = () => {
                 <span className="text-[11px] text-white/70 font-medium whitespace-nowrap">Monitoramento</span>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
