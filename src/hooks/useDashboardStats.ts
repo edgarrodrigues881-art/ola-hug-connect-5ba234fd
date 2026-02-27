@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
@@ -92,6 +93,21 @@ function classifyScore(score: number): "healthy" | "warning" | "risk" {
 
 export function useDashboardStats() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime: instant device status updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('dashboard-devices-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'devices', filter: `user_id=eq.${user.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] }); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, queryClient]);
 
   return useQuery({
     queryKey: ["dashboard-stats", user?.id],

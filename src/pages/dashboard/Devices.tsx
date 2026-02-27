@@ -126,6 +126,29 @@ const Devices = () => {
     enabled: !!session,
   });
 
+  // Realtime subscription for instant status updates
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase
+      .channel('devices-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'devices',
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id, queryClient]);
+
   // Fetch proxies from database
   const { data: dbProxies = [] } = useQuery({
     queryKey: ["proxies"],
