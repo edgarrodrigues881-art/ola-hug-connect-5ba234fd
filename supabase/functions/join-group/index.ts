@@ -49,21 +49,22 @@ async function tryJoin(
     "Content-Type": "application/json",
   };
 
+  // Clean group link: remove query params that may confuse the API
+  const cleanLink = groupLink.split("?")[0];
+
   // UaZapi V2 documented endpoint: POST /group/join with { invitecode: "code_or_url" }
   const endpoints = [
-    // Primary: POST /group/join (official UaZapi V2 docs)
-    { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: groupLink }) },
-    // Fallback: POST /group/join with just the code
+    // Primary: POST /group/join with just the invite code (most reliable)
     { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
+    // Fallback: POST /group/join with clean URL (no query params)
+    { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: cleanLink }) },
     // Legacy: PUT /group/acceptInviteGroup
     { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
-    // Legacy: POST /group/acceptInviteGroup
-    { method: "POST", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
   ];
 
   for (const ep of endpoints) {
     try {
-      console.log(`${ep.method} ${ep.url}`);
+      console.log(`${ep.method} ${ep.url} body=${ep.body}`);
       const res = await fetch(ep.url, {
         method: ep.method,
         headers: ep.body ? headers : { token, Accept: "application/json" },
@@ -76,6 +77,8 @@ async function tryJoin(
 
       // If 405 Method Not Allowed, try next strategy
       if (res.status === 405) continue;
+      // If 500 with generic error, try next strategy (might be wrong format)
+      if (res.status === 500 && (body?.error === "error joining group" || body?.error === "internal server error")) continue;
 
       return { ok: res.ok, status: res.status, body, raw, endpoint: `${ep.method} ${ep.url}` };
     } catch (err) {
