@@ -55,12 +55,13 @@ interface CTAButton {
   value: string;
 }
 
-const messageTypes = [
-  { value: "texto", label: "Texto", description: "Mensagem de texto simples", icon: Type },
-  { value: "texto-imagem", label: "Texto + Imagem", description: "Texto com imagem anexa", icon: ImageIcon },
-  { value: "texto-botao", label: "Texto + Botão", description: "Texto com botões interativos", icon: MousePointerClick },
-  { value: "imagem-botao", label: "Imagem + Botão", description: "Imagem com botões interativos", icon: Image },
-];
+// Auto-detect message type based on content
+function detectMessageType(mediaUrl: string, hasButtons: boolean): string {
+  if (mediaUrl && hasButtons) return "imagem-botao";
+  if (mediaUrl) return "texto-imagem";
+  if (hasButtons) return "texto-botao";
+  return "texto";
+}
 
 const Campaigns = () => {
   const { toast } = useToast();
@@ -94,7 +95,7 @@ const Campaigns = () => {
   // State
   const [step, setStep] = useState(1);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [messageType, setMessageType] = useState("texto");
+  const [messageType, setMessageType] = useState("texto"); // kept for draft compat but auto-detected on send
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -174,7 +175,8 @@ const Campaigns = () => {
   const validContacts = useMemo(() => contacts.filter(c => c.numero.trim()), [contacts]);
   const invalidContacts = useMemo(() => contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, ""))), [contacts]);
   const duplicateCount = useMemo(() => contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size, [contacts]);
-  const showButtons = messageType === "texto-botao" || messageType === "imagem-botao";
+  const hasButtons = quickReplyButtons.length > 0 || ctaButtons.length > 0;
+  const computedMessageType = detectMessageType(mediaUrl, hasButtons);
 
   // Paginated contacts for table performance
   const totalPages = Math.ceil(contacts.length / CONTACTS_PER_PAGE);
@@ -207,7 +209,7 @@ const Campaigns = () => {
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
     if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
-      name: campaignName, message_type: messageType, message_content: message,
+      name: campaignName, message_type: computedMessageType, message_content: message,
       media_url: mediaUrl || undefined,
       buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
@@ -272,7 +274,7 @@ const Campaigns = () => {
 
   const [emojiCategory, setEmojiCategory] = useState<string>("Mais usados");
 
-  const showMediaInput = messageType === "texto-imagem" || messageType === "imagem-botao";
+  
 
   const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
@@ -520,15 +522,15 @@ const Campaigns = () => {
                 const tmpl = savedTemplates.find(t => t.id === val);
                 if (tmpl) {
                   setMessage(tmpl.content);
-                  const typeMap: Record<string, string> = { text: "texto", "text-image": "texto-imagem", "text-button": "texto-botao", "image-button": "imagem-botao" };
-                  setMessageType(typeMap[tmpl.type] || tmpl.type);
+                   // message type is auto-detected now
+                   if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
                   if (tmpl.media_url) setMediaUrl(tmpl.media_url);
                   if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
                     setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
                     setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
                   } else { setQuickReplyButtons([]); setCTAButtons([]); }
                 }
-              } else { setMessage(""); setMessageType("texto"); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
+              } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
             }}>
               <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40 max-w-xs">
                 <SelectValue placeholder="Nova mensagem" />
@@ -540,70 +542,43 @@ const Campaigns = () => {
             </Select>
           </div>
 
-          {/* Message Type Cards */}
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo de Mensagem</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {messageTypes.map(mt => {
-                const Icon = mt.icon;
-                const isActive = messageType === mt.value;
-                return (
-                  <button
-                    key={mt.value}
-                    onClick={() => setMessageType(mt.value)}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all",
-                      isActive
-                        ? "border-primary/50 bg-primary/8 text-primary"
-                        : "border-border/30 bg-card/30 text-muted-foreground hover:bg-card/60 hover:border-border/50"
-                    )}
-                  >
-                    <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
-                    <span className="text-[11px] font-medium leading-tight">{mt.label}</span>
-                  </button>
-                );
-              })}
+          {/* Media section - always available as toggle */}
+          {!mediaUrl ? (
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 gap-1.5 border-border/40 border-dashed"
+                onClick={() => setMediaUrl(" ")}
+              >
+                <Image className="w-3.5 h-3.5" /> Adicionar Mídia
+              </Button>
             </div>
-          </div>
-
-          {/* Media URL Input - visible when image types selected */}
-          {showMediaInput && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-3">
+          ) : (
+            <div className="rounded-lg border border-border/30 bg-card/40 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                  <Image className="w-3.5 h-3.5" /> URL da Mídia
+                  <Image className="w-3.5 h-3.5" /> Mídia anexada
                 </span>
-                {mediaUrl && (
-                  <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
-                    <X className="w-3 h-3 mr-1" /> Remover
-                  </Button>
-                )}
+                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive" onClick={() => setMediaUrl("")}>
+                  <X className="w-3 h-3 mr-1" /> Remover
+                </Button>
               </div>
               <Input
-                value={mediaUrl}
+                value={mediaUrl.trim() ? mediaUrl : ""}
                 onChange={(e) => setMediaUrl(e.target.value)}
                 placeholder="https://exemplo.com/imagem.jpg"
-                className="h-9 text-xs bg-background/50 border-border/30"
+                className="h-8 text-xs bg-background/50 border-border/30"
+                autoFocus={!mediaUrl.trim()}
               />
-              {mediaUrl && (
+              {mediaUrl.trim() && (
                 <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-lg border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
-                    <img
-                      src={mediaUrl}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const el = e.target as HTMLImageElement;
-                        el.style.display = 'none';
-                        el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground">Sem preview</span>';
-                      }}
-                    />
+                  <div className="w-14 h-14 rounded-lg border border-border/30 overflow-hidden bg-muted/20 flex items-center justify-center shrink-0">
+                    <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
+                      onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground">Sem preview</span>'; }} />
                   </div>
                   <span className="text-[10px] text-muted-foreground break-all line-clamp-2">{mediaUrl}</span>
                 </div>
-              )}
-              {!mediaUrl && (
-                <p className="text-[9px] text-muted-foreground/60">Cole a URL de uma imagem, vídeo ou documento para enviar junto com a mensagem</p>
               )}
             </div>
           )}
