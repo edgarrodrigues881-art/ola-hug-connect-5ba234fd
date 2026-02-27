@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
 
 const fadeUp = {
@@ -87,6 +88,8 @@ const plans = [
 ];
 
 const PlansSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section id="planos" className="py-20 px-6 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
@@ -175,10 +178,8 @@ const PlansSection = () => {
                   ))}
                 </div>
 
-                <a
-                  href={buildWhatsappUrl(plan)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => navigate("/auth?redirect=/dashboard/my-plan")}
                   className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                     plan.popular
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -187,7 +188,7 @@ const PlansSection = () => {
                 >
                   {plan.cta}
                   <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+                </button>
               </div>
             </motion.div>
           ))}
