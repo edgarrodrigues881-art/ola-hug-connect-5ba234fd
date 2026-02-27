@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, Search, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2 } from "lucide-react";
+import { Bell, Search, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   return (
     <SidebarProvider>
@@ -62,6 +64,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 />
               </div>
             </div>
+
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <Sun className="w-[18px] h-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute w-[18px] h-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Alternar tema</span>
+            </Button>
 
             {/* Notifications */}
             <DropdownMenu>
