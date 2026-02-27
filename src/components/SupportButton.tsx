@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 const SupportButton = () => {
   const [open, setOpen] = useState(false);
-  const whatsappUrl = "https://wa.me/5562994192500?text=Ol%C3%A1%20DG%2C%20vim%20do%20site%20e%20preciso%20de%20suporte!";
+  const whatsappUrl = "https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte.";
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
