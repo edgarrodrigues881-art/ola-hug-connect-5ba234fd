@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera, MessageSquare,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +94,7 @@ const Devices = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDevice, setProfileDevice] = useState<Device | null>(null);
   const [wpName, setWpName] = useState("");
-  const [wpStatus, setWpStatus] = useState("");
+  
   const [wpPhotoUrl, setWpPhotoUrl] = useState("");
   const [wpPhotoBase64, setWpPhotoBase64] = useState("");
   const [wpRemovePhoto, setWpRemovePhoto] = useState(false);
@@ -435,7 +435,7 @@ const Devices = () => {
   const openProfileEdit = (device: Device) => {
     setProfileDevice(device);
     setWpName("");
-    setWpStatus("");
+    
     setWpPhotoUrl("");
     setWpPhotoBase64("");
     setWpRemovePhoto(false);
@@ -475,7 +475,7 @@ const Devices = () => {
   };
 
   const handleProfileUpdate = async () => {
-    if (!wpName && !wpStatus && !wpPhotoBase64 && !wpRemovePhoto) {
+    if (!wpName && !wpPhotoBase64 && !wpRemovePhoto) {
       toast({ title: "Preencha ao menos um campo", variant: "destructive" });
       return;
     }
@@ -491,9 +491,6 @@ const Devices = () => {
           const promises: Promise<any>[] = [];
           if (wpName.trim()) {
             promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() }));
-          }
-          if (wpStatus.trim()) {
-            promises.push(callApi({ action: "updateProfileStatus", deviceId: device.id, profileStatus: wpStatus.trim() }));
           }
           if (wpRemovePhoto) {
             promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
@@ -1440,19 +1437,6 @@ const Devices = () => {
                 maxLength={25}
               />
               <p className="text-[10px] text-muted-foreground">{wpName.length}/25 caracteres</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5" /> Recado (About)
-              </Label>
-              <Input
-                value={wpStatus}
-                onChange={e => setWpStatus(e.target.value)}
-                placeholder="Seu recado / status"
-                className="h-9 text-sm"
-                maxLength={139}
-              />
-              <p className="text-[10px] text-muted-foreground">{wpStatus.length}/139 caracteres</p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs flex items-center gap-1.5">
