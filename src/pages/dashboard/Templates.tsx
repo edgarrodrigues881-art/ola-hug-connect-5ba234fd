@@ -6,9 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X } from "lucide-react";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
+
+interface TemplateButton {
+  id: number;
+  type: "reply" | "url" | "phone";
+  text: string;
+  value: string;
+}
 
 const Templates = () => {
   const { toast } = useToast();
@@ -24,6 +32,8 @@ const Templates = () => {
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState("text");
   const [formContent, setFormContent] = useState("");
+  const [formMediaUrl, setFormMediaUrl] = useState("");
+  const [formButtons, setFormButtons] = useState<TemplateButton[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,6 +53,8 @@ const Templates = () => {
     setFormName("");
     setFormType("text");
     setFormContent("");
+    setFormMediaUrl("");
+    setFormButtons([]);
     setDialogOpen(true);
   };
 
@@ -51,17 +63,33 @@ const Templates = () => {
     setFormName(t.name);
     setFormType(t.type);
     setFormContent(t.content);
+    setFormMediaUrl(t.media_url || "");
+    setFormButtons(
+      (t.buttons || []).map((b: any, i: number) => ({
+        id: Date.now() + i,
+        type: b.type || "reply",
+        text: b.text || "",
+        value: b.value || "",
+      }))
+    );
     setDialogOpen(true);
   };
 
   const handleSave = () => {
     if (!formName.trim() || !formContent.trim()) return;
+    const payload = {
+      name: formName,
+      type: formType,
+      content: formContent,
+      media_url: formMediaUrl || undefined,
+      buttons: formButtons.map(b => ({ type: b.type, text: b.text, value: b.value })),
+    };
     if (editingId) {
-      updateTemplate.mutate({ id: editingId, name: formName, type: formType, content: formContent }, {
+      updateTemplate.mutate({ id: editingId, ...payload }, {
         onSuccess: () => { setDialogOpen(false); toast({ title: "Modelo atualizado" }); },
       });
     } else {
-      createTemplate.mutate({ name: formName, type: formType, content: formContent }, {
+      createTemplate.mutate(payload, {
         onSuccess: () => { setDialogOpen(false); toast({ title: "Modelo criado" }); },
       });
     }
@@ -71,9 +99,35 @@ const Templates = () => {
     deleteTemplate.mutate(id, { onSuccess: () => toast({ title: "Modelo excluído" }) });
   };
 
+  const addButton = (type: "reply" | "url" | "phone") => {
+    setFormButtons(prev => [...prev, { id: Date.now(), type, text: "", value: "" }]);
+  };
+
+  const removeButton = (id: number) => {
+    setFormButtons(prev => prev.filter(b => b.id !== id));
+  };
+
+  const updateButton = (id: number, field: keyof TemplateButton, val: string) => {
+    setFormButtons(prev => prev.map(b => b.id === id ? { ...b, [field]: val } : b));
+  };
+
+  const showButtons = formType === "buttons";
+  const showMedia = formType === "text-media";
+
   const typeLabel = (type: string) => {
     const map: Record<string, string> = { text: "Texto", "text-media": "Texto com mídia", buttons: "Botões", list: "Lista" };
     return map[type] || type;
+  };
+
+  const buttonTypeLabel = (type: string) => {
+    const map: Record<string, string> = { reply: "Resposta", url: "Link", phone: "Telefone" };
+    return map[type] || type;
+  };
+
+  const buttonTypeIcon = (type: string) => {
+    if (type === "url") return <Link className="w-3 h-3" />;
+    if (type === "phone") return <Phone className="w-3 h-3" />;
+    return <MessageSquare className="w-3 h-3" />;
   };
 
   return (
@@ -160,7 +214,7 @@ const Templates = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar modelo" : "Adicionar modelo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -169,7 +223,7 @@ const Templates = () => {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo de mensagem</Label>
-              <Select value={formType} onValueChange={setFormType}>
+              <Select value={formType} onValueChange={(v) => { setFormType(v); if (v !== "buttons") setFormButtons([]); }}>
                 <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text">Texto</SelectItem>
@@ -183,6 +237,73 @@ const Templates = () => {
               <Label className="text-xs">Mensagem</Label>
               <Textarea value={formContent} onChange={e => setFormContent(e.target.value)} placeholder="Conteúdo da mensagem" rows={4} className="text-sm" />
             </div>
+
+            {showMedia && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">URL da mídia</Label>
+                <Input value={formMediaUrl} onChange={e => setFormMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" className="h-9 text-sm font-mono" />
+              </div>
+            )}
+
+            {showButtons && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Botões</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("reply")}>
+                      <MessageSquare className="w-3 h-3" /> Resposta
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("url")}>
+                      <Link className="w-3 h-3" /> Link
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("phone")}>
+                      <Phone className="w-3 h-3" /> Telefone
+                    </Button>
+                  </div>
+                </div>
+
+                {formButtons.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-3 border border-dashed border-border rounded-lg">
+                    Nenhum botão adicionado. Clique acima para adicionar.
+                  </p>
+                )}
+
+                {formButtons.map((btn) => (
+                  <div key={btn.id} className="border border-border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[10px] gap-1">
+                        {buttonTypeIcon(btn.type)} {buttonTypeLabel(btn.type)}
+                      </Badge>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeButton(btn.id)}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <Input
+                      value={btn.text}
+                      onChange={e => updateButton(btn.id, "text", e.target.value)}
+                      placeholder="Texto do botão"
+                      className="h-8 text-xs"
+                    />
+                    {btn.type === "url" && (
+                      <Input
+                        value={btn.value}
+                        onChange={e => updateButton(btn.id, "value", e.target.value)}
+                        placeholder="https://exemplo.com"
+                        className="h-8 text-xs font-mono"
+                      />
+                    )}
+                    {btn.type === "phone" && (
+                      <Input
+                        value={btn.value}
+                        onChange={e => updateButton(btn.id, "value", e.target.value)}
+                        placeholder="5511999999999"
+                        className="h-8 text-xs font-mono"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
