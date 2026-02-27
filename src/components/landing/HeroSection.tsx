@@ -99,7 +99,7 @@ const HeroSection = () => {
             {/* Phone */}
             <div className="relative" style={{ perspective: "1200px" }}>
               <div
-                className="relative w-[200px] lg:w-[220px]"
+                className="relative w-[190px] lg:w-[200px]"
                 style={{ transform: "rotateY(-6deg) rotateX(2deg)", transformStyle: "preserve-3d" }}
               >
                 {/* Phone chassis */}
@@ -221,7 +221,7 @@ const HeroSection = () => {
                     >
                       {/* Fire icon at the end of the bar */}
                       <motion.svg
-                        className="absolute -right-[6px] -top-[4px] w-[14px] h-[14px]"
+                        className="absolute -right-[8px] -top-[7px] w-[20px] h-[20px]"
                         viewBox="0 0 24 24"
                         fill="none"
                         animate={{ y: [0, -1.5, 0], opacity: [0.8, 1, 0.8] }}
