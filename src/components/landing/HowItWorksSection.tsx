@@ -47,7 +47,7 @@ const HowItWorksSection = () => (
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.15 + i * 0.15, ease: "easeOut" }}
             whileHover={{ y: -4, scale: 1.03, transition: { duration: 0.25 } }}
-            className="group relative rounded-2xl p-6 overflow-hidden cursor-default"
+            className="group relative rounded-2xl p-6 overflow-hidden cursor-default border border-[#07C160]/15"
             style={{
               background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))",
               boxShadow: "0 16px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(7,193,96,0.08), inset 0 1px 0 rgba(255,255,255,0.04)",
@@ -98,7 +98,7 @@ const HowItWorksSection = () => (
         className="max-w-4xl mx-auto"
       >
         <div
-          className="relative rounded-2xl p-6 overflow-hidden"
+          className="relative rounded-2xl p-6 overflow-hidden border border-red-500/15"
           style={{
             background: "linear-gradient(135deg, rgba(239,68,68,0.05), rgba(17,24,39,0.95), rgba(239,68,68,0.03))",
           }}
