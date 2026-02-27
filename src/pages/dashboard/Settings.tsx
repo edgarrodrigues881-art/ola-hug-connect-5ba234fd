@@ -7,13 +7,15 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone } from "lucide-react";
+import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone, Pencil, Check, X } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState({ name: "", company: "", phone: "" });
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -26,7 +28,6 @@ const Settings = () => {
 
   const [deviceCount, setDeviceCount] = useState(0);
 
-  // Load profile and device count
   useEffect(() => {
     if (!user) return;
 
@@ -54,24 +55,41 @@ const Settings = () => {
       });
   }, [user]);
 
-  const saveProfile = async () => {
+  const startEdit = (field: string, currentValue: string) => {
+    setEditingField(field);
+    setEditValue(currentValue);
+  };
+
+  const cancelEdit = () => {
+    setEditingField(null);
+    setEditValue("");
+  };
+
+  const saveField = async (field: string) => {
     if (!user) return;
     setSaving(true);
+
+    const trimmed = editValue.trim();
+    const updatedProfile = { ...profile, [field]: trimmed };
+
     const { error } = await supabase
       .from("profiles")
       .upsert({
         id: user.id,
-        full_name: profile.name.trim(),
-        company: profile.company.trim(),
-        phone: profile.phone.trim(),
+        full_name: updatedProfile.name,
+        company: updatedProfile.company,
+        phone: updatedProfile.phone,
         updated_at: new Date().toISOString(),
       });
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Perfil atualizado", description: "Suas informações foram salvas." });
+      setProfile(updatedProfile);
+      toast({ title: "Salvo", description: "Informação atualizada com sucesso." });
     }
+    setEditingField(null);
+    setEditValue("");
     setSaving(false);
   };
 
@@ -101,6 +119,73 @@ const Settings = () => {
 
   const inputClass = "h-10 rounded-lg border-border/60 bg-background focus:border-primary focus:ring-0 text-sm";
 
+  const renderEditableField = (
+    field: string,
+    label: string,
+    icon: React.ReactNode,
+    placeholder: string,
+    maxLength: number
+  ) => {
+    const isEditing = editingField === field;
+    const value = profile[field as keyof typeof profile];
+
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          {icon}
+          {label}
+        </Label>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <Input
+              autoFocus
+              placeholder={placeholder}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className={inputClass}
+              maxLength={maxLength}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveField(field);
+                if (e.key === "Escape") cancelEdit();
+              }}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => saveField(field)}
+              disabled={saving}
+              className="h-9 w-9 text-primary hover:text-primary/80 shrink-0"
+            >
+              <Check className="w-4 h-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={cancelEdit}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 group">
+            <div className={`flex-1 h-10 flex items-center px-3 rounded-lg border border-transparent text-sm ${value ? "text-foreground/60" : "text-muted-foreground/40"}`}>
+              {value || placeholder}
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => startEdit(field, value)}
+              className="h-9 w-9 text-muted-foreground/40 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-up max-w-4xl">
       <div>
@@ -125,59 +210,17 @@ const Settings = () => {
                   <Mail className="w-3 h-3" />
                   Email
                 </Label>
-                <Input
-                  value={user?.email || ""}
-                  disabled
-                  className={`${inputClass} bg-muted/30 text-muted-foreground cursor-not-allowed`}
-                />
+                <div className="h-10 flex items-center px-3 rounded-lg bg-muted/30 text-muted-foreground text-sm cursor-not-allowed">
+                  {user?.email || ""}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <User className="w-3 h-3" />
-                    Nome Completo
-                  </Label>
-                  <Input
-                    placeholder="Seu nome"
-                    value={profile.name}
-                    onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
-                    className={inputClass}
-                    maxLength={100}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Building2 className="w-3 h-3" />
-                    Empresa
-                  </Label>
-                  <Input
-                    placeholder="Nome da empresa"
-                    value={profile.company}
-                    onChange={(e) => setProfile((p) => ({ ...p, company: e.target.value }))}
-                    className={inputClass}
-                    maxLength={100}
-                  />
-                </div>
+                {renderEditableField("name", "Nome Completo", <User className="w-3 h-3" />, "Seu nome", 100)}
+                {renderEditableField("company", "Empresa", <Building2 className="w-3 h-3" />, "Nome da empresa", 100)}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Phone className="w-3 h-3" />
-                  Telefone
-                </Label>
-                <Input
-                  placeholder="+55 11 99999-9999"
-                  value={profile.phone}
-                  onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-                  className={inputClass}
-                  maxLength={20}
-                />
-              </div>
-
-              <Button onClick={saveProfile} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {saving ? "Salvando..." : "Salvar Alterações"}
-              </Button>
+              {renderEditableField("phone", "Telefone", <Phone className="w-3 h-3" />, "+55 11 99999-9999", 20)}
             </CardContent>
           </Card>
 
