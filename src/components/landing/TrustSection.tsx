@@ -18,7 +18,7 @@ const TrustSection = () => (
         className="text-center mb-12"
       >
         <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-3 block">Confiança</span>
-        <h2 className="text-3xl lg:text-4xl font-bold text-white">
+        <h2 className="text-3xl lg:text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           Tecnologia pensada para uso responsável
         </h2>
       </motion.div>
