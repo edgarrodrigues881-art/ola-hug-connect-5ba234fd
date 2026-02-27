@@ -483,18 +483,28 @@ const Devices = () => {
         ? devices.filter(d => d.status === "Ready")
         : profileDevice ? [profileDevice] : [];
 
-      for (const device of targetDevices) {
-        if (wpName.trim()) {
-          await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
-        }
-        if (wpRemovePhoto) {
-          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" });
-        } else if (wpPhotoBase64) {
-          await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
-        }
-      }
+      // Run all devices in parallel, and each device's actions in parallel too
+      const results = await Promise.allSettled(
+        targetDevices.map(async (device) => {
+          const promises: Promise<any>[] = [];
+          if (wpName.trim()) {
+            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() }));
+          }
+          if (wpRemovePhoto) {
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
+          } else if (wpPhotoBase64) {
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 }));
+          }
+          await Promise.all(promises);
+        })
+      );
 
-      toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
+      const failed = results.filter(r => r.status === "rejected").length;
+      if (failed > 0) {
+        toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else {
+        toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
+      }
       setProfileOpen(false);
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
