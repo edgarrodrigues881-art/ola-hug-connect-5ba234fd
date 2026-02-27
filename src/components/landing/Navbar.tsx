@@ -17,7 +17,7 @@ const Navbar = () => {
 
         <nav className="hidden md:flex items-center gap-6">
           <button
-            onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("para-quem")?.scrollIntoView({ behavior: "smooth" })}
             className="text-sm text-white/50 hover:text-white transition-colors"
           >
             Como funciona
