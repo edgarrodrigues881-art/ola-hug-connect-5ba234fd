@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2, FileText, Video, Mic } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, Link, Phone, MessageSquare, X, Upload, Image, Loader2, FileText, Video, Mic, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ interface MediaFile {
   url: string;
   type: "image" | "video" | "audio" | "document";
   name: string;
+  sendMode: "before" | "with";
 }
 
 const Templates = () => {
@@ -76,15 +77,14 @@ const Templates = () => {
     if (!mediaUrl) return [];
     try {
       const parsed = JSON.parse(mediaUrl);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) return parsed.map((p: any, i: number) => ({ ...p, id: i + 1, sendMode: p.sendMode || "with" }));
     } catch {}
-    // Legacy single URL
     const ext = mediaUrl.split(".").pop()?.toLowerCase() || "";
     const type = ["mp4", "webm", "mov", "avi"].includes(ext) ? "video"
       : ["mp3", "wav", "ogg", "m4a", "opus"].includes(ext) ? "audio"
       : ["pdf", "doc", "docx", "xls", "xlsx"].includes(ext) ? "document"
       : "image";
-    return [{ id: 1, url: mediaUrl, type, name: mediaUrl.split("/").pop() || "arquivo" }];
+    return [{ id: 1, url: mediaUrl, type, name: mediaUrl.split("/").pop() || "arquivo", sendMode: "with" as const }];
   };
 
   const openEdit = (t: any) => {
@@ -131,6 +131,7 @@ const Templates = () => {
         url: urlData.publicUrl,
         type: detectFileType(file),
         name: file.name,
+        sendMode: "with",
       };
       setFormMediaFiles(prev => [...prev, newFile]);
       toast({ title: "Arquivo enviado" });
@@ -145,10 +146,26 @@ const Templates = () => {
     setFormMediaFiles(prev => prev.filter(f => f.id !== id));
   };
 
+  const moveMediaFile = (id: number, direction: "up" | "down") => {
+    setFormMediaFiles(prev => {
+      const idx = prev.findIndex(f => f.id === id);
+      if (idx < 0) return prev;
+      const newIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+  };
+
+  const toggleSendMode = (id: number) => {
+    setFormMediaFiles(prev => prev.map(f => f.id === id ? { ...f, sendMode: f.sendMode === "before" ? "with" : "before" } : f));
+  };
+
   const handleSave = () => {
     if (!formName.trim() || !formContent.trim()) return;
     const mediaValue = formMediaFiles.length > 0
-      ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name })))
+      ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
       : formMediaUrl || undefined;
     const payload = {
       name: formName,
@@ -342,7 +359,7 @@ const Templates = () => {
                 )}
 
                 <div className="space-y-2">
-                  {formMediaFiles.map((file) => (
+                  {formMediaFiles.map((file, idx) => (
                     <div key={file.id} className="border border-border rounded-lg overflow-hidden">
                       {file.type === "image" && (
                         <img src={file.url} alt={file.name} className="w-full max-h-40 object-cover" />
@@ -364,17 +381,37 @@ const Templates = () => {
                       )}
                       <div className="flex items-center justify-between px-3 py-1.5 border-t border-border bg-muted/10">
                         <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-0.5 mr-1">
+                            <GripVertical className="w-3 h-3 text-muted-foreground/50" />
+                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => moveMediaFile(file.id, "up")}>
+                              <ArrowUp className="w-3 h-3" />
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === formMediaFiles.length - 1} onClick={() => moveMediaFile(file.id, "down")}>
+                              <ArrowDown className="w-3 h-3" />
+                            </Button>
+                          </div>
                           <Badge variant="outline" className="text-[10px]">
                             {file.type === "image" && <><Image className="w-2.5 h-2.5 mr-0.5" /> Imagem</>}
                             {file.type === "video" && <><Video className="w-2.5 h-2.5 mr-0.5" /> Vídeo</>}
                             {file.type === "audio" && <><Mic className="w-2.5 h-2.5 mr-0.5" /> Áudio</>}
                             {file.type === "document" && <><FileText className="w-2.5 h-2.5 mr-0.5" /> Documento</>}
                           </Badge>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{file.name}</span>
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{file.name}</span>
                         </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeMediaFile(file.id)}>
-                          <X className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant={file.sendMode === "before" ? "default" : "outline"}
+                            size="sm"
+                            className="h-5 text-[9px] px-1.5"
+                            onClick={() => toggleSendMode(file.id)}
+                          >
+                            {file.sendMode === "before" ? "Antes da msg" : "Com a msg"}
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeMediaFile(file.id)}>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
