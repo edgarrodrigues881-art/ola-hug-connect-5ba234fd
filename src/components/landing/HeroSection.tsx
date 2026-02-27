@@ -115,9 +115,10 @@ const HeroSection = () => {
                     {/* Screen */}
                     <div className="bg-[#0A0A0A]">
                       {/* Status bar */}
-                      <div className="flex items-center justify-between px-5 py-1">
+                      <div className="flex items-center justify-between px-5 pt-[14px] pb-1">
                         <span className="text-[8px] text-white/40 font-medium">9:41</span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[7px] text-white/30 font-semibold">5G</span>
                           <div className="w-3 h-1.5 border border-white/30 rounded-[2px]">
                             <div className="w-[70%] h-full bg-white/40 rounded-[1px]" />
                           </div>
