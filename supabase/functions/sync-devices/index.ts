@@ -88,10 +88,20 @@ Deno.serve(async (req) => {
         }
 
         profilePicture = inst.profilePicUrl || device.profile_picture || null;
+        const syncedProfileName = inst.profileName || inst.pushname || "";
         newStatus = isConnected ? "Ready" : "Disconnected";
+
+      await serviceClient
+        .from("devices")
+        .update({
+          status: newStatus,
+          number: formattedPhone,
+          profile_picture: profilePicture,
+          profile_name: syncedProfileName || device.profile_name || "",
+        })
+        .eq("id", device.id);
       } catch (err) {
         console.error(`Error syncing device ${device.name}:`, err);
-      }
 
       await serviceClient
         .from("devices")
@@ -101,6 +111,7 @@ Deno.serve(async (req) => {
           profile_picture: profilePicture,
         })
         .eq("id", device.id);
+      }
 
       results.push({
         id: device.id,

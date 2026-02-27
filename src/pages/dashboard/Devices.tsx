@@ -34,6 +34,7 @@ interface Device {
   proxy_id: string | null;
   whapi_token: string | null;
   profile_picture: string | null;
+  profile_name: string | null;
   created_at: string;
   uazapi_token: string | null;
   uazapi_base_url: string | null;
@@ -126,6 +127,7 @@ const Devices = () => {
         proxy_id: d.proxy_id,
         whapi_token: d.whapi_token || null,
         profile_picture: d.profile_picture || null,
+        profile_name: d.profile_name || null,
         created_at: d.created_at,
         uazapi_token: d.uazapi_token || null,
         uazapi_base_url: d.uazapi_base_url || null,
@@ -842,7 +844,13 @@ const Devices = () => {
                           {d.name}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground truncate">{d.number || "Sem número"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {d.profile_name && d.profile_name !== d.name ? (
+                          <>{d.profile_name} · {d.number || "Sem número"}</>
+                        ) : (
+                          d.number || "Sem número"
+                        )}
+                      </p>
                     </div>
                   </div>
                   <Badge variant="outline" className={`text-[10px] font-medium ${sc.badgeClass}`}>

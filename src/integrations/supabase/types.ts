@@ -179,6 +179,7 @@ export type Database = {
           login_type: string
           name: string
           number: string | null
+          profile_name: string | null
           profile_picture: string | null
           proxy_id: string | null
           status: string
@@ -194,6 +195,7 @@ export type Database = {
           login_type?: string
           name: string
           number?: string | null
+          profile_name?: string | null
           profile_picture?: string | null
           proxy_id?: string | null
           status?: string
@@ -209,6 +211,7 @@ export type Database = {
           login_type?: string
           name?: string
           number?: string | null
+          profile_name?: string | null
           profile_picture?: string | null
           proxy_id?: string | null
           status?: string
