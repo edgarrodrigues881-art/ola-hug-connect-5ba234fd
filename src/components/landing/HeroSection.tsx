@@ -69,7 +69,11 @@ const HeroSection = () => {
           </div>
 
           {/* Right — Phone + Progress Badge */}
-          <div
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="relative flex items-center justify-center"
           >
             {/* Ambient glow — static, no animation */}
@@ -380,7 +384,7 @@ const HeroSection = () => {
                 </div>
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
