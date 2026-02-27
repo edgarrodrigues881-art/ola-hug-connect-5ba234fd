@@ -459,6 +459,53 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_logs: {
+        Row: {
+          created_at: string
+          device_id: string
+          error_message: string | null
+          group_jid: string | null
+          group_name: string | null
+          id: string
+          message_content: string
+          session_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          error_message?: string | null
+          group_jid?: string | null
+          group_name?: string | null
+          id?: string
+          message_content: string
+          session_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          error_message?: string | null
+          group_jid?: string | null
+          group_name?: string | null
+          id?: string
+          message_content?: string
+          session_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warmup_messages: {
         Row: {
           category: string
