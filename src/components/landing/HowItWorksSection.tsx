@@ -23,10 +23,10 @@ const HowItWorksSection = () => (
   <section id="para-quem" className="py-24 lg:py-32 bg-transparent">
     <div className="container">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4 }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         className="text-center mb-16"
       >
         <span className="inline-block text-xs font-semibold text-[#07C160] tracking-widest uppercase mb-3">
@@ -42,10 +42,10 @@ const HowItWorksSection = () => (
         {forWhom.map((item, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.15 + i * 0.15, ease: "easeOut" }}
+            viewport={{ once: true, amount: 0.1 }}
+            transition={{ duration: 0.6, delay: 0.08 + i * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
             whileHover={{ y: -4, scale: 1.03, transition: { duration: 0.25 } }}
             className="group relative rounded-2xl p-6 overflow-hidden cursor-default border border-[#07C160]/25"
             style={{
@@ -91,10 +91,10 @@ const HowItWorksSection = () => (
 
       {/* Warning — checklist style */}
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        initial={{ opacity: 0, y: 15, scale: 0.98 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.5 }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
         className="max-w-4xl mx-auto"
       >
         <div

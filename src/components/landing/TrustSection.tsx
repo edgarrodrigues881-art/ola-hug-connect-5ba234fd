@@ -38,9 +38,10 @@ const TrustSection = () => (
   <section id="confianca" className="relative py-24 lg:py-32 bg-transparent">
     <div className="container max-w-5xl">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         className="text-center mb-16"
       >
         <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-3 block">Confiança</span>
@@ -53,10 +54,10 @@ const TrustSection = () => (
         {items.map((item, i) => (
           <motion.div
             key={item.title}
-            initial={{ opacity: 0, y: 25 }}
+            initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 + i * 0.08, duration: 0.5 }}
+            viewport={{ once: true, amount: 0.1 }}
+            transition={{ delay: 0.05 + i * 0.06, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             whileHover={{ y: -3, transition: { duration: 0.25 } }}
             className="group relative rounded-2xl p-5 overflow-hidden border border-[#07C160]/15 cursor-default"
             style={{

@@ -48,9 +48,10 @@ const DashboardPreview = () => (
   <section id="dashboard" className="relative py-24 lg:py-32 bg-transparent">
     <div className="container">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         className="text-center mb-16"
       >
         <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-3 block">Painel</span>
@@ -88,10 +89,10 @@ const DashboardPreview = () => (
         />
 
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          initial={{ opacity: 0, y: 25, scale: 0.98 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.1 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
           className="relative z-10 rounded-2xl overflow-hidden"
           style={{
             background: "linear-gradient(160deg, rgba(12,18,28,0.98), rgba(8,12,20,0.95))",
@@ -112,10 +113,10 @@ const DashboardPreview = () => (
             {stats.map((stat, i) => (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ delay: 0.15 + i * 0.08, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                 whileHover={{ y: -3, transition: { duration: 0.25 } }}
                 className="group relative p-4 rounded-xl border border-white/[0.06] hover:border-[#07C160]/25 transition-colors duration-500 overflow-hidden"
                 style={{
@@ -148,11 +149,11 @@ const DashboardPreview = () => (
           </div>
 
           {/* Chart */}
-          <motion.div
+            <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6, duration: 0.5 }}
+            viewport={{ once: true, amount: 0.1 }}
+            transition={{ delay: 0.3, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="mt-6 p-5 rounded-xl border border-white/[0.04]"
             style={{ background: "rgba(255,255,255,0.015)" }}
           >
@@ -168,7 +169,7 @@ const DashboardPreview = () => (
                       initial={{ height: 0, opacity: 0 }}
                       whileInView={{ height: `${h}%`, opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 0.7 + i * 0.06, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      transition={{ delay: 0.4 + i * 0.05, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
                       className="w-full rounded-md"
                       style={{
                         background: `linear-gradient(to top, rgba(7,193,96,${0.12 + (h / 400)}), rgba(7,193,96,${0.25 + (h / 300)}))`,
