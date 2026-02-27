@@ -69,27 +69,6 @@ const TrustSection = () => (
               style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.06) 0%, transparent 70%)" }}
             />
 
-            {/* Shimmer top */}
-            <motion.div
-              className="absolute top-0 left-0 h-[2px] w-[60px] rounded-full"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
-              animate={{ left: ["0%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Shimmer bottom */}
-            <motion.div
-              className="absolute bottom-0 right-0 h-[2px] w-[60px] rounded-full"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(7,193,96,0.6), transparent)" }}
-              animate={{ right: ["0%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Left bar */}
-            <motion.div
-              className="absolute left-0 w-[3px] h-8 rounded-full"
-              style={{ background: "linear-gradient(to bottom, transparent, rgba(7,193,96,0.5), transparent)" }}
-              animate={{ top: ["10%", "70%", "10%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
 
             <div className="relative">
               <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.15] transition-colors duration-500">
