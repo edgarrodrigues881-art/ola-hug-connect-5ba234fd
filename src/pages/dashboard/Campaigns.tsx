@@ -20,7 +20,7 @@ import {
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
-  CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2
+  CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2, Check
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -80,6 +80,27 @@ function detectMessageType(mediaUrl: string, hasButtons: boolean): string {
   return "texto";
 }
 
+// ─── Surface Card wrapper for layered dark theme ───
+const SurfaceCard = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm shadow-sm shadow-black/5",
+      "dark:bg-[hsl(220_13%_12%)] dark:border-[hsl(220_10%_18%)] dark:shadow-lg dark:shadow-black/20",
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+);
+
+// ─── Section label ───
+const SectionLabel = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <h3 className={cn("text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70", className)}>
+    {children}
+  </h3>
+);
+
 const Campaigns = () => {
   const { toast } = useToast();
   const { session } = useAuth();
@@ -114,7 +135,7 @@ const Campaigns = () => {
   // State
   const [step, setStep] = useState(1);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [messageType, setMessageType] = useState("texto"); // kept for draft compat but auto-detected on send
+  const [messageType, setMessageType] = useState("texto");
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -168,7 +189,7 @@ const Campaigns = () => {
     setDraftLoaded(true);
   }, []);
 
-  // Auto-save draft to localStorage whenever form changes
+  // Auto-save draft
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
@@ -197,7 +218,7 @@ const Campaigns = () => {
   const hasButtons = quickReplyButtons.length > 0 || ctaButtons.length > 0;
   const computedMessageType = detectMessageType(mediaUrl, hasButtons);
 
-  // Paginated contacts for table performance
+  // Paginated contacts
   const totalPages = Math.ceil(contacts.length / CONTACTS_PER_PAGE);
   const paginatedContacts = useMemo(() =>
     contacts.slice(contactPage * CONTACTS_PER_PAGE, (contactPage + 1) * CONTACTS_PER_PAGE),
@@ -215,11 +236,17 @@ const Campaigns = () => {
   }, [previewContacts, toast]);
 
   const getRiskLevel = () => {
-    if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10" };
-    if (minDelay < 10) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10" };
-    return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10" };
+    if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10", borderColor: "border-red-500/20" };
+    if (minDelay < 10) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10", borderColor: "border-amber-500/20" };
+    return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10", borderColor: "border-emerald-500/20" };
   };
   const risk = getRiskLevel();
+
+  // Detected variables
+  const detectedVars = useMemo(() => {
+    const matches = message.match(/\{\{[^}]+\}\}/g);
+    return matches ? [...new Set(matches)] : [];
+  }, [message]);
 
   // Handlers
   const handleSendCampaign = () => {
@@ -260,7 +287,6 @@ const Campaigns = () => {
     const selected = message.substring(start, end);
     const newText = message.substring(0, start) + before + selected + after + message.substring(end);
     setMessage(newText);
-    // Restore cursor position after state update
     setTimeout(() => {
       textarea.focus();
       if (selected.length > 0) {
@@ -292,8 +318,6 @@ const Campaigns = () => {
   };
 
   const [emojiCategory, setEmojiCategory] = useState<string>("Mais usados");
-
-  
 
   const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
@@ -354,7 +378,6 @@ const Campaigns = () => {
 
         setImportProgress(70);
 
-        // Smart column detection
         const normalize = (s: string) =>
           String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
 
@@ -367,7 +390,6 @@ const Campaigns = () => {
           return -1;
         };
 
-        // Check if first row looks like a header
         const firstRow = rows[0] || [];
         const hasHeader = firstRow.some((c: any) => {
           const s = normalize(String(c));
@@ -385,7 +407,6 @@ const Campaigns = () => {
           startRow = 1;
         }
 
-        // Fallback: detect by content — find first column with phone-like numbers
         if (numCol === -1) {
           for (let ci = 0; ci < (rows[hasHeader ? 1 : 0]?.length || 0); ci++) {
             const sample = String(rows[hasHeader ? 1 : 0]?.[ci] ?? "").replace(/\D/g, "");
@@ -393,7 +414,6 @@ const Campaigns = () => {
           }
         }
 
-        // If still no number column, try every column across first rows
         if (numCol === -1) {
           for (let ri = 0; ri < Math.min(5, rows.length); ri++) {
             const row = rows[ri];
@@ -412,7 +432,6 @@ const Campaigns = () => {
           return;
         }
 
-        // Name column defaults to the one before number, or first non-number column
         if (nameCol === -1) nameCol = numCol === 0 ? 1 : 0;
 
         setImportProgress(80);
@@ -425,7 +444,6 @@ const Campaigns = () => {
           if (rawNum.length < 8) continue;
           const nome = String(row[nameCol] ?? "").trim();
 
-          // Map remaining columns to vars, skipping name and number cols
           const otherCols = [];
           for (let c = 0; c < row.length; c++) {
             if (c !== nameCol && c !== numCol) otherCols.push(String(row[c] ?? ""));
@@ -477,874 +495,998 @@ const Campaigns = () => {
   };
 
   const steps = [
-    { num: 1, label: "Conteúdo da Campanha", icon: MessageSquare },
-    { num: 2, label: "Público de Destino", icon: Users },
-    { num: 3, label: "Parâmetros de Envio", icon: Settings2 },
-    { num: 4, label: "Iniciar Campanha", icon: Send },
+    { num: 1, label: "Conteúdo", desc: "Mensagem & Mídia", icon: MessageSquare },
+    { num: 2, label: "Público", desc: "Contatos & Destino", icon: Users },
+    { num: 3, label: "Parâmetros", desc: "Controle de Envio", icon: Settings2 },
+    { num: 4, label: "Lançamento", desc: "Revisão & Envio", icon: Send },
   ];
 
+  // ─── WhatsApp Preview Component ───
+  const WhatsAppPreview = () => (
+    <div className="rounded-2xl overflow-hidden border border-border/30 dark:border-[hsl(220_10%_20%)] shadow-lg">
+      {/* WhatsApp header */}
+      <div className="bg-[#075E54] dark:bg-[#1F2C34] px-4 py-3 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <Smartphone className="w-4 h-4 text-white/80" />
+        </div>
+        <div>
+          <p className="text-white text-[13px] font-medium">Destinatário</p>
+          <p className="text-white/60 text-[10px]">online</p>
+        </div>
+      </div>
+      {/* Chat area */}
+      <div className="bg-[#ECE5DD] dark:bg-[#0B141A] p-4 min-h-[300px] flex flex-col justify-end gap-2"
+        style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
+        {/* Message bubble */}
+        <div className="max-w-[85%] self-end">
+          {mediaUrl && (
+            <div className="rounded-t-lg overflow-hidden bg-white dark:bg-[#1F2C34]">
+              <img src={mediaUrl} alt="media" className="w-full max-h-48 object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            </div>
+          )}
+          <div className={cn(
+            "bg-[#DCF8C6] dark:bg-[#005C4B] px-3 py-2 shadow-sm",
+            mediaUrl ? "rounded-b-lg" : "rounded-lg"
+          )}>
+            <p className="text-[13px] text-[#303030] dark:text-[#E9EDEF] whitespace-pre-wrap leading-relaxed break-words">
+              {message || <span className="italic opacity-50">Sua mensagem aparecerá aqui...</span>}
+            </p>
+            <p className="text-[10px] text-[#667781] dark:text-[#8696A0] text-right mt-1">12:00 ✓✓</p>
+          </div>
+          {/* Buttons preview */}
+          {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
+            <div className="mt-1 space-y-1">
+              {quickReplyButtons.map(btn => (
+                <div key={btn.id} className="bg-white dark:bg-[#1F2C34] rounded-lg px-3 py-2 text-center shadow-sm">
+                  <span className="text-[13px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+                </div>
+              ))}
+              {ctaButtons.map(btn => (
+                <div key={btn.id} className="bg-white dark:bg-[#1F2C34] rounded-lg px-3 py-2 text-center shadow-sm flex items-center justify-center gap-1.5">
+                  {btn.type === "url" ? <Link className="w-3 h-3 text-[#00A5F4]" /> : <Phone className="w-3 h-3 text-[#00A5F4]" />}
+                  <span className="text-[13px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="w-full pb-16">
-      {/* Header */}
+    <div className="w-full pb-16 max-w-6xl mx-auto">
+      {/* ═══ Header ═══ */}
       <motion.div 
-        className="flex items-center justify-between mb-10"
+        className="flex items-center justify-between mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <div>
-          <h1 className="text-[28px] font-bold text-foreground tracking-[-0.02em] leading-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
             Configuração de Campanha
           </h1>
-          <p className="text-[13px] text-muted-foreground/60 mt-2 font-normal">Controle total sobre sua entrega e performance.</p>
+          <p className="text-sm text-muted-foreground mt-1">Controle total sobre sua entrega e performance.</p>
         </div>
-        <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground/50 gap-1.5 h-8 hover:text-muted-foreground" onClick={clearAllForm}>
-          <Eraser className="w-3 h-3" /> Limpar
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs gap-1.5 h-9 border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-all" 
+          onClick={clearAllForm}
+        >
+          <Eraser className="w-3.5 h-3.5" /> Limpar tudo
         </Button>
       </motion.div>
 
-      {/* Stepper */}
+      {/* ═══ Stepper ═══ */}
       <motion.div 
-        className="flex items-center relative mb-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        className="mb-10"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        {/* Track */}
-        <div className="absolute top-[14px] left-[14px] right-[14px] h-[2px] bg-border/10 z-0" />
-        <motion.div 
-          className="absolute top-[14px] left-[14px] h-[2px] bg-primary/60 z-[1]"
-          style={{ originX: 0 }}
-          initial={{ width: "0%" }}
-          animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        />
-        {steps.map((s) => {
-          const isActive = step === s.num;
-          const isDone = step > s.num;
-          return (
-            <button
-              key={s.num}
-              onClick={() => setStep(s.num)}
-              className="flex-1 flex flex-col items-center gap-2 relative z-10 group"
-            >
-              <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
-                isActive && "bg-primary text-primary-foreground ring-4 ring-primary/15",
-                isDone && "bg-primary/20 text-primary",
-                !isActive && !isDone && "bg-muted/30 text-muted-foreground/40",
-              )}>
-                {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
-              </div>
-              <span className={cn(
-                "text-[11px] transition-all duration-200 text-center leading-tight",
-                isActive ? "font-semibold text-foreground" : isDone ? "font-medium text-foreground/50" : "font-normal text-muted-foreground/35"
-              )}>{s.label}</span>
-            </button>
-          );
-        })}
+        <SurfaceCard className="p-1.5">
+          <div className="flex items-stretch relative">
+            {steps.map((s, i) => {
+              const isActive = step === s.num;
+              const isDone = step > s.num;
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.num}
+                  onClick={() => setStep(s.num)}
+                  className={cn(
+                    "flex-1 flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 relative group",
+                    isActive && "bg-primary/10 dark:bg-primary/15",
+                    !isActive && "hover:bg-muted/50 dark:hover:bg-muted/20",
+                  )}
+                >
+                  {/* Step indicator */}
+                  <div className={cn(
+                    "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 shrink-0",
+                    isActive && "bg-primary text-primary-foreground shadow-md shadow-primary/30",
+                    isDone && "bg-primary/20 dark:bg-primary/25 text-primary",
+                    !isActive && !isDone && "bg-muted/50 dark:bg-muted/30 text-muted-foreground/50",
+                  )}>
+                    {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : <Icon className="w-4 h-4" />}
+                  </div>
+                  {/* Labels */}
+                  <div className="text-left min-w-0 hidden sm:block">
+                    <p className={cn(
+                      "text-[13px] font-semibold leading-tight transition-colors",
+                      isActive ? "text-foreground" : isDone ? "text-foreground/70" : "text-muted-foreground/50"
+                    )}>{s.label}</p>
+                    <p className={cn(
+                      "text-[11px] leading-tight mt-0.5 transition-colors",
+                      isActive ? "text-muted-foreground" : "text-muted-foreground/40"
+                    )}>{s.desc}</p>
+                  </div>
+                  {/* Connector line */}
+                  {i < steps.length - 1 && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-6 bg-border/30 dark:bg-border/20" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {/* Progress bar */}
+          <div className="mx-4 mt-1 mb-2">
+            <div className="h-1 rounded-full bg-muted/30 dark:bg-muted/20 overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
+                transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+              />
+            </div>
+          </div>
+        </SurfaceCard>
       </motion.div>
 
-      {/* Step content */}
-      {/* ===== STEP 1: Message ===== */}
-      {step === 1 && (
-        <motion.div 
-          key="step-1"
-          className="space-y-8"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          {/* Template selector */}
-          <div className="space-y-2.5">
-            <span className="text-[11px] text-muted-foreground/50 font-semibold uppercase tracking-[0.15em]">Estrutura da Mensagem</span>
-            <Select value={selectedTemplate} onValueChange={(val) => {
-              setSelectedTemplate(val);
-              if (val !== "nova") {
-                const tmpl = savedTemplates.find(t => t.id === val);
-                if (tmpl) {
-                  setMessage(tmpl.content);
-                  if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
-                  if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                    setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
-                    setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
-                  } else { setQuickReplyButtons([]); setCTAButtons([]); }
-                }
-              } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
-            }}>
-              <SelectTrigger className="h-11 text-sm font-medium bg-card/20 border-border/15 max-w-sm hover:border-border/30 transition-colors">
-                <SelectValue placeholder="Campanha Padrão" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border z-50">
-                <SelectItem value="nova">Campanha Padrão</SelectItem>
-                {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* ═══ Step Content ═══ */}
+      <AnimatePresence mode="wait">
+        {/* ===== STEP 1: Message ===== */}
+        {step === 1 && (
+          <motion.div 
+            key="step-1"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {/* Template + Campaign Name Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SurfaceCard className="p-5 space-y-3">
+                <SectionLabel>Modelo Base</SectionLabel>
+                <Select value={selectedTemplate} onValueChange={(val) => {
+                  setSelectedTemplate(val);
+                  if (val !== "nova") {
+                    const tmpl = savedTemplates.find(t => t.id === val);
+                    if (tmpl) {
+                      setMessage(tmpl.content);
+                      if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
+                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
+                        setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
+                        setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
+                      } else { setQuickReplyButtons([]); setCTAButtons([]); }
+                    }
+                  } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
+                }}>
+                  <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/30 border-border/30 hover:border-primary/40 transition-colors">
+                    <SelectValue placeholder="Campanha Padrão" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    <SelectItem value="nova">Campanha Padrão</SelectItem>
+                    {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </SurfaceCard>
 
-          {/* Media upload */}
-          {!mediaUrl ? (
-            <div>
-              <input
-                type="file"
-                ref={mediaFileRef}
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 20 * 1024 * 1024) {
-                    toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" });
-                    return;
-                  }
-                  setMediaUploading(true);
-                  try {
-                    const ext = file.name.split(".").pop() || "bin";
-                    const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-                    const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
-                    if (uploadError) throw uploadError;
-                    const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-                    setMediaUrl(urlData.publicUrl);
-                    setMediaFileName(file.name);
-                    toast({ title: "Mídia enviada!" });
-                  } catch (err: any) {
-                    toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
-                  } finally {
-                    setMediaUploading(false);
-                    if (mediaFileRef.current) mediaFileRef.current.value = "";
-                  }
-                }}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[11px] h-8 gap-1.5 text-muted-foreground/50 hover:text-muted-foreground"
-                onClick={() => mediaFileRef.current?.click()}
-                disabled={mediaUploading}
-              >
-                {mediaUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-                {mediaUploading ? "Enviando..." : "Adicionar Mídia"}
+              <SurfaceCard className="p-5 space-y-3">
+                <SectionLabel>Mídia</SectionLabel>
+                {!mediaUrl ? (
+                  <>
+                    <input type="file" ref={mediaFileRef} accept="image/*,video/*,audio/*,.pdf,.doc,.docx" className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 20 * 1024 * 1024) { toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" }); return; }
+                        setMediaUploading(true);
+                        try {
+                          const ext = file.name.split(".").pop() || "bin";
+                          const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                          const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+                          if (uploadError) throw uploadError;
+                          const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+                          setMediaUrl(urlData.publicUrl);
+                          setMediaFileName(file.name);
+                          toast({ title: "Mídia enviada!" });
+                        } catch (err: any) { toast({ title: "Erro no upload", description: err.message, variant: "destructive" }); }
+                        finally { setMediaUploading(false); if (mediaFileRef.current) mediaFileRef.current.value = ""; }
+                      }}
+                    />
+                    <button
+                      onClick={() => mediaFileRef.current?.click()}
+                      disabled={mediaUploading}
+                      className="w-full h-20 rounded-xl border-2 border-dashed border-border/40 dark:border-border/30 hover:border-primary/40 bg-muted/20 dark:bg-muted/10 flex flex-col items-center justify-center gap-1.5 transition-all hover:bg-primary/5 group"
+                    >
+                      {mediaUploading ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      ) : (
+                        <>
+                          <Image className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary/70 transition-colors" />
+                          <span className="text-[11px] text-muted-foreground/60 group-hover:text-foreground/70 transition-colors">Clique para adicionar mídia</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 dark:bg-muted/10 border border-border/20">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted/30 shrink-0">
+                      <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
+                        onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; }} />
+                    </div>
+                    <span className="text-[11px] text-muted-foreground truncate flex-1">{mediaFileName || "Mídia"}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive shrink-0" onClick={() => { setMediaUrl(""); setMediaFileName(""); }}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </SurfaceCard>
+            </div>
+
+            {/* Two-column: Editor + Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Editor column */}
+              <div className="lg:col-span-3 space-y-5">
+                <SurfaceCard className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <SectionLabel>Mensagem</SectionLabel>
+                    <span className={cn(
+                      "text-[11px] font-mono tabular-nums px-2 py-0.5 rounded-md",
+                      message.length > 1000 ? "bg-amber-500/10 text-amber-400" : "bg-muted/30 text-muted-foreground/50"
+                    )}>
+                      {message.length} chars
+                    </span>
+                  </div>
+
+                  {/* Toolbar */}
+                  <div className="flex items-center gap-0.5 p-1.5 rounded-xl bg-muted/30 dark:bg-muted/15 flex-wrap">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground hover:bg-background/60 font-medium rounded-lg">
+                          <FileText className="w-3.5 h-3.5" /> Variável
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
+                        {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
+                          <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                            onClick={() => insertAtCursor(v.tag)}>
+                            <span>{v.label}</span>
+                            <code className="text-[9px] text-muted-foreground">{v.tag}</code>
+                          </button>
+                        ))}
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
+                        {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
+                          <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                            onClick={() => insertAtCursor(`{{var${i + 1}}}`)}>
+                            <span>{v}</span>
+                            <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
+                          </button>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
+
+                    <div className="h-5 w-px bg-border/20 mx-0.5" />
+                    {[
+                      { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
+                      { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
+                      { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
+                      { icon: Code, label: "Código", wrap: ["```", "```"] },
+                    ].map(({ icon: Icon, label, wrap }) => (
+                      <Button key={label} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/50 hover:text-foreground hover:bg-background/60 rounded-lg transition-colors" title={label}
+                        onClick={() => wrapSelectedText(wrap[0], wrap[1])}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </Button>
+                    ))}
+                    <div className="h-5 w-px bg-border/20 mx-0.5" />
+
+                    <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/50 hover:text-foreground hover:bg-background/60 rounded-lg" title="Emoji">
+                          <Smile className="w-3.5 h-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] p-2 bg-popover border-border z-50" align="start">
+                        <div className="flex items-center gap-0.5 mb-2 border-b border-border/20 pb-1.5">
+                          {Object.keys(commonEmojis).map(cat => (
+                            <button key={cat} onClick={() => setEmojiCategory(cat)}
+                              className={cn("px-2 py-1 rounded text-[10px] transition-colors",
+                                emojiCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-accent"
+                              )}>{cat}</button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-8 gap-0.5">
+                          {(commonEmojis[emojiCategory as keyof typeof commonEmojis] || []).map(emoji => (
+                            <button key={emoji} className="w-7 h-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-base"
+                              onClick={() => { insertAtCursor(emoji); setShowEmojiPicker(false); }}>{emoji}</button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <Textarea
+                    ref={textareaRef}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Olá, {{nome}}.&#10;&#10;Escreva sua mensagem aqui..."
+                    rows={10}
+                    className="text-sm leading-[1.8] bg-muted/10 dark:bg-muted/5 border-border/20 resize-none focus-visible:ring-1 focus-visible:ring-primary/30 px-4 py-3 text-foreground/90 placeholder:text-muted-foreground/30 rounded-xl"
+                  />
+
+                  {/* Detected variables */}
+                  {detectedVars.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground/50 font-medium">Variáveis:</span>
+                      {detectedVars.map(v => (
+                        <span key={v} className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 dark:bg-primary/15 text-primary text-[10px] font-mono font-medium border border-primary/20">
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </SurfaceCard>
+
+                {/* ── Botões Interativos ── */}
+                <SurfaceCard className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <SectionLabel>Botões Interativos</SectionLabel>
+                    {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                        {quickReplyButtons.length + ctaButtons.length} ativo(s)
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {quickReplyButtons.map(btn => (
+                      <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/20 bg-muted/20 dark:bg-muted/10 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <MousePointerClick className="w-3 h-3 text-primary" />
+                            </div>
+                            <span className="text-[11px] font-semibold text-foreground/70">Resposta Rápida</span>
+                          </div>
+                          <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeQuickReply(btn.id)}>
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto exibido no botão" 
+                          className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/20 font-medium" maxLength={20} />
+                      </div>
+                    ))}
+
+                    {ctaButtons.map(btn => (
+                      <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/20 bg-muted/20 dark:bg-muted/10 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                              {btn.type === "url" ? <Link className="w-3 h-3 text-primary" /> : <Phone className="w-3 h-3 text-primary" />}
+                            </div>
+                            <span className="text-[11px] font-semibold text-foreground/70">{btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)"}</span>
+                          </div>
+                          <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeCTAButton(btn.id)}>
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto exibido" 
+                            className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/20 font-medium" maxLength={20} />
+                          <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} 
+                            className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/20 font-mono" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full h-11 gap-2 border-dashed border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all text-xs font-medium">
+                        <Plus className="w-4 h-4" /> Adicionar Botão
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
+                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={addQuickReply}>
+                        <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-foreground">Resposta Rápida</p>
+                          <p className="text-[10px] text-muted-foreground">Botão de resposta simples</p>
+                        </div>
+                      </button>
+                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("url")}>
+                        <Link className="w-3.5 h-3.5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-foreground">Link (URL)</p>
+                          <p className="text-[10px] text-muted-foreground">Abre um link no navegador</p>
+                        </div>
+                      </button>
+                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("phone")}>
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-foreground">Ligar (Telefone)</p>
+                          <p className="text-[10px] text-muted-foreground">Inicia uma ligação</p>
+                        </div>
+                      </button>
+                    </PopoverContent>
+                  </Popover>
+                </SurfaceCard>
+              </div>
+
+              {/* Preview column */}
+              <div className="lg:col-span-2 space-y-4">
+                <SectionLabel className="px-1">Preview WhatsApp</SectionLabel>
+                <div className="sticky top-4">
+                  <WhatsAppPreview />
+                  {/* Deliverability tip */}
+                  <div className="mt-4 flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/8 border border-amber-500/15">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-amber-400/80 leading-relaxed">Evite repetições excessivas e links suspeitos para melhorar a entregabilidade.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary action */}
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          ) : (
-            <div className="rounded-xl border border-border/15 bg-card/20 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
-                  <Image className="w-3.5 h-3.5" /> Mídia
-                </span>
-                <Button variant="ghost" size="sm" className="text-[10px] h-6 text-destructive/70 hover:text-destructive" onClick={() => { setMediaUrl(""); setMediaFileName(""); }}>
-                  <X className="w-3 h-3 mr-1" /> Remover
-                </Button>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-lg border border-border/15 overflow-hidden bg-muted/10 flex items-center justify-center shrink-0">
-                  <img src={mediaUrl} alt="preview" className="w-full h-full object-cover"
-                    onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.innerHTML = '<span class="text-[9px] text-muted-foreground/40">📎</span>'; }} />
-                </div>
-                <span className="text-[10px] text-muted-foreground/60 break-all line-clamp-2">{mediaFileName || mediaUrl}</span>
-              </div>
-            </div>
-          )}
+          </motion.div>
+        )}
 
-          {/* ── Editor de Mensagem ── */}
-          <div className="rounded-2xl border border-border/12 bg-[hsl(var(--card)/0.25)] p-6 space-y-5">
-            {/* Toolbar */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 text-[11px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-medium">
-                    <FileText className="w-3.5 h-3.5" /> Variável
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-1.5 bg-popover border-border z-50" align="start">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Contato</p>
-                  {[{ label: "Nome", tag: "{{nome}}" }, { label: "Número", tag: "{{numero}}" }].map(v => (
-                    <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => insertAtCursor(v.tag)}>
-                      <span>{v.label}</span>
-                      <code className="text-[9px] text-muted-foreground">{v.tag}</code>
-                    </button>
-                  ))}
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Personalizadas</p>
-                  {["Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"].map((v, i) => (
-                    <button key={v} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
-                      onClick={() => insertAtCursor(`{{var${i + 1}}}`)}>
-                      <span>{v}</span>
-                      <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-
-              <div className="h-4 w-px bg-border/10 mx-1" />
+        {/* ===== STEP 2: Contacts ===== */}
+        {step === 2 && (
+          <motion.div 
+            key="step-2"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: Bold, label: "Negrito", wrap: ["*", "*"] },
-                { icon: Italic, label: "Itálico", wrap: ["_", "_"] },
-                { icon: Strikethrough, label: "Tachado", wrap: ["~", "~"] },
-                { icon: Code, label: "Código", wrap: ["```", "```"] },
-              ].map(({ icon: Icon, label, wrap }) => (
-                <Button key={label} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground transition-colors" title={label}
-                  onClick={() => wrapSelectedText(wrap[0], wrap[1])}>
-                  <Icon className="w-3.5 h-3.5" />
-                </Button>
+                { label: "Carregados", value: validContacts.length, icon: Users, color: "text-primary" },
+                { label: "Inválidos", value: invalidContacts.length, icon: XCircle, color: invalidContacts.length > 0 ? "text-amber-400" : "text-muted-foreground" },
+                { label: "Duplicados", value: duplicateCount, icon: Copy, color: duplicateCount > 0 ? "text-amber-400" : "text-muted-foreground" },
+              ].map(m => (
+                <SurfaceCard key={m.label} className="p-5">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-muted/30 dark:bg-muted/15")}>
+                      <m.icon className={cn("w-5 h-5", m.color)} />
+                    </div>
+                    <div>
+                      <p className={cn("text-2xl font-bold tabular-nums", m.color)}>{m.value}</p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5">{m.label}</p>
+                    </div>
+                  </div>
+                </SurfaceCard>
               ))}
-              <div className="h-4 w-px bg-border/10 mx-1" />
-
-              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground" title="Emoji">
-                    <Smile className="w-3.5 h-3.5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[280px] p-2 bg-popover border-border z-50" align="start">
-                  <div className="flex items-center gap-0.5 mb-2 border-b border-border/20 pb-1.5">
-                    {Object.keys(commonEmojis).map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setEmojiCategory(cat)}
-                        className={cn(
-                          "px-2 py-1 rounded text-[10px] transition-colors",
-                          emojiCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-accent"
-                        )}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-8 gap-0.5">
-                    {(commonEmojis[emojiCategory as keyof typeof commonEmojis] || []).map(emoji => (
-                      <button
-                        key={emoji}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-base"
-                        onClick={() => { insertAtCursor(emoji); setShowEmojiPicker(false); }}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
 
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Olá, {{nome}}.&#10;&#10;Você está recebendo esta comunicação oficial do DG Contingência Pro.&#10;&#10;Caso deseje continuar recebendo atualizações e materiais estratégicos, utilize o botão abaixo."
-              rows={12}
-              className="text-[14px] leading-[1.8] bg-transparent border-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 text-foreground/90 placeholder:text-muted-foreground/25"
-            />
-
-            <div className="flex items-center justify-end pt-2 border-t border-border/8">
-              <span className="text-[10px] text-muted-foreground/30 font-mono tabular-nums">{message.length} caracteres</span>
-            </div>
-          </div>
-
-          {/* ── Botões Interativos ── */}
-          <div className="space-y-5 pt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] text-foreground/70 font-semibold uppercase tracking-[0.12em]">Botões Interativos</span>
-              {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-                <span className="text-[10px] text-muted-foreground/30">{quickReplyButtons.length + ctaButtons.length} configurado(s)</span>
-              )}
-            </div>
-            
-            {/* Button cards */}
-            <div className="space-y-3">
-              {quickReplyButtons.map(btn => (
-                <div key={btn.id} className="rounded-xl border border-border/12 bg-[hsl(var(--card)/0.2)] p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MousePointerClick className="w-3.5 h-3.5 text-primary/50" />
-                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.1em]">Resposta Rápida</span>
-                    </div>
-                    <button className="text-muted-foreground/20 hover:text-destructive transition-colors" onClick={() => removeQuickReply(btn.id)}>
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {/* WhatsApp-style preview */}
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center px-6 py-2 rounded-lg bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.15)] min-w-[140px]">
-                      <span className="text-[13px] font-medium text-primary">{btn.text || "Texto do botão"}</span>
-                    </div>
-                  </div>
-                  {/* Edit field */}
-                  <Input 
-                    value={btn.text} 
-                    onChange={(e) => updateQuickReply(btn.id, e.target.value)} 
-                    placeholder="Texto exibido no botão" 
-                    className="h-9 text-xs bg-background/10 border-border/8 font-medium" 
-                    maxLength={20} 
-                  />
+            {/* Import area - modern dropzone */}
+            <SurfaceCard className="p-5 space-y-4">
+              <SectionLabel>Importar Contatos</SectionLabel>
+              <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full py-8 rounded-xl border-2 border-dashed border-border/40 dark:border-border/25 hover:border-primary/40 bg-muted/10 dark:bg-muted/5 flex flex-col items-center justify-center gap-3 transition-all hover:bg-primary/5 group"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-5 h-5 text-primary" />
                 </div>
-              ))}
-
-              {ctaButtons.map(btn => (
-                <div key={btn.id} className="rounded-xl border border-border/12 bg-[hsl(var(--card)/0.2)] p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {btn.type === "url" ? <Link className="w-3.5 h-3.5 text-primary/50" /> : <Phone className="w-3.5 h-3.5 text-primary/50" />}
-                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.1em]">{btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)"}</span>
-                    </div>
-                    <button className="text-muted-foreground/20 hover:text-destructive transition-colors" onClick={() => removeCTAButton(btn.id)}>
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {/* WhatsApp-style preview */}
-                  <div className="flex justify-center">
-                    <div className="inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.15)] min-w-[140px]">
-                      {btn.type === "url" ? <Link className="w-3 h-3 text-primary/70" /> : <Phone className="w-3 h-3 text-primary/70" />}
-                      <span className="text-[13px] font-medium text-primary">{btn.text || "Texto do botão"}</span>
-                    </div>
-                  </div>
-                  {/* Edit fields */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input 
-                      value={btn.text} 
-                      onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} 
-                      placeholder="Texto exibido" 
-                      className="h-9 text-xs bg-background/10 border-border/8 font-medium" 
-                      maxLength={20} 
-                    />
-                    <Input 
-                      value={btn.value} 
-                      onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} 
-                      placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} 
-                      className="h-9 text-xs bg-background/10 border-border/8 font-mono" 
-                    />
-                  </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground/70 group-hover:text-foreground transition-colors">Arraste ou clique para importar</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-1">.xlsx, .xls, .csv — Detecção inteligente de colunas</p>
                 </div>
-              ))}
-            </div>
+              </button>
 
-            {/* Add button */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="text-[11px] h-9 gap-2 border-border/15 border-dashed text-muted-foreground/50 hover:text-foreground hover:border-border/30 w-full justify-center transition-all">
-                  <Plus className="w-3.5 h-3.5" /> Adicionar Novo Botão
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={() => setImportFromContacts(true)}>
+                  <Users className="w-3.5 h-3.5" /> Base de Contatos
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
-                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={addQuickReply}>
-                  <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Resposta Rápida</p>
-                    <p className="text-[10px] text-muted-foreground">Botão de resposta simples</p>
-                  </div>
-                </button>
-                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("url")}>
-                  <Link className="w-3.5 h-3.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Link (URL)</p>
-                    <p className="text-[10px] text-muted-foreground">Abre um link no navegador</p>
-                  </div>
-                </button>
-                <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("phone")}>
-                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Ligar (Telefone)</p>
-                    <p className="text-[10px] text-muted-foreground">Inicia uma ligação</p>
-                  </div>
-                </button>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Primary action */}
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-[13px] font-bold tracking-[0.08em] uppercase shadow-lg shadow-primary/20">
-              CONTINUAR <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ===== STEP 2: Contacts ===== */}
-      {step === 2 && (
-        <motion.div 
-          key="step-2"
-          className="space-y-6"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          {...fadeInUp}
-          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          {/* Summary card */}
-          <div className="rounded-lg border border-border/30 bg-card/40 p-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-xl font-semibold text-foreground">{validContacts.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Carregados</p>
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Manual
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={handleDownloadSample}>
+                  <Download className="w-3.5 h-3.5" /> Modelo
+                </Button>
+                {contacts.length > 0 && (
+                  <Popover open={showContactTools} onOpenChange={setShowContactTools}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground gap-1.5 ml-auto">
+                        <Settings2 className="w-3.5 h-3.5" /> Ferramentas
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-44 p-1 bg-popover border-border z-50" align="end">
+                      <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeDuplicates(); setShowContactTools(false); }}>
+                        <Copy className="w-3.5 h-3.5" /> Remover duplicados
+                      </button>
+                      <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeInvalid(); setShowContactTools(false); }}>
+                        <XCircle className="w-3.5 h-3.5" /> Limpar inválidos
+                      </button>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
-              <div>
-                <p className={cn("text-xl font-semibold", invalidContacts.length > 0 ? "text-amber-400" : "text-foreground")}>{invalidContacts.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Inválidos</p>
-              </div>
-              <div>
-                <p className={cn("text-xl font-semibold", duplicateCount > 0 ? "text-amber-400" : "text-foreground")}>{duplicateCount}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Duplicados</p>
-              </div>
-            </div>
-          </div>
+            </SurfaceCard>
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
-            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => fileRef.current?.click()}>
-              <Upload className="w-3 h-3" /> Importar
-            </Button>
-            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={() => setImportFromContacts(true)}>
-              <Users className="w-3 h-3" /> Importar Base de Contatos
-            </Button>
-            <Button variant="outline" size="sm" className="text-xs h-8 border-border/40 gap-1.5" onClick={addContact}>
-              <Plus className="w-3 h-3" /> Adicionar
-            </Button>
-
-            {/* Tools menu */}
-            {contacts.length > 0 && (
-              <Popover open={showContactTools} onOpenChange={setShowContactTools}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-xs h-8 text-muted-foreground gap-1">
-                    <Settings2 className="w-3 h-3" /> Ferramentas
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-44 p-1 bg-popover border-border z-50" align="start">
-                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeDuplicates(); setShowContactTools(false); }}>
-                    <Copy className="w-3 h-3" /> Remover duplicados
-                  </button>
-                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeInvalid(); setShowContactTools(false); }}>
-                    <XCircle className="w-3 h-3" /> Limpar inválidos
-                  </button>
-                  <button className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={handleDownloadSample}>
-                    <Download className="w-3 h-3" /> Baixar modelo
-                  </button>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-
-          {/* Manual phone input */}
-          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Phone className="w-3 h-3" /> Adicionar número manualmente</span>
-            <div className="flex items-center gap-2">
-              <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Nome (opcional)" className="h-8 text-xs bg-background/50 border-border/30 flex-1" />
-              <Input value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} placeholder="5511999999999" className="h-8 text-xs bg-background/50 border-border/30 flex-1 font-mono"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && manualPhone.trim()) {
+            {/* Manual phone input */}
+            <SurfaceCard className="p-5 space-y-3">
+              <SectionLabel className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> Adicionar Manualmente</SectionLabel>
+              <div className="flex items-center gap-3">
+                <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Nome (opcional)" className="h-10 text-sm bg-muted/20 dark:bg-muted/10 border-border/20 flex-1" />
+                <Input value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} placeholder="5511999999999" className="h-10 text-sm bg-muted/20 dark:bg-muted/10 border-border/20 flex-1 font-mono"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && manualPhone.trim()) {
+                      setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]);
+                      setManualPhone(""); setManualName(""); setShowContactTable(true);
+                    }
+                  }}
+                />
+                <Button className="h-10 px-5 text-sm gap-1.5 shrink-0" disabled={!manualPhone.trim()}
+                  onClick={() => {
                     setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]);
                     setManualPhone(""); setManualName(""); setShowContactTable(true);
-                  }
-                }}
-              />
-              <Button size="sm" className="h-8 text-xs gap-1 shrink-0" disabled={!manualPhone.trim()}
-                onClick={() => {
-                  setContacts(prev => [...prev, { id: Date.now(), nome: manualName.trim(), numero: manualPhone.trim(), var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]);
-                  setManualPhone(""); setManualName(""); setShowContactTable(true);
-                }}
-              >
-                <Plus className="w-3 h-3" /> Adicionar
+                  }}>
+                  <Plus className="w-4 h-4" /> Adicionar
+                </Button>
+              </div>
+            </SurfaceCard>
+
+            {/* Import from contacts modal */}
+            {importFromContacts && (
+              <SurfaceCard className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <SectionLabel>Importar da Base</SectionLabel>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImportFromContacts(false)}><X className="w-3.5 h-3.5" /></Button>
+                </div>
+                {allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allTags.map(tag => (
+                      <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                        className={cn("px-3 py-1.5 rounded-lg text-[11px] border transition-all font-medium",
+                          selectedContactTags.includes(tag) ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/20 border-border/30 text-muted-foreground hover:border-primary/20"
+                        )}>{tag}</button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {selectedContactTags.length > 0 ? `${savedContacts.filter(c => c.tags?.some(t => selectedContactTags.includes(t))).length} contatos` : `${savedContacts.length} contatos`}
+                  </span>
+                  <Button size="sm" className="h-9 px-5 text-xs font-medium" onClick={handleImportFromDB}>Importar</Button>
+                </div>
+              </SurfaceCard>
+            )}
+
+            {/* Contact table */}
+            {contacts.length > 0 && (
+              <SurfaceCard className="overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border/20 dark:border-border/10">
+                  <button onClick={() => setShowContactTable(!showContactTable)} className="text-xs text-muted-foreground flex items-center gap-1.5 hover:text-foreground transition-colors font-medium">
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", !showContactTable && "-rotate-90")} />
+                    {showContactTable ? "Ocultar lista" : "Mostrar lista"}
+                  </button>
+                  <Badge variant="secondary" className="text-[10px] h-5">{contacts.length} contato(s)</Badge>
+                </div>
+
+                {showContactTable && (
+                  <div>
+                    <div className="max-h-[320px] overflow-auto">
+                      <table className="w-full text-[11px]">
+                        <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_12%)] z-10">
+                          <tr className="border-b border-border/20">
+                            <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
+                            <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Nome</th>
+                            <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Número</th>
+                            {[1,2,3,4,5,6,7].map(n => (
+                              <th key={n} className="text-left px-2 py-2.5 text-muted-foreground font-semibold">V{n}</th>
+                            ))}
+                            <th className="text-center px-2 py-2.5 text-muted-foreground font-semibold w-12"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedContacts.map((contact, idx) => (
+                            <tr key={contact.id} className="border-b border-border/10 hover:bg-muted/10 dark:hover:bg-muted/5 group transition-colors">
+                              <td className="px-3 py-1.5 text-muted-foreground/40 tabular-nums">{contactPage * CONTACTS_PER_PAGE + idx + 1}</td>
+                              <td className="px-1 py-1"><Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="—" className="h-7 text-[11px] bg-transparent border-border/15 min-w-[80px] focus:bg-muted/20" /></td>
+                              <td className="px-1 py-1"><Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="—" className="h-7 text-[11px] font-mono bg-transparent border-border/15 min-w-[100px] focus:bg-muted/20" /></td>
+                              {(["var1","var2","var3","var4","var5","var6","var7"] as const).map(varKey => (
+                                <td key={varKey} className="px-1 py-1"><Input value={contact[varKey]} onChange={(e) => updateContact(contact.id, varKey, e.target.value)} placeholder="—" className="h-7 text-[11px] bg-transparent border-border/15 min-w-[60px] focus:bg-muted/20" /></td>
+                              ))}
+                              <td className="px-2 py-1 text-center">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all" onClick={() => removeContact(contact.id)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/15 bg-muted/10 dark:bg-muted/5">
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          {contactPage * CONTACTS_PER_PAGE + 1}–{Math.min((contactPage + 1) * CONTACTS_PER_PAGE, contacts.length)} de {contacts.length}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" className="h-7 text-[11px] px-3" disabled={contactPage === 0} onClick={() => setContactPage(p => p - 1)}>Anterior</Button>
+                          <Button variant="ghost" size="sm" className="h-7 text-[11px] px-3" disabled={contactPage >= totalPages - 1} onClick={() => setContactPage(p => p + 1)}>Próximo</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </SurfaceCard>
+            )}
+
+            {/* Empty state */}
+            {contacts.length === 0 && (
+              <SurfaceCard className="p-12 flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-muted/30 dark:bg-muted/15 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm text-muted-foreground font-medium">Nenhum contato adicionado</p>
+                <p className="text-[12px] text-muted-foreground/50">Importe uma planilha ou adicione manualmente acima</p>
+              </SurfaceCard>
+            )}
+
+            {invalidContacts.length > 0 && (
+              <div className="flex items-center gap-2.5 text-xs text-amber-400 bg-amber-500/8 border border-amber-500/15 rounded-xl px-4 py-3">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{invalidContacts.length} número(s) possivelmente inválido(s)</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
+              <Button onClick={() => setStep(3)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </div>
+          </motion.div>
+        )}
 
-
-
-          {/* Import from contacts modal */}
-          {importFromContacts && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-3">
+        {/* ===== STEP 3: Configuration ===== */}
+        {step === 3 && (
+          <motion.div
+            key="step-3"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {/* Instance Selection */}
+            <SurfaceCard className="p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground">Importar da lista de contatos</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setImportFromContacts(false)}><X className="w-3 h-3" /></Button>
-              </div>
-              {allTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {allTags.map(tag => (
-                    <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                      className={cn("px-2.5 py-1 rounded-full text-[10px] border transition-all",
-                        selectedContactTags.includes(tag) ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/20 border-border/40 text-muted-foreground"
-                      )}>{tag}</button>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">
-                  {selectedContactTags.length > 0 ? `${savedContacts.filter(c => c.tags?.some(t => selectedContactTags.includes(t))).length} contatos` : `${savedContacts.length} contatos`}
-                </span>
-                <Button size="sm" className="text-xs h-7" onClick={handleImportFromDB}>Importar</Button>
-              </div>
-            </div>
-          )}
-
-          {/* Contact table - compact, shown after data */}
-          {contacts.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <button onClick={() => setShowContactTable(!showContactTable)} className="text-[11px] text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors">
-                  <ChevronDown className={cn("w-3 h-3 transition-transform", !showContactTable && "-rotate-90")} />
-                  {showContactTable ? "Ocultar lista" : "Mostrar lista"}
-                </button>
-                <span className="text-[10px] text-muted-foreground">{contacts.length} linha(s)</span>
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" /> Instância de Envio
+                </SectionLabel>
+                {selectedDevices.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                    {selectedDevices.length} selecionada(s)
+                  </Badge>
+                )}
               </div>
 
-              {showContactTable && (
-                <div>
-                  <div className="max-h-[320px] overflow-auto rounded-lg border border-border/20 bg-card/20">
-                    <table className="w-full text-[11px]">
-                      <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
-                        <tr className="border-b border-border/20">
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">SN</th>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
-                          {[1,2,3,4,5,6,7].map(n => (
-                            <th key={n} className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var {n}</th>
-                          ))}
-                          <th className="text-center px-2 py-1.5 text-muted-foreground font-medium w-16">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedContacts.map((contact, idx) => (
-                          <tr key={contact.id} className="border-b border-border/10 hover:bg-muted/10 group">
-                            <td className="px-2 py-1 text-muted-foreground/50">{contactPage * CONTACTS_PER_PAGE + idx + 1}</td>
-                            <td className="px-1 py-1">
-                              <Input value={contact.nome} onChange={(e) => updateContact(contact.id, "nome", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[80px]" />
-                            </td>
-                            <td className="px-1 py-1">
-                              <Input value={contact.numero} onChange={(e) => updateContact(contact.id, "numero", e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] font-mono bg-transparent border-border/20 min-w-[100px]" />
-                            </td>
-                            {(["var1","var2","var3","var4","var5","var6","var7"] as const).map(varKey => (
-                              <td key={varKey} className="px-1 py-1">
-                                <Input value={contact[varKey]} onChange={(e) => updateContact(contact.id, varKey, e.target.value)} placeholder="Entre aqui" className="h-6 text-[11px] bg-transparent border-border/20 min-w-[70px]" />
-                              </td>
-                            ))}
-                            <td className="px-2 py-1 text-center">
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/40 hover:text-destructive" onClick={() => removeContact(contact.id)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {devices.length === 0 ? (
+                <div className="py-8 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-muted/30 dark:bg-muted/15 flex items-center justify-center">
+                    <WifiOff className="w-5 h-5 text-muted-foreground/40" />
                   </div>
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-2 px-1">
-                      <span className="text-[10px] text-muted-foreground">
-                        {contactPage * CONTACTS_PER_PAGE + 1}-{Math.min((contactPage + 1) * CONTACTS_PER_PAGE, contacts.length)} de {contacts.length}
+                  <p className="text-sm text-muted-foreground">Nenhuma instância conectada</p>
+                  <Button variant="outline" size="sm" className="text-xs h-9 border-border/30">Conectar agora</Button>
+                </div>
+              ) : (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-11 w-full justify-between text-sm bg-muted/20 dark:bg-muted/10 border-border/30 hover:border-primary/40 font-normal">
+                      <span className="truncate">
+                        {selectedDevices.length === 0 ? "Selecionar instância(s)" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
                       </span>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={contactPage === 0} onClick={() => setContactPage(p => p - 1)}>Anterior</Button>
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={contactPage >= totalPages - 1} onClick={() => setContactPage(p => p + 1)}>Próximo</Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2 space-y-1" align="start">
+                    <button onClick={() => { if (selectedDevices.length === devices.length) setSelectedDevices([]); else setSelectedDevices(devices.map(d => d.id)); }}
+                      className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors hover:bg-accent", selectedDevices.length === devices.length && "bg-accent")}>
+                      <Checkbox checked={selectedDevices.length === devices.length} className="h-4 w-4" />
+                      <span className="font-medium">Selecionar todas</span>
+                      <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
+                    </button>
+                    <div className="h-px bg-border/20 my-1" />
+                    {devices.map(d => {
+                      const s = getDeviceStatus(d.status);
+                      const isSelected = selectedDevices.includes(d.id);
+                      return (
+                        <button key={d.id} onClick={() => setSelectedDevices(prev => isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id])}
+                          className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors hover:bg-accent", isSelected && "bg-accent/60")}>
+                          <Checkbox checked={isSelected} className="h-4 w-4" />
+                          <div className={cn("w-2 h-2 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
+                          <span className="truncate">{d.name}</span>
+                          <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
+                        </button>
+                      );
+                    })}
+                  </PopoverContent>
+                </Popover>
               )}
-            </div>
-          )}
 
-          {/* Empty state */}
-          {contacts.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border/30 p-8 flex flex-col items-center gap-2 text-center">
-              <Users className="w-5 h-5 text-muted-foreground/40" />
-              <p className="text-xs text-muted-foreground">Nenhum contato adicionado</p>
-              <p className="text-[10px] text-muted-foreground/60">Importe uma planilha ou adicione manualmente</p>
-            </div>
-          )}
-
-          {invalidContacts.length > 0 && (
-            <div className="flex items-center gap-2 text-[11px] text-amber-400 bg-amber-500/5 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-3 h-3 shrink-0" />
-              <span>{invalidContacts.length} número(s) possivelmente inválido(s)</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-xs text-muted-foreground">Voltar</Button>
-            <Button onClick={() => setStep(3)} className="gap-1.5 h-9 px-5 text-xs font-medium">
-              Continuar <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ===== STEP 3: Configuration (Instance + Delay) ===== */}
-      {step === 3 && (
-        <div className="space-y-6">
-          {/* Instance (Multi-select) */}
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Instância{selectedDevices.length > 1 ? `s (${selectedDevices.length})` : ""}</Label>
-            {devices.length === 0 ? (
-              <div className="h-9 rounded-md border border-dashed border-border/40 bg-card/30 flex items-center justify-center gap-1.5 px-2">
-                <WifiOff className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">Nenhuma conectada</span>
-              </div>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-9 w-full justify-between text-xs bg-card/60 border-border/40 font-normal">
-                    <span className="truncate">
-                      {selectedDevices.length === 0 ? "Selecionar" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
-                    </span>
-                    <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2 space-y-1" align="start">
-                  <button
-                    onClick={() => {
-                      if (selectedDevices.length === devices.length) setSelectedDevices([]);
-                      else setSelectedDevices(devices.map(d => d.id));
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
-                      selectedDevices.length === devices.length && "bg-accent"
-                    )}
-                  >
-                    <Checkbox checked={selectedDevices.length === devices.length} className="h-3.5 w-3.5" />
-                    <span className="font-medium">Selecionar todas</span>
-                    <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
-                  </button>
-                  <div className="h-px bg-border/30 my-1" />
-                  {devices.map(d => {
-                    const s = getDeviceStatus(d.status);
-                    const isSelected = selectedDevices.includes(d.id);
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() => {
-                          setSelectedDevices(prev =>
-                            isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id]
-                          );
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors hover:bg-accent",
-                          isSelected && "bg-accent/60"
-                        )}
-                      >
-                        <Checkbox checked={isSelected} className="h-3.5 w-3.5" />
-                        <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
-                        <span className="truncate">{d.name}</span>
-                        <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
-                      </button>
-                    );
-                  })}
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-
-          {/* Instance card (when selected) */}
-          {selectedDeviceData && (
-            <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              {/* Instance card */}
+              {selectedDeviceData && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 dark:bg-muted/10 border border-border/15">
                   {selectedDeviceData.profile_picture ? (
-                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-8 h-8 rounded-lg object-cover" />
+                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-10 h-10 rounded-xl object-cover" />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center">
-                      <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center">
+                      <Smartphone className="w-4 h-4 text-muted-foreground" />
                     </div>
                   )}
-                  <div>
-                    <p className="text-xs font-medium text-foreground">{selectedDeviceData.number || selectedDeviceData.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{selectedDeviceData.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{selectedDeviceData.number || selectedDeviceData.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{selectedDeviceData.name}</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
                   {(() => {
                     const s = getDeviceStatus(selectedDeviceData.status);
                     const StatusIcon = s.icon;
                     return (
-                      <div className="flex items-center gap-1 text-[10px]">
-                        <StatusIcon className={cn("w-3 h-3", s.color)} />
+                      <div className="flex items-center gap-1.5 text-xs shrink-0">
+                        <StatusIcon className={cn("w-3.5 h-3.5", s.color)} />
                         <span className={s.color}>{s.label}</span>
                       </div>
                     );
                   })()}
                 </div>
-              </div>
-            </div>
-          )}
+              )}
+            </SurfaceCard>
 
-          {/* No instance warning */}
-          {devices.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border/40 bg-card/20 p-8 flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted/30 flex items-center justify-center">
-                <WifiOff className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">Nenhuma instância conectada</p>
-              <Button variant="outline" size="sm" className="text-xs h-8 border-border/40">
-                Conectar agora
-              </Button>
-            </div>
-          )}
-
-          {/* Send Control */}
-          <div className="space-y-3">
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Controle de Envio</Label>
-            <div className="rounded-lg border border-border/30 bg-card/40 p-4 space-y-5">
-
+            {/* Send Control Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Delay between messages */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Clock className="w-3 h-3" /> Intervalo entre mensagens</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+              <SurfaceCard className="p-5 space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-blue-400" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={minDelay} />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Intervalo</p>
+                    <p className="text-[10px] text-muted-foreground/60">Entre mensagens</p>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground/60">Intervalo aleatório entre {minDelay}s e {maxDelay}s a cada envio</p>
-              </div>
-
-              <div className="h-px bg-border/20" />
-
-              {/* Pause every X messages */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Zap className="w-3 h-3" /> Pausa a cada X mensagens</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">A cada (mín.)</label>
-                    <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+                <div className="space-y-3">
+                  <Slider value={[minDelay, maxDelay]} min={1} max={60} step={1}
+                    onValueChange={([a, b]) => { setMinDelay(a); setMaxDelay(b); }}
+                    className="py-1"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Mín (s)</label>
+                      <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={1} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Máx (s)</label>
+                      <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={minDelay} />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">A cada (máx.)</label>
-                    <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseEveryMin} />
+                  <p className="text-[10px] text-muted-foreground/50">{minDelay}s – {maxDelay}s a cada envio</p>
+                </div>
+              </SurfaceCard>
+
+              {/* Pause every X */}
+              <SurfaceCard className="p-5 space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Pausa</p>
+                    <p className="text-[10px] text-muted-foreground/60">A cada X mensagens</p>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground/60">Pausa aleatória entre cada {pauseEveryMin} a {pauseEveryMax} mensagens enviadas</p>
-              </div>
-
-              <div className="h-px bg-border/20" />
+                <div className="space-y-3">
+                  <Slider value={[pauseEveryMin, pauseEveryMax]} min={1} max={50} step={1}
+                    onValueChange={([a, b]) => { setPauseEveryMin(a); setPauseEveryMax(b); }}
+                    className="py-1"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Mín</label>
+                      <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={1} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Máx</label>
+                      <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={pauseEveryMin} />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50">A cada {pauseEveryMin}–{pauseEveryMax} msgs</p>
+                </div>
+              </SurfaceCard>
 
               {/* Pause duration */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Activity className="w-3 h-3" /> Duração da pausa</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">De (segundos)</label>
-                    <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={1} />
+              <SurfaceCard className="p-5 space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <Activity className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Até (segundos)</label>
-                    <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-8 text-xs bg-background/50 border-border/30" min={pauseDurationMin} />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Duração</p>
+                    <p className="text-[10px] text-muted-foreground/60">Tempo da pausa</p>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground/60">Pausa de {pauseDurationMin}s a {pauseDurationMax}s quando atingir o limite</p>
-              </div>
-
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-xs text-muted-foreground">Voltar</Button>
-            <Button onClick={() => setStep(4)} className="gap-1.5 h-9 px-5 text-xs font-medium">
-              Continuar <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* ===== STEP 4: Final Config + Review ===== */}
-      {step === 4 && (
-        <div className="space-y-6">
-          {/* Campaign name */}
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Nome da campanha</Label>
-            <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Ex: Black Friday 2025" className="h-9 text-sm bg-card/60 border-border/40" />
-          </div>
-
-          {/* Schedule toggle */}
-          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Agendar envio</span>
-              <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
-            </div>
-            {scheduleEnabled && (
-              <div className="mt-3">
-                <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-8 text-xs bg-background/50 border-border/30" />
-              </div>
-            )}
-          </div>
-
-          {/* Review summary */}
-          <div className="rounded-lg border border-border/30 bg-card/40 p-5 space-y-4">
-            <span className="text-xs font-medium text-foreground flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-muted-foreground" /> Revisão</span>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4">
-              {[
-                { label: "Instância(s)", value: selectedDevicesData.length > 0 ? selectedDevicesData.map(d => d.name).join(", ") : "—" },
-                { label: "Contatos", value: String(validContacts.length) },
-                { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s` },
-                { label: "Pausa", value: `A cada ${pauseEveryMin}–${pauseEveryMax} msgs · ${pauseDurationMin}s–${pauseDurationMax}s` },
-                { label: "Risco", value: risk.label, className: risk.color },
-              ].map(item => (
-                <div key={item.label} className="space-y-0.5">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">{item.label}</p>
-                  <p className={cn("text-sm font-medium text-foreground", (item as any).className)}>{item.value}</p>
+                <div className="space-y-3">
+                  <Slider value={[pauseDurationMin, pauseDurationMax]} min={1} max={300} step={5}
+                    onValueChange={([a, b]) => { setPauseDurationMin(a); setPauseDurationMax(b); }}
+                    className="py-1"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Mín (s)</label>
+                      <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={1} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium">Máx (s)</label>
+                      <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/20 dark:bg-muted/10 border-border/20 tabular-nums" min={pauseDurationMin} />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50">{pauseDurationMin}s – {pauseDurationMax}s de pausa</p>
                 </div>
-              ))}
+              </SurfaceCard>
             </div>
 
-            {/* Message preview */}
-            <div className="space-y-1">
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">Mensagem</p>
-              <div className="p-3 rounded-md bg-background/30 max-h-28 overflow-y-auto">
-                <p className="text-xs text-foreground/70 whitespace-pre-wrap leading-relaxed">
-                  {message || <span className="text-muted-foreground/50 italic">Vazia</span>}
+            {/* Risk indicator */}
+            <SurfaceCard className={cn("p-4 flex items-center gap-3", risk.bg, risk.borderColor)}>
+              <Shield className={cn("w-5 h-5", risk.color)} />
+              <div>
+                <p className={cn("text-sm font-semibold", risk.color)}>Risco: {risk.label}</p>
+                <p className="text-[11px] text-muted-foreground/70">
+                  {risk.label === "Baixo" ? "Configuração segura para envio em massa." : risk.label === "Médio" ? "Intervalos curtos podem gerar bloqueios." : "Alto risco de bloqueio. Aumente os intervalos."}
                 </p>
               </div>
+            </SurfaceCard>
+
+            <div className="flex items-center justify-between pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
+              <Button onClick={() => setStep(4)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ===== STEP 4: Review & Launch ===== */}
+        {step === 4 && (
+          <motion.div
+            key="step-4"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {/* Campaign name */}
+            <SurfaceCard className="p-5 space-y-3">
+              <SectionLabel>Nome da Campanha</SectionLabel>
+              <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Ex: Black Friday 2025" 
+                className="h-12 text-base font-medium bg-muted/20 dark:bg-muted/10 border-border/20 focus-visible:ring-primary/30" />
+            </SurfaceCard>
+
+            {/* Schedule */}
+            <SurfaceCard className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Agendar envio</p>
+                    <p className="text-[11px] text-muted-foreground/60">Definir data e hora de início</p>
+                  </div>
+                </div>
+                <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+              </div>
+              {scheduleEnabled && (
+                <div className="mt-4 pl-12">
+                  <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-10 text-sm bg-muted/20 dark:bg-muted/10 border-border/20 max-w-xs" />
+                </div>
+              )}
+            </SurfaceCard>
+
+            {/* Review panel */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Technical summary */}
+              <SurfaceCard className="lg:col-span-3 p-6 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-bold text-foreground">Resumo Técnico</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: "Instância(s)", value: selectedDevicesData.length > 0 ? selectedDevicesData.map(d => d.name).join(", ") : "—", icon: Smartphone },
+                    { label: "Contatos", value: String(validContacts.length), icon: Users },
+                    { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s`, icon: Clock },
+                    { label: "Pausa", value: `${pauseEveryMin}–${pauseEveryMax} msgs`, icon: Zap },
+                    { label: "Duração Pausa", value: `${pauseDurationMin}s – ${pauseDurationMax}s`, icon: Activity },
+                    { label: "Risco", value: risk.label, icon: Shield, valueClass: risk.color },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/15 dark:bg-muted/8">
+                      <item.icon className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold">{item.label}</p>
+                        <p className={cn("text-sm font-semibold text-foreground mt-0.5", (item as any).valueClass)}>{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Warnings */}
+                {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
+                  <div className="flex items-center gap-3 text-sm text-destructive bg-destructive/8 border border-destructive/15 rounded-xl px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>
+                      {!campaignName && "Nome ausente. "}
+                      {selectedDevices.length === 0 && "Sem instância. "}
+                      {validContacts.length === 0 && "Sem contatos. "}
+                      {!message && "Mensagem vazia."}
+                    </span>
+                  </div>
+                )}
+              </SurfaceCard>
+
+              {/* Message preview */}
+              <div className="lg:col-span-2 space-y-3">
+                <SectionLabel className="px-1">Preview</SectionLabel>
+                <WhatsAppPreview />
+              </div>
             </div>
 
-            {/* Warnings */}
-            {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
-              <div className="flex items-center gap-2 text-[11px] text-destructive bg-destructive/5 rounded-md px-3 py-2">
-                <AlertTriangle className="w-3 h-3 shrink-0" />
-                <span>
-                  {!campaignName && "Nome ausente. "}
-                  {selectedDevices.length === 0 && "Sem instância. "}
-                  {validContacts.length === 0 && "Sem contatos. "}
-                  {!message && "Mensagem vazia."}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-xs text-muted-foreground">Voltar</Button>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-xs h-9 border-border/40 gap-1.5" onClick={() => setStep(3)}>
-                <Eye className="w-3 h-3" /> Pré-visualizar
-              </Button>
+            {/* Action buttons */}
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
               <Button
-                className="gap-2.5 h-12 px-12 text-[13px] font-bold tracking-[0.1em] uppercase shadow-lg shadow-primary/25"
+                className="gap-3 h-14 px-14 text-[15px] font-bold tracking-[0.08em] uppercase shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-200"
                 onClick={handleSendCampaign}
                 disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
                 {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Import Progress Bar */}
       {importProgress !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="w-80 rounded-xl border border-border/40 bg-card p-6 shadow-lg space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <SurfaceCard className="w-80 p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
               <Upload className="w-4 h-4 animate-pulse text-primary" />
               Processando arquivo...
             </div>
             <Progress value={importProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-center">{importProgress}%</p>
-          </div>
+            <p className="text-xs text-muted-foreground text-center tabular-nums">{importProgress}%</p>
+          </SurfaceCard>
         </div>
       )}
 
@@ -1352,64 +1494,61 @@ const Campaigns = () => {
       <Dialog open={!!previewContacts} onOpenChange={(open) => !open && setPreviewContacts(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-sm font-semibold">Preview da Importação</DialogTitle>
+            <DialogTitle className="text-base font-bold">Preview da Importação</DialogTitle>
           </DialogHeader>
           {previewContacts && (
             <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-              {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
-                  <p className="text-lg font-semibold text-foreground">{previewContacts.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Total</p>
-                </div>
-                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
-                  <p className="text-lg font-semibold text-foreground">{previewContacts.filter(c => /^\d{10,15}$/.test(c.numero)).length}</p>
-                  <p className="text-[10px] text-muted-foreground">Válidos</p>
-                </div>
-                <div className="rounded-lg border border-border/30 bg-card/40 p-3 text-center">
-                  <p className="text-lg font-semibold text-foreground">{new Set(previewContacts.map(c => c.numero)).size}</p>
-                  <p className="text-[10px] text-muted-foreground">Únicos</p>
-                </div>
+                {[
+                  { label: "Total", value: previewContacts.length },
+                  { label: "Válidos", value: previewContacts.filter(c => /^\d{10,15}$/.test(c.numero)).length },
+                  { label: "Únicos", value: new Set(previewContacts.map(c => c.numero)).size },
+                ].map(s => (
+                  <SurfaceCard key={s.label} className="p-4 text-center">
+                    <p className="text-xl font-bold text-foreground tabular-nums">{s.value}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
+                  </SurfaceCard>
+                ))}
               </div>
 
-              {/* Sample rows */}
-              <div className="flex-1 overflow-auto rounded-lg border border-border/20 bg-card/20">
+              <div className="flex-1 overflow-auto rounded-xl border border-border/20 bg-muted/10 dark:bg-muted/5">
                 <table className="w-full text-[11px]">
-                  <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
+                  <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_12%)] z-10">
                     <tr className="border-b border-border/20">
-                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium w-8">#</th>
-                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Nome</th>
-                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Número</th>
-                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var 1</th>
-                      <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Var 2</th>
+                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
+                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Nome</th>
+                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Número</th>
+                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Var 1</th>
+                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Var 2</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previewContacts.slice(0, 10).map((c, i) => (
                       <tr key={c.id} className="border-b border-border/10">
-                        <td className="px-2 py-1 text-muted-foreground/50">{i + 1}</td>
-                        <td className="px-2 py-1 text-foreground">{c.nome || "—"}</td>
-                        <td className="px-2 py-1 font-mono text-foreground">{c.numero}</td>
-                        <td className="px-2 py-1 text-muted-foreground">{c.var1 || "—"}</td>
-                        <td className="px-2 py-1 text-muted-foreground">{c.var2 || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{i + 1}</td>
+                        <td className="px-3 py-2 text-foreground">{c.nome || "—"}</td>
+                        <td className="px-3 py-2 font-mono text-foreground">{c.numero}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{c.var1 || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{c.var2 || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {previewContacts.length > 10 && (
-                  <p className="text-[10px] text-muted-foreground text-center py-2">
+                  <p className="text-[11px] text-muted-foreground text-center py-3">
                     ...e mais {previewContacts.length - 10} contatos
                   </p>
                 )}
               </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPreviewContacts(null)} className="h-10">Cancelar</Button>
+                <Button onClick={confirmPreviewImport} className="h-10 px-6 font-semibold gap-1.5">
+                  <Check className="w-4 h-4" /> Confirmar Importação
+                </Button>
+              </DialogFooter>
             </div>
           )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => setPreviewContacts(null)}>Cancelar</Button>
-            <Button size="sm" className="text-xs gap-1.5" onClick={confirmPreviewImport}>
-              <CheckCircle2 className="w-3 h-3" /> Confirmar importação
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
