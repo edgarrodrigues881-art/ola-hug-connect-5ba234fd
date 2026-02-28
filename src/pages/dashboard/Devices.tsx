@@ -42,9 +42,9 @@ interface Device {
 }
 
 const statusConfig = {
-  Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Online", badgeClass: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", dot: "bg-emerald-500 animate-pulse" },
-  Disconnected: { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", label: "Offline", badgeClass: "bg-red-500/15 text-red-500 border-red-500/30", dot: "bg-red-400" },
-  Loading: { icon: Loader2, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "Connecting", badgeClass: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30", dot: "bg-yellow-500 animate-pulse" },
+  Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Conectado", badgeClass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", dot: "bg-emerald-500" },
+  Disconnected: { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", label: "Desconectado", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
+  Loading: { icon: Loader2, color: "text-amber-500", bg: "bg-amber-500/10", label: "Conectando", badgeClass: "bg-amber-500/15 text-amber-500 border-amber-500/30", dot: "bg-amber-500 animate-pulse" },
 };
 
 const Devices = () => {
@@ -712,23 +712,25 @@ const Devices = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dispositivos ({devices.length})</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus números conectados</p>
+          <h1 className="text-xl font-bold text-foreground">Instâncias</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {devices.filter(d => d.status === "Ready").length} conectada{devices.filter(d => d.status === "Ready").length !== 1 ? "s" : ""} · {devices.filter(d => d.status === "Disconnected").length} offline · {devices.length} total
+          </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {selectedDevices.length > 0 && (
-            <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setDeleteSelectedOpen(true)}>
-              <Trash2 className="w-3.5 h-3.5" /> Apagar {selectedDevices.length} selecionada{selectedDevices.length !== 1 ? "s" : ""}
+            <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
+              <Trash2 className="w-3 h-3" /> {selectedDevices.length}
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-1.5 text-xs bg-primary hover:bg-primary/90">
-                <Plus className="w-3.5 h-3.5" /> Criar instância <ChevronDown className="w-3 h-3 ml-0.5" />
+              <Button size="sm" className="gap-1 text-xs h-7">
+                <Plus className="w-3 h-3" /> Criar <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -743,7 +745,7 @@ const Devices = () => {
           <Button
             size="sm"
             variant="outline"
-            className="gap-1.5 text-xs"
+            className="gap-1 text-xs h-7"
             disabled={syncLoading}
             onClick={async () => {
               setSyncLoading(true);
@@ -759,25 +761,19 @@ const Devices = () => {
 
                 const result = response.data;
                 const found = result.devices?.filter((d: any) => d.found).length || 0;
-                const notFound = result.devices?.filter((d: any) => !d.found).length || 0;
-                const proxiesUpdated = result.proxiesUpdated || 0;
 
                 queryClient.invalidateQueries({ queryKey: ["devices"] });
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
 
-                toast({
-                  title: "Sincronizado!",
-                  description: `${found} instância(s) encontrada(s), ${notFound} não encontrada(s), ${proxiesUpdated} proxy(s) atualizada(s).`,
-                });
+                toast({ title: `Sincronizado. ${found} encontrada(s).` });
               } catch (err: any) {
-                console.error("Sync error:", err);
-                toast({ title: "Erro ao sincronizar", description: err?.message || "Verifique sua configuração.", variant: "destructive" });
+                toast({ title: "Erro ao sincronizar", description: err?.message, variant: "destructive" });
               } finally {
                 setSyncLoading(false);
               }
             }}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncLoading ? "animate-spin" : ""}`} /> {syncLoading ? "Sincronizando..." : "Sincronizar"}
+            <RefreshCw className={`w-3 h-3 ${syncLoading ? "animate-spin" : ""}`} /> Sincronizar
           </Button>
         </div>
       </div>
@@ -790,14 +786,14 @@ const Devices = () => {
               setSelectedDevices(checked ? devices.map(d => d.id) : []);
             }}
           />
-          <span className="text-xs text-muted-foreground">
-            {selectedDevices.length === devices.length ? "Desmarcar todas" : "Selecionar todas"} ({selectedDevices.length}/{devices.length})
+          <span className="text-[11px] text-muted-foreground">
+            {selectedDevices.length === devices.length ? "Desmarcar" : "Selecionar todas"} ({selectedDevices.length}/{devices.length})
           </span>
         </div>
       )}
 
       {/* Device grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {devices.map((d, index) => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
@@ -809,18 +805,17 @@ const Devices = () => {
           return (
             <Card
               key={d.id}
-              className={`border bg-card/50 backdrop-blur-sm transition-shadow duration-100 hover:shadow-lg ${isSelected ? "ring-2 ring-primary" : ""}`}
+              className={`border-border/15 bg-card/50 transition-shadow duration-100 hover:shadow-md ${isSelected ? "ring-1 ring-primary" : ""}`}
             >
               <CardContent className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 pt-4 pb-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                  <div className="flex items-center gap-2.5">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleSelectDevice(d.id)}
                     />
-                    {/* Enhanced avatar */}
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center relative overflow-hidden ring-1 ring-white/[0.05] shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center relative overflow-hidden shrink-0">
                       {d.profile_picture ? (
                         <>
                           <img
@@ -833,16 +828,14 @@ const Devices = () => {
                               if (fallback) (fallback as HTMLElement).style.display = "block";
                             }}
                           />
-                          <span className="text-sm font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
+                          <span className="text-xs font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
                         </>
                       ) : (
-                        <span className="text-sm font-bold text-muted-foreground">{initials}</span>
+                        <span className="text-xs font-bold text-muted-foreground">{initials}</span>
                       )}
-                      {/* Pulsating status dot */}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${sc.dot}`} />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${sc.dot}`} />
                     </div>
                     <div className="min-w-0">
-                      {/* Inline editable name */}
                       {isEditing ? (
                         <input
                           ref={inlineInputRef}
@@ -853,72 +846,67 @@ const Devices = () => {
                             if (e.key === "Enter") commitInlineEdit();
                             if (e.key === "Escape") setInlineEditId(null);
                           }}
-                          className="text-sm font-semibold text-foreground bg-transparent border-b border-primary outline-none w-full leading-tight"
+                          className="text-[13px] font-medium text-foreground bg-transparent border-b border-primary outline-none w-full"
                         />
                       ) : (
                         <p
-                          className="text-sm font-semibold text-foreground leading-tight cursor-pointer hover:text-primary transition-colors truncate"
+                          className="text-[13px] font-medium text-foreground cursor-pointer hover:text-primary transition-colors truncate"
                           onClick={() => startInlineEdit(d)}
-                          title="Clique para renomear"
                         >
                           {d.name}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground truncate">
-                        {d.profile_name && d.profile_name !== d.name ? (
-                          <>{d.profile_name} · {d.number || "Sem número"}</>
-                        ) : (
-                          d.number || "Sem número"
-                        )}
+                      <p className="text-[11px] text-muted-foreground/60 truncate">
+                        {d.number || "Sem número"}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={`text-[10px] font-medium ${sc.badgeClass}`}>
+                  <Badge variant="outline" className={`text-[10px] ${sc.badgeClass}`}>
                     {sc.label}
                   </Badge>
                 </div>
 
-                {/* Info row with uptime */}
-                <div className="px-5 pb-3 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
-                  <span className="flex items-center gap-1" title="Tempo desde criação">
-                    <Smartphone className="w-3 h-3" /> {uptime}
+                {/* Info row */}
+                <div className="px-4 pb-2 flex items-center gap-2.5 text-[10px] text-muted-foreground/50 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Smartphone className="w-2.5 h-2.5" /> {uptime}
                   </span>
                   {assignedProxy && (
                     <span className="flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> {assignedProxy.label}
+                      <Shield className="w-2.5 h-2.5" /> Proxy
                     </span>
                   )}
                   {d.has_api_config && (
                     <span className="flex items-center gap-1">
-                      <Key className="w-3 h-3" /> Configurado
+                      <Key className="w-2.5 h-2.5" /> API
                     </span>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="border-t border-border/40 px-5 py-3 flex items-center gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1" onClick={() => openEdit(d)}>
+                <div className="border-t border-border/15 px-4 py-2 flex items-center gap-1.5">
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] flex-1" onClick={() => openEdit(d)}>
                     <Pencil className="w-3 h-3" /> Editar
                   </Button>
                   {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openProfileEdit(d)}>
+                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px]" onClick={() => openProfileEdit(d)}>
                       <UserCircle className="w-3 h-3" /> Perfil
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openQuickToken(d)}>
-                    <Key className="w-3 h-3" /> Token
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px]" onClick={() => openQuickToken(d)}>
+                    <Key className="w-3 h-3" />
                   </Button>
                   {d.status === "Disconnected" && (
-                    <Button size="sm" className="h-8 gap-1.5 text-xs flex-1 bg-primary hover:bg-primary/90" onClick={() => openConnect(d)}>
+                    <Button size="sm" className="h-7 gap-1 text-[11px] flex-1" onClick={() => openConnect(d)}>
                       <Link2 className="w-3 h-3" /> Conectar
                     </Button>
                   )}
                   {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs flex-1 text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
+                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
                       <Power className="w-3 h-3" /> Sair
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={() => {
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => {
                     if (d.status === "Ready") {
                       setDeleteSingleDevice(d);
                       setDeleteSingleOpen(true);
@@ -926,7 +914,7 @@ const Devices = () => {
                       handleDelete(d.id);
                     }
                   }}>
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
               </CardContent>
@@ -937,19 +925,26 @@ const Devices = () => {
 
       {/* Create Instance Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Criar instância</DialogTitle>
+            <DialogTitle className="text-base">Nova instância</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-2">
-            <div className="space-y-2">
-              <Label className="text-xs text-destructive">*Nome da instância</Label>
-              <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Nome</Label>
+              <Input
+                value={instanceName}
+                onChange={e => setInstanceName(e.target.value)}
+                placeholder="Ex: Chip 01"
+                className="h-8 text-xs"
+                autoFocus
+                onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} className="bg-primary hover:bg-primary/90">Criar</Button>
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCreate} disabled={!instanceName.trim()}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1252,29 +1247,29 @@ const Devices = () => {
 
       {/* Bulk create dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Instâncias em massa</DialogTitle>
+            <DialogTitle className="text-base">Criar em massa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label className="text-foreground">Prefixo do nome</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Prefixo do nome</Label>
               <Input
                 value={bulkPrefix}
                 onChange={e => setBulkPrefix(e.target.value)}
                 placeholder="Ex: Instância"
-                className="mt-1"
+                className="h-8 text-xs"
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Cada instância será nomeada como "{bulkPrefix} 1", "{bulkPrefix} 2", etc.</p>
+              <p className="text-[10px] text-muted-foreground/50">Resultado: "{bulkPrefix} 1", "{bulkPrefix} 2", etc.</p>
             </div>
-            <div>
-              <Label className="text-foreground mb-2 block">Selecione as proxies ({bulkSelectedProxies.length} selecionadas)</Label>
-              <div className="max-h-[240px] overflow-y-auto space-y-1 border border-border rounded-lg p-2">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Proxies ({bulkSelectedProxies.length})</Label>
+              <div className="max-h-[200px] overflow-y-auto space-y-0.5 border border-border/20 rounded-lg p-1.5">
                 {availableProxies.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma proxy disponível</p>
+                  <p className="text-[11px] text-muted-foreground text-center py-3">Nenhuma proxy disponível</p>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                    <div className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
                       onClick={() => {
                         if (bulkSelectedProxies.length === availableProxies.length) {
                           setBulkSelectedProxies([]);
@@ -1284,64 +1279,56 @@ const Devices = () => {
                       }}
                     >
                       <Checkbox checked={bulkSelectedProxies.length === availableProxies.length} />
-                      <span className="text-xs font-medium text-foreground">Selecionar todas</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1.5">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={availableProxies.length}
-                        placeholder="Qtd"
-                        className="h-7 w-20 text-xs"
-                        onChange={e => {
-                          const num = parseInt(e.target.value);
-                          if (!isNaN(num) && num >= 0) {
-                            setBulkSelectedProxies(availableProxies.slice(0, Math.min(num, availableProxies.length)).map(p => p.id));
-                          } else if (e.target.value === "") {
-                            setBulkSelectedProxies([]);
-                          }
-                        }}
-                      />
-                      <span className="text-[11px] text-muted-foreground">Selecionar as primeiras N proxies</span>
+                      <span className="text-[11px] font-medium">Todas</span>
                     </div>
                     {availableProxies.map(p => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                        className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
                         onClick={() => toggleBulkProxy(p.id)}
                       >
                         <div className="flex items-center gap-2">
                           <Checkbox checked={bulkSelectedProxies.includes(p.id)} />
-                          <Shield className="w-3 h-3 text-primary" />
-                          <span className="text-xs text-foreground">{p.label}</span>
+                          <span className="text-[11px]">{p.label}</span>
                         </div>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
-                          {p.status}
-                        </Badge>
                       </div>
                     ))}
                   </>
                 )}
               </div>
             </div>
-            <div>
-              <Label className="text-foreground mb-1 block">Sem proxy</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Sem proxy</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
                   min={0}
                   value={bulkNoProxyCount}
                   onChange={e => setBulkNoProxyCount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="h-8 w-20 text-xs"
+                  className="h-7 w-16 text-xs"
                 />
-                <span className="text-[11px] text-muted-foreground">instância{bulkNoProxyCount !== 1 ? "s" : ""} sem proxy</span>
+                <span className="text-[10px] text-muted-foreground/50">extra sem proxy</span>
               </div>
             </div>
+
+            {/* Summary */}
+            {(bulkSelectedProxies.length + bulkNoProxyCount) > 0 && (
+              <div className="p-2.5 rounded-lg bg-muted/10 border border-border/15">
+                <p className="text-[12px] text-foreground font-medium">
+                  {bulkSelectedProxies.length + bulkNoProxyCount} instância{(bulkSelectedProxies.length + bulkNoProxyCount) !== 1 ? "s" : ""} serão criadas
+                </p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                  {bulkSelectedProxies.length > 0 && `${bulkSelectedProxies.length} com proxy`}
+                  {bulkSelectedProxies.length > 0 && bulkNoProxyCount > 0 && " · "}
+                  {bulkNoProxyCount > 0 && `${bulkNoProxyCount} sem proxy`}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancelar</Button>
-            <Button onClick={handleBulkCreate} disabled={bulkSelectedProxies.length + bulkNoProxyCount === 0} className="bg-primary hover:bg-primary/90">
-              Criar {bulkSelectedProxies.length + bulkNoProxyCount} instância{(bulkSelectedProxies.length + bulkNoProxyCount) !== 1 ? "s" : ""}
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleBulkCreate} disabled={bulkSelectedProxies.length + bulkNoProxyCount === 0}>
+              Criar {bulkSelectedProxies.length + bulkNoProxyCount}
             </Button>
           </DialogFooter>
         </DialogContent>
