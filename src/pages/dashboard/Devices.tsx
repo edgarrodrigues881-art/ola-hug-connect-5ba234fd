@@ -872,123 +872,111 @@ const Devices = () => {
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const isSelected = selectedDevices.includes(d.id);
           const isEditing = inlineEditId === d.id;
-          const initials = (d.number || d.name).replace(/\D/g, "").slice(-2) || "?";
           const lastActivity = formatDistanceToNow(new Date(d.updated_at || d.created_at), { locale: ptBR, addSuffix: true });
-          const isWarming = warmupDeviceIds.has(d.id);
-          const hasError = !d.has_api_config && d.status === "Disconnected";
+          const hadPreviousConnection = !!d.number;
+          const neverConnected = !d.number && d.status === "Disconnected";
 
-          // Health: green if online+proxy+api, yellow if online but missing something, red if offline
-          const healthColor = d.status === "Ready"
-            ? (d.has_api_config && assignedProxy ? "bg-emerald-500" : "bg-amber-400")
-            : "bg-red-400";
+          // Status badge logic
+          let badgeLabel = sc.label;
+          let badgeClass = sc.badgeClass;
+          if (neverConnected) {
+            badgeLabel = "Nunca conectado";
+            badgeClass = "bg-muted/20 text-muted-foreground/60 border-border/20";
+          }
+
+          // Connection button logic
+          let connectionButton: React.ReactNode = null;
+          if (d.status === "Ready") {
+            connectionButton = (
+              <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openLogout(d)}>
+                <Power className="w-2.5 h-2.5" /> Desconectar
+              </Button>
+            );
+          } else if (hadPreviousConnection) {
+            connectionButton = (
+              <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
+                <RefreshCw className="w-2.5 h-2.5" /> Reconectar
+              </Button>
+            );
+          } else {
+            connectionButton = (
+              <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
+                <Link2 className="w-2.5 h-2.5" /> Conectar
+              </Button>
+            );
+          }
 
           return (
             <Card
               key={d.id}
-              className={`border-border/10 bg-card/40 hover:bg-card/60 transition-colors ${isSelected ? "ring-1 ring-primary" : ""}`}
+              className={`border-border/10 bg-card/40 ${isSelected ? "ring-1 ring-primary" : ""}`}
             >
               <CardContent className="p-0">
-                {/* Top row: checkbox + avatar + name + status */}
-                <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => toggleSelectDevice(d.id)}
-                    className="shrink-0"
-                  />
-                  <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center relative overflow-hidden shrink-0">
-                    {d.profile_picture ? (
-                      <>
-                        <img
-                          src={d.profile_picture}
-                          alt=""
-                          className="w-full h-full object-cover rounded-full"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = "none";
-                            const fallback = e.currentTarget.nextElementSibling;
-                            if (fallback) (fallback as HTMLElement).style.display = "block";
+                {/* Linha 1: Nome + Status */}
+                <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelectDevice(d.id)}
+                      className="shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      {isEditing ? (
+                        <input
+                          ref={inlineInputRef}
+                          value={inlineEditName}
+                          onChange={(e) => setInlineEditName(e.target.value)}
+                          onBlur={commitInlineEdit}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitInlineEdit();
+                            if (e.key === "Escape") setInlineEditId(null);
                           }}
+                          className="text-[13px] font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
                         />
-                        <span className="text-[10px] font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
-                      </>
-                    ) : (
-                      <span className="text-[10px] font-bold text-muted-foreground">{initials}</span>
-                    )}
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-[1.5px] border-card ${sc.dot}`} />
+                      ) : (
+                        <p
+                          className="text-[13px] font-bold text-foreground cursor-pointer hover:text-primary truncate leading-tight"
+                          onClick={() => startInlineEdit(d)}
+                          title={d.name}
+                        >
+                          {d.name}
+                        </p>
+                      )}
+                      {d.number && (
+                        <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{d.number}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    {isEditing ? (
-                      <input
-                        ref={inlineInputRef}
-                        value={inlineEditName}
-                        onChange={(e) => setInlineEditName(e.target.value)}
-                        onBlur={commitInlineEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") commitInlineEdit();
-                          if (e.key === "Escape") setInlineEditId(null);
-                        }}
-                        className="text-[13px] font-semibold text-foreground bg-transparent border-b border-primary outline-none w-full"
-                      />
-                    ) : (
-                      <p
-                        className="text-[13px] font-semibold text-foreground cursor-pointer hover:text-primary truncate leading-tight"
-                        onClick={() => startInlineEdit(d)}
-                      >
-                        {d.name}
-                      </p>
-                    )}
-                    <p className="text-[10px] text-muted-foreground/50 truncate leading-tight">
-                      {d.number || "Sem número"}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 ${sc.badgeClass}`}>
-                    {hasError ? "Erro" : sc.label}
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap ${badgeClass}`}>
+                    {badgeLabel}
                   </Badge>
                 </div>
 
-                {/* Meta row */}
-                <div className="px-3 pb-1.5 flex items-center gap-2 text-[9px] text-muted-foreground/40">
-                  <div className={`w-1.5 h-1.5 rounded-full ${healthColor} shrink-0`} title="Saúde" />
-                  <span className="truncate">Atualizado {lastActivity}</span>
-                  {assignedProxy && (
-                    <span className="flex items-center gap-0.5 shrink-0">
-                      <Shield className="w-2 h-2" /> Proxy
-                    </span>
-                  )}
-                  {isWarming && (
-                    <span className="flex items-center gap-0.5 text-amber-500 shrink-0">
-                      <Flame className="w-2 h-2" /> Aquec.
-                    </span>
-                  )}
-                  {hasError && (
-                    <span className="flex items-center gap-0.5 text-red-400 shrink-0">
-                      <AlertTriangle className="w-2 h-2" />
-                    </span>
-                  )}
+                {/* Linha 2: Meta info */}
+                <div className="px-3 pb-1.5 flex items-center gap-3 text-[10px] text-muted-foreground/50">
+                  <span className="truncate" title={`Última atividade: ${lastActivity}`}>
+                    {lastActivity}
+                  </span>
+                  <span className="flex items-center gap-0.5 shrink-0">
+                    <Shield className="w-2.5 h-2.5" />
+                    {assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
+                  </span>
+                  <span className="flex items-center gap-0.5 shrink-0">
+                    <Key className="w-2.5 h-2.5" />
+                    {d.has_api_config ? "Sim" : "Não"}
+                  </span>
                 </div>
 
-                {/* Actions */}
+                {/* Linha 3: Ações */}
                 <div className="border-t border-border/10 px-2 py-1 flex items-center gap-0.5">
-                  <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 flex-1" onClick={() => openEdit(d)}>
+                  <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openEdit(d)}>
                     <Pencil className="w-2.5 h-2.5" /> Editar
                   </Button>
-                  {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openProfileEdit(d)}>
-                      <UserCircle className="w-2.5 h-2.5" /> Perfil
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1" onClick={() => openQuickToken(d)}>
-                    <Key className="w-2.5 h-2.5" />
+                  <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1" onClick={() => openQuickToken(d)}>
+                    <Key className="w-2.5 h-2.5" /> Token
                   </Button>
-                  {d.status === "Disconnected" && (
-                    <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 flex-1" onClick={() => openConnect(d)}>
-                      <Link2 className="w-2.5 h-2.5" /> Conectar
-                    </Button>
-                  )}
-                  {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
-                      <Power className="w-2.5 h-2.5" />
-                    </Button>
-                  )}
+                  <div className="flex-1" />
+                  {connectionButton}
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
                     if (d.status === "Ready") {
                       setDeleteSingleDevice(d);
