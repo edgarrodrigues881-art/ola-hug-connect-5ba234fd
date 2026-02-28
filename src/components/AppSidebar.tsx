@@ -108,7 +108,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-sidebar-border">
-        <img src={logo} alt="Logo" className="w-8 h-8 rounded-lg shrink-0 object-cover aspect-square" />
+        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
         {!collapsed && (
           <span className="text-sm font-bold text-sidebar-foreground truncate">
             DG Contingência Pro
@@ -155,9 +155,9 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-sidebar-accent/60 transition-colors">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full shrink-0 object-cover aspect-square" />
+                <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover" />
               ) : (
-                <div className="w-8 h-8 rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
+                <div className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 bg-primary/15 flex items-center justify-center">
                   <span className="text-xs font-semibold text-primary">{initials}</span>
                 </div>
               )}
