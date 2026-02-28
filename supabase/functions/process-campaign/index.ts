@@ -143,11 +143,33 @@ function normalizeBrazilianPhone(phone: string): string {
   return raw;
 }
 
-function replaceVariables(template: string, contact: any): string {
+// Generate a random 4-digit number string (0000-9999), unique within usedRand4 set
+function generateUniqueRand4(usedSet: Set<string>): string {
+  let value: string;
+  do {
+    value = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+  } while (usedSet.has(value) && usedSet.size < 10000);
+  usedSet.add(value);
+  return value;
+}
+
+// Generate a random 3-letter lowercase string, unique within usedRand3 set
+function generateUniqueRand3(usedSet: Set<string>): string {
+  let value: string;
+  do {
+    value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join("");
+  } while (usedSet.has(value) && usedSet.size < 17576);
+  usedSet.add(value);
+  return value;
+}
+
+function replaceVariables(template: string, contact: any, rand4: string, rand3: string): string {
   return template
     .replace(/\{\{nome\}\}/gi, contact.name || "")
     .replace(/\{\{numero\}\}/gi, contact.phone || "")
-    .replace(/\{\{telefone\}\}/gi, contact.phone || "");
+    .replace(/\{\{telefone\}\}/gi, contact.phone || "")
+    .replace(/\{\{rand4\}\}/gi, rand4)
+    .replace(/\{\{rand3\}\}/gi, rand3);
 }
 
 Deno.serve(async (req) => {
@@ -275,6 +297,10 @@ Deno.serve(async (req) => {
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
 
+      // Uniqueness sets for dynamic variables
+      const usedRand4 = new Set<string>();
+      const usedRand3 = new Set<string>();
+
       for (const contact of contacts || []) {
         if (warmup && sentCount >= warmupLimit) {
           console.log(`Warmup limit reached (${warmupLimit}). Pausing remaining contacts.`);
@@ -293,7 +319,9 @@ Deno.serve(async (req) => {
         }
 
         try {
-          const personalizedMessage = replaceVariables(messageContent, contact);
+          const rand4 = generateUniqueRand4(usedRand4);
+          const rand3 = generateUniqueRand3(usedRand3);
+          const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
           const normalizedPhone = normalizeBrazilianPhone(phone);
 
           // Send via UaZapi

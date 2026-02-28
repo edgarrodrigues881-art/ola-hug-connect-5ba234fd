@@ -852,6 +852,17 @@ const Campaigns = () => {
                             <code className="text-[9px] text-muted-foreground">{`{{var${i + 1}}}`}</code>
                           </button>
                         ))}
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1">Dinâmicas</p>
+                        {[
+                          { label: "Número Aleatório (4 dígitos)", tag: "{{rand4}}" },
+                          { label: "Texto Aleatório (3 letras)", tag: "{{rand3}}" },
+                        ].map(v => (
+                          <button key={v.tag} className="w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center justify-between"
+                            onClick={() => insertAtCursor(v.tag)}>
+                            <span>{v.label}</span>
+                            <code className="text-[9px] text-muted-foreground">{v.tag}</code>
+                          </button>
+                        ))}
                       </PopoverContent>
                     </Popover>
 
