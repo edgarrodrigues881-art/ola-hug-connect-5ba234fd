@@ -42,6 +42,8 @@ export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const audioUnlockedRef = useRef(false);
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadDoneRef = useRef(false);
 
   // Unlock AudioContext on first user gesture
   useEffect(() => {
@@ -59,13 +61,24 @@ export function useNotifications() {
     };
   }, []);
 
-  const playNotificationSound = useCallback(() => {
+  const showToastForNotif = useCallback((n: Notification) => {
     playChime();
+    const variantMap: Record<string, "default" | "destructive"> = {
+      error: "destructive",
+      warning: "destructive",
+    };
+    toast({
+      title: n.title,
+      description: n.message,
+      variant: variantMap[n.type] || "default",
+      duration: 3000,
+    });
   }, []);
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch existing notifications
+  // Fetch existing notifications + detect new ones via polling
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
@@ -75,11 +88,23 @@ export function useNotifications() {
       .limit(20);
 
     if (data) {
+      // Detect new notifications (not seen before)
+      if (initialLoadDoneRef.current) {
+        for (const n of data) {
+          if (!knownIdsRef.current.has(n.id)) {
+            showToastForNotif(n as Notification);
+          }
+        }
+      }
+      // Update known IDs
+      knownIdsRef.current = new Set(data.map((n) => n.id));
+      initialLoadDoneRef.current = true;
+
       setNotifications(data as Notification[]);
       setUnreadCount(data.filter((n) => !n.read).length);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, showToastForNotif]);
 
   // Mark single as read
   const markAsRead = useCallback(async (id: string) => {
@@ -110,8 +135,11 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
+  // Initial fetch + polling fallback every 3s
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(fetchNotifications, 3000);
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   // Realtime subscription
@@ -130,21 +158,12 @@ export function useNotifications() {
         },
         (payload) => {
           const newNotif = payload.new as Notification;
-          setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
-          setUnreadCount((c) => c + 1);
-          playNotificationSound();
-          
-          // Show toast popup
-          const variantMap: Record<string, "default" | "destructive"> = {
-            error: "destructive",
-            warning: "destructive",
-          };
-          toast({
-            title: newNotif.title,
-            description: newNotif.message,
-            variant: variantMap[newNotif.type] || "default",
-            duration: 3000,
-          });
+          if (!knownIdsRef.current.has(newNotif.id)) {
+            setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+            setUnreadCount((c) => c + 1);
+            knownIdsRef.current.add(newNotif.id);
+            showToastForNotif(newNotif);
+          }
         }
       )
       .subscribe();
