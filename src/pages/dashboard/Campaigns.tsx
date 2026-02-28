@@ -1365,11 +1365,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
-                      <Input type="number" value={minDelay} onChange={(e) => { const v = Number(e.target.value); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={minDelay || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} onBlur={() => { if (!minDelay) setMinDelay(1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
-                      <Input type="number" value={maxDelay} onChange={(e) => { const v = Math.max(Number(e.target.value), minDelay); setMaxDelay(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={minDelay} />
+                      <Input type="number" value={maxDelay || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setMaxDelay(Math.max(v, minDelay)); }} onBlur={() => { if (!maxDelay) setMaxDelay(minDelay || 1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={minDelay} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">{minDelay}s – {maxDelay}s a cada envio</p>
@@ -1391,11 +1391,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín</label>
-                      <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseEveryMin || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} onBlur={() => { if (!pauseEveryMin) setPauseEveryMin(1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx</label>
-                      <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseEveryMin); setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={pauseEveryMin} />
+                      <Input type="number" value={pauseEveryMax || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setPauseEveryMax(Math.max(v, pauseEveryMin)); }} onBlur={() => { if (!pauseEveryMax) setPauseEveryMax(pauseEveryMin || 1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={pauseEveryMin} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">A cada {pauseEveryMin}–{pauseEveryMax} msgs</p>
@@ -1417,11 +1417,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
-                      <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseDurationMin || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} onBlur={() => { if (!pauseDurationMin) setPauseDurationMin(1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
-                      <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = Math.max(Number(e.target.value), pauseDurationMin); setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={pauseDurationMin} />
+                      <Input type="number" value={pauseDurationMax || ""} onChange={(e) => { const v = Number(e.target.value) || 0; setPauseDurationMax(Math.max(v, pauseDurationMin)); }} onBlur={() => { if (!pauseDurationMax) setPauseDurationMax(pauseDurationMin || 1); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={pauseDurationMin} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">{pauseDurationMin}s – {pauseDurationMax}s de pausa</p>
