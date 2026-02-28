@@ -502,58 +502,99 @@ const Campaigns = () => {
   ];
 
   // ─── WhatsApp Preview Component ───
-  const WhatsAppPreview = () => (
-    <div className="rounded-2xl overflow-hidden border border-border/30 dark:border-[hsl(220_10%_20%)] shadow-lg">
-      {/* WhatsApp header */}
-      <div className="bg-[#075E54] dark:bg-[#1F2C34] px-4 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-          <Smartphone className="w-4 h-4 text-white/80" />
-        </div>
-        <div>
-          <p className="text-white text-[13px] font-medium">Destinatário</p>
-          <p className="text-white/60 text-[10px]">online</p>
-        </div>
-      </div>
-      {/* Chat area */}
-      <div className="bg-[#ECE5DD] dark:bg-[#0B141A] p-4 min-h-[300px] flex flex-col justify-end gap-2"
-        style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
-        {/* Message bubble */}
-        <div className="max-w-[85%] self-end">
-          {mediaUrl && (
-            <div className="rounded-t-lg overflow-hidden bg-white dark:bg-[#1F2C34]">
-              <img src={mediaUrl} alt="media" className="w-full max-h-48 object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            </div>
-          )}
-          <div className={cn(
-            "bg-[#DCF8C6] dark:bg-[#005C4B] px-3 py-2 shadow-sm",
-            mediaUrl ? "rounded-b-lg" : "rounded-lg"
-          )}>
-            <p className="text-[13px] text-[#303030] dark:text-[#E9EDEF] whitespace-pre-wrap leading-relaxed break-words">
-              {message || <span className="italic opacity-50">Sua mensagem aparecerá aqui...</span>}
-            </p>
-            <p className="text-[10px] text-[#667781] dark:text-[#8696A0] text-right mt-1">12:00 ✓✓</p>
+  const WhatsAppPreview = () => {
+    const hasContent = message || mediaUrl;
+    const hasAnyButtons = quickReplyButtons.length > 0 || ctaButtons.length > 0;
+    // Calculate bubble max-width to reuse on buttons
+    const bubbleMaxW = "max-w-[70%] sm:max-w-[75%]";
+
+    return (
+      <div className="rounded-[20px] overflow-hidden border-2 border-[#2A2F36] dark:border-[#2A2F36] shadow-2xl shadow-black/30 bg-[#0B141A]">
+        {/* ── WhatsApp Header ── */}
+        <div className="bg-[#202C33] px-4 py-3 flex items-center gap-3 border-b border-[#313D45]">
+          <div className="w-9 h-9 rounded-full bg-[#6B7B8D]/30 flex items-center justify-center">
+            <Smartphone className="w-4 h-4 text-[#AEBAC1]" />
           </div>
-          {/* Buttons preview */}
-          {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-            <div className="mt-1 space-y-1">
-              {quickReplyButtons.map(btn => (
-                <div key={btn.id} className="bg-white dark:bg-[#1F2C34] rounded-lg px-3 py-2 text-center shadow-sm">
-                  <span className="text-[13px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[#E9EDEF] text-[14px] font-medium leading-tight">Destinatário</p>
+            <p className="text-[#8696A0] text-[11px]">online</p>
+          </div>
+        </div>
+
+        {/* ── Chat Area ── */}
+        <div
+          className="p-4 min-h-[320px] flex flex-col justify-end"
+          style={{
+            backgroundColor: "#0B141A",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M50 50v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm30-30v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        >
+          {/* ── Message Group: wrapper column, aligned right ── */}
+          <div className="flex flex-col items-end gap-[6px]">
+            {/* ── Bubble: text + media + meta ONLY ── */}
+            <div className={cn(bubbleMaxW, "flex flex-col")}>
+              {/* Media on top */}
+              {mediaUrl && (
+                <div className="rounded-t-[12px] overflow-hidden">
+                  <img
+                    src={mediaUrl}
+                    alt="media"
+                    className="w-full max-h-52 object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
                 </div>
-              ))}
-              {ctaButtons.map(btn => (
-                <div key={btn.id} className="bg-white dark:bg-[#1F2C34] rounded-lg px-3 py-2 text-center shadow-sm flex items-center justify-center gap-1.5">
-                  {btn.type === "url" ? <Link className="w-3 h-3 text-[#00A5F4]" /> : <Phone className="w-3 h-3 text-[#00A5F4]" />}
-                  <span className="text-[13px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+              )}
+              {/* Text bubble */}
+              <div
+                className={cn(
+                  "bg-[#005C4B] px-[14px] py-[10px] shadow-sm relative",
+                  mediaUrl ? "rounded-b-[12px]" : "rounded-[12px]",
+                )}
+              >
+                <p className="text-[14px] text-[#E9EDEF] whitespace-pre-wrap leading-[1.65] break-words">
+                  {hasContent ? message : (
+                    <span className="italic text-[#8696A0]/70">Sua mensagem aparecerá aqui…</span>
+                  )}
+                </p>
+                {/* Meta: time + checks */}
+                <div className="flex items-center justify-end gap-1 mt-[4px]">
+                  <span className="text-[11px] text-[#8696A0]/65 leading-none">12:00</span>
+                  <span className="text-[11px] text-[#53BDEB]/70 leading-none">✓✓</span>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
+
+            {/* ── Buttons Container: SEPARATE from bubble ── */}
+            {hasAnyButtons && (
+              <div className={cn(bubbleMaxW, "flex flex-col gap-[4px] w-full")}>
+                {quickReplyButtons.map((btn) => (
+                  <button
+                    key={btn.id}
+                    className="w-full bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] rounded-[10px] px-3 py-[10px] text-center border border-[#313D45]/50 transition-colors shadow-sm"
+                  >
+                    <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+                  </button>
+                ))}
+                {ctaButtons.map((btn) => (
+                  <button
+                    key={btn.id}
+                    className="w-full bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] rounded-[10px] px-3 py-[10px] flex items-center justify-center gap-2 border border-[#313D45]/50 transition-colors shadow-sm"
+                  >
+                    {btn.type === "url" ? (
+                      <Link className="w-[14px] h-[14px] text-[#00A5F4]" />
+                    ) : (
+                      <Phone className="w-[14px] h-[14px] text-[#00A5F4]" />
+                    )}
+                    <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="w-full pb-16 max-w-6xl mx-auto">
