@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
  * Also sets up realtime subscription for instant DB updates.
  * @param intervalMs - sync interval in milliseconds (default 30s)
  */
-export function useAutoSyncDevices(intervalMs = 30000) {
+export function useAutoSyncDevices(intervalMs = 5000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
