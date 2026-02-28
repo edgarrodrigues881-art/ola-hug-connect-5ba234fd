@@ -303,8 +303,9 @@ const Campaigns = () => {
     setTimeout(() => setButtonAddedFlash(false), 600);
   };
 
-  const addQuickReply = () => { if (quickReplyButtons.length < 3) { setQuickReplyButtons([...quickReplyButtons, { id: Date.now(), text: "" }]); triggerButtonFlash(); } };
-  const addCTAButton = (type: "url" | "phone") => { if (ctaButtons.length < 2) { setCTAButtons([...ctaButtons, { id: Date.now(), type, text: "", value: "" }]); triggerButtonFlash(); } };
+  const totalButtons = quickReplyButtons.length + ctaButtons.length;
+  const addQuickReply = () => { if (totalButtons < 10) { setQuickReplyButtons([...quickReplyButtons, { id: Date.now(), text: "" }]); triggerButtonFlash(); } };
+  const addCTAButton = (type: "url" | "phone") => { if (totalButtons < 10) { setCTAButtons([...ctaButtons, { id: Date.now(), type, text: "", value: "" }]); triggerButtonFlash(); } };
   const removeQuickReply = (id: number) => setQuickReplyButtons(quickReplyButtons.filter(b => b.id !== id));
   const removeCTAButton = (id: number) => setCTAButtons(ctaButtons.filter(b => b.id !== id));
   const updateQuickReply = (id: number, text: string) => setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
@@ -924,7 +925,7 @@ const Campaigns = () => {
                     <SectionLabel>Botões Interativos</SectionLabel>
                     {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
                       <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                        {quickReplyButtons.length + ctaButtons.length} ativo(s)
+                        {quickReplyButtons.length + ctaButtons.length}/10 ativo(s)
                       </Badge>
                     )}
                   </div>
