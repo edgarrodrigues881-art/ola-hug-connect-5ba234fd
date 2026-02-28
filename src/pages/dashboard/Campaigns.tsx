@@ -384,7 +384,7 @@ const Campaigns = () => {
     });
     const removed = before - unique.length;
     setContacts(unique);
-    toast({ title: "Duplicados removidos", description: `${removed} duplicado(s) removido(s). Restam ${unique.length} contatos.` });
+    toast({ title: `${removed} duplicado(s) removido(s)`, description: `${unique.length} contatos restantes na lista.` });
   };
 
   const removeInvalid = () => {
@@ -392,7 +392,7 @@ const Campaigns = () => {
     const valid = contacts.filter(c => !c.numero.trim() || /^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
     const removed = before - valid.length;
     setContacts(valid);
-    toast({ title: "Inválidos removidos", description: `${removed} inválido(s) removido(s). Restam ${valid.length} contatos.` });
+    toast({ title: `${removed} inválido(s) removido(s)`, description: `${valid.length} contatos restantes na lista.` });
   };
 
   const addPrefixToNumbers = (prefix: string) => {
