@@ -107,7 +107,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-sidebar-border">
+      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-0' : 'gap-2.5 px-4 py-4'}`}>
         <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
         {!collapsed && (
           <span className="text-sm font-bold text-sidebar-foreground truncate">
@@ -153,7 +153,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-sidebar-accent/60 transition-colors">
+            <button className={`flex items-center gap-3 w-full rounded-lg hover:bg-sidebar-accent/60 transition-colors ${collapsed ? 'justify-center px-0 py-2' : 'px-3 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover" />
               ) : (
