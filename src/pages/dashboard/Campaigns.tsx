@@ -531,15 +531,60 @@ const Campaigns = () => {
       });
     }
 
-    if (imported.length === 0) {
+    const totalImported = imported.length;
+
+    if (totalImported === 0) {
       toast({ title: "Nenhum contato encontrado", description: "A planilha parece estar vazia.", variant: "destructive" });
       return;
     }
 
-    setContacts(prev => [...prev, ...imported]);
+    // Filter invalid numbers (less than 8 digits)
+    const valid = imported.filter(c => {
+      const digits = c.numero.replace(/\D/g, "");
+      return digits.length >= 8;
+    });
+    const invalidCount = totalImported - valid.length;
+
+    // Remove duplicates within the batch
+    const seenInBatch = new Set<string>();
+    const uniqueInBatch: Contact[] = [];
+    for (const c of valid) {
+      const num = c.numero.trim();
+      if (seenInBatch.has(num)) continue;
+      seenInBatch.add(num);
+      uniqueInBatch.push(c);
+    }
+    const batchDuplicates = valid.length - uniqueInBatch.length;
+
+    // Remove duplicates already in existing contacts
+    const existingNums = new Set(contacts.map(c => c.numero.trim()).filter(Boolean));
+    const finalContacts = uniqueInBatch.filter(c => !existingNums.has(c.numero.trim()));
+    const existingDuplicates = uniqueInBatch.length - finalContacts.length;
+
+    const totalDuplicates = batchDuplicates + existingDuplicates;
+
+    if (finalContacts.length === 0) {
+      toast({ 
+        title: "Nenhum contato novo", 
+        description: `${totalDuplicates} duplicado(s) ignorado(s). ${invalidCount} inválido(s) descartado(s).`,
+        variant: "destructive" 
+      });
+      setRawImport(null);
+      return;
+    }
+
+    setContacts(prev => [...prev, ...finalContacts]);
     setShowContactTable(true);
     setContactPage(0);
-    toast({ title: `${imported.length} contatos importados` });
+
+    const parts: string[] = [];
+    if (totalDuplicates > 0) parts.push(`${totalDuplicates} duplicado(s) ignorado(s)`);
+    if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) descartado(s)`);
+
+    toast({ 
+      title: `${finalContacts.length} contatos adicionados com sucesso`,
+      description: parts.length > 0 ? parts.join(". ") + "." : undefined,
+    });
     setRawImport(null);
   };
 
