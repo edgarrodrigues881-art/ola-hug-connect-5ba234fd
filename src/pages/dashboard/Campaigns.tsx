@@ -318,13 +318,25 @@ const Campaigns = () => {
       media_url: mediaUrl || undefined,
       buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
+      scheduled_at: scheduleEnabled && scheduleDate ? new Date(scheduleDate).toISOString() : undefined,
+      min_delay_seconds: minDelay,
+      max_delay_seconds: maxDelay,
+      pause_every_min: pauseEveryMin,
+      pause_every_max: pauseEveryMax,
+      pause_duration_min: pauseDurationMin,
+      pause_duration_max: pauseDurationMax,
+      device_id: selectedDevices[0],
     }, {
       onSuccess: (newCampaign) => {
-        toast({ title: "Campanha criada!", description: `${validContacts.length} contatos. Iniciando envio...` });
-        startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
-          onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
-          onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
-        });
+        if (scheduleEnabled && scheduleDate) {
+          toast({ title: "Campanha agendada!", description: `Será iniciada em ${new Date(scheduleDate).toLocaleString("pt-BR")}` });
+        } else {
+          toast({ title: "Campanha criada!", description: `${validContacts.length} contatos. Iniciando envio...` });
+          startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
+            onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
+            onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
+          });
+        }
         setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); setStep(1); localStorage.removeItem(DRAFT_KEY);
       },
       onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
