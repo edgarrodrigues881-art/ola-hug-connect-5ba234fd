@@ -1560,21 +1560,34 @@ const Campaigns = () => {
 
               {/* Summary: messages per device - always visible when devices selected */}
               {selectedDevices.length >= 1 && validContacts.length > 0 && (
-                <div className="mt-4 p-3 rounded-xl bg-muted/10 border border-border/15 space-y-2">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
+                <div className="mt-4 p-3 rounded-xl bg-muted/10 border border-border/15 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] text-muted-foreground">Msgs/chip:</label>
+                      <Input
+                        type="number" min={1} value={messagesPerInstance || ""}
+                        onChange={e => setMessagesPerInstance(Number(e.target.value))}
+                        onBlur={() => { if (!messagesPerInstance || messagesPerInstance < 1) setMessagesPerInstance(5); }}
+                        placeholder="5"
+                        className="h-7 w-16 text-xs text-center bg-muted/15 dark:bg-muted/8 border-border/15"
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-1.5">
                     {selectedDevices.map((devId, idx) => {
                       const dev = devices.find(d => d.id === devId);
                       const devName = dev?.name || `Instância ${idx + 1}`;
+                      const mpi = messagesPerInstance || 5;
                       let msgCount = 0;
-                      if (selectedDevices.length === 1 || sendMode === "single") {
+                      if (selectedDevices.length === 1) {
+                        msgCount = Math.min(validContacts.length, mpi);
+                      } else if (sendMode === "single") {
                         msgCount = idx === 0 ? validContacts.length : 0;
                       } else if (sendMode === "parallel") {
-                        const base = Math.floor(validContacts.length / selectedDevices.length);
-                        const extra = idx < (validContacts.length % selectedDevices.length) ? 1 : 0;
-                        msgCount = base + extra;
+                        const perDevice = Math.ceil(validContacts.length / selectedDevices.length);
+                        msgCount = Math.min(perDevice, mpi);
                       } else if (sendMode === "rotation") {
-                        const mpi = messagesPerInstance || 5;
                         const fullCycles = Math.floor(validContacts.length / (mpi * selectedDevices.length));
                         const remainder = validContacts.length % (mpi * selectedDevices.length);
                         msgCount = fullCycles * mpi;
