@@ -18,7 +18,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { motion, AnimatePresence } from "framer-motion";
+
 
 const SUGGESTED_GROUPS = [
   { name: "DG CONTINGÊNCIA #01", link: "https://chat.whatsapp.com/I1gvz1bfEhrEIM9iMFsCik?mode=gi_t" },
@@ -542,15 +542,12 @@ const GroupCapture = () => {
 
               {/* Task list */}
               <div className="max-h-60 overflow-y-auto space-y-1 rounded-md border border-border/50 p-2">
-                <AnimatePresence>
                   {joinItems.map((item, i) => {
                     const cfg = statusConfig[item.status];
                     const Icon = cfg.icon;
                     return (
-                      <motion.div
+                      <div
                         key={`${item.deviceId}-${item.groupLink}`}
-                        initial={{ opacity: 0.5 }}
-                        animate={{ opacity: 1 }}
                         className={`flex items-start gap-2 p-2 rounded-md text-xs ${
                           i === currentIndex && isProcessing ? "bg-muted/50" : ""
                         }`}
@@ -577,10 +574,9 @@ const GroupCapture = () => {
                           )}
                         </div>
                         <span className={`text-[10px] shrink-0 ${cfg.color}`}>{cfg.label}</span>
-                      </motion.div>
+                      </div>
                     );
                   })}
-                </AnimatePresence>
               </div>
 
               {/* Controls */}

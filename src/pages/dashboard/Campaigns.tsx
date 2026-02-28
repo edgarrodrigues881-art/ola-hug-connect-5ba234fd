@@ -1,5 +1,4 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,21 +31,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
 
-// Animation variants
-const fadeInUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-};
-
-const staggerContainer = {
-  animate: { transition: { staggerChildren: 0.06 } },
-};
-
-const staggerItem = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
-};
 
 interface Contact {
   id: number;
@@ -571,7 +555,7 @@ const Campaigns = () => {
             <button
               onClick={() => setPreviewMode("sent")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-all",
+                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors duration-100",
                 isSent ? "bg-[#005C4B] text-[#E9EDEF]" : "text-[#8696A0] hover:text-[#E9EDEF]"
               )}
             >
@@ -580,7 +564,7 @@ const Campaigns = () => {
             <button
               onClick={() => setPreviewMode("received")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-all",
+                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors duration-100",
                 !isSent ? "bg-[#202C33] text-[#E9EDEF] border border-[#313D45]" : "text-[#8696A0] hover:text-[#E9EDEF]"
               )}
             >
@@ -598,28 +582,16 @@ const Campaigns = () => {
           }}
         >
           {/* ── Message Group ── */}
-          <motion.div
+          <div
             className={cn("flex flex-col gap-[6px]", isSent ? "items-end" : "items-start")}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {/* ── Bubble ── */}
-            <motion.div
-              className={cn(bubbleMaxW, "flex flex-col")}
-              layout
-              transition={{ duration: 0.2 }}
-            >
+            <div className={cn(bubbleMaxW, "flex flex-col")}>
               {/* Media */}
               {mediaUrl && (
-                <motion.div
-                  className="rounded-t-[12px] overflow-hidden"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <div className="rounded-t-[12px] overflow-hidden">
                   <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                </motion.div>
+                </div>
               )}
               {/* Text bubble */}
               <div
@@ -640,53 +612,39 @@ const Campaigns = () => {
                   {isSent && <span className="text-[11px] text-[#53BDEB]/70 leading-none">✓✓</span>}
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* ── Buttons Container: SEPARATE ── */}
-            <AnimatePresence>
               {hasAnyButtons && (
-                <motion.div
-                  className={cn(bubbleMaxW, "flex flex-col gap-[5px] w-full")}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.25, delay: 0.1 }}
-                >
-                  {quickReplyButtons.map((btn, i) => (
-                    <motion.button
+                <div className={cn(bubbleMaxW, "flex flex-col gap-[5px] w-full")}>
+                  {quickReplyButtons.map((btn) => (
+                    <button
                       key={btn.id}
                       className={cn(
-                        "w-full rounded-[10px] px-3 py-[10px] text-center border transition-all shadow-sm",
-                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60",
+                        "w-full rounded-[10px] px-3 py-[10px] text-center border shadow-sm",
+                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60 transition-colors duration-100",
                         buttonAddedFlash && "ring-1 ring-[#00A5F4]/30"
                       )}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.05 }}
                     >
                       <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
-                    </motion.button>
+                    </button>
                   ))}
-                  {ctaButtons.map((btn, i) => (
-                    <motion.button
+                  {ctaButtons.map((btn) => (
+                    <button
                       key={btn.id}
                       className={cn(
-                        "w-full rounded-[10px] px-3 py-[10px] flex items-center justify-center gap-2 border transition-all shadow-sm",
-                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60",
+                        "w-full rounded-[10px] px-3 py-[10px] flex items-center justify-center gap-2 border shadow-sm",
+                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60 transition-colors duration-100",
                         buttonAddedFlash && "ring-1 ring-[#00A5F4]/30"
                       )}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: (quickReplyButtons.length + i) * 0.05 }}
                     >
                       {btn.type === "url" ? <Link className="w-[14px] h-[14px] text-[#00A5F4]" /> : <Phone className="w-[14px] h-[14px] text-[#00A5F4]" />}
                       <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
-                    </motion.button>
+                    </button>
                   ))}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         </div>
       </div>
     );
@@ -695,12 +653,7 @@ const Campaigns = () => {
   return (
     <div className="w-full pb-16 max-w-6xl mx-auto">
       {/* ═══ Header ═══ */}
-      <motion.div 
-        className="flex items-center justify-between mb-10"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-      >
+      <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
             Configuração de Campanha
@@ -710,20 +663,15 @@ const Campaigns = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-xs gap-1.5 h-9 border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-all"
+          className="text-xs gap-1.5 h-9 border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100"
           onClick={clearAllForm}
         >
           <Eraser className="w-3.5 h-3.5" /> Limpar tudo
         </Button>
-      </motion.div>
+      </div>
 
       {/* ═══ Stepper ═══ */}
-      <motion.div 
-        className="mb-12"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
+      <div className="mb-12">
         <SurfaceCard className="p-2">
           <div className="flex items-stretch relative">
             {steps.map((s, i) => {
@@ -737,24 +685,22 @@ const Campaigns = () => {
                   key={s.num}
                   onClick={() => setStep(s.num)}
                   className={cn(
-                    "flex-1 flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-300 relative group",
+                    "flex-1 flex items-center gap-3 px-4 py-4 rounded-xl relative group",
                     isActive && "bg-primary/8 dark:bg-primary/10",
                     !isActive && "hover:bg-muted/40 dark:hover:bg-muted/15",
                   )}
                 >
                   {/* Step indicator */}
-                  <motion.div
+                  <div
                     className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 shrink-0",
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0",
                       isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/40",
                       isDone && "bg-emerald-500/15 text-emerald-400",
                       !isActive && !isDone && "bg-muted/40 dark:bg-muted/20 text-muted-foreground/40",
                     )}
-                    animate={isActive ? { scale: [1, 1.05, 1] } : {}}
-                    transition={{ duration: 0.5, repeat: 0 }}
                   >
                     {isDone ? <Check className="w-4.5 h-4.5" strokeWidth={3} /> : <Icon className="w-4.5 h-4.5" />}
-                  </motion.div>
+                  </div>
                   {/* Labels */}
                   <div className="text-left min-w-0 hidden sm:block">
                     <p className={cn(
@@ -781,30 +727,23 @@ const Campaigns = () => {
           {/* Progress bar */}
           <div className="mx-3 mt-1.5 mb-2.5">
             <div className="h-[3px] rounded-full bg-muted/20 dark:bg-muted/10 overflow-hidden">
-              <motion.div
+              <div
                 className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" }}
-                initial={{ width: "0%" }}
-                animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
-                transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                style={{
+                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                  width: `${((step - 1) / (steps.length - 1)) * 100}%`,
+                }}
               />
             </div>
           </div>
         </SurfaceCard>
-      </motion.div>
+      </div>
 
       {/* ═══ Step Content ═══ */}
-      <AnimatePresence mode="wait">
+      <div>
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
-          <motion.div 
-            key="step-1"
-            className="space-y-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <div className="space-y-8">
             {/* Template + Campaign Name Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <SurfaceCard className="p-5 space-y-3">
@@ -990,12 +929,9 @@ const Campaigns = () => {
                   
                   <div className="space-y-3">
                     {quickReplyButtons.map(btn => (
-                      <motion.div
+                      <div
                         key={btn.id}
                         className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1010,16 +946,13 @@ const Campaigns = () => {
                         </div>
                         <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto exibido no botão" 
                           className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
-                      </motion.div>
+                      </div>
                     ))}
 
                     {ctaButtons.map(btn => (
-                      <motion.div
+                      <div
                         key={btn.id}
                         className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1038,7 +971,7 @@ const Campaigns = () => {
                           <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} 
                             className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-mono" />
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
@@ -1091,23 +1024,16 @@ const Campaigns = () => {
 
             {/* Primary action */}
             <div className="flex justify-end pt-4">
-              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all">
+              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow duration-100">
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* ===== STEP 2: Contacts ===== */}
         {step === 2 && (
-          <motion.div 
-            key="step-2"
-            className="space-y-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <div className="space-y-8">
             {/* Metrics - enhanced hierarchy */}
             <div className="grid grid-cols-3 gap-5">
               {[
@@ -1291,19 +1217,12 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* ===== STEP 3: Configuration ===== */}
         {step === 3 && (
-          <motion.div
-            key="step-3"
-            className="space-y-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <div className="space-y-8">
             {/* Instance Selection */}
             <SurfaceCard className="p-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -1498,14 +1417,13 @@ const Campaigns = () => {
                   <div className="flex-1 bg-amber-500/20" />
                   <div className="flex-1 bg-red-500/20" />
                 </div>
-                <motion.div
+                <div
                   className="absolute top-0 h-full w-2 rounded-full shadow-lg"
                   style={{
                     background: risk.label === "Baixo" ? "#34D399" : risk.label === "Médio" ? "#FBBF24" : "#F87171",
                     boxShadow: `0 0 8px ${risk.label === "Baixo" ? "#34D39960" : risk.label === "Médio" ? "#FBBF2460" : "#F8717160"}`,
+                    left: `${risk.percent}%`,
                   }}
-                  animate={{ left: `${risk.percent}%` }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                 />
               </div>
               <div className="flex justify-between text-[9px] uppercase tracking-wider font-semibold">
@@ -1532,19 +1450,12 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* ===== STEP 4: Review & Launch ===== */}
         {step === 4 && (
-          <motion.div
-            key="step-4"
-            className="space-y-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <div className="space-y-8">
             {/* Campaign name */}
             <SurfaceCard className="p-6 space-y-3">
               <SectionLabel>Nome da Campanha</SectionLabel>
@@ -1639,19 +1550,16 @@ const Campaigns = () => {
             <div className="flex flex-col items-center gap-4 pt-6">
               <div className="flex items-center w-full justify-between">
                 <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <div>
                   <Button
-                    className="gap-3 h-16 px-16 text-base font-bold tracking-[0.1em] uppercase shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 relative overflow-hidden"
+                    className="gap-3 h-16 px-16 text-base font-bold tracking-[0.1em] uppercase shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-shadow duration-100 relative overflow-hidden"
                     onClick={handleSendCampaign}
                     disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
                   >
                     <Send className="w-5 h-5" />
                     {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
                   </Button>
-                </motion.div>
+                </div>
               </div>
               {/* Security text */}
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground/40">
@@ -1659,9 +1567,9 @@ const Campaigns = () => {
                 <span>Seus dados estão seguros. O envio pode ser cancelado a qualquer momento.</span>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
 
       {/* Import Progress Bar */}
       {importProgress !== null && (
