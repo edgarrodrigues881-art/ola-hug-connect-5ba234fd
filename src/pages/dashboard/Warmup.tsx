@@ -172,7 +172,7 @@ const Warmup = () => {
   const isMotorActive = activeCount > 0;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ const Warmup = () => {
 
       {/* Motor status indicator */}
       <div className={cn(
-        "flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all",
+        "flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-colors duration-100",
         isMotorActive
           ? "bg-emerald-500/5 border-emerald-500/20"
           : "bg-muted/20 border-border/20"
@@ -246,7 +246,7 @@ const Warmup = () => {
             <Card
               key={s.label}
               className={cn(
-                "overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group",
+                "overflow-hidden transition-shadow duration-100 hover:shadow-md group",
                 borderColor,
                 s.highlight && "shadow-lg"
               )}
@@ -278,7 +278,7 @@ const Warmup = () => {
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="relative gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-all duration-200"
+              className="relative gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-colors duration-100"
             >
               <tab.icon className="w-3.5 h-3.5" /> {tab.label}
             </TabsTrigger>
@@ -327,7 +327,7 @@ const Warmup = () => {
                     <Card
                       key={session.id}
                       className={cn(
-                        "overflow-hidden transition-all duration-300 hover:shadow-lg",
+                        "overflow-hidden transition-shadow duration-100 hover:shadow-lg",
                         isRunning ? "border-emerald-500/15 shadow-md" : "border-border/15"
                       )}
                     >
@@ -694,7 +694,7 @@ const Warmup = () => {
                     key={d}
                     onClick={() => setFormDuration(d)}
                     className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-medium border transition-all",
+                      "flex-1 py-2 rounded-lg text-sm font-medium border transition-colors duration-100",
                       formDuration === d
                         ? "bg-primary text-primary-foreground border-primary shadow-sm"
                         : "bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/40"
@@ -715,7 +715,7 @@ const Warmup = () => {
                     key={key}
                     onClick={() => setFormProfile(key)}
                     className={cn(
-                      "rounded-lg border p-3 text-center transition-all",
+                      "rounded-lg border p-3 text-center transition-colors duration-100",
                       formProfile === key
                         ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
                         : "bg-muted/10 border-border/30 hover:bg-muted/20"

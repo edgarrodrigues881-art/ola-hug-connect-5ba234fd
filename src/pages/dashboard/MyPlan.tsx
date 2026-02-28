@@ -72,7 +72,7 @@ const plans = [
 
 const MyPlan = () => {
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Crown className="w-6 h-6 text-primary" />
@@ -90,7 +90,7 @@ const MyPlan = () => {
         {plans.map((plan) => (
           <Card
             key={plan.name}
-            className={`relative overflow-hidden transition-all duration-300 hover:-translate-y-1 ${
+            className={`relative overflow-hidden transition-shadow duration-100 hover:shadow-lg ${
               plan.popular
                 ? "border-primary ring-1 ring-primary/20 shadow-lg"
                 : "border-border/50"

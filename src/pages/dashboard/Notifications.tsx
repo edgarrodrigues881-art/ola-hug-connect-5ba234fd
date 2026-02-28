@@ -35,7 +35,7 @@ const Notifications = () => {
   const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Notificações</h1>
@@ -103,7 +103,7 @@ const Notifications = () => {
             return (
               <Card
                 key={n.id}
-                className={`border-border/50 cursor-pointer transition-all hover:border-border ${!n.read ? "bg-muted/20 border-l-2 border-l-sidebar-primary" : ""}`}
+                className={`border-border/50 cursor-pointer transition-colors duration-100 hover:border-border ${!n.read ? "bg-muted/20 border-l-2 border-l-sidebar-primary" : ""}`}
                 onClick={() => { if (!n.read) markAsRead(n.id); }}
               >
                 <CardContent className="p-4 flex items-start gap-4">

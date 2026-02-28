@@ -712,7 +712,7 @@ const Devices = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -809,8 +809,7 @@ const Devices = () => {
           return (
             <Card
               key={d.id}
-              className={`border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-fade-in ${isSelected ? "ring-2 ring-primary" : ""}`}
-              style={{ animationDelay: `${index * 60}ms` }}
+              className={`border bg-card/50 backdrop-blur-sm transition-shadow duration-100 hover:shadow-lg ${isSelected ? "ring-2 ring-primary" : ""}`}
             >
               <CardContent className="p-0">
                 {/* Header */}

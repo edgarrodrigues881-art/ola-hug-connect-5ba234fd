@@ -227,7 +227,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up max-w-4xl">
+    <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
         <p className="text-sm text-muted-foreground">Gerencie seu perfil e segurança</p>

@@ -303,7 +303,7 @@ const Proxy = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-up">
+    <div className="space-y-5">
       {/* Disclaimer */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
         <DialogContent className="sm:max-w-lg backdrop-blur-sm">

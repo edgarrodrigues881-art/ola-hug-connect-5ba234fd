@@ -54,7 +54,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
             {/* Search bar */}
             <div className="flex-1 flex justify-center">
-              <div className={`relative transition-all duration-300 ${searchOpen ? "w-full max-w-md" : "w-full max-w-xs"}`}>
+              <div className={`relative ${searchOpen ? "w-full max-w-md" : "w-full max-w-xs"}`}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Buscar..."

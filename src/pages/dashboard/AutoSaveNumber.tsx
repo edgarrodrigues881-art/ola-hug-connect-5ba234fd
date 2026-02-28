@@ -32,7 +32,7 @@ const AutoSaveNumber = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Save className="w-6 h-6 text-primary" />
