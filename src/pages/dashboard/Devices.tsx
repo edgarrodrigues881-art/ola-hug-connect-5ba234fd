@@ -1262,200 +1262,191 @@ const Devices = () => {
       </Dialog>
 
       <Dialog open={connectOpen} onOpenChange={(open) => {
-        if (!open) {
-          stopPolling();
-          setConnectOpen(false);
-        }
+        if (!open) { stopPolling(); setConnectOpen(false); }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {connectStep === "choose" && "Conectar instância"}
-              {connectStep === "proxy" && "Confirmar Proxy"}
-              {connectStep === "qr" && "Escaneie o QR Code"}
-              {connectStep === "code" && "Código de emparelhamento"}
-              {connectStep === "connecting" && "Conectando..."}
-              {connectStep === "done" && "Conectado!"}
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-primary" />
+              {connectStep === "done" ? "Conectado" : "Conectar instância"}
             </DialogTitle>
+            {connectingDevice && connectStep !== "done" && (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-[11px] text-muted-foreground/50">{connectingDevice.name}</p>
+                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${
+                  connectStep === "qr" || connectStep === "code"
+                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                    : connectError
+                      ? "bg-red-500/10 text-red-400 border-red-500/20"
+                      : "bg-muted/20 text-muted-foreground/60 border-border/20"
+                }`}>
+                  {connectStep === "qr" || connectStep === "code" ? "Aguardando leitura" : connectError ? "Erro na conexão" : "Desconectado"}
+                </Badge>
+              </div>
+            )}
           </DialogHeader>
 
           {connectStep === "choose" && (
-            <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">Escolha o método de conexão para <span className="font-medium text-foreground">{connectingDevice?.name}</span>:</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => handleConnect("qr")}>
-                  <QrCode className="w-6 h-6 text-primary" />
-                  <span className="text-xs">QR Code</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => handleConnect("code")}>
-                  <Link2 className="w-6 h-6 text-primary" />
-                  <span className="text-xs">Código</span>
-                </Button>
+            <div className="space-y-3">
+              <p className="text-[11px] text-muted-foreground">Método de conexão:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleConnect("qr")}
+                  className="flex flex-col items-center gap-1.5 p-4 rounded-lg border border-border/20 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                >
+                  <QrCode className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium">QR Code</span>
+                  <span className="text-[9px] text-muted-foreground/40">Escaneie com o celular</span>
+                </button>
+                <button
+                  onClick={() => handleConnect("code")}
+                  className="flex flex-col items-center gap-1.5 p-4 rounded-lg border border-border/20 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                >
+                  <Key className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium">Código</span>
+                  <span className="text-[9px] text-muted-foreground/40">Digite no WhatsApp</span>
+                </button>
               </div>
             </div>
           )}
 
           {connectStep === "proxy" && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <Shield className="w-5 h-5 text-primary shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Proxy atribuído automaticamente</p>
-                  <p className="text-xs text-muted-foreground">Você pode confirmar, trocar ou remover antes de conectar.</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Proxy selecionado</Label>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Proxy</Label>
                 <Select value={selectedProxy} onValueChange={setSelectedProxy}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Selecionar proxy" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableProxies.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        <div className="flex items-center justify-between gap-4 w-full">
+                    {availableProxies.map(p => {
+                      const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20" : p.status === "USADA" ? "text-red-400 border-red-500/20" : "text-emerald-500 border-emerald-500/20";
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
                           <div className="flex items-center gap-2">
-                            <Shield className="w-3 h-3 text-primary" />
-                            {p.label}
+                            <Shield className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs">{p.label}</span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 ${cls}`}>{p.status}</Badge>
                           </div>
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
-                            {p.status}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
+                        </SelectItem>
+                      );
+                    })}
                     <SelectItem value="none">
-                      <span className="text-muted-foreground">Sem proxy</span>
+                      <span className="text-xs text-muted-foreground">Sem proxy</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {selectedProxy && selectedProxy !== "none" && (
-                <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-1">
-                  <p className="text-xs text-muted-foreground">Detalhes do proxy:</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {availableProxies.find(p => p.id === selectedProxy)?.label}
-                  </p>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {connectMethod === "qr" ? "QR Code" : "Código"} + Proxy
-                  </Badge>
-                </div>
+              {(!selectedProxy || selectedProxy === "none") && (
+                <p className="text-[10px] text-amber-500/70 flex items-center gap-0.5">
+                  <AlertTriangle className="w-2.5 h-2.5" /> Conectar sem proxy aumenta o risco de bloqueio
+                </p>
               )}
-
-              <div className="flex items-center gap-2 pt-2">
-                <Button variant="outline" className="flex-1 gap-1.5 text-xs" onClick={() => setConnectStep("choose")}>
-                  Voltar
-                </Button>
-                <Button className="flex-1 gap-1.5 text-xs bg-primary hover:bg-primary/90" onClick={handleConfirmProxy}>
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar e conectar
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setConnectStep("choose")}>Voltar</Button>
+                <Button size="sm" className="flex-1 text-xs" onClick={handleConfirmProxy}>
+                  <CheckCircle2 className="w-3 h-3 mr-1" /> Conectar
                 </Button>
               </div>
             </div>
           )}
 
           {connectStep === "qr" && (
-            <div className="flex flex-col items-center gap-4 py-4">
+            <div className="flex flex-col items-center gap-3">
               {qrCodeBase64 ? (
-                <img
-                  src={qrCodeBase64}
-                  alt="QR Code"
-                  className="w-56 h-56 rounded-xl border border-border"
-                />
+                <img src={qrCodeBase64} alt="QR Code" className="w-48 h-48 rounded-lg border border-border/20" />
               ) : connectError ? (
-                <div className="w-56 h-56 bg-destructive/10 rounded-xl flex flex-col items-center justify-center border border-destructive/30 p-4">
-                  <XCircle className="w-10 h-10 text-destructive mb-2" />
-                  <p className="text-xs text-destructive text-center">{connectError}</p>
+                <div className="w-48 h-48 bg-destructive/5 rounded-lg flex flex-col items-center justify-center border border-destructive/20 p-3">
+                  <XCircle className="w-8 h-8 text-destructive mb-1.5" />
+                  <p className="text-[10px] text-destructive text-center">{connectError}</p>
                 </div>
               ) : (
-                <div className="w-56 h-56 bg-muted rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-border">
-                  <Loader2 className="w-10 h-10 text-primary animate-spin mb-2" />
-                  <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                <div className="w-48 h-48 bg-muted/20 rounded-lg flex flex-col items-center justify-center border border-dashed border-border/20">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mb-1.5" />
+                  <p className="text-[10px] text-muted-foreground">Gerando QR Code...</p>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground text-center">Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar dispositivo</p>
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-                <p className="text-xs text-muted-foreground">Aguardando leitura do QR Code...</p>
+              <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+                WhatsApp → Configurações → Aparelhos conectados → Conectar
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-muted-foreground/50">Aguardando leitura</span>
               </div>
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 text-xs mt-1"
+                className="gap-1 text-[10px] h-7"
                 onClick={async () => {
                   try {
                     const result = await callApi({ action: "status", deviceId: connectingDevice!.id });
-                    console.log("Sync button result:", JSON.stringify(result));
                     const state = result?.status;
                     if (state === "authenticated") {
-                      // Mark done FIRST
                       stopPolling();
                       setConnectStep("done");
                       queryClient.invalidateQueries({ queryKey: ["devices"] });
-                      toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
-                      // Sync in background
+                      toast({ title: "Conectado!" });
                       try {
                         const { data: { session: s } } = await supabase.auth.getSession();
                         if (s) {
-                          await supabase.functions.invoke("sync-devices", {
-                            headers: { Authorization: `Bearer ${s.access_token}` },
-                          });
+                          await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
                           queryClient.invalidateQueries({ queryKey: ["devices"] });
                         }
-                      } catch (e) {
-                        console.error("Background sync error:", e);
-                      }
+                      } catch {}
                     } else {
-                      toast({ title: "Ainda não conectado", description: `Status atual: ${state || "desconhecido"}. Escaneie o QR Code e tente novamente.`, variant: "destructive" });
+                      toast({ title: "Ainda não conectado", description: `Status: ${state || "desconhecido"}`, variant: "destructive" });
                     }
                   } catch (err: any) {
-                    console.error("Sync button error:", err);
-                    toast({ title: "Erro ao verificar", description: err?.message || "Tente novamente", variant: "destructive" });
+                    toast({ title: "Erro ao verificar", description: err?.message, variant: "destructive" });
                   }
                 }}
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Já escaneei, sincronizar
+                <RefreshCw className="w-3 h-3" /> Já escaneei
               </Button>
             </div>
           )}
 
           {connectStep === "code" && (
-            <div className="flex flex-col items-center gap-4 py-4">
+            <div className="flex flex-col items-center gap-3">
               {pairingCode ? (
-                <div className="bg-muted rounded-xl px-8 py-4 border border-border">
-                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
+                <div className="bg-muted/20 rounded-lg px-6 py-3 border border-border/20">
+                  <p className="text-xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
                 </div>
               ) : connectError ? (
-                <div className="bg-destructive/10 rounded-xl px-8 py-4 border border-destructive/30">
-                  <p className="text-sm text-destructive text-center">{connectError}</p>
+                <div className="bg-destructive/5 rounded-lg px-6 py-3 border border-destructive/20">
+                  <p className="text-xs text-destructive text-center">{connectError}</p>
                 </div>
               ) : (
-                <div className="bg-muted rounded-xl px-8 py-4 border border-border flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                  <p className="text-sm text-muted-foreground">Gerando código...</p>
+                <div className="bg-muted/20 rounded-lg px-6 py-3 border border-border/20 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  <p className="text-xs text-muted-foreground">Gerando código...</p>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground text-center">Insira este código no WhatsApp → Configurações → Aparelhos conectados → Conectar com número de telefone</p>
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-                <p className="text-xs text-muted-foreground">Aguardando emparelhamento...</p>
+              <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+                WhatsApp → Aparelhos conectados → Conectar com número
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-muted-foreground/50">Aguardando emparelhamento</span>
               </div>
             </div>
           )}
 
           {connectStep === "connecting" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
-              <p className="text-sm text-muted-foreground">Aguardando conexão...</p>
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-xs text-muted-foreground">Aguardando conexão...</p>
             </div>
           )}
 
           {connectStep === "done" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-              <p className="text-sm font-medium text-foreground">Instância conectada com sucesso!</p>
-              <Button onClick={() => { stopPolling(); setConnectOpen(false); }} className="bg-primary hover:bg-primary/90">Fechar</Button>
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Conectado com sucesso</p>
+              <p className="text-[10px] text-muted-foreground/40">Instância pronta para uso</p>
+              <Button size="sm" onClick={() => { stopPolling(); setConnectOpen(false); }}>Fechar</Button>
             </div>
           )}
         </DialogContent>
