@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Shield, Link2, Upload, Download, Trash2, CheckSquare, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,12 @@ import { useAuth } from "@/lib/auth";
 type StatusFilter = "NOVA" | "USANDO" | "USADA" | null;
 
 const PROXY_DISCLAIMER_KEY = "proxy-disclaimer-accepted";
+
+const statusConfig = {
+  NOVA: { label: "Livre", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400" },
+  USANDO: { label: "Em uso", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", dot: "bg-amber-400" },
+  USADA: { label: "Usada", color: "text-muted-foreground", bg: "bg-muted/10", border: "border-border/30", dot: "bg-muted-foreground/40" },
+};
 
 const Proxy = () => {
   const navigate = useNavigate();
@@ -45,7 +51,6 @@ const Proxy = () => {
     setDisclaimerChecked(false);
   };
 
-  // Fetch proxies
   const { data: dbProxies = [] } = useQuery({
     queryKey: ["proxies"],
     queryFn: async () => {
@@ -57,8 +62,30 @@ const Proxy = () => {
       return (data || []) as any[];
     },
     enabled: !!session,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
   });
+
+  // Fetch devices to map proxy_id → device name
+  const { data: devices = [] } = useQuery({
+    queryKey: ["proxy-devices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("devices")
+        .select("id, name, number, proxy_id");
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; number: string | null; proxy_id: string | null }[];
+    },
+    enabled: !!session,
+    refetchInterval: 30000,
+  });
+
+  const deviceByProxy = useMemo(() => {
+    const map: Record<string, { name: string; number: string | null }> = {};
+    devices.forEach(d => {
+      if (d.proxy_id) map[d.proxy_id] = { name: d.name, number: d.number };
+    });
+    return map;
+  }, [devices]);
 
   const proxiesWithIndex = dbProxies.map((p: any, index: number) => ({
     ...p,
@@ -70,6 +97,13 @@ const Proxy = () => {
     ? proxiesWithIndex.filter((p: any) => p.proxyStatus === statusFilter)
     : proxiesWithIndex;
 
+  const counts = useMemo(() => ({
+    total: proxiesWithIndex.length,
+    NOVA: proxiesWithIndex.filter((p: any) => p.proxyStatus === "NOVA").length,
+    USANDO: proxiesWithIndex.filter((p: any) => p.proxyStatus === "USANDO").length,
+    USADA: proxiesWithIndex.filter((p: any) => p.proxyStatus === "USADA").length,
+  }), [proxiesWithIndex]);
+
   // Mutations
   const addMutation = useMutation({
     mutationFn: async (proxies: { host: string; port: string; username: string; password: string }[]) => {
@@ -79,14 +113,13 @@ const Proxy = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      toast.success("Proxy(s) adicionada(s)!");
+      toast.success("Proxy adicionada");
     },
     onError: () => toast.error("Erro ao adicionar proxy"),
   });
 
   const deleteMultipleMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      // Check which proxies are linked to devices
       const { data: linkedDevices } = await supabase
         .from("devices")
         .select("proxy_id")
@@ -107,16 +140,14 @@ const Proxy = () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
       setSelectedIds(new Set());
       if (result.blocked > 0 && result.deleted > 0) {
-        toast.success(`${result.deleted} proxy(s) removida(s). ${result.blocked} ignorada(s) por estarem vinculadas a instâncias.`);
+        toast.success(`${result.deleted} removida(s). ${result.blocked} ignorada(s) — vinculadas a instâncias.`);
       } else if (result.blocked > 0 && result.deleted === 0) {
-        toast.error(`${result.blocked} proxy(s) vinculada(s) a instâncias. Desvincule primeiro.`);
+        toast.error(`Proxy vinculada a instância. Desvincule primeiro.`);
       } else {
-        toast.success("Proxies removidas");
+        toast.success("Removida");
       }
     },
-    onError: () => {
-      toast.error("Erro ao remover proxies");
-    },
+    onError: () => toast.error("Erro ao remover"),
   });
 
   const updateStatusMutation = useMutation({
@@ -140,7 +171,6 @@ const Proxy = () => {
     onSuccess: () => {},
   });
 
-  // Parse
   const parseLine = (line: string) => {
     const t = line.trim();
     if (!t) return null;
@@ -162,13 +192,11 @@ const Proxy = () => {
     setPasteInput(value);
     const lines = value.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length > 1) {
-      // Multiple lines pasted - parse all and add
       const parsed = lines.map(parseLine).filter(Boolean) as any[];
       if (parsed.length > 0) {
         addMutation.mutate(parsed);
         setPasteInput("");
         setForm({ host: "", port: "", username: "", password: "" });
-        setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
       }
       return;
     }
@@ -186,7 +214,6 @@ const Proxy = () => {
     addMutation.mutate([{ host: form.host, port: form.port, username: form.username, password: form.password }]);
     setForm({ host: "", port: "", username: "", password: "" });
     setPasteInput("");
-    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,40 +234,27 @@ const Proxy = () => {
           for (const row of rows) {
             if (!row || !Array.isArray(row) || row.length < 1) continue;
             const vals = row.map((v: any) => String(v ?? "").trim());
-            
-            // Skip header/empty rows
             const first = vals[0]?.toLowerCase();
             if (!first || first === "host" || first === "ip" || first.includes("proxy") || first === "servidor") continue;
-            
-            // Try parsing first cell as "host:port:user:pass"
             const fromParse = parseLine(vals[0]);
-            if (fromParse) {
-              parsed.push(fromParse);
-              continue;
-            }
-            
-            // Fallback: Columns: host, port, user, password
+            if (fromParse) { parsed.push(fromParse); continue; }
             if (vals.length >= 2) {
               const host = vals[0] || "";
               const port = vals[1] || "";
               const username = vals[2] || "";
               const password = vals[3] || "";
-              if (host && port) {
-                parsed.push({ host, port, username, password });
-              }
+              if (host && port) parsed.push({ host, port, username, password });
             }
           }
           
           if (parsed.length > 0) addMutation.mutate(parsed);
-          else toast.error("Nenhuma proxy válida encontrada no Excel");
-        } catch (err) {
-          console.error("Erro ao ler Excel:", err);
-          toast.error("Erro ao ler arquivo Excel");
+          else toast.error("Nenhuma proxy válida encontrada");
+        } catch {
+          toast.error("Erro ao ler arquivo");
         }
       };
       reader.readAsArrayBuffer(file);
     } else {
-      // TXT / CSV
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target?.result as string;
@@ -274,7 +288,7 @@ const Proxy = () => {
       ? proxiesWithIndex
       : proxiesWithIndex.filter((p: any) => p.proxyStatus === status);
     if (toExport.length === 0) {
-      toast.error(`Nenhuma proxy${status !== "TODAS" ? ` com status "${status}"` : ""} para exportar`);
+      toast.error("Nenhuma proxy para exportar");
       return;
     }
     const content = toExport.map((p: any) =>
@@ -286,203 +300,197 @@ const Proxy = () => {
     a.href = url; a.download = `proxies-${status.toLowerCase()}.txt`; a.click();
     URL.revokeObjectURL(url);
     setExportMenuOpen(false);
-    toast.success(`${toExport.length} proxy(s) exportada(s)!`);
+    toast.success(`${toExport.length} proxy(s) exportada(s)`);
   };
 
-  const filterChips: StatusFilter[] = ["NOVA", "USANDO", "USADA"];
-
-  const statusBadge = (s: string) => {
-    switch (s) {
-      case "USANDO":
-        return <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-500 border-yellow-500/30">USANDO</Badge>;
-      case "USADA":
-        return <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-500 border-red-500/30">USADA</Badge>;
-      default:
-        return <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">NOVA</Badge>;
+  const handleSync = async () => {
+    try {
+      const { data: allProxies } = await supabase.from("proxies").select("id, status");
+      const { data: allDevices } = await supabase.from("devices").select("proxy_id");
+      const linkedProxyIds = new Set((allDevices || []).map(d => d.proxy_id).filter(Boolean));
+      let updated = 0;
+      for (const proxy of (allProxies || [])) {
+        const isLinked = linkedProxyIds.has(proxy.id);
+        let correctStatus: string;
+        if (isLinked) correctStatus = "USANDO";
+        else if (proxy.status === "USANDO") correctStatus = "USADA";
+        else correctStatus = proxy.status;
+        if (proxy.status !== correctStatus) {
+          await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
+          updated++;
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+      toast.success(`Sincronizado. ${updated} atualizada(s).`);
+    } catch {
+      toast.error("Erro ao sincronizar");
     }
   };
 
+  const getStatusBadge = (s: string) => {
+    const cfg = statusConfig[s as keyof typeof statusConfig] || statusConfig.NOVA;
+    return (
+      <Badge variant="outline" className={`text-[10px] ${cfg.bg} ${cfg.color} ${cfg.border} px-2 py-0.5`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} mr-1 inline-block`} />
+        {cfg.label}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Disclaimer */}
+    <div className="space-y-4">
+      {/* Disclaimer — clean & direct */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
-        <DialogContent className="sm:max-w-lg backdrop-blur-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-foreground text-lg">
-              <div className="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
-                <span className="text-yellow-500 text-lg">⚠</span>
-              </div>
-              Diretrizes para uso de Proxy
+            <DialogTitle className="flex items-center gap-2.5 text-foreground text-base">
+              <Shield className="w-5 h-5 text-primary" />
+              Boas práticas de Proxy
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-3">
-            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
-              <p className="text-sm font-medium text-yellow-500/90">Requisitos mínimos de qualidade</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Proxies gratuitas, compartilhadas ou de baixa reputação podem comprometer a estabilidade da instância.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-1.5">
-              <p className="text-sm font-medium text-foreground/80">Termo de responsabilidade</p>
-              <ul className="text-xs text-muted-foreground leading-relaxed space-y-1 list-none">
-                <li>• Utilize proxies <strong className="text-foreground">residenciais ou móveis dedicadas</strong>.</li>
-                <li>• Evite proxies de datacenter compartilhadas.</li>
-                <li>• Uma proxy dedicada por instância.</li>
-              </ul>
+          <div className="space-y-3 py-2">
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
+              Proxies são parte crítica da saúde do chip. A qualidade da conexão impacta diretamente na estabilidade da instância.
+            </p>
+            <div className="space-y-2">
+              {[
+                "Use proxies residenciais ou móveis dedicadas",
+                "Evite proxies de datacenter ou compartilhadas",
+                "Uma proxy dedicada por instância",
+              ].map((rule, i) => (
+                <div key={i} className="flex items-start gap-2 text-[12px] text-foreground/80">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  {rule}
+                </div>
+              ))}
             </div>
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col">
             <div className="flex items-start gap-2">
               <Checkbox id="disclaimer-check" checked={disclaimerChecked} onCheckedChange={(v) => setDisclaimerChecked(!!v)} className="mt-0.5" />
-              <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                Declaro estar ciente das diretrizes e assumir total responsabilidade.
+              <label htmlFor="disclaimer-check" className="text-[11px] text-muted-foreground cursor-pointer leading-relaxed">
+                Estou ciente e assumo responsabilidade pelo uso.
               </label>
             </div>
-            <Button onClick={handleAcceptDisclaimer} className="w-full" disabled={!disclaimerChecked}>
-              Confirmar e continuar
+            <Button onClick={handleAcceptDisclaimer} className="w-full" size="sm" disabled={!disclaimerChecked}>
+              Continuar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Header */}
-      <div className="space-y-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <span className="text-emerald-500">✓</span> Proxy
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie suas proxies</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-foreground">Proxies</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
+      </div>
 
-        {/* All actions in one scrollable bar */}
-        <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
-          <div className="flex items-center gap-2 min-w-max">
-            {[
-              { key: null as StatusFilter, label: "Todas", icon: "📋", activeClass: "bg-indigo-600/15 text-indigo-400 border-indigo-500/40" },
-              { key: "NOVA" as StatusFilter, label: "Nova", icon: "🆕", activeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
-              { key: "USANDO" as StatusFilter, label: "Usando", icon: "🟡", activeClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40" },
-              { key: "USADA" as StatusFilter, label: "Usada", icon: "🔴", activeClass: "bg-red-500/15 text-red-400 border-red-500/40" },
-            ].map((chip) => (
-              <button
-                key={chip.label}
-                onClick={() => setStatusFilter(chip.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
-                  statusFilter === chip.key
-                    ? chip.activeClass
-                    : "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
-                }`}
-              >
-                <span className="text-[11px]">{chip.icon}</span>
-                {chip.label}
-              </button>
-            ))}
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { label: "Total", value: counts.total, color: "text-foreground" },
+          { label: "Livres", value: counts.NOVA, color: "text-emerald-400" },
+          { label: "Em uso", value: counts.USANDO, color: "text-amber-400" },
+          { label: "Usadas", value: counts.USADA, color: "text-muted-foreground/50" },
+        ].map(s => (
+          <Card key={s.label} className="border-border/15">
+            <CardContent className="p-3">
+              <p className={`text-xl font-bold tabular-nums leading-none ${s.color}`}>{s.value}</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-            <div className="w-px h-6 bg-border mx-1" />
-
-            <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs whitespace-nowrap" onClick={() => fileInputRef.current?.click()}>
-              📂 Importar
-            </Button>
-            <div className="relative">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs whitespace-nowrap" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
-                📤 Exportar
-              </Button>
-              {exportMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
-                    {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => handleExport(s)}
-                        className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs whitespace-nowrap"
-              onClick={async () => {
-                try {
-                  const { data: allProxies } = await supabase.from("proxies").select("id, status");
-                  const { data: allDevices } = await supabase.from("devices").select("proxy_id");
-                  const linkedProxyIds = new Set((allDevices || []).map(d => d.proxy_id).filter(Boolean));
-                  let updated = 0;
-                  for (const proxy of (allProxies || [])) {
-                    const isLinked = linkedProxyIds.has(proxy.id);
-                    let correctStatus: string;
-                    if (isLinked) {
-                      correctStatus = "USANDO";
-                    } else if (proxy.status === "USANDO") {
-                      correctStatus = "USADA";
-                    } else {
-                      correctStatus = proxy.status;
-                    }
-                    if (proxy.status !== correctStatus) {
-                      await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
-                      updated++;
-                    }
-                  }
-                  queryClient.invalidateQueries({ queryKey: ["proxies"] });
-                  toast.success(`Sincronizado! ${updated} proxy(s) atualizada(s).`);
-                } catch {
-                  toast.error("Erro ao sincronizar");
-                }
-              }}
+      {/* Filters + Actions */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {([
+            { key: null as StatusFilter, label: "Todas" },
+            { key: "NOVA" as StatusFilter, label: "Livres" },
+            { key: "USANDO" as StatusFilter, label: "Em uso" },
+            { key: "USADA" as StatusFilter, label: "Usadas" },
+          ]).map(f => (
+            <button
+              key={f.label}
+              onClick={() => setStatusFilter(f.key)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                statusFilter === f.key
+                  ? "bg-muted/20 text-foreground border-border/40"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 sm:ml-auto flex-wrap">
+          <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-3 h-3" /> Importar
+          </Button>
+          <div className="relative">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+              <Download className="w-3 h-3" /> Exportar
             </Button>
+            {exportMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[120px]">
+                  {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleExport(s)}
+                      className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
+                    >
+                      {s === "TODAS" ? "Todas" : s === "NOVA" ? "Livres" : s === "USANDO" ? "Em uso" : "Usadas"}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={handleSync}>
+            <RefreshCw className="w-3 h-3" /> Sincronizar
+          </Button>
         </div>
       </div>
 
-      {/* Add form */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Adicionar Proxy</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Add form — compact */}
+      <Card className="border-border/15">
+        <CardContent className="p-4 space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Cole uma ou mais proxies (host:porta:user:senha ou user:senha@host:porta)</Label>
+            <Label className="text-[11px] text-muted-foreground">Cole proxy (host:porta:user:senha)</Label>
             <div className="flex gap-2">
               <Input
-                placeholder="192.168.0.1:8080:user:senha ou user:senha@host:porta"
+                placeholder="192.168.0.1:8080:user:senha"
                 value={pasteInput}
                 onChange={(e) => handlePasteInput(e.target.value)}
-                className="font-mono text-xs flex-1"
+                className="font-mono text-xs flex-1 h-8"
               />
-              <Button onClick={handleAdd} size="sm" className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white shrink-0">
-                ＋ Adicionar
+              <Button onClick={handleAdd} size="sm" className="gap-1 text-xs h-8 shrink-0">
+                <Plus className="w-3 h-3" /> Adicionar
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Host</Label>
-              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-[10px] font-medium text-muted-foreground">Host</Label>
+              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-7 text-xs font-mono" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Porta</Label>
-              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-[10px] font-medium text-muted-foreground">Porta</Label>
+              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-7 text-xs font-mono" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Usuário</Label>
-              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-[10px] font-medium text-muted-foreground">Usuário</Label>
+              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-7 text-xs font-mono" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Senha</Label>
-              <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-sm" />
+              <Label className="text-[10px] font-medium text-muted-foreground">Senha</Label>
+              <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-7 text-xs font-mono" />
             </div>
           </div>
-          <Button onClick={handleAdd} className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
-            ＋ Adicionar
-          </Button>
         </CardContent>
       </Card>
 
@@ -490,23 +498,22 @@ const Proxy = () => {
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">{selectedIds.size} selecionada(s)</span>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
-            🗑 Remover
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
+            <Trash2 className="w-3 h-3" /> Remover
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setClearAllConfirmOpen(true)}>
-            ✕ Limpar tudo
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => setClearAllConfirmOpen(true)}>
+            Limpar tudo
           </Button>
 
-          {/* Confirmação de Limpar tudo */}
           <Dialog open={clearAllConfirmOpen} onOpenChange={setClearAllConfirmOpen}>
             <DialogContent className="max-w-sm">
               <DialogHeader>
-                <DialogTitle>Tem certeza?</DialogTitle>
+                <DialogTitle className="text-sm">Confirmar remoção</DialogTitle>
               </DialogHeader>
-              <p className="text-sm text-muted-foreground">Todas as proxies serão removidas permanentemente. Esta ação não pode ser desfeita.</p>
+              <p className="text-xs text-muted-foreground">Todas as proxies livres serão removidas. Proxies vinculadas a instâncias serão preservadas.</p>
               <DialogFooter className="gap-2">
                 <Button variant="outline" size="sm" onClick={() => setClearAllConfirmOpen(false)}>Cancelar</Button>
-                <Button variant="destructive" size="sm" onClick={() => { deleteMultipleMutation.mutate(filtered.map((p: any) => p.id)); setClearAllConfirmOpen(false); }}>Sim, limpar tudo</Button>
+                <Button variant="destructive" size="sm" onClick={() => { deleteMultipleMutation.mutate(filtered.map((p: any) => p.id)); setClearAllConfirmOpen(false); }}>Confirmar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -514,89 +521,103 @@ const Proxy = () => {
       )}
 
       {/* Proxy table */}
-      <Card ref={tableRef}>
-        <CardHeader className="pb-3">
+      <Card ref={tableRef} className="border-border/15 overflow-hidden">
+        <CardHeader className="pb-0 pt-3 px-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Proxies ({filtered.length})</CardTitle>
+            <CardTitle className="text-sm font-medium">Proxies ({filtered.length})</CardTitle>
             {filtered.length > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={selectAll}>
+              <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAll}>
                 {selectedIds.size === filtered.length ? "Desmarcar" : "Selecionar tudo"}
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 mt-2">
           {filtered.length === 0 ? (
-            <div className="text-center py-8 space-y-2">
-              <p className="text-sm text-muted-foreground">Nenhuma proxy cadastrada. Importe ou adicione acima.</p>
+            <div className="text-center py-12">
+              <p className="text-sm text-muted-foreground">Nenhuma proxy encontrada</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-border">
-              <div className="max-h-[60vh] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10"></TableHead>
-                      <TableHead className="text-xs">ID</TableHead>
-                      <TableHead className="text-xs">Proxy</TableHead>
-                      <TableHead className="text-xs">Usuário</TableHead>
-                      <TableHead className="text-xs">Senha</TableHead>
-                      <TableHead className="text-xs">Status</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((proxy: any) => {
-                      const isSelected = selectedIds.has(proxy.id);
-                      return (
-                        <TableRow key={proxy.id} className={isSelected ? "bg-primary/5" : ""}>
-                          <TableCell>
-                            <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(proxy.id)} />
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground font-mono">
-                            {proxy.displayId}
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-xs text-muted-foreground font-mono">{proxy.username || "—"}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-xs text-muted-foreground font-mono">{proxy.password || "—"}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={proxy.proxyStatus}
-                              onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border/30 bg-muted/5">
+                    <TableHead className="w-8 px-3"></TableHead>
+                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">#</TableHead>
+                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Proxy</TableHead>
+                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Auth</TableHead>
+                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Instância</TableHead>
+                    <TableHead className="w-8"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((proxy: any) => {
+                    const isSelected = selectedIds.has(proxy.id);
+                    const linkedDevice = deviceByProxy[proxy.id];
+                    return (
+                      <TableRow key={proxy.id} className={`border-b border-border/15 ${isSelected ? "bg-primary/5" : ""}`}>
+                        <TableCell className="px-3">
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(proxy.id)} />
+                        </TableCell>
+                        <TableCell className="text-[11px] text-muted-foreground/40 font-mono tabular-nums">
+                          {proxy.displayId}
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
+                        </TableCell>
+                        <TableCell>
+                          {proxy.username ? (
+                            <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[120px]" title={`${proxy.username}:${proxy.password}`}>
+                              {proxy.username}:{"•".repeat(Math.min(proxy.password?.length || 4, 6))}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground/20">—</p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={proxy.proxyStatus}
+                            onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
+                          >
+                            <SelectTrigger className="h-6 w-auto gap-1 rounded-full !border-0 bg-transparent px-0 text-[10px] !shadow-none !ring-0 !ring-offset-0 !outline-none [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
+                              {getStatusBadge(proxy.proxyStatus)}
+                            </SelectTrigger>
+                            <SelectContent className="min-w-[100px] bg-popover z-50">
+                              <SelectItem value="NOVA" className="text-xs">Livre</SelectItem>
+                              <SelectItem value="USANDO" className="text-xs">Em uso</SelectItem>
+                              <SelectItem value="USADA" className="text-xs">Usada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          {linkedDevice ? (
+                            <div className="flex items-center gap-1.5">
+                              <Link2 className="w-3 h-3 text-amber-400/60" />
+                              <span className="text-[11px] text-foreground/70 truncate max-w-[100px]">
+                                {linkedDevice.number || linkedDevice.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/20">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isSelected && (
+                            <button
+                              onClick={() => deleteMultipleMutation.mutate([proxy.id])}
+                              className="text-destructive/60 hover:text-destructive transition-colors"
+                              title="Remover"
                             >
-                              <SelectTrigger className="h-6 w-auto gap-1 rounded-full !border-0 bg-transparent px-0 text-[10px] !shadow-none !ring-0 !ring-offset-0 !outline-none [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
-                                {statusBadge(proxy.proxyStatus)}
-                              </SelectTrigger>
-                              <SelectContent className="min-w-[100px] bg-popover z-50">
-                                <SelectItem value="NOVA" className="text-xs">NOVA</SelectItem>
-                                <SelectItem value="USANDO" className="text-xs">USANDO</SelectItem>
-                                <SelectItem value="USADA" className="text-xs">USADA</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            {isSelected && (
-                              <button
-                                onClick={() => deleteMultipleMutation.mutate([proxy.id])}
-                                className="text-destructive hover:text-destructive/80 transition-colors text-sm"
-                                title="Remover"
-                              >
-                                🗑
-                              </button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
