@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Bar } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Area, Bar } from "recharts";
+import { BarChart3 } from "lucide-react";
 
 interface WarmupPoint {
   label: string;
-  mensagens: number;
-  falhas: number;
+  volume: number;
+  entregas: number;
   crescimento: number;
 }
 
@@ -18,7 +18,7 @@ export function ActivityChart({ data }: Props) {
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
           Evolução do Aquecimento — 7 dias
         </CardTitle>
       </CardHeader>
@@ -27,9 +27,9 @@ export function ActivityChart({ data }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="gradMsg" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                <linearGradient id="gradVol" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -54,24 +54,24 @@ export function ActivityChart({ data }: Props) {
               />
               <Area
                 type="monotone"
-                dataKey="mensagens"
-                stroke="#34d399"
+                dataKey="volume"
+                stroke="hsl(217, 91%, 60%)"
                 strokeWidth={2}
-                fill="url(#gradMsg)"
-                name="Mensagens"
+                fill="url(#gradVol)"
+                name="Volume"
               />
               <Bar
-                dataKey="falhas"
-                fill="#ef4444"
-                opacity={0.6}
+                dataKey="entregas"
+                fill="hsl(152, 69%, 53%)"
+                opacity={0.5}
                 barSize={8}
                 radius={[2, 2, 0, 0]}
-                name="Falhas"
+                name="Entregas"
               />
               <Line
                 type="monotone"
                 dataKey="crescimento"
-                stroke="#8b5cf6"
+                stroke="hsl(263, 70%, 50%)"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 dot={false}
@@ -81,9 +81,9 @@ export function ActivityChart({ data }: Props) {
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Mensagens</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Falhas</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-violet-400" /> Crescimento %</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "hsl(217, 91%, 60%)" }} /> Volume</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "hsl(152, 69%, 53%)" }} /> Entregas</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5" style={{ background: "hsl(263, 70%, 50%)" }} /> Crescimento %</span>
         </div>
       </CardContent>
     </Card>
