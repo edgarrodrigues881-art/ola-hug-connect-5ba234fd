@@ -384,6 +384,12 @@ const Campaigns = () => {
       toast({ title: "Dispositivo não encontrado", description: "O dispositivo selecionado foi removido. Selecione outro na aba Configurações.", variant: "destructive" });
       return;
     }
+    // Check if selected device is online
+    const selectedDev = devices.find(d => d.id === validDeviceIds[0]);
+    if (selectedDev && selectedDev.status !== "Ready") {
+      toast({ title: "Instância offline", description: `"${selectedDev.name}" está desconectada. Reconecte antes de disparar.`, variant: "destructive" });
+      return;
+    }
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
     if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
@@ -1475,6 +1481,17 @@ const Campaigns = () => {
                       </div>
                     );
                   })()}
+                </div>
+              )}
+
+              {/* Offline warning */}
+              {selectedDeviceData && selectedDeviceData.status !== "Ready" && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-destructive">Instância offline</p>
+                    <p className="text-xs text-destructive/70">"{selectedDeviceData.name}" está desconectada. O disparo não funcionará até reconectar.</p>
+                  </div>
                 </div>
               )}
             </SurfaceCard>
