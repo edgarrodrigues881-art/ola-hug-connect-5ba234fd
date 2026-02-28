@@ -78,7 +78,7 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch existing notifications + detect new ones via polling
+  // Fetch existing notifications - NO toast on polling (realtime handles toasts)
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
@@ -88,15 +88,7 @@ export function useNotifications() {
       .limit(20);
 
     if (data) {
-      // Detect new notifications (not seen before)
-      if (initialLoadDoneRef.current) {
-        for (const n of data) {
-          if (!knownIdsRef.current.has(n.id)) {
-            showToastForNotif(n as Notification);
-          }
-        }
-      }
-      // Update known IDs
+      // Update known IDs without triggering toasts
       knownIdsRef.current = new Set(data.map((n) => n.id));
       initialLoadDoneRef.current = true;
 
@@ -104,8 +96,7 @@ export function useNotifications() {
       setUnreadCount(data.filter((n) => !n.read).length);
     }
     setLoading(false);
-  }, [user, showToastForNotif]);
-
+  }, [user]);
   // Mark single as read
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
@@ -135,10 +126,10 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
-  // Initial fetch + polling fallback every 3s
+  // Initial fetch + polling fallback every 15s (realtime handles instant updates)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 3000);
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

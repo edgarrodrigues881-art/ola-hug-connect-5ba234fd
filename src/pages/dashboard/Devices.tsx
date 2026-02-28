@@ -26,7 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
+
 
 interface Device {
   id: string;
@@ -263,8 +263,7 @@ const Devices = () => {
     return "[&>div]:bg-red-400";
   };
 
-  // Auto-sync device statuses every 30s + realtime
-  useAutoSyncDevices(1000);
+  // Auto-sync now handled globally in DashboardLayout
 
   // Fetch proxies from database
   const { data: dbProxies = [] } = useQuery({

@@ -16,6 +16,7 @@ import logo from "@/assets/logo.png";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -42,6 +43,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
+
+  // Global auto-sync of device statuses every 1s across all dashboard pages
+  useAutoSyncDevices(1000);
 
   return (
     <SidebarProvider>
