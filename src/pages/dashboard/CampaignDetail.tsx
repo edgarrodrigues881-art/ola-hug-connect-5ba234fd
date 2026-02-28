@@ -381,103 +381,82 @@ const CampaignDetail = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity", isActive && "opacity-40 pointer-events-none select-none")}>
           {/* Intervalo */}
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+          <div className="rounded-xl border border-border/30 bg-card/60 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Timer className="w-4 h-4 text-primary" /> Intervalo entre mensagens
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Min (s)</label>
-                <Input
-                  type="number" min={1} value={minDelay || ""}
+                <Input type="number" min={1} value={minDelay || ""} disabled={!!isActive}
                   onChange={e => { setMinDelay(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = minDelay || 1; setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Max (s)</label>
-                <Input
-                  type="number" min={1} value={maxDelay || ""}
+                <Input type="number" min={1} value={maxDelay || ""} disabled={!!isActive}
                   onChange={e => { setMaxDelay(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = maxDelay || 1; setMaxDelay(v); if (v < minDelay) setMaxDelay(minDelay); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">Tempo entre cada envio</p>
           </div>
 
           {/* Pausa a cada */}
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+          <div className="rounded-xl border border-border/30 bg-card/60 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Hash className="w-4 h-4 text-primary" /> Pausa a cada X mensagens
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Min</label>
-                <Input
-                  type="number" min={1} value={pauseEveryMin || ""}
+                <Input type="number" min={1} value={pauseEveryMin || ""} disabled={!!isActive}
                   onChange={e => { setPauseEveryMin(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = pauseEveryMin || 1; setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Max</label>
-                <Input
-                  type="number" min={1} value={pauseEveryMax || ""}
+                <Input type="number" min={1} value={pauseEveryMax || ""} disabled={!!isActive}
                   onChange={e => { setPauseEveryMax(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = pauseEveryMax || 1; setPauseEveryMax(v); if (v < pauseEveryMin) setPauseEveryMax(pauseEveryMin); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">Quantidade antes de pausar</p>
           </div>
 
           {/* Duração da pausa */}
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+          <div className="rounded-xl border border-border/30 bg-card/60 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Zap className="w-4 h-4 text-primary" /> Duração da pausa
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Min (s)</label>
-                <Input
-                  type="number" min={1} value={pauseDurationMin || ""}
+                <Input type="number" min={1} value={pauseDurationMin || ""} disabled={!!isActive}
                   onChange={e => { setPauseDurationMin(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = pauseDurationMin || 1; setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
               <div className="flex-1">
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Max (s)</label>
-                <Input
-                  type="number" min={1} value={pauseDurationMax || ""}
+                <Input type="number" min={1} value={pauseDurationMax || ""} disabled={!!isActive}
                   onChange={e => { setPauseDurationMax(Number(e.target.value)); setDelayDirty(true); }}
                   onBlur={() => { const v = pauseDurationMax || 1; setPauseDurationMax(v); if (v < pauseDurationMin) setPauseDurationMax(pauseDurationMin); }}
-                  className="h-9 mt-1"
-                />
+                  className="h-9 mt-1" />
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">Tempo de pausa</p>
           </div>
         </div>
 
-        {/* Estimated time */}
-        {estimatedTime && (
-          <div className="rounded-xl border border-border/50 bg-card p-4 flex items-center gap-3">
-            <Clock className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Tempo estimado total: <span className="text-primary">{estimatedTime}</span></p>
-              {(isActive || isPaused) && remainingTime && (
-                <p className="text-xs text-muted-foreground">{remainingTime}</p>
-              )}
-            </div>
-          </div>
+        {isActive && (
+          <p className="text-[10px] text-muted-foreground/50 italic mt-2">Pause a campanha para editar as configurações.</p>
         )}
       </div>
 
