@@ -586,21 +586,13 @@ const Campaigns = () => {
             className={cn("flex flex-col gap-[6px]", isSent ? "items-end" : "items-start")}
           >
             {/* ── Bubble ── */}
-            <div className={cn(bubbleMaxW, "flex flex-col")}>
-              {/* Media */}
+            <div className={cn(bubbleMaxW, "flex flex-col rounded-[12px] overflow-hidden shadow-md", isSent ? "bg-[#005C4B]" : "bg-[#202C33]")}>
+              {/* Media — inside the same bubble */}
               {mediaUrl && (
-                <div className="rounded-t-[12px] overflow-hidden">
-                  <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                </div>
+                <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               )}
-              {/* Text bubble */}
-              <div
-                className={cn(
-                  "px-[14px] py-[10px] shadow-md relative",
-                  mediaUrl ? "rounded-b-[12px]" : "rounded-[12px]",
-                  isSent ? "bg-[#005C4B]" : "bg-[#202C33]",
-                )}
-              >
+              {/* Text */}
+              <div className="px-[14px] py-[10px]">
                 <p className="text-[14px] text-[#E9EDEF] whitespace-pre-wrap leading-[1.65] break-words">
                   {hasContent ? message : (
                     <span className="italic text-[#8696A0]/70">Sua mensagem aparecerá aqui…</span>
