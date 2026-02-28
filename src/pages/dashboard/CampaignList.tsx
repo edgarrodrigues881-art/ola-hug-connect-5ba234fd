@@ -9,7 +9,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Megaphone, Search, Trash2, Eye, Copy, Plus,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Megaphone, Search, Trash2, Plus,
 } from "lucide-react";
 import { useCampaigns, useDeleteCampaign, useCreateCampaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +38,7 @@ const CampaignList = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [clearAllOpen, setClearAllOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return campaigns.filter((c) => {
@@ -52,53 +56,16 @@ const CampaignList = () => {
     });
   };
 
-  const handleDuplicate = async (campaign: any, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleClearAll = async () => {
     try {
-      // Get contacts from original campaign
-      const { data: contacts } = await supabase
-        .from("campaign_contacts")
-        .select("phone, name")
-        .eq("campaign_id", campaign.id);
-
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return;
-
-      // Create duplicated campaign
-      const { data: newCampaign, error } = await supabase.from("campaigns").insert({
-        name: `${campaign.name} (cópia)`,
-        message_type: campaign.message_type,
-        message_content: campaign.message_content,
-        media_url: campaign.media_url,
-        buttons: campaign.buttons || [],
-        user_id: user.user.id,
-        total_contacts: contacts?.length || 0,
-        status: "pending",
-        min_delay_seconds: campaign.min_delay_seconds,
-        max_delay_seconds: campaign.max_delay_seconds,
-        pause_every_min: campaign.pause_every_min,
-        pause_every_max: campaign.pause_every_max,
-        pause_duration_min: campaign.pause_duration_min,
-        pause_duration_max: campaign.pause_duration_max,
-        device_id: campaign.device_id,
-      }).select().single();
-
-      if (error) throw error;
-
-      // Copy contacts to new campaign
-      if (newCampaign && contacts && contacts.length > 0) {
-        const contactRows = contacts.map(c => ({
-          campaign_id: newCampaign.id,
-          phone: c.phone,
-          name: c.name || null,
-        }));
-        const { error: contactsError } = await supabase.from("campaign_contacts").insert(contactRows);
-        if (contactsError) throw contactsError;
+      for (const c of campaigns) {
+        await supabase.from("campaign_contacts").delete().eq("campaign_id", c.id);
+        await supabase.from("campaigns").delete().eq("id", c.id);
       }
-
-      toast({ title: "Campanha duplicada", description: `${contacts?.length || 0} contatos copiados.` });
+      setClearAllOpen(false);
+      toast({ title: "Todas as campanhas foram excluídas" });
     } catch (err: any) {
-      toast({ title: "Erro ao duplicar", description: err.message, variant: "destructive" });
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
@@ -116,13 +83,25 @@ const CampaignList = () => {
           <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie e acompanhe seus envios</p>
         </div>
-        <Button
-          size="lg"
-          className="gap-2 bg-primary hover:bg-primary/90 px-6"
-          onClick={() => navigate("/dashboard/campaigns")}
-        >
-          <Plus className="w-4 h-4" /> Nova Campanha
-        </Button>
+        <div className="flex items-center gap-2">
+          {campaigns.length > 0 && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={() => setClearAllOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" /> Limpar todas
+            </Button>
+          )}
+          <Button
+            size="lg"
+            className="gap-2 bg-primary hover:bg-primary/90 px-6"
+            onClick={() => navigate("/dashboard/campaigns")}
+          >
+            <Plus className="w-4 h-4" /> Nova Campanha
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -217,23 +196,7 @@ const CampaignList = () => {
                         {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
-                            title="Abrir"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => handleDuplicate(c, e)}
-                            title="Duplicar"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
+                        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -252,6 +215,24 @@ const CampaignList = () => {
           </Table>
         </div>
       </div>
+
+      {/* Clear All Confirmation */}
+      <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar todas as campanhas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso excluirá permanentemente todas as {campaigns.length} campanhas e seus contatos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
+              Excluir todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
