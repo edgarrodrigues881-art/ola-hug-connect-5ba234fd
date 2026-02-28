@@ -17,9 +17,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera, Search, Flame, AlertTriangle, Activity, Eye, EyeOff, Lock,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera, Search, Flame, AlertTriangle, Activity, Eye, EyeOff, Lock, WifiOff, Ban, ShieldAlert, Zap,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,11 +45,34 @@ interface Device {
 
 type FilterTab = "all" | "online" | "offline" | "error" | "warmup";
 
-const statusConfig = {
-  Ready: { label: "Online", badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", dot: "bg-emerald-500" },
-  Disconnected: { label: "Offline", badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
-  Loading: { label: "Conectando", badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", dot: "bg-amber-500 animate-pulse" },
+type SmartStatus = "never_connected" | "online" | "offline" | "token_invalid" | "api_error" | "proxy_fail" | "warming" | "at_risk";
+
+const smartStatusConfig: Record<SmartStatus, { label: string; icon: any; badgeClass: string; tooltip: string }> = {
+  never_connected: { label: "Nunca conectada", icon: Smartphone, badgeClass: "bg-muted/20 text-muted-foreground/60 border-border/20", tooltip: "Esta instância nunca foi conectada ao WhatsApp" },
+  online: { label: "Online", icon: CheckCircle2, badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", tooltip: "Instância conectada e operacional" },
+  offline: { label: "Offline", icon: WifiOff, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "Instância desconectada do WhatsApp" },
+  token_invalid: { label: "Token inválido", icon: Ban, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "Token de autenticação ausente ou inválido — configure nas opções" },
+  api_error: { label: "Erro na API", icon: XCircle, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "URL da API não configurada ou inacessível" },
+  proxy_fail: { label: "Proxy com falha", icon: ShieldAlert, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Proxy vinculado está com status irregular — verifique a configuração" },
+  warming: { label: "Aquecimento", icon: Flame, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Instância em processo de aquecimento ativo" },
+  at_risk: { label: "Em risco", icon: AlertTriangle, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Instância online mas sem proxy — risco de bloqueio" },
 };
+
+function deriveSmartStatus(d: Device, warmupDeviceIds: Set<string>, proxyStatus?: string): SmartStatus {
+  // Priority order matters
+  if (d.status === "Ready") {
+    if (warmupDeviceIds.has(d.id)) return "warming";
+    if (!d.proxy_id) return "at_risk";
+    if (proxyStatus && proxyStatus === "USADA") return "proxy_fail";
+    return "online";
+  }
+  // Disconnected states
+  if (!d.number && d.status === "Disconnected") return "never_connected";
+  if (!d.uazapi_token) return "token_invalid";
+  if (!d.uazapi_base_url) return "api_error";
+  if (d.proxy_id && proxyStatus === "USADA") return "proxy_fail";
+  return "offline";
+}
 
 const Devices = () => {
   const { toast } = useToast();
@@ -165,28 +189,6 @@ const Devices = () => {
 
   const warmupDeviceIds = useMemo(() => new Set(warmupSessions.map(s => s.device_id)), [warmupSessions]);
 
-  // Filtered devices
-  const filteredDevices = useMemo(() => {
-    let list = devices;
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(d =>
-        d.name.toLowerCase().includes(q) ||
-        (d.number && d.number.includes(q)) ||
-        (d.profile_name && d.profile_name.toLowerCase().includes(q))
-      );
-    }
-    // Filter tab
-    switch (activeFilter) {
-      case "online": return list.filter(d => d.status === "Ready");
-      case "offline": return list.filter(d => d.status === "Disconnected");
-      case "error": return list.filter(d => !d.has_api_config && d.status === "Disconnected");
-      case "warmup": return list.filter(d => warmupDeviceIds.has(d.id));
-      default: return list;
-    }
-  }, [devices, searchQuery, activeFilter, warmupDeviceIds]);
-
   // Realtime subscription for instant status updates
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -231,6 +233,37 @@ const Devices = () => {
     port: p.port,
     status: p.status || "NOVA",
   }));
+
+  // Helper to get proxy status for a device
+  const getProxyStatus = (d: Device) => {
+    if (!d.proxy_id) return undefined;
+    const p = dbProxies.find(px => px.id === d.proxy_id);
+    return p?.status || undefined;
+  };
+
+  // Filtered devices
+  const filteredDevices = useMemo(() => {
+    let list = devices;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(d =>
+        d.name.toLowerCase().includes(q) ||
+        (d.number && d.number.includes(q)) ||
+        (d.profile_name && d.profile_name.toLowerCase().includes(q))
+      );
+    }
+    switch (activeFilter) {
+      case "online": return list.filter(d => d.status === "Ready");
+      case "offline": return list.filter(d => d.status === "Disconnected" && d.number);
+      case "error": return list.filter(d => {
+        const s = deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d));
+        return s === "token_invalid" || s === "api_error" || s === "proxy_fail";
+      });
+      case "warmup": return list.filter(d => warmupDeviceIds.has(d.id));
+      default: return list;
+    }
+  }, [devices, searchQuery, activeFilter, warmupDeviceIds, dbProxies]);
+
   const [selectedProxy, setSelectedProxy] = useState("");
   const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
 
@@ -785,11 +818,16 @@ const Devices = () => {
     }
   };
 
+  const errorCount = devices.filter(d => {
+    const s = deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d));
+    return s === "token_invalid" || s === "api_error" || s === "proxy_fail";
+  }).length;
+
   const filterTabs: { key: FilterTab; label: string; count: number }[] = [
     { key: "all", label: "Todas", count: devices.length },
     { key: "online", label: "Online", count: devices.filter(d => d.status === "Ready").length },
-    { key: "offline", label: "Offline", count: devices.filter(d => d.status === "Disconnected").length },
-    { key: "error", label: "Com erro", count: devices.filter(d => !d.has_api_config && d.status === "Disconnected").length },
+    { key: "offline", label: "Offline", count: devices.filter(d => d.status === "Disconnected" && d.number).length },
+    { key: "error", label: "Com erro", count: errorCount },
     { key: "warmup", label: "Aquecimento", count: devices.filter(d => warmupDeviceIds.has(d.id)).length },
   ];
 
@@ -896,21 +934,15 @@ const Devices = () => {
       {/* Device grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
         {filteredDevices.map((d) => {
-          const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
+          const proxyStatus = assignedProxy?.status;
+          const smartStatus = deriveSmartStatus(d, warmupDeviceIds, proxyStatus);
+          const ss = smartStatusConfig[smartStatus];
+          const StatusIcon = ss.icon;
           const isSelected = selectedDevices.includes(d.id);
           const isEditing = inlineEditId === d.id;
           const lastActivity = formatDistanceToNow(new Date(d.updated_at || d.created_at), { locale: ptBR, addSuffix: true });
           const hadPreviousConnection = !!d.number;
-          const neverConnected = !d.number && d.status === "Disconnected";
-
-          // Status badge logic
-          let badgeLabel = sc.label;
-          let badgeClass = sc.badgeClass;
-          if (neverConnected) {
-            badgeLabel = "Nunca conectado";
-            badgeClass = "bg-muted/20 text-muted-foreground/60 border-border/20";
-          }
 
           // Connection button logic
           let connectionButton: React.ReactNode = null;
@@ -975,9 +1007,19 @@ const Devices = () => {
                       )}
                     </div>
                   </div>
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap ${badgeClass}`}>
-                    {badgeLabel}
-                  </Badge>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 cursor-default ${ss.badgeClass}`}>
+                          <StatusIcon className="w-2.5 h-2.5" />
+                          {ss.label}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-[10px] max-w-[200px]">
+                        {ss.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 {/* Linha 2: Meta info */}
