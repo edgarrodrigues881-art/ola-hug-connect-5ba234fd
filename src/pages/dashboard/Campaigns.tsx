@@ -493,7 +493,7 @@ const Campaigns = () => {
           const row = rows[i];
           if (!row || row.length === 0) continue;
           const rawNum = String(row[numCol] ?? "").trim().replace(/\D/g, "");
-          if (rawNum.length < 8) continue;
+          if (!rawNum && !String(row[nameCol] ?? "").trim()) continue;
           const nome = String(row[nameCol] ?? "").trim();
 
           const otherCols = [];
@@ -520,7 +520,7 @@ const Campaigns = () => {
           if (imported.length > 0) {
             setPreviewContacts(imported);
           } else {
-            toast({ title: "Nenhum contato encontrado", description: "Nenhum número válido (8+ dígitos) foi encontrado.", variant: "destructive" });
+            toast({ title: "Nenhum contato encontrado", description: "A planilha parece estar vazia.", variant: "destructive" });
           }
         }, 400);
       } catch (err) {
