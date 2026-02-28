@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera,
+  Plus, QrCode, Link2, Pencil, Power, Trash2, Smartphone, CheckCircle2, XCircle, Loader2, Shield, RefreshCw, Key, ChevronDown, Layers, UserCircle, Camera, Search, Flame, AlertTriangle, Activity,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,21 +36,28 @@ interface Device {
   profile_picture: string | null;
   profile_name: string | null;
   created_at: string;
+  updated_at: string;
   uazapi_token: string | null;
   uazapi_base_url: string | null;
   has_api_config: boolean;
 }
 
+type FilterTab = "all" | "online" | "offline" | "error" | "warmup";
+
 const statusConfig = {
-  Ready: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Conectado", badgeClass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", dot: "bg-emerald-500" },
-  Disconnected: { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", label: "Desconectado", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
-  Loading: { icon: Loader2, color: "text-amber-500", bg: "bg-amber-500/10", label: "Conectando", badgeClass: "bg-amber-500/15 text-amber-500 border-amber-500/30", dot: "bg-amber-500 animate-pulse" },
+  Ready: { label: "Online", badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", dot: "bg-emerald-500" },
+  Disconnected: { label: "Offline", badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
+  Loading: { label: "Conectando", badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", dot: "bg-amber-500 animate-pulse" },
 };
 
 const Devices = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  // Search & filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -131,6 +138,7 @@ const Devices = () => {
         profile_picture: d.profile_picture || null,
         profile_name: d.profile_name || null,
         created_at: d.created_at,
+        updated_at: d.updated_at,
         uazapi_token: d.uazapi_token || null,
         uazapi_base_url: d.uazapi_base_url || null,
         has_api_config: !!(d.uazapi_token && d.uazapi_base_url),
@@ -138,6 +146,44 @@ const Devices = () => {
     },
     enabled: !!session,
   });
+
+  // Fetch warmup sessions to identify devices in warmup
+  const { data: warmupSessions = [] } = useQuery({
+    queryKey: ["warmup_sessions_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_sessions")
+        .select("device_id, status")
+        .in("status", ["running", "paused"]);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  const warmupDeviceIds = useMemo(() => new Set(warmupSessions.map(s => s.device_id)), [warmupSessions]);
+
+  // Filtered devices
+  const filteredDevices = useMemo(() => {
+    let list = devices;
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(d =>
+        d.name.toLowerCase().includes(q) ||
+        (d.number && d.number.includes(q)) ||
+        (d.profile_name && d.profile_name.toLowerCase().includes(q))
+      );
+    }
+    // Filter tab
+    switch (activeFilter) {
+      case "online": return list.filter(d => d.status === "Ready");
+      case "offline": return list.filter(d => d.status === "Disconnected");
+      case "error": return list.filter(d => !d.has_api_config && d.status === "Disconnected");
+      case "warmup": return list.filter(d => warmupDeviceIds.has(d.id));
+      default: return list;
+    }
+  }, [devices, searchQuery, activeFilter, warmupDeviceIds]);
 
   // Realtime subscription for instant status updates
   useEffect(() => {
@@ -711,17 +757,20 @@ const Devices = () => {
     }
   };
 
+  const filterTabs: { key: FilterTab; label: string; count: number }[] = [
+    { key: "all", label: "Todas", count: devices.length },
+    { key: "online", label: "Online", count: devices.filter(d => d.status === "Ready").length },
+    { key: "offline", label: "Offline", count: devices.filter(d => d.status === "Disconnected").length },
+    { key: "error", label: "Com erro", count: devices.filter(d => !d.has_api_config && d.status === "Disconnected").length },
+    { key: "warmup", label: "Aquecimento", count: devices.filter(d => warmupDeviceIds.has(d.id)).length },
+  ];
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Instâncias</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {devices.filter(d => d.status === "Ready").length} conectada{devices.filter(d => d.status === "Ready").length !== 1 ? "s" : ""} · {devices.filter(d => d.status === "Disconnected").length} offline · {devices.length} total
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg font-bold text-foreground">Instâncias</h1>
+        <div className="flex items-center gap-1.5">
           {selectedDevices.length > 0 && (
             <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
               <Trash2 className="w-3 h-3" /> {selectedDevices.length}
@@ -752,19 +801,14 @@ const Devices = () => {
               try {
                 const { data: { session: s } } = await supabase.auth.getSession();
                 if (!s) throw new Error("Not authenticated");
-
                 const response = await supabase.functions.invoke("sync-devices", {
                   headers: { Authorization: `Bearer ${s.access_token}` },
                 });
-
                 if (response.error) throw response.error;
-
                 const result = response.data;
                 const found = result.devices?.filter((d: any) => d.found).length || 0;
-
                 queryClient.invalidateQueries({ queryKey: ["devices"] });
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
-
                 toast({ title: `Sincronizado. ${found} encontrada(s).` });
               } catch (err: any) {
                 toast({ title: "Erro ao sincronizar", description: err?.message, variant: "destructive" });
@@ -773,140 +817,179 @@ const Devices = () => {
               }
             }}
           >
-            <RefreshCw className={`w-3 h-3 ${syncLoading ? "animate-spin" : ""}`} /> Sincronizar
+            <RefreshCw className={`w-3 h-3 ${syncLoading ? "animate-spin" : ""}`} /> Sync
           </Button>
         </div>
       </div>
 
-      {devices.length > 0 && (
+      {/* Search + Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/40" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar instância..."
+            className="h-7 text-xs pl-8 bg-muted/20 border-border/20"
+          />
+        </div>
+        <div className="flex items-center gap-0.5">
+          {filterTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                activeFilter === tab.key
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              }`}
+            >
+              {tab.label} {tab.count > 0 && <span className="ml-0.5 opacity-60">{tab.count}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Select all */}
+      {filteredDevices.length > 0 && (
         <div className="flex items-center gap-2">
           <Checkbox
-            checked={selectedDevices.length === devices.length && devices.length > 0}
+            checked={selectedDevices.length === filteredDevices.length && filteredDevices.length > 0}
             onCheckedChange={(checked) => {
-              setSelectedDevices(checked ? devices.map(d => d.id) : []);
+              setSelectedDevices(checked ? filteredDevices.map(d => d.id) : []);
             }}
           />
-          <span className="text-[11px] text-muted-foreground">
-            {selectedDevices.length === devices.length ? "Desmarcar" : "Selecionar todas"} ({selectedDevices.length}/{devices.length})
+          <span className="text-[10px] text-muted-foreground/50">
+            {selectedDevices.length}/{filteredDevices.length}
           </span>
         </div>
       )}
 
       {/* Device grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {devices.map((d, index) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
+        {filteredDevices.map((d) => {
           const sc = statusConfig[d.status] || statusConfig.Disconnected;
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const isSelected = selectedDevices.includes(d.id);
           const isEditing = inlineEditId === d.id;
           const initials = (d.number || d.name).replace(/\D/g, "").slice(-2) || "?";
-          const uptime = formatDistanceToNow(new Date(d.created_at), { locale: ptBR });
+          const lastActivity = formatDistanceToNow(new Date(d.updated_at || d.created_at), { locale: ptBR, addSuffix: true });
+          const isWarming = warmupDeviceIds.has(d.id);
+          const hasError = !d.has_api_config && d.status === "Disconnected";
+
+          // Health: green if online+proxy+api, yellow if online but missing something, red if offline
+          const healthColor = d.status === "Ready"
+            ? (d.has_api_config && assignedProxy ? "bg-emerald-500" : "bg-amber-400")
+            : "bg-red-400";
 
           return (
             <Card
               key={d.id}
-              className={`border-border/15 bg-card/50 transition-shadow duration-100 hover:shadow-md ${isSelected ? "ring-1 ring-primary" : ""}`}
+              className={`border-border/10 bg-card/40 hover:bg-card/60 transition-colors ${isSelected ? "ring-1 ring-primary" : ""}`}
             >
               <CardContent className="p-0">
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                  <div className="flex items-center gap-2.5">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelectDevice(d.id)}
-                    />
-                    <div className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center relative overflow-hidden shrink-0">
-                      {d.profile_picture ? (
-                        <>
-                          <img
-                            src={d.profile_picture}
-                            alt=""
-                            className="w-full h-full object-cover rounded-full"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = "none";
-                              const fallback = e.currentTarget.nextElementSibling;
-                              if (fallback) (fallback as HTMLElement).style.display = "block";
-                            }}
-                          />
-                          <span className="text-xs font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs font-bold text-muted-foreground">{initials}</span>
-                      )}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${sc.dot}`} />
-                    </div>
-                    <div className="min-w-0">
-                      {isEditing ? (
-                        <input
-                          ref={inlineInputRef}
-                          value={inlineEditName}
-                          onChange={(e) => setInlineEditName(e.target.value)}
-                          onBlur={commitInlineEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") commitInlineEdit();
-                            if (e.key === "Escape") setInlineEditId(null);
+                {/* Top row: checkbox + avatar + name + status */}
+                <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelectDevice(d.id)}
+                    className="shrink-0"
+                  />
+                  <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center relative overflow-hidden shrink-0">
+                    {d.profile_picture ? (
+                      <>
+                        <img
+                          src={d.profile_picture}
+                          alt=""
+                          className="w-full h-full object-cover rounded-full"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) (fallback as HTMLElement).style.display = "block";
                           }}
-                          className="text-[13px] font-medium text-foreground bg-transparent border-b border-primary outline-none w-full"
                         />
-                      ) : (
-                        <p
-                          className="text-[13px] font-medium text-foreground cursor-pointer hover:text-primary transition-colors truncate"
-                          onClick={() => startInlineEdit(d)}
-                        >
-                          {d.name}
-                        </p>
-                      )}
-                      <p className="text-[11px] text-muted-foreground/60 truncate">
-                        {d.number || "Sem número"}
-                      </p>
-                    </div>
+                        <span className="text-[10px] font-bold text-muted-foreground" style={{ display: "none" }}>{initials}</span>
+                      </>
+                    ) : (
+                      <span className="text-[10px] font-bold text-muted-foreground">{initials}</span>
+                    )}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-[1.5px] border-card ${sc.dot}`} />
                   </div>
-                  <Badge variant="outline" className={`text-[10px] ${sc.badgeClass}`}>
-                    {sc.label}
+                  <div className="flex-1 min-w-0">
+                    {isEditing ? (
+                      <input
+                        ref={inlineInputRef}
+                        value={inlineEditName}
+                        onChange={(e) => setInlineEditName(e.target.value)}
+                        onBlur={commitInlineEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitInlineEdit();
+                          if (e.key === "Escape") setInlineEditId(null);
+                        }}
+                        className="text-[13px] font-semibold text-foreground bg-transparent border-b border-primary outline-none w-full"
+                      />
+                    ) : (
+                      <p
+                        className="text-[13px] font-semibold text-foreground cursor-pointer hover:text-primary truncate leading-tight"
+                        onClick={() => startInlineEdit(d)}
+                      >
+                        {d.name}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground/50 truncate leading-tight">
+                      {d.number || "Sem número"}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 ${sc.badgeClass}`}>
+                    {hasError ? "Erro" : sc.label}
                   </Badge>
                 </div>
 
-                {/* Info row */}
-                <div className="px-4 pb-2 flex items-center gap-2.5 text-[10px] text-muted-foreground/50 flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <Smartphone className="w-2.5 h-2.5" /> {uptime}
-                  </span>
+                {/* Meta row */}
+                <div className="px-3 pb-1.5 flex items-center gap-2 text-[9px] text-muted-foreground/40">
+                  <div className={`w-1.5 h-1.5 rounded-full ${healthColor} shrink-0`} title="Saúde" />
+                  <span className="truncate">Atualizado {lastActivity}</span>
                   {assignedProxy && (
-                    <span className="flex items-center gap-1">
-                      <Shield className="w-2.5 h-2.5" /> Proxy
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      <Shield className="w-2 h-2" /> Proxy
                     </span>
                   )}
-                  {d.has_api_config && (
-                    <span className="flex items-center gap-1">
-                      <Key className="w-2.5 h-2.5" /> API
+                  {isWarming && (
+                    <span className="flex items-center gap-0.5 text-amber-500 shrink-0">
+                      <Flame className="w-2 h-2" /> Aquec.
+                    </span>
+                  )}
+                  {hasError && (
+                    <span className="flex items-center gap-0.5 text-red-400 shrink-0">
+                      <AlertTriangle className="w-2 h-2" />
                     </span>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="border-t border-border/15 px-4 py-2 flex items-center gap-1.5">
-                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] flex-1" onClick={() => openEdit(d)}>
-                    <Pencil className="w-3 h-3" /> Editar
+                <div className="border-t border-border/10 px-2 py-1 flex items-center gap-0.5">
+                  <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 flex-1" onClick={() => openEdit(d)}>
+                    <Pencil className="w-2.5 h-2.5" /> Editar
                   </Button>
                   {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px]" onClick={() => openProfileEdit(d)}>
-                      <UserCircle className="w-3 h-3" /> Perfil
+                    <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openProfileEdit(d)}>
+                      <UserCircle className="w-2.5 h-2.5" /> Perfil
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px]" onClick={() => openQuickToken(d)}>
-                    <Key className="w-3 h-3" />
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1" onClick={() => openQuickToken(d)}>
+                    <Key className="w-2.5 h-2.5" />
                   </Button>
                   {d.status === "Disconnected" && (
-                    <Button size="sm" className="h-7 gap-1 text-[11px] flex-1" onClick={() => openConnect(d)}>
-                      <Link2 className="w-3 h-3" /> Conectar
+                    <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 flex-1" onClick={() => openConnect(d)}>
+                      <Link2 className="w-2.5 h-2.5" /> Conectar
                     </Button>
                   )}
                   {d.status === "Ready" && (
-                    <Button variant="ghost" size="sm" className="h-7 gap-1 text-[11px] text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
-                      <Power className="w-3 h-3" /> Sair
+                    <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive" onClick={() => openLogout(d)}>
+                      <Power className="w-2.5 h-2.5" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/40 hover:text-destructive shrink-0" onClick={() => {
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
                     if (d.status === "Ready") {
                       setDeleteSingleDevice(d);
                       setDeleteSingleOpen(true);
@@ -914,7 +997,7 @@ const Devices = () => {
                       handleDelete(d.id);
                     }
                   }}>
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-2.5 h-2.5" />
                   </Button>
                 </div>
               </CardContent>
@@ -922,6 +1005,17 @@ const Devices = () => {
           );
         })}
       </div>
+
+      {filteredDevices.length === 0 && devices.length > 0 && (
+        <p className="text-xs text-muted-foreground/40 text-center py-8">Nenhuma instância encontrada</p>
+      )}
+
+      {devices.length === 0 && (
+        <div className="text-center py-12">
+          <Smartphone className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground/40">Nenhuma instância criada</p>
+        </div>
+      )}
 
       {/* Create Instance Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
