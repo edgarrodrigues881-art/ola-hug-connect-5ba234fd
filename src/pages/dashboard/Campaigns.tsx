@@ -1559,7 +1559,7 @@ const Campaigns = () => {
               )}
 
               {/* Summary: messages per device - always visible when devices selected */}
-              {selectedDevices.length >= 1 && validContacts.length > 0 && (
+              {selectedDevices.length > 1 && validContacts.length > 0 && (
                 <div className="mt-4 p-3 rounded-xl bg-muted/10 border border-border/15 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
