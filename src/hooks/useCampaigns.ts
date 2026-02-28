@@ -82,6 +82,19 @@ export function useCreateCampaign() {
     }) => {
       const { contacts, ...campaignData } = campaign;
 
+      // Validate device_id exists before inserting
+      let validDeviceId: string | null = null;
+      if (campaignData.device_id) {
+        const { data: deviceCheck } = await supabase
+          .from("devices")
+          .select("id")
+          .eq("id", campaignData.device_id)
+          .maybeSingle();
+        if (deviceCheck) {
+          validDeviceId = deviceCheck.id;
+        }
+      }
+
       const { data: newCampaign, error: campError } = await supabase
         .from("campaigns")
         .insert({
@@ -98,7 +111,7 @@ export function useCreateCampaign() {
           pause_every_max: campaignData.pause_every_max ?? 20,
           pause_duration_min: campaignData.pause_duration_min ?? 30,
           pause_duration_max: campaignData.pause_duration_max ?? 120,
-          device_id: campaignData.device_id || null,
+          device_id: validDeviceId,
           user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",
