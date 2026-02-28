@@ -97,6 +97,7 @@ export function useCreateCampaign() {
           pause_every_max: campaignData.pause_every_max ?? 20,
           pause_duration_min: campaignData.pause_duration_min ?? 30,
           pause_duration_max: campaignData.pause_duration_max ?? 120,
+          device_id: campaignData.device_id || null,
           user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",

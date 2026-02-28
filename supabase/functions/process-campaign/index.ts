@@ -113,14 +113,30 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
+  const token = authHeader.replace("Bearer ", "");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const isServiceRole = token === serviceRoleKey;
 
-  const userId = user.id;
-  const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+  const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+
+  let userId: string;
+
+  if (isServiceRole) {
+    // Called by cron/service - get userId from the campaign itself
+    const body = await req.clone().json();
+    const { data: camp } = await serviceClient.from("campaigns").select("user_id").eq("id", body.campaignId).single();
+    if (!camp) {
+      return new Response(JSON.stringify({ error: "Campaign not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    userId = camp.user_id;
+  } else {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    userId = user.id;
+  }
 
   try {
     const { action, campaignId, deviceId } = await req.json();
@@ -148,7 +164,7 @@ Deno.serve(async (req) => {
 
     // ─── START / RESUME ───
     if (action === "start" || action === "resume") {
-      const { data: campaign, error: campErr } = await supabase.from("campaigns").select("*").eq("id", campaignId).single();
+      const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("*").eq("id", campaignId).single();
       if (campErr || !campaign) {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -180,7 +196,7 @@ Deno.serve(async (req) => {
       console.log(`Delay: ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s, Pause every ${pauseAfter} msgs, Duration: ${campaign.pause_duration_min}-${campaign.pause_duration_max}s`);
 
       // Get pending contacts
-      const { data: contacts, error: contactsErr } = await supabase.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
+      const { data: contacts, error: contactsErr } = await serviceClient.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
       if (contactsErr) throw contactsErr;
 
       // Update campaign status to running
