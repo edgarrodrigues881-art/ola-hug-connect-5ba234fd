@@ -28,7 +28,16 @@ import CustomModule from "./pages/dashboard/CustomModule";
 import Groups from "./pages/dashboard/GroupCapture";
 import MyPlan from "./pages/dashboard/MyPlan";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2,      // 2 min — show cached data instantly
+      gcTime: 1000 * 60 * 10,         // 10 min — keep in memory
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

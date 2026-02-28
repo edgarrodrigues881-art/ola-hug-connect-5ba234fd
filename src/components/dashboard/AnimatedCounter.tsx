@@ -6,7 +6,7 @@ interface AnimatedCounterProps {
   className?: string;
 }
 
-export function AnimatedCounter({ value, duration = 1200, className = "" }: AnimatedCounterProps) {
+export function AnimatedCounter({ value, duration = 300, className = "" }: AnimatedCounterProps) {
   const [display, setDisplay] = useState(0);
   const startRef = useRef<number | null>(null);
   const rafRef = useRef<number>();
