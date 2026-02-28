@@ -1155,7 +1155,10 @@ const Campaigns = () => {
             </Dialog>
 
             {/* Contact table */}
-            {showContactTable && contacts.length > 0 && (
+            {showContactTable && contacts.length > 0 && (() => {
+              const varKeys = (["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const)
+                .filter(k => contacts.some(c => c[k]?.trim()));
+              return (
               <SurfaceCard className="p-0 overflow-hidden">
                 <div className="overflow-auto max-h-96 rounded-xl">
                   <table className="w-full text-[11px]">
@@ -1164,6 +1167,9 @@ const Campaigns = () => {
                         <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold w-8">#</th>
                         <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">Nome</th>
                         <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">Número</th>
+                        {varKeys.map(k => (
+                          <th key={k} className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">{k.replace("var", "Var ")}</th>
+                        ))}
                         <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold w-12"></th>
                       </tr>
                     </thead>
@@ -1177,6 +1183,11 @@ const Campaigns = () => {
                           <td className="px-3 py-2">
                             <Input value={c.numero} onChange={(e) => updateContact(c.id, "numero", e.target.value)} className="h-7 text-[11px] bg-transparent border-none p-0 font-mono" placeholder="Número" />
                           </td>
+                          {varKeys.map(k => (
+                            <td key={k} className="px-3 py-2">
+                              <Input value={c[k]} onChange={(e) => updateContact(c.id, k, e.target.value)} className="h-7 text-[11px] bg-transparent border-none p-0" placeholder={k.replace("var", "Var ")} />
+                            </td>
+                          ))}
                           <td className="px-3 py-2">
                             <button onClick={() => removeContact(c.id)} className="text-muted-foreground/20 hover:text-destructive transition-colors">
                               <X className="w-3 h-3" />
@@ -1198,7 +1209,8 @@ const Campaigns = () => {
                   </div>
                 )}
               </SurfaceCard>
-            )}
+              );
+            })()}
 
             <div className="flex items-center justify-between pt-2">
               <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
