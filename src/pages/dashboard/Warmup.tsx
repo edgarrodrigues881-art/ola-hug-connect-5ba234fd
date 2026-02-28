@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
-import { motion, AnimatePresence } from "framer-motion";
+
 
 const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
   running: { label: "Ativo", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
@@ -285,17 +285,8 @@ const Warmup = () => {
           ))}
         </TabsList>
 
-        {/* ===== SESSIONS TAB ===== */}
         <TabsContent value="sessions">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="sessions"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-3"
-            >
+          <div className="space-y-3">
               {isLoading ? (
                 <div className="flex justify-center py-20">
                   <RefreshCw className="w-5 h-5 text-muted-foreground animate-spin" />
@@ -427,11 +418,9 @@ const Warmup = () => {
                             <div className="space-y-2">
                               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Progresso de hoje</p>
                               <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
-                                <motion.div
+                                <div
                                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${Math.min(dailyProgress, 100)}%` }}
-                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  style={{ width: `${Math.min(dailyProgress, 100)}%` }}
                                 />
                               </div>
                               <div className="flex items-center justify-between">
@@ -446,11 +435,9 @@ const Warmup = () => {
                             <div className="space-y-2">
                               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Progresso do ciclo</p>
                               <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
-                                <motion.div
+                                <div
                                   className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${Math.min(progress, 100)}%` }}
-                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  style={{ width: `${Math.min(progress, 100)}%` }}
                                 />
                               </div>
                               <div className="flex items-center justify-between">
@@ -464,15 +451,8 @@ const Warmup = () => {
                         </div>
 
                         {/* Expanded actions */}
-                        <AnimatePresence>
                           {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
+                            <div className="overflow-hidden">
                               <div className="border-t border-border/10 bg-muted/5 p-4 space-y-3">
                                 <div className="flex items-center gap-2">
                                   <Button
@@ -504,22 +484,19 @@ const Warmup = () => {
                                   </Button>
                                 </div>
                               </div>
-                            </motion.div>
+                            </div>
                           )}
-                        </AnimatePresence>
                       </CardContent>
                     </Card>
                   );
                 })
               )}
-            </motion.div>
-          </AnimatePresence>
+            </div>
         </TabsContent>
 
         {/* ===== CHART TAB ===== */}
         <TabsContent value="chart">
-          <AnimatePresence mode="wait">
-            <motion.div key="chart" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          <div>
               <Card className="border-border/15 shadow-md">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
@@ -559,14 +536,12 @@ const Warmup = () => {
                   )}
                 </CardContent>
               </Card>
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </TabsContent>
 
         {/* ===== LOGS TAB ===== */}
         <TabsContent value="logs">
-          <AnimatePresence mode="wait">
-            <motion.div key="logs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          <div>
               <Card className="border-border/15 shadow-md">
                 <CardContent className="p-0">
                   {logsLoading ? (
@@ -609,14 +584,12 @@ const Warmup = () => {
                   )}
                 </CardContent>
               </Card>
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </TabsContent>
 
         {/* ===== MESSAGES TAB ===== */}
         <TabsContent value="messages">
-          <AnimatePresence mode="wait">
-            <motion.div key="messages" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          <div>
               <Card className="border-border/15 shadow-md">
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center justify-between">
@@ -680,8 +653,7 @@ const Warmup = () => {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </TabsContent>
       </Tabs>
 
