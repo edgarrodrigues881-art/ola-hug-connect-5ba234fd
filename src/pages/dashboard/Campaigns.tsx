@@ -798,7 +798,7 @@ const Campaigns = () => {
                     <button
                       onClick={() => mediaFileRef.current?.click()}
                       disabled={mediaUploading}
-                      className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2 transition-all hover:bg-primary/5 group"
+                      className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2 transition-colors duration-100 hover:bg-primary/5 group"
                     >
                       {mediaUploading ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <ImageIcon className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />}
                       <span className="text-[11px] text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">{mediaUploading ? "Enviando..." : "Imagem, vídeo ou documento"}</span>
@@ -977,7 +977,7 @@ const Campaigns = () => {
 
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all text-xs font-medium">
+                      <Button variant="outline" size="sm" className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors duration-100 text-xs font-medium">
                         <Plus className="w-4 h-4" /> Adicionar Botão
                       </Button>
                     </PopoverTrigger>
@@ -1093,7 +1093,7 @@ const Campaigns = () => {
                 <>
                   <button
                     onClick={() => fileRef.current?.click()}
-                    className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2.5 transition-all hover:bg-primary/5 group"
+                    className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2.5 transition-colors duration-100 hover:bg-primary/5 group"
                   >
                     <div className="w-11 h-11 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Upload className="w-5 h-5 text-primary" />

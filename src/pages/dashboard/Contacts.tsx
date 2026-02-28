@@ -150,7 +150,7 @@ const Contacts = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Contatos</h1>

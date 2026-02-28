@@ -73,7 +73,7 @@ const DashboardHome = () => {
   return (
     <div className="space-y-6">
       {/* Header + Quick Actions */}
-      <div className="animate-fade-in flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <GreetingHeader />
         <QuickActions />
       </div>
@@ -83,10 +83,8 @@ const DashboardHome = () => {
         {topCards.map((s, i) => (
           <div
             key={s.label}
-            className="animate-fade-in"
-            style={{ animationDelay: `${i * 100 + 100}ms` }}
           >
-            <Card className={`relative overflow-hidden border-border/50 bg-gradient-to-br ${s.gradient} backdrop-blur-sm shadow-lg ${s.glow} hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer`}>
+            <Card className={`relative overflow-hidden border-border/50 bg-gradient-to-br ${s.gradient} backdrop-blur-sm shadow-lg ${s.glow} hover:shadow-xl transition-shadow duration-100 cursor-pointer`}>
               <div className="absolute inset-0 rounded-xl border border-white/[0.05]" />
               <CardContent className="p-5 relative">
                 <div className="flex items-center gap-4">
@@ -111,7 +109,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Chart + Delivery Rate */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "400ms" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <ActivityChart data={stats?.activityData || []} />
         </div>
@@ -124,7 +122,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Devices + Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: "500ms" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DeviceStatusList devices={stats?.devices || []} loading={isLoading} />
         <ActivityTimeline events={timelineEvents} />
       </div>
