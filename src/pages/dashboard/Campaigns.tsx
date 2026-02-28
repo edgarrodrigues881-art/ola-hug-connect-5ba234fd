@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -95,6 +97,7 @@ const SectionLabel = ({ children, className }: { children: React.ReactNode; clas
 
 const Campaigns = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { session } = useAuth();
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
@@ -399,11 +402,19 @@ const Campaigns = () => {
     }, {
       onSuccess: (newCampaign) => {
         if (scheduleEnabled && scheduleDate) {
-          toast({ title: "Campanha agendada!", description: `Será iniciada em ${new Date(scheduleDate).toLocaleString("pt-BR")}` });
+          toast({
+            title: "Campanha agendada!",
+            description: `Será iniciada em ${new Date(scheduleDate).toLocaleString("pt-BR")}`,
+            action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
+          });
         } else {
-          toast({ title: "Campanha criada!", description: `${validContacts.length} contatos. Iniciando envio...` });
+          toast({
+            title: "Campanha criada!",
+            description: `${validContacts.length} contatos. Iniciando envio...`,
+            action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
+          });
           startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
-            onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
+            onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}`, action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction> }); },
             onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
           });
         }
