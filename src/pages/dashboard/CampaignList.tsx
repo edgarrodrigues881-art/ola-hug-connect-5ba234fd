@@ -64,7 +64,8 @@ const CampaignList = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      const { error } = await supabase.from("campaigns").insert({
+      // Create duplicated campaign
+      const { data: newCampaign, error } = await supabase.from("campaigns").insert({
         name: `${campaign.name} (cópia)`,
         message_type: campaign.message_type,
         message_content: campaign.message_content,
@@ -79,10 +80,23 @@ const CampaignList = () => {
         pause_every_max: campaign.pause_every_max,
         pause_duration_min: campaign.pause_duration_min,
         pause_duration_max: campaign.pause_duration_max,
+        device_id: campaign.device_id,
       }).select().single();
 
       if (error) throw error;
-      toast({ title: "Campanha duplicada" });
+
+      // Copy contacts to new campaign
+      if (newCampaign && contacts && contacts.length > 0) {
+        const contactRows = contacts.map(c => ({
+          campaign_id: newCampaign.id,
+          phone: c.phone,
+          name: c.name || null,
+        }));
+        const { error: contactsError } = await supabase.from("campaign_contacts").insert(contactRows);
+        if (contactsError) throw contactsError;
+      }
+
+      toast({ title: "Campanha duplicada", description: `${contacts?.length || 0} contatos copiados.` });
     } catch (err: any) {
       toast({ title: "Erro ao duplicar", description: err.message, variant: "destructive" });
     }
