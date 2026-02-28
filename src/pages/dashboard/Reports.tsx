@@ -9,9 +9,9 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Smartphone, Flame, AlertTriangle, TrendingUp, Shield, Search, ArrowUpDown,
-  ChevronRight, Wifi, WifiOff, Activity, XCircle, CheckCircle, Clock, Zap,
-  TrendingDown, ArrowUp, Minus, ArrowDown,
+  Smartphone, AlertTriangle, Search, ArrowUpDown,
+  ChevronRight, Wifi, WifiOff, CheckCircle,
+  ArrowUp, Minus, ArrowDown,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -47,10 +47,12 @@ interface ChipData {
   dailyLimit: number;
   dailyHistory: { day: string; sent: number; failed: number }[];
   disconnections: number; alerts: string[];
+  lastError: string | null; lastErrorAt: string | null;
   recommendation: { action: "increase" | "maintain" | "reduce"; message: string };
 }
 
 type SortKey = "score" | "riskLevel" | "deliveryRate" | "daysActive" | "sentToday" | "errorsPerDay";
+type FilterKey = "todos" | "risco" | "atencao" | "seguro" | "recuperacao";
 
 // ── Risk calc ──
 function calcRisk(c: { deliveryRate: number; failures: number; totalLogs: number; growthPercent: number; disconnections: number; errorsPerDay: number; daysWithoutError: number }): { level: "seguro" | "atencao" | "risco"; score: number } {
@@ -106,12 +108,21 @@ const recBg = { increase: "bg-emerald-500/5 border-emerald-500/15", maintain: "b
 
 const scoreColor = (s: number) => s >= 80 ? "text-emerald-400" : s >= 60 ? "text-amber-400" : "text-red-400";
 
+const filterOptions: { key: FilterKey; label: string; color: string; activeColor: string }[] = [
+  { key: "todos", label: "Todos", color: "text-muted-foreground", activeColor: "bg-muted/20 text-foreground border-border/40" },
+  { key: "risco", label: "Em risco", color: "text-muted-foreground", activeColor: "bg-red-500/10 text-red-400 border-red-500/20" },
+  { key: "atencao", label: "Atenção", color: "text-muted-foreground", activeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  { key: "recuperacao", label: "Recuperação", color: "text-muted-foreground", activeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  { key: "seguro", label: "Estáveis", color: "text-muted-foreground", activeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+];
+
 // ── Component ──
 const Reports = () => {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("score");
   const [sortAsc, setSortAsc] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("todos");
   const [selectedChip, setSelectedChip] = useState<ChipData | null>(null);
 
   const { data: devices = [] } = useQuery({
@@ -124,6 +135,7 @@ const Reports = () => {
       return data as DeviceRow[];
     },
     enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const { data: sessions = [] } = useQuery({
@@ -136,6 +148,7 @@ const Reports = () => {
       return data as WarmupSessionRow[];
     },
     enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const { data: logs = [] } = useQuery({
@@ -148,6 +161,7 @@ const Reports = () => {
       return data as WarmupLogRow[];
     },
     enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const chips = useMemo<ChipData[]>(() => {
@@ -164,7 +178,6 @@ const Reports = () => {
       const deliveryRate = totalLogs > 0 ? ((totalLogs - failures) / totalLogs) * 100 : 100;
       const avgDaily = Math.round(sentTotal / daysActive);
 
-      // Peak max
       const dailyCounts: Record<string, number> = {};
       deviceLogs.forEach(l => {
         if (l.status === "sent") {
@@ -173,22 +186,17 @@ const Reports = () => {
         }
       });
       const peakMax = Object.values(dailyCounts).length > 0 ? Math.max(...Object.values(dailyCounts)) : 0;
-
-      // Errors per day
       const errorsPerDay = daysActive > 0 ? Math.round((failures / daysActive) * 10) / 10 : 0;
 
-      // Days without error (consecutive from today backwards)
       let daysWithoutError = 0;
       for (let i = 0; i < 30; i++) {
         const d = new Date(Date.now() - i * 86400000).toDateString();
         const dayErrors = deviceLogs.filter(l => new Date(l.created_at).toDateString() === d && (l.status === "error" || l.status === "failed")).length;
         if (dayErrors > 0) break;
-        // Only count days that had activity
         const dayActivity = deviceLogs.filter(l => new Date(l.created_at).toDateString() === d).length;
         if (dayActivity > 0 || i === 0) daysWithoutError++;
       }
 
-      // Volume oscillation (std dev of last 7 days)
       const last7: number[] = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(Date.now() - i * 86400000).toDateString();
@@ -197,23 +205,19 @@ const Reports = () => {
       const mean7 = last7.reduce((a, b) => a + b, 0) / 7;
       const volumeOscillation = mean7 > 0 ? Math.round(Math.sqrt(last7.reduce((s, v) => s + (v - mean7) ** 2, 0) / 7) / mean7 * 100) : 0;
 
-      // Growth
       const today = new Date().toDateString();
       const yesterday = new Date(Date.now() - 86400000).toDateString();
       const todayCount = dailyCounts[today] || 0;
       const yesterdayCount = dailyCounts[yesterday] || 0;
       const growthPercent = yesterdayCount > 0 ? Math.round(((todayCount - yesterdayCount) / yesterdayCount) * 100) : 0;
-
       const disconnections = device.status === "Disconnected" ? 1 : 0;
 
       const { level, score } = calcRisk({ deliveryRate, failures, totalLogs, growthPercent, disconnections, errorsPerDay, daysWithoutError });
 
-      // Daily limit
       const dailyLimit = activeSession
         ? Math.min(activeSession.messages_per_day + (activeSession.current_day - 1) * activeSession.daily_increment, activeSession.max_messages_per_day)
         : 0;
 
-      // Daily history
       const dailyHistory: { day: string; sent: number; failed: number }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(Date.now() - i * 86400000);
@@ -226,7 +230,6 @@ const Reports = () => {
         });
       }
 
-      // Alerts
       const alerts: string[] = [];
       if (growthPercent > 30) alerts.push("Volume alto para o dia atual");
       if (errorsPerDay > 2) alerts.push("Erro recorrente detectado");
@@ -235,6 +238,10 @@ const Reports = () => {
       if (device.status === "Disconnected") alerts.push("Chip desconectado");
       if (!activeSession) alerts.push("Sem sessão de aquecimento ativa");
       if (volumeOscillation > 40) alerts.push("Oscilação de volume irregular");
+
+      // Last error
+      const errorLogs = deviceLogs.filter(l => l.status === "error" || l.status === "failed");
+      const lastErrorLog = errorLogs.length > 0 ? errorLogs[errorLogs.length - 1] : null;
 
       const recommendation = getRecommendation({
         score, riskLevel: level, growthPercent, errorsPerDay,
@@ -254,17 +261,31 @@ const Reports = () => {
         sessionStatus: activeSession?.status || "none",
         qualityProfile: activeSession?.quality_profile || "—",
         safetyState: activeSession?.safety_state || "normal",
-        dailyLimit, dailyHistory, disconnections, alerts, recommendation,
+        dailyLimit, dailyHistory, disconnections, alerts,
+        lastError: lastErrorLog?.error_message || null,
+        lastErrorAt: lastErrorLog?.created_at || null,
+        recommendation,
       };
     });
   }, [devices, sessions, logs]);
 
-  const sortedChips = useMemo(() => {
-    const filtered = chips.filter(c => {
+  const filteredChips = useMemo(() => {
+    let result = chips;
+
+    // Filter
+    if (filter === "risco") result = result.filter(c => c.riskLevel === "risco");
+    else if (filter === "atencao") result = result.filter(c => c.riskLevel === "atencao");
+    else if (filter === "seguro") result = result.filter(c => c.riskLevel === "seguro");
+    else if (filter === "recuperacao") result = result.filter(c => c.safetyState === "recuo" || c.qualityProfile === "recuperacao");
+
+    // Search
+    if (search) {
       const q = search.toLowerCase();
-      return c.name.toLowerCase().includes(q) || c.number.includes(q);
-    });
-    return [...filtered].sort((a, b) => {
+      result = result.filter(c => c.name.toLowerCase().includes(q) || c.number.includes(q));
+    }
+
+    // Sort
+    return [...result].sort((a, b) => {
       let aV: number, bV: number;
       switch (sortBy) {
         case "score": aV = a.score; bV = b.score; break;
@@ -277,170 +298,167 @@ const Reports = () => {
       }
       return sortAsc ? aV - bV : bV - aV;
     });
-  }, [chips, search, sortBy, sortAsc]);
+  }, [chips, search, sortBy, sortAsc, filter]);
 
-  const stats = useMemo(() => {
-    const active = chips.filter(c => c.online).length;
-    const warming = chips.filter(c => c.hasWarmup && c.sessionStatus === "running").length;
-    const atRisk = chips.filter(c => c.riskLevel === "risco").length;
-    const avgDailySend = chips.length > 0 ? Math.round(chips.reduce((s, c) => s + c.avgDaily, 0) / chips.length) : 0;
-    const avgScore = chips.length > 0 ? Math.round(chips.reduce((s, c) => s + c.score, 0) / chips.length) : 0;
-    return { active, warming, atRisk, avgDailySend, avgScore, total: chips.length };
-  }, [chips]);
+  const counts = useMemo(() => ({
+    todos: chips.length,
+    risco: chips.filter(c => c.riskLevel === "risco").length,
+    atencao: chips.filter(c => c.riskLevel === "atencao").length,
+    seguro: chips.filter(c => c.riskLevel === "seguro").length,
+    recuperacao: chips.filter(c => c.safetyState === "recuo" || c.qualityProfile === "recuperacao").length,
+  }), [chips]);
 
   const toggleSort = (key: SortKey) => {
     if (sortBy === key) setSortAsc(!sortAsc);
     else { setSortBy(key); setSortAsc(false); }
   };
 
-  const SortHeader = ({ label, sortKey, className = "" }: { label: string; sortKey: SortKey; className?: string }) => (
+  const SortHeader = ({ label, sortKey }: { label: string; sortKey: SortKey }) => (
     <th
-      className={`p-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider cursor-pointer hover:text-foreground select-none ${className}`}
+      className="p-2.5 text-right font-medium text-muted-foreground text-[10px] uppercase tracking-wider cursor-pointer hover:text-foreground select-none whitespace-nowrap"
       onClick={() => toggleSort(sortKey)}
     >
       <span className="inline-flex items-center gap-1">
         {label}
-        <ArrowUpDown className={`w-3 h-3 ${sortBy === sortKey ? "text-primary" : "text-muted-foreground/30"}`} />
+        <ArrowUpDown className={`w-2.5 h-2.5 ${sortBy === sortKey ? "text-primary" : "text-muted-foreground/20"}`} />
       </span>
     </th>
   );
 
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    return `${Math.floor(hrs / 24)}d`;
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Relatório de Aquecimento</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Saúde, risco e recomendação por chip</p>
+      <div>
+        <h1 className="text-xl font-bold text-foreground">Monitoramento de Chips</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Visão rápida: risco, volume e ação por chip</p>
+      </div>
+
+      {/* Filters + Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {filterOptions.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                filter === f.key ? f.activeColor : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+              {counts[f.key] > 0 && <span className="ml-1 opacity-60">{counts[f.key]}</span>}
+            </button>
+          ))}
         </div>
-        <div className="relative w-full sm:w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input placeholder="Buscar chip..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+        <div className="relative w-full sm:w-48 sm:ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { label: "Chips Ativos", value: `${stats.active}/${stats.total}`, color: "text-emerald-400" },
-          { label: "Em Aquecimento", value: stats.warming, color: "text-amber-400" },
-          { label: "Em Risco", value: stats.atRisk, color: stats.atRisk > 0 ? "text-red-400" : "text-muted-foreground/50" },
-          { label: "Média/Dia/Chip", value: stats.avgDailySend, color: "text-foreground" },
-          { label: "Score Médio", value: stats.avgScore, color: scoreColor(stats.avgScore) },
-        ].map(s => (
-          <Card key={s.label} className="border-border/15">
-            <CardContent className="p-4">
-              <p className={`text-2xl font-bold tabular-nums leading-none ${s.color}`}>{s.value}</p>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1.5">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Chip List */}
+      {filteredChips.length === 0 ? (
+        <div className="py-20 text-center">
+          <Smartphone className="w-8 h-8 text-muted-foreground/15 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Nenhum chip encontrado</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {filteredChips.map(chip => {
+            const risk = riskConfig[chip.riskLevel];
+            const RecIcon = recIcon[chip.recommendation.action];
+            return (
+              <div
+                key={chip.id}
+                onClick={() => setSelectedChip(chip)}
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/15 hover:border-border/30 cursor-pointer bg-card/50 group"
+              >
+                {/* Identity */}
+                <div className="flex items-center gap-2.5 min-w-0 w-[160px] shrink-0">
+                  <div className="relative">
+                    {chip.profilePicture ? (
+                      <img src={chip.profilePicture} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                        {(chip.number !== "—" ? chip.number.slice(-2) : chip.name.slice(0, 2)).toUpperCase()}
+                      </div>
+                    )}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${chip.online ? "bg-emerald-400" : "bg-red-400"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-foreground truncate">{chip.number !== "—" ? chip.number : chip.name}</p>
+                    {chip.hasWarmup && (
+                      <p className="text-[10px] text-muted-foreground/60">Dia {chip.warmupDay}/{chip.totalDays}</p>
+                    )}
+                  </div>
+                </div>
 
-      {/* Chip Table */}
-      <Card className="border-border/15 overflow-hidden">
-        <CardHeader className="pb-0 pt-4 px-4">
-          <CardTitle className="text-sm font-medium text-foreground">
-            Chips ({sortedChips.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 mt-3">
-          {sortedChips.length === 0 ? (
-            <div className="py-16 text-center">
-              <Smartphone className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhum chip encontrado</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/30 bg-muted/10">
-                    <th className="p-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Chip</th>
-                    <th className="p-3 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Status</th>
-                    <SortHeader label="Hoje" sortKey="sentToday" />
-                    <th className="p-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Média</th>
-                    <th className="p-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Pico</th>
-                    <SortHeader label="Erros/dia" sortKey="errorsPerDay" />
-                    <SortHeader label="Entrega" sortKey="deliveryRate" />
-                    <th className="p-3 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Risco</th>
-                    <SortHeader label="Score" sortKey="score" />
-                    <th className="p-3 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Ação</th>
-                    <th className="p-3 w-6"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedChips.map(chip => {
-                    const risk = riskConfig[chip.riskLevel];
-                    const RecIcon = recIcon[chip.recommendation.action];
-                    return (
-                      <tr key={chip.id} className="border-b border-border/20 hover:bg-muted/5 cursor-pointer" onClick={() => setSelectedChip(chip)}>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2.5">
-                            {chip.profilePicture ? (
-                              <img src={chip.profilePicture} alt="" className="w-7 h-7 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-7 h-7 rounded-full bg-muted/30 flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                                {(chip.number !== "—" ? chip.number.slice(-2) : chip.name.slice(0, 2)).toUpperCase()}
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-medium text-foreground truncate max-w-[130px]">{chip.number !== "—" ? chip.number : chip.name}</p>
-                              {chip.hasWarmup && (
-                                <p className="text-[10px] text-muted-foreground/50">Dia {chip.warmupDay}/{chip.totalDays}</p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${chip.online ? "text-emerald-400" : "text-red-400"}`}>
-                            {chip.online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right text-foreground font-medium text-[13px] tabular-nums">
-                          {chip.sentToday}
-                          {chip.dailyLimit > 0 && <span className="text-muted-foreground/40 font-normal">/{chip.dailyLimit}</span>}
-                        </td>
-                        <td className="p-3 text-right text-muted-foreground text-[13px] tabular-nums">{chip.avgDaily}</td>
-                        <td className="p-3 text-right text-muted-foreground text-[13px] tabular-nums">{chip.peakMax}</td>
-                        <td className="p-3 text-right">
-                          <span className={`text-[13px] tabular-nums font-medium ${chip.errorsPerDay > 2 ? "text-red-400" : chip.errorsPerDay > 0 ? "text-amber-400" : "text-muted-foreground/30"}`}>
-                            {chip.errorsPerDay}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right">
-                          <span className={`text-[13px] font-medium tabular-nums ${chip.deliveryRate >= 98 ? "text-emerald-400" : chip.deliveryRate >= 95 ? "text-amber-400" : "text-red-400"}`}>
-                            {chip.deliveryRate.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Badge variant="outline" className={`${risk.bg} ${risk.color} ${risk.border} text-[10px] px-2`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${risk.dot} mr-1.5 inline-block`} />
-                            {risk.label}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-right">
-                          <span className={`text-lg font-bold tabular-nums ${scoreColor(chip.score)}`}>{chip.score}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <RecIcon className={`w-4 h-4 mx-auto ${recColor[chip.recommendation.action]}`} />
-                        </td>
-                        <td className="p-3">
-                          <ChevronRight className="w-4 h-4 text-muted-foreground/20" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                {/* Volume */}
+                <div className="text-right w-[70px] shrink-0 hidden sm:block">
+                  <p className="text-[13px] font-semibold tabular-nums text-foreground">
+                    {chip.sentToday}
+                    {chip.dailyLimit > 0 && <span className="text-muted-foreground/30 font-normal">/{chip.dailyLimit}</span>}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground/40 uppercase">hoje</p>
+                </div>
+
+                {/* Risk badge */}
+                <div className="w-[72px] shrink-0 hidden sm:flex justify-center">
+                  <Badge variant="outline" className={`${risk.bg} ${risk.color} ${risk.border} text-[10px] px-2 py-0.5`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${risk.dot} mr-1 inline-block`} />
+                    {risk.label}
+                  </Badge>
+                </div>
+
+                {/* Score */}
+                <div className="w-[40px] shrink-0 text-center hidden md:block">
+                  <p className={`text-base font-bold tabular-nums ${scoreColor(chip.score)}`}>{chip.score}</p>
+                </div>
+
+                {/* Last error */}
+                <div className="flex-1 min-w-0 hidden lg:block">
+                  {chip.lastError ? (
+                    <p className="text-[11px] text-red-400/70 truncate" title={chip.lastError}>
+                      <span className="text-muted-foreground/30 mr-1">{formatTimeAgo(chip.lastErrorAt!)}</span>
+                      {chip.lastError}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground/20">Sem erros</p>
+                  )}
+                </div>
+
+                {/* Recommendation */}
+                <div className="flex items-center gap-1.5 w-[120px] shrink-0 justify-end hidden md:flex">
+                  <RecIcon className={`w-3.5 h-3.5 ${recColor[chip.recommendation.action]}`} />
+                  <span className={`text-[11px] font-medium ${recColor[chip.recommendation.action]}`}>
+                    {chip.recommendation.action === "increase" ? "Aumentar" : chip.recommendation.action === "maintain" ? "Manter" : "Reduzir"}
+                  </span>
+                </div>
+
+                {/* Mobile risk indicator */}
+                <div className="sm:hidden ml-auto">
+                  <span className={`w-2 h-2 rounded-full ${risk.dot} inline-block`} />
+                </div>
+
+                <ChevronRight className="w-4 h-4 text-muted-foreground/10 group-hover:text-muted-foreground/30 shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Detail Sheet */}
       <Sheet open={!!selectedChip} onOpenChange={open => { if (!open) setSelectedChip(null); }}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {selectedChip && <ChipDetail chip={selectedChip} />}
+          {selectedChip && <ChipDetail chip={selectedChip} formatTimeAgo={formatTimeAgo} />}
         </SheetContent>
       </Sheet>
     </div>
@@ -448,7 +466,7 @@ const Reports = () => {
 };
 
 // ── Detail Panel ──
-function ChipDetail({ chip }: { chip: ChipData }) {
+function ChipDetail({ chip, formatTimeAgo }: { chip: ChipData; formatTimeAgo: (d: string) => string }) {
   const risk = riskConfig[chip.riskLevel];
   const RecIcon = recIcon[chip.recommendation.action];
 
@@ -456,8 +474,10 @@ function ChipDetail({ chip }: { chip: ChipData }) {
     <div className="space-y-5">
       <SheetHeader>
         <SheetTitle className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${chip.online ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
-            {chip.online ? <Wifi className="w-5 h-5 text-emerald-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
+          <div className="relative">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${chip.online ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+              {chip.online ? <Wifi className="w-5 h-5 text-emerald-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
+            </div>
           </div>
           <div>
             <p className="text-base font-semibold text-foreground">{chip.number !== "—" ? chip.number : chip.name}</p>
@@ -519,6 +539,14 @@ function ChipDetail({ chip }: { chip: ChipData }) {
           </div>
         ))}
       </div>
+
+      {/* Last error */}
+      {chip.lastError && (
+        <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/15">
+          <p className="text-[10px] text-muted-foreground mb-1">Último erro — {formatTimeAgo(chip.lastErrorAt!)}</p>
+          <p className="text-[12px] text-red-400/80">{chip.lastError}</p>
+        </div>
+      )}
 
       {/* Chart */}
       <Card className="border-border/15">
