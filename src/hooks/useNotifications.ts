@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { toast } from "@/hooks/use-toast";
 
 // Clean notification chime using Web Audio API
 const playChime = () => {
@@ -132,6 +133,18 @@ export function useNotifications() {
           setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
           setUnreadCount((c) => c + 1);
           playNotificationSound();
+          
+          // Show toast popup
+          const variantMap: Record<string, "default" | "destructive"> = {
+            error: "destructive",
+            warning: "destructive",
+          };
+          toast({
+            title: newNotif.title,
+            description: newNotif.message,
+            variant: variantMap[newNotif.type] || "default",
+            duration: 6000,
+          });
         }
       )
       .subscribe();
