@@ -356,6 +356,7 @@ const Campaigns = () => {
   const removeContact = (id: number) => setContacts(contacts.filter(c => c.id !== id));
 
   const removeDuplicates = () => {
+    const before = contacts.length;
     const seen = new Set<string>();
     const unique = contacts.filter(c => {
       const num = c.numero.trim();
@@ -363,13 +364,17 @@ const Campaigns = () => {
       seen.add(num);
       return true;
     });
+    const removed = before - unique.length;
     setContacts(unique);
-    toast({ title: "Duplicados removidos" });
+    toast({ title: "Duplicados removidos", description: `${removed} duplicado(s) removido(s). Restam ${unique.length} contatos.` });
   };
 
   const removeInvalid = () => {
-    setContacts(contacts.filter(c => !c.numero.trim() || /^\d{10,15}$/.test(c.numero.replace(/\D/g, ""))));
-    toast({ title: "Inválidos removidos" });
+    const before = contacts.length;
+    const valid = contacts.filter(c => !c.numero.trim() || /^\d{10,15}$/.test(c.numero.replace(/\D/g, "")));
+    const removed = before - valid.length;
+    setContacts(valid);
+    toast({ title: "Inválidos removidos", description: `${removed} inválido(s) removido(s). Restam ${valid.length} contatos.` });
   };
 
   const handleImportFromDB = () => {
