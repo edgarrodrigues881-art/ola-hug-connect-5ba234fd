@@ -43,6 +43,7 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const audioUnlockedRef = useRef(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
+  const toastedIdsRef = useRef<Set<string>>(new Set());
   const initialLoadDoneRef = useRef(false);
 
   // Unlock AudioContext on first user gesture
@@ -78,7 +79,7 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch existing notifications - NO toast on polling (realtime handles toasts)
+  // Fetch notifications + show toast for NEW ones (deduplicated)
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
@@ -88,7 +89,19 @@ export function useNotifications() {
       .limit(20);
 
     if (data) {
-      // Update known IDs without triggering toasts
+      // Show toast for truly new notifications (not yet toasted)
+      if (initialLoadDoneRef.current) {
+        for (const n of data) {
+          if (!toastedIdsRef.current.has(n.id)) {
+            toastedIdsRef.current.add(n.id);
+            showToastForNotif(n as Notification);
+          }
+        }
+      }
+      // Mark all initial IDs as already toasted on first load
+      if (!initialLoadDoneRef.current) {
+        toastedIdsRef.current = new Set(data.map((n) => n.id));
+      }
       knownIdsRef.current = new Set(data.map((n) => n.id));
       initialLoadDoneRef.current = true;
 
@@ -96,7 +109,7 @@ export function useNotifications() {
       setUnreadCount(data.filter((n) => !n.read).length);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, showToastForNotif]);
   // Mark single as read
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
@@ -126,10 +139,10 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
-  // Initial fetch + polling fallback every 15s (realtime handles instant updates)
+  // Initial fetch + polling every 3s for fast detection
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    const interval = setInterval(fetchNotifications, 3000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
@@ -149,10 +162,11 @@ export function useNotifications() {
         },
         (payload) => {
           const newNotif = payload.new as Notification;
-          if (!knownIdsRef.current.has(newNotif.id)) {
+          if (!toastedIdsRef.current.has(newNotif.id)) {
+            toastedIdsRef.current.add(newNotif.id);
+            knownIdsRef.current.add(newNotif.id);
             setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
             setUnreadCount((c) => c + 1);
-            knownIdsRef.current.add(newNotif.id);
             showToastForNotif(newNotif);
           }
         }
