@@ -12,81 +12,96 @@ export interface ChipHealth {
   classification: "healthy" | "warning" | "risk";
   daysActive: number;
   messagesPerDay: number;
+  messagesSentToday: number;
+  messagesSentTotal: number;
   warmupDay: number | null;
   warmupTotal: number | null;
-  proxyName: string | null;
+  warmupStatus: string | null;
+  safetyState: string | null;
+  dailyIncrement: number;
+  maxMessagesPerDay: number;
+  failCount: number;
+  proxyId: string | null;
+  profilePicture: string | null;
 }
 
-export interface DeviceInfo {
+export interface SmartAlert {
   id: string;
-  name: string;
-  number: string | null;
-  status: string;
-  profile_picture: string | null;
+  type: "danger" | "warning" | "success";
+  chipName: string;
+  chipNumber: string | null;
+  message: string;
+}
+
+export interface WarmupEvolutionPoint {
+  label: string;
+  mensagens: number;
+  falhas: number;
+  crescimento: number;
 }
 
 export interface DashboardStats {
-  chipsActive: number;
+  chipsOnline: number;
+  chipsWarming: number;
+  chipsAtRisk: number;
+  avgMessagesPerDay: number;
+  systemScore: number;
+  deliveryRate: number;
   totalSent: number;
   totalDelivered: number;
   totalFailed: number;
-  deliveryRate: number;
-  devices: DeviceInfo[];
-  recentCampaigns: Array<{
-    id: string;
-    name: string;
-    status: string;
-    totalContacts: number;
-    sentCount: number;
-    deliveredCount: number;
-    failedCount: number;
-    responseRate: number;
-    techStatus: "ok" | "warning" | "risk";
-    createdAt: string;
-  }>;
-  activityData: Array<{ label: string; enviadas: number; entregues: number }>;
+  chips: ChipHealth[];
+  alerts: SmartAlert[];
+  warmupEvolution: WarmupEvolutionPoint[];
 }
 
 function calculateChipScore(
   device: any,
   warmup: any | null,
-  totalSent: number,
-  totalFailed: number
+  failCount: number
 ): number {
-  let score = 50; // base
+  let score = 50;
 
-  // Status bonus
+  // Connection stability
   if (device.status === "Ready") score += 20;
-  else if (device.status === "Disconnected") score -= 30;
+  else if (device.status === "Disconnected") score -= 25;
 
-  // Days active bonus
-  const createdAt = new Date(device.created_at);
-  const daysActive = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+  // Days active
+  const daysActive = Math.floor((Date.now() - new Date(device.created_at).getTime()) / 86400000);
   if (daysActive > 14) score += 10;
   else if (daysActive > 7) score += 5;
 
-  // Warmup progression
+  // Warmup health
   if (warmup) {
-    const warmupProgress = warmup.total_days > 0 ? (warmup.current_day / warmup.total_days) : 0;
-    score += Math.round(warmupProgress * 15);
+    const progress = warmup.total_days > 0 ? warmup.current_day / warmup.total_days : 0;
+    score += Math.round(progress * 15);
+
+    if (warmup.safety_state === "normal") score += 5;
+    else if (warmup.safety_state === "caution") score -= 5;
+    else if (warmup.safety_state === "danger") score -= 15;
+
+    // Delivery rate from warmup
+    const total = warmup.messages_sent_total || 0;
+    if (total > 0) {
+      const rate = (total - failCount) / total;
+      if (rate > 0.96) score += 10;
+      else if (rate > 0.92) score += 5;
+      else if (rate < 0.8) score -= 15;
+    }
   }
 
-  // Delivery rate
-  if (totalSent > 0) {
-    const deliveryRate = (totalSent - totalFailed) / totalSent;
-    if (deliveryRate > 0.95) score += 10;
-    else if (deliveryRate > 0.8) score += 5;
-    else if (deliveryRate < 0.5) score -= 15;
-  }
+  // Proxy bonus
+  if (device.proxy_id) score += 5;
 
   // Failure penalty
-  if (totalFailed > 20) score -= 10;
+  if (failCount > 20) score -= 10;
+  else if (failCount > 10) score -= 5;
 
   return Math.max(0, Math.min(100, score));
 }
 
 function classifyScore(score: number): "healthy" | "warning" | "risk" {
-  if (score >= 80) return "healthy";
+  if (score >= 75) return "healthy";
   if (score >= 50) return "warning";
   return "risk";
 }
@@ -95,16 +110,16 @@ export function useDashboardStats() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Realtime: instant device status updates
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel('dashboard-devices-rt')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'devices', filter: `user_id=eq.${user.id}` },
-        () => { queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] }); }
-      )
+      .channel("dashboard-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "devices", filter: `user_id=eq.${user.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "warmup_sessions", filter: `user_id=eq.${user.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.id, queryClient]);
@@ -112,26 +127,37 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ["dashboard-stats", user?.id],
     queryFn: async (): Promise<DashboardStats> => {
-      // Fetch all data in parallel
-      const [devicesRes, warmupsRes, campaignsRes, proxiesRes] = await Promise.all([
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+
+      const [devicesRes, warmupsRes, logsRes, campaignsRes] = await Promise.all([
         supabase.from("devices").select("*"),
         supabase.from("warmup_sessions").select("*"),
-        supabase.from("campaigns").select("*").order("created_at", { ascending: false }),
-        supabase.from("proxies").select("*"),
+        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo),
+        supabase.from("campaigns").select("sent_count, delivered_count, failed_count"),
       ]);
 
       const devices = devicesRes.data || [];
       const warmups = warmupsRes.data || [];
+      const logs = logsRes.data || [];
       const campaigns = campaignsRes.data || [];
-      const proxies = proxiesRes.data || [];
 
-      // Build chip health
+      // Fail counts per device from warmup_logs
+      const failsByDevice: Record<string, number> = {};
+      const logsByDevice: Record<string, any[]> = {};
+      logs.forEach((l) => {
+        if (!logsByDevice[l.device_id]) logsByDevice[l.device_id] = [];
+        logsByDevice[l.device_id].push(l);
+        if (l.status === "error" || l.status === "failed") {
+          failsByDevice[l.device_id] = (failsByDevice[l.device_id] || 0) + 1;
+        }
+      });
+
+      // Build chips
       const chips: ChipHealth[] = devices.map((d) => {
-        const warmup = warmups.find((w) => w.device_id === d.id && w.status === "running");
-        const createdAt = new Date(d.created_at);
-        const daysActive = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-
-        const score = calculateChipScore(d, warmup, warmup?.messages_sent_total || 0, 0);
+        const warmup = warmups.find((w) => w.device_id === d.id && (w.status === "running" || w.status === "paused"));
+        const daysActive = Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000);
+        const failCount = failsByDevice[d.id] || 0;
+        const score = calculateChipScore(d, warmup, failCount);
 
         return {
           id: d.id,
@@ -142,89 +168,106 @@ export function useDashboardStats() {
           classification: classifyScore(score),
           daysActive,
           messagesPerDay: warmup?.messages_per_day || 0,
+          messagesSentToday: warmup?.messages_sent_today || 0,
+          messagesSentTotal: warmup?.messages_sent_total || 0,
           warmupDay: warmup?.current_day || null,
           warmupTotal: warmup?.total_days || null,
-          proxyName: null,
+          warmupStatus: warmup?.status || null,
+          safetyState: warmup?.safety_state || null,
+          dailyIncrement: warmup?.daily_increment || 0,
+          maxMessagesPerDay: warmup?.max_messages_per_day || 0,
+          failCount,
+          proxyId: d.proxy_id,
+          profilePicture: d.profile_picture,
         };
       });
 
-      const chipsActive = chips.filter((c) => c.status === "Ready").length;
-      const chipsAtRisk = chips.filter((c) => c.classification === "risk" || c.classification === "warning").length;
-      const chipsBanned = chips.filter((c) => c.status === "Banned").length;
+      const chipsOnline = chips.filter((c) => c.status === "Ready").length;
+      const chipsWarming = chips.filter((c) => c.warmupStatus === "running").length;
+      const chipsAtRisk = chips.filter((c) => c.classification === "risk").length;
 
-      // Delivery stats
-      const totalSent = campaigns.reduce((acc, c) => acc + (c.sent_count || 0), 0);
-      const totalDelivered = campaigns.reduce((acc, c) => acc + (c.delivered_count || 0), 0);
-      const totalFailed = campaigns.reduce((acc, c) => acc + (c.failed_count || 0), 0);
+      const totalWarmupMsgs = chips.reduce((a, c) => a + c.messagesPerDay, 0);
+      const avgMessagesPerDay = chips.length > 0 ? Math.round(totalWarmupMsgs / chips.length) : 0;
+      const systemScore = chips.length > 0 ? Math.round(chips.reduce((a, c) => a + c.score, 0) / chips.length) : 0;
+
+      // Campaign delivery
+      const totalSent = campaigns.reduce((a, c) => a + (c.sent_count || 0), 0);
+      const totalDelivered = campaigns.reduce((a, c) => a + (c.delivered_count || 0), 0);
+      const totalFailed = campaigns.reduce((a, c) => a + (c.failed_count || 0), 0);
       const deliveryRate = totalSent > 0 ? Math.round(((totalSent - totalFailed) / totalSent) * 100) : 100;
 
-      const avgHealthScore = chips.length > 0
-        ? Math.round(chips.reduce((acc, c) => acc + c.score, 0) / chips.length)
-        : 0;
-
-      // Simulated hourly data (in real scenario this would come from logs)
-      const hours = ["08h", "09h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h"];
-      const hourlyData = hours.map((hora) => ({
-        hora,
-        enviadas: Math.floor(Math.random() * 200 + 20),
-        entregues: Math.floor(Math.random() * 180 + 15),
-        bloqueios: Math.floor(Math.random() * 10),
-      }));
-
-      // Recent campaigns enriched
-      const recentCampaigns = campaigns.slice(0, 5).map((c) => {
-        const sent = c.sent_count || 0;
-        const failed = c.failed_count || 0;
-        const delivered = c.delivered_count || 0;
-        const failRate = sent > 0 ? failed / sent : 0;
-        const techStatus: "ok" | "warning" | "risk" = failRate > 0.3 ? "risk" : failRate > 0.1 ? "warning" : "ok";
-
-        return {
-          id: c.id,
-          name: c.name,
-          status: c.status,
-          totalContacts: c.total_contacts || 0,
-          sentCount: sent,
-          deliveredCount: delivered,
-          failedCount: failed,
-          responseRate: sent > 0 ? Math.round((delivered / sent) * 100) : 0,
-          techStatus,
-          createdAt: c.created_at,
-        };
+      // Alerts
+      const alerts: SmartAlert[] = [];
+      chips.forEach((c) => {
+        if (c.failCount > 5) {
+          alerts.push({
+            id: `fail-${c.id}`,
+            type: "danger",
+            chipName: c.name,
+            chipNumber: c.number,
+            message: `${c.failCount} falhas nos últimos 7 dias. Revise o chip.`,
+          });
+        }
+        if (c.warmupStatus === "running" && c.messagesSentToday === 0 && c.warmupDay && c.warmupDay > 1) {
+          alerts.push({
+            id: `idle-${c.id}`,
+            type: "warning",
+            chipName: c.name,
+            chipNumber: c.number,
+            message: "Chip parado hoje. Verifique a conexão.",
+          });
+        }
+        if (c.classification === "healthy" && c.warmupStatus === "running" && c.messagesPerDay < c.maxMessagesPerDay * 0.7) {
+          alerts.push({
+            id: `grow-${c.id}`,
+            type: "success",
+            chipName: c.name,
+            chipNumber: c.number,
+            message: "Apto a aumentar volume de envio.",
+          });
+        }
       });
 
-      // Activity data from campaigns (last 7 days)
+      // Warmup evolution - last 7 days from logs
       const now = new Date();
-      const activityData = Array.from({ length: 7 }).map((_, i) => {
+      const warmupEvolution: WarmupEvolutionPoint[] = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(now);
         d.setDate(d.getDate() - (6 - i));
+        const dayStr = d.toDateString();
         const dayLabel = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-        const dayCampaigns = campaigns.filter((c) => {
-          const cd = new Date(c.created_at);
-          return cd.toDateString() === d.toDateString();
-        });
+
+        const dayLogs = logs.filter((l) => new Date(l.created_at).toDateString() === dayStr);
+        const sent = dayLogs.filter((l) => l.status === "sent").length;
+        const failed = dayLogs.filter((l) => l.status === "error" || l.status === "failed").length;
+
         return {
           label: dayLabel,
-          enviadas: dayCampaigns.reduce((a, c) => a + (c.sent_count || 0), 0),
-          entregues: dayCampaigns.reduce((a, c) => a + (c.delivered_count || 0), 0),
+          mensagens: sent + failed,
+          falhas: failed,
+          crescimento: 0,
         };
       });
 
+      // Calculate growth %
+      for (let i = 1; i < warmupEvolution.length; i++) {
+        const prev = warmupEvolution[i - 1].mensagens;
+        const curr = warmupEvolution[i].mensagens;
+        warmupEvolution[i].crescimento = prev > 0 ? Math.round(((curr - prev) / prev) * 100) : 0;
+      }
+
       return {
-        chipsActive,
+        chipsOnline,
+        chipsWarming,
+        chipsAtRisk,
+        avgMessagesPerDay,
+        systemScore,
+        deliveryRate,
         totalSent,
         totalDelivered,
         totalFailed,
-        deliveryRate,
-        devices: devices.map((d) => ({
-          id: d.id,
-          name: d.name,
-          number: d.number,
-          status: d.status,
-          profile_picture: d.profile_picture,
-        })),
-        recentCampaigns,
-        activityData,
+        chips,
+        alerts,
+        warmupEvolution,
       };
     },
     enabled: !!user,

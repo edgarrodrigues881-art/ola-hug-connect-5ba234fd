@@ -1,117 +1,146 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Send, Megaphone } from "lucide-react";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { useNavigate } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import {
+  Smartphone,
+  Flame,
+  AlertTriangle,
+  BarChart3,
+  Shield,
+  AlertCircle,
+  TrendingUp,
+  Pause,
+} from "lucide-react";
+import { useDashboardStats, type SmartAlert } from "@/hooks/useDashboardStats";
 import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { DeviceStatusList } from "@/components/dashboard/DeviceStatusList";
 import { DeliveryRateCard } from "@/components/dashboard/DeliveryRateCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
-import { ActivityTimeline, type TimelineEvent } from "@/components/dashboard/ActivityTimeline";
-
-
-const techStatusConfig = {
-  ok: { label: "OK", className: "bg-success/15 text-success border-success/30" },
-  warning: { label: "Warning", className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
-  risk: { label: "Risk", className: "bg-destructive/15 text-destructive border-destructive/30" },
-};
-
-const statusLabels: Record<string, string> = {
-  pending: "Pendente",
-  scheduled: "Agendada",
-  running: "Enviando",
-  completed: "Concluída",
-  failed: "Falhou",
-  paused: "Pausada",
-};
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
-  const navigate = useNavigate();
+
+  const scoreColor = (s: number) =>
+    s >= 75 ? "text-emerald-400" : s >= 50 ? "text-yellow-400" : "text-red-400";
+  const scoreBg = (s: number) =>
+    s >= 75 ? "bg-emerald-500/15" : s >= 50 ? "bg-yellow-500/15" : "bg-red-500/15";
 
   const topCards = [
     {
-      label: "Chips Ativos",
-      value: stats?.chipsActive ?? 0,
+      label: "Chips Online",
+      value: stats?.chipsOnline ?? 0,
       icon: Smartphone,
-      gradient: "from-emerald-500/20 to-emerald-500/5",
-      glow: "shadow-emerald-500/10",
       iconColor: "text-emerald-400",
       iconBg: "bg-emerald-500/15",
     },
     {
-      label: "Mensagens Enviadas",
-      value: stats?.totalSent ?? 0,
-      icon: Send,
-      gradient: "from-violet-500/20 to-violet-500/5",
-      glow: "shadow-violet-500/10",
+      label: "Em Aquecimento",
+      value: stats?.chipsWarming ?? 0,
+      icon: Flame,
+      iconColor: "text-amber-400",
+      iconBg: "bg-amber-500/15",
+    },
+    {
+      label: "Em Risco",
+      value: stats?.chipsAtRisk ?? 0,
+      icon: AlertTriangle,
+      iconColor: "text-red-400",
+      iconBg: "bg-red-500/15",
+    },
+    {
+      label: "Média Diária/Chip",
+      value: stats?.avgMessagesPerDay ?? 0,
+      icon: BarChart3,
       iconColor: "text-violet-400",
       iconBg: "bg-violet-500/15",
     },
     {
-      label: "Campanhas",
-      value: stats?.recentCampaigns?.length ?? 0,
-      icon: Megaphone,
-      gradient: "from-blue-500/20 to-blue-500/5",
-      glow: "shadow-blue-500/10",
-      iconColor: "text-blue-400",
-      iconBg: "bg-blue-500/15",
+      label: "Score do Sistema",
+      value: stats?.systemScore ?? 0,
+      icon: Shield,
+      iconColor: scoreColor(stats?.systemScore ?? 0),
+      iconBg: scoreBg(stats?.systemScore ?? 0),
+      suffix: "/100",
     },
   ];
 
-  // Build timeline from campaigns
-  const timelineEvents: TimelineEvent[] = (stats?.recentCampaigns || []).map((c) => ({
-    id: c.id,
-    type: "campaign" as const,
-    title: c.name,
-    description: `${statusLabels[c.status] || c.status} — ${c.sentCount} enviadas`,
-    timestamp: c.createdAt,
-  }));
+  const alertConfig: Record<SmartAlert["type"], { icon: typeof AlertCircle; className: string }> = {
+    danger: { icon: AlertCircle, className: "border-red-500/30 bg-red-500/5 text-red-400" },
+    warning: { icon: Pause, className: "border-yellow-500/30 bg-yellow-500/5 text-yellow-500" },
+    success: { icon: TrendingUp, className: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header + Quick Actions */}
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <GreetingHeader />
         <QuickActions />
       </div>
 
-      {/* Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {topCards.map((s, i) => (
-          <div
-            key={s.label}
-          >
-            <Card className={`relative overflow-hidden border-border/50 bg-gradient-to-br ${s.gradient} backdrop-blur-sm shadow-lg ${s.glow} hover:shadow-xl transition-shadow duration-100 cursor-pointer`}>
-              <div className="absolute inset-0 rounded-xl border border-white/[0.05]" />
-              <CardContent className="p-5 relative">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${s.iconBg} flex items-center justify-center shrink-0 ring-1 ring-white/[0.05]`}>
-                    <s.icon className={`w-5 h-5 ${s.iconColor}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground/80 tracking-wide uppercase">{s.label}</p>
-                    <div className="text-2xl font-bold text-foreground mt-0.5">
-                      {isLoading ? (
-                        <span className="inline-block w-8 h-6 bg-muted/50 rounded animate-pulse" />
-                      ) : (
+      {/* Top Stats - 5 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {topCards.map((s) => (
+          <Card key={s.label} className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg ${s.iconBg} flex items-center justify-center shrink-0`}>
+                  <s.icon className={`w-4 h-4 ${s.iconColor}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                  <div className="text-xl font-bold text-foreground">
+                    {isLoading ? (
+                      <span className="inline-block w-6 h-5 bg-muted/50 rounded animate-pulse" />
+                    ) : (
+                      <>
                         <AnimatedCounter value={s.value} />
-                      )}
-                    </div>
+                        {s.suffix && <span className="text-xs text-muted-foreground font-normal">{s.suffix}</span>}
+                      </>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
+
+      {/* Alerts */}
+      {(stats?.alerts?.length ?? 0) > 0 && (
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              Alertas Automáticos
+              <Badge variant="secondary" className="text-[10px] ml-1">{stats!.alerts.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stats!.alerts.slice(0, 6).map((alert) => {
+              const cfg = alertConfig[alert.type];
+              const Icon = cfg.icon;
+              return (
+                <div key={alert.id} className={`flex items-center gap-3 p-2.5 rounded-lg border ${cfg.className}`}>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium text-foreground">
+                      {alert.chipNumber || alert.chipName}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">{alert.message}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Chart + Delivery Rate */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <ActivityChart data={stats?.activityData || []} />
+          <ActivityChart data={stats?.warmupEvolution || []} />
         </div>
         <DeliveryRateCard
           rate={stats?.deliveryRate ?? 100}
@@ -121,13 +150,85 @@ const DashboardHome = () => {
         />
       </div>
 
-      {/* Devices + Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DeviceStatusList devices={stats?.devices || []} loading={isLoading} />
-        <ActivityTimeline events={timelineEvents} />
-      </div>
+      {/* Chip Health Table */}
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-emerald-400" />
+            Saúde dos Chips
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-muted/30 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : (stats?.chips?.length ?? 0) === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Nenhum chip cadastrado</p>
+          ) : (
+            <div className="space-y-2">
+              {stats!.chips.map((chip) => {
+                const scoreCol = scoreColor(chip.score);
+                return (
+                  <div
+                    key={chip.id}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/10 border border-border/20"
+                  >
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
+                      {chip.profilePicture ? (
+                        <img src={chip.profilePicture} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
+                    </div>
 
+                    {/* Name + Status */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {chip.number || chip.name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${chip.status === "Ready" ? "bg-emerald-400" : "bg-red-400"}`} />
+                        <span className="text-[10px] text-muted-foreground">
+                          {chip.warmupDay ? `Dia ${chip.warmupDay}/${chip.warmupTotal}` : chip.status === "Ready" ? "Online" : "Offline"}
+                        </span>
+                        {chip.warmupStatus === "running" && (
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                            <Flame className="w-2.5 h-2.5 mr-0.5" /> Aquecendo
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
 
+                    {/* Daily msgs */}
+                    <div className="text-center shrink-0 hidden sm:block">
+                      <p className="text-xs font-medium text-foreground">{chip.messagesSentToday}/{chip.messagesPerDay}</p>
+                      <p className="text-[9px] text-muted-foreground">hoje/limite</p>
+                    </div>
+
+                    {/* Fails */}
+                    <div className="text-center shrink-0 hidden sm:block">
+                      <p className={`text-xs font-medium ${chip.failCount > 5 ? "text-red-400" : "text-foreground"}`}>
+                        {chip.failCount}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">falhas</p>
+                    </div>
+
+                    {/* Score */}
+                    <div className="flex items-center gap-2 shrink-0 w-24">
+                      <Progress value={chip.score} className="h-1.5 flex-1" />
+                      <span className={`text-xs font-bold ${scoreCol} w-7 text-right`}>{chip.score}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
