@@ -20,6 +20,12 @@ export interface Campaign {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  min_delay_seconds: number;
+  max_delay_seconds: number;
+  pause_every_min: number;
+  pause_every_max: number;
+  pause_duration_min: number;
+  pause_duration_max: number;
 }
 
 export interface CampaignContact {
