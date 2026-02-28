@@ -237,11 +237,9 @@ const Campaigns = () => {
   const estimatedTime = useMemo(() => {
     const count = validContacts.length;
     if (count === 0) return null;
+    // Real calculation: backend applies only a random delay between each message (no pauses)
     const avgDelay = (minDelay + maxDelay) / 2;
-    const avgPauseEvery = (pauseEveryMin + pauseEveryMax) / 2;
-    const avgPauseDuration = (pauseDurationMin + pauseDurationMax) / 2;
-    const numPauses = Math.floor(count / avgPauseEvery);
-    const totalSeconds = (count * avgDelay) + (numPauses * avgPauseDuration);
+    const totalSeconds = count * avgDelay;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const days = Math.floor(hours / 24);
@@ -249,7 +247,7 @@ const Campaigns = () => {
     if (days > 0) return `${days} dias ${remainingHours}h ${minutes}min`;
     if (hours > 0) return `${hours}h ${minutes}min`;
     return `${minutes}min`;
-  }, [validContacts.length, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax]);
+  }, [validContacts.length, minDelay, maxDelay]);
 
   // Detected variables
   const detectedVars = useMemo(() => {
