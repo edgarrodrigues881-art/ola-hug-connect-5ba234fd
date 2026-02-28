@@ -207,10 +207,10 @@ const Campaigns = () => {
 
   const confirmPreviewImport = useCallback(() => {
     if (previewContacts) {
-      setContacts(previewContacts);
+      setContacts(prev => [...prev, ...previewContacts]);
       setShowContactTable(true);
       setContactPage(0);
-      toast({ title: `${previewContacts.length} contatos importados` });
+      toast({ title: `${previewContacts.length} contatos adicionados` });
       setPreviewContacts(null);
     }
   }, [previewContacts, toast]);
@@ -351,7 +351,7 @@ const Campaigns = () => {
 
   const [emojiCategory, setEmojiCategory] = useState<string>("Mais usados");
 
-  const addContact = () => { setContacts([...contacts, { id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }]); setShowContactTable(true); };
+  const addContact = () => { setContacts(prev => [{ id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }, ...prev]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
   const removeContact = (id: number) => setContacts(contacts.filter(c => c.id !== id));
 
@@ -382,10 +382,10 @@ const Campaigns = () => {
     if (selectedContactTags.length > 0) filtered = filtered.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
     const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }));
     if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
-    setContacts(imported);
+    setContacts(prev => [...prev, ...imported]);
     setImportFromContacts(false);
     setShowContactTable(true);
-    toast({ title: `${imported.length} contatos importados` });
+    toast({ title: `${imported.length} contatos adicionados` });
   };
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
