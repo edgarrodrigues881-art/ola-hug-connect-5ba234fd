@@ -1555,43 +1555,44 @@ const Campaigns = () => {
                     </div>
                   )}
 
-                  {/* Summary: messages per device */}
-                  {validContacts.length > 0 && (
-                    <div className="p-3 rounded-lg bg-muted/10 border border-border/15 space-y-2">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
-                      <div className="space-y-1.5">
-                        {selectedDevices.map((devId, idx) => {
-                          const dev = devices.find(d => d.id === devId);
-                          const devName = dev?.name || `Instância ${idx + 1}`;
-                          let msgCount = 0;
-                          if (sendMode === "single") {
-                            msgCount = idx === 0 ? validContacts.length : 0;
-                          } else if (sendMode === "parallel") {
-                            const base = Math.floor(validContacts.length / selectedDevices.length);
-                            const extra = idx < (validContacts.length % selectedDevices.length) ? 1 : 0;
-                            msgCount = base + extra;
-                          } else if (sendMode === "rotation") {
-                            const mpi = messagesPerInstance || 5;
-                            const fullCycles = Math.floor(validContacts.length / (mpi * selectedDevices.length));
-                            const remainder = validContacts.length % (mpi * selectedDevices.length);
-                            msgCount = fullCycles * mpi;
-                            const remainingForDevice = remainder - idx * mpi;
-                            if (remainingForDevice > 0) msgCount += Math.min(remainingForDevice, mpi);
-                          }
-                          return (
-                            <div key={devId} className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground truncate max-w-[60%]">{devName}</span>
-                              <span className={cn("font-mono font-medium", msgCount > 0 ? "text-foreground" : "text-muted-foreground/50")}>{msgCount} msgs</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="border-t border-border/15 pt-1.5 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">Total</span>
-                        <span className="font-mono font-bold text-foreground">{validContacts.length} msgs</span>
-                      </div>
-                    </div>
-                  )}
+                </div>
+              )}
+
+              {/* Summary: messages per device - always visible when devices selected */}
+              {selectedDevices.length >= 1 && validContacts.length > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-muted/10 border border-border/15 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
+                  <div className="space-y-1.5">
+                    {selectedDevices.map((devId, idx) => {
+                      const dev = devices.find(d => d.id === devId);
+                      const devName = dev?.name || `Instância ${idx + 1}`;
+                      let msgCount = 0;
+                      if (selectedDevices.length === 1 || sendMode === "single") {
+                        msgCount = idx === 0 ? validContacts.length : 0;
+                      } else if (sendMode === "parallel") {
+                        const base = Math.floor(validContacts.length / selectedDevices.length);
+                        const extra = idx < (validContacts.length % selectedDevices.length) ? 1 : 0;
+                        msgCount = base + extra;
+                      } else if (sendMode === "rotation") {
+                        const mpi = messagesPerInstance || 5;
+                        const fullCycles = Math.floor(validContacts.length / (mpi * selectedDevices.length));
+                        const remainder = validContacts.length % (mpi * selectedDevices.length);
+                        msgCount = fullCycles * mpi;
+                        const remainingForDevice = remainder - idx * mpi;
+                        if (remainingForDevice > 0) msgCount += Math.min(remainingForDevice, mpi);
+                      }
+                      return (
+                        <div key={devId} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground truncate max-w-[60%]">{devName}</span>
+                          <span className={cn("font-mono font-medium", msgCount > 0 ? "text-foreground" : "text-muted-foreground/50")}>{msgCount} msgs</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t border-border/15 pt-1.5 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium">Total</span>
+                    <span className="font-mono font-bold text-foreground">{validContacts.length} msgs</span>
+                  </div>
                 </div>
               )}
             </SurfaceCard>
