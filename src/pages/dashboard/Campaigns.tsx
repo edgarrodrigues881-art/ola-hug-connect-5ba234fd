@@ -1364,8 +1364,6 @@ const Campaigns = () => {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <Slider value={[minDelay, maxDelay]} min={1} max={60} step={1}
-                    onValueChange={([a, b]) => { setMinDelay(a); setMaxDelay(b); }} className="py-1" />
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
@@ -1392,8 +1390,6 @@ const Campaigns = () => {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <Slider value={[pauseEveryMin, pauseEveryMax]} min={1} max={50} step={1}
-                    onValueChange={([a, b]) => { setPauseEveryMin(a); setPauseEveryMax(b); }} className="py-1" />
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín</label>
@@ -1420,8 +1416,6 @@ const Campaigns = () => {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <Slider value={[pauseDurationMin, pauseDurationMax]} min={1} max={300} step={5}
-                    onValueChange={([a, b]) => { setPauseDurationMin(a); setPauseDurationMax(b); }} className="py-1" />
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
