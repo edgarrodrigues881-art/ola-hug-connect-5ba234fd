@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const operationsItems = [
-  { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send, primary: true },
+  { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
   { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
   { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
   { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
