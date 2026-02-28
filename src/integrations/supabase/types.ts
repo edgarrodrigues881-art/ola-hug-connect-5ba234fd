@@ -71,6 +71,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           delivered_count: number | null
+          device_id: string | null
           failed_count: number | null
           id: string
           max_delay_seconds: number
@@ -97,6 +98,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           delivered_count?: number | null
+          device_id?: string | null
           failed_count?: number | null
           id?: string
           max_delay_seconds?: number
@@ -123,6 +125,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           delivered_count?: number | null
+          device_id?: string | null
           failed_count?: number | null
           id?: string
           max_delay_seconds?: number
@@ -145,6 +148,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_template_id_fkey"
             columns: ["template_id"]

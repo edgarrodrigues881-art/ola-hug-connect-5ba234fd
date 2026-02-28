@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.warmup-execute]
 verify_jwt = false
+
+[functions.run-scheduled-campaigns]
+verify_jwt = false
