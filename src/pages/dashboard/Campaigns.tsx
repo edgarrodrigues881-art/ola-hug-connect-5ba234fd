@@ -244,8 +244,11 @@ const Campaigns = () => {
     const totalSeconds = (count * avgDelay) + (numPauses * avgPauseDuration);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    if (hours > 0) return `~${hours}h ${minutes}min`;
-    return `~${minutes}min`;
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    if (days > 0) return `${days} dias ${remainingHours}h ${minutes}min`;
+    if (hours > 0) return `${hours}h ${minutes}min`;
+    return `${minutes}min`;
   }, [validContacts.length, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax]);
 
   // Detected variables
@@ -1435,39 +1438,9 @@ const Campaigns = () => {
             </div>
 
             {/* Projeção de Envio */}
-            <SurfaceCard className="p-6 space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted/10">
-                  <Timer className="w-4.5 h-4.5 text-muted-foreground/60" />
-                </div>
-                <p className="text-[13px] font-bold text-foreground">Projeção de Envio</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Total de contatos</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{validContacts.length}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Intervalo médio</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{((minDelay + maxDelay) / 2).toFixed(0)}s</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Pausa a cada</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{Math.round((pauseEveryMin + pauseEveryMax) / 2)} mensagens</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Duração média da pausa</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{Math.round((pauseDurationMin + pauseDurationMax) / 2)}s</p>
-                </div>
-              </div>
-
-              {estimatedTime && (
-                <div className="pt-3 border-t border-border/10">
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Tempo estimado total</p>
-                  <p className="text-lg font-bold text-foreground tabular-nums">≈ {estimatedTime}</p>
-                </div>
-              )}
+            <SurfaceCard className="p-6 flex flex-col items-center justify-center text-center">
+              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold mb-2">Tempo estimado de envio</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums">≈ {estimatedTime || "—"}</p>
             </SurfaceCard>
 
             <div className="flex items-center justify-between pt-2">
