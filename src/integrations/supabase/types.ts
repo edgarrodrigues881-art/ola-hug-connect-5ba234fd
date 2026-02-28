@@ -72,12 +72,14 @@ export type Database = {
           created_at: string
           delivered_count: number | null
           device_id: string | null
+          device_ids: Json | null
           failed_count: number | null
           id: string
           max_delay_seconds: number
           media_url: string | null
           message_content: string | null
           message_type: string
+          messages_per_instance: number | null
           min_delay_seconds: number
           name: string
           pause_duration_max: number
@@ -99,12 +101,14 @@ export type Database = {
           created_at?: string
           delivered_count?: number | null
           device_id?: string | null
+          device_ids?: Json | null
           failed_count?: number | null
           id?: string
           max_delay_seconds?: number
           media_url?: string | null
           message_content?: string | null
           message_type?: string
+          messages_per_instance?: number | null
           min_delay_seconds?: number
           name: string
           pause_duration_max?: number
@@ -126,12 +130,14 @@ export type Database = {
           created_at?: string
           delivered_count?: number | null
           device_id?: string | null
+          device_ids?: Json | null
           failed_count?: number | null
           id?: string
           max_delay_seconds?: number
           media_url?: string | null
           message_content?: string | null
           message_type?: string
+          messages_per_instance?: number | null
           min_delay_seconds?: number
           name?: string
           pause_duration_max?: number

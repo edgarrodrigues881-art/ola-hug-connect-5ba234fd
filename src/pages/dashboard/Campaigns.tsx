@@ -179,6 +179,7 @@ const Campaigns = () => {
   const [pauseEveryMax, setPauseEveryMax] = useState(20);
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
+  const [messagesPerInstance, setMessagesPerInstance] = useState(0);
 
   // Delay profile mutations (after delay state is declared)
   const saveDelayProfile = useMutation({
@@ -281,12 +282,12 @@ const Campaigns = () => {
     if (!draftLoaded) return;
     const draft = {
       campaignName, message, messageType, mediaUrl, contacts,
-      buttons, selectedDevices,
+      buttons, selectedDevices, messagesPerInstance,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
     setMessage(""); setMediaUrl(""); setMediaFileName("");
@@ -301,7 +302,7 @@ const Campaigns = () => {
   const clearStep3 = () => {
     setSelectedDevices([]); setMinDelay(8); setMaxDelay(25);
     setPauseEveryMin(10); setPauseEveryMax(20); setPauseDurationMin(30); setPauseDurationMax(120);
-    setScheduleEnabled(false); setScheduleDate("");
+    setMessagesPerInstance(0); setScheduleEnabled(false); setScheduleDate("");
     toast({ title: "Parâmetros limpos" });
   };
   const clearAllForm = () => {
@@ -407,6 +408,8 @@ const Campaigns = () => {
       pause_duration_min: pauseDurationMin,
       pause_duration_max: pauseDurationMax,
       device_id: selectedDevices[0],
+      device_ids: selectedDevices,
+      messages_per_instance: messagesPerInstance,
     }, {
       onSuccess: (newCampaign) => {
         if (scheduleEnabled && scheduleDate) {
@@ -1494,6 +1497,31 @@ const Campaigns = () => {
                     <p className="text-sm font-medium text-destructive">Instância offline</p>
                     <p className="text-xs text-destructive/70">"{selectedDeviceData.name}" está desconectada. O disparo não funcionará até reconectar.</p>
                   </div>
+                </div>
+              )}
+
+              {/* Instance rotation config - show when multiple devices selected */}
+              {selectedDevices.length > 1 && (
+                <div className="mt-4 p-4 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <RefreshCw className="w-4 h-4 text-primary" /> Rotação de Instâncias
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Mensagens por instância antes de trocar</label>
+                      <Input
+                        type="number" min={0} value={messagesPerInstance || ""}
+                        onChange={e => setMessagesPerInstance(Number(e.target.value))}
+                        placeholder="0 = sem rotação"
+                        className="h-9 mt-1 bg-muted/15 dark:bg-muted/8 border-border/15"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {messagesPerInstance > 0
+                      ? `Cada instância enviará ${messagesPerInstance} mensagens antes de passar para a próxima. ${selectedDevices.length} instâncias selecionadas.`
+                      : "Defina um valor para ativar a rotação automática entre as instâncias selecionadas."}
+                  </p>
                 </div>
               )}
             </SurfaceCard>
