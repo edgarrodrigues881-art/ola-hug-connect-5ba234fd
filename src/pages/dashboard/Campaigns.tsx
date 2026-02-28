@@ -20,7 +20,7 @@ import {
   Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
   CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2, Check,
-  ArrowRight, Lock, Timer, TrendingUp
+  ArrowRight, Lock, Timer, TrendingUp, ArrowUp, ArrowDown, Pencil
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
@@ -45,14 +45,9 @@ interface Contact {
   var7: string;
 }
 
-interface QuickReplyButton {
+interface UnifiedButton {
   id: number;
-  text: string;
-}
-
-interface CTAButton {
-  id: number;
-  type: "url" | "phone";
+  type: "reply" | "url" | "phone";
   text: string;
   value: string;
 }
@@ -126,8 +121,7 @@ const Campaigns = () => {
   const [campaignName, setCampaignName] = useState("");
   const [message, setMessage] = useState("");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [quickReplyButtons, setQuickReplyButtons] = useState<QuickReplyButton[]>([]);
-  const [ctaButtons, setCTAButtons] = useState<CTAButton[]>([]);
+  const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
   const [importFromContacts, setImportFromContacts] = useState(false);
   const [selectedContactTags, setSelectedContactTags] = useState<string[]>([]);
@@ -164,8 +158,7 @@ const Campaigns = () => {
         if (draft.messageType) setMessageType(draft.messageType);
         if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
         if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
-        if (draft.quickReplyButtons?.length) setQuickReplyButtons(draft.quickReplyButtons);
-        if (draft.ctaButtons?.length) setCTAButtons(draft.ctaButtons);
+        if (draft.buttons?.length) setButtons(draft.buttons);
         if (draft.selectedDevices?.length) setSelectedDevices(draft.selectedDevices);
         if (draft.minDelay) setMinDelay(draft.minDelay);
         if (draft.maxDelay) setMaxDelay(draft.maxDelay);
@@ -181,15 +174,15 @@ const Campaigns = () => {
     if (!draftLoaded) return;
     const draft = {
       campaignName, message, messageType, mediaUrl, contacts,
-      quickReplyButtons, ctaButtons, selectedDevices,
+      buttons, selectedDevices,
       minDelay, maxDelay, scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, quickReplyButtons, ctaButtons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
 
   const clearAllForm = () => {
     setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]);
-    setQuickReplyButtons([]); setCTAButtons([]); setSelectedDevices([]);
+    setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); setSelectedDevices([]);
     setMessageType("texto"); setStep(1); setSelectedTemplate("nova");
     setScheduleEnabled(false); setScheduleDate(""); setShowContactTable(false);
     localStorage.removeItem(DRAFT_KEY);
@@ -202,7 +195,7 @@ const Campaigns = () => {
   const validContacts = useMemo(() => contacts.filter(c => c.numero.trim()), [contacts]);
   const invalidContacts = useMemo(() => contacts.filter(c => c.numero.trim() && !/^\d{10,15}$/.test(c.numero.replace(/\D/g, ""))), [contacts]);
   const duplicateCount = useMemo(() => contacts.length - new Set(contacts.map(c => c.numero.trim()).filter(Boolean)).size, [contacts]);
-  const hasButtons = quickReplyButtons.length > 0 || ctaButtons.length > 0;
+  const hasButtons = buttons.filter(b => b.text.trim()).length > 0;
   const computedMessageType = detectMessageType(mediaUrl, hasButtons);
 
   // Paginated contacts
@@ -283,7 +276,7 @@ const Campaigns = () => {
     createCampaign.mutate({
       name: campaignName, message_type: computedMessageType, message_content: message,
       media_url: mediaUrl || undefined,
-      buttons: [...quickReplyButtons.map(b => ({ type: "reply", text: b.text })), ...ctaButtons.map(b => ({ type: b.type, text: b.text, value: b.value }))],
+      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
     }, {
       onSuccess: (newCampaign) => {
@@ -292,7 +285,7 @@ const Campaigns = () => {
           onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` }); },
           onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
         });
-        setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]); setQuickReplyButtons([]); setCTAButtons([]); setStep(1); localStorage.removeItem(DRAFT_KEY);
+        setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); setStep(1); localStorage.removeItem(DRAFT_KEY);
       },
       onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
     });
@@ -303,13 +296,20 @@ const Campaigns = () => {
     setTimeout(() => setButtonAddedFlash(false), 600);
   };
 
-  const totalButtons = quickReplyButtons.length + ctaButtons.length;
-  const addQuickReply = () => { if (totalButtons < 10) { setQuickReplyButtons([...quickReplyButtons, { id: Date.now(), text: "" }]); triggerButtonFlash(); } };
-  const addCTAButton = (type: "url" | "phone") => { if (totalButtons < 10) { setCTAButtons([...ctaButtons, { id: Date.now(), type, text: "", value: "" }]); triggerButtonFlash(); } };
-  const removeQuickReply = (id: number) => setQuickReplyButtons(quickReplyButtons.filter(b => b.id !== id));
-  const removeCTAButton = (id: number) => setCTAButtons(ctaButtons.filter(b => b.id !== id));
-  const updateQuickReply = (id: number, text: string) => setQuickReplyButtons(quickReplyButtons.map(b => b.id === id ? { ...b, text } : b));
-  const updateCTAButton = (id: number, field: "text" | "value", val: string) => setCTAButtons(ctaButtons.map(b => b.id === id ? { ...b, [field]: val } : b));
+  const addButton = (type: "reply" | "url" | "phone") => { if (buttons.length < 10) { setButtons([...buttons, { id: Date.now(), type, text: "", value: "" }]); triggerButtonFlash(); } };
+  const removeButton = (id: number) => setButtons(buttons.filter(b => b.id !== id));
+  const updateButton = (id: number, field: keyof UnifiedButton, val: string) => setButtons(buttons.map(b => b.id === id ? { ...b, [field]: val } : b));
+  const moveButton = (id: number, direction: "up" | "down") => {
+    setButtons(prev => {
+      const idx = prev.findIndex(b => b.id === id);
+      if (idx < 0) return prev;
+      const newIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+  };
 
   const wrapSelectedText = (before: string, after: string) => {
     const textarea = textareaRef.current;
@@ -536,7 +536,7 @@ const Campaigns = () => {
   // ─── WhatsApp Preview Component ───
   const WhatsAppPreview = () => {
     const hasContent = message || mediaUrl;
-    const hasAnyButtons = quickReplyButtons.length > 0 || ctaButtons.length > 0;
+    const hasAnyButtons = buttons.filter(b => b.text.trim()).length > 0;
     const bubbleMaxW = "max-w-[70%] sm:max-w-[75%]";
     const isSent = previewMode === "sent";
 
@@ -608,19 +608,7 @@ const Campaigns = () => {
               {/* Buttons inside the bubble */}
               {hasAnyButtons && (
                 <div className="flex flex-col gap-[1px] border-t border-[#313D45]/40">
-                  {quickReplyButtons.map((btn) => (
-                    <button
-                      key={btn.id}
-                      className={cn(
-                        "w-full px-3 py-[10px] text-center transition-colors duration-100",
-                        isSent ? "hover:bg-[#006B57]" : "hover:bg-[#2A3942]",
-                        buttonAddedFlash && "ring-1 ring-[#00A5F4]/30 ring-inset"
-                      )}
-                    >
-                      <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
-                    </button>
-                  ))}
-                  {ctaButtons.map((btn) => (
+                  {buttons.filter(b => b.text.trim()).map((btn) => (
                     <button
                       key={btn.id}
                       className={cn(
@@ -629,7 +617,8 @@ const Campaigns = () => {
                         buttonAddedFlash && "ring-1 ring-[#00A5F4]/30 ring-inset"
                       )}
                     >
-                      {btn.type === "url" ? <Link className="w-[14px] h-[14px] text-[#00A5F4]" /> : <Phone className="w-[14px] h-[14px] text-[#00A5F4]" />}
+                      {btn.type === "url" && <Link className="w-[14px] h-[14px] text-[#00A5F4]" />}
+                      {btn.type === "phone" && <Phone className="w-[14px] h-[14px] text-[#00A5F4]" />}
                       <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
                     </button>
                   ))}
@@ -748,11 +737,10 @@ const Campaigns = () => {
                       setMessage(tmpl.content);
                       if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
                       if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                        setQuickReplyButtons(tmpl.buttons.filter((b: any) => b.type === "reply").map((b: any, i: number) => ({ id: Date.now() + i, text: b.text || "" })));
-                        setCTAButtons(tmpl.buttons.filter((b: any) => b.type === "url" || b.type === "phone").map((b: any, i: number) => ({ id: Date.now() + 100 + i, type: b.type, text: b.text || "", value: b.value || "" })));
-                      } else { setQuickReplyButtons([]); setCTAButtons([]); }
+                        setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
+                      } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
                     }
-                  } else { setMessage(""); setMediaUrl(""); setQuickReplyButtons([]); setCTAButtons([]); }
+                  } else { setMessage(""); setMediaUrl(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
                 }}>
                   <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
                     <SelectValue placeholder="Campanha Padrão" />
@@ -923,91 +911,67 @@ const Campaigns = () => {
                 <SurfaceCard className="p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <SectionLabel>Botões Interativos</SectionLabel>
-                    {(quickReplyButtons.length > 0 || ctaButtons.length > 0) && (
-                      <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                        {quickReplyButtons.length + ctaButtons.length}/10 ativo(s)
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                      {buttons.length}/10
+                    </Badge>
                   </div>
                   
                   <div className="space-y-3">
-                    {quickReplyButtons.map(btn => (
-                      <div
-                        key={btn.id}
-                        className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <MousePointerClick className="w-3.5 h-3.5 text-primary" />
+                    {buttons.map((btn, idx) => {
+                      const typeLabel = btn.type === "reply" ? "Resposta Rápida" : btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)";
+                      const TypeIcon = btn.type === "reply" ? MousePointerClick : btn.type === "url" ? Link : Phone;
+                      return (
+                        <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <TypeIcon className="w-3.5 h-3.5 text-primary" />
+                              </div>
+                              <span className="text-[11px] font-semibold text-foreground/70">{typeLabel}</span>
                             </div>
-                            <span className="text-[11px] font-semibold text-foreground/70">Resposta Rápida</span>
-                          </div>
-                          <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeQuickReply(btn.id)}>
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <Input value={btn.text} onChange={(e) => updateQuickReply(btn.id, e.target.value)} placeholder="Texto exibido no botão" 
-                          className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
-                      </div>
-                    ))}
-
-                    {ctaButtons.map(btn => (
-                      <div
-                        key={btn.id}
-                        className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                              {btn.type === "url" ? <Link className="w-3.5 h-3.5 text-primary" /> : <Phone className="w-3.5 h-3.5 text-primary" />}
+                            <div className="flex items-center gap-0.5">
+                              <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === 0} onClick={() => moveButton(btn.id, "up")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                              <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === buttons.length - 1} onClick={() => moveButton(btn.id, "down")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-muted-foreground/40 hover:text-primary transition-colors p-1 rounded-lg hover:bg-primary/10"><Pencil className="w-3.5 h-3.5" /></button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-44 p-1.5 bg-popover border-border z-50" align="end">
+                                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Alterar tipo</p>
+                                  {[
+                                    { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
+                                    { t: "url" as const, label: "Link (URL)", Ic: Link },
+                                    { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
+                                  ].map(opt => (
+                                    <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
+                                      onClick={() => updateButton(btn.id, "type", opt.t)}>
+                                      <opt.Ic className="w-3.5 h-3.5 text-muted-foreground" />
+                                      <span className="font-medium">{opt.label}</span>
+                                    </button>
+                                  ))}
+                                </PopoverContent>
+                              </Popover>
+                              <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeButton(btn.id)}><X className="w-3.5 h-3.5" /></button>
                             </div>
-                            <span className="text-[11px] font-semibold text-foreground/70">{btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)"}</span>
                           </div>
-                          <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeCTAButton(btn.id)}>
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {btn.type === "reply" ? (
+                            <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido no botão" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
+                          ) : (
+                            <div className="grid grid-cols-2 gap-3">
+                              <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
+                              <Input value={btn.value} onChange={(e) => updateButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-mono" />
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Input value={btn.text} onChange={(e) => updateCTAButton(btn.id, "text", e.target.value)} placeholder="Texto exibido" 
-                            className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
-                          <Input value={btn.value} onChange={(e) => updateCTAButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} 
-                            className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-mono" />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors duration-100 text-xs font-medium">
-                        <Plus className="w-4 h-4" /> Adicionar Botão
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-1.5 bg-popover border-border z-50" align="center">
-                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={addQuickReply}>
-                        <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium text-foreground">Resposta Rápida</p>
-                          <p className="text-[10px] text-muted-foreground">Botão de resposta simples</p>
-                        </div>
-                      </button>
-                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("url")}>
-                        <Link className="w-3.5 h-3.5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium text-foreground">Link (URL)</p>
-                          <p className="text-[10px] text-muted-foreground">Abre um link no navegador</p>
-                        </div>
-                      </button>
-                      <button className="w-full text-left px-3 py-2.5 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2.5" onClick={() => addCTAButton("phone")}>
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium text-foreground">Ligar (Telefone)</p>
-                          <p className="text-[10px] text-muted-foreground">Inicia uma ligação</p>
-                        </div>
-                      </button>
-                    </PopoverContent>
-                  </Popover>
+                  <Button variant="outline" size="sm" disabled={buttons.length >= 10}
+                    className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors duration-100 text-xs font-medium"
+                    onClick={() => addButton("reply")}>
+                    <Plus className="w-4 h-4" /> Adicionar Botão
+                  </Button>
                 </SurfaceCard>
               </div>
 
