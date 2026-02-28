@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -230,6 +230,53 @@ const CampaignDetail = () => {
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
+  // Resend failed/pending contacts as new campaign
+  const handleResendFailed = async () => {
+    if (!campaign || !user) return;
+    const failedContacts = contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending");
+    if (failedContacts.length === 0) {
+      toast({ title: "Sem contatos para reenviar", description: "Todos os contatos foram enviados com sucesso.", variant: "destructive" });
+      return;
+    }
+    try {
+      // Create new campaign with same settings
+      const { data: newCampaign, error: campErr } = await supabase.from("campaigns").insert({
+        user_id: user.id,
+        name: `${campaign.name} (Reenvio)`,
+        message_content: campaign.message_content,
+        message_type: campaign.message_type,
+        media_url: campaign.media_url,
+        buttons: campaign.buttons,
+        template_id: campaign.template_id,
+        min_delay_seconds: campaign.min_delay_seconds,
+        max_delay_seconds: campaign.max_delay_seconds,
+        pause_every_min: campaign.pause_every_min,
+        pause_every_max: campaign.pause_every_max,
+        pause_duration_min: campaign.pause_duration_min,
+        pause_duration_max: campaign.pause_duration_max,
+        total_contacts: failedContacts.length,
+        status: "draft",
+      }).select().single();
+      if (campErr) throw campErr;
+
+      // Insert failed contacts into new campaign
+      const contactRows = failedContacts.map(c => ({
+        campaign_id: newCampaign.id,
+        phone: c.phone,
+        name: c.name,
+        contact_id: c.contact_id,
+        status: "pending",
+      }));
+      const { error: contactErr } = await supabase.from("campaign_contacts").insert(contactRows);
+      if (contactErr) throw contactErr;
+
+      toast({ title: "Campanha de reenvio criada", description: `${failedContacts.length} contatos adicionados. Selecione a instância e dispare.` });
+      navigate(`/dashboard/campaign/${newCampaign.id}`);
+    } catch (err: any) {
+      toast({ title: "Erro ao criar reenvio", description: err.message, variant: "destructive" });
+    }
+  };
+
   if (campLoading) {
     return (
       <div className="space-y-6">
@@ -311,7 +358,14 @@ const CampaignDetail = () => {
               </>
             )}
             {isFinished && (
-              <span className="text-xs text-muted-foreground">Finalizada</span>
+              <div className="flex items-center gap-2">
+                {stats.failed + stats.pending > 0 && (
+                  <Button size="sm" className="gap-1.5" onClick={handleResendFailed}>
+                    <RotateCcw className="w-3.5 h-3.5" /> Reenviar falhas ({stats.failed + stats.pending})
+                  </Button>
+                )}
+                <span className="text-xs text-muted-foreground">Finalizada</span>
+              </div>
             )}
           </div>
         </div>
