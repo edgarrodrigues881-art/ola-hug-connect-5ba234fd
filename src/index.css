@@ -172,6 +172,22 @@ html {
 }
 
 @layer utilities {
+  /* Kill Radix dialog/sheet/dropdown animations for instant open/close */
+  [data-state="open"],
+  [data-state="closed"] {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+
+  /* Preserve only micro hover/focus transitions (≤80ms) */
+  button,
+  a,
+  [role="menuitem"],
+  [role="option"] {
+    transition-duration: 60ms !important;
+    transition-property: background-color, color, opacity !important;
+  }
+
   /* Sidebar premium */
   .sidebar-premium {
     box-shadow: 1px 0 0 0 hsl(220 12% 12%), 4px 0 12px -2px hsl(0 0% 0% / 0.15);
