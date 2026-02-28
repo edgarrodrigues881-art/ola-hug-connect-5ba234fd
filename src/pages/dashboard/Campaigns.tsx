@@ -251,7 +251,11 @@ const Campaigns = () => {
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
           if (draft.buttons?.length) setButtons(draft.buttons);
-          if (draft.selectedDevices?.length) setSelectedDevices(draft.selectedDevices);
+          if (draft.selectedDevices?.length) {
+            // Filter out devices that no longer exist
+            const validIds = draft.selectedDevices.filter((id: string) => devices.some(d => d.id === id));
+            if (validIds.length > 0) setSelectedDevices(validIds);
+          }
           if (draft.minDelay) setMinDelay(draft.minDelay);
           if (draft.maxDelay) setMaxDelay(draft.maxDelay);
           if (draft.pauseEveryMin) setPauseEveryMin(draft.pauseEveryMin);
@@ -370,6 +374,13 @@ const Campaigns = () => {
   const handleSendCampaign = () => {
     if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
     if (selectedDevices.length === 0) { toast({ title: "Instância obrigatória", description: "Selecione pelo menos uma instância.", variant: "destructive" }); return; }
+    // Validate selected devices still exist
+    const validDeviceIds = selectedDevices.filter(id => devices.some(d => d.id === id));
+    if (validDeviceIds.length === 0) {
+      setSelectedDevices([]);
+      toast({ title: "Dispositivo não encontrado", description: "O dispositivo selecionado foi removido. Selecione outro na aba Configurações.", variant: "destructive" });
+      return;
+    }
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
     if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
@@ -398,7 +409,17 @@ const Campaigns = () => {
         }
         setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); setStep(1); localStorage.removeItem(DRAFT_KEY);
       },
-      onError: (err: any) => { toast({ title: "Erro ao criar campanha", description: err.message, variant: "destructive" }); },
+      onError: (err: any) => {
+        let desc = err.message || "Erro desconhecido";
+        if (desc.includes("campaigns_device_id_fkey")) {
+          desc = "O dispositivo selecionado não existe mais. Selecione outro na aba 'Configurações'.";
+          setSelectedDevices([]);
+        }
+        if (desc.includes("campaigns_template_id_fkey")) {
+          desc = "O template selecionado foi removido. Escolha outro na aba 'Mensagem'.";
+        }
+        toast({ title: "Erro ao criar campanha", description: desc, variant: "destructive" });
+      },
     });
   };
 
