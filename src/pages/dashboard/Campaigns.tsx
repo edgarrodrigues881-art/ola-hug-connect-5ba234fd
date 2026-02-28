@@ -587,7 +587,7 @@ const Campaigns = () => {
           >
             {/* ── Bubble ── */}
             <div className={cn(bubbleMaxW, "flex flex-col rounded-[12px] overflow-hidden shadow-md", isSent ? "bg-[#005C4B]" : "bg-[#202C33]")}>
-              {/* Media — inside the same bubble */}
+              {/* Media */}
               {mediaUrl && (
                 <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               )}
@@ -604,18 +604,16 @@ const Campaigns = () => {
                   {isSent && <span className="text-[11px] text-[#53BDEB]/70 leading-none">✓✓</span>}
                 </div>
               </div>
-            </div>
-
-            {/* ── Buttons Container: SEPARATE ── */}
+              {/* Buttons inside the bubble */}
               {hasAnyButtons && (
-                <div className={cn(bubbleMaxW, "flex flex-col gap-[5px] w-full")}>
+                <div className="flex flex-col gap-[1px] border-t border-[#313D45]/40">
                   {quickReplyButtons.map((btn) => (
                     <button
                       key={btn.id}
                       className={cn(
-                        "w-full rounded-[10px] px-3 py-[10px] text-center border shadow-sm",
-                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60 transition-colors duration-100",
-                        buttonAddedFlash && "ring-1 ring-[#00A5F4]/30"
+                        "w-full px-3 py-[10px] text-center transition-colors duration-100",
+                        isSent ? "hover:bg-[#006B57]" : "hover:bg-[#2A3942]",
+                        buttonAddedFlash && "ring-1 ring-[#00A5F4]/30 ring-inset"
                       )}
                     >
                       <span className="text-[14px] text-[#00A5F4] font-medium">{btn.text || "Botão"}</span>
@@ -625,9 +623,9 @@ const Campaigns = () => {
                     <button
                       key={btn.id}
                       className={cn(
-                        "w-full rounded-[10px] px-3 py-[10px] flex items-center justify-center gap-2 border shadow-sm",
-                        "bg-[#1F2C34] hover:bg-[#26353E] active:bg-[#2A3942] border-[#313D45]/60 transition-colors duration-100",
-                        buttonAddedFlash && "ring-1 ring-[#00A5F4]/30"
+                        "w-full px-3 py-[10px] flex items-center justify-center gap-2 transition-colors duration-100",
+                        isSent ? "hover:bg-[#006B57]" : "hover:bg-[#2A3942]",
+                        buttonAddedFlash && "ring-1 ring-[#00A5F4]/30 ring-inset"
                       )}
                     >
                       {btn.type === "url" ? <Link className="w-[14px] h-[14px] text-[#00A5F4]" /> : <Phone className="w-[14px] h-[14px] text-[#00A5F4]" />}
@@ -636,6 +634,7 @@ const Campaigns = () => {
                   ))}
                 </div>
               )}
+            </div>
           </div>
         </div>
       </div>
