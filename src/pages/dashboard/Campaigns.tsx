@@ -533,12 +533,6 @@ const Campaigns = () => {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const handleDownloadSample = () => {
-    const ws = XLSX.utils.aoa_to_sheet([["Nome", "Número", "Variável 1", "Variável 2", "Variável 3", "Variável 4", "Variável 5", "Variável 6", "Variável 7"], ["João Silva", "5511999999999", "valor1", "valor2", "valor3", "valor4", "valor5", "valor6", "valor7"]]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Contatos");
-    XLSX.writeFile(wb, "modelo-contatos.xlsx");
-  };
 
   const getDeviceStatus = (status: string) => {
     if (status === "Ready") return { label: "Online", icon: Wifi, color: "text-emerald-400" };
@@ -1070,9 +1064,6 @@ const Campaigns = () => {
                     <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
                       <Plus className="w-3.5 h-3.5" /> Manual
                     </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={handleDownloadSample}>
-                      <Download className="w-3.5 h-3.5" /> Modelo
-                    </Button>
                   </div>
                 </div>
               ) : (
@@ -1097,9 +1088,6 @@ const Campaigns = () => {
                     </Button>
                     <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
                       <Plus className="w-3.5 h-3.5" /> Adicionar Manual
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={handleDownloadSample}>
-                      <Download className="w-3.5 h-3.5" /> Modelo
                     </Button>
                     {contacts.length > 0 && (
                       <Popover open={showContactTools} onOpenChange={setShowContactTools}>
