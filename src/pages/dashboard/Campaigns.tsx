@@ -447,20 +447,8 @@ const Campaigns = () => {
           ? firstRow.map((c: any) => String(c).trim() || `Coluna ${firstRow.indexOf(c) + 1}`)
           : Array.from({ length: colCount }, (_, i) => `Coluna ${i + 1}`);
 
-        // Auto-suggest mappings
-        const autoMappings: ColumnMapping[] = headers.map((h) => {
-          const n = normalize(String(h));
-          if (["nome", "name", "contato", "contact", "cliente"].some(k => n.includes(k))) return "nome";
-          if (["numero", "number", "telefone", "phone", "whatsapp", "celular", "fone", "tel"].some(k => n.includes(k))) return "numero";
-          return "ignorar";
-        });
-
-        // Ensure only one nome and one numero
-        let foundNome = false, foundNumero = false;
-        for (let i = 0; i < autoMappings.length; i++) {
-          if (autoMappings[i] === "nome") { if (foundNome) autoMappings[i] = "ignorar"; else foundNome = true; }
-          if (autoMappings[i] === "numero") { if (foundNumero) autoMappings[i] = "ignorar"; else foundNumero = true; }
-        }
+        // All columns start as "ignorar" — user must manually map
+        const autoMappings: ColumnMapping[] = headers.map(() => "ignorar" as ColumnMapping);
 
         setImportProgress(100);
         setTimeout(() => {
