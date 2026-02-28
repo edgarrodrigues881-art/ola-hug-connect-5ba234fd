@@ -39,29 +39,29 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
-  { title: "Painel", url: "/dashboard", icon: LayoutDashboard },
+const operationsItems = [
+  { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send, primary: true },
+  { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
   { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
-  { title: "Campanha", url: "/dashboard/campaign-list", icon: Megaphone },
+  { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+  { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+];
+
+const analysisItems = [
+  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
+  { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
 
-const warmupItems = [
-  { title: "Aquecimento Automático", url: "/dashboard/warmup", icon: Flame },
-  { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-  { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
-  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
-];
-
-const analyticsItems = [
+const systemItems = [
   { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
   { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
 ];
 
 const groups = [
-  { label: "Principal", items: mainItems },
-  { label: "Aquecimento", items: warmupItems },
-  { label: "Análise", items: analyticsItems },
+  { label: "Operações", items: operationsItems },
+  { label: "Análise", items: analysisItems },
+  { label: "Sistema", items: systemItems },
 ];
 
 export function AppSidebar() {
@@ -121,49 +121,55 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* CTA: Enviar Mensagem — separated at top */}
-      <div className={`px-3 pt-4 pb-1 ${collapsed ? 'px-2' : ''}`}>
+      {/* Painel link */}
+      <div className={`px-3 pt-3 pb-0 ${collapsed ? 'px-2' : ''}`}>
         <NavLink
-          to="/dashboard/campaigns"
-          className="sidebar-cta-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-primary font-medium transition-colors duration-100 hover:bg-primary/10"
-          activeClassName="sidebar-cta-active bg-primary/10"
+          to="/dashboard"
+          end
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-[13px] ${
+            isActive("/dashboard")
+              ? 'bg-sidebar-accent text-foreground font-medium'
+              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
+          }`}
+          activeClassName=""
         >
-          <Send className="w-[18px] h-[18px] shrink-0" />
-          {!collapsed && <span className="text-[13px]">Enviar Mensagem</span>}
+          <LayoutDashboard className={`w-4 h-4 shrink-0 ${isActive("/dashboard") ? 'text-primary' : ''}`} strokeWidth={1.5} />
+          {!collapsed && <span>Painel</span>}
         </NavLink>
       </div>
 
       <SidebarContent className="py-1">
-        {groups.map((group, idx) => (
+        {groups.map((group) => (
           <SidebarGroup key={group.label} className="py-1">
             {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50 px-5 mb-1">
+              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40 px-5 mb-0.5 select-none">
                 {group.label}
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-0.5 px-2">
+              <SidebarMenu className="space-y-px px-2">
                 {group.items.map((item) => {
                   const active = isActive(item.url);
+                  const isPrimary = 'primary' in item && item.primary;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild tooltip={item.title}>
                         <NavLink
                           to={item.url}
-                          end={item.url === "/dashboard"}
-                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-100
+                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] relative
                             ${active
-                              ? 'sidebar-nav-active bg-sidebar-accent text-foreground font-medium'
-                              : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
+                              ? 'bg-sidebar-accent text-foreground font-medium'
+                              : isPrimary
+                                ? 'text-primary/80 hover:text-primary hover:bg-primary/5'
+                                : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
                             }`}
                           activeClassName=""
                         >
-                          {/* Active indicator bar */}
                           {active && !collapsed && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />
                           )}
-                          <item.icon className={`w-[18px] h-[18px] shrink-0 transition-colors duration-100 ${active ? 'text-primary' : ''}`} />
-                          {!collapsed && <span className="text-[13px] truncate">{item.title}</span>}
+                          <item.icon className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : isPrimary ? '' : ''}`} strokeWidth={1.5} />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -179,7 +185,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`sidebar-profile-card flex items-center gap-3 w-full rounded-lg transition-colors duration-100 hover:bg-sidebar-accent/60 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
+            <button className={`flex items-center gap-3 w-full rounded-md hover:bg-sidebar-accent/40 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
               ) : (
@@ -191,21 +197,21 @@ export function AppSidebar() {
                 <>
                   <div className="min-w-0 flex-1 text-left">
                     <p className="text-[13px] font-medium text-sidebar-foreground truncate leading-tight">{displayName}</p>
-                    <p className="text-[11px] text-muted-foreground truncate leading-tight">Gerenciar conta</p>
+                    <p className="text-[11px] text-muted-foreground/50 truncate leading-tight">Gerenciar conta</p>
                   </div>
-                  <ChevronUp className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+                  <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
                 </>
               )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4" strokeWidth={1.5} />
               Configurações
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
