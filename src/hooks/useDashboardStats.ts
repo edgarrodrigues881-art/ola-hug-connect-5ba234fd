@@ -3,107 +3,44 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-export interface ChipHealth {
+export interface ChipInfo {
   id: string;
   name: string;
   number: string | null;
   status: string;
-  score: number;
-  classification: "healthy" | "warning" | "risk";
-  daysActive: number;
-  messagesPerDay: number;
-  messagesSentToday: number;
-  messagesSentTotal: number;
+  connected: boolean;
+  volumeToday: number;
+  lastActivity: string | null;
+  proxyHost: string | null;
+  warmupStatus: string | null;
   warmupDay: number | null;
   warmupTotal: number | null;
-  warmupStatus: string | null;
-  safetyState: string | null;
-  dailyIncrement: number;
-  maxMessagesPerDay: number;
-  failCount: number;
-  proxyId: string | null;
   profilePicture: string | null;
-}
-
-export interface SmartAlert {
-  id: string;
-  type: "danger" | "warning" | "success";
-  chipName: string;
-  chipNumber: string | null;
-  message: string;
 }
 
 export interface WarmupEvolutionPoint {
   label: string;
-  mensagens: number;
-  falhas: number;
+  volume: number;
+  entregas: number;
   crescimento: number;
+}
+
+export interface PerformanceMetrics {
+  avgDeliveryRate: number;
+  avgFailRate: number;
+  avgDailyVolume: number;
+  growthLast7Days: number;
 }
 
 export interface DashboardStats {
   chipsOnline: number;
-  chipsWarming: number;
-  chipsAtRisk: number;
+  chipsActive: number;
+  chipsInactive: number;
   avgMessagesPerDay: number;
-  systemScore: number;
-  deliveryRate: number;
-  totalSent: number;
-  totalDelivered: number;
-  totalFailed: number;
-  chips: ChipHealth[];
-  alerts: SmartAlert[];
+  avgDeliveryRate: number;
+  performance: PerformanceMetrics;
+  chips: ChipInfo[];
   warmupEvolution: WarmupEvolutionPoint[];
-}
-
-function calculateChipScore(
-  device: any,
-  warmup: any | null,
-  failCount: number
-): number {
-  let score = 50;
-
-  // Connection stability
-  if (device.status === "Ready") score += 20;
-  else if (device.status === "Disconnected") score -= 25;
-
-  // Days active
-  const daysActive = Math.floor((Date.now() - new Date(device.created_at).getTime()) / 86400000);
-  if (daysActive > 14) score += 10;
-  else if (daysActive > 7) score += 5;
-
-  // Warmup health
-  if (warmup) {
-    const progress = warmup.total_days > 0 ? warmup.current_day / warmup.total_days : 0;
-    score += Math.round(progress * 15);
-
-    if (warmup.safety_state === "normal") score += 5;
-    else if (warmup.safety_state === "caution") score -= 5;
-    else if (warmup.safety_state === "danger") score -= 15;
-
-    // Delivery rate from warmup
-    const total = warmup.messages_sent_total || 0;
-    if (total > 0) {
-      const rate = (total - failCount) / total;
-      if (rate > 0.96) score += 10;
-      else if (rate > 0.92) score += 5;
-      else if (rate < 0.8) score -= 15;
-    }
-  }
-
-  // Proxy bonus
-  if (device.proxy_id) score += 5;
-
-  // Failure penalty
-  if (failCount > 20) score -= 10;
-  else if (failCount > 10) score -= 5;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function classifyScore(score: number): "healthy" | "warning" | "risk" {
-  if (score >= 75) return "healthy";
-  if (score >= 50) return "warning";
-  return "risk";
 }
 
 export function useDashboardStats() {
@@ -129,106 +66,77 @@ export function useDashboardStats() {
     queryFn: async (): Promise<DashboardStats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [devicesRes, warmupsRes, logsRes, campaignsRes] = await Promise.all([
+      const [devicesRes, warmupsRes, logsRes, proxiesRes] = await Promise.all([
         supabase.from("devices").select("*"),
         supabase.from("warmup_sessions").select("*"),
         supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo),
-        supabase.from("campaigns").select("sent_count, delivered_count, failed_count"),
+        supabase.from("proxies").select("id, host"),
       ]);
 
       const devices = devicesRes.data || [];
       const warmups = warmupsRes.data || [];
       const logs = logsRes.data || [];
-      const campaigns = campaignsRes.data || [];
+      const proxies = proxiesRes.data || [];
 
-      // Fail counts per device from warmup_logs
+      const proxyMap: Record<string, string> = {};
+      proxies.forEach((p) => { proxyMap[p.id] = p.host; });
+
+      // Logs aggregation
+      const sentByDevice: Record<string, number> = {};
       const failsByDevice: Record<string, number> = {};
-      const logsByDevice: Record<string, any[]> = {};
+      let totalSent = 0;
+      let totalFailed = 0;
+
       logs.forEach((l) => {
-        if (!logsByDevice[l.device_id]) logsByDevice[l.device_id] = [];
-        logsByDevice[l.device_id].push(l);
+        if (l.status === "sent") {
+          sentByDevice[l.device_id] = (sentByDevice[l.device_id] || 0) + 1;
+          totalSent++;
+        }
         if (l.status === "error" || l.status === "failed") {
           failsByDevice[l.device_id] = (failsByDevice[l.device_id] || 0) + 1;
+          totalFailed++;
         }
       });
 
+      const totalMessages = totalSent + totalFailed;
+
       // Build chips
-      const chips: ChipHealth[] = devices.map((d) => {
+      const chips: ChipInfo[] = devices.map((d) => {
         const warmup = warmups.find((w) => w.device_id === d.id && (w.status === "running" || w.status === "paused"));
-        const daysActive = Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000);
-        const failCount = failsByDevice[d.id] || 0;
-        const score = calculateChipScore(d, warmup, failCount);
+        const lastLog = logs
+          .filter((l) => l.device_id === d.id)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
         return {
           id: d.id,
           name: d.name,
           number: d.number,
           status: d.status,
-          score,
-          classification: classifyScore(score),
-          daysActive,
-          messagesPerDay: warmup?.messages_per_day || 0,
-          messagesSentToday: warmup?.messages_sent_today || 0,
-          messagesSentTotal: warmup?.messages_sent_total || 0,
+          connected: d.status === "Ready",
+          volumeToday: warmup?.messages_sent_today || 0,
+          lastActivity: lastLog?.created_at || warmup?.last_executed_at || null,
+          proxyHost: d.proxy_id ? (proxyMap[d.proxy_id] || "Configurado") : null,
+          warmupStatus: warmup?.status || null,
           warmupDay: warmup?.current_day || null,
           warmupTotal: warmup?.total_days || null,
-          warmupStatus: warmup?.status || null,
-          safetyState: warmup?.safety_state || null,
-          dailyIncrement: warmup?.daily_increment || 0,
-          maxMessagesPerDay: warmup?.max_messages_per_day || 0,
-          failCount,
-          proxyId: d.proxy_id,
           profilePicture: d.profile_picture,
         };
       });
 
-      const chipsOnline = chips.filter((c) => c.status === "Ready").length;
-      const chipsWarming = chips.filter((c) => c.warmupStatus === "running").length;
-      const chipsAtRisk = chips.filter((c) => c.classification === "risk").length;
+      const chipsOnline = chips.filter((c) => c.connected).length;
+      const chipsActive = chips.filter((c) => c.warmupStatus === "running" || c.volumeToday > 0).length;
+      const chipsInactive = chips.filter((c) => !c.connected && !c.warmupStatus).length;
 
-      const totalWarmupMsgs = chips.reduce((a, c) => a + c.messagesPerDay, 0);
-      const avgMessagesPerDay = chips.length > 0 ? Math.round(totalWarmupMsgs / chips.length) : 0;
-      const systemScore = chips.length > 0 ? Math.round(chips.reduce((a, c) => a + c.score, 0) / chips.length) : 0;
+      const totalDailyVolume = warmups
+        .filter((w) => w.status === "running")
+        .reduce((a, w) => a + (w.messages_sent_today || 0), 0);
+      const activeWarmups = warmups.filter((w) => w.status === "running").length;
+      const avgMessagesPerDay = activeWarmups > 0 ? Math.round(totalDailyVolume / activeWarmups) : 0;
 
-      // Campaign delivery
-      const totalSent = campaigns.reduce((a, c) => a + (c.sent_count || 0), 0);
-      const totalDelivered = campaigns.reduce((a, c) => a + (c.delivered_count || 0), 0);
-      const totalFailed = campaigns.reduce((a, c) => a + (c.failed_count || 0), 0);
-      const deliveryRate = totalSent > 0 ? Math.round(((totalSent - totalFailed) / totalSent) * 100) : 100;
+      const avgDeliveryRate = totalMessages > 0 ? Math.round((totalSent / totalMessages) * 100) : 100;
+      const avgFailRate = totalMessages > 0 ? Math.round((totalFailed / totalMessages) * 100) : 0;
 
-      // Alerts
-      const alerts: SmartAlert[] = [];
-      chips.forEach((c) => {
-        if (c.failCount > 5) {
-          alerts.push({
-            id: `fail-${c.id}`,
-            type: "danger",
-            chipName: c.name,
-            chipNumber: c.number,
-            message: `${c.failCount} falhas nos últimos 7 dias. Revise o chip.`,
-          });
-        }
-        if (c.warmupStatus === "running" && c.messagesSentToday === 0 && c.warmupDay && c.warmupDay > 1) {
-          alerts.push({
-            id: `idle-${c.id}`,
-            type: "warning",
-            chipName: c.name,
-            chipNumber: c.number,
-            message: "Chip parado hoje. Verifique a conexão.",
-          });
-        }
-        if (c.classification === "healthy" && c.warmupStatus === "running" && c.messagesPerDay < c.maxMessagesPerDay * 0.7) {
-          alerts.push({
-            id: `grow-${c.id}`,
-            type: "success",
-            chipName: c.name,
-            chipNumber: c.number,
-            message: "Apto a aumentar volume de envio.",
-          });
-        }
-      });
-
-      // Warmup evolution - last 7 days from logs
+      // Warmup evolution
       const now = new Date();
       const warmupEvolution: WarmupEvolutionPoint[] = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(now);
@@ -240,33 +148,35 @@ export function useDashboardStats() {
         const sent = dayLogs.filter((l) => l.status === "sent").length;
         const failed = dayLogs.filter((l) => l.status === "error" || l.status === "failed").length;
 
-        return {
-          label: dayLabel,
-          mensagens: sent + failed,
-          falhas: failed,
-          crescimento: 0,
-        };
+        return { label: dayLabel, volume: sent + failed, entregas: sent, crescimento: 0 };
       });
 
-      // Calculate growth %
       for (let i = 1; i < warmupEvolution.length; i++) {
-        const prev = warmupEvolution[i - 1].mensagens;
-        const curr = warmupEvolution[i].mensagens;
+        const prev = warmupEvolution[i - 1].volume;
+        const curr = warmupEvolution[i].volume;
         warmupEvolution[i].crescimento = prev > 0 ? Math.round(((curr - prev) / prev) * 100) : 0;
       }
 
+      // Growth last 7 days
+      const firstDayVol = warmupEvolution[0]?.volume || 0;
+      const lastDayVol = warmupEvolution[6]?.volume || 0;
+      const growthLast7Days = firstDayVol > 0 ? Math.round(((lastDayVol - firstDayVol) / firstDayVol) * 100) : 0;
+
+      const avgDailyVolume = Math.round(warmupEvolution.reduce((a, p) => a + p.volume, 0) / 7);
+
       return {
         chipsOnline,
-        chipsWarming,
-        chipsAtRisk,
+        chipsActive,
+        chipsInactive,
         avgMessagesPerDay,
-        systemScore,
-        deliveryRate,
-        totalSent,
-        totalDelivered,
-        totalFailed,
+        avgDeliveryRate,
+        performance: {
+          avgDeliveryRate,
+          avgFailRate,
+          avgDailyVolume,
+          growthLast7Days,
+        },
         chips,
-        alerts,
         warmupEvolution,
       };
     },
