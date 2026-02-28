@@ -26,6 +26,7 @@ export interface Campaign {
   pause_every_max: number;
   pause_duration_min: number;
   pause_duration_max: number;
+  device_id: string | null;
 }
 
 export interface CampaignContact {
