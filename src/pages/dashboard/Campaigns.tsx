@@ -360,7 +360,8 @@ const Campaigns = () => {
     const seen = new Set<string>();
     const unique = contacts.filter(c => {
       const num = c.numero.trim();
-      if (!num || seen.has(num)) return false;
+      if (!num) return true; // keep contacts without number
+      if (seen.has(num)) return false;
       seen.add(num);
       return true;
     });
