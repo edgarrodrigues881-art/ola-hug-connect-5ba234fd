@@ -70,17 +70,34 @@ export function useCreateCampaign() {
       buttons?: any[];
       template_id?: string;
       scheduled_at?: string;
+      min_delay_seconds?: number;
+      max_delay_seconds?: number;
+      pause_every_min?: number;
+      pause_every_max?: number;
+      pause_duration_min?: number;
+      pause_duration_max?: number;
+      device_id?: string;
       contacts: { phone: string; name?: string }[];
     }) => {
       const { contacts, ...campaignData } = campaign;
 
-      // Create campaign
       const { data: newCampaign, error: campError } = await supabase
         .from("campaigns")
         .insert({
-          ...campaignData,
-          user_id: user!.id,
+          name: campaignData.name,
+          message_type: campaignData.message_type,
+          message_content: campaignData.message_content || null,
+          media_url: campaignData.media_url || null,
           buttons: campaignData.buttons || [],
+          template_id: campaignData.template_id || null,
+          scheduled_at: campaignData.scheduled_at || null,
+          min_delay_seconds: campaignData.min_delay_seconds ?? 8,
+          max_delay_seconds: campaignData.max_delay_seconds ?? 25,
+          pause_every_min: campaignData.pause_every_min ?? 10,
+          pause_every_max: campaignData.pause_every_max ?? 20,
+          pause_duration_min: campaignData.pause_duration_min ?? 30,
+          pause_duration_max: campaignData.pause_duration_max ?? 120,
+          user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",
         })
@@ -88,7 +105,6 @@ export function useCreateCampaign() {
         .single();
       if (campError) throw campError;
 
-      // Add campaign contacts
       if (contacts.length > 0) {
         const contactRows = contacts.map(c => ({
           campaign_id: newCampaign.id,
