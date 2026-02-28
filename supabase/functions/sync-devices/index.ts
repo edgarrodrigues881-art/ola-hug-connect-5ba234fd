@@ -91,26 +91,36 @@ Deno.serve(async (req) => {
         const syncedProfileName = inst.profileName || inst.pushname || "";
         newStatus = isConnected ? "Ready" : "Disconnected";
 
-      await serviceClient
-        .from("devices")
-        .update({
-          status: newStatus,
-          number: formattedPhone,
-          profile_picture: profilePicture,
-          profile_name: syncedProfileName || device.profile_name || "",
-        })
-        .eq("id", device.id);
+        // Only update DB if something actually changed to avoid duplicate trigger fires
+        const statusChanged = newStatus !== device.status;
+        const phoneChanged = formattedPhone !== (device.number || "");
+        const picChanged = profilePicture !== (device.profile_picture || null);
+        const nameChanged = (syncedProfileName || "") !== (device.profile_name || "");
+
+        if (statusChanged || phoneChanged || picChanged || nameChanged) {
+          await serviceClient
+            .from("devices")
+            .update({
+              status: newStatus,
+              number: formattedPhone,
+              profile_picture: profilePicture,
+              profile_name: syncedProfileName || device.profile_name || "",
+            })
+            .eq("id", device.id);
+        }
       } catch (err) {
         console.error(`Error syncing device ${device.name}:`, err);
-
-      await serviceClient
-        .from("devices")
-        .update({
-          status: newStatus,
-          number: formattedPhone,
-          profile_picture: profilePicture,
-        })
-        .eq("id", device.id);
+        // Only update if status actually changed
+        if (newStatus !== device.status) {
+          await serviceClient
+            .from("devices")
+            .update({
+              status: newStatus,
+              number: formattedPhone,
+              profile_picture: profilePicture,
+            })
+            .eq("id", device.id);
+        }
       }
 
       results.push({
