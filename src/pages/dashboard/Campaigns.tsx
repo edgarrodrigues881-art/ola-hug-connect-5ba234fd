@@ -1117,9 +1117,6 @@ const Campaigns = () => {
                           <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { addPrefixToNumbers("55"); setShowContactTools(false); }}>
                             <Phone className="w-3.5 h-3.5" /> Adicionar DDI (55)
                           </button>
-                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { addPrefixToNumbers("9"); setShowContactTools(false); }}>
-                            <Hash className="w-3.5 h-3.5" /> Adicionar 9º dígito
-                          </button>
                         </PopoverContent>
                       </Popover>
                     )}
