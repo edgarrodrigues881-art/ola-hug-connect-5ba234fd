@@ -180,11 +180,25 @@ const Campaigns = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
 
+  const clearStep1 = () => {
+    setMessage(""); setMediaUrl(""); setMediaFileName("");
+    setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
+    setSelectedTemplate("nova");
+    toast({ title: "Mensagem limpa" });
+  };
+  const clearStep2 = () => {
+    setContacts([]); setShowContactTable(false); setContactPage(0);
+    toast({ title: "Contatos limpos" });
+  };
+  const clearStep3 = () => {
+    setSelectedDevices([]); setMinDelay(8); setMaxDelay(25);
+    setPauseEveryMin(10); setPauseEveryMax(20); setPauseDurationMin(30); setPauseDurationMax(120);
+    setScheduleEnabled(false); setScheduleDate("");
+    toast({ title: "Parâmetros limpos" });
+  };
   const clearAllForm = () => {
-    setCampaignName(""); setMessage(""); setMediaUrl(""); setMediaFileName(""); setContacts([]);
-    setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); setSelectedDevices([]);
-    setMessageType("texto"); setStep(1); setSelectedTemplate("nova");
-    setScheduleEnabled(false); setScheduleDate(""); setShowContactTable(false);
+    setCampaignName(""); clearStep1(); clearStep2(); clearStep3();
+    setStep(1);
     localStorage.removeItem(DRAFT_KEY);
     toast({ title: "Formulário limpo", description: "Todos os campos foram resetados." });
   };
@@ -651,9 +665,9 @@ const Campaigns = () => {
           variant="outline" 
           size="sm" 
           className="text-xs gap-1.5 h-9 border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100"
-          onClick={clearAllForm}
+          onClick={step === 1 ? clearStep1 : step === 2 ? clearStep2 : step === 3 ? clearStep3 : clearAllForm}
         >
-          <Eraser className="w-3.5 h-3.5" /> Limpar tudo
+          <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
         </Button>
       </div>
 
