@@ -161,7 +161,7 @@ const CampaignDetail = () => {
   const progress = campaign ? Math.round(((campaign.sent_count || 0) + (campaign.failed_count || 0)) / Math.max(campaign.total_contacts || 1, 1) * 100) : 0;
 
   // Actions
-  const handleAction = async (action: "pause" | "resume" | "cancel") => {
+  const handleAction = async (action: "pause" | "resume" | "cancel" | "start") => {
     if (!id) return;
     try {
       const { data, error } = await supabase.functions.invoke("process-campaign", {
@@ -170,7 +170,7 @@ const CampaignDetail = () => {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-      const labels = { pause: "Campanha pausada", resume: "Campanha retomada", cancel: "Campanha cancelada" };
+      const labels = { pause: "Campanha pausada", resume: "Campanha retomada", cancel: "Campanha cancelada", start: "Campanha iniciada" };
       toast({ title: labels[action] });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -207,6 +207,7 @@ const CampaignDetail = () => {
 
   const isActive = campaign && ["running", "processing"].includes(campaign.status);
   const isPaused = campaign?.status === "paused";
+  const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
   if (campLoading) {
@@ -252,6 +253,16 @@ const CampaignDetail = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-2">
+            {isScheduled && (
+              <>
+                <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("start")}>
+                  <Play className="w-3.5 h-3.5" /> Iniciar agora
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleAction("cancel")}>
+                  <XCircle className="w-3.5 h-3.5" /> Cancelar
+                </Button>
+              </>
+            )}
             {isActive && (
               <>
                 <Button size="sm" variant="outline" className="gap-1.5 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10" onClick={() => handleAction("pause")}>
