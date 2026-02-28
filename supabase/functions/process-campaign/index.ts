@@ -70,6 +70,25 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
 }
 
+async function checkNumberExists(baseUrl: string, token: string, phone: string): Promise<{ exists: boolean; error?: string }> {
+  try {
+    const result = await uazapiRequest(baseUrl, token, "/check/exist", { number: phone });
+    // UaZapi returns different formats, handle common ones
+    if (result?.exists === false || result?.numberExists === false || result?.status === "not_exists") {
+      return { exists: false, error: `Número ${phone} não está no WhatsApp` };
+    }
+    return { exists: true };
+  } catch (err: any) {
+    // If the endpoint doesn't exist or fails, skip validation and try sending anyway
+    const msg = err.message || "";
+    if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists")) {
+      return { exists: false, error: msg };
+    }
+    // Don't block sending if check endpoint is unavailable
+    return { exists: true };
+  }
+}
+
 function normalizeBrazilianPhone(phone: string): string {
   const raw = phone.replace(/\D/g, "");
   if ((raw.length === 10 || raw.length === 11) && !raw.startsWith("55")) return `55${raw}`;
@@ -233,6 +252,17 @@ Deno.serve(async (req) => {
           const rand3 = generateUniqueRand3(usedRand3);
           const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
           const normalizedPhone = normalizeBrazilianPhone(phone);
+
+          // Check if number exists on WhatsApp before sending
+          const check = await checkNumberExists(deviceBaseUrl, deviceToken, normalizedPhone);
+          if (!check.exists) {
+            console.log(`Number ${phone} not on WhatsApp, skipping`);
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número não está no WhatsApp" }).eq("id", contact.id);
+            failedCount++;
+            await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+            continue;
+          }
+
           await sendUazapiMessage(deviceBaseUrl, deviceToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
           await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
           sentCount++;
