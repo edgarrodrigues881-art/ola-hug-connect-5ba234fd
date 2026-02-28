@@ -264,7 +264,7 @@ const Devices = () => {
   };
 
   // Auto-sync device statuses every 30s + realtime
-  useAutoSyncDevices(30000);
+  useAutoSyncDevices(5000);
 
   // Fetch proxies from database
   const { data: dbProxies = [] } = useQuery({

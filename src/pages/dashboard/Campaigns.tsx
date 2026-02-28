@@ -100,7 +100,7 @@ const Campaigns = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
-  useAutoSyncDevices(30000);
+  useAutoSyncDevices(5000);
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
   const { data: savedTemplates = [] } = useTemplates();
