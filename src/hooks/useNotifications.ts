@@ -143,7 +143,7 @@ export function useNotifications() {
             title: newNotif.title,
             description: newNotif.message,
             variant: variantMap[newNotif.type] || "default",
-            duration: 6000,
+            duration: 3000,
           });
         }
       )
