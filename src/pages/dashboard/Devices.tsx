@@ -26,6 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 
 interface Device {
   id: string;
@@ -262,28 +263,8 @@ const Devices = () => {
     return "[&>div]:bg-red-400";
   };
 
-  // Realtime subscription for instant status updates
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    const channel = supabase
-      .channel('devices-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'devices',
-          filter: `user_id=eq.${session.user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["devices"] });
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [session?.user?.id, queryClient]);
+  // Auto-sync device statuses every 30s + realtime
+  useAutoSyncDevices(30000);
 
   // Fetch proxies from database
   const { data: dbProxies = [] } = useQuery({

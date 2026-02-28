@@ -32,6 +32,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
+import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 
 
 interface Contact {
@@ -99,6 +100,7 @@ const Campaigns = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
+  useAutoSyncDevices(30000);
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
   const { data: savedTemplates = [] } = useTemplates();
