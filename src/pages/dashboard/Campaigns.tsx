@@ -43,6 +43,18 @@ interface Contact {
   var5: string;
   var6: string;
   var7: string;
+  var8: string;
+  var9: string;
+  var10: string;
+}
+
+type ColumnMapping = "nome" | "numero" | "var1" | "var2" | "var3" | "var4" | "var5" | "var6" | "var7" | "var8" | "var9" | "var10" | "ignorar";
+
+interface RawImportData {
+  headers: string[];
+  rows: any[][];
+  hasHeader: boolean;
+  columnMappings: ColumnMapping[];
 }
 
 interface UnifiedButton {
@@ -132,7 +144,7 @@ const Campaigns = () => {
   const [showContactTable, setShowContactTable] = useState(false);
   const [manualPhone, setManualPhone] = useState("");
   const [manualName, setManualName] = useState("");
-  const [previewContacts, setPreviewContacts] = useState<Contact[] | null>(null);
+  const [rawImport, setRawImport] = useState<RawImportData | null>(null);
   const [contactPage, setContactPage] = useState(0);
   const [importProgress, setImportProgress] = useState<number | null>(null);
   const CONTACTS_PER_PAGE = 50;
@@ -219,15 +231,6 @@ const Campaigns = () => {
     [contacts, contactPage, CONTACTS_PER_PAGE]
   );
 
-  const confirmPreviewImport = useCallback(() => {
-    if (previewContacts) {
-      setContacts(prev => [...prev, ...previewContacts]);
-      setShowContactTable(true);
-      setContactPage(0);
-      toast({ title: `${previewContacts.length} contatos adicionados` });
-      setPreviewContacts(null);
-    }
-  }, [previewContacts, toast]);
 
   const getRiskLevel = () => {
     if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10", borderColor: "border-red-500/20", percent: 90 };
@@ -365,7 +368,7 @@ const Campaigns = () => {
 
   const [emojiCategory, setEmojiCategory] = useState<string>("Mais usados");
 
-  const addContact = () => { setContacts(prev => [{ id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }, ...prev]); setShowContactTable(true); };
+  const addContact = () => { setContacts(prev => [{ id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" }, ...prev]); setShowContactTable(true); };
   const updateContact = (id: number, field: keyof Contact, value: string) => setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
   const removeContact = (id: number) => setContacts(contacts.filter(c => c.id !== id));
 
@@ -395,7 +398,7 @@ const Campaigns = () => {
   const handleImportFromDB = () => {
     let filtered = savedContacts;
     if (selectedContactTags.length > 0) filtered = filtered.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
-    const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "" }));
+    const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" }));
     if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
     setContacts(prev => [...prev, ...imported]);
     setImportFromContacts(false);
@@ -420,7 +423,7 @@ const Campaigns = () => {
         const wb = XLSX.read(data, { type: "array" });
         setImportProgress(60);
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
         if (rows.length < 1) {
           setImportProgress(null);
@@ -428,19 +431,10 @@ const Campaigns = () => {
           return;
         }
 
-        setImportProgress(70);
+        setImportProgress(80);
 
         const normalize = (s: string) =>
           String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
-
-        const findCol = (headers: string[], names: string[]): number => {
-          const nh = headers.map(h => normalize(String(h)));
-          const nn = names.map(normalize);
-          for (const n of nn) { const i = nh.indexOf(n); if (i !== -1) return i; }
-          for (const n of nn) { const i = nh.findIndex(h => h.startsWith(n)); if (i !== -1) return i; }
-          for (const n of nn) { const i = nh.findIndex(h => h.includes(n)); if (i !== -1) return i; }
-          return -1;
-        };
 
         const firstRow = rows[0] || [];
         const hasHeader = firstRow.some((c: any) => {
@@ -448,81 +442,36 @@ const Campaigns = () => {
           return ["nome", "name", "numero", "number", "telefone", "phone", "contato", "contact", "whatsapp", "celular", "var"].some(k => s.includes(k));
         });
 
-        let nameCol = -1;
-        let numCol = -1;
-        let startRow = 0;
+        const colCount = Math.max(...rows.slice(0, 10).map(r => r?.length || 0));
+        const headers = hasHeader
+          ? firstRow.map((c: any) => String(c).trim() || `Coluna ${firstRow.indexOf(c) + 1}`)
+          : Array.from({ length: colCount }, (_, i) => `Coluna ${i + 1}`);
 
-        if (hasHeader) {
-          const headers = firstRow.map((c: any) => String(c));
-          nameCol = findCol(headers, ["nome", "name", "contato", "contact", "cliente", "customer"]);
-          numCol = findCol(headers, ["numero", "number", "telefone", "phone", "whatsapp", "celular", "fone", "tel"]);
-          startRow = 1;
+        // Auto-suggest mappings
+        const autoMappings: ColumnMapping[] = headers.map((h) => {
+          const n = normalize(String(h));
+          if (["nome", "name", "contato", "contact", "cliente"].some(k => n.includes(k))) return "nome";
+          if (["numero", "number", "telefone", "phone", "whatsapp", "celular", "fone", "tel"].some(k => n.includes(k))) return "numero";
+          return "ignorar";
+        });
+
+        // Ensure only one nome and one numero
+        let foundNome = false, foundNumero = false;
+        for (let i = 0; i < autoMappings.length; i++) {
+          if (autoMappings[i] === "nome") { if (foundNome) autoMappings[i] = "ignorar"; else foundNome = true; }
+          if (autoMappings[i] === "numero") { if (foundNumero) autoMappings[i] = "ignorar"; else foundNumero = true; }
         }
 
-        if (numCol === -1) {
-          for (let ci = 0; ci < (rows[hasHeader ? 1 : 0]?.length || 0); ci++) {
-            const sample = String(rows[hasHeader ? 1 : 0]?.[ci] ?? "").replace(/\D/g, "");
-            if (sample.length >= 8) { numCol = ci; break; }
-          }
-        }
-
-        if (numCol === -1) {
-          for (let ri = 0; ri < Math.min(5, rows.length); ri++) {
-            const row = rows[ri];
-            if (!row) continue;
-            for (let ci = 0; ci < row.length; ci++) {
-              const val = String(row[ci] ?? "").replace(/\D/g, "");
-              if (val.length >= 8) { numCol = ci; startRow = hasHeader ? 1 : 0; break; }
-            }
-            if (numCol !== -1) break;
-          }
-        }
-
-        if (numCol === -1) {
-          setImportProgress(null);
-          toast({ title: "Coluna de número não encontrada", description: "Certifique-se que a planilha tem uma coluna com números de telefone.", variant: "destructive" });
-          return;
-        }
-
-        if (nameCol === -1) nameCol = numCol === 0 ? 1 : 0;
-
-        setImportProgress(80);
-
-        const imported: Contact[] = [];
-        for (let i = startRow; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-          const rawNum = String(row[numCol] ?? "").trim().replace(/\D/g, "");
-          if (!rawNum && !String(row[nameCol] ?? "").trim()) continue;
-          const nome = String(row[nameCol] ?? "").trim();
-
-          const otherCols = [];
-          for (let c = 0; c < row.length; c++) {
-            if (c !== nameCol && c !== numCol) otherCols.push(String(row[c] ?? ""));
-          }
-
-          imported.push({
-            id: Date.now() + i,
-            nome,
-            numero: rawNum,
-            var1: otherCols[0] ?? "",
-            var2: otherCols[1] ?? "",
-            var3: otherCols[2] ?? "",
-            var4: otherCols[3] ?? "",
-            var5: otherCols[4] ?? "",
-            var6: otherCols[5] ?? "",
-            var7: otherCols[6] ?? "",
-          });
-        }
         setImportProgress(100);
         setTimeout(() => {
           setImportProgress(null);
-          if (imported.length > 0) {
-            setPreviewContacts(imported);
-          } else {
-            toast({ title: "Nenhum contato encontrado", description: "A planilha parece estar vazia.", variant: "destructive" });
-          }
-        }, 400);
+          setRawImport({
+            headers,
+            rows: hasHeader ? rows.slice(1) : rows,
+            hasHeader,
+            columnMappings: autoMappings,
+          });
+        }, 300);
       } catch (err) {
         console.error("Import error:", err);
         setImportProgress(null);
@@ -531,6 +480,66 @@ const Campaigns = () => {
     };
     reader.readAsArrayBuffer(file);
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const updateColumnMapping = (colIndex: number, value: ColumnMapping) => {
+    if (!rawImport) return;
+    const newMappings = [...rawImport.columnMappings];
+    // If setting nome or numero, clear any other column with that value
+    if (value === "nome" || value === "numero") {
+      for (let i = 0; i < newMappings.length; i++) {
+        if (newMappings[i] === value) newMappings[i] = "ignorar";
+      }
+    }
+    newMappings[colIndex] = value;
+    setRawImport({ ...rawImport, columnMappings: newMappings });
+  };
+
+  const confirmMappingImport = () => {
+    if (!rawImport) return;
+    const { rows, columnMappings } = rawImport;
+    const numIdx = columnMappings.indexOf("numero");
+    const nameIdx = columnMappings.indexOf("nome");
+    const varIndices: Record<string, number> = {};
+    columnMappings.forEach((m, i) => {
+      if (m.startsWith("var")) varIndices[m] = i;
+    });
+
+    const imported: Contact[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+      const rawNum = numIdx >= 0 ? String(row[numIdx] ?? "").trim().replace(/[\s\-\(\)]/g, "") : "";
+      const nome = nameIdx >= 0 ? String(row[nameIdx] ?? "").trim() : "";
+      if (!rawNum && !nome) continue;
+
+      imported.push({
+        id: Date.now() + i,
+        nome,
+        numero: rawNum.replace(/\D/g, ""),
+        var1: varIndices.var1 !== undefined ? String(row[varIndices.var1] ?? "") : "",
+        var2: varIndices.var2 !== undefined ? String(row[varIndices.var2] ?? "") : "",
+        var3: varIndices.var3 !== undefined ? String(row[varIndices.var3] ?? "") : "",
+        var4: varIndices.var4 !== undefined ? String(row[varIndices.var4] ?? "") : "",
+        var5: varIndices.var5 !== undefined ? String(row[varIndices.var5] ?? "") : "",
+        var6: varIndices.var6 !== undefined ? String(row[varIndices.var6] ?? "") : "",
+        var7: varIndices.var7 !== undefined ? String(row[varIndices.var7] ?? "") : "",
+        var8: varIndices.var8 !== undefined ? String(row[varIndices.var8] ?? "") : "",
+        var9: varIndices.var9 !== undefined ? String(row[varIndices.var9] ?? "") : "",
+        var10: varIndices.var10 !== undefined ? String(row[varIndices.var10] ?? "") : "",
+      });
+    }
+
+    if (imported.length === 0) {
+      toast({ title: "Nenhum contato encontrado", description: "A planilha parece estar vazia.", variant: "destructive" });
+      return;
+    }
+
+    setContacts(prev => [...prev, ...imported]);
+    setShowContactTable(true);
+    setContactPage(0);
+    toast({ title: `${imported.length} contatos importados` });
+    setRawImport(null);
   };
 
 
@@ -1560,60 +1569,123 @@ const Campaigns = () => {
         </div>
       )}
 
-      {/* Import Preview Dialog */}
-      <Dialog open={!!previewContacts} onOpenChange={(open) => !open && setPreviewContacts(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      {/* Column Mapping Dialog */}
+      <Dialog open={!!rawImport} onOpenChange={(open) => !open && setRawImport(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold">Preview da Importação</DialogTitle>
+            <DialogTitle className="text-base font-bold">Mapeamento de Colunas</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">Selecione o que cada coluna representa. Apenas 1 coluna pode ser "Nome" e 1 "Número".</p>
           </DialogHeader>
-          {previewContacts && (
+          {rawImport && (
             <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+              {/* Column mappings */}
+              <div className="space-y-2 max-h-[200px] overflow-auto pr-1">
+                <SectionLabel>Colunas detectadas</SectionLabel>
+                {rawImport.headers.map((header, i) => (
+                  <div key={i} className="flex items-center gap-3 py-1.5">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium text-foreground truncate block">{header}</span>
+                      <span className="text-[10px] text-muted-foreground/50">
+                        Ex: {String(rawImport.rows[0]?.[i] ?? "—").slice(0, 30)}
+                      </span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                    <Select value={rawImport.columnMappings[i]} onValueChange={(v) => updateColumnMapping(i, v as ColumnMapping)}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nome">Nome</SelectItem>
+                        <SelectItem value="numero">Número</SelectItem>
+                        <SelectItem value="var1">Variável 1</SelectItem>
+                        <SelectItem value="var2">Variável 2</SelectItem>
+                        <SelectItem value="var3">Variável 3</SelectItem>
+                        <SelectItem value="var4">Variável 4</SelectItem>
+                        <SelectItem value="var5">Variável 5</SelectItem>
+                        <SelectItem value="var6">Variável 6</SelectItem>
+                        <SelectItem value="var7">Variável 7</SelectItem>
+                        <SelectItem value="var8">Variável 8</SelectItem>
+                        <SelectItem value="var9">Variável 9</SelectItem>
+                        <SelectItem value="var10">Variável 10</SelectItem>
+                        <SelectItem value="ignorar">Ignorar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview stats */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Total", value: previewContacts.length },
-                  { label: "Válidos", value: previewContacts.filter(c => /^\d{10,15}$/.test(c.numero)).length },
-                  { label: "Únicos", value: new Set(previewContacts.map(c => c.numero)).size },
+                  { label: "Total de linhas", value: rawImport.rows.length },
+                  { label: "Colunas detectadas", value: rawImport.headers.length },
+                  { label: "Colunas mapeadas", value: rawImport.columnMappings.filter(m => m !== "ignorar").length },
                 ].map(s => (
-                  <SurfaceCard key={s.label} className="p-4 text-center">
-                    <p className="text-xl font-bold text-foreground tabular-nums">{s.value}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
+                  <SurfaceCard key={s.label} className="p-3 text-center">
+                    <p className="text-lg font-bold text-foreground tabular-nums">{s.value}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
                   </SurfaceCard>
                 ))}
               </div>
 
+              {/* Data preview */}
               <div className="flex-1 overflow-auto rounded-xl border border-border/15 bg-muted/8 dark:bg-muted/4">
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
                     <tr className="border-b border-border/15">
                       <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
-                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Nome</th>
-                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Número</th>
-                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Var 1</th>
-                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold">Var 2</th>
+                      {rawImport.headers.map((h, i) => (
+                        <th key={i} className={cn(
+                          "text-left px-3 py-2.5 font-semibold text-[10px]",
+                          rawImport.columnMappings[i] === "ignorar" ? "text-muted-foreground/30" :
+                          rawImport.columnMappings[i] === "numero" ? "text-primary" :
+                          rawImport.columnMappings[i] === "nome" ? "text-emerald-400" :
+                          "text-muted-foreground"
+                        )}>
+                          <div>{h}</div>
+                          <div className="font-normal text-[9px] opacity-60">{rawImport.columnMappings[i] === "ignorar" ? "—" : rawImport.columnMappings[i]}</div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {previewContacts.slice(0, 10).map((c, i) => (
-                      <tr key={c.id} className="border-b border-border/8">
-                        <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{i + 1}</td>
-                        <td className="px-3 py-2 text-foreground">{c.nome || "—"}</td>
-                        <td className="px-3 py-2 font-mono text-foreground">{c.numero}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{c.var1 || "—"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{c.var2 || "—"}</td>
+                    {rawImport.rows.slice(0, 5).map((row, ri) => (
+                      <tr key={ri} className="border-b border-border/8">
+                        <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{ri + 1}</td>
+                        {rawImport.headers.map((_, ci) => (
+                          <td key={ci} className={cn(
+                            "px-3 py-2",
+                            rawImport.columnMappings[ci] === "ignorar" ? "text-muted-foreground/20" : "text-foreground",
+                            rawImport.columnMappings[ci] === "numero" && "font-mono"
+                          )}>
+                            {String(row[ci] ?? "—").slice(0, 25)}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {previewContacts.length > 10 && (
+                {rawImport.rows.length > 5 && (
                   <p className="text-[11px] text-muted-foreground text-center py-3">
-                    ...e mais {previewContacts.length - 10} contatos
+                    ...e mais {rawImport.rows.length - 5} linhas
                   </p>
                 )}
               </div>
 
+              {!rawImport.columnMappings.includes("numero") && (
+                <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Selecione qual coluna contém o número de telefone para continuar.
+                </div>
+              )}
+
               <DialogFooter>
-                <Button variant="outline" onClick={() => setPreviewContacts(null)} className="h-10">Cancelar</Button>
-                <Button onClick={confirmPreviewImport} className="h-10 px-6 font-semibold gap-1.5">
+                <Button variant="outline" onClick={() => setRawImport(null)} className="h-10">Cancelar</Button>
+                <Button 
+                  onClick={confirmMappingImport} 
+                  className="h-10 px-6 font-semibold gap-1.5"
+                  disabled={!rawImport.columnMappings.includes("numero")}
+                >
                   <Check className="w-4 h-4" /> Confirmar Importação
                 </Button>
               </DialogFooter>
