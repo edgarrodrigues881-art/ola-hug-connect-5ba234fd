@@ -15,29 +15,21 @@ interface CampaignButton {
 function buildMenuChoice(button: CampaignButton, index: number): string | null {
   const text = (button.text || "").trim();
   if (!text) return null;
-
   if (button.type === "url") {
     const url = (button.value || "").trim();
     return url ? `${text}|url:${url}` : text;
   }
-
   if (button.type === "phone") {
     const phone = (button.value || "").trim();
     return phone ? `${text}|call:${phone}` : text;
   }
-
   const replyId = (button.value || `btn_${index}`).trim();
   return `${text}|${replyId}`;
 }
 
-// UaZapi request helper - supports POST by default, with fallback to GET when needed
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
   let url = `${baseUrl}${endpoint}`;
-  const headers: Record<string, string> = {
-    "token": token,
-    "Accept": "application/json",
-  };
-
+  const headers: Record<string, string> = { "token": token, "Accept": "application/json" };
   let fetchOptions: RequestInit;
   if (method === "GET") {
     const params = new URLSearchParams();
@@ -50,115 +42,50 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
     headers["Content-Type"] = "application/json";
     fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
   }
-
-  console.log(`UaZapi ${method} request:`, url);
   const res = await fetch(url, fetchOptions);
   const text = await res.text();
-  console.log("UaZapi response:", res.status, text.substring(0, 300));
-
-  // Some gateways only allow GET on specific routes
   if (res.status === 405 && method === "POST") {
-    console.log("POST returned 405, retrying with GET...");
     return uazapiRequest(baseUrl, token, endpoint, payload, "GET");
   }
-
   if (!res.ok) {
     let errorMsg = `API error ${res.status}`;
-    try {
-      const data = JSON.parse(text);
-      errorMsg = data?.message || data?.error || text;
-    } catch {
-      errorMsg = text;
-    }
+    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch { errorMsg = text; }
     throw new Error(errorMsg);
   }
-
   return JSON.parse(text);
 }
 
-async function sendUazapiMessage(
-  baseUrl: string,
-  token: string,
-  to: string,
-  body: string,
-  mediaUrl?: string | null,
-  buttons?: CampaignButton[],
-  messageType?: string
-) {
+async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
   const phone = to.replace(/\D/g, "");
   const hasButtons = buttons && buttons.length > 0;
-
-  console.log(`sendUazapiMessage: type=${messageType}, hasMedia=${!!mediaUrl}, buttons=${JSON.stringify(buttons)}, hasButtons=${hasButtons}`);
-
-  // Build button choices if any exist
-  const choices = hasButtons
-    ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice))
-    : [];
-
-  console.log(`Built choices: ${JSON.stringify(choices)}`);
-
-  // If we have valid buttons/choices, ALWAYS send via /send/menu
+  const choices = hasButtons ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice)) : [];
   if (choices.length > 0) {
-    const payload: any = {
-      number: phone,
-      type: "button",
-      text: body,
-      choices,
-    };
-
-    if (mediaUrl) {
-      payload.imageButton = mediaUrl;
-    }
-
-    console.log(`Sending via /send/menu with payload:`, JSON.stringify(payload));
+    const payload: any = { number: phone, type: "button", text: body, choices };
+    if (mediaUrl) payload.imageButton = mediaUrl;
     return await uazapiRequest(baseUrl, token, "/send/menu", payload);
   }
-
-  // Media message without buttons (image + optional caption)
   if (mediaUrl) {
-    return await uazapiRequest(baseUrl, token, "/send/media", {
-      number: phone,
-      media: mediaUrl,
-      caption: body || undefined,
-      type: "image",
-    });
+    return await uazapiRequest(baseUrl, token, "/send/media", { number: phone, media: mediaUrl, caption: body || undefined, type: "image" });
   }
-
-  // Plain text message
-  return await uazapiRequest(baseUrl, token, "/send/text", {
-    number: phone,
-    text: body,
-  });
+  return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
 }
 
-// Brazilian phone number normalization (keep 9th digit; only sanitize + optional country code)
 function normalizeBrazilianPhone(phone: string): string {
   const raw = phone.replace(/\D/g, "");
-
-  // If number comes without country code (10/11 digits BR), prefix 55
-  if ((raw.length === 10 || raw.length === 11) && !raw.startsWith("55")) {
-    return `55${raw}`;
-  }
-
+  if ((raw.length === 10 || raw.length === 11) && !raw.startsWith("55")) return `55${raw}`;
   return raw;
 }
 
-// Generate a random 4-digit number string (0000-9999), unique within usedRand4 set
 function generateUniqueRand4(usedSet: Set<string>): string {
   let value: string;
-  do {
-    value = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-  } while (usedSet.has(value) && usedSet.size < 10000);
+  do { value = String(Math.floor(Math.random() * 10000)).padStart(4, "0"); } while (usedSet.has(value) && usedSet.size < 10000);
   usedSet.add(value);
   return value;
 }
 
-// Generate a random 3-letter lowercase string, unique within usedRand3 set
 function generateUniqueRand3(usedSet: Set<string>): string {
   let value: string;
-  do {
-    value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join("");
-  } while (usedSet.has(value) && usedSet.size < 17576);
+  do { value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join(""); } while (usedSet.has(value) && usedSet.size < 17576);
   usedSet.add(value);
   return value;
 }
@@ -172,6 +99,10 @@ function replaceVariables(template: string, contact: any, rand4: string, rand3: 
     .replace(/\{\{rand3\}\}/gi, rand3);
 }
 
+function randomBetween(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -179,142 +110,105 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
-
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const userId = user.id;
+  const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
     const { action, campaignId, deviceId } = await req.json();
 
-    if (action === "start") {
-      // Get campaign
-      const { data: campaign, error: campErr } = await supabase
-        .from("campaigns")
-        .select("*")
-        .eq("id", campaignId)
-        .single();
+    // ─── PAUSE ───
+    if (action === "pause") {
+      await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
+      return new Response(JSON.stringify({ success: true, status: "paused" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
+    // ─── CANCEL ───
+    if (action === "cancel") {
+      await serviceClient.from("campaigns").update({ status: "canceled", completed_at: new Date().toISOString() }).eq("id", campaignId).eq("user_id", userId);
+      // Mark remaining pending contacts as canceled
+      await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
+      return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── RESUME ───
+    if (action === "resume") {
+      await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
+      // The resume will re-trigger sending of remaining pending contacts
+      // Fall through to start logic below with action override
+    }
+
+    // ─── START / RESUME ───
+    if (action === "start" || action === "resume") {
+      const { data: campaign, error: campErr } = await supabase.from("campaigns").select("*").eq("id", campaignId).single();
       if (campErr || !campaign) {
-        return new Response(JSON.stringify({ error: "Campanha não encontrada" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Get device with UaZapi token - use per-device config
-      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      
-      let deviceQuery = serviceClient
-        .from("devices")
-        .select("id, name, uazapi_token, uazapi_base_url")
-        .eq("user_id", userId);
-
-      if (deviceId) {
-        deviceQuery = deviceQuery.eq("id", deviceId);
-      } else {
-        deviceQuery = deviceQuery.eq("status", "Ready");
-      }
-
+      // Get device
+      let deviceQuery = serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", userId);
+      if (deviceId) { deviceQuery = deviceQuery.eq("id", deviceId); } else { deviceQuery = deviceQuery.eq("status", "Ready"); }
       const { data: devices } = await deviceQuery.limit(1);
       const device = devices?.[0];
-
-      // Resolve token and base URL (per-device or global fallback)
       const deviceToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
       const deviceBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
 
       if (!device || !deviceToken || !deviceBaseUrl) {
-        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token configurado encontrado. Configure o token no dispositivo primeiro." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token configurado encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      console.log(`Starting campaign ${campaignId} via device ${device.name} (${device.id}), base=${deviceBaseUrl}`);
+      console.log(`Starting campaign ${campaignId} via device ${device.name}`);
 
-      // Check warmup session for this device
-      const { data: warmupSessions } = await supabase
-        .from("warmup_sessions")
-        .select("*")
-        .eq("device_id", device.id)
-        .eq("status", "running")
-        .limit(1);
+      // Read delay config from campaign
+      const minDelayMs = (campaign.min_delay_seconds || 8) * 1000;
+      const maxDelayMs = (campaign.max_delay_seconds || 25) * 1000;
+      const pauseEveryMin = campaign.pause_every_min || 10;
+      const pauseEveryMax = campaign.pause_every_max || 20;
+      const pauseDurMinMs = (campaign.pause_duration_min || 30) * 1000;
+      const pauseDurMaxMs = (campaign.pause_duration_max || 120) * 1000;
 
-      const warmup = warmupSessions?.[0];
-      let warmupLimit = Infinity;
-      let minDelay = 1000;
-      let maxDelay = 3000;
-
-      if (warmup) {
-        warmupLimit = Math.min(
-          warmup.messages_per_day + (warmup.current_day - 1) * warmup.daily_increment,
-          warmup.max_messages_per_day
-        );
-        const remaining = warmupLimit - warmup.messages_sent_today;
-        warmupLimit = Math.max(0, remaining);
-        minDelay = warmup.min_delay_seconds * 1000;
-        maxDelay = warmup.max_delay_seconds * 1000;
-        console.log(`Warmup active: limit=${warmupLimit} remaining today, delay=${warmup.min_delay_seconds}-${warmup.max_delay_seconds}s`);
-      }
+      // Decide pause interval for this batch
+      const pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
+      console.log(`Delay: ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s, Pause every ${pauseAfter} msgs, Duration: ${campaign.pause_duration_min}-${campaign.pause_duration_max}s`);
 
       // Get pending contacts
-      const { data: contacts, error: contactsErr } = await supabase
-        .from("campaign_contacts")
-        .select("*")
-        .eq("campaign_id", campaignId)
-        .eq("status", "pending");
-
+      const { data: contacts, error: contactsErr } = await supabase.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
       if (contactsErr) throw contactsErr;
 
-      // Update campaign status
-      await supabase
-        .from("campaigns")
-        .update({ status: "processing", started_at: new Date().toISOString() })
-        .eq("id", campaignId);
+      // Update campaign status to running
+      await serviceClient.from("campaigns").update({ status: "running", started_at: campaign.started_at || new Date().toISOString() }).eq("id", campaignId);
 
-      let sentCount = 0;
-      let failedCount = 0;
-      let skippedByWarmup = 0;
+      let sentCount = campaign.sent_count || 0;
+      let failedCount = campaign.failed_count || 0;
+      let batchSent = 0;
       const messageContent = campaign.message_content || "";
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
-
-      // Uniqueness sets for dynamic variables
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
 
       for (const contact of contacts || []) {
-        if (warmup && sentCount >= warmupLimit) {
-          console.log(`Warmup limit reached (${warmupLimit}). Pausing remaining contacts.`);
-          skippedByWarmup = (contacts || []).length - sentCount - failedCount;
+        // Check if campaign was paused or canceled mid-execution
+        const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
+        if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
+          console.log(`Campaign ${campaignId} was ${freshCampaign.status} during execution. Stopping.`);
           break;
         }
 
         const phone = contact.phone.replace(/\D/g, "");
         if (phone.length < 10) {
-          await supabase
-            .from("campaign_contacts")
-            .update({ status: "failed", error_message: "Número inválido" })
-            .eq("id", contact.id);
+          await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
           failedCount++;
+          await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
           continue;
         }
 
@@ -323,96 +217,62 @@ Deno.serve(async (req) => {
           const rand3 = generateUniqueRand3(usedRand3);
           const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
           const normalizedPhone = normalizeBrazilianPhone(phone);
-
-          // Send via UaZapi
           await sendUazapiMessage(deviceBaseUrl, deviceToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
-
-          await supabase
-            .from("campaign_contacts")
-            .update({ status: "sent", sent_at: new Date().toISOString() })
-            .eq("id", contact.id);
+          await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
           sentCount++;
+          batchSent++;
 
-          console.log(`Sent to ${phone} (${sentCount}/${(contacts || []).length})`);
+          // Update campaign counters in real-time
+          await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-          const delay = minDelay + Math.random() * (maxDelay - minDelay);
+          console.log(`Sent to ${phone} (${batchSent}/${(contacts || []).length})`);
+
+          // Delay between messages
+          const delay = randomBetween(minDelayMs, maxDelayMs);
           await new Promise(resolve => setTimeout(resolve, delay));
 
+          // Pause logic
+          if (batchSent > 0 && batchSent % pauseAfter === 0) {
+            const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
+            console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${batchSent} messages`);
+            await new Promise(resolve => setTimeout(resolve, pauseDuration));
+          }
         } catch (err: any) {
           console.error(`Failed to send to ${phone}:`, err.message);
-          await supabase
-            .from("campaign_contacts")
-            .update({ status: "failed", error_message: err.message || "Erro ao enviar" })
-            .eq("id", contact.id);
+          await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro ao enviar" }).eq("id", contact.id);
           failedCount++;
+          await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
         }
       }
 
-      // Update warmup session counters
-      if (warmup && sentCount > 0) {
-        await supabase
-          .from("warmup_sessions")
-          .update({
-            messages_sent_today: warmup.messages_sent_today + sentCount,
-            messages_sent_total: warmup.messages_sent_total + sentCount,
-          })
-          .eq("id", warmup.id);
-      }
-
-      const finalStatus = skippedByWarmup > 0 ? "paused" : "completed";
-      await supabase
-        .from("campaigns")
-        .update({
+      // Final status
+      const { data: finalCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
+      if (finalCampaign && finalCampaign.status === "running") {
+        // Check if there are still pending contacts
+        const { count } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+        const finalStatus = (count || 0) > 0 ? "paused" : "completed";
+        await serviceClient.from("campaigns").update({
           status: finalStatus,
           sent_count: sentCount,
           failed_count: failedCount,
           delivered_count: sentCount,
           completed_at: finalStatus === "completed" ? new Date().toISOString() : null,
-        })
-        .eq("id", campaignId);
+        }).eq("id", campaignId);
+      }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          sent: sentCount,
-          failed: failedCount,
-          skipped_warmup: skippedByWarmup,
-          total: (contacts || []).length,
-          device: device.name,
-          warmup_active: !!warmup,
-          status: finalStatus,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true, sent: sentCount, failed: failedCount, total: (contacts || []).length, device: device.name }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ─── STATUS ───
     if (action === "status") {
-      const { data: campaign } = await supabase
-        .from("campaigns")
-        .select("*")
-        .eq("id", campaignId)
-        .single();
-
-      const { data: contacts } = await supabase
-        .from("campaign_contacts")
-        .select("id, phone, name, status, sent_at, error_message")
-        .eq("campaign_id", campaignId);
-
-      return new Response(
-        JSON.stringify({ campaign, contacts }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", campaignId).single();
+      const { data: contacts } = await supabase.from("campaign_contacts").select("id, phone, name, status, sent_at, error_message").eq("campaign_id", campaignId);
+      return new Response(JSON.stringify({ campaign, contacts }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error("Process campaign error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

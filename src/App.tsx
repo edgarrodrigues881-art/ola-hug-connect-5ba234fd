@@ -27,6 +27,7 @@ import SettingsPage from "./pages/dashboard/Settings";
 import CustomModule from "./pages/dashboard/CustomModule";
 import Groups from "./pages/dashboard/GroupCapture";
 import MyPlan from "./pages/dashboard/MyPlan";
+import CampaignDetail from "./pages/dashboard/CampaignDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ const App = () => (
                       <Route path="devices" element={<Devices />} />
                       <Route path="campaigns" element={<Campaigns />} />
                       <Route path="campaign-list" element={<CampaignList />} />
+                      <Route path="campaign/:id" element={<CampaignDetail />} />
                       <Route path="crm" element={<CRM />} />
                       <Route path="templates" element={<Templates />} />
                       <Route path="contacts" element={<Contacts />} />

@@ -73,10 +73,16 @@ export type Database = {
           delivered_count: number | null
           failed_count: number | null
           id: string
+          max_delay_seconds: number
           media_url: string | null
           message_content: string | null
           message_type: string
+          min_delay_seconds: number
           name: string
+          pause_duration_max: number
+          pause_duration_min: number
+          pause_every_max: number
+          pause_every_min: number
           scheduled_at: string | null
           sent_count: number | null
           started_at: string | null
@@ -93,10 +99,16 @@ export type Database = {
           delivered_count?: number | null
           failed_count?: number | null
           id?: string
+          max_delay_seconds?: number
           media_url?: string | null
           message_content?: string | null
           message_type?: string
+          min_delay_seconds?: number
           name: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
           scheduled_at?: string | null
           sent_count?: number | null
           started_at?: string | null
@@ -113,10 +125,16 @@ export type Database = {
           delivered_count?: number | null
           failed_count?: number | null
           id?: string
+          max_delay_seconds?: number
           media_url?: string | null
           message_content?: string | null
           message_type?: string
+          min_delay_seconds?: number
           name?: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
           scheduled_at?: string | null
           sent_count?: number | null
           started_at?: string | null

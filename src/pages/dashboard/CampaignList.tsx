@@ -1,182 +1,243 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Megaphone, Search, Trash2, Eye, Play, Pause, RefreshCw, Pencil } from "lucide-react";
-import { useCampaigns, useDeleteCampaign, useStartCampaign } from "@/hooks/useCampaigns";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Megaphone, Search, Trash2, Eye, Copy, Plus,
+} from "lucide-react";
+import { useCampaigns, useDeleteCampaign, useCreateCampaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { CampaignDetailDialog } from "@/components/campaigns/CampaignDetailDialog";
+import { supabase } from "@/integrations/supabase/client";
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pendente", className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
-  scheduled: { label: "Agendada", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  running: { label: "Enviando", className: "bg-primary/15 text-primary border-primary/30" },
-  completed: { label: "Concluída", className: "bg-success/15 text-success border-success/30" },
-  failed: { label: "Falhou", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  paused: { label: "Pausada", className: "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30" },
+const statusConfig: Record<string, { label: string; color: string }> = {
+  pending: { label: "Pendente", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
+  scheduled: { label: "Agendada", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  running: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  processing: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  paused: { label: "Pausada", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
+  completed: { label: "Concluída", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  canceled: { label: "Cancelada", color: "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30" },
+  failed: { label: "Falhou", color: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
 const CampaignList = () => {
   const { data: campaigns = [], isLoading } = useCampaigns();
   const deleteCampaign = useDeleteCampaign();
-  const startCampaign = useStartCampaign();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [detailCampaign, setDetailCampaign] = useState<{ id: string; name: string } | null>(null);
-  const filtered = campaigns.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const handleDelete = (id: string) => {
+  const filtered = useMemo(() => {
+    return campaigns.filter((c) => {
+      const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter === "all" || c.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [campaigns, search, statusFilter]);
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     deleteCampaign.mutate(id, {
       onSuccess: () => toast({ title: "Campanha excluída" }),
       onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
     });
   };
 
-  const handleStart = (id: string) => {
-    startCampaign.mutate({ campaignId: id }, {
-      onSuccess: (result) => {
-        toast({ title: "Envio iniciado!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}` });
-      },
-      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-    });
+  const handleDuplicate = async (campaign: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      // Get contacts from original campaign
+      const { data: contacts } = await supabase
+        .from("campaign_contacts")
+        .select("phone, name")
+        .eq("campaign_id", campaign.id);
+
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { error } = await supabase.from("campaigns").insert({
+        name: `${campaign.name} (cópia)`,
+        message_type: campaign.message_type,
+        message_content: campaign.message_content,
+        media_url: campaign.media_url,
+        buttons: campaign.buttons || [],
+        user_id: user.user.id,
+        total_contacts: contacts?.length || 0,
+        status: "pending",
+        min_delay_seconds: campaign.min_delay_seconds,
+        max_delay_seconds: campaign.max_delay_seconds,
+        pause_every_min: campaign.pause_every_min,
+        pause_every_max: campaign.pause_every_max,
+        pause_duration_min: campaign.pause_duration_min,
+        pause_duration_max: campaign.pause_duration_max,
+      }).select().single();
+
+      if (error) throw error;
+      toast({ title: "Campanha duplicada" });
+    } catch (err: any) {
+      toast({ title: "Erro ao duplicar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const getProgress = (c: any) => {
+    const total = c.total_contacts || 0;
+    if (total === 0) return 0;
+    return Math.round(((c.sent_count || 0) + (c.failed_count || 0)) / total * 100);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe todas as suas campanhas</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Gerencie e acompanhe seus envios</p>
         </div>
         <Button
-          size="sm"
-          className="gap-1.5 text-xs bg-primary hover:bg-primary/90"
+          size="lg"
+          className="gap-2 bg-primary hover:bg-primary/90 px-6"
           onClick={() => navigate("/dashboard/campaigns")}
         >
-          <Megaphone className="w-3.5 h-3.5" /> Nova Campanha
+          <Plus className="w-4 h-4" /> Nova Campanha
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar campanha..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-9 text-sm"
-        />
+      {/* Filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar campanha..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-10"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px] h-10">
+            <SelectValue placeholder="Filtrar status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="running">Enviando</SelectItem>
+            <SelectItem value="paused">Pausada</SelectItem>
+            <SelectItem value="completed">Concluída</SelectItem>
+            <SelectItem value="canceled">Cancelada</SelectItem>
+            <SelectItem value="failed">Falhou</SelectItem>
+            <SelectItem value="pending">Pendente</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
-      <Card className="glass-card">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+      <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/30">
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Nome</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Progresso</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Total</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Enviadas</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Falhas</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider hidden lg:table-cell">Criada em</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableHead className="text-xs">Nome</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-center hidden sm:table-cell">Contatos</TableHead>
-                  <TableHead className="text-xs text-center">Enviadas</TableHead>
-                  <TableHead className="text-xs text-center hidden md:table-cell">Entregues</TableHead>
-                  <TableHead className="text-xs text-center hidden md:table-cell">Falhas</TableHead>
-                  <TableHead className="text-xs hidden lg:table-cell">Criada em</TableHead>
-                  <TableHead className="text-xs text-right">Ações</TableHead>
+                  <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-12">
+                    <Megaphone className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                    Nenhuma campanha encontrada
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                      Carregando...
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                      Nenhuma campanha encontrada
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map((c) => {
-                    const cfg = statusConfig[c.status] || statusConfig.pending;
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell className="text-sm font-medium text-foreground">{c.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
-                            {cfg.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-center text-muted-foreground hidden sm:table-cell">{c.total_contacts}</TableCell>
-                        <TableCell className="text-sm text-center text-muted-foreground">{c.sent_count}</TableCell>
-                        <TableCell className="text-sm text-center text-muted-foreground hidden md:table-cell">{c.delivered_count}</TableCell>
-                        <TableCell className="text-sm text-center hidden md:table-cell">
-                          <span className={c.failed_count > 0 ? "text-destructive" : "text-muted-foreground"}>
-                            {c.failed_count}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
-                          {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-primary"
-                              onClick={() => setDetailCampaign({ id: c.id, name: c.name })}
-                              title="Ver detalhes"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            {(c.status === "pending" || c.status === "scheduled") && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-success hover:text-success"
-                                onClick={() => handleStart(c.id)}
-                                title="Iniciar envio"
-                              >
-                                <Play className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(c.id)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-      {detailCampaign && (
-        <CampaignDetailDialog
-          open={!!detailCampaign}
-          onOpenChange={(open) => !open && setDetailCampaign(null)}
-          campaignId={detailCampaign.id}
-          campaignName={detailCampaign.name}
-        />
-      )}
+              ) : (
+                filtered.map((c) => {
+                  const cfg = statusConfig[c.status] || statusConfig.pending;
+                  const progress = getProgress(c);
+                  return (
+                    <TableRow
+                      key={c.id}
+                      className="cursor-pointer hover:bg-muted/30 border-border/20"
+                      onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
+                    >
+                      <TableCell className="text-sm font-medium text-foreground">{c.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[10px] font-semibold ${cfg.color}`}>
+                          {cfg.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Progress value={progress} className="h-1.5 flex-1" />
+                          <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{progress}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-center text-muted-foreground tabular-nums">{c.total_contacts}</TableCell>
+                      <TableCell className="text-sm text-center text-muted-foreground tabular-nums">{c.sent_count}</TableCell>
+                      <TableCell className="text-sm text-center tabular-nums">
+                        <span className={c.failed_count > 0 ? "text-destructive" : "text-muted-foreground"}>
+                          {c.failed_count}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
+                        {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
+                            title="Abrir"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => handleDuplicate(c, e)}
+                            title="Duplicar"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => handleDelete(c.id, e)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 };
