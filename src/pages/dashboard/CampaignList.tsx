@@ -48,8 +48,15 @@ const CampaignList = () => {
     });
   }, [campaigns, search, statusFilter]);
 
+  const protectedStatuses = ["running", "processing", "scheduled"];
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const campaign = campaigns.find((c) => c.id === id);
+    if (campaign && protectedStatuses.includes(campaign.status)) {
+      toast({ title: "Não é possível excluir", description: "Pause ou cancele a campanha antes de excluí-la.", variant: "destructive" });
+      return;
+    }
     deleteCampaign.mutate(id, {
       onSuccess: () => toast({ title: "Campanha excluída" }),
       onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -58,12 +65,19 @@ const CampaignList = () => {
 
   const handleClearAll = async () => {
     try {
-      for (const c of campaigns) {
+      const deletable = campaigns.filter((c) => !protectedStatuses.includes(c.status));
+      if (deletable.length === 0) {
+        toast({ title: "Nenhuma campanha pode ser excluída", description: "Todas estão em envio ou agendadas.", variant: "destructive" });
+        setClearAllOpen(false);
+        return;
+      }
+      for (const c of deletable) {
         await supabase.from("campaign_contacts").delete().eq("campaign_id", c.id);
         await supabase.from("campaigns").delete().eq("id", c.id);
       }
+      const skipped = campaigns.length - deletable.length;
       setClearAllOpen(false);
-      toast({ title: "Todas as campanhas foram excluídas" });
+      toast({ title: `${deletable.length} campanhas excluídas${skipped > 0 ? `, ${skipped} protegidas (em envio/agendadas)` : ""}` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
