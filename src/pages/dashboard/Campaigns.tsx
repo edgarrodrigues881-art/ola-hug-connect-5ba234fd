@@ -17,7 +17,7 @@ import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
   Smile, Image, Code, FileText, AlertTriangle, Link, MousePointerClick,
   X, Users, MessageSquare, Smartphone, ChevronRight, ChevronDown,
-  Phone, Type, ImageIcon, Flame, Shield, ShieldAlert, Activity,
+  Phone, Type, ImageIcon, Flame, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
   CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2, Check,
   ArrowRight, Lock, Timer, TrendingUp, ArrowUp, ArrowDown, Pencil
@@ -232,12 +232,6 @@ const Campaigns = () => {
   );
 
 
-  const getRiskLevel = () => {
-    if (minDelay < 5) return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10", borderColor: "border-red-500/20", percent: 90 };
-    if (minDelay < 10) return { label: "Médio", color: "text-amber-400", bg: "bg-amber-500/10", borderColor: "border-amber-500/20", percent: 55 };
-    return { label: "Baixo", color: "text-emerald-400", bg: "bg-emerald-500/10", borderColor: "border-emerald-500/20", percent: 20 };
-  };
-  const risk = getRiskLevel();
 
   // Estimated send time calculation
   const estimatedTime = useMemo(() => {
@@ -1440,52 +1434,38 @@ const Campaigns = () => {
               </SurfaceCard>
             </div>
 
-            {/* Risk indicator - visual bar */}
-            <SurfaceCard className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", risk.bg)}>
-                    <Shield className={cn("w-4.5 h-4.5", risk.color)} />
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-foreground">Nível de Risco</p>
-                    <p className="text-[11px] text-muted-foreground/60">
-                      {risk.label === "Baixo" ? "Configuração segura para envio em massa." : risk.label === "Médio" ? "Intervalos curtos podem gerar bloqueios." : "Alto risco de bloqueio. Aumente os intervalos."}
-                    </p>
-                  </div>
+            {/* Projeção de Envio */}
+            <SurfaceCard className="p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted/10">
+                  <Timer className="w-4.5 h-4.5 text-muted-foreground/60" />
                 </div>
-                <span className={cn("text-lg font-bold", risk.color)}>{risk.label}</span>
-              </div>
-              {/* Visual risk bar */}
-              <div className="relative h-3 rounded-full overflow-hidden bg-muted/15 dark:bg-muted/8">
-                <div className="absolute inset-0 flex">
-                  <div className="flex-1 bg-emerald-500/20" />
-                  <div className="flex-1 bg-amber-500/20" />
-                  <div className="flex-1 bg-red-500/20" />
-                </div>
-                <div
-                  className="absolute top-0 h-full w-2 rounded-full shadow-lg"
-                  style={{
-                    background: risk.label === "Baixo" ? "#34D399" : risk.label === "Médio" ? "#FBBF24" : "#F87171",
-                    boxShadow: `0 0 8px ${risk.label === "Baixo" ? "#34D39960" : risk.label === "Médio" ? "#FBBF2460" : "#F8717160"}`,
-                    left: `${risk.percent}%`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-[9px] uppercase tracking-wider font-semibold">
-                <span className="text-emerald-400/60">Seguro</span>
-                <span className="text-amber-400/60">Moderado</span>
-                <span className="text-red-400/60">Arriscado</span>
+                <p className="text-[13px] font-bold text-foreground">Projeção de Envio</p>
               </div>
 
-              {/* Estimated send time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Total de contatos</p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{validContacts.length}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Intervalo médio</p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{((minDelay + maxDelay) / 2).toFixed(0)}s</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Pausa a cada</p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{Math.round((pauseEveryMin + pauseEveryMax) / 2)} mensagens</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Duração média da pausa</p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{Math.round((pauseDurationMin + pauseDurationMax) / 2)}s</p>
+                </div>
+              </div>
+
               {estimatedTime && (
-                <div className="flex items-center gap-2.5 pt-2 border-t border-border/10">
-                  <Timer className="w-4 h-4 text-muted-foreground/40" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Tempo estimado de envio</p>
-                    <p className="text-sm font-bold text-foreground tabular-nums">{estimatedTime} <span className="text-muted-foreground/50 font-normal text-[11px]">para {validContacts.length} contatos</span></p>
-                  </div>
+                <div className="pt-3 border-t border-border/10">
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">Tempo estimado total</p>
+                  <p className="text-lg font-bold text-foreground tabular-nums">≈ {estimatedTime}</p>
                 </div>
               )}
             </SurfaceCard>
@@ -1546,7 +1526,7 @@ const Campaigns = () => {
                     { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s`, icon: Clock },
                     { label: "Pausa", value: `${pauseEveryMin}–${pauseEveryMax} msgs`, icon: Zap },
                     { label: "Duração Pausa", value: `${pauseDurationMin}s – ${pauseDurationMax}s`, icon: Activity },
-                    { label: "Risco", value: risk.label, icon: Shield, valueClass: risk.color },
+                    { label: "Tempo Estimado", value: estimatedTime || "—", icon: Timer },
                   ].map(item => (
                     <div key={item.label} className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/10 dark:bg-muted/5 border border-border/8">
                       <div className="w-8 h-8 rounded-lg bg-muted/20 dark:bg-muted/10 flex items-center justify-center shrink-0 mt-0.5">
