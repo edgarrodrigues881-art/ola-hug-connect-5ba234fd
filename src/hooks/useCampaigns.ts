@@ -78,6 +78,8 @@ export function useCreateCampaign() {
       pause_duration_min?: number;
       pause_duration_max?: number;
       device_id?: string;
+      device_ids?: string[];
+      messages_per_instance?: number;
       contacts: { phone: string; name?: string }[];
     }) => {
       const { contacts, ...campaignData } = campaign;
@@ -112,6 +114,8 @@ export function useCreateCampaign() {
           pause_duration_min: campaignData.pause_duration_min ?? 30,
           pause_duration_max: campaignData.pause_duration_max ?? 120,
           device_id: validDeviceId,
+          device_ids: campaignData.device_ids || [],
+          messages_per_instance: campaignData.messages_per_instance || 0,
           user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",

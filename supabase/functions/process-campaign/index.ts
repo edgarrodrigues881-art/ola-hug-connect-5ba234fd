@@ -188,11 +188,27 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Get device
-      let deviceQuery = serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", userId);
-      if (deviceId) { deviceQuery = deviceQuery.eq("id", deviceId); } else { deviceQuery = deviceQuery.eq("status", "Ready"); }
-      const { data: devices } = await deviceQuery.limit(1);
-      const device = devices?.[0];
+      // Get devices - support multi-device rotation
+      const deviceIds: string[] = Array.isArray(campaign.device_ids) && campaign.device_ids.length > 0
+        ? campaign.device_ids
+        : deviceId ? [deviceId] : (campaign.device_id ? [campaign.device_id] : []);
+
+      const messagesPerInstance = campaign.messages_per_instance || 0;
+      
+      // Fetch all selected devices
+      let allDevices: any[] = [];
+      if (deviceIds.length > 0) {
+        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", userId).in("id", deviceIds);
+        allDevices = (devs || []).filter(d => d.uazapi_token && d.uazapi_base_url);
+      }
+      
+      if (allDevices.length === 0) {
+        // Fallback: get any ready device
+        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", userId).eq("status", "Ready").limit(1);
+        allDevices = devs || [];
+      }
+
+      const device = allDevices[0];
       const deviceToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
       const deviceBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
 
@@ -200,7 +216,8 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token configurado encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      console.log(`Starting campaign ${campaignId} via device ${device.name}`);
+      const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
+      console.log(`Starting campaign ${campaignId} via ${allDevices.length} device(s)${useRotation ? ` (rotation every ${messagesPerInstance} msgs)` : ""}`);
 
       // Read delay config from campaign
       const minDelayMs = (campaign.min_delay_seconds || 8) * 1000;
@@ -212,7 +229,7 @@ Deno.serve(async (req) => {
 
       // Decide pause interval for this batch
       const pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
-      console.log(`Delay: ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s, Pause every ${pauseAfter} msgs, Duration: ${campaign.pause_duration_min}-${campaign.pause_duration_max}s`);
+      console.log(`Delay: ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s, Pause every ${pauseAfter} msgs`);
 
       // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
@@ -224,6 +241,8 @@ Deno.serve(async (req) => {
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
       let batchSent = 0;
+      let instanceMsgCount = 0; // counter for rotation
+      let currentDeviceIndex = 0; // current device in rotation
       const messageContent = campaign.message_content || "";
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
@@ -238,6 +257,16 @@ Deno.serve(async (req) => {
           console.log(`Campaign ${campaignId} was ${freshCampaign.status} during execution. Stopping.`);
           break;
         }
+
+        // Instance rotation logic
+        if (useRotation && instanceMsgCount >= messagesPerInstance) {
+          currentDeviceIndex = (currentDeviceIndex + 1) % allDevices.length;
+          instanceMsgCount = 0;
+          console.log(`Rotating to device ${allDevices[currentDeviceIndex].name} (index ${currentDeviceIndex})`);
+        }
+        const activeDevice = useRotation ? allDevices[currentDeviceIndex] : device;
+        const activeToken = activeDevice.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
+        const activeBaseUrl = (activeDevice.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
 
         const phone = contact.phone.replace(/\D/g, "");
         if (phone.length < 10) {
@@ -254,7 +283,7 @@ Deno.serve(async (req) => {
           const normalizedPhone = normalizeBrazilianPhone(phone);
 
           // Check if number exists on WhatsApp before sending
-          const check = await checkNumberExists(deviceBaseUrl, deviceToken, normalizedPhone);
+          const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
           if (!check.exists) {
             console.log(`Number ${phone} not on WhatsApp, skipping`);
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número não está no WhatsApp" }).eq("id", contact.id);
@@ -263,15 +292,16 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          await sendUazapiMessage(deviceBaseUrl, deviceToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+          await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
           await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
           sentCount++;
           batchSent++;
+          instanceMsgCount++;
 
           // Update campaign counters in real-time
           await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-          console.log(`Sent to ${phone} (${batchSent}/${(contacts || []).length})`);
+          console.log(`Sent to ${phone} via ${activeDevice.name} (${batchSent}/${(contacts || []).length})`);
 
           // Delay between messages
           const delay = randomBetween(minDelayMs, maxDelayMs);
@@ -284,7 +314,7 @@ Deno.serve(async (req) => {
             await new Promise(resolve => setTimeout(resolve, pauseDuration));
           }
         } catch (err: any) {
-          console.error(`Failed to send to ${phone}:`, err.message);
+          console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, err.message);
           await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro ao enviar" }).eq("id", contact.id);
           failedCount++;
           await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
@@ -294,7 +324,6 @@ Deno.serve(async (req) => {
       // Final status
       const { data: finalCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
       if (finalCampaign && finalCampaign.status === "running") {
-        // Check if there are still pending contacts
         const { count } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
         const finalStatus = (count || 0) > 0 ? "paused" : "completed";
         await serviceClient.from("campaigns").update({
@@ -306,7 +335,7 @@ Deno.serve(async (req) => {
         }).eq("id", campaignId);
       }
 
-      return new Response(JSON.stringify({ success: true, sent: sentCount, failed: failedCount, total: (contacts || []).length, device: device.name }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, sent: sentCount, failed: failedCount, total: (contacts || []).length, devices: allDevices.map(d => d.name) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── STATUS ───
