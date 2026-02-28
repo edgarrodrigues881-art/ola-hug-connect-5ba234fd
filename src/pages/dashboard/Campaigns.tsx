@@ -273,6 +273,23 @@ const Campaigns = () => {
           if (draft.scheduleDate) setScheduleDate(draft.scheduleDate);
         }
       } catch { /* ignore corrupt data */ }
+
+      // Check for resend data from CampaignDetail
+      try {
+        const resendRaw = sessionStorage.getItem("resend_campaign_data");
+        if (resendRaw) {
+          sessionStorage.removeItem("resend_campaign_data");
+          const resend = JSON.parse(resendRaw);
+          if (resend.contacts?.length) { setContacts(resend.contacts); setShowContactTable(true); }
+          if (resend.message) setMessage(resend.message);
+          if (resend.mediaUrl) setMediaUrl(resend.mediaUrl);
+          if (resend.campaignName) setCampaignName(resend.campaignName);
+          if (resend.buttons && Array.isArray(resend.buttons) && resend.buttons.length > 0) {
+            setButtons(resend.buttons);
+          }
+        }
+      } catch { /* ignore */ }
+
       setDraftLoaded(true);
     };
     loadDefaults();
