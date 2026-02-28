@@ -180,6 +180,7 @@ const Campaigns = () => {
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [messagesPerInstance, setMessagesPerInstance] = useState(0);
+  const [sendMode, setSendMode] = useState<"single" | "rotation" | "parallel">("single");
 
   // Delay profile mutations (after delay state is declared)
   const saveDelayProfile = useMutation({
@@ -282,12 +283,12 @@ const Campaigns = () => {
     if (!draftLoaded) return;
     const draft = {
       campaignName, message, messageType, mediaUrl, contacts,
-      buttons, selectedDevices, messagesPerInstance,
+      buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
     setMessage(""); setMediaUrl(""); setMediaFileName("");
@@ -302,7 +303,7 @@ const Campaigns = () => {
   const clearStep3 = () => {
     setSelectedDevices([]); setMinDelay(8); setMaxDelay(25);
     setPauseEveryMin(10); setPauseEveryMax(20); setPauseDurationMin(30); setPauseDurationMax(120);
-    setMessagesPerInstance(0); setScheduleEnabled(false); setScheduleDate("");
+    setMessagesPerInstance(0); setSendMode("single"); setScheduleEnabled(false); setScheduleDate("");
     toast({ title: "Parâmetros limpos" });
   };
   const clearAllForm = () => {
@@ -409,7 +410,7 @@ const Campaigns = () => {
       pause_duration_max: pauseDurationMax,
       device_id: selectedDevices[0],
       device_ids: selectedDevices,
-      messages_per_instance: messagesPerInstance,
+      messages_per_instance: sendMode === "rotation" ? messagesPerInstance : (sendMode === "parallel" ? -1 : 0),
     }, {
       onSuccess: (newCampaign) => {
         if (scheduleEnabled && scheduleDate) {
@@ -1500,28 +1501,61 @@ const Campaigns = () => {
                 </div>
               )}
 
-              {/* Instance rotation config - show when multiple devices selected */}
+              {/* Multi-instance mode config */}
               {selectedDevices.length > 1 && (
-                <div className="mt-4 p-4 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15 space-y-3">
+                <div className="mt-4 p-4 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15 space-y-4">
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <RefreshCw className="w-4 h-4 text-primary" /> Rotação de Instâncias
+                    <RefreshCw className="w-4 h-4 text-primary" /> Modo de Envio Multi-Instância
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: "single" as const, label: "Primeira apenas", desc: "Usa só a 1ª instância" },
+                      { value: "rotation" as const, label: "Rotação", desc: "Alterna a cada X msgs" },
+                      { value: "parallel" as const, label: "Paralelo", desc: "Todas enviam ao mesmo tempo" },
+                    ]).map(mode => (
+                      <button
+                        key={mode.value}
+                        onClick={() => setSendMode(mode.value)}
+                        className={cn(
+                          "p-3 rounded-lg border text-left transition-all",
+                          sendMode === mode.value
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border/20 bg-muted/10 hover:border-border/40"
+                        )}
+                      >
+                        <p className={cn("text-xs font-medium", sendMode === mode.value ? "text-primary" : "text-foreground")}>{mode.label}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{mode.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {sendMode === "rotation" && (
+                    <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Mensagens por instância antes de trocar</label>
                       <Input
-                        type="number" min={0} value={messagesPerInstance || ""}
+                        type="number" min={1} value={messagesPerInstance || ""}
                         onChange={e => setMessagesPerInstance(Number(e.target.value))}
-                        placeholder="0 = sem rotação"
+                        onBlur={() => { if (!messagesPerInstance || messagesPerInstance < 1) setMessagesPerInstance(5); }}
+                        placeholder="Ex: 5"
                         className="h-9 mt-1 bg-muted/15 dark:bg-muted/8 border-border/15"
                       />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Cada instância enviará {messagesPerInstance || 5} mensagens antes de passar para a próxima.
+                      </p>
                     </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {messagesPerInstance > 0
-                      ? `Cada instância enviará ${messagesPerInstance} mensagens antes de passar para a próxima. ${selectedDevices.length} instâncias selecionadas.`
-                      : "Defina um valor para ativar a rotação automática entre as instâncias selecionadas."}
-                  </p>
+                  )}
+
+                  {sendMode === "parallel" && (
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/15">
+                      <p className="text-[10px] text-muted-foreground">
+                        <strong className="text-foreground">{selectedDevices.length} instâncias</strong> enviarão simultaneamente.
+                        {validContacts.length > 0 && (
+                          <> Cada uma receberá ~<strong className="text-foreground">{Math.ceil(validContacts.length / selectedDevices.length)}</strong> contatos.</>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </SurfaceCard>
