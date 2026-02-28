@@ -1247,6 +1247,16 @@ const Devices = () => {
                   <div className="border-t border-border/10 px-2 py-1 flex items-center gap-0.5">
                     <TooltipProvider delayDuration={200}>
                       <Tooltip><TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(d)}>
+                          <Pencil className="w-2.5 h-2.5" />
+                        </Button>
+                      </TooltipTrigger><TooltipContent className="text-[10px]">Editar</TooltipContent></Tooltip>
+                      <Tooltip><TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openQuickToken(d)}>
+                          <Key className="w-2.5 h-2.5" />
+                        </Button>
+                      </TooltipTrigger><TooltipContent className="text-[10px]">Token</TooltipContent></Tooltip>
+                      <Tooltip><TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-6 w-6" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "testApi")}>
                           {loadingAction === "testApi" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <TestTube className="w-2.5 h-2.5" />}
                         </Button>
