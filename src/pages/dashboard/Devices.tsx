@@ -1035,51 +1035,117 @@ const Devices = () => {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar instância</DialogTitle>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-primary" />
+              Editar instância
+            </DialogTitle>
+            {editingDevice && (
+              <p className="text-[11px] text-muted-foreground/50 mt-0.5">{editingDevice.number || "Sem número vinculado"}</p>
+            )}
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label className="text-xs">Nome da instância</Label>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome" className="h-9 text-sm" />
+          <div className="space-y-3 py-1">
+            {/* Nome */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Nome da instância</Label>
+              <Input
+                value={editName}
+                onChange={e => setEditName(e.target.value.slice(0, 30))}
+                placeholder="Ex: Chip 01"
+                className="h-8 text-xs"
+                maxLength={30}
+              />
+              <div className="flex items-center justify-between">
+                <div>
+                  {editName.trim() && devices.some(d => d.name.toLowerCase() === editName.trim().toLowerCase() && d.id !== editingDevice?.id) && (
+                    <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
+                      <AlertTriangle className="w-2.5 h-2.5" /> Nome já em uso
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground/30">{editName.length}/30</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Token da Instância</Label>
-              <Input value={editUazapiToken} onChange={e => setEditUazapiToken(e.target.value)} placeholder="Token de autenticação" className="h-9 text-sm font-mono" />
+
+            {/* Token */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] text-muted-foreground">Token da Instância</Label>
+                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${editUazapiToken ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                  {editUazapiToken ? "Configurado" : "Ausente"}
+                </Badge>
+              </div>
+              <Input
+                value={editUazapiToken}
+                onChange={e => setEditUazapiToken(e.target.value)}
+                placeholder="Cole o token aqui"
+                className="h-8 text-xs font-mono"
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">URL da API</Label>
-              <Input value={editUazapiBaseUrl} onChange={e => setEditUazapiBaseUrl(e.target.value)} placeholder="https://sua-api.com" className="h-9 text-sm font-mono" />
+
+            {/* URL da API */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] text-muted-foreground">URL da API</Label>
+                {editUazapiBaseUrl && (
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${
+                    /^https?:\/\/.+/.test(editUazapiBaseUrl)
+                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                  }`}>
+                    {/^https?:\/\/.+/.test(editUazapiBaseUrl) ? "Válida" : "Formato inválido"}
+                  </Badge>
+                )}
+              </div>
+              <Input
+                value={editUazapiBaseUrl}
+                onChange={e => setEditUazapiBaseUrl(e.target.value)}
+                placeholder="https://sua-api.com"
+                className="h-8 text-xs font-mono"
+              />
+              {editUazapiBaseUrl && !/^https?:\/\/.+/.test(editUazapiBaseUrl) && (
+                <p className="text-[10px] text-amber-500/70">A URL deve começar com http:// ou https://</p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Proxy</Label>
+
+            {/* Proxy */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Proxy</Label>
               <Select value={editProxyValue} onValueChange={setEditProxyValue}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Selecionar proxy" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableProxies.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center justify-between gap-4 w-full">
+                  {availableProxies.map(p => {
+                    const proxyStatusClass = p.status === "USANDO"
+                      ? "text-amber-500 border-amber-500/20"
+                      : p.status === "USADA"
+                        ? "text-red-400 border-red-500/20"
+                        : "text-emerald-500 border-emerald-500/20";
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
                         <div className="flex items-center gap-2">
-                          <Shield className="w-3 h-3 text-primary" />
-                          {p.label}
+                          <Shield className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs">{p.label}</span>
+                          <Badge variant="outline" className={`text-[9px] px-1 py-0 ${proxyStatusClass}`}>{p.status}</Badge>
                         </div>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.status === "USANDO" ? "border-yellow-500/30 text-yellow-500" : p.status === "USADA" ? "border-red-500/30 text-red-500" : "border-emerald-500/30 text-emerald-500"}`}>
-                          {p.status}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
+                      </SelectItem>
+                    );
+                  })}
                   <SelectItem value="none">
-                    <span className="text-muted-foreground">Sem proxy</span>
+                    <span className="text-xs text-muted-foreground">Sem proxy</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
+              {editProxyValue === "none" && (
+                <p className="text-[10px] text-amber-500/70 flex items-center gap-0.5">
+                  <AlertTriangle className="w-2.5 h-2.5" /> Instância sem proxy — risco maior de bloqueio
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button onClick={handleEdit} className="bg-primary hover:bg-primary/90">Salvar</Button>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
