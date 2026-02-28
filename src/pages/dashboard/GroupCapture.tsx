@@ -1,11 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
-  UsersRound, Link2, Loader2, Copy, Check, LogIn, Pause, Play, Timer,
-  RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock
+  UsersRound, Link2, Copy, Check, LogIn, Pause, Play, Timer,
+  RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock,
+  Loader2, Shield
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -15,10 +16,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
-
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 
 const SUGGESTED_GROUPS = [
   { name: "DG CONTINGÊNCIA #01", link: "https://chat.whatsapp.com/I1gvz1bfEhrEIM9iMFsCik?mode=gi_t" },
@@ -74,12 +73,10 @@ const GroupCapture = () => {
   const [delaySeconds, setDelaySeconds] = useState(10);
   const [activeTab, setActiveTab] = useState("groups");
 
-  // Join process state
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
   const [joinItems, setJoinItems] = useState<JoinItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [countdown, setCountdown] = useState(0);
-
 
   const pausedRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -114,7 +111,35 @@ const GroupCapture = () => {
     refetchInterval: 5000,
   });
 
-  // Realtime sync for device status
+  // Fetch join logs for per-device stats
+  const { data: joinLogs = [] } = useQuery({
+    queryKey: ["group-join-logs", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("group_join_logs")
+        .select("device_id, result, created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data as { device_id: string; result: string; created_at: string }[];
+    },
+    enabled: !!user,
+  });
+
+  // Per-device stats
+  const deviceStats = useMemo(() => {
+    const stats: Record<string, { joined: number; lastAt: string | null }> = {};
+    for (const log of joinLogs) {
+      if (!stats[log.device_id]) stats[log.device_id] = { joined: 0, lastAt: null };
+      if (log.result === "success" || log.result === "already_member") {
+        stats[log.device_id].joined++;
+      }
+      if (!stats[log.device_id].lastAt) stats[log.device_id].lastAt = log.created_at;
+    }
+    return stats;
+  }, [joinLogs]);
+
   useEffect(() => {
     const channel = supabase
       .channel('devices-join-status')
@@ -124,7 +149,6 @@ const GroupCapture = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [refetchDevices]);
-
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -205,7 +229,6 @@ const GroupCapture = () => {
               responseStatus: result.responseStatus,
             });
 
-            // Backoff on rate limit
             if (result.responseStatus === 429) {
               dynamicDelay = Math.min(dynamicDelay + 10, 120);
             }
@@ -217,7 +240,6 @@ const GroupCapture = () => {
         updateItem(i, { status: "error", error: String(err) });
       }
 
-      // Delay before next
       if (i < items.length - 1 && !cancelledRef.current) {
         await startCountdown(dynamicDelay);
       }
@@ -326,150 +348,179 @@ const GroupCapture = () => {
   const failedCount = joinItems.filter((i) => i.status === "error").length;
   const successCount = joinItems.filter((i) => i.status === "success" || i.status === "already_member").length;
 
+  // Validation
+  const hasOfflineDevices = selectedDevices.some(id => {
+    const d = devices.find(dev => dev.id === id);
+    return d && !["Connected", "Ready", "authenticated"].includes(d.status);
+  });
+  const canStart = selectedGroups.length > 0 && selectedDevices.length > 0 && !hasOfflineDevices;
+  const totalOps = selectedGroups.length * selectedDevices.length;
+  const estimatedTime = totalOps > 1 ? (totalOps - 1) * delaySeconds : 0;
+
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}min atrás`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h atrás`;
+    return `${Math.floor(hrs / 24)}d atrás`;
+  };
+
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Grupos de Aquecimento</h1>
-          <p className="text-sm text-muted-foreground">Links dos grupos do WhatsApp para aquecimento</p>
+          <h1 className="text-xl font-bold text-foreground">Grupos de Aquecimento</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Grupos para aquecimento automático de chips</p>
         </div>
-        <Button onClick={() => setJoinModalOpen(true)} className="gap-2">
-          <LogIn className="w-4 h-4" /> Entrar nos Grupos
+        <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5">
+          <LogIn className="w-3.5 h-3.5" /> Entrar nos Grupos
         </Button>
       </div>
 
-      <div className="space-y-3">
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <>
-              {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
-                <Card key={sg.link} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <img src={dgLogo} alt={sg.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{sg.name}</p>
-                          <CopyButton text={sg.link} />
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
-                          <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-xs text-muted-foreground break-all select-all">{sg.link}</span>
-                        </div>
-                      </div>
+      {/* Group list */}
+      <div className="space-y-2">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
+              <Card key={sg.link} className="border-border/15">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <img src={dgLogo} alt={sg.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-foreground">{sg.name}</p>
+                      <p className="text-[11px] text-muted-foreground/50 truncate">{sg.link}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CopyButton text={sg.link} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
-              {groups.map((g: any) => (
-                <Card key={g.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      {g.name?.includes("DG CONTINGÊNCIA") ? (
-                        <img src={dgLogo} alt={g.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                          <UsersRound className="w-5 h-5 text-primary" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{g.name}</p>
-                          <CopyButton text={g.link} />
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/30">
-                          <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-xs text-muted-foreground break-all select-all">{g.link}</span>
-                        </div>
+            {groups.map((g: any) => (
+              <Card key={g.id} className="border-border/15">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    {g.name?.includes("DG CONTINGÊNCIA") ? (
+                      <img src={dgLogo} alt={g.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <UsersRound className="w-4 h-4 text-primary" />
                       </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-foreground">{g.name}</p>
+                      <p className="text-[11px] text-muted-foreground/50 truncate">{g.link}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CopyButton text={g.link} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
-              {groups.length === 0 && SUGGESTED_GROUPS.length === 0 && (
-                <Card className="border-border/50 bg-card/80">
-                  <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                    Nenhum grupo cadastrado ainda. Adicione o primeiro acima.
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
+            {groups.length === 0 && SUGGESTED_GROUPS.length === 0 && (
+              <div className="text-center py-12 text-sm text-muted-foreground">
+                Nenhum grupo cadastrado
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Modal de Entrar nos Grupos */}
+      {/* Join Modal */}
       <Dialog open={joinModalOpen} onOpenChange={handleCloseModal}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Entrar nos Grupos</DialogTitle>
-            <DialogDescription>
-              Selecione os grupos, instâncias e configure o delay entre entradas.
+            <DialogTitle className="text-base">Entrar nos Grupos</DialogTitle>
+            <DialogDescription className="text-xs">
+              Selecione grupos e instâncias. O delay protege contra bloqueios.
             </DialogDescription>
           </DialogHeader>
 
           {!isProcessing && !isDone ? (
             <>
               <div className="space-y-4">
-                {/* Seleção de Grupos */}
-                <div className="space-y-2">
+                {/* Groups */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-foreground">Grupos</h3>
-                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllGroups}>
-                      {selectedGroups.length === uniqueGroups.length ? "Desmarcar todos" : "Selecionar todos"}
+                    <h3 className="text-[13px] font-medium text-foreground">Grupos ({selectedGroups.length}/{uniqueGroups.length})</h3>
+                    <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAllGroups}>
+                      {selectedGroups.length === uniqueGroups.length ? "Desmarcar" : "Todos"}
                     </Button>
                   </div>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
+                  <div className="space-y-1 max-h-32 overflow-y-auto rounded-md border border-border/20 p-1.5">
                     {uniqueGroups.map((g) => (
-                      <label key={g.link} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
+                      <label key={g.link} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/30 cursor-pointer">
                         <Checkbox checked={selectedGroups.includes(g.link)} onCheckedChange={() => toggleGroup(g.link)} />
-                        <span className="text-sm truncate">{g.name}</span>
+                        <span className="text-xs truncate">{g.name}</span>
                       </label>
                     ))}
                     {uniqueGroups.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
+                      <p className="text-[11px] text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
                     )}
                   </div>
                 </div>
 
-                {/* Seleção de Instâncias */}
-                <div className="space-y-2">
+                {/* Devices with stats */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-foreground">Instâncias</h3>
-                    <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAllDevices}>
-                      {selectedDevices.length === devices.length ? "Desmarcar todos" : "Selecionar todos"}
+                    <h3 className="text-[13px] font-medium text-foreground">Instâncias ({selectedDevices.length}/{devices.length})</h3>
+                    <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAllDevices}>
+                      {selectedDevices.length === devices.length ? "Desmarcar" : "Todas"}
                     </Button>
                   </div>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto rounded-md border border-border/50 p-2">
-                    {devices.map((d) => (
-                      <label key={d.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">
-                        <Checkbox checked={selectedDevices.includes(d.id)} onCheckedChange={() => toggleDevice(d.id)} />
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-sm truncate">{d.name}</span>
-                          {d.number && <span className="text-xs text-muted-foreground">{d.number}</span>}
-                        </div>
-                        <Badge variant={["Connected", "Ready", "authenticated"].includes(d.status) ? "default" : "destructive"} className="text-[10px] shrink-0">
-                          {["Connected", "Ready", "authenticated"].includes(d.status) ? "Online" : "Offline"}
-                        </Badge>
-                      </label>
-                    ))}
+                  <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-border/20 p-1.5">
+                    {devices.map((d) => {
+                      const isOnline = ["Connected", "Ready", "authenticated"].includes(d.status);
+                      const stats = deviceStats[d.id];
+                      return (
+                        <label key={d.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/30 cursor-pointer">
+                          <Checkbox checked={selectedDevices.includes(d.id)} onCheckedChange={() => toggleDevice(d.id)} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? "bg-emerald-400" : "bg-red-400"}`} />
+                              <span className="text-xs font-medium truncate">{d.name}</span>
+                              {d.number && <span className="text-[10px] text-muted-foreground/50">{d.number}</span>}
+                            </div>
+                            {stats && (
+                              <div className="flex items-center gap-2 ml-4 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground/50">
+                                  {stats.joined} grupo{stats.joined !== 1 ? "s" : ""}
+                                </span>
+                                {stats.lastAt && (
+                                  <span className="text-[10px] text-muted-foreground/30">
+                                    última: {formatTimeAgo(stats.lastAt)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                     {devices.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-2">Nenhuma instância cadastrada</p>
+                      <p className="text-[11px] text-muted-foreground text-center py-2">Nenhuma instância cadastrada</p>
                     )}
                   </div>
                 </div>
 
-                {/* Delay */}
-                <div className="space-y-2">
+                {/* Delay — always visible */}
+                <div className="p-3 rounded-lg border border-border/20 bg-muted/5 space-y-2">
                   <div className="flex items-center gap-2">
-                    <Timer className="w-4 h-4 text-muted-foreground" />
-                    <h3 className="text-sm font-semibold text-foreground">Delay entre entradas</h3>
-                    <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground ml-auto">
+                    <Timer className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[13px] font-medium text-foreground">Delay entre entradas</span>
+                    <span className="text-xs font-mono bg-muted/30 px-2 py-0.5 rounded text-foreground ml-auto">
                       {delaySeconds}s
                     </span>
                   </div>
@@ -481,29 +532,57 @@ const GroupCapture = () => {
                     step={1}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>3s</span>
-                    <span>120s</span>
+                  <div className="flex justify-between text-[10px] text-muted-foreground/40">
+                    <span>3s (rápido)</span>
+                    <span>120s (seguro)</span>
                   </div>
+
+                  {/* Speed warning */}
+                  {delaySeconds < 8 && (
+                    <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-amber-500/5 border border-amber-500/15">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <p className="text-[11px] text-amber-400/80">
+                        Delay abaixo de 8s aumenta risco de bloqueio temporário.
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Offline devices warning */}
+                {hasOfflineDevices && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/5 border border-red-500/15">
+                    <Shield className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <p className="text-[11px] text-red-400/80">
+                      Instâncias offline selecionadas. Remova-as ou reconecte antes de iniciar.
+                    </p>
+                  </div>
+                )}
+
+                {/* Summary */}
+                {totalOps > 0 && (
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                    <span>{totalOps} operação{totalOps !== 1 ? "ões" : ""}</span>
+                    {estimatedTime > 0 && <span>~{formatDuration(estimatedTime)}</span>}
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => handleCloseModal()}>Cancelar</Button>
+                <Button variant="outline" size="sm" onClick={() => handleCloseModal()}>Cancelar</Button>
                 <Button
                   onClick={startJoinProcess}
-                  disabled={selectedGroups.length === 0 || selectedDevices.length === 0}
-                  className="gap-2"
+                  disabled={!canStart}
+                  size="sm"
+                  className="gap-1.5"
                 >
-                  <LogIn className="w-4 h-4" />
-                  Iniciar ({selectedGroups.length}g × {selectedDevices.length}i)
+                  <LogIn className="w-3.5 h-3.5" />
+                  Iniciar ({totalOps})
                 </Button>
               </DialogFooter>
             </>
           ) : (
             /* Progress View */
-            <div className="space-y-4">
-              {/* Summary bar */}
+            <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -522,61 +601,62 @@ const GroupCapture = () => {
                 </span>
               </div>
 
-              <Progress value={joinItems.length > 0 ? ((successCount + failedCount) / joinItems.length) * 100 : 0} className="h-2" />
+              <Progress value={joinItems.length > 0 ? ((successCount + failedCount) / joinItems.length) * 100 : 0} className="h-1.5" />
 
-              {/* Countdown */}
+              {/* Countdown + delay info */}
               {countdown > 0 && (
-                <div className="flex items-center gap-2 text-sm bg-muted/30 rounded-md p-2 border border-border/30">
+                <div className="flex items-center gap-2 text-xs bg-muted/10 rounded-md p-2 border border-border/15">
                   <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Próximo em</span>
-                  <span className="font-mono text-foreground">{countdown}s</span>
+                  <span className="font-mono text-foreground font-medium">{countdown}s</span>
+                  <span className="text-muted-foreground/30 ml-auto">delay: {delaySeconds}s</span>
                 </div>
               )}
 
               {joinStatus === "paused" && (
-                <div className="flex items-center gap-2 text-sm bg-amber-500/10 rounded-md p-2 border border-amber-500/30">
-                  <Pause className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-amber-500">Pausado</span>
+                <div className="flex items-center gap-2 text-xs bg-amber-500/5 rounded-md p-2 border border-amber-500/15">
+                  <Pause className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-amber-400">Pausado</span>
                 </div>
               )}
 
               {/* Task list */}
-              <div className="max-h-60 overflow-y-auto space-y-1 rounded-md border border-border/50 p-2">
-                  {joinItems.map((item, i) => {
-                    const cfg = statusConfig[item.status];
-                    const Icon = cfg.icon;
-                    return (
-                      <div
-                        key={`${item.deviceId}-${item.groupLink}`}
-                        className={`flex items-start gap-2 p-2 rounded-md text-xs ${
-                          i === currentIndex && isProcessing ? "bg-muted/50" : ""
-                        }`}
-                      >
-                        <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${cfg.color} ${item.status === "running" ? "animate-spin" : ""}`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium text-foreground truncate">{item.deviceName}</span>
-                            <span className="text-muted-foreground">→</span>
-                            <span className="text-foreground truncate">{item.groupName}</span>
-                          </div>
-                          {item.error && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <p className="text-destructive/80 truncate mt-0.5 cursor-help">{item.error}</p>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-xs">
-                                  <p className="text-xs">{item.error}</p>
-                                  {item.responseStatus && <p className="text-xs mt-1">HTTP {item.responseStatus}</p>}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+              <div className="max-h-52 overflow-y-auto space-y-0.5 rounded-md border border-border/20 p-1.5">
+                {joinItems.map((item, i) => {
+                  const cfg = statusConfig[item.status];
+                  const Icon = cfg.icon;
+                  return (
+                    <div
+                      key={`${item.deviceId}-${item.groupLink}`}
+                      className={`flex items-start gap-2 p-1.5 rounded text-xs ${
+                        i === currentIndex && isProcessing ? "bg-muted/30" : ""
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${cfg.color} ${item.status === "running" ? "animate-spin" : ""}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-foreground truncate">{item.deviceName}</span>
+                          <span className="text-muted-foreground/30">→</span>
+                          <span className="text-foreground/70 truncate">{item.groupName}</span>
                         </div>
-                        <span className={`text-[10px] shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                        {item.error && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="text-destructive/60 truncate mt-0.5 cursor-help text-[10px]">{item.error}</p>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-xs">
+                                <p className="text-xs">{item.error}</p>
+                                {item.responseStatus && <p className="text-xs mt-1">HTTP {item.responseStatus}</p>}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
-                    );
-                  })}
+                      <span className={`text-[10px] shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Controls */}
@@ -584,16 +664,16 @@ const GroupCapture = () => {
                 {isProcessing && (
                   <>
                     {joinStatus === "running" ? (
-                      <Button variant="outline" size="sm" onClick={handlePause} className="gap-1.5">
-                        <Pause className="w-3.5 h-3.5" /> Pausar
+                      <Button variant="outline" size="sm" onClick={handlePause} className="gap-1 text-xs h-7">
+                        <Pause className="w-3 h-3" /> Pausar
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={handleResume} className="gap-1.5">
-                        <Play className="w-3.5 h-3.5" /> Retomar
+                      <Button variant="outline" size="sm" onClick={handleResume} className="gap-1 text-xs h-7">
+                        <Play className="w-3 h-3" /> Retomar
                       </Button>
                     )}
-                    <Button variant="destructive" size="sm" onClick={handleCancel} className="gap-1.5">
-                      <XCircle className="w-3.5 h-3.5" /> Cancelar
+                    <Button variant="destructive" size="sm" onClick={handleCancel} className="gap-1 text-xs h-7">
+                      <XCircle className="w-3 h-3" /> Cancelar
                     </Button>
                   </>
                 )}
@@ -601,14 +681,14 @@ const GroupCapture = () => {
                 {isDone && (
                   <>
                     {failedCount > 0 && (
-                      <Button variant="outline" size="sm" onClick={retryFailures} className="gap-1.5">
-                        <RotateCcw className="w-3.5 h-3.5" /> Repetir falhas ({failedCount})
+                      <Button variant="outline" size="sm" onClick={retryFailures} className="gap-1 text-xs h-7">
+                        <RotateCcw className="w-3 h-3" /> Repetir falhas ({failedCount})
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={copyReport} className="gap-1.5">
-                      <ClipboardCopy className="w-3.5 h-3.5" /> Copiar relatório
+                    <Button variant="outline" size="sm" onClick={copyReport} className="gap-1 text-xs h-7">
+                      <ClipboardCopy className="w-3 h-3" /> Copiar relatório
                     </Button>
-                    <Button size="sm" onClick={() => handleCloseModal()} className="ml-auto">
+                    <Button size="sm" onClick={() => handleCloseModal()} className="ml-auto text-xs h-7">
                       Fechar
                     </Button>
                   </>
