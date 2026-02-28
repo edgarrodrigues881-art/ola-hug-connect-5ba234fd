@@ -118,13 +118,13 @@ html {
     --chart-4: 81 84% 67%;
     --chart-5: 0 0% 45%;
     --sidebar: 220 15% 8%;
-    --sidebar-background: 220 15% 8%;
-    --sidebar-foreground: 0 0% 80%;
+    --sidebar-background: 222 18% 7%;
+    --sidebar-foreground: 0 0% 78%;
     --sidebar-primary: 158 64% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 13%;
-    --sidebar-accent-foreground: 0 0% 88%;
-    --sidebar-border: 220 10% 14%;
+    --sidebar-accent: 220 14% 12%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 220 12% 12%;
     --sidebar-ring: 158 64% 51%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
@@ -172,6 +172,15 @@ html {
 }
 
 @layer utilities {
+  /* Sidebar premium */
+  .sidebar-premium {
+    box-shadow: 1px 0 0 0 hsl(220 12% 12%), 4px 0 12px -2px hsl(0 0% 0% / 0.15);
+  }
+
+  .sidebar-nav-item {
+    position: relative;
+  }
+
   .auth-gradient {
     background: linear-gradient(
       165deg,
@@ -210,5 +219,4 @@ html {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
 }
