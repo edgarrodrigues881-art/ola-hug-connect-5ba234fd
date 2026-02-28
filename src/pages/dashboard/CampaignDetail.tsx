@@ -45,6 +45,7 @@ const CampaignDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const [countdown, setCountdown] = useState("");
   // Campaign data
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -59,6 +60,25 @@ const CampaignDetail = () => {
     },
     enabled: !!id && !!user,
   });
+
+  // Countdown for scheduled campaigns
+  useEffect(() => {
+    if (!campaign?.scheduled_at || !["scheduled", "pending"].includes(campaign.status)) {
+      setCountdown("");
+      return;
+    }
+    const update = () => {
+      const diff = new Date(campaign.scheduled_at!).getTime() - Date.now();
+      if (diff <= 0) { setCountdown("Iniciando..."); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [campaign?.scheduled_at, campaign?.status]);
 
   // Campaign contacts
   const { data: contacts = [], isLoading: contactsLoading } = useQuery({
@@ -249,6 +269,13 @@ const CampaignDetail = () => {
             <p className="text-sm text-muted-foreground">
               {stats.sent} / {stats.total} enviadas · {stats.failed} falhas · {stats.pending} pendentes
             </p>
+            {countdown && isScheduled && (
+              <div className="flex items-center gap-2 mt-1">
+                <Clock className="w-4 h-4 text-primary animate-pulse" />
+                <span className="text-sm font-mono font-bold text-primary">{countdown}</span>
+                <span className="text-xs text-muted-foreground">para iniciar</span>
+              </div>
+            )}
           </div>
 
           {/* Controls */}
