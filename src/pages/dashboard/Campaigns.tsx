@@ -1633,49 +1633,62 @@ const Campaigns = () => {
                 ))}
               </div>
 
-              {/* Data preview */}
-              <div className="flex-1 overflow-auto rounded-xl border border-border/15 bg-muted/8 dark:bg-muted/4">
-                <table className="w-full text-[11px]">
-                  <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
-                    <tr className="border-b border-border/15">
-                      <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
-                      {rawImport.headers.map((h, i) => (
-                        <th key={i} className={cn(
-                          "text-left px-3 py-2.5 font-semibold text-[10px]",
-                          rawImport.columnMappings[i] === "ignorar" ? "text-muted-foreground/30" :
-                          rawImport.columnMappings[i] === "numero" ? "text-primary" :
-                          rawImport.columnMappings[i] === "nome" ? "text-emerald-400" :
-                          "text-muted-foreground"
-                        )}>
-                          <div>{h}</div>
-                          <div className="font-normal text-[9px] opacity-60">{rawImport.columnMappings[i] === "ignorar" ? "—" : rawImport.columnMappings[i]}</div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rawImport.rows.slice(0, 5).map((row, ri) => (
-                      <tr key={ri} className="border-b border-border/8">
-                        <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{ri + 1}</td>
-                        {rawImport.headers.map((_, ci) => (
-                          <td key={ci} className={cn(
-                            "px-3 py-2",
-                            rawImport.columnMappings[ci] === "ignorar" ? "text-muted-foreground/20" : "text-foreground",
-                            rawImport.columnMappings[ci] === "numero" && "font-mono"
-                          )}>
-                            {String(row[ci] ?? "—").slice(0, 25)}
-                          </td>
+              {/* Data preview — only mapped columns */}
+              {(() => {
+                const mappedCols = rawImport.columnMappings
+                  .map((m, i) => ({ mapping: m, index: i, header: rawImport.headers[i] }))
+                  .filter(c => c.mapping !== "ignorar");
+                const labelMap: Record<string, string> = {
+                  nome: "Nome", numero: "Número",
+                  var1: "Var 1", var2: "Var 2", var3: "Var 3", var4: "Var 4", var5: "Var 5",
+                  var6: "Var 6", var7: "Var 7", var8: "Var 8", var9: "Var 9", var10: "Var 10",
+                };
+                return mappedCols.length > 0 ? (
+                  <div className="flex-1 overflow-auto rounded-xl border border-border/15 bg-muted/8 dark:bg-muted/4">
+                    <table className="w-full text-[11px]">
+                      <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
+                        <tr className="border-b border-border/15">
+                          <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
+                          {mappedCols.map(col => (
+                            <th key={col.index} className={cn(
+                              "text-left px-3 py-2.5 font-semibold text-[10px]",
+                              col.mapping === "numero" ? "text-primary" :
+                              col.mapping === "nome" ? "text-emerald-400" : "text-muted-foreground"
+                            )}>
+                              <div>{labelMap[col.mapping] || col.mapping}</div>
+                              <div className="font-normal text-[9px] opacity-50">{col.header}</div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rawImport.rows.slice(0, 5).map((row, ri) => (
+                          <tr key={ri} className="border-b border-border/8">
+                            <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{ri + 1}</td>
+                            {mappedCols.map(col => (
+                              <td key={col.index} className={cn(
+                                "px-3 py-2 text-foreground",
+                                col.mapping === "numero" && "font-mono"
+                              )}>
+                                {String(row[col.index] ?? "—").slice(0, 30)}
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {rawImport.rows.length > 5 && (
-                  <p className="text-[11px] text-muted-foreground text-center py-3">
-                    ...e mais {rawImport.rows.length - 5} linhas
-                  </p>
-                )}
-              </div>
+                      </tbody>
+                    </table>
+                    {rawImport.rows.length > 5 && (
+                      <p className="text-[11px] text-muted-foreground text-center py-3">
+                        ...e mais {rawImport.rows.length - 5} linhas
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/50 py-8">
+                    Selecione ao menos uma coluna para ver o preview.
+                  </div>
+                );
+              })()}
 
               {!rawImport.columnMappings.includes("numero") && (
                 <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
