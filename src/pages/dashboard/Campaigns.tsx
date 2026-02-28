@@ -159,38 +159,66 @@ const Campaigns = () => {
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
 
-  // Restore draft from localStorage on mount
+  // Load delay defaults from last campaign, then restore draft
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const draft = JSON.parse(saved);
-        if (draft.campaignName) setCampaignName(draft.campaignName);
-        if (draft.message) setMessage(draft.message);
-        if (draft.messageType) setMessageType(draft.messageType);
-        if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
-        if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
-        if (draft.buttons?.length) setButtons(draft.buttons);
-        if (draft.selectedDevices?.length) setSelectedDevices(draft.selectedDevices);
-        if (draft.minDelay) setMinDelay(draft.minDelay);
-        if (draft.maxDelay) setMaxDelay(draft.maxDelay);
-        if (draft.scheduleEnabled) setScheduleEnabled(draft.scheduleEnabled);
-        if (draft.scheduleDate) setScheduleDate(draft.scheduleDate);
-      }
-    } catch { /* ignore corrupt data */ }
-    setDraftLoaded(true);
+    const loadDefaults = async () => {
+      try {
+        // Fetch last campaign's delay settings
+        const { data: lastCampaign } = await supabase
+          .from("campaigns")
+          .select("min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (lastCampaign) {
+          setMinDelay(lastCampaign.min_delay_seconds);
+          setMaxDelay(lastCampaign.max_delay_seconds);
+          setPauseEveryMin(lastCampaign.pause_every_min);
+          setPauseEveryMax(lastCampaign.pause_every_max);
+          setPauseDurationMin(lastCampaign.pause_duration_min);
+          setPauseDurationMax(lastCampaign.pause_duration_max);
+        }
+      } catch { /* use defaults */ }
+
+      // Then restore draft (draft overrides last campaign values if present)
+      try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (saved) {
+          const draft = JSON.parse(saved);
+          if (draft.campaignName) setCampaignName(draft.campaignName);
+          if (draft.message) setMessage(draft.message);
+          if (draft.messageType) setMessageType(draft.messageType);
+          if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
+          if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
+          if (draft.buttons?.length) setButtons(draft.buttons);
+          if (draft.selectedDevices?.length) setSelectedDevices(draft.selectedDevices);
+          if (draft.minDelay) setMinDelay(draft.minDelay);
+          if (draft.maxDelay) setMaxDelay(draft.maxDelay);
+          if (draft.pauseEveryMin) setPauseEveryMin(draft.pauseEveryMin);
+          if (draft.pauseEveryMax) setPauseEveryMax(draft.pauseEveryMax);
+          if (draft.pauseDurationMin) setPauseDurationMin(draft.pauseDurationMin);
+          if (draft.pauseDurationMax) setPauseDurationMax(draft.pauseDurationMax);
+          if (draft.scheduleEnabled) setScheduleEnabled(draft.scheduleEnabled);
+          if (draft.scheduleDate) setScheduleDate(draft.scheduleDate);
+        }
+      } catch { /* ignore corrupt data */ }
+      setDraftLoaded(true);
+    };
+    loadDefaults();
   }, []);
 
-  // Auto-save draft
+  // Auto-save draft (including all delay params)
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
       campaignName, message, messageType, mediaUrl, contacts,
       buttons, selectedDevices,
-      minDelay, maxDelay, scheduleEnabled, scheduleDate,
+      minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
+      scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, minDelay, maxDelay, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
     setMessage(""); setMediaUrl(""); setMediaFileName("");
