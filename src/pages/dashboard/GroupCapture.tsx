@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   UsersRound, Link2, Loader2, Copy, Check, LogIn, Pause, Play, Timer,
-  RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock,
-  Filter, Search
+  RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -16,10 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SUGGESTED_GROUPS = [
@@ -82,10 +80,6 @@ const GroupCapture = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [countdown, setCountdown] = useState(0);
 
-  // Log filters
-  const [logFilterDevice, setLogFilterDevice] = useState("all");
-  const [logFilterStatus, setLogFilterStatus] = useState("all");
-  const [logSearch, setLogSearch] = useState("");
 
   const pausedRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -131,19 +125,6 @@ const GroupCapture = () => {
     return () => { supabase.removeChannel(channel); };
   }, [refetchDevices]);
 
-  const { data: joinLogs = [], refetch: refetchLogs } = useQuery({
-    queryKey: ["group-join-logs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_join_logs" as any)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data as any[];
-    },
-    enabled: !!user,
-  });
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -244,7 +225,6 @@ const GroupCapture = () => {
 
     setJoinStatus(cancelledRef.current ? "cancelled" : "done");
     setCountdown(0);
-    refetchLogs();
 
     const finalItems = itemsRef.current;
     const successCount = finalItems.filter((r) => r.status === "success" || r.status === "already_member").length;
@@ -254,7 +234,7 @@ const GroupCapture = () => {
       description: `${successCount} sucesso, ${errorCount} erros de ${finalItems.length} tentativas`,
       variant: errorCount > 0 ? "destructive" : "default",
     });
-  }, [delaySeconds, waitForResume, startCountdown, toast, refetchLogs]);
+  }, [delaySeconds, waitForResume, startCountdown, toast]);
 
   const startJoinProcess = useCallback(async () => {
     const uniqueGrps = [
@@ -346,15 +326,6 @@ const GroupCapture = () => {
   const failedCount = joinItems.filter((i) => i.status === "error").length;
   const successCount = joinItems.filter((i) => i.status === "success" || i.status === "already_member").length;
 
-  // Filtered logs
-  const filteredLogs = joinLogs.filter((log: any) => {
-    if (logFilterDevice !== "all" && log.device_name !== logFilterDevice) return false;
-    if (logFilterStatus !== "all" && log.result !== logFilterStatus) return false;
-    if (logSearch && !log.group_name?.toLowerCase().includes(logSearch.toLowerCase()) && !log.device_name?.toLowerCase().includes(logSearch.toLowerCase())) return false;
-    return true;
-  });
-
-  const uniqueLogDevices = [...new Set(joinLogs.map((l: any) => l.device_name))];
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -368,16 +339,7 @@ const GroupCapture = () => {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="groups">Grupos</TabsTrigger>
-          <TabsTrigger value="logs" className="gap-1.5">
-            Logs
-            {joinLogs.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{joinLogs.length}</Badge>}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="groups" className="space-y-3 mt-4">
+      <div className="space-y-3">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -439,97 +401,7 @@ const GroupCapture = () => {
               )}
             </>
           )}
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-3 mt-4">
-          {/* Log Filters */}
-          <div className="flex flex-wrap gap-2">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar grupo ou instância..."
-                value={logSearch}
-                onChange={(e) => setLogSearch(e.target.value)}
-                className="pl-8 h-9 text-sm"
-              />
-            </div>
-            <Select value={logFilterDevice} onValueChange={setLogFilterDevice}>
-              <SelectTrigger className="w-[160px] h-9 text-sm">
-                <SelectValue placeholder="Instância" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas instâncias</SelectItem>
-                {uniqueLogDevices.map((d) => (
-                  <SelectItem key={String(d)} value={String(d)}>{String(d)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={logFilterStatus} onValueChange={setLogFilterStatus}>
-              <SelectTrigger className="w-[140px] h-9 text-sm">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="success">Sucesso</SelectItem>
-                <SelectItem value="error">Erro</SelectItem>
-                <SelectItem value="already_member">Já participa</SelectItem>
-                <SelectItem value="pending_approval">Aprovação</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {filteredLogs.length === 0 ? (
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhum log encontrado.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
-              {filteredLogs.map((log: any) => {
-                const cfg = statusConfig[log.result as ItemStatus] || statusConfig.error;
-                const Icon = cfg.icon;
-                return (
-                  <TooltipProvider key={log.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-border/30 bg-card/60 hover:bg-card/90 transition-colors text-sm">
-                          <Icon className={`w-4 h-4 shrink-0 ${cfg.color} ${log.result === "running" ? "animate-spin" : ""}`} />
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-foreground">{log.device_name}</span>
-                            <span className="text-muted-foreground mx-1.5">→</span>
-                            <span className="text-foreground">{log.group_name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {log.duration_ms > 0 && (
-                              <span className="text-[10px] font-mono text-muted-foreground">{log.duration_ms}ms</span>
-                            )}
-                            <Badge variant={log.result === "success" || log.result === "already_member" ? "default" : log.result === "error" ? "destructive" : "secondary"} className="text-[10px]">
-                              {cfg.label}
-                            </Badge>
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(log.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-sm">
-                        <div className="space-y-1 text-xs">
-                          <p><strong>Invite Code:</strong> {log.invite_code}</p>
-                          <p><strong>HTTP Status:</strong> {log.response_status}</p>
-                          {log.error_message && <p><strong>Erro:</strong> {log.error_message}</p>}
-                          {log.response_body && <p className="truncate"><strong>Resposta:</strong> {log.response_body.substring(0, 150)}</p>}
-                          <p><strong>Tentativa:</strong> {log.attempt}</p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* Modal de Entrar nos Grupos */}
       <Dialog open={joinModalOpen} onOpenChange={handleCloseModal}>
