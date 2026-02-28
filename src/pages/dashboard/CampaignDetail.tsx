@@ -9,15 +9,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Smartphone,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
@@ -46,6 +49,10 @@ const CampaignDetail = () => {
   const queryClient = useQueryClient();
 
   const [countdown, setCountdown] = useState("");
+  const [resendDialogOpen, setResendDialogOpen] = useState(false);
+  const [resendSelectedDevices, setResendSelectedDevices] = useState<string[]>([]);
+  const [resendMode, setResendMode] = useState<"single" | "rotation" | "parallel">("single");
+  const [resendMsgPerInstance, setResendMsgPerInstance] = useState(5);
   // Campaign data
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -93,6 +100,17 @@ const CampaignDetail = () => {
       return data || [];
     },
     enabled: !!id && !!user,
+  });
+
+  // Devices for resend
+  const { data: devices = [] } = useQuery({
+    queryKey: ["devices"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("devices").select("id, name, number, status").eq("user_id", user!.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
   });
 
   // Realtime subscription for auto-updates
@@ -230,16 +248,31 @@ const CampaignDetail = () => {
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
-  // Resend failed/pending contacts as new campaign
-  const handleResendFailed = async () => {
-    if (!campaign || !user) return;
+  // Open resend dialog
+  const openResendDialog = () => {
     const failedContacts = contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending");
     if (failedContacts.length === 0) {
       toast({ title: "Sem contatos para reenviar", description: "Todos os contatos foram enviados com sucesso.", variant: "destructive" });
       return;
     }
+    setResendSelectedDevices([]);
+    setResendMode("single");
+    setResendMsgPerInstance(5);
+    setResendDialogOpen(true);
+  };
+
+  const toggleResendDevice = (deviceId: string) => {
+    setResendSelectedDevices(prev =>
+      prev.includes(deviceId) ? prev.filter(d => d !== deviceId) : [...prev, deviceId]
+    );
+  };
+
+  // Resend failed/pending contacts as new campaign with selected devices
+  const handleResendFailed = async () => {
+    if (!campaign || !user || resendSelectedDevices.length === 0) return;
+    const failedContacts = contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending");
     try {
-      // Create new campaign with same settings
+      const mpi = resendMode === "rotation" ? resendMsgPerInstance : (resendMode === "parallel" ? -1 : 0);
       const { data: newCampaign, error: campErr } = await supabase.from("campaigns").insert({
         user_id: user.id,
         name: `${campaign.name} (Reenvio)`,
@@ -255,11 +288,13 @@ const CampaignDetail = () => {
         pause_duration_min: campaign.pause_duration_min,
         pause_duration_max: campaign.pause_duration_max,
         total_contacts: failedContacts.length,
+        device_id: resendSelectedDevices[0],
+        device_ids: resendSelectedDevices,
+        messages_per_instance: mpi,
         status: "draft",
       }).select().single();
       if (campErr) throw campErr;
 
-      // Insert failed contacts into new campaign
       const contactRows = failedContacts.map(c => ({
         campaign_id: newCampaign.id,
         phone: c.phone,
@@ -270,7 +305,8 @@ const CampaignDetail = () => {
       const { error: contactErr } = await supabase.from("campaign_contacts").insert(contactRows);
       if (contactErr) throw contactErr;
 
-      toast({ title: "Campanha de reenvio criada", description: `${failedContacts.length} contatos adicionados. Selecione a instância e dispare.` });
+      setResendDialogOpen(false);
+      toast({ title: "Campanha de reenvio criada", description: `${failedContacts.length} contatos com ${resendSelectedDevices.length} instância(s).` });
       navigate(`/dashboard/campaign/${newCampaign.id}`);
     } catch (err: any) {
       toast({ title: "Erro ao criar reenvio", description: err.message, variant: "destructive" });
@@ -360,7 +396,7 @@ const CampaignDetail = () => {
             {isFinished && (
               <div className="flex items-center gap-2">
                 {stats.failed + stats.pending > 0 && (
-                  <Button size="sm" className="gap-1.5" onClick={handleResendFailed}>
+                  <Button size="sm" className="gap-1.5" onClick={openResendDialog}>
                     <RotateCcw className="w-3.5 h-3.5" /> Reenviar falhas ({stats.failed + stats.pending})
                   </Button>
                 )}
@@ -596,6 +632,94 @@ const CampaignDetail = () => {
           )}
         </div>
       </div>
+      {/* Resend Dialog */}
+      <Dialog open={resendDialogOpen} onOpenChange={setResendDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-primary" /> Reenviar falhas
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione a(s) instância(s) para reenviar <strong className="text-foreground">{contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending").length}</strong> contatos:
+            </p>
+
+            {/* Device list */}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {devices.map(dev => {
+                const selected = resendSelectedDevices.includes(dev.id);
+                const isOnline = ["Connected", "Ready", "authenticated"].includes(dev.status);
+                return (
+                  <div
+                    key={dev.id}
+                    onClick={() => toggleResendDevice(dev.id)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                      selected ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border/30 bg-muted/10 hover:border-border/50"
+                    )}
+                  >
+                    <Checkbox checked={selected} className="pointer-events-none" />
+                    <Smartphone className={cn("w-4 h-4", isOnline ? "text-emerald-400" : "text-muted-foreground")} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{dev.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{dev.number || "Sem número"} · {dev.status}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              {devices.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma instância cadastrada.</p>
+              )}
+            </div>
+
+            {/* Multi-device mode */}
+            {resendSelectedDevices.length > 1 && (
+              <div className="p-3 rounded-lg bg-muted/15 border border-border/20 space-y-3">
+                <p className="text-xs font-medium text-foreground">Modo de envio</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: "single" as const, label: "Primeira apenas" },
+                    { value: "rotation" as const, label: "Rotação" },
+                    { value: "parallel" as const, label: "Paralelo" },
+                  ]).map(mode => (
+                    <button
+                      key={mode.value}
+                      onClick={() => setResendMode(mode.value)}
+                      className={cn(
+                        "p-2 rounded-lg border text-xs font-medium transition-all",
+                        resendMode === mode.value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/20 text-muted-foreground hover:border-border/40"
+                      )}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+                {resendMode === "rotation" && (
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Mensagens por instância</label>
+                    <Input
+                      type="number" min={1} value={resendMsgPerInstance}
+                      onChange={e => setResendMsgPerInstance(Number(e.target.value))}
+                      className="h-8 mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResendDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleResendFailed} disabled={resendSelectedDevices.length === 0} className="gap-1.5">
+              <RotateCcw className="w-3.5 h-3.5" /> Criar reenvio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
