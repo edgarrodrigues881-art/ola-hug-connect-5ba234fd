@@ -395,6 +395,19 @@ const Campaigns = () => {
     toast({ title: "Inválidos removidos", description: `${removed} inválido(s) removido(s). Restam ${valid.length} contatos.` });
   };
 
+  const addPrefixToNumbers = (prefix: string) => {
+    let count = 0;
+    setContacts(prev => prev.map(c => {
+      const num = c.numero.trim();
+      if (num && !num.startsWith(prefix)) {
+        count++;
+        return { ...c, numero: prefix + num };
+      }
+      return c;
+    }));
+    toast({ title: `Prefixo "${prefix}" adicionado`, description: `${count} número(s) atualizados.` });
+  };
+
   const handleImportFromDB = () => {
     let filtered = savedContacts;
     if (selectedContactTags.length > 0) filtered = filtered.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
@@ -1099,6 +1112,13 @@ const Campaigns = () => {
                           </button>
                           <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeInvalid(); setShowContactTools(false); }}>
                             <XCircle className="w-3.5 h-3.5" /> Limpar inválidos
+                          </button>
+                          <div className="h-px bg-border/30 my-1" />
+                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { addPrefixToNumbers("55"); setShowContactTools(false); }}>
+                            <Phone className="w-3.5 h-3.5" /> Adicionar DDI (55)
+                          </button>
+                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { addPrefixToNumbers("9"); setShowContactTools(false); }}>
+                            <Hash className="w-3.5 h-3.5" /> Adicionar 9º dígito
                           </button>
                         </PopoverContent>
                       </Popover>
