@@ -217,7 +217,8 @@ Deno.serve(async (req) => {
       }
 
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
-      console.log(`Starting campaign ${campaignId} via ${allDevices.length} device(s)${useRotation ? ` (rotation every ${messagesPerInstance} msgs)` : ""}`);
+      const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
+      console.log(`Starting campaign ${campaignId} via ${allDevices.length} device(s)${useRotation ? ` (rotation every ${messagesPerInstance} msgs)` : useParallel ? " (PARALLEL)" : ""}`);
 
       // Read delay config from campaign
       const minDelayMs = (campaign.min_delay_seconds || 8) * 1000;
@@ -226,10 +227,7 @@ Deno.serve(async (req) => {
       const pauseEveryMax = campaign.pause_every_max || 20;
       const pauseDurMinMs = (campaign.pause_duration_min || 30) * 1000;
       const pauseDurMaxMs = (campaign.pause_duration_max || 120) * 1000;
-
-      // Decide pause interval for this batch
       const pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
-      console.log(`Delay: ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s, Pause every ${pauseAfter} msgs`);
 
       // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
@@ -240,84 +238,147 @@ Deno.serve(async (req) => {
 
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
-      let batchSent = 0;
-      let instanceMsgCount = 0; // counter for rotation
-      let currentDeviceIndex = 0; // current device in rotation
       const messageContent = campaign.message_content || "";
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
-      const usedRand4 = new Set<string>();
-      const usedRand3 = new Set<string>();
 
-      for (const contact of contacts || []) {
-        // Check if campaign was paused or canceled mid-execution
-        const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
-        if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
-          console.log(`Campaign ${campaignId} was ${freshCampaign.status} during execution. Stopping.`);
-          break;
+      // ─── PARALLEL MODE ───
+      if (useParallel) {
+        // Split contacts evenly across devices
+        const chunks: any[][] = allDevices.map(() => [] as any[]);
+        (contacts || []).forEach((c, i) => chunks[i % allDevices.length].push(c));
+
+        console.log(`Parallel: splitting ${(contacts || []).length} contacts across ${allDevices.length} devices`);
+
+        // Process each device's chunk concurrently
+        const results = await Promise.allSettled(allDevices.map(async (dev, devIdx) => {
+          const chunk = chunks[devIdx];
+          const devToken = dev.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
+          const devBaseUrl = (dev.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+          let devSent = 0, devFailed = 0;
+          const devUsedRand4 = new Set<string>();
+          const devUsedRand3 = new Set<string>();
+          let devBatchSent = 0;
+
+          for (const contact of chunk) {
+            // Check pause/cancel
+            const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
+            if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) break;
+
+            const phone = contact.phone.replace(/\D/g, "");
+            if (phone.length < 10) {
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
+              devFailed++;
+              continue;
+            }
+            try {
+              const rand4 = generateUniqueRand4(devUsedRand4);
+              const rand3 = generateUniqueRand3(devUsedRand3);
+              const msg = replaceVariables(messageContent, contact, rand4, rand3);
+              const normalized = normalizeBrazilianPhone(phone);
+              const check = await checkNumberExists(devBaseUrl, devToken, normalized);
+              if (!check.exists) {
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Não está no WhatsApp" }).eq("id", contact.id);
+                devFailed++;
+                continue;
+              }
+              await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
+              await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+              devSent++;
+              devBatchSent++;
+              console.log(`[${dev.name}] Sent to ${phone} (${devBatchSent}/${chunk.length})`);
+
+              const delay = randomBetween(minDelayMs, maxDelayMs);
+              await new Promise(r => setTimeout(r, delay));
+              if (devBatchSent > 0 && devBatchSent % pauseAfter === 0) {
+                const pd = randomBetween(pauseDurMinMs, pauseDurMaxMs);
+                await new Promise(r => setTimeout(r, pd));
+              }
+            } catch (err: any) {
+              console.error(`[${dev.name}] Failed ${phone}:`, err.message);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro" }).eq("id", contact.id);
+              devFailed++;
+            }
+          }
+          return { sent: devSent, failed: devFailed, device: dev.name };
+        }));
+
+        // Aggregate results
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            sentCount += r.value.sent;
+            failedCount += r.value.failed;
+          }
         }
+        // Update counters
+        await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
-        // Instance rotation logic
-        if (useRotation && instanceMsgCount >= messagesPerInstance) {
-          currentDeviceIndex = (currentDeviceIndex + 1) % allDevices.length;
-          instanceMsgCount = 0;
-          console.log(`Rotating to device ${allDevices[currentDeviceIndex].name} (index ${currentDeviceIndex})`);
-        }
-        const activeDevice = useRotation ? allDevices[currentDeviceIndex] : device;
-        const activeToken = activeDevice.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-        const activeBaseUrl = (activeDevice.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      } else {
+        // ─── SEQUENTIAL / ROTATION MODE ───
+        let batchSent = 0;
+        let instanceMsgCount = 0;
+        let currentDeviceIndex = 0;
+        const usedRand4 = new Set<string>();
+        const usedRand3 = new Set<string>();
 
-        const phone = contact.phone.replace(/\D/g, "");
-        if (phone.length < 10) {
-          await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
-          failedCount++;
-          await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
-          continue;
-        }
+        for (const contact of contacts || []) {
+          const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
+          if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
+            console.log(`Campaign ${campaignId} was ${freshCampaign.status}. Stopping.`);
+            break;
+          }
 
-        try {
-          const rand4 = generateUniqueRand4(usedRand4);
-          const rand3 = generateUniqueRand3(usedRand3);
-          const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
-          const normalizedPhone = normalizeBrazilianPhone(phone);
+          if (useRotation && instanceMsgCount >= messagesPerInstance) {
+            currentDeviceIndex = (currentDeviceIndex + 1) % allDevices.length;
+            instanceMsgCount = 0;
+            console.log(`Rotating to device ${allDevices[currentDeviceIndex].name}`);
+          }
+          const activeDevice = useRotation ? allDevices[currentDeviceIndex] : device;
+          const activeToken = activeDevice.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
+          const activeBaseUrl = (activeDevice.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
 
-          // Check if number exists on WhatsApp before sending
-          const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
-          if (!check.exists) {
-            console.log(`Number ${phone} not on WhatsApp, skipping`);
-            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número não está no WhatsApp" }).eq("id", contact.id);
+          const phone = contact.phone.replace(/\D/g, "");
+          if (phone.length < 10) {
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             continue;
           }
 
-          await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
-          await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
-          sentCount++;
-          batchSent++;
-          instanceMsgCount++;
+          try {
+            const rand4 = generateUniqueRand4(usedRand4);
+            const rand3 = generateUniqueRand3(usedRand3);
+            const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
+            const normalizedPhone = normalizeBrazilianPhone(phone);
+            const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
+            if (!check.exists) {
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Não está no WhatsApp" }).eq("id", contact.id);
+              failedCount++;
+              await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+              continue;
+            }
 
-          // Update campaign counters in real-time
-          await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
+            await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+            await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+            sentCount++;
+            batchSent++;
+            instanceMsgCount++;
+            await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-          console.log(`Sent to ${phone} via ${activeDevice.name} (${batchSent}/${(contacts || []).length})`);
-
-          // Delay between messages
-          const delay = randomBetween(minDelayMs, maxDelayMs);
-          await new Promise(resolve => setTimeout(resolve, delay));
-
-          // Pause logic
-          if (batchSent > 0 && batchSent % pauseAfter === 0) {
-            const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
-            console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${batchSent} messages`);
-            await new Promise(resolve => setTimeout(resolve, pauseDuration));
+            console.log(`Sent to ${phone} via ${activeDevice.name} (${batchSent}/${(contacts || []).length})`);
+            const delay = randomBetween(minDelayMs, maxDelayMs);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            if (batchSent > 0 && batchSent % pauseAfter === 0) {
+              const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
+              await new Promise(resolve => setTimeout(resolve, pauseDuration));
+            }
+          } catch (err: any) {
+            console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, err.message);
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro ao enviar" }).eq("id", contact.id);
+            failedCount++;
+            await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
           }
-        } catch (err: any) {
-          console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, err.message);
-          await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro ao enviar" }).eq("id", contact.id);
-          failedCount++;
-          await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
         }
       }
 
