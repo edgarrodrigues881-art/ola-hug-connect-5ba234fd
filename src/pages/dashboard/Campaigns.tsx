@@ -26,7 +26,7 @@ import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
@@ -123,6 +123,22 @@ const Campaigns = () => {
     enabled: !!session,
   });
 
+  const queryClient = useQueryClient();
+
+  // Delay profiles
+  const { data: delayProfiles = [] } = useQuery({
+    queryKey: ["delay_profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("delay_profiles").select("*").order("name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  const [saveProfileName, setSaveProfileName] = useState("");
+  const [showSaveProfile, setShowSaveProfile] = useState(false);
+
   // Draft persistence key
   const DRAFT_KEY = "campaign_draft";
 
@@ -159,7 +175,50 @@ const Campaigns = () => {
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
 
-  // Load delay defaults from last campaign, then restore draft
+  // Delay profile mutations (after delay state is declared)
+  const saveDelayProfile = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from("delay_profiles").insert({
+        user_id: session!.user.id,
+        name,
+        min_delay_seconds: minDelay,
+        max_delay_seconds: maxDelay,
+        pause_every_min: pauseEveryMin,
+        pause_every_max: pauseEveryMax,
+        pause_duration_min: pauseDurationMin,
+        pause_duration_max: pauseDurationMax,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delay_profiles"] });
+      toast({ title: "Perfil salvo!" });
+      setSaveProfileName("");
+      setShowSaveProfile(false);
+    },
+  });
+
+  const deleteDelayProfile = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("delay_profiles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delay_profiles"] });
+      toast({ title: "Perfil excluído" });
+    },
+  });
+
+  const loadDelayProfile = (profile: any) => {
+    setMinDelay(profile.min_delay_seconds);
+    setMaxDelay(profile.max_delay_seconds);
+    setPauseEveryMin(profile.pause_every_min);
+    setPauseEveryMax(profile.pause_every_max);
+    setPauseDurationMin(profile.pause_duration_min);
+    setPauseDurationMax(profile.pause_duration_max);
+    toast({ title: `Perfil "${profile.name}" carregado` });
+  };
+
   useEffect(() => {
     const loadDefaults = async () => {
       try {
@@ -1385,6 +1444,64 @@ const Campaigns = () => {
                     );
                   })()}
                 </div>
+              )}
+            </SurfaceCard>
+
+            {/* Delay Profiles */}
+            <SurfaceCard className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
+                </SectionLabel>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[11px] h-7 gap-1 border-border/30"
+                  onClick={() => setShowSaveProfile(!showSaveProfile)}
+                >
+                  <Plus className="w-3 h-3" /> Salvar atual
+                </Button>
+              </div>
+
+              {showSaveProfile && (
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    value={saveProfileName}
+                    onChange={(e) => setSaveProfileName(e.target.value)}
+                    placeholder="Nome do perfil..."
+                    className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
+                    onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs px-3"
+                    disabled={!saveProfileName.trim() || saveDelayProfile.isPending}
+                    onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}
+                  >
+                    {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </Button>
+                </div>
+              )}
+
+              {delayProfiles.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {delayProfiles.map((p: any) => (
+                    <div key={p.id} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/15 dark:bg-muted/8 border border-border/15 hover:border-primary/30 transition-colors cursor-pointer"
+                      onClick={() => loadDelayProfile(p)}
+                    >
+                      <span className="text-[11px] font-medium text-foreground">{p.name}</span>
+                      <span className="text-[9px] text-muted-foreground/50">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
+                      <button
+                        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}
+                      >
+                        <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground/40">Nenhum perfil salvo. Configure os valores e salve para reutilizar.</p>
               )}
             </SurfaceCard>
 

@@ -200,6 +200,48 @@ export type Database = {
         }
         Relationships: []
       }
+      delay_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          max_delay_seconds: number
+          min_delay_seconds: number
+          name: string
+          pause_duration_max: number
+          pause_duration_min: number
+          pause_every_max: number
+          pause_every_min: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_delay_seconds?: number
+          min_delay_seconds?: number
+          name: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_delay_seconds?: number
+          min_delay_seconds?: number
+          name?: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           created_at: string
