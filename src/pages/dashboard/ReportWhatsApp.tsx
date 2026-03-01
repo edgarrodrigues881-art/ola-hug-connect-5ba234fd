@@ -153,7 +153,22 @@ const ReportWhatsApp = () => {
             setSelectedDeviceId(data.config.device_id);
             setConfigured(true);
           }
-          // Don't auto-populate groups or toggles from server — user controls these locally
+          // Restore toggles from server so they persist across page navigations
+          setReportToggles((prev) => ({
+            warmup: data.config.toggle_warmup ?? prev.warmup,
+            campaigns: data.config.toggle_campaigns ?? prev.campaigns,
+            connection: data.config.toggle_instances ?? prev.connection,
+          }));
+          // Restore group if saved
+          if (data.config.group_id) {
+            const savedGroup = { id: data.config.group_id, name: data.config.group_name || "" };
+            setReportGroups((prev) => {
+              // Only set on initial load (all null)
+              const allNull = !prev.warmup && !prev.campaigns && !prev.connection;
+              if (allNull) return { warmup: savedGroup, campaigns: savedGroup, connection: savedGroup };
+              return prev;
+            });
+          }
           setAlertDisconnect(data.config.alert_disconnect ?? true);
           setAlertHighFailures(data.config.alert_high_failures ?? false);
         }
@@ -168,6 +183,24 @@ const ReportWhatsApp = () => {
     const interval = setInterval(poll, 5000);
     return () => clearInterval(interval);
   }, [user, invoke]);
+
+  // Auto-save toggles to server when they change
+  useEffect(() => {
+    if (!configured || !selectedDeviceId) return;
+    const primaryGroup = reportGroups.warmup || reportGroups.campaigns || reportGroups.connection;
+    invoke("config", {
+      instanceId: selectedDeviceId,
+      groupId: primaryGroup?.id || "",
+      groupName: primaryGroup?.name || "",
+      frequency: "24h",
+      toggleCampaigns: reportToggles.campaigns,
+      toggleWarmup: reportToggles.warmup,
+      toggleInstances: reportToggles.connection,
+      alertDisconnect,
+      alertCampaignEnd: true,
+      alertHighFailures,
+    }).catch(() => {});
+  }, [reportToggles, configured, selectedDeviceId]);
 
   // ── Handlers ──
   const handleConfirmDevice = async () => {
