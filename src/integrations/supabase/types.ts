@@ -469,6 +469,95 @@ export type Database = {
         }
         Relationships: []
       }
+      report_wa_configs: {
+        Row: {
+          alert_campaign_end: boolean
+          alert_disconnect: boolean
+          alert_high_failures: boolean
+          connected_phone: string | null
+          connection_status: string
+          created_at: string
+          device_id: string | null
+          frequency: string
+          group_id: string | null
+          group_name: string | null
+          id: string
+          toggle_campaigns: boolean
+          toggle_instances: boolean
+          toggle_warmup: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_campaign_end?: boolean
+          alert_disconnect?: boolean
+          alert_high_failures?: boolean
+          connected_phone?: string | null
+          connection_status?: string
+          created_at?: string
+          device_id?: string | null
+          frequency?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          toggle_campaigns?: boolean
+          toggle_instances?: boolean
+          toggle_warmup?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_campaign_end?: boolean
+          alert_disconnect?: boolean
+          alert_high_failures?: boolean
+          connected_phone?: string | null
+          connection_status?: string
+          created_at?: string
+          device_id?: string | null
+          frequency?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          toggle_campaigns?: boolean
+          toggle_instances?: boolean
+          toggle_warmup?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_wa_configs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_wa_logs: {
+        Row: {
+          created_at: string
+          id: string
+          level: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string

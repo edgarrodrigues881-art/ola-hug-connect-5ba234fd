@@ -6,6 +6,7 @@ import {
   FileText,
   BarChart3,
   Flame,
+  MessageSquareText,
   Shield,
   UsersRound,
   Box,
@@ -49,6 +50,7 @@ const operationsItems = [
 
 const analysisItems = [
   { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
+  { title: "Relatório WhatsApp", url: "/dashboard/reports/whatsapp", icon: MessageSquareText },
   { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
