@@ -271,7 +271,7 @@ const ReportWhatsApp = () => {
       });
       toast({ title: `Grupo configurado para ${REPORT_META[type].label}` });
       try {
-        await invoke("test");
+        await invoke("test", { reportType: type, groupId: group.id, groupName: group.name });
         toast({ title: "✅ Teste enviado ao grupo!" });
       } catch { /* silent */ }
     } catch (err: any) {

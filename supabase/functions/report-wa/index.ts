@@ -347,19 +347,27 @@ Deno.serve(async (req) => {
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
 
-      const contentParts: string[] = [];
-      if (config.toggle_campaigns) contentParts.push("Campanhas");
-      if (config.toggle_warmup) contentParts.push("Aquecimento");
-      if (config.toggle_instances) contentParts.push("Instâncias");
+      const reportType = body.reportType || "general";
+      const targetGroupId = body.groupId || config.group_id;
+      const targetGroupName = body.groupName || config.group_name || "N/A";
 
-      const message = `📡 MONITORAMENTO ATIVADO\n\nStatus: ✅ Conectado com sucesso\n\n👥 Grupo de destino:\n${config.group_name || "N/A"}\n\n⏱ Ciclo de relatório:\n${config.frequency === "24h" ? "24 horas (automático)" : config.frequency}\n\n📊 Módulos ativos:\n${config.toggle_warmup ? "• Aquecimento\n" : ""}${config.toggle_campaigns ? "• Campanhas\n" : ""}${config.toggle_instances ? "• Status de Instâncias\n" : ""}\nSistema pronto para envio de relatórios.`;
+      let message = "";
+
+      if (reportType === "warmup") {
+        message = `🔥 AQUECIMENTO 24H ATIVADO\n\nStatus: ✅ Ciclo iniciado com sucesso\n\n👥 Grupo vinculado:\n${targetGroupName}\n\n⏱ Envio automático:\nA cada 24 horas\n\n📊 O relatório será enviado após a conclusão completa do ciclo.\n\nMonitoramento ativo.`;
+      } else if (reportType === "campaigns") {
+        message = `📣 MONITORAMENTO DE CAMPANHAS ATIVADO\n\nStatus: ✅ Alertas de campanha ativos\n\n👥 Grupo vinculado:\n${targetGroupName}\n\n📊 Eventos monitorados:\n• Início de campanha\n• Finalização de campanha\n• Resultado consolidado\n\nRelatórios serão enviados automaticamente ao concluir cada campanha.`;
+      } else if (reportType === "connection") {
+        message = `🔌 ALERTAS DE CONEXÃO ATIVADOS\n\nStatus: ✅ Monitoramento em tempo real ativo\n\n👥 Grupo vinculado:\n${targetGroupName}\n\n🚨 Eventos monitorados:\n• Desconexão detectada\n• Reconexão registrada\n• Falhas críticas\n\nNotificações enviadas instantaneamente.`;
+      } else {
+        message = `📡 MONITORAMENTO ATIVADO\n\nStatus: ✅ Conectado com sucesso\n\n👥 Grupo de destino:\n${targetGroupName}\n\n⏱ Ciclo de relatório:\n${config.frequency === "24h" ? "24 horas (automático)" : config.frequency}\n\n📊 Módulos ativos:\n${config.toggle_warmup ? "• Aquecimento\n" : ""}${config.toggle_campaigns ? "• Campanhas\n" : ""}${config.toggle_instances ? "• Status de Instâncias\n" : ""}\nSistema pronto para envio de relatórios.`;
+      }
 
       try {
-        // Try multiple endpoints and payload formats
         const sendAttempts = [
-          { path: "/send/text", body: { number: config.group_id, text: message } },
-          { path: "/message/sendText", body: { chatId: config.group_id, text: message } },
-          { path: "/message/sendText", body: { to: config.group_id, text: message } },
+          { path: "/send/text", body: { number: targetGroupId, text: message } },
+          { path: "/message/sendText", body: { chatId: targetGroupId, text: message } },
+          { path: "/message/sendText", body: { to: targetGroupId, text: message } },
         ];
         let sendSuccess = false;
         let sendData: any = null;
@@ -380,10 +388,11 @@ Deno.serve(async (req) => {
           throw new Error(sendData?.message || sendData?.error?.message || "Nenhum endpoint de envio funcionou");
         }
 
+        const typeLabel = reportType === "warmup" ? "Aquecimento" : reportType === "campaigns" ? "Campanhas" : reportType === "connection" ? "Conexão" : "Geral";
         await serviceClient.from("report_wa_logs").insert({
           user_id: userId,
           level: "INFO",
-          message: `Mensagem de teste enviada para "${config.group_name}"`,
+          message: `${typeLabel}: Mensagem de ativação enviada para "${targetGroupName}"`,
         });
 
         return json({ success: true, response: sendData });
