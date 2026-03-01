@@ -265,6 +265,23 @@ const ReportWhatsApp = () => {
     }
   };
 
+  const handleSyncGroups = async () => {
+    setLoading("sync");
+    try {
+      toast({ title: "🔄 Sincronizando grupos...", description: "Aguarde alguns segundos" });
+      await invoke("sync-groups");
+      // Wait a bit then reload groups
+      await new Promise((r) => setTimeout(r, 2000));
+      const data = await invoke("groups");
+      setAllGroups(data.groups || []);
+      toast({ title: "✅ Grupos atualizados!", description: `${(data.groups || []).length} grupos encontrados` });
+    } catch (err: any) {
+      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleSelectGroupForType = async (type: ReportType, group: Group) => {
     setReportGroups((prev) => ({ ...prev, [type]: group }));
     setGroupPickerOpen(null);
@@ -803,6 +820,20 @@ const ReportWhatsApp = () => {
               className="pl-9 h-9 text-sm"
               autoFocus
             />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground">{filteredGroups.length} grupo{filteredGroups.length !== 1 ? "s" : ""}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 text-xs"
+              onClick={handleSyncGroups}
+              disabled={loading === "sync"}
+            >
+              {loading === "sync" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              Sincronizar
+            </Button>
           </div>
 
           <div className="space-y-1 max-h-[320px] overflow-y-auto">
