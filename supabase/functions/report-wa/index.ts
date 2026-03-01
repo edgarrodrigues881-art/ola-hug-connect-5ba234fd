@@ -350,11 +350,31 @@ Deno.serve(async (req) => {
       const message = `[Relatório - Teste]\n✅ Conectado com sucesso.\nGrupo configurado: ${config.group_name || "N/A"}\nFrequência: ${config.frequency}\nConteúdo: ${contentParts.join("/") || "Nenhum"}`;
 
       try {
-        const res = await uazapiRequest(baseUrl, apiToken, "/message/sendText", "POST", {
-          to: config.group_id,
-          text: message,
-        });
-        const data = await res.json();
+        // Try multiple payload formats for sendText
+        const sendPayloads = [
+          { chatId: config.group_id, text: message },
+          { to: config.group_id, text: message },
+          { phone: config.group_id, message: message },
+        ];
+        let sendSuccess = false;
+        let sendData: any = null;
+        
+        for (const payload of sendPayloads) {
+          if (sendSuccess) break;
+          try {
+            const res = await uazapiRequest(baseUrl, apiToken, "/message/sendText", "POST", payload);
+            sendData = await res.json();
+            console.log("[test] sendText response:", JSON.stringify(sendData).slice(0, 300));
+            // Check if it was successful (no error in response)
+            if (res.status >= 200 && res.status < 300 && !sendData.error) {
+              sendSuccess = true;
+            }
+          } catch { /* try next payload */ }
+        }
+        
+        if (!sendSuccess && sendData?.error) {
+          throw new Error(sendData.error.message || sendData.error || "Envio falhou");
+        }
 
         await serviceClient.from("report_wa_logs").insert({
           user_id: userId,
@@ -362,7 +382,7 @@ Deno.serve(async (req) => {
           message: `Mensagem de teste enviada para "${config.group_name}"`,
         });
 
-        return json({ success: true, response: data });
+        return json({ success: true, response: sendData });
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : "Erro desconhecido";
         await serviceClient.from("report_wa_logs").insert({
