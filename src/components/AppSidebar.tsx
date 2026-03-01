@@ -171,9 +171,7 @@ export function AppSidebar() {
                               transition-all duration-150 ease-out
                               ${active
                                 ? 'bg-primary/8 text-foreground font-bold'
-                                : isConfigSection
-                                  ? 'text-muted-foreground/55 hover:text-muted-foreground hover:bg-sidebar-accent/30'
-                                  : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
+                                : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
                               }`}
                             activeClassName=""
                           >
