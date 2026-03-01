@@ -368,7 +368,18 @@ const CampaignDetail = () => {
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{progress}% concluído</span>
           {remainingTime && <span className="text-primary">{remainingTime}</span>}
-          <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Atualizado agora</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground h-auto py-1 px-2"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["campaign", id] });
+              queryClient.invalidateQueries({ queryKey: ["campaign-contacts", id] });
+              toast({ title: "Sincronizado", description: "Dados atualizados." });
+            }}
+          >
+            <RefreshCw className="w-3 h-3" /> Sincronizar
+          </Button>
         </div>
       </div>
 
