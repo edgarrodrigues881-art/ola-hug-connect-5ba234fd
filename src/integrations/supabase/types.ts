@@ -197,6 +197,39 @@ export type Database = {
           },
         ]
       }
+      client_messages: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          message_content: string
+          observation: string | null
+          sent_at: string
+          template_type: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          message_content: string
+          observation?: string | null
+          sent_at?: string
+          template_type: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          message_content?: string
+          observation?: string | null
+          sent_at?: string
+          template_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           created_at: string

@@ -337,6 +337,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── LIST MESSAGES ───
+    if (action === "list-messages" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const { data: messages } = await adminClient.from("client_messages").select("*").eq("user_id", target_user_id).order("sent_at", { ascending: false });
+      return new Response(JSON.stringify({ messages: messages || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── SAVE MESSAGE ───
+    if (action === "save-message" && req.method === "POST") {
+      const { target_user_id, template_type, message_content, observation } = await req.json();
+      await adminClient.from("client_messages").insert({
+        user_id: target_user_id, admin_id: user.id, template_type, message_content, observation,
+      });
+      await logAction(adminClient, user.id, target_user_id, "send-message", `Mensagem: ${template_type}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

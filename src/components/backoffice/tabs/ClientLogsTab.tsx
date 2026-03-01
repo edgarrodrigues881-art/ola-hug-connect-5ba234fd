@@ -14,6 +14,9 @@ const actionLabels: Record<string, string> = {
   "set-role": "Alteração de role",
   "create-device": "Criação de instância",
   "delete-device": "Remoção de instância",
+  "add-payment": "Pagamento registrado",
+  "delete-payment": "Pagamento removido",
+  "send-message": "Mensagem enviada",
 };
 
 const actionColors: Record<string, string> = {
@@ -25,6 +28,9 @@ const actionColors: Record<string, string> = {
   "set-role": "bg-pink-600/50 text-pink-200",
   "create-device": "bg-green-600/50 text-green-200",
   "delete-device": "bg-red-600/50 text-red-200",
+  "add-payment": "bg-green-600/50 text-green-200",
+  "delete-payment": "bg-red-600/50 text-red-200",
+  "send-message": "bg-cyan-600/50 text-cyan-200",
 };
 
 const ClientLogsTab = ({ detail }: Props) => {
