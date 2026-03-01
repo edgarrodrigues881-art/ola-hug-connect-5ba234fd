@@ -195,6 +195,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── ACTION: sync-groups (force refresh then list) ───
+    if (action === "sync-groups") {
+      const { data: config } = await serviceClient
+        .from("report_wa_configs")
+        .select("device_id")
+        .eq("user_id", userId)
+        .single();
+      if (!config?.device_id) return json({ error: "Nenhum dispositivo vinculado" }, 400);
+
+      const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
+
+      // Force refresh: try restarting the instance session to clear cache
+      const refreshEndpoints = [
+        { path: "/instance/restart", method: "POST" },
+        { path: "/instance/refresh", method: "POST" },
+        { path: "/chat/sync", method: "POST" },
+      ];
+      for (const ep of refreshEndpoints) {
+        try {
+          const res = await uazapiRequest(baseUrl, apiToken, ep.path, ep.method, {});
+          console.log(`[sync-groups] ${ep.method} ${ep.path} status=${res.status}`);
+          if (res.status >= 200 && res.status < 300) break;
+        } catch (err) {
+          console.log(`[sync-groups] ${ep.path} error:`, err);
+        }
+      }
+
+      // Wait a moment for the instance to refresh
+      await new Promise((r) => setTimeout(r, 3000));
+
+      return json({ success: true, message: "Sincronização iniciada. Carregue os grupos novamente." });
+    }
+
     // ─── ACTION: groups ───
     if (action === "groups") {
       const { data: config } = await serviceClient
