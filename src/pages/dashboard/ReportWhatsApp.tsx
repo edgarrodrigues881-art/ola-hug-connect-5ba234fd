@@ -248,18 +248,13 @@ const ReportWhatsApp = () => {
   };
 
   const handleLoadGroups = async (forType: ReportType) => {
-    setLoading("groups");
+    setLoading(`groups-${forType}`);
     try {
-      const { data, error } = await supabase
-        .from("warmup_groups")
-        .select("id, name, link")
-        .eq("user_id", user!.id)
-        .order("name");
-      if (error) throw error;
-      const groups = (data || []).map((g) => ({ id: g.id, name: g.name, participantsCount: null }));
+      const data = await invoke("groups");
+      const groups = data.groups || [];
       setAllGroups(groups);
       if (groups.length === 0) {
-        toast({ title: "Nenhum grupo cadastrado", description: "Cadastre grupos na seção de Aquecimento" });
+        toast({ title: "Nenhum grupo encontrado", description: "Verifique se o número está nos grupos desejados" });
       } else {
         setGroupPickerOpen(forType);
         setGroupSearch("");
@@ -516,7 +511,7 @@ const ReportWhatsApp = () => {
                           onClick={() => handleLoadGroups(type)}
                           disabled={!isConnected || !!loading}
                         >
-                          {loading === "groups" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                          {loading === `groups-${type}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                           Carregar grupos
                         </Button>
                       )}
@@ -820,7 +815,7 @@ const ReportWhatsApp = () => {
               onClick={() => groupPickerOpen && handleLoadGroups(groupPickerOpen)}
               disabled={!!loading}
             >
-              {loading === "groups" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              {!!loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
               Atualizar
             </Button>
           </div>
