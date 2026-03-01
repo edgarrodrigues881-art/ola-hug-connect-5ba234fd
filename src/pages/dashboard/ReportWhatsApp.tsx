@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import {
   Wifi,
+  WifiOff,
   Search,
   Users,
   Send,
@@ -35,9 +36,11 @@ import {
   ArrowRightLeft,
   Plug,
   Circle,
+  QrCode,
+  Power,
 } from "lucide-react";
 
-type ConnectionStatus = "connected" | "connecting" | "disconnected" | "error";
+type ConnectionStatus = "connected" | "pairing" | "disconnected" | "error";
 
 const statusConfig: Record<ConnectionStatus, { label: string; dot: string; badge: string }> = {
   connected: {
@@ -45,8 +48,8 @@ const statusConfig: Record<ConnectionStatus, { label: string; dot: string; badge
     dot: "bg-emerald-400",
     badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
   },
-  connecting: {
-    label: "Sincronizando",
+  pairing: {
+    label: "Aguardando QR",
     dot: "bg-yellow-400 animate-pulse",
     badge: "bg-yellow-500/10 text-yellow-400 border-yellow-500/25",
   },
@@ -76,6 +79,8 @@ const ReportWhatsApp = () => {
   const [configured, setConfigured] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSelection, setModalSelection] = useState("");
+
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupSearch, setGroupSearch] = useState("");
@@ -113,14 +118,21 @@ const ReportWhatsApp = () => {
     []
   );
 
-  // Poll status
+  // Poll status every 3s
   useEffect(() => {
     if (!user) return;
     const poll = async () => {
       try {
         const data = await invoke("status");
-        setConnStatus(data.status || "disconnected");
+        const newStatus = (data.status || "disconnected") as ConnectionStatus;
+        setConnStatus(newStatus);
         setConnPhone(data.connectedPhone || null);
+
+        // If connected, clear QR
+        if (newStatus === "connected") {
+          setQrDataUrl(null);
+        }
+
         if (data.config) {
           if (data.config.device_id) {
             setSelectedDeviceId(data.config.device_id);
@@ -144,10 +156,11 @@ const ReportWhatsApp = () => {
       }
     };
     poll();
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
   }, [user, invoke, selectedGroup]);
 
+  // Select device from modal (just saves, no QR yet)
   const handleConfirmDevice = async () => {
     if (!modalSelection) return;
     setLoading("connect");
@@ -157,7 +170,8 @@ const ReportWhatsApp = () => {
       setConfigured(true);
       setModalOpen(false);
       setModalSelection("");
-      toast({ title: "Número vinculado com sucesso" });
+      setQrDataUrl(null);
+      toast({ title: "Número vinculado" });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -165,12 +179,32 @@ const ReportWhatsApp = () => {
     }
   };
 
-  const handleConnect = async () => {
+  // Generate QR
+  const handleGenerateQr = async () => {
     if (!selectedDeviceId) return;
-    setLoading("connect");
+    setLoading("qr");
     try {
-      await invoke("connect", { deviceId: selectedDeviceId });
-      toast({ title: "Reconectado com sucesso" });
+      const data = await invoke("qr", { instanceId: selectedDeviceId });
+      setQrDataUrl(data.qrCodeDataUrl || null);
+      if (!data.qrCodeDataUrl) {
+        toast({ title: "QR não disponível", description: "Tente novamente em alguns segundos.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar QR", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  // Disconnect
+  const handleDisconnect = async () => {
+    setLoading("disconnect");
+    try {
+      await invoke("disconnect", { instanceId: selectedDeviceId });
+      setConnStatus("disconnected");
+      setConnPhone(null);
+      setQrDataUrl(null);
+      toast({ title: "Desconectado" });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -244,6 +278,7 @@ const ReportWhatsApp = () => {
     g.name.toLowerCase().includes(groupSearch.toLowerCase())
   );
   const isConnected = connStatus === "connected";
+  const isPairing = connStatus === "pairing";
   const status = statusConfig[connStatus] || statusConfig.disconnected;
 
   return (
@@ -269,8 +304,8 @@ const ReportWhatsApp = () => {
 
       {/* ── CARD 1: Número de Relatório ── */}
       <Card>
-        <CardContent className="p-5">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+        <CardContent className="p-5 space-y-4">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <Smartphone className="w-3.5 h-3.5" />
             Número de Relatório
           </h2>
@@ -288,53 +323,124 @@ const ReportWhatsApp = () => {
               Selecionar número de relatório
             </Button>
           ) : (
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    isConnected ? "bg-emerald-400" : "bg-muted-foreground/40"
-                  }`}
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {selectedDevice?.name || "Dispositivo"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {connPhone || selectedDevice?.number || "Sem número"}
-                    <span className="ml-2 font-medium">
-                      · {isConnected ? "Online" : "Offline"}
-                    </span>
-                  </p>
+            <div className="space-y-4">
+              {/* Device info */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      isConnected ? "bg-emerald-400" : isPairing ? "bg-yellow-400 animate-pulse" : "bg-muted-foreground/40"
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {selectedDevice?.name || "Dispositivo"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isConnected && connPhone ? connPhone : selectedDevice?.number || "Sem número"}
+                      <span className="ml-2 font-medium">
+                        · {isConnected ? "Online" : isPairing ? "Aguardando QR" : "Offline"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {/* Conditional buttons based on status */}
+                  {connStatus === "disconnected" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={handleGenerateQr}
+                      disabled={!!loading}
+                    >
+                      {loading === "qr" ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <QrCode className="w-3.5 h-3.5" />
+                      )}
+                      Gerar QR
+                    </Button>
+                  )}
+                  {isConnected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-destructive hover:text-destructive"
+                      onClick={handleDisconnect}
+                      disabled={!!loading}
+                    >
+                      {loading === "disconnect" ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Power className="w-3.5 h-3.5" />
+                      )}
+                      Desconectar
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1.5 text-muted-foreground"
+                    onClick={() => {
+                      setModalSelection("");
+                      setModalOpen(true);
+                    }}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    Trocar
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5"
-                  onClick={handleConnect}
-                  disabled={!!loading}
-                >
-                  {loading === "connect" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+
+              {/* QR Code display */}
+              {(isPairing || qrDataUrl) && !isConnected && (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  {qrDataUrl ? (
+                    <>
+                      <div className="p-3 bg-white rounded-xl">
+                        <img
+                          src={qrDataUrl}
+                          alt="QR Code"
+                          className="w-56 h-56 object-contain"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Escaneie o QR Code com o WhatsApp
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs"
+                        onClick={handleGenerateQr}
+                        disabled={!!loading}
+                      >
+                        {loading === "qr" ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <QrCode className="w-3 h-3" />
+                        )}
+                        Atualizar QR
+                      </Button>
+                    </>
                   ) : (
-                    <Wifi className="w-3.5 h-3.5" />
+                    <div className="flex flex-col items-center gap-2 py-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                    </div>
                   )}
-                  Conectar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 text-muted-foreground"
-                  onClick={() => {
-                    setModalSelection("");
-                    setModalOpen(true);
-                  }}
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5" />
-                  Trocar
-                </Button>
-              </div>
+                </div>
+              )}
+
+              {/* Connected confirmation */}
+              {isConnected && connPhone && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-sm text-foreground">
+                    Conectado com <strong>{connPhone}</strong>
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -490,7 +596,6 @@ const ReportWhatsApp = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left column */}
             <div className="space-y-5">
               <div>
                 <label className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5 block">
@@ -520,7 +625,6 @@ const ReportWhatsApp = () => {
               </div>
             </div>
 
-            {/* Right column */}
             <div className="space-y-5">
               <div className="space-y-3">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
