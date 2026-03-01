@@ -254,22 +254,42 @@ Deno.serve(async (req) => {
         const jid = g.JID || g.jid || g.id || g.groupId || "";
         let groupName = g.Subject || g.subject || g.Name || g.name || g.groupName || "";
         const participants = g.Participants || g.participants || [];
+        const size = g.size || participants.length || null;
         
-        // If name is empty, try fetching individual group info
+        // If name is empty, try multiple endpoints to get group info
         if (!groupName && jid) {
-          try {
-            const infoRes = await uazapiRequest(baseUrl, apiToken, `/group/info?groupJid=${encodeURIComponent(jid)}`, "GET");
-            const infoData = await infoRes.json();
-            const info = infoData.group || infoData.data || infoData || {};
-            groupName = info.Subject || info.subject || info.Name || info.name || info.groupName || "";
-            if (!groupName && info.GroupName) groupName = info.GroupName;
-          } catch { /* silent */ }
+          // Try POST /group/inviteInfo or /group/info with body
+          const infoEndpoints = [
+            { path: `/group/info`, method: "POST", body: { groupJid: jid } },
+            { path: `/group/info?groupJid=${encodeURIComponent(jid)}`, method: "GET", body: undefined },
+            { path: `/chat/info`, method: "POST", body: { chatId: jid } },
+          ];
+          for (const ep of infoEndpoints) {
+            if (groupName) break;
+            try {
+              const infoRes = await uazapiRequest(baseUrl, apiToken, ep.path, ep.method, ep.body);
+              const infoData = await infoRes.json();
+              console.log(`[groups] info ${ep.method} ${ep.path} =>`, JSON.stringify(infoData).slice(0, 400));
+              // Deeply search for name in response
+              const info = infoData.group || infoData.data || infoData || {};
+              groupName = info.Subject || info.subject || info.Name || info.name || 
+                         info.groupName || info.GroupName || info.pushname || 
+                         info.notify || info.displayName || "";
+              // Also check nested GroupInfo
+              if (!groupName && info.GroupInfo) {
+                groupName = info.GroupInfo.Subject || info.GroupInfo.Name || "";
+              }
+              if (!groupName && info.GroupName?.Name) {
+                groupName = info.GroupName.Name;
+              }
+            } catch { /* try next */ }
+          }
         }
         
         enrichedGroups.push({
           id: jid,
           name: groupName || `Grupo ${jid.split("@")[0]?.slice(-6) || "?"}`,
-          participantsCount: g.size || participants.length || null,
+          participantsCount: size,
         });
       }
 
