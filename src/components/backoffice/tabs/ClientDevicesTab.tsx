@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Wifi, WifiOff, Loader2, Server } from "lucide-react";
+import { Plus, Trash2, Wifi, WifiOff, Loader2, Server, AlertTriangle, Ban } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -26,10 +26,25 @@ const statusColors: Record<string, string> = {
 
 const ClientDevicesTab = ({ client, detail }: Props) => {
   const devices = detail?.devices || [];
+  const subscription = detail?.subscription;
+  const maxInstances = subscription?.max_instances ?? client.max_instances ?? 10;
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
+
+  // Check limits
+  const atLimit = devices.length >= maxInstances;
+  const isExpired = subscription?.expires_at
+    ? new Date(subscription.expires_at).getTime() < Date.now()
+    : false;
+  const isBlocked = client.status === "suspended" || client.status === "cancelled";
+  const canCreate = !atLimit && !isExpired && !isBlocked;
+
+  let blockReason = "";
+  if (isBlocked) blockReason = `Cliente ${client.status === "suspended" ? "suspenso" : "cancelado"} — criação bloqueada`;
+  else if (isExpired) blockReason = "Assinatura vencida — criação bloqueada";
+  else if (atLimit) blockReason = `Limite atingido (${devices.length}/${maxInstances})`;
 
   const createDevice = () => {
     if (!newName.trim()) return;
@@ -62,12 +77,26 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
         <div className="flex items-center gap-2">
           <Server size={20} className="text-purple-400" />
           <h3 className="text-lg font-semibold text-zinc-200">Instâncias</h3>
-          <span className="text-sm text-zinc-400">({devices.length} de {client.max_instances} liberadas)</span>
+          <span className="text-sm text-zinc-400">({devices.length} de {maxInstances} liberadas)</span>
         </div>
-        <Button size="sm" onClick={() => setShowCreate(true)} className="bg-purple-600 hover:bg-purple-700 text-white" disabled={isPending}>
-          <Plus size={14} className="mr-1" /> Criar Instância
+        <Button
+          size="sm"
+          onClick={() => setShowCreate(true)}
+          className="bg-purple-600 hover:bg-purple-700 text-white"
+          disabled={isPending || !canCreate}
+        >
+          {!canCreate ? <Ban size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
+          Criar Instância
         </Button>
       </div>
+
+      {/* Block warning */}
+      {!canCreate && blockReason && (
+        <div className="flex items-center gap-2 bg-red-900/30 border border-red-800/50 rounded-lg px-4 py-3 text-sm text-red-300">
+          <AlertTriangle size={16} className="shrink-0" />
+          {blockReason}
+        </div>
+      )}
 
       {/* Devices table */}
       <div className="border border-zinc-700 rounded-xl overflow-hidden">
