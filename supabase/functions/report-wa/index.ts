@@ -214,18 +214,38 @@ Deno.serve(async (req) => {
         return [];
       }
 
-      try {
-        const res = await uazapiRequest(baseUrl, apiToken, "/chat/listGroups", "POST", {});
-        const data = await res.json();
-        groups = extractGroups(data);
-      } catch { /* fallback below */ }
+      // Try multiple endpoints with logging
+      const endpoints = [
+        { path: "/chat/listGroups", method: "POST", body: {} },
+        { path: "/group/fetchAllGroups", method: "GET", body: undefined },
+        { path: "/chat/findChats", method: "POST", body: { group: true } },
+        { path: "/group/list", method: "GET", body: undefined },
+        { path: "/chat/list", method: "GET", body: undefined },
+      ];
+
+      let rawResponse: any = null;
+      let usedEndpoint = "";
+
+      for (const ep of endpoints) {
+        if (groups.length > 0) break;
+        try {
+          const res = await uazapiRequest(baseUrl, apiToken, ep.path, ep.method, ep.body);
+          const data = await res.json();
+          console.log(`[groups] ${ep.method} ${ep.path} status=${res.status}`, JSON.stringify(data).slice(0, 500));
+          const extracted = extractGroups(data);
+          if (extracted.length > 0) {
+            groups = extracted;
+            usedEndpoint = ep.path;
+          } else if (!rawResponse) {
+            rawResponse = data;
+          }
+        } catch (err) {
+          console.log(`[groups] ${ep.path} error:`, err);
+        }
+      }
 
       if (groups.length === 0) {
-        try {
-          const res = await uazapiRequest(baseUrl, apiToken, "/group/fetchAllGroups", "GET");
-          const data = await res.json();
-          groups = extractGroups(data);
-        } catch { /* empty */ }
+        console.log("[groups] No groups found. Raw response:", JSON.stringify(rawResponse).slice(0, 1000));
       }
 
       const mapped = groups.map((g: any) => ({
