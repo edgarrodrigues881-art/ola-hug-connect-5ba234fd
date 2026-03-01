@@ -157,8 +157,8 @@ Deno.serve(async (req) => {
           await new Promise(r => setTimeout(r, delay));
         }
         try {
-          await uazapiRequest(creds.baseUrl, creds.token, "/message/sendText", "POST", {
-            to: config.group_id,
+          await uazapiRequest(creds.baseUrl, creds.token, "/send/text", "POST", {
+            number: config.group_id,
             text: `[Relatório Automático]\n${pendingMessages[i]}`,
           });
           totalSent++;

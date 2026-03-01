@@ -350,30 +350,29 @@ Deno.serve(async (req) => {
       const message = `[Relatório - Teste]\n✅ Conectado com sucesso.\nGrupo configurado: ${config.group_name || "N/A"}\nFrequência: ${config.frequency}\nConteúdo: ${contentParts.join("/") || "Nenhum"}`;
 
       try {
-        // Try multiple payload formats for sendText
-        const sendPayloads = [
-          { chatId: config.group_id, text: message },
-          { to: config.group_id, text: message },
-          { phone: config.group_id, message: message },
+        // Try multiple endpoints and payload formats
+        const sendAttempts = [
+          { path: "/send/text", body: { number: config.group_id, text: message } },
+          { path: "/message/sendText", body: { chatId: config.group_id, text: message } },
+          { path: "/message/sendText", body: { to: config.group_id, text: message } },
         ];
         let sendSuccess = false;
         let sendData: any = null;
         
-        for (const payload of sendPayloads) {
+        for (const attempt of sendAttempts) {
           if (sendSuccess) break;
           try {
-            const res = await uazapiRequest(baseUrl, apiToken, "/message/sendText", "POST", payload);
+            const res = await uazapiRequest(baseUrl, apiToken, attempt.path, "POST", attempt.body);
             sendData = await res.json();
-            console.log("[test] sendText response:", JSON.stringify(sendData).slice(0, 300));
-            // Check if it was successful (no error in response)
-            if (res.status >= 200 && res.status < 300 && !sendData.error) {
+            console.log(`[test] ${attempt.path} response:`, JSON.stringify(sendData).slice(0, 300));
+            if (res.status >= 200 && res.status < 300 && !sendData.error && sendData.code !== 404) {
               sendSuccess = true;
             }
-          } catch { /* try next payload */ }
+          } catch { /* try next */ }
         }
         
-        if (!sendSuccess && sendData?.error) {
-          throw new Error(sendData.error.message || sendData.error || "Envio falhou");
+        if (!sendSuccess) {
+          throw new Error(sendData?.message || sendData?.error?.message || "Nenhum endpoint de envio funcionou");
         }
 
         await serviceClient.from("report_wa_logs").insert({
@@ -573,8 +572,8 @@ Deno.serve(async (req) => {
           await new Promise(r => setTimeout(r, delay));
         }
         try {
-          await uazapiRequest(baseUrl, apiToken, "/message/sendText", "POST", {
-            to: config.group_id,
+          await uazapiRequest(baseUrl, apiToken, "/send/text", "POST", {
+            number: config.group_id,
             text: `[Relatório Automático]\n${msg}`,
           });
           sentCount++;
