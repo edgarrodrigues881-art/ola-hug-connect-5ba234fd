@@ -446,6 +446,16 @@ Deno.serve(async (req) => {
       return json({ events: events.slice(0, 50) });
     }
 
+    // ─── ACTION: clear-events (delete all event logs for user) ───
+    if (action === "clear-events") {
+      await serviceClient
+        .from("report_wa_logs")
+        .delete()
+        .eq("user_id", userId);
+
+      return json({ success: true });
+    }
+
     // ─── ACTION: logs (kept for backward compat) ───
     if (action === "logs") {
       const { data: logs } = await serviceClient

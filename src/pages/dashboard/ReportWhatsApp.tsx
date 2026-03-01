@@ -540,7 +540,10 @@ const ReportWhatsApp = () => {
                     size="sm"
                     variant="ghost"
                     className="h-6 px-2 text-[10px] text-muted-foreground gap-1"
-                    onClick={() => setEvents([])}
+                    onClick={async () => {
+                      setEvents([]);
+                      try { await invoke("clear-events"); } catch { /* silent */ }
+                    }}
                   >
                     <Trash2 className="w-3 h-3" />
                     Limpar
