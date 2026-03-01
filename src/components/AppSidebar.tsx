@@ -108,7 +108,8 @@ export function AppSidebar() {
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
-    return location.pathname.startsWith(url);
+    // Exact match or match with trailing slash to avoid /reports matching /reports/whatsapp
+    return location.pathname === url || location.pathname.startsWith(url + "/");
   };
 
   return (
