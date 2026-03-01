@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -119,7 +121,7 @@ const ReportWhatsApp = () => {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: async () => {
-      const { data } = await supabase.from("devices").select("id, name, number, status").eq("user_id", user!.id);
+      const { data } = await supabase.from("devices").select("id, name, number, status, updated_at, created_at").eq("user_id", user!.id);
       return data || [];
     },
     enabled: !!user,
@@ -605,50 +607,89 @@ const ReportWhatsApp = () => {
       </Card>
 
       {/* ═══════════════════════════════════════════
-          5. CONFIGURAÇÃO DO NÚMERO (secundário)
+          5. CONFIGURAÇÃO DO NÚMERO (estilo Devices card)
           ═══════════════════════════════════════════ */}
       <Card className="border border-border/30 shadow-md bg-card">
-        <CardContent className="p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <Smartphone className="w-3.5 h-3.5" />
-            Número de Relatório
-          </h2>
+        <CardContent className="p-0">
+          <div className="px-5 pt-4 pb-2">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Smartphone className="w-3.5 h-3.5" />
+              Número de Relatório
+            </h2>
+          </div>
 
           {!configured || !selectedDeviceId ? (
-            <Button className="w-full h-9 gap-2 text-xs" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
-              <Plus className="w-3.5 h-3.5" />
-              Vincular instância
-            </Button>
+            <div className="px-5 pb-4">
+              <Button className="w-full h-9 gap-2 text-xs" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
+                <Plus className="w-3.5 h-3.5" />
+                Vincular instância
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isConnected ? "bg-emerald-400" : isPairing ? "bg-yellow-400 animate-pulse" : "bg-muted-foreground/40"}`} />
+            <>
+              {/* Linha 1: Nome + Status Badge */}
+              <div className="flex items-center justify-between gap-2 px-5 pb-1.5">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isConnected ? "bg-emerald-400" : isPairing ? "bg-yellow-400 animate-pulse" : "bg-red-400"}`} />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{selectedDevice?.name || "Dispositivo"}</p>
-                    <p className="text-[11px] text-muted-foreground">{isConnected && connPhone ? connPhone : selectedDevice?.number || "Sem número"}</p>
+                    <p className="text-[13px] font-bold text-foreground truncate leading-tight">
+                      {selectedDevice?.name || "Dispositivo"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/50 truncate leading-tight">
+                      {isConnected && connPhone ? connPhone : selectedDevice?.number || "Sem número"}
+                    </p>
                   </div>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
-                  {connStatus === "disconnected" && (
-                    <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={handleGenerateQr} disabled={!!loading}>
-                      {loading === "qr" ? <Loader2 className="w-3 h-3 animate-spin" /> : <QrCode className="w-3 h-3" />}
-                      QR
-                    </Button>
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 ${
+                    isConnected
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : isPairing
+                      ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                  }`}
+                >
+                  {isConnected ? (
+                    <><Wifi className="w-2.5 h-2.5" /> Online</>
+                  ) : isPairing ? (
+                    <><Loader2 className="w-2.5 h-2.5 animate-spin" /> Pareando</>
+                  ) : (
+                    <><WifiOff className="w-2.5 h-2.5" /> Offline</>
                   )}
-                  {isConnected && (
-                    <Button size="sm" variant="outline" className="gap-1 h-7 text-xs text-destructive hover:text-destructive" onClick={handleDisconnect} disabled={!!loading}>
-                      {loading === "disconnect" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Power className="w-3 h-3" />}
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs text-muted-foreground" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
-                    <ArrowRightLeft className="w-3 h-3" />
-                  </Button>
+                </Badge>
+              </div>
+
+              {/* Linha 2: Health bar + meta */}
+              <div className="px-5 pb-2 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Activity className="w-3 h-3 shrink-0 text-emerald-400" />
+                  <div className="h-1 flex-1 rounded-full bg-muted/20 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${isConnected ? "bg-emerald-500" : "bg-red-500"}`}
+                      style={{ width: isConnected ? "100%" : "20%" }}
+                    />
+                  </div>
+                  <span className={`text-[9px] font-mono shrink-0 ${isConnected ? "text-emerald-400" : "text-red-400"}`}>
+                    {isConnected ? "100" : "20"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
+                  <span className="truncate">
+                    {selectedDevice?.updated_at
+                      ? `${formatDistanceToNow(new Date(selectedDevice.updated_at), { locale: ptBR, addSuffix: true })}`
+                      : "—"}
+                  </span>
+                  <span className="flex items-center gap-0.5 shrink-0">
+                    <Radio className="w-2.5 h-2.5" />
+                    {activeReportsCount} relatório{activeReportsCount !== 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
 
+              {/* QR Code section */}
               {(isPairing || qrDataUrl) && !isConnected && (
-                <div className="flex flex-col items-center gap-3 py-3">
+                <div className="flex flex-col items-center gap-3 py-4 border-t border-border/10">
                   {qrDataUrl ? (
                     <>
                       <div className="p-2.5 bg-white rounded-xl">
@@ -669,13 +710,33 @@ const ReportWhatsApp = () => {
                 </div>
               )}
 
+              {/* Connected confirmation */}
               {isConnected && connPhone && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-xs text-foreground">Conectado: <strong>{connPhone}</strong></span>
+                <div className="mx-5 mb-2 flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <span className="text-[10px] text-foreground">Conectado: <strong>{connPhone}</strong></span>
                 </div>
               )}
-            </div>
+
+              {/* Linha 3: Actions */}
+              <div className="border-t border-border/10 px-3 py-1.5 flex items-center gap-0.5">
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
+                  <ArrowRightLeft className="w-2.5 h-2.5" />
+                </Button>
+                <div className="flex-1" />
+                {connStatus === "disconnected" ? (
+                  <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={handleGenerateQr} disabled={!!loading}>
+                    {loading === "qr" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RefreshCw className="w-2.5 h-2.5" />}
+                    Reconectar
+                  </Button>
+                ) : isConnected ? (
+                  <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={!!loading}>
+                    {loading === "disconnect" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Power className="w-2.5 h-2.5" />}
+                    Desconectar
+                  </Button>
+                ) : null}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
