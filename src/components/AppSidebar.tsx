@@ -64,7 +64,7 @@ const menuGroups = [
     items: [
       { title: "Centro de Monitoramento", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
       { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
-      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText, badgeKey: "unreadNotifications" as const },
+      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
     ],
   },
   {
