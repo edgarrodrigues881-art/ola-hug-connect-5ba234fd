@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronRight, AlertTriangle, Shield, Clock, XCircle } from "lucide-react";
+import { Search, ChevronRight, AlertTriangle, Shield, Clock, XCircle, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,13 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+const planBadgeColors: Record<string, string> = {
+  Start: "bg-zinc-600",
+  Pro: "bg-blue-600",
+  Scale: "bg-purple-600",
+  Elite: "bg-amber-600",
+};
+
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
@@ -34,13 +41,16 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter(u => {
-      // Status filters
       if (statusFilter === "expiring") {
         const d = getDaysLeft(u.plan_expires_at);
         if (d === null || d > 3 || d <= 0) return false;
       } else if (statusFilter === "expired") {
         const d = getDaysLeft(u.plan_expires_at);
         if (d === null || d > 0) return false;
+      } else if (statusFilter === "risk") {
+        if (!u.risk_flag) return false;
+      } else if (statusFilter === "top_plan") {
+        if (!u.plan_name || u.plan_name === "Start") return false;
       } else if (statusFilter !== "all" && u.status !== statusFilter) {
         return false;
       }
@@ -51,6 +61,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
 
   const expiringCount = useMemo(() => users.filter(u => { const d = getDaysLeft(u.plan_expires_at); return d !== null && d > 0 && d <= 3; }).length, [users]);
   const expiredCount = useMemo(() => users.filter(u => { const d = getDaysLeft(u.plan_expires_at); return d !== null && d <= 0; }).length, [users]);
+  const riskCount = useMemo(() => users.filter(u => u.risk_flag).length, [users]);
 
   return (
     <div className="space-y-4">
@@ -70,9 +81,10 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
             { label: "Todos", value: "all" },
             { label: "Ativos", value: "active" },
             { label: "Suspensos", value: "suspended" },
-            { label: "Cancelados", value: "cancelled" },
             { label: `Vencendo (${expiringCount})`, value: "expiring" },
             { label: `Vencidos (${expiredCount})`, value: "expired" },
+            { label: `Alto Risco (${riskCount})`, value: "risk" },
+            { label: "Maiores Planos", value: "top_plan" },
           ].map(f => (
             <Button
               key={f.value}
@@ -80,7 +92,10 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
               variant={statusFilter === f.value ? "default" : "outline"}
               onClick={() => setStatusFilter(f.value)}
               className={statusFilter === f.value
-                ? f.value === "expired" ? "bg-red-600 hover:bg-red-700 text-white" : f.value === "expiring" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white"
+                ? f.value === "expired" ? "bg-red-600 hover:bg-red-700 text-white"
+                : f.value === "expiring" ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                : f.value === "risk" ? "bg-red-600 hover:bg-red-700 text-white"
+                : "bg-purple-600 hover:bg-purple-700 text-white"
                 : "border-zinc-700 text-zinc-400"
               }
             >
@@ -96,13 +111,13 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-zinc-800 text-zinc-400 text-xs uppercase tracking-wider">
-                <th className="text-left px-4 py-3">Nome</th>
-                <th className="text-left px-4 py-3">Email</th>
+                <th className="text-left px-4 py-3">Cliente</th>
                 <th className="text-left px-4 py-3">Plano</th>
+                <th className="text-left px-4 py-3">Receita</th>
                 <th className="text-left px-4 py-3">Instâncias</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Vencimento</th>
-                <th className="text-left px-4 py-3">Último Login</th>
+                <th className="text-left px-4 py-3">Dias Rest.</th>
                 <th className="text-right px-4 py-3"></th>
               </tr>
             </thead>
@@ -120,16 +135,37 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-100 font-medium">{u.full_name || "—"}</span>
-                          {u.risk_flag && <span title="Alto risco"><AlertTriangle size={14} className="text-red-400" /></span>}
-                          {u.roles.includes("admin") && <span title="Admin"><Shield size={14} className="text-purple-400" /></span>}
+                          {u.risk_flag && (
+                            <Badge className="bg-red-600/80 text-white text-[9px] px-1">
+                              <AlertTriangle size={10} />
+                            </Badge>
+                          )}
+                          {u.roles.includes("admin") && (
+                            <Badge className="bg-purple-600/80 text-white text-[9px] px-1">
+                              <Shield size={10} />
+                            </Badge>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-400">{u.email}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-zinc-300 font-medium">{u.plan_name || "Sem plano"}</span>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">{u.email}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-300">{u.devices_count}</span>
+                        {u.plan_name ? (
+                          <Badge className={`${planBadgeColors[u.plan_name] || "bg-zinc-600"} text-white text-[10px] px-2`}>
+                            {u.plan_name}
+                          </Badge>
+                        ) : (
+                          <span className="text-zinc-500 text-xs">Sem plano</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-zinc-300 text-xs font-medium">
+                          {u.plan_price > 0 ? `R$ ${Number(u.plan_price).toFixed(2)}` : "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`font-medium ${u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-red-400" : "text-zinc-300"}`}>
+                          {u.devices_count}
+                        </span>
                         <span className="text-zinc-500">/{u.max_instances}</span>
                       </td>
                       <td className="px-4 py-3">
@@ -143,23 +179,29 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                             {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
                           </span>
                           {isExpired && (
-                            <Badge className="bg-red-600/80 text-white text-[10px] px-1.5">
-                              <XCircle size={10} className="mr-0.5" /> Vencido
+                            <Badge className="bg-red-600/80 text-white text-[9px] px-1">
+                              <XCircle size={10} />
                             </Badge>
                           )}
                           {isExpiring && (
-                            <Badge className="bg-yellow-600/80 text-white text-[10px] px-1.5">
-                              <Clock size={10} className="mr-0.5" /> {daysLeft}d
+                            <Badge className="bg-yellow-600/80 text-white text-[9px] px-1">
+                              <Clock size={10} />
                             </Badge>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-zinc-500 text-xs">
-                        {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}
+                      <td className="px-4 py-3 text-center">
+                        {daysLeft !== null ? (
+                          <span className={`text-xs font-medium ${isExpired ? "text-red-400" : isExpiring ? "text-yellow-400" : "text-zinc-300"}`}>
+                            {isExpired ? "Vencido" : `${daysLeft}d`}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-500 text-xs">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300">
-                          Gerenciar <ChevronRight size={14} className="ml-1" />
+                          <ChevronRight size={14} />
                         </Button>
                       </td>
                     </tr>
