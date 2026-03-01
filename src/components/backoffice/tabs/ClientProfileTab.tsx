@@ -18,7 +18,6 @@ const ClientProfileTab = ({ client, detail }: Props) => {
   const [form, setForm] = useState({
     full_name: profile.full_name || client.full_name || "",
     phone: profile.phone || client.phone || "",
-    document: profile.document || client.document || "",
     company: profile.company || client.company || "",
     admin_notes: profile.admin_notes || client.admin_notes || "",
     risk_flag: profile.risk_flag ?? client.risk_flag ?? false,
@@ -55,11 +54,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
           <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
         </div>
         <div>
-          <Label className="text-zinc-400 text-xs">Documento (CPF/CNPJ)</Label>
-          <Input value={form.document} onChange={e => setForm({...form, document: e.target.value})} className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" placeholder="000.000.000-00" />
-        </div>
-        <div>
-          <Label className="text-zinc-400 text-xs">Empresa</Label>
+          <Label className="text-zinc-400 text-xs">Empresa (opcional)</Label>
           <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
         </div>
         <div>
