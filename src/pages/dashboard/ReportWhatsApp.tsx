@@ -98,6 +98,7 @@ const ReportWhatsApp = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSelection, setModalSelection] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [initialGroupsLoaded, setInitialGroupsLoaded] = useState(false);
 
   // Independent group selection per report type
   const [reportGroups, setReportGroups] = useState<Record<ReportType, Group | null>>({
@@ -160,14 +161,10 @@ const ReportWhatsApp = () => {
             connection: data.config.toggle_instances ?? prev.connection,
           }));
           // Restore group if saved
-          if (data.config.group_id) {
+          if (data.config.group_id && !initialGroupsLoaded) {
             const savedGroup = { id: data.config.group_id, name: data.config.group_name || "" };
-            setReportGroups((prev) => {
-              // Only set on initial load (all null)
-              const allNull = !prev.warmup && !prev.campaigns && !prev.connection;
-              if (allNull) return { warmup: savedGroup, campaigns: savedGroup, connection: savedGroup };
-              return prev;
-            });
+            setReportGroups({ warmup: savedGroup, campaigns: savedGroup, connection: savedGroup });
+            setInitialGroupsLoaded(true);
           }
           setAlertDisconnect(data.config.alert_disconnect ?? true);
           setAlertHighFailures(data.config.alert_high_failures ?? false);
@@ -485,7 +482,22 @@ const ReportWhatsApp = () => {
                               size="sm"
                               variant="ghost"
                               className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                              onClick={() => setReportGroups((prev) => ({ ...prev, [type]: null }))}
+                              onClick={() => {
+                                setReportGroups((prev) => ({ ...prev, [type]: null }));
+                                // Clear group on server too
+                                invoke("config", {
+                                  instanceId: selectedDeviceId,
+                                  groupId: "",
+                                  groupName: "",
+                                  frequency: "24h",
+                                  toggleCampaigns: reportToggles.campaigns,
+                                  toggleWarmup: reportToggles.warmup,
+                                  toggleInstances: reportToggles.connection,
+                                  alertDisconnect,
+                                  alertCampaignEnd: true,
+                                  alertHighFailures,
+                                }).catch(() => {});
+                              }}
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
