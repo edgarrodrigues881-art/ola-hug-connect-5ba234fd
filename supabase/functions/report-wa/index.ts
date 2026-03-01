@@ -431,8 +431,9 @@ Deno.serve(async (req) => {
         };
         const cols = typeMap[reportType as string];
         if (cols) {
-          upsertData[cols.idCol] = perTypeGroup.id;
-          upsertData[cols.nameCol] = perTypeGroup.name;
+          // Save null when clearing (empty id means removal)
+          upsertData[cols.idCol] = perTypeGroup.id || null;
+          upsertData[cols.nameCol] = perTypeGroup.name || null;
         }
       }
 

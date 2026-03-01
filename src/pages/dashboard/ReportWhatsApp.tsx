@@ -168,10 +168,12 @@ const ReportWhatsApp = () => {
           // Restore group if saved
           if (!initialGroupsLoaded) {
             const fallbackGroup = data.config.group_id ? { id: data.config.group_id, name: data.config.group_name || "" } : null;
+            const toGroup = (id: string | null | undefined, name: string | null | undefined, fb: typeof fallbackGroup) =>
+              id && id.trim() ? { id, name: name || "" } : fb;
             setReportGroups({
-              warmup: data.config.warmup_group_id ? { id: data.config.warmup_group_id, name: data.config.warmup_group_name || "" } : fallbackGroup,
-              campaigns: data.config.campaigns_group_id ? { id: data.config.campaigns_group_id, name: data.config.campaigns_group_name || "" } : fallbackGroup,
-              connection: data.config.connection_group_id ? { id: data.config.connection_group_id, name: data.config.connection_group_name || "" } : fallbackGroup,
+              warmup: toGroup(data.config.warmup_group_id, data.config.warmup_group_name, fallbackGroup),
+              campaigns: toGroup(data.config.campaigns_group_id, data.config.campaigns_group_name, fallbackGroup),
+              connection: toGroup(data.config.connection_group_id, data.config.connection_group_name, fallbackGroup),
             });
             setInitialGroupsLoaded(true);
           }
