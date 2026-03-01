@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -54,6 +61,8 @@ const ReportWhatsApp = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [configured, setConfigured] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSelection, setModalSelection] = useState<string>("");
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupSearch, setGroupSearch] = useState("");
@@ -93,8 +102,10 @@ const ReportWhatsApp = () => {
         setConnStatus(data.status || "disconnected");
         setConnPhone(data.connectedPhone || null);
         if (data.config) {
-          setConfigured(true);
-          if (data.config.device_id) setSelectedDeviceId(data.config.device_id);
+          if (data.config.device_id) {
+            setSelectedDeviceId(data.config.device_id);
+            setConfigured(true);
+          }
           if (data.config.group_id && !selectedGroup) {
             setSelectedGroup({ id: data.config.group_id, name: data.config.group_name || "" });
           }
@@ -123,14 +134,30 @@ const ReportWhatsApp = () => {
     refetchInterval: 5000,
   });
 
-  // Actions
+  // Confirm device selection from modal
+  const handleConfirmDevice = async () => {
+    if (!modalSelection) return;
+    setLoading("connect");
+    try {
+      await invoke("connect", { deviceId: modalSelection });
+      setSelectedDeviceId(modalSelection);
+      setConfigured(true);
+      setModalOpen(false);
+      setModalSelection("");
+      toast({ title: "Número de relatório vinculado", duration: 2500 });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive", duration: 2500 });
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleConnect = async () => {
     if (!selectedDeviceId) return;
     setLoading("connect");
     try {
       await invoke("connect", { deviceId: selectedDeviceId });
-      setConfigured(true);
-      toast({ title: "Dispositivo vinculado", duration: 2500 });
+      toast({ title: "Dispositivo reconectado", duration: 2500 });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive", duration: 2500 });
     } finally {
@@ -223,27 +250,11 @@ const ReportWhatsApp = () => {
           </h2>
 
           {!configured || !selectedDeviceId ? (
-            /* Estado: Não configurado */
-            <div className="space-y-3">
-              <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Selecionar número de relatório" />
-                </SelectTrigger>
-                <SelectContent>
-                  {devices.map(d => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name} {d.number ? `(${d.number})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button className="w-full gap-2" onClick={handleConnect} disabled={!selectedDeviceId || !!loading}>
-                {loading === "connect" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
-                Selecionar número de relatório
-              </Button>
-            </div>
+            <Button className="w-full gap-2" variant="outline" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
+              <Plug className="w-4 h-4" />
+              Selecionar número de relatório
+            </Button>
           ) : (
-            /* Estado: Configurado */
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-muted-foreground"}`} />
@@ -264,16 +275,61 @@ const ReportWhatsApp = () => {
                   size="sm"
                   variant="ghost"
                   className="gap-1.5 text-muted-foreground"
-                  onClick={() => { setConfigured(false); setSelectedDeviceId(""); }}
+                  onClick={() => { setModalSelection(""); setModalOpen(true); }}
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
-                  Trocar
+                  Trocar número
                 </Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* ── Modal: Selecionar instância ── */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecionar número de relatório</DialogTitle>
+            <DialogDescription>Escolha uma instância para receber os relatórios.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {devices.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhuma instância disponível.</p>
+            ) : (
+              devices.map(d => (
+                <button
+                  key={d.id}
+                  onClick={() => setModalSelection(d.id)}
+                  className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                    modalSelection === d.id
+                      ? "bg-primary/10 border border-primary/30 text-foreground"
+                      : "hover:bg-muted/40 border border-transparent text-foreground"
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium">{d.name}</p>
+                    <p className="text-xs text-muted-foreground">{d.number || "Sem número"}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      ["Connected", "Ready", "authenticated"].includes(d.status) ? "bg-emerald-400" : "bg-muted-foreground"
+                    }`} />
+                    {modalSelection === d.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setModalOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleConfirmDevice} disabled={!modalSelection || loading === "connect"}>
+              {loading === "connect" ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+              Confirmar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── CARD 2: Grupo de destino ── */}
       <Card className="border-border/50">
