@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
       if (config.toggle_warmup) contentParts.push("Aquecimento");
       if (config.toggle_instances) contentParts.push("Instâncias");
 
-      const message = `[Relatório - Teste]\n✅ Conectado com sucesso.\nGrupo configurado: ${config.group_name || "N/A"}\nFrequência: ${config.frequency}\nConteúdo: ${contentParts.join("/") || "Nenhum"}`;
+      const message = `📡 MONITORAMENTO ATIVADO\n\nStatus: ✅ Conectado com sucesso\n\n👥 Grupo de destino:\n${config.group_name || "N/A"}\n\n⏱ Ciclo de relatório:\n${config.frequency === "24h" ? "24 horas (automático)" : config.frequency}\n\n📊 Módulos ativos:\n${config.toggle_warmup ? "• Aquecimento\n" : ""}${config.toggle_campaigns ? "• Campanhas\n" : ""}${config.toggle_instances ? "• Status de Instâncias\n" : ""}\nSistema pronto para envio de relatórios.`;
 
       try {
         // Try multiple endpoints and payload formats
