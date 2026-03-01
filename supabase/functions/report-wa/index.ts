@@ -191,9 +191,9 @@ Deno.serve(async (req) => {
 
     // ─── ACTION: config (save) ───
     if (action === "config") {
-      const { groupId, groupName, frequency, toggleCampaigns, toggleWarmup, toggleInstances, alertDisconnect, alertCampaignEnd, alertHighFailures } = body;
+      const { instanceId, groupId, groupName, frequency, toggleCampaigns, toggleWarmup, toggleInstances, alertDisconnect, alertCampaignEnd, alertHighFailures } = body;
 
-      await serviceClient.from("report_wa_configs").upsert({
+      const upsertData: Record<string, unknown> = {
         user_id: userId,
         group_id: groupId,
         group_name: groupName,
@@ -204,7 +204,10 @@ Deno.serve(async (req) => {
         alert_disconnect: alertDisconnect ?? true,
         alert_campaign_end: alertCampaignEnd ?? true,
         alert_high_failures: alertHighFailures ?? false,
-      }, { onConflict: "user_id" });
+      };
+      if (instanceId) upsertData.device_id = instanceId;
+
+      await serviceClient.from("report_wa_configs").upsert(upsertData, { onConflict: "user_id" });
 
       // Log
       await serviceClient.from("report_wa_logs").insert({
