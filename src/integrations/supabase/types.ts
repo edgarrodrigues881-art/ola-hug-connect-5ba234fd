@@ -421,10 +421,44 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          admin_id: string
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          notes: string | null
+          paid_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admin_notes: string | null
           avatar_url: string | null
+          client_type: string
           company: string | null
           created_at: string
           document: string | null
@@ -438,6 +472,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           avatar_url?: string | null
+          client_type?: string
           company?: string | null
           created_at?: string
           document?: string | null
@@ -451,6 +486,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           avatar_url?: string | null
+          client_type?: string
           company?: string | null
           created_at?: string
           document?: string | null

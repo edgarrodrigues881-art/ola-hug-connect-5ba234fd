@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
       const { data: devices } = await adminClient.from("devices").select("*").eq("user_id", target_user_id).order("created_at", { ascending: false });
       const { data: campaigns } = await adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20);
       const { data: logs } = await adminClient.from("admin_logs").select("*").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
+      const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
 
       return new Response(JSON.stringify({
         user: authUser?.user || null,
@@ -129,6 +130,7 @@ Deno.serve(async (req) => {
         devices: devices || [],
         campaigns: campaigns || [],
         admin_logs: logs || [],
+        payments: payments || [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -294,6 +296,42 @@ Deno.serve(async (req) => {
 
       await logAction(adminClient, user.id, target_user_id, "delete-device", `Instância removida: ${device_name}`);
 
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── LIST PAYMENTS ───
+    if (action === "list-payments" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
+      return new Response(JSON.stringify({ payments: payments || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── ADD PAYMENT ───
+    if (action === "add-payment" && req.method === "POST") {
+      const { target_user_id, amount, method, notes, paid_at } = await req.json();
+      await adminClient.from("payments").insert({
+        user_id: target_user_id,
+        amount,
+        method,
+        notes,
+        paid_at,
+        admin_id: user.id,
+      });
+      await logAction(adminClient, user.id, target_user_id, "add-payment", `Pagamento: R$ ${amount} via ${method}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DELETE PAYMENT ───
+    if (action === "delete-payment" && req.method === "POST") {
+      const { payment_id, target_user_id } = await req.json();
+      await adminClient.from("payments").delete().eq("id", payment_id);
+      await logAction(adminClient, user.id, target_user_id, "delete-payment", `Pagamento removido: ${payment_id}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
