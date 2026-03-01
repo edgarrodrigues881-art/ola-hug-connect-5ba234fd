@@ -474,7 +474,11 @@ export type Database = {
           alert_campaign_end: boolean
           alert_disconnect: boolean
           alert_high_failures: boolean
+          campaigns_group_id: string | null
+          campaigns_group_name: string | null
           connected_phone: string | null
+          connection_group_id: string | null
+          connection_group_name: string | null
           connection_status: string
           created_at: string
           device_id: string | null
@@ -487,12 +491,18 @@ export type Database = {
           toggle_warmup: boolean
           updated_at: string
           user_id: string
+          warmup_group_id: string | null
+          warmup_group_name: string | null
         }
         Insert: {
           alert_campaign_end?: boolean
           alert_disconnect?: boolean
           alert_high_failures?: boolean
+          campaigns_group_id?: string | null
+          campaigns_group_name?: string | null
           connected_phone?: string | null
+          connection_group_id?: string | null
+          connection_group_name?: string | null
           connection_status?: string
           created_at?: string
           device_id?: string | null
@@ -505,12 +515,18 @@ export type Database = {
           toggle_warmup?: boolean
           updated_at?: string
           user_id: string
+          warmup_group_id?: string | null
+          warmup_group_name?: string | null
         }
         Update: {
           alert_campaign_end?: boolean
           alert_disconnect?: boolean
           alert_high_failures?: boolean
+          campaigns_group_id?: string | null
+          campaigns_group_name?: string | null
           connected_phone?: string | null
+          connection_group_id?: string | null
+          connection_group_name?: string | null
           connection_status?: string
           created_at?: string
           device_id?: string | null
@@ -523,6 +539,8 @@ export type Database = {
           toggle_warmup?: boolean
           updated_at?: string
           user_id?: string
+          warmup_group_id?: string | null
+          warmup_group_name?: string | null
         }
         Relationships: [
           {

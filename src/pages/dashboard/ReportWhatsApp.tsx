@@ -166,9 +166,13 @@ const ReportWhatsApp = () => {
             connection: data.config.toggle_instances ?? prev.connection,
           }));
           // Restore group if saved
-          if (data.config.group_id && !initialGroupsLoaded) {
-            const savedGroup = { id: data.config.group_id, name: data.config.group_name || "" };
-            setReportGroups({ warmup: savedGroup, campaigns: savedGroup, connection: savedGroup });
+          if (!initialGroupsLoaded) {
+            const fallbackGroup = data.config.group_id ? { id: data.config.group_id, name: data.config.group_name || "" } : null;
+            setReportGroups({
+              warmup: data.config.warmup_group_id ? { id: data.config.warmup_group_id, name: data.config.warmup_group_name || "" } : fallbackGroup,
+              campaigns: data.config.campaigns_group_id ? { id: data.config.campaigns_group_id, name: data.config.campaigns_group_name || "" } : fallbackGroup,
+              connection: data.config.connection_group_id ? { id: data.config.connection_group_id, name: data.config.connection_group_name || "" } : fallbackGroup,
+            });
             setInitialGroupsLoaded(true);
           }
           setAlertDisconnect(data.config.alert_disconnect ?? true);
@@ -296,12 +300,11 @@ const ReportWhatsApp = () => {
     if (!isConnected || !selectedDeviceId) return;
     setLoading("save");
     try {
-      // Use the first selected group as the main config group
-      const primaryGroup = group;
+      // Save per-type group independently
       await invoke("config", {
         instanceId: selectedDeviceId,
-        groupId: primaryGroup.id,
-        groupName: primaryGroup.name,
+        reportType: type,
+        perTypeGroup: { id: group.id, name: group.name },
         frequency: "24h",
         toggleCampaigns: reportToggles.campaigns,
         toggleWarmup: reportToggles.warmup,

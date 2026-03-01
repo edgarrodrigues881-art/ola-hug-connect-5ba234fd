@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     if (action === "status") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("device_id, connection_status, connected_phone, group_id, group_name, frequency, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures")
+        .select("device_id, connection_status, connected_phone, group_id, group_name, frequency, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
         .eq("user_id", userId)
         .single();
 
@@ -408,12 +408,10 @@ Deno.serve(async (req) => {
 
     // ─── ACTION: config (save) ───
     if (action === "config") {
-      const { instanceId, groupId, groupName, frequency, toggleCampaigns, toggleWarmup, toggleInstances, alertDisconnect, alertCampaignEnd, alertHighFailures } = body;
+      const { instanceId, groupId, groupName, frequency, toggleCampaigns, toggleWarmup, toggleInstances, alertDisconnect, alertCampaignEnd, alertHighFailures, reportType, perTypeGroup } = body;
 
       const upsertData: Record<string, unknown> = {
         user_id: userId,
-        group_id: groupId,
-        group_name: groupName,
         frequency: frequency || "1h",
         toggle_campaigns: toggleCampaigns ?? true,
         toggle_warmup: toggleWarmup ?? true,
@@ -424,13 +422,32 @@ Deno.serve(async (req) => {
       };
       if (instanceId) upsertData.device_id = instanceId;
 
+      // Save per-type group if specified
+      if (reportType && perTypeGroup) {
+        const typeMap: Record<string, { idCol: string; nameCol: string }> = {
+          warmup: { idCol: "warmup_group_id", nameCol: "warmup_group_name" },
+          campaigns: { idCol: "campaigns_group_id", nameCol: "campaigns_group_name" },
+          connection: { idCol: "connection_group_id", nameCol: "connection_group_name" },
+        };
+        const cols = typeMap[reportType as string];
+        if (cols) {
+          upsertData[cols.idCol] = perTypeGroup.id;
+          upsertData[cols.nameCol] = perTypeGroup.name;
+        }
+      }
+
+      // Also keep legacy group_id for backwards compat
+      if (groupId) {
+        upsertData.group_id = groupId;
+        upsertData.group_name = groupName;
+      }
+
       await serviceClient.from("report_wa_configs").upsert(upsertData, { onConflict: "user_id" });
 
-      // Log
       await serviceClient.from("report_wa_logs").insert({
         user_id: userId,
         level: "INFO",
-        message: `Configuração salva. Grupo: ${groupName || "N/A"}, Frequência: ${frequency || "1h"}`,
+        message: `Configuração salva.${reportType ? ` Tipo: ${reportType}, Grupo: ${perTypeGroup?.name || "N/A"}` : ` Grupo: ${groupName || "N/A"}`}`,
       });
 
       return json({ success: true });
@@ -444,15 +461,26 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .single();
 
-      if (!config?.device_id || !config?.group_id) {
-        return json({ error: "Configure o dispositivo e grupo primeiro" }, 400);
+      if (!config?.device_id) {
+        return json({ error: "Configure o dispositivo primeiro" }, 400);
       }
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
 
       const reportType = body.reportType || "general";
-      const targetGroupId = body.groupId || config.group_id;
-      const targetGroupName = body.groupName || config.group_name || "N/A";
+      // Use per-type group, fallback to legacy group_id
+      const typeGroupMap: Record<string, { id: string; name: string }> = {
+        warmup: { id: config.warmup_group_id || config.group_id, name: config.warmup_group_name || config.group_name },
+        campaigns: { id: config.campaigns_group_id || config.group_id, name: config.campaigns_group_name || config.group_name },
+        connection: { id: config.connection_group_id || config.group_id, name: config.connection_group_name || config.group_name },
+      };
+      const typeGroup = typeGroupMap[reportType] || { id: config.group_id, name: config.group_name };
+      const targetGroupId = body.groupId || typeGroup.id;
+      const targetGroupName = body.groupName || typeGroup.name || "N/A";
+
+      if (!targetGroupId) {
+        return json({ error: "Selecione um grupo para este tipo de relatório" }, 400);
+      }
 
       let message = "";
 
