@@ -210,22 +210,27 @@ Deno.serve(async (req) => {
       let groups: any[] = [];
 
       function extractGroups(data: any): any[] {
-        if (Array.isArray(data)) return data;
-        if (data && typeof data === "object") {
+        let items: any[] = [];
+        if (Array.isArray(data)) items = data;
+        else if (data && typeof data === "object") {
           for (const key of ["groups", "data", "chats", "result"]) {
-            if (Array.isArray(data[key])) return data[key];
+            if (Array.isArray(data[key])) { items = data[key]; break; }
           }
         }
-        return [];
+        // Filter to only group chats (JID ends with @g.us)
+        return items.filter((g) => {
+          const jid = g.JID || g.jid || g.id || g.groupId || g.chatId || "";
+          return jid.endsWith("@g.us") || g.isGroup === true || g.IsGroup === true;
+        });
       }
 
       // Try multiple endpoints with logging
       const endpoints = [
-        { path: "/chat/listGroups", method: "POST", body: {} },
-        { path: "/group/fetchAllGroups", method: "GET", body: undefined },
-        { path: "/chat/findChats", method: "POST", body: { group: true } },
         { path: "/group/list", method: "GET", body: undefined },
+        { path: "/group/fetchAllGroups", method: "GET", body: undefined },
         { path: "/chat/list", method: "GET", body: undefined },
+        { path: "/chat/listGroups", method: "POST", body: {} },
+        { path: "/chat/findChats", method: "POST", body: { group: true } },
       ];
 
       let rawResponse: any = null;
@@ -256,7 +261,7 @@ Deno.serve(async (req) => {
       // Fetch metadata for groups that have no name (UaZapi V2 returns Name="" in list)
       const enrichedGroups: any[] = [];
       for (const g of groups) {
-        const jid = g.JID || g.jid || g.id || g.groupId || "";
+        const jid = g.JID || g.jid || g.id || g.groupId || g.chatId || "";
         let groupName = g.Subject || g.subject || g.Name || g.name || g.groupName || "";
         const participants = g.Participants || g.participants || [];
         const size = g.size || participants.length || null;
