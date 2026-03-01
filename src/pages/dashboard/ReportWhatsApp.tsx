@@ -622,20 +622,8 @@ const ReportWhatsApp = () => {
                 </Badge>
               </div>
 
-              {/* Linha 2: Health bar + meta */}
-              <div className="px-5 pb-2 space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 shrink-0 text-emerald-400" />
-                  <div className="h-1 flex-1 rounded-full bg-muted/20 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${isConnected ? "bg-emerald-500" : "bg-red-500"}`}
-                      style={{ width: isConnected ? "100%" : "20%" }}
-                    />
-                  </div>
-                  <span className={`text-[9px] font-mono shrink-0 ${isConnected ? "text-emerald-400" : "text-red-400"}`}>
-                    {isConnected ? "100" : "20"}
-                  </span>
-                </div>
+              {/* Meta info */}
+              <div className="px-5 pb-2">
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
                   <span className="truncate">
                     {selectedDevice?.updated_at
