@@ -74,7 +74,12 @@ Deno.serve(async (req) => {
 
       const res = await uazapiRequest(baseUrl, apiToken, "/instance/qrcode", "GET");
       const data = await res.json();
-      const qr = data.qrcode || data.base64 || data.data || null;
+      let qr = data.qrcode || data.base64 || data.data || data.qr || null;
+
+      // Ensure proper data URL format
+      if (qr && typeof qr === "string" && !qr.startsWith("data:")) {
+        qr = `data:image/png;base64,${qr}`;
+      }
 
       // Upsert config with pairing status
       await serviceClient.from("report_wa_configs").upsert({
