@@ -250,31 +250,22 @@ const ReportWhatsApp = () => {
   const handleLoadGroups = async (forType: ReportType) => {
     setLoading("groups");
     try {
-      const data = await invoke("groups");
-      setAllGroups(data.groups || []);
-      if ((data.groups || []).length === 0) {
-        toast({ title: "Nenhum grupo encontrado" });
+      const { data, error } = await supabase
+        .from("warmup_groups")
+        .select("id, name, link")
+        .eq("user_id", user!.id)
+        .order("name");
+      if (error) throw error;
+      const groups = (data || []).map((g) => ({ id: g.id, name: g.name, participantsCount: null }));
+      setAllGroups(groups);
+      if (groups.length === 0) {
+        toast({ title: "Nenhum grupo cadastrado", description: "Cadastre grupos na seção de Aquecimento" });
       } else {
         setGroupPickerOpen(forType);
         setGroupSearch("");
       }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleSyncGroups = async () => {
-    setLoading("sync");
-    try {
-      toast({ title: "🔄 Sincronizando grupos..." });
-      const data = await invoke("sync-groups");
-      const groups = data.groups || [];
-      setAllGroups(groups);
-      toast({ title: "✅ Grupos atualizados!", description: `${groups.length} grupo${groups.length !== 1 ? "s" : ""} encontrado${groups.length !== 1 ? "s" : ""}` });
-    } catch (err: any) {
-      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
     } finally {
       setLoading(null);
     }
@@ -826,11 +817,11 @@ const ReportWhatsApp = () => {
               size="sm"
               variant="outline"
               className="h-7 gap-1.5 text-xs"
-              onClick={handleSyncGroups}
-              disabled={loading === "sync"}
+              onClick={() => groupPickerOpen && handleLoadGroups(groupPickerOpen)}
+              disabled={!!loading}
             >
-              {loading === "sync" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-              Sincronizar
+              {loading === "groups" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              Atualizar
             </Button>
           </div>
 
