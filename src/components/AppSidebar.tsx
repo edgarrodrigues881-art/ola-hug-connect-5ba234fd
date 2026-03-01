@@ -4,22 +4,24 @@ import {
   Send,
   Megaphone,
   FileText,
-  BarChart3,
   Flame,
-  MessageSquareText,
   Shield,
   UsersRound,
-  Box,
   LogOut,
   Settings,
   ChevronUp,
   CreditCard,
+  Box,
+  Activity,
+  ScrollText,
+  Radio,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
+import { useSidebarStats } from "@/hooks/useSidebarStats";
 import logo from "@/assets/logo.png";
 import {
   DropdownMenu,
@@ -40,31 +42,43 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const operationsItems = [
-  { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
-  { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
-  { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
-  { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-  { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+const menuGroups = [
+  {
+    label: "📊 VISÃO GERAL",
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
+    label: "🚀 OPERAÇÕES",
+    items: [
+      { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
+      { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+      { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+    ],
+  },
+  {
+    label: "📡 MONITORAMENTO",
+    items: [
+      { title: "Centro de Monitoramento", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
+      { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
+      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText, badgeKey: "unreadNotifications" as const },
+    ],
+  },
+  {
+    label: "⚙ CONFIGURAÇÕES",
+    items: [
+      { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
+      { title: "Modelos", url: "/dashboard/templates", icon: FileText },
+      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
+      { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
+    ],
+  },
 ];
 
-const analysisItems = [
-  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3, exact: true },
-  { title: "Relatório WhatsApp", url: "/dashboard/reports/whatsapp", icon: MessageSquareText, exact: true },
-  { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone },
-  { title: "Modelos", url: "/dashboard/templates", icon: FileText },
-];
-
-const systemItems = [
-  { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
-  { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
-];
-
-const groups = [
-  { label: "Operações", items: operationsItems },
-  { label: "Análise", items: analysisItems },
-  { label: "Sistema", items: systemItems },
-];
+type BadgeKey = "activeCampaigns" | "unreadNotifications";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -72,6 +86,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { data: stats } = useSidebarStats();
 
   const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
 
@@ -112,67 +127,86 @@ export function AppSidebar() {
     return location.pathname === url || location.pathname.startsWith(url + "/");
   };
 
+  const getBadgeValue = (key?: BadgeKey): number => {
+    if (!key || !stats) return 0;
+    return stats[key] || 0;
+  };
+
   return (
     <Sidebar collapsible="icon" className="sidebar-premium">
       {/* Header / Brand */}
-      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-0' : 'gap-3 px-5 py-5'}`}>
-        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
-        {!collapsed && (
-          <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
-            DG Contingência
-          </span>
+      <div className={`flex flex-col border-b border-sidebar-border ${collapsed ? 'items-center py-4 px-0' : 'px-5 py-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+          <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
+          {!collapsed && (
+            <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
+              DG Contingência
+            </span>
+          )}
+        </div>
+
+        {/* Operational Indicators */}
+        {!collapsed && stats && (
+          <div className="mt-3 space-y-1 px-0.5">
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.onlineInstances > 0 ? 'bg-emerald-500 shadow-[0_0_4px_hsl(142_71%_45%/0.5)]' : 'bg-muted-foreground/30'}`} />
+              <span className="text-muted-foreground/70">{stats.onlineInstances} Instância{stats.onlineInstances !== 1 ? 's' : ''} Online</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.activeWarmupCycles > 0 ? 'bg-amber-500 shadow-[0_0_4px_hsl(38_92%_50%/0.5)]' : 'bg-muted-foreground/30'}`} />
+              <span className="text-muted-foreground/70">{stats.activeWarmupCycles} Ciclo{stats.activeWarmupCycles !== 1 ? 's' : ''} Ativo{stats.activeWarmupCycles !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.criticalAlerts > 0 ? 'bg-destructive shadow-[0_0_4px_hsl(0_84%_60%/0.5)]' : 'bg-muted-foreground/30'}`} />
+              <span className="text-muted-foreground/70">{stats.criticalAlerts} Alerta{stats.criticalAlerts !== 1 ? 's' : ''} Crítico{stats.criticalAlerts !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Painel link */}
-      <div className={`px-3 pt-3 pb-0 ${collapsed ? 'px-2' : ''}`}>
-        <NavLink
-          to="/dashboard"
-          end
-          className={`flex items-center gap-3 px-3 py-2 rounded-md text-[13px] ${
-            isActive("/dashboard")
-              ? 'bg-sidebar-accent text-foreground font-medium'
-              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
-          }`}
-          activeClassName=""
-        >
-          <LayoutDashboard className={`w-4 h-4 shrink-0 ${isActive("/dashboard") ? 'text-primary' : ''}`} strokeWidth={1.5} />
-          {!collapsed && <span>Painel</span>}
-        </NavLink>
-      </div>
-
-      <SidebarContent className="py-1">
-        {groups.map((group) => (
-          <SidebarGroup key={group.label} className="py-1">
+      <SidebarContent className="py-2">
+        {menuGroups.map((group, gi) => (
+          <SidebarGroup key={group.label} className={`py-1 ${gi > 0 ? 'mt-1' : ''}`}>
             {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40 px-5 mb-0.5 select-none">
+              <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 px-5 mb-1 select-none">
                 {group.label}
               </SidebarGroupLabel>
             )}
+            {collapsed && gi > 0 && (
+              <div className="mx-3 mb-1 border-t border-sidebar-border" />
+            )}
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-px px-2">
+              <SidebarMenu className="space-y-0.5 px-2">
                 {group.items.map((item) => {
                   const active = isActive(item.url, (item as any).exact);
-                  const isPrimary = 'primary' in item && item.primary;
+                  const badgeVal = getBadgeValue((item as any).badgeKey);
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild tooltip={item.title}>
                         <NavLink
                           to={item.url}
-                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] relative
+                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] relative transition-colors
                             ${active
-                              ? 'bg-sidebar-accent text-foreground font-medium'
-                              : isPrimary
-                                ? 'text-primary/80 hover:text-primary hover:bg-primary/5'
-                                : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
+                              ? 'bg-primary/10 text-foreground font-semibold border border-primary/20'
+                              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/50'
                             }`}
                           activeClassName=""
                         >
                           {active && !collapsed && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.4)]" />
                           )}
-                          <item.icon className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : isPrimary ? '' : ''}`} strokeWidth={1.5} />
-                          {!collapsed && <span className="truncate">{item.title}</span>}
+                          <item.icon
+                            className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : ''}`}
+                            strokeWidth={active ? 2 : 1.5}
+                          />
+                          {!collapsed && (
+                            <span className="truncate flex-1">{item.title}</span>
+                          )}
+                          {!collapsed && badgeVal > 0 && (
+                            <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                              {badgeVal}
+                            </span>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -188,7 +222,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`flex items-center gap-3 w-full rounded-md hover:bg-sidebar-accent/40 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
+            <button className={`flex items-center gap-3 w-full rounded-lg hover:bg-sidebar-accent/50 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
               ) : (
