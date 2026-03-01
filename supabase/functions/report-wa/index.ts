@@ -269,8 +269,9 @@ Deno.serve(async (req) => {
       }
       if (!deviceId) return json({ error: "Nenhum dispositivo vinculado" }, 400);
 
-      const { baseUrl, token: apiToken } = await getDeviceCredentials(deviceId);
-      console.log(`[groups] Loading groups for device ${deviceId}`);
+      const { baseUrl, token: apiToken, device } = await getDeviceCredentials(deviceId);
+      const deviceName = device?.name || deviceId;
+      console.log(`[groups] Loading groups for device="${deviceName}" id=${deviceId} baseUrl=${baseUrl}`);
 
       // Try multiple endpoints
       let groups: any[] = [];
@@ -290,9 +291,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Try multiple endpoints with logging
+      // Try multiple endpoints with logging — always fresh from UAZAPI, never from DB
       const endpoints = [
         { path: "/group/list", method: "GET", body: undefined },
+        { path: "/chat/getChats", method: "GET", body: undefined },
         { path: "/group/fetchAllGroups", method: "GET", body: undefined },
         { path: "/chat/list", method: "GET", body: undefined },
         { path: "/chat/listGroups", method: "POST", body: {} },
@@ -370,8 +372,18 @@ Deno.serve(async (req) => {
       }
 
       const mapped = enrichedGroups.filter((g) => g.id);
+      console.log(`[groups] Final result: ${mapped.length} groups for device="${deviceName}" endpoint=${usedEndpoint}`);
 
-      return json({ groups: mapped });
+      return json({ 
+        groups: mapped, 
+        debug: {
+          deviceName,
+          deviceId,
+          baseUrl,
+          usedEndpoint,
+          totalReturned: mapped.length,
+        }
+      });
     }
 
     // ─── ACTION: config (save) ───

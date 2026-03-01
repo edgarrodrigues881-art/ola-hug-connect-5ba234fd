@@ -252,18 +252,31 @@ const ReportWhatsApp = () => {
     }
   };
 
+  const [groupsDebug, setGroupsDebug] = useState<Record<ReportType, { deviceName: string; total: number; endpoint: string } | null>>({
+    warmup: null, campaigns: null, connection: null,
+  });
+
   const handleLoadGroups = async (forType: ReportType) => {
     if (!selectedDeviceId || !isConnected) {
       toast({ title: "Conecte uma instância do WhatsApp para carregar seus grupos", variant: "destructive" });
       return;
     }
+    // Always clear previous list before fetching fresh from UAZAPI
+    setModuleGroups((prev) => ({ ...prev, [forType]: [] }));
+    setGroupsDebug((prev) => ({ ...prev, [forType]: null }));
     setModuleGroupsLoading((prev) => ({ ...prev, [forType]: true }));
     try {
       const data = await invoke("groups", { instanceId: selectedDeviceId });
       const groups = data.groups || [];
+      const debug = data.debug || {};
       setModuleGroups((prev) => ({ ...prev, [forType]: groups }));
+      setGroupsDebug((prev) => ({ ...prev, [forType]: {
+        deviceName: debug.deviceName || selectedDevice?.name || "—",
+        total: groups.length,
+        endpoint: debug.usedEndpoint || "—",
+      }}));
       if (groups.length === 0) {
-        toast({ title: "Nenhum grupo encontrado nesta instância (UAZAPI)" });
+        toast({ title: "Nenhum grupo encontrado nesta instância" });
       } else {
         setGroupPickerOpen(forType);
         setGroupSearch("");
@@ -530,7 +543,7 @@ const ReportWhatsApp = () => {
                             Carregar grupos
                           </Button>
                           <p className="text-[9px] text-muted-foreground/50 font-mono mt-1">
-                            Instância: {selectedDevice?.name || "—"} • Grupos carregados: {moduleGroups[type].length}
+                            Instância usada: {groupsDebug[type]?.deviceName || selectedDevice?.name || "—"} • Grupos retornados da API: {groupsDebug[type]?.total ?? moduleGroups[type].length}
                           </p>
                         </>
                       )}
