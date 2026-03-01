@@ -1078,18 +1078,8 @@ const Devices = () => {
                     <TooltipContent side="top" className="text-[10px] max-w-[200px]">{ss.tooltip}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1.5">
-                        <Heart className={`w-3 h-3 ${getHealthColor(healthScore)}`} />
-                        <Progress value={healthScore} className={`h-1 flex-1 bg-muted/20 ${getHealthProgressColor(healthScore)}`} />
-                        <span className={`text-[9px] font-mono ${getHealthColor(healthScore)}`}>{healthScore}</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="text-[10px]">Score de saúde: {healthScore}/100</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+
+
                 <span className="text-[9px] text-muted-foreground/50 truncate flex items-center gap-0.5">
                   <Shield className="w-2.5 h-2.5" />{assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
                 </span>
@@ -1198,20 +1188,9 @@ const Devices = () => {
                     </TooltipProvider>
                   </div>
 
-                  {/* Linha 2: Health + Meta */}
-                  <div className="px-3 pb-1.5 space-y-1">
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1.5">
-                            <Heart className={`w-3 h-3 shrink-0 ${getHealthColor(healthScore)}`} />
-                            <Progress value={healthScore} className={`h-1 flex-1 bg-muted/20 ${getHealthProgressColor(healthScore)}`} />
-                            <span className={`text-[9px] font-mono shrink-0 ${getHealthColor(healthScore)}`}>{healthScore}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-[10px]">Score de saúde: {healthScore}/100</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  {/* Meta info */}
+                  <div className="px-3 pb-1.5">
+
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
                       <span className="truncate" title={`Última atividade: ${lastActivity}`}>{lastActivity}</span>
                       <span className="flex items-center gap-0.5 shrink-0">
