@@ -1,44 +1,79 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  company: string | null;
+  phone: string | null;
+  document: string | null;
+  avatar_url: string | null;
+  status: string;
+  risk_flag: boolean;
+  admin_notes: string | null;
+  roles: string[];
+  devices_count: number;
+  devices_connected: number;
+  campaigns_count: number;
+  created_at: string;
+  last_sign_in_at: string | null;
+  plan_name: string | null;
+  plan_price: number;
+  max_instances: number;
+  plan_expires_at: string | null;
+  plan_started_at: string | null;
+}
+
+export interface AdminDashboard {
+  users: AdminUser[];
+  devices: any[];
+  stats: {
+    total_users: number;
+    total_devices: number;
+    active_devices: number;
+    total_campaigns: number;
+    total_contacts: number;
+    total_subscriptions: number;
+  };
+}
+
 export function useAdminDashboard() {
   return useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("admin-data?action=dashboard");
       if (error) throw error;
-      return data as {
-        users: Array<{
-          id: string;
-          email: string;
-          full_name: string | null;
-          company: string | null;
-          phone: string | null;
-          avatar_url: string | null;
-          roles: string[];
-          devices_count: number;
-          campaigns_count: number;
-          created_at: string;
-          last_sign_in_at: string | null;
-        }>;
-        devices: Array<{
-          id: string;
-          name: string;
-          number: string | null;
-          status: string;
-          user_id: string;
-          owner_name: string;
-          created_at: string;
-          profile_picture: string | null;
-        }>;
-        stats: {
-          total_users: number;
-          total_devices: number;
-          active_devices: number;
-          total_campaigns: number;
-          total_contacts: number;
-        };
-      };
+      return data as AdminDashboard;
+    },
+  });
+}
+
+export function useClientDetail(userId: string | null) {
+  return useQuery({
+    queryKey: ["admin-client-detail", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=client-detail", {
+        body: { target_user_id: userId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useAdminAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ action, body }: { action: string; body: Record<string, any> }) => {
+      const { data, error } = await supabase.functions.invoke(`admin-data?action=${action}`, { body });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-client-detail"] });
     },
   });
 }
