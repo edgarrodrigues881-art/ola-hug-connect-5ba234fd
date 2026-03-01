@@ -256,14 +256,21 @@ Deno.serve(async (req) => {
 
     // ─── ACTION: groups ───
     if (action === "groups") {
-      const { data: config } = await serviceClient
-        .from("report_wa_configs")
-        .select("device_id")
-        .eq("user_id", userId)
-        .single();
-      if (!config?.device_id) return json({ error: "Nenhum dispositivo vinculado" }, 400);
+      // Use instanceId from request body (the device the user currently has selected)
+      let deviceId = body.instanceId || body.deviceId || "";
+      if (!deviceId) {
+        // Fallback to config
+        const { data: config } = await serviceClient
+          .from("report_wa_configs")
+          .select("device_id")
+          .eq("user_id", userId)
+          .single();
+        deviceId = config?.device_id;
+      }
+      if (!deviceId) return json({ error: "Nenhum dispositivo vinculado" }, 400);
 
-      const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
+      const { baseUrl, token: apiToken } = await getDeviceCredentials(deviceId);
+      console.log(`[groups] Loading groups for device ${deviceId}`);
 
       // Try multiple endpoints
       let groups: any[] = [];

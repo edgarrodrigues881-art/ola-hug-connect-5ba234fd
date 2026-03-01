@@ -248,19 +248,23 @@ const ReportWhatsApp = () => {
   };
 
   const handleLoadGroups = async (forType: ReportType) => {
+    if (!selectedDeviceId || !isConnected) {
+      toast({ title: "Conecte uma instância do WhatsApp para carregar seus grupos", variant: "destructive" });
+      return;
+    }
     setLoading(`groups-${forType}`);
     try {
-      const data = await invoke("groups");
+      const data = await invoke("groups", { instanceId: selectedDeviceId });
       const groups = data.groups || [];
       setAllGroups(groups);
       if (groups.length === 0) {
-        toast({ title: "Nenhum grupo encontrado", description: "Verifique se o número está nos grupos desejados" });
+        toast({ title: "Nenhum grupo encontrado nesta instância" });
       } else {
         setGroupPickerOpen(forType);
         setGroupSearch("");
       }
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao carregar grupos desta instância", description: err.message, variant: "destructive" });
     } finally {
       setLoading(null);
     }
@@ -806,18 +810,22 @@ const ReportWhatsApp = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">{filteredGroups.length} grupo{filteredGroups.length !== 1 ? "s" : ""}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 gap-1.5 text-xs"
-              onClick={() => groupPickerOpen && handleLoadGroups(groupPickerOpen)}
-              disabled={!!loading}
-            >
-              {!!loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-              Atualizar
-            </Button>
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-muted-foreground/60 font-mono">
+              Instância: {selectedDevice?.name || selectedDeviceId?.slice(0, 8) || "—"} • {filteredGroups.length} grupo{filteredGroups.length !== 1 ? "s" : ""} encontrado{filteredGroups.length !== 1 ? "s" : ""}
+            </p>
+            <div className="flex items-center justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => groupPickerOpen && handleLoadGroups(groupPickerOpen)}
+                disabled={!!loading}
+              >
+                {!!loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Atualizar
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1 max-h-[320px] overflow-y-auto">
