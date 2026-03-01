@@ -135,32 +135,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="sidebar-premium">
       {/* Header / Brand */}
-      <div className={`flex flex-col border-b border-sidebar-border ${collapsed ? 'items-center py-4 px-0' : 'px-5 py-4'}`}>
-        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
-          {!collapsed && (
-            <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
-              DG Contingência
-            </span>
-          )}
-        </div>
-
-        {/* Operational Indicators */}
-        {!collapsed && stats && (
-          <div className="mt-3 space-y-1 px-0.5">
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.onlineInstances > 0 ? 'bg-emerald-500 shadow-[0_0_4px_hsl(142_71%_45%/0.5)]' : 'bg-muted-foreground/30'}`} />
-              <span className="text-muted-foreground/70">{stats.onlineInstances} Instância{stats.onlineInstances !== 1 ? 's' : ''} Online</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.activeWarmupCycles > 0 ? 'bg-amber-500 shadow-[0_0_4px_hsl(38_92%_50%/0.5)]' : 'bg-muted-foreground/30'}`} />
-              <span className="text-muted-foreground/70">{stats.activeWarmupCycles} Ciclo{stats.activeWarmupCycles !== 1 ? 's' : ''} Ativo{stats.activeWarmupCycles !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stats.criticalAlerts > 0 ? 'bg-destructive shadow-[0_0_4px_hsl(0_84%_60%/0.5)]' : 'bg-muted-foreground/30'}`} />
-              <span className="text-muted-foreground/70">{stats.criticalAlerts} Alerta{stats.criticalAlerts !== 1 ? 's' : ''} Crítico{stats.criticalAlerts !== 1 ? 's' : ''}</span>
-            </div>
-          </div>
+      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-0' : 'gap-3 px-5 py-5'}`}>
+        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
+        {!collapsed && (
+          <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
+            DG Contingência
+          </span>
         )}
       </div>
 
