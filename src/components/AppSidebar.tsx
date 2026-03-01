@@ -49,8 +49,8 @@ const operationsItems = [
 ];
 
 const analysisItems = [
-  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3 },
-  { title: "Relatório WhatsApp", url: "/dashboard/reports/whatsapp", icon: MessageSquareText },
+  { title: "Relatório", url: "/dashboard/reports", icon: BarChart3, exact: true },
+  { title: "Relatório WhatsApp", url: "/dashboard/reports/whatsapp", icon: MessageSquareText, exact: true },
   { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone },
   { title: "Modelos", url: "/dashboard/templates", icon: FileText },
 ];
@@ -106,9 +106,9 @@ export function AppSidebar() {
     navigate("/auth", { replace: true });
   };
 
-  const isActive = (url: string) => {
+  const isActive = (url: string, exact?: boolean) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
-    // Exact match or match with trailing slash to avoid /reports matching /reports/whatsapp
+    if (exact) return location.pathname === url;
     return location.pathname === url || location.pathname.startsWith(url + "/");
   };
 
@@ -152,7 +152,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-px px-2">
                 {group.items.map((item) => {
-                  const active = isActive(item.url);
+                  const active = isActive(item.url, (item as any).exact);
                   const isPrimary = 'primary' in item && item.primary;
                   return (
                     <SidebarMenuItem key={item.title}>
