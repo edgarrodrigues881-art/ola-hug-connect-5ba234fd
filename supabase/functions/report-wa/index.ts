@@ -273,6 +273,26 @@ Deno.serve(async (req) => {
       const deviceName = device?.name || deviceId;
       console.log(`[groups] Loading groups for device="${deviceName}" id=${deviceId} baseUrl=${baseUrl}`);
 
+      // Force sync/refresh before fetching groups to avoid stale cache
+      const syncEndpoints = [
+        "/chat/syncContacts",
+        "/instance/restart",
+        "/chat/sync",
+      ];
+      for (const syncPath of syncEndpoints) {
+        try {
+          const syncRes = await uazapiRequest(baseUrl, apiToken, syncPath, "POST", {});
+          console.log(`[groups] sync ${syncPath} status=${syncRes.status}`);
+          if (syncRes.ok) {
+            // Wait a moment for sync to take effect
+            await new Promise(r => setTimeout(r, 2000));
+            break;
+          }
+        } catch (e) {
+          console.log(`[groups] sync ${syncPath} skipped:`, e);
+        }
+      }
+
       // Try multiple endpoints
       let groups: any[] = [];
 
