@@ -181,13 +181,18 @@ const ReportWhatsApp = () => {
   };
 
   const handleSaveConfig = async () => {
+    if (!isConnected) {
+      toast({ title: "Conecte o número primeiro", variant: "destructive", duration: 3000 });
+      return;
+    }
     if (!selectedGroup) {
-      toast({ title: "Selecione um grupo", variant: "destructive", duration: 2500 });
+      toast({ title: "Selecione um grupo", variant: "destructive", duration: 3000 });
       return;
     }
     setLoading("save");
     try {
       await invoke("config", {
+        instanceId: selectedDeviceId,
         groupId: selectedGroup.id,
         groupName: selectedGroup.name,
         frequency,
@@ -198,10 +203,10 @@ const ReportWhatsApp = () => {
         alertCampaignEnd: false,
         alertHighFailures,
       });
-      toast({ title: "Configuração salva", duration: 2500 });
+      toast({ title: "Configuração salva", duration: 3000 });
       queryClient.invalidateQueries({ queryKey: ["report-wa-logs"] });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive", duration: 2500 });
+      toast({ title: "Erro", description: err.message, variant: "destructive", duration: 3000 });
     } finally {
       setLoading(null);
     }
