@@ -203,15 +203,28 @@ Deno.serve(async (req) => {
 
       // Try multiple endpoints
       let groups: any[] = [];
+
+      function extractGroups(data: any): any[] {
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === "object") {
+          for (const key of ["groups", "data", "chats", "result"]) {
+            if (Array.isArray(data[key])) return data[key];
+          }
+        }
+        return [];
+      }
+
       try {
         const res = await uazapiRequest(baseUrl, apiToken, "/chat/listGroups", "POST", {});
         const data = await res.json();
-        groups = Array.isArray(data) ? data : data.groups || data.data || [];
-      } catch {
+        groups = extractGroups(data);
+      } catch { /* fallback below */ }
+
+      if (groups.length === 0) {
         try {
           const res = await uazapiRequest(baseUrl, apiToken, "/group/fetchAllGroups", "GET");
           const data = await res.json();
-          groups = Array.isArray(data) ? data : data.groups || data.data || [];
+          groups = extractGroups(data);
         } catch { /* empty */ }
       }
 
