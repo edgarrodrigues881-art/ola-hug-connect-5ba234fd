@@ -15,13 +15,12 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import Devices from "./pages/dashboard/Devices";
 import Campaigns from "./pages/dashboard/Campaigns";
 import CampaignList from "./pages/dashboard/CampaignList";
-import CRM from "./pages/dashboard/CRM";
 import Contacts from "./pages/dashboard/Contacts";
 import Reports from "./pages/dashboard/Reports";
 import Templates from "./pages/dashboard/Templates";
 import Warmup from "./pages/dashboard/Warmup";
 import Proxy from "./pages/dashboard/Proxy";
-import AutoSaveNumber from "./pages/dashboard/AutoSaveNumber";
+
 import Notifications from "./pages/dashboard/Notifications";
 import SettingsPage from "./pages/dashboard/Settings";
 import CustomModule from "./pages/dashboard/CustomModule";
@@ -64,10 +63,10 @@ const App = () => (
                       <Route path="campaigns" element={<Campaigns />} />
                       <Route path="campaign-list" element={<CampaignList />} />
                       <Route path="campaign/:id" element={<CampaignDetail />} />
-                      <Route path="crm" element={<CRM />} />
+                      
                       <Route path="templates" element={<Templates />} />
                       <Route path="contacts" element={<Contacts />} />
-                      <Route path="auto-save" element={<AutoSaveNumber />} />
+                      
                       <Route path="warmup" element={<Warmup />} />
                       <Route path="proxy" element={<Proxy />} />
                       <Route path="groups" element={<Groups />} />
