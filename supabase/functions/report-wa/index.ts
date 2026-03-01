@@ -66,40 +66,68 @@ Deno.serve(async (req) => {
       return res;
     }
 
-    // ─── ACTION: connect (generate QR for a specific device) ───
-    if (action === "connect") {
-      const { deviceId } = body;
-      if (!deviceId) return json({ error: "deviceId obrigatório" }, 400);
+    // ─── ACTION: qr (generate QR for the configured device) ───
+    if (action === "qr") {
+      const deviceId = body.instanceId || body.deviceId;
+      if (!deviceId) return json({ error: "instanceId obrigatório" }, 400);
       const { baseUrl, token: apiToken } = await getDeviceCredentials(deviceId);
 
       const res = await uazapiRequest(baseUrl, apiToken, "/instance/qrcode", "GET");
       const data = await res.json();
       const qr = data.qrcode || data.base64 || data.data || null;
 
-      // Upsert config
+      // Upsert config with pairing status
       await serviceClient.from("report_wa_configs").upsert({
         user_id: userId,
         device_id: deviceId,
-        connection_status: "connecting",
+        connection_status: "pairing",
       }, { onConflict: "user_id" });
 
       return json({ qrCodeDataUrl: qr });
     }
 
-    // ─── ACTION: refresh-qr ───
-    if (action === "refresh-qr") {
+    // ─── ACTION: disconnect ───
+    if (action === "disconnect") {
+      const deviceId = body.instanceId || body.deviceId;
       const { data: config } = await serviceClient
         .from("report_wa_configs")
         .select("device_id")
         .eq("user_id", userId)
         .single();
-      if (!config?.device_id) return json({ error: "Nenhum dispositivo vinculado" }, 400);
+      const targetId = deviceId || config?.device_id;
+      if (!targetId) return json({ error: "Nenhum dispositivo vinculado" }, 400);
 
-      const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
-      const res = await uazapiRequest(baseUrl, apiToken, "/instance/qrcode", "GET");
-      const data = await res.json();
-      const qr = data.qrcode || data.base64 || data.data || null;
-      return json({ qrCodeDataUrl: qr });
+      try {
+        const { baseUrl, token: apiToken } = await getDeviceCredentials(targetId);
+        await uazapiRequest(baseUrl, apiToken, "/instance/logout", "POST", {});
+      } catch { /* best effort */ }
+
+      await serviceClient.from("report_wa_configs").update({
+        connection_status: "disconnected",
+        connected_phone: null,
+      }).eq("user_id", userId);
+
+      await serviceClient.from("report_wa_logs").insert({
+        user_id: userId,
+        level: "INFO",
+        message: "Dispositivo de relatório desconectado",
+      });
+
+      return json({ success: true });
+    }
+
+    // ─── ACTION: connect (alias for selecting device without QR) ───
+    if (action === "connect") {
+      const deviceId = body.deviceId || body.instanceId;
+      if (!deviceId) return json({ error: "deviceId obrigatório" }, 400);
+
+      await serviceClient.from("report_wa_configs").upsert({
+        user_id: userId,
+        device_id: deviceId,
+        connection_status: "disconnected",
+      }, { onConflict: "user_id" });
+
+      return json({ success: true });
     }
 
     // ─── ACTION: status ───
@@ -134,15 +162,23 @@ Deno.serve(async (req) => {
           }
         }
 
-        const newStatus = isConnected ? "connected" : "disconnected";
+        let newStatus: string;
+        if (isConnected) {
+          newStatus = "connected";
+        } else if (config.connection_status === "pairing") {
+          newStatus = "pairing";
+        } else {
+          newStatus = "disconnected";
+        }
+
         await serviceClient.from("report_wa_configs").update({
           connection_status: newStatus,
-          connected_phone: formattedPhone || config.connected_phone,
+          connected_phone: isConnected ? (formattedPhone || config.connected_phone) : config.connected_phone,
         }).eq("user_id", userId);
 
         return json({
           status: newStatus,
-          connectedPhone: formattedPhone || config.connected_phone,
+          connectedPhone: isConnected ? (formattedPhone || config.connected_phone) : config.connected_phone,
           config,
         });
       } catch {
