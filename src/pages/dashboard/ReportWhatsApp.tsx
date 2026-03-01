@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -38,6 +38,10 @@ import {
   Circle,
   QrCode,
   Power,
+  Activity,
+  AlertTriangle,
+  Info,
+  XCircle,
 } from "lucide-react";
 
 type ConnectionStatus = "connected" | "pairing" | "disconnected" | "error";
@@ -92,6 +96,8 @@ const ReportWhatsApp = () => {
   const [toggleInstances, setToggleInstances] = useState(true);
   const [alertDisconnect, setAlertDisconnect] = useState(true);
   const [alertHighFailures, setAlertHighFailures] = useState(false);
+
+  const [events, setEvents] = useState<Array<{ id: string; ts: string; type: string; level: string; text: string }>>([]);
 
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
@@ -151,6 +157,12 @@ const ReportWhatsApp = () => {
           setAlertDisconnect(data.config.alert_disconnect ?? true);
           setAlertHighFailures(data.config.alert_high_failures ?? false);
         }
+
+        // Fetch events in same poll
+        try {
+          const evData = await invoke("events");
+          setEvents(evData.events || []);
+        } catch { /* silent */ }
       } catch {
         /* silent */
       }
@@ -665,6 +677,38 @@ const ReportWhatsApp = () => {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── CARD 4: Eventos ── */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5" />
+            Eventos recentes
+          </h2>
+
+          {events.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-8 text-center rounded-lg border border-dashed border-border/50">
+              Nenhum evento registrado.
+            </div>
+          ) : (
+            <div className="max-h-[260px] overflow-y-auto space-y-1">
+              {events.map((ev) => {
+                const IconComp = ev.level === "ERROR" ? XCircle : ev.level === "WARN" ? AlertTriangle : Info;
+                const iconColor = ev.level === "ERROR" ? "text-destructive" : ev.level === "WARN" ? "text-yellow-500" : "text-muted-foreground";
+                return (
+                  <div key={ev.id} className="flex items-start gap-2 px-3 py-2 rounded text-xs hover:bg-muted/20 transition-colors">
+                    <IconComp className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${iconColor}`} />
+                    <span className="text-muted-foreground shrink-0 font-mono tabular-nums">
+                      {new Date(ev.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span className="text-foreground">{ev.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

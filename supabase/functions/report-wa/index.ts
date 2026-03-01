@@ -300,7 +300,55 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── ACTION: logs ───
+    // ─── ACTION: events (fetch recent event logs) ───
+    if (action === "events") {
+      const { data: logs } = await serviceClient
+        .from("report_wa_logs")
+        .select("id, created_at, level, message")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      // Group events that occurred in the same minute
+      const events: { id: string; ts: string; type: string; level: string; text: string }[] = [];
+      const minuteGroups = new Map<string, { ids: string[]; ts: string; level: string; texts: string[] }>();
+
+      for (const log of (logs || [])) {
+        const minuteKey = log.created_at.slice(0, 16); // YYYY-MM-DDTHH:MM
+        const existing = minuteGroups.get(`${minuteKey}-${log.level}`);
+        if (existing) {
+          existing.ids.push(log.id);
+          existing.texts.push(log.message);
+        } else {
+          minuteGroups.set(`${minuteKey}-${log.level}`, {
+            ids: [log.id],
+            ts: log.created_at,
+            level: log.level,
+            texts: [log.message],
+          });
+        }
+      }
+
+      for (const [key, group] of minuteGroups) {
+        const type = group.level === "ERROR" ? "error" : group.level === "WARN" ? "warning" : "info";
+        events.push({
+          id: group.ids[0],
+          ts: group.ts,
+          type,
+          level: group.level,
+          text: group.texts.length > 1
+            ? `${group.texts[0]} (+${group.texts.length - 1} eventos)`
+            : group.texts[0],
+        });
+      }
+
+      // Sort by ts descending
+      events.sort((a, b) => b.ts.localeCompare(a.ts));
+
+      return json({ events: events.slice(0, 50) });
+    }
+
+    // ─── ACTION: logs (kept for backward compat) ───
     if (action === "logs") {
       const { data: logs } = await serviceClient
         .from("report_wa_logs")
@@ -310,6 +358,143 @@ Deno.serve(async (req) => {
         .limit(50);
 
       return json({ logs: logs || [] });
+    }
+
+    // ─── ACTION: check-events (detect and send automatic events to group) ───
+    if (action === "check-events") {
+      const { data: config } = await serviceClient
+        .from("report_wa_configs")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (!config?.device_id || !config?.group_id) {
+        return json({ skipped: true, reason: "No device or group configured" });
+      }
+
+      const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
+      const pendingMessages: string[] = [];
+
+      // 1) Check device disconnections/reconnections (if alert_disconnect enabled)
+      if (config.alert_disconnect) {
+        const { data: allDevices } = await serviceClient
+          .from("devices")
+          .select("id, name, number, status")
+          .eq("user_id", userId);
+
+        for (const dev of (allDevices || [])) {
+          const isDisconnected = ["Disconnected", "disconnected"].includes(dev.status);
+          // Check if we already logged this recently (last 5 min)
+          const { data: recentLogs } = await serviceClient
+            .from("report_wa_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .ilike("message", `%${dev.name}%desconect%`)
+            .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+            .limit(1);
+
+          if (isDisconnected && (!recentLogs || recentLogs.length === 0)) {
+            pendingMessages.push(`⚠️ Instância "${dev.name}"${dev.number ? ` (${dev.number})` : ""} desconectada.`);
+            await serviceClient.from("report_wa_logs").insert({
+              user_id: userId,
+              level: "WARN",
+              message: `Instância "${dev.name}" desconectada — alerta enviado`,
+            });
+          }
+        }
+      }
+
+      // 2) Check campaigns finished/paused (if toggle_campaigns enabled)
+      if (config.toggle_campaigns) {
+        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: recentCampaigns } = await serviceClient
+          .from("campaigns")
+          .select("id, name, status, sent_count, failed_count, completed_at, updated_at")
+          .eq("user_id", userId)
+          .in("status", ["completed", "paused", "failed"])
+          .gte("updated_at", fiveMinAgo);
+
+        for (const camp of (recentCampaigns || [])) {
+          const { data: recentLogs } = await serviceClient
+            .from("report_wa_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .ilike("message", `%campanha%${camp.name}%`)
+            .gte("created_at", fiveMinAgo)
+            .limit(1);
+
+          if (!recentLogs || recentLogs.length === 0) {
+            const statusText = camp.status === "completed" ? "✅ finalizada" : camp.status === "paused" ? "⏸ pausada" : "❌ falhou";
+            pendingMessages.push(
+              `Campanha "${camp.name}" ${statusText}. Enviadas: ${camp.sent_count || 0}, Falhas: ${camp.failed_count || 0}.`
+            );
+            await serviceClient.from("report_wa_logs").insert({
+              user_id: userId,
+              level: "INFO",
+              message: `Campanha "${camp.name}" ${statusText} — alerta enviado`,
+            });
+          }
+        }
+      }
+
+      // 3) Warmup daily summary (if toggle_warmup enabled)
+      if (config.toggle_warmup) {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Check if we already sent warmup summary in the last 23 hours
+        const { data: recentWarmupLog } = await serviceClient
+          .from("report_wa_logs")
+          .select("id")
+          .eq("user_id", userId)
+          .ilike("message", "%resumo aquecimento%")
+          .gte("created_at", new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString())
+          .limit(1);
+
+        if (!recentWarmupLog || recentWarmupLog.length === 0) {
+          const { data: warmupLogs } = await serviceClient
+            .from("warmup_logs")
+            .select("id, status")
+            .eq("user_id", userId)
+            .gte("created_at", oneDayAgo);
+
+          if (warmupLogs && warmupLogs.length > 0) {
+            const sent = warmupLogs.filter(l => l.status === "sent").length;
+            const failed = warmupLogs.filter(l => l.status !== "sent").length;
+            pendingMessages.push(
+              `🔥 Resumo aquecimento (24h): ${sent} enviadas, ${failed} falhas, ${warmupLogs.length} total.`
+            );
+            await serviceClient.from("report_wa_logs").insert({
+              user_id: userId,
+              level: "INFO",
+              message: `Resumo aquecimento enviado: ${sent} ok, ${failed} falhas`,
+            });
+          }
+        }
+      }
+
+      // Send messages with micro-delay (5-10s between each)
+      let sentCount = 0;
+      for (const msg of pendingMessages) {
+        if (sentCount > 0) {
+          const delay = 5000 + Math.random() * 5000;
+          await new Promise(r => setTimeout(r, delay));
+        }
+        try {
+          await uazapiRequest(baseUrl, apiToken, "/message/sendText", "POST", {
+            to: config.group_id,
+            text: `[Relatório Automático]\n${msg}`,
+          });
+          sentCount++;
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : "Erro";
+          await serviceClient.from("report_wa_logs").insert({
+            user_id: userId,
+            level: "ERROR",
+            message: `Falha ao enviar evento: ${errMsg}`,
+          });
+        }
+      }
+
+      return json({ success: true, eventsSent: sentCount, total: pendingMessages.length });
     }
 
     return json({ error: "Ação não reconhecida" }, 400);
