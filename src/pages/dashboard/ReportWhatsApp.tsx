@@ -511,11 +511,11 @@ const ReportWhatsApp = () => {
                               className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
                               onClick={() => {
                                 setReportGroups((prev) => ({ ...prev, [type]: null }));
-                                // Clear group on server too
+                                // Clear per-type group on server
                                 invoke("config", {
                                   instanceId: selectedDeviceId,
-                                  groupId: "",
-                                  groupName: "",
+                                  reportType: type,
+                                  perTypeGroup: { id: "", name: "" },
                                   frequency: "24h",
                                   toggleCampaigns: reportToggles.campaigns,
                                   toggleWarmup: reportToggles.warmup,
