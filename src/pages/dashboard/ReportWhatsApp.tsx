@@ -108,8 +108,13 @@ const ReportWhatsApp = () => {
     warmup: false, campaigns: false, connection: false,
   });
 
-  // Group loading
-  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  // Independent group lists per module
+  const [moduleGroups, setModuleGroups] = useState<Record<ReportType, Group[]>>({
+    warmup: [], campaigns: [], connection: [],
+  });
+  const [moduleGroupsLoading, setModuleGroupsLoading] = useState<Record<ReportType, boolean>>({
+    warmup: false, campaigns: false, connection: false,
+  });
   const [groupPickerOpen, setGroupPickerOpen] = useState<ReportType | null>(null);
   const [groupSearch, setGroupSearch] = useState("");
 
@@ -252,13 +257,13 @@ const ReportWhatsApp = () => {
       toast({ title: "Conecte uma instância do WhatsApp para carregar seus grupos", variant: "destructive" });
       return;
     }
-    setLoading(`groups-${forType}`);
+    setModuleGroupsLoading((prev) => ({ ...prev, [forType]: true }));
     try {
       const data = await invoke("groups", { instanceId: selectedDeviceId });
       const groups = data.groups || [];
-      setAllGroups(groups);
+      setModuleGroups((prev) => ({ ...prev, [forType]: groups }));
       if (groups.length === 0) {
-        toast({ title: "Nenhum grupo encontrado nesta instância" });
+        toast({ title: "Nenhum grupo encontrado nesta instância (UAZAPI)" });
       } else {
         setGroupPickerOpen(forType);
         setGroupSearch("");
@@ -266,7 +271,7 @@ const ReportWhatsApp = () => {
     } catch (err: any) {
       toast({ title: "Erro ao carregar grupos desta instância", description: err.message, variant: "destructive" });
     } finally {
-      setLoading(null);
+      setModuleGroupsLoading((prev) => ({ ...prev, [forType]: false }));
     }
   };
 
@@ -330,7 +335,8 @@ const ReportWhatsApp = () => {
     }
   };
 
-  const filteredGroups = allGroups.filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()));
+  const currentModuleGroups = groupPickerOpen ? moduleGroups[groupPickerOpen] : [];
+  const filteredGroups = currentModuleGroups.filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()));
   const isConnected = connStatus === "connected";
   const isPairing = connStatus === "pairing";
   const lastEvent = events.length > 0 ? events[0] : null;
@@ -478,7 +484,7 @@ const ReportWhatsApp = () => {
                               variant="ghost"
                               className="h-6 px-2 text-[10px] text-muted-foreground"
                               onClick={() => handleLoadGroups(type)}
-                              disabled={!isConnected || !!loading}
+                              disabled={!isConnected || moduleGroupsLoading[type]}
                             >
                               <RefreshCw className="w-3 h-3" />
                               Alterar
@@ -508,16 +514,25 @@ const ReportWhatsApp = () => {
                             </Button>
                           </div>
                         </div>
+                      ) : !isConnected ? (
+                        <p className="text-[10px] text-muted-foreground text-center py-3">
+                          Conecte uma instância do WhatsApp para carregar seus grupos.
+                        </p>
                       ) : (
-                        <Button
-                          variant="outline"
-                          className="w-full h-10 gap-2 text-xs"
-                          onClick={() => handleLoadGroups(type)}
-                          disabled={!isConnected || !!loading}
-                        >
-                          {loading === `groups-${type}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-                          Carregar grupos
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            className="w-full h-10 gap-2 text-xs"
+                            onClick={() => handleLoadGroups(type)}
+                            disabled={moduleGroupsLoading[type]}
+                          >
+                            {moduleGroupsLoading[type] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                            Carregar grupos
+                          </Button>
+                          <p className="text-[9px] text-muted-foreground/50 font-mono mt-1">
+                            Instância: {selectedDevice?.name || "—"} • Grupos carregados: {moduleGroups[type].length}
+                          </p>
+                        </>
                       )}
                     </div>
                   )}
@@ -820,9 +835,9 @@ const ReportWhatsApp = () => {
                 variant="outline"
                 className="h-7 gap-1.5 text-xs"
                 onClick={() => groupPickerOpen && handleLoadGroups(groupPickerOpen)}
-                disabled={!!loading}
+                disabled={!!(groupPickerOpen && moduleGroupsLoading[groupPickerOpen])}
               >
-                {!!loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                {groupPickerOpen && moduleGroupsLoading[groupPickerOpen] ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                 Atualizar
               </Button>
             </div>
