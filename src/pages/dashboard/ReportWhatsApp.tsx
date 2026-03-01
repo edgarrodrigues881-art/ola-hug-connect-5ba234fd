@@ -153,21 +153,9 @@ const ReportWhatsApp = () => {
             setSelectedDeviceId(data.config.device_id);
             setConfigured(true);
           }
-          if (data.config.group_id) {
-            const g = { id: data.config.group_id, name: data.config.group_name || "" };
-            setReportGroups((prev) => {
-              const needsInit = !prev.warmup && !prev.campaigns && !prev.connection;
-              if (needsInit) return { warmup: g, campaigns: g, connection: g };
-              return prev;
-            });
-          }
+          // Don't auto-populate groups or toggles from server — user controls these locally
           setAlertDisconnect(data.config.alert_disconnect ?? true);
           setAlertHighFailures(data.config.alert_high_failures ?? false);
-          setReportToggles({
-            warmup: data.config.toggle_warmup ?? true,
-            campaigns: data.config.toggle_campaigns ?? true,
-            connection: data.config.toggle_instances ?? true,
-          });
         }
 
         try {
@@ -398,14 +386,10 @@ const ReportWhatsApp = () => {
           2. RELATÓRIOS ATIVOS (3 blocos independentes)
           ═══════════════════════════════════════════ */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
+        <div className="px-1">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             📊 Relatórios Ativos
           </h2>
-          <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={handleSaveAll} disabled={!!loading}>
-            {loading === "save" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            Salvar tudo
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
