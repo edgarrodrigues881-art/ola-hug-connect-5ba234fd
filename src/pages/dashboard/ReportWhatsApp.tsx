@@ -437,16 +437,26 @@ const ReportWhatsApp = () => {
                             <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                             <span className="text-xs font-semibold text-foreground truncate">{group.name}</span>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-[10px] text-muted-foreground shrink-0"
-                            onClick={() => handleLoadGroups(type)}
-                            disabled={!isConnected || !!loading}
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            Alterar
-                          </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] text-muted-foreground"
+                              onClick={() => handleLoadGroups(type)}
+                              disabled={!isConnected || !!loading}
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              Alterar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              onClick={() => setReportGroups((prev) => ({ ...prev, [type]: null }))}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <Button
