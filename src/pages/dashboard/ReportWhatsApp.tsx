@@ -268,13 +268,11 @@ const ReportWhatsApp = () => {
   const handleSyncGroups = async () => {
     setLoading("sync");
     try {
-      toast({ title: "🔄 Sincronizando grupos...", description: "Aguarde alguns segundos" });
-      await invoke("sync-groups");
-      // Wait a bit then reload groups
-      await new Promise((r) => setTimeout(r, 2000));
-      const data = await invoke("groups");
-      setAllGroups(data.groups || []);
-      toast({ title: "✅ Grupos atualizados!", description: `${(data.groups || []).length} grupos encontrados` });
+      toast({ title: "🔄 Sincronizando grupos..." });
+      const data = await invoke("sync-groups");
+      const groups = data.groups || [];
+      setAllGroups(groups);
+      toast({ title: "✅ Grupos atualizados!", description: `${groups.length} grupo${groups.length !== 1 ? "s" : ""} encontrado${groups.length !== 1 ? "s" : ""}` });
     } catch (err: any) {
       toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
     } finally {

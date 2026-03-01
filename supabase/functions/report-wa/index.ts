@@ -206,26 +206,52 @@ Deno.serve(async (req) => {
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
 
-      // Force refresh: try restarting the instance session to clear cache
+      // Try to force a chat sync/refresh
       const refreshEndpoints = [
-        { path: "/instance/restart", method: "POST" },
-        { path: "/instance/refresh", method: "POST" },
+        { path: "/chat/getChats", method: "GET" },
         { path: "/chat/sync", method: "POST" },
+        { path: "/instance/restart", method: "POST" },
       ];
+      let refreshedGroups: any[] = [];
       for (const ep of refreshEndpoints) {
         try {
-          const res = await uazapiRequest(baseUrl, apiToken, ep.path, ep.method, {});
-          console.log(`[sync-groups] ${ep.method} ${ep.path} status=${res.status}`);
-          if (res.status >= 200 && res.status < 300) break;
+          const res = await uazapiRequest(baseUrl, apiToken, ep.path, ep.method, ep.method === "POST" ? {} : undefined);
+          const data = await res.json();
+          console.log(`[sync-groups] ${ep.method} ${ep.path} status=${res.status} items=${Array.isArray(data) ? data.length : "?"}`);
+          // If getChats returns data, extract groups directly
+          if (Array.isArray(data)) {
+            refreshedGroups = data.filter((c: any) => {
+              const jid = c.JID || c.jid || c.id || c.chatId || "";
+              return jid.endsWith("@g.us") || c.isGroup === true || c.IsGroup === true;
+            });
+            if (refreshedGroups.length > 0) break;
+          }
         } catch (err) {
           console.log(`[sync-groups] ${ep.path} error:`, err);
         }
       }
 
-      // Wait a moment for the instance to refresh
-      await new Promise((r) => setTimeout(r, 3000));
+      // Now also try /group/list for comparison
+      try {
+        const res = await uazapiRequest(baseUrl, apiToken, "/group/list", "GET");
+        const data = await res.json();
+        const listGroups = Array.isArray(data?.groups) ? data.groups : Array.isArray(data) ? data : [];
+        console.log(`[sync-groups] /group/list returned ${listGroups.length} groups, getChats returned ${refreshedGroups.length}`);
+        // Use whichever returned more groups
+        if (listGroups.length > refreshedGroups.length) {
+          refreshedGroups = listGroups;
+        }
+      } catch { /* fallback */ }
 
-      return json({ success: true, message: "Sincronização iniciada. Carregue os grupos novamente." });
+      // Map to normalized format
+      const mapped = refreshedGroups.map((g: any) => {
+        const jid = g.JID || g.jid || g.id || g.groupId || g.chatId || "";
+        const name = g.Subject || g.subject || g.Name || g.name || g.groupName || g.pushname || `Grupo ${jid.split("@")[0]?.slice(-6) || "?"}`;
+        const size = g.size || (g.Participants || g.participants || []).length || null;
+        return { id: jid, name, participantsCount: size };
+      }).filter((g: any) => g.id);
+
+      return json({ groups: mapped, synced: true });
     }
 
     // ─── ACTION: groups ───
