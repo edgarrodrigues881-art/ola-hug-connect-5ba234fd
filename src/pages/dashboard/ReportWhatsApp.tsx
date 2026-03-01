@@ -189,7 +189,7 @@ const ReportWhatsApp = () => {
     }
   };
 
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = async (autoTest = false) => {
     if (!isConnected) { toast({ title: "Conecte o número primeiro", variant: "destructive" }); return; }
     if (!selectedGroup) { toast({ title: "Selecione um grupo", variant: "destructive" }); return; }
     setLoading("save");
@@ -207,6 +207,14 @@ const ReportWhatsApp = () => {
         alertHighFailures,
       });
       toast({ title: "Configuração salva" });
+
+      // Auto-send test after saving
+      if (autoTest) {
+        try {
+          await invoke("test");
+          toast({ title: "✅ Teste enviado ao grupo!" });
+        } catch { /* silent - config was saved successfully */ }
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -222,6 +230,36 @@ const ReportWhatsApp = () => {
       toast({ title: "Teste enviado!" });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  // Auto-select group, save config & send test
+  const handleSelectGroup = async (group: Group) => {
+    setSelectedGroup(group);
+    if (!isConnected || !selectedDeviceId) return;
+    setLoading("save");
+    try {
+      await invoke("config", {
+        instanceId: selectedDeviceId,
+        groupId: group.id,
+        groupName: group.name,
+        frequency: "24h",
+        toggleCampaigns: true,
+        toggleWarmup: true,
+        toggleInstances: true,
+        alertDisconnect,
+        alertCampaignEnd: true,
+        alertHighFailures,
+      });
+      toast({ title: "Grupo configurado!" });
+      try {
+        await invoke("test");
+        toast({ title: "✅ Teste enviado ao grupo!" });
+      } catch { /* config saved, test failed silently */ }
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     } finally {
       setLoading(null);
     }
@@ -439,7 +477,7 @@ const ReportWhatsApp = () => {
             <Button
               size="sm"
               className="gap-1.5"
-              onClick={handleSaveConfig}
+              onClick={() => handleSaveConfig(false)}
               disabled={!selectedGroup || !!loading}
             >
               {loading === "save" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
@@ -616,7 +654,7 @@ const ReportWhatsApp = () => {
                 {filteredGroups.map((g) => (
                   <button
                     key={g.id}
-                    onClick={() => setSelectedGroup(g)}
+                    onClick={() => handleSelectGroup(g)}
                     className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors ${
                       selectedGroup?.id === g.id
                         ? "bg-primary/10 text-primary border border-primary/20"
