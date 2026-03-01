@@ -143,7 +143,10 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             <Label className="text-zinc-400 text-xs">Plano</Label>
             <select
               value={planName}
-              onChange={e => setPlanName(e.target.value)}
+              onChange={e => {
+                setPlanName(e.target.value);
+                setStartedAt(new Date().toISOString().split("T")[0]);
+              }}
               className="mt-1 w-full h-10 rounded-md border border-zinc-700 bg-zinc-900 text-zinc-100 px-3 text-sm"
             >
               {Object.keys(PLANS).map(p => (
