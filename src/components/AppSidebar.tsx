@@ -146,11 +146,11 @@ export function AppSidebar() {
 
       <SidebarContent className="py-3">
         {menuGroups.map((group, gi) => {
-          const isConfigSection = group.label.includes("CONFIGURAÇÕES");
+          // all sections equal
           return (
             <SidebarGroup key={group.label} className={`py-0.5 ${gi > 0 ? 'mt-3' : ''}`}>
               {!collapsed && (
-                <SidebarGroupLabel className={`text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none ${isConfigSection ? 'text-muted-foreground/35' : 'text-muted-foreground/60'}`}>
+                <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none text-muted-foreground/60">
                   {group.label}
                 </SidebarGroupLabel>
               )}
@@ -179,7 +179,7 @@ export function AppSidebar() {
                               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
                             )}
                             <item.icon
-                              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : isConfigSection ? '' : 'group-hover:text-foreground'}`}
+                              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : ''}`}
                               strokeWidth={active ? 2.2 : 1.5}
                             />
                             {!collapsed && (
