@@ -144,58 +144,64 @@ export function AppSidebar() {
         )}
       </div>
 
-      <SidebarContent className="py-2">
-        {menuGroups.map((group, gi) => (
-          <SidebarGroup key={group.label} className={`py-1 ${gi > 0 ? 'mt-1' : ''}`}>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 px-5 mb-1 select-none">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            {collapsed && gi > 0 && (
-              <div className="mx-3 mb-1 border-t border-sidebar-border" />
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-0.5 px-2">
-                {group.items.map((item) => {
-                  const active = isActive(item.url, (item as any).exact);
-                  const badgeVal = getBadgeValue((item as any).badgeKey);
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={item.title}>
-                        <NavLink
-                          to={item.url}
-                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] relative transition-colors
-                            ${active
-                              ? 'bg-primary/10 text-foreground font-semibold border border-primary/20'
-                              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/50'
-                            }`}
-                          activeClassName=""
-                        >
-                          {active && !collapsed && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.4)]" />
-                          )}
-                          <item.icon
-                            className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-primary' : ''}`}
-                            strokeWidth={active ? 2 : 1.5}
-                          />
-                          {!collapsed && (
-                            <span className="truncate flex-1">{item.title}</span>
-                          )}
-                          {!collapsed && badgeVal > 0 && (
-                            <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                              {badgeVal}
-                            </span>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+      <SidebarContent className="py-3">
+        {menuGroups.map((group, gi) => {
+          const isConfigSection = group.label.includes("CONFIGURAÇÕES");
+          return (
+            <SidebarGroup key={group.label} className={`py-0.5 ${gi > 0 ? 'mt-3' : ''}`}>
+              {!collapsed && (
+                <SidebarGroupLabel className={`text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none ${isConfigSection ? 'text-muted-foreground/35' : 'text-muted-foreground/60'}`}>
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              {collapsed && gi > 0 && (
+                <div className="mx-3 mb-2 border-t border-sidebar-border" />
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-0.5 px-2">
+                  {group.items.map((item) => {
+                    const active = isActive(item.url, (item as any).exact);
+                    const badgeVal = getBadgeValue((item as any).badgeKey);
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild tooltip={item.title}>
+                          <NavLink
+                            to={item.url}
+                            className={`sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] relative
+                              transition-all duration-150 ease-out
+                              ${active
+                                ? 'bg-primary/8 text-foreground font-bold'
+                                : isConfigSection
+                                  ? 'text-muted-foreground/55 hover:text-muted-foreground hover:bg-sidebar-accent/30'
+                                  : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
+                              }`}
+                            activeClassName=""
+                          >
+                            {active && !collapsed && (
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+                            )}
+                            <item.icon
+                              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : isConfigSection ? '' : 'group-hover:text-foreground'}`}
+                              strokeWidth={active ? 2.2 : 1.5}
+                            />
+                            {!collapsed && (
+                              <span className="truncate flex-1">{item.title}</span>
+                            )}
+                            {!collapsed && badgeVal > 0 && (
+                              <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                                {badgeVal}
+                              </span>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       {/* Footer profile */}
