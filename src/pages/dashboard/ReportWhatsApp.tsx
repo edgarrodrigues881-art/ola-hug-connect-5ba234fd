@@ -104,7 +104,7 @@ const ReportWhatsApp = () => {
     warmup: null, campaigns: null, connection: null,
   });
   const [reportToggles, setReportToggles] = useState<Record<ReportType, boolean>>({
-    warmup: true, campaigns: true, connection: true,
+    warmup: false, campaigns: false, connection: false,
   });
 
   // Group loading
