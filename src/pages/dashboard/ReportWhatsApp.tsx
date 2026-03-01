@@ -468,41 +468,6 @@ const ReportWhatsApp = () => {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          3. ALERTAS CRÍTICOS
-          ═══════════════════════════════════════════ */}
-      <Card className="border border-border/40 shadow-lg bg-card">
-        <CardContent className="p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-            Alertas Críticos
-          </h2>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg bg-muted/10 border border-border/30">
-              <div className="flex items-center gap-3">
-                <WifiOff className="w-4 h-4 text-red-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Alertar desconexão</p>
-                  <p className="text-[11px] text-muted-foreground">Notificar quando uma instância desconectar</p>
-                </div>
-              </div>
-              <Switch checked={alertDisconnect} onCheckedChange={setAlertDisconnect} />
-            </div>
-
-            <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg bg-muted/10 border border-border/30">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Alertar falhas elevadas</p>
-                  <p className="text-[11px] text-muted-foreground">Notificar quando taxa de falha ultrapassar limite</p>
-                </div>
-              </div>
-              <Switch checked={alertHighFailures} onCheckedChange={setAlertHighFailures} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* ═══════════════════════════════════════════
           4. EVENTOS RECENTES (agrupados e tipados)
