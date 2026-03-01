@@ -248,11 +248,32 @@ Deno.serve(async (req) => {
         console.log("[groups] No groups found. Raw response:", JSON.stringify(rawResponse).slice(0, 1000));
       }
 
-      const mapped = groups.map((g: any) => ({
-        id: g.id || g.jid || g.groupId || "",
-        name: g.subject || g.name || g.groupName || "Grupo sem nome",
-        participantsCount: g.size || g.participants?.length || null,
-      }));
+      // Fetch metadata for groups that have no name (UaZapi V2 returns Name="" in list)
+      const enrichedGroups: any[] = [];
+      for (const g of groups) {
+        const jid = g.JID || g.jid || g.id || g.groupId || "";
+        let groupName = g.Subject || g.subject || g.Name || g.name || g.groupName || "";
+        const participants = g.Participants || g.participants || [];
+        
+        // If name is empty, try fetching individual group info
+        if (!groupName && jid) {
+          try {
+            const infoRes = await uazapiRequest(baseUrl, apiToken, `/group/info?groupJid=${encodeURIComponent(jid)}`, "GET");
+            const infoData = await infoRes.json();
+            const info = infoData.group || infoData.data || infoData || {};
+            groupName = info.Subject || info.subject || info.Name || info.name || info.groupName || "";
+            if (!groupName && info.GroupName) groupName = info.GroupName;
+          } catch { /* silent */ }
+        }
+        
+        enrichedGroups.push({
+          id: jid,
+          name: groupName || `Grupo ${jid.split("@")[0]?.slice(-6) || "?"}`,
+          participantsCount: g.size || participants.length || null,
+        });
+      }
+
+      const mapped = enrichedGroups.filter((g) => g.id);
 
       return json({ groups: mapped });
     }
