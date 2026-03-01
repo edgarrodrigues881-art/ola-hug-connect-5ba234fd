@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.run-scheduled-campaigns]
 verify_jwt = false
+
+[functions.report-wa]
+verify_jwt = false
