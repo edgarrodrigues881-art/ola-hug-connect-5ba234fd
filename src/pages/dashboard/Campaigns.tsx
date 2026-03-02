@@ -730,19 +730,40 @@ const Campaigns = () => {
       return;
     }
 
-    setContacts(prev => [...prev, ...finalContacts]);
-    setShowContactTable(true);
-    setContactPage(0);
-
-    const parts: string[] = [];
-    if (totalDuplicates > 0) parts.push(`${totalDuplicates} duplicado(s) ignorado(s)`);
-    if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) descartado(s)`);
-
-    toast({ 
-      title: `${finalContacts.length} contatos adicionados com sucesso`,
-      description: parts.length > 0 ? parts.join(". ") + "." : undefined,
-    });
+    // Close dialog and start animated import progress (3 seconds)
     setRawImport(null);
+    setImportProgress(0);
+
+    const totalSteps = 60; // 60 steps over 3s = 50ms each
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      currentStep++;
+      // Ease-out curve for natural feel
+      const progress = Math.round(100 * (1 - Math.pow(1 - currentStep / totalSteps, 3)));
+      setImportProgress(Math.min(progress, 99));
+
+      if (currentStep >= totalSteps) {
+        clearInterval(interval);
+        setImportProgress(100);
+        
+        // Add contacts after animation completes
+        setTimeout(() => {
+          setContacts(prev => [...prev, ...finalContacts]);
+          setShowContactTable(true);
+          setContactPage(0);
+          setImportProgress(null);
+
+          const parts: string[] = [];
+          if (totalDuplicates > 0) parts.push(`${totalDuplicates} duplicado(s) ignorado(s)`);
+          if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) descartado(s)`);
+
+          toast({ 
+            title: `${finalContacts.length} contatos adicionados com sucesso`,
+            description: parts.length > 0 ? parts.join(". ") + "." : undefined,
+          });
+        }, 300);
+      }
+    }, 50);
   };
 
 
