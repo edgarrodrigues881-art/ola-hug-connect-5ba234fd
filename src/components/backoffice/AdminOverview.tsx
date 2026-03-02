@@ -23,11 +23,11 @@ const StatCard = ({ icon: Icon, label, value, sub, hint, valueColor, highlight, 
   icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; valueColor?: string; highlight?: boolean; large?: boolean;
 }) => (
   <div className={`rounded-md flex items-start gap-3 transition-all ${
-    large ? "px-4 py-3.5" : "px-3 py-2.5"
+    large ? "px-3.5 py-3" : "px-3 py-2"
   } ${
     highlight
-      ? "bg-[#151821] border-[1.5px] border-green-500/30 shadow-[0_0_20px_-6px_rgba(34,197,94,0.12)]"
-      : "bg-[#151821] border border-[rgba(255,255,255,0.06)]"
+      ? "bg-card border-[1.5px] border-green-500/25 shadow-[0_0_16px_-6px_rgba(34,197,94,0.1)]"
+      : "bg-card border border-border"
   }`}>
     <div className="shrink-0 mt-0.5">
       <Icon size={large ? 18 : 15} className="text-[hsl(220,10%,45%)]" />
@@ -132,21 +132,20 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
 
   return (
-    <div className="space-y-3" style={{ background: "#0F1115", margin: "-24px", padding: "20px", borderRadius: "8px" }}>
+    <div className="space-y-2.5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-3">
-          <img src={dgLogo} alt="DG Logo" className="h-9 w-9 rounded-md object-cover" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <img src={dgLogo} alt="DG" className="h-7 w-7 rounded object-cover opacity-80 grayscale" />
           <div>
-            <h1 className="text-base font-bold text-foreground tracking-tight leading-none" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              <span className="text-lg">DG</span>{" "}
-              <span className="text-sm font-medium text-[hsl(220,10%,55%)]">Control Center</span>
+            <h1 className="text-sm font-bold text-foreground tracking-tight leading-none" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              DG Control Center
             </h1>
             <p className="text-[10px] text-[hsl(220,10%,38%)] mt-0.5 capitalize">{monthLabel} {now.getFullYear()}</p>
           </div>
         </div>
-        <span className="text-[9px] uppercase tracking-widest font-medium text-[hsl(220,10%,40%)] bg-[hsl(220,12%,14%)] border border-[rgba(255,255,255,0.06)] px-2.5 py-1 rounded-full">
-          Produção
+        <span className="text-[8px] uppercase tracking-widest font-medium text-[hsl(220,10%,35%)] border border-[rgba(255,255,255,0.06)] px-2 py-0.5 rounded-full">
+          Prod
         </span>
       </div>
 
@@ -225,7 +224,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
           <span className="text-[9px] uppercase tracking-[0.15em] text-[hsl(220,10%,38%)] font-semibold">Operacional</span>
           <div className="h-px flex-1 bg-[rgba(255,255,255,0.04)]" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5">
           <StatCard icon={Server} label="Instâncias Liberadas"
             value={totalAllocated} sub={`Capacidade: ${SERVER_MAX_INSTANCES}`} />
           <StatCard icon={Server} label="Instâncias em Uso"
@@ -237,23 +236,23 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
             value={blocked.length} sub="Suspensos + cancelados" />
         </div>
 
-        {/* Capacity bar - modernized */}
-        <div className="bg-[#151821] border border-[rgba(255,255,255,0.06)] rounded-md px-3.5 py-2.5 mt-1.5">
+        {/* Capacity bar */}
+        <div className="bg-card border border-border rounded-md px-3 py-2 mt-1.5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-[hsl(220,10%,42%)] uppercase tracking-wider font-medium">Capacidade do Servidor</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Capacidade do Servidor</span>
           </div>
-          <div className="relative h-5 bg-[hsl(220,12%,12%)] rounded overflow-hidden">
+          <div className="relative h-6 bg-[hsl(220,12%,10%)] rounded-sm overflow-hidden">
             <div
-              className={`h-full rounded transition-all flex items-center justify-center ${
+              className={`h-full rounded-sm transition-all flex items-center justify-center ${
                 serverOccupancy >= 90
                   ? "bg-gradient-to-r from-red-600 to-red-500"
                   : serverOccupancy >= 70
                   ? "bg-gradient-to-r from-yellow-600 to-yellow-500"
-                  : "bg-gradient-to-r from-emerald-600 to-emerald-500"
+                  : "bg-gradient-to-r from-emerald-600/90 to-emerald-500"
               }`}
-              style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 8)}%` }}
+              style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 10)}%` }}
             >
-              <span className="text-[10px] font-bold text-white drop-shadow-sm">
+              <span className="text-[11px] font-bold text-white drop-shadow-sm">
                 {totalInUse} / {SERVER_MAX_INSTANCES}
               </span>
             </div>
