@@ -1684,7 +1684,7 @@ const Campaigns = () => {
                     </div>
                     <Switch checked={scheduleEnabled} onCheckedChange={(checked) => {
                       setScheduleEnabled(checked);
-                      if (checked && !scheduleDate) {
+                      if (checked) {
                         const now = new Date();
                         now.setMinutes(now.getMinutes() + 30);
                         const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
