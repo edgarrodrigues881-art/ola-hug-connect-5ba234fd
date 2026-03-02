@@ -49,33 +49,15 @@ interface Device {
 
 type FilterTab = "all" | "online" | "offline" | "error" | "warmup";
 
-type SmartStatus = "never_connected" | "online" | "offline" | "token_invalid" | "api_error" | "proxy_fail" | "warming" | "at_risk";
+type SmartStatus = "online" | "offline";
 
 const smartStatusConfig: Record<SmartStatus, { label: string; icon: any; badgeClass: string; tooltip: string }> = {
-  never_connected: { label: "Nunca conectada", icon: Smartphone, badgeClass: "bg-muted/20 text-muted-foreground/60 border-border/20", tooltip: "Esta instância nunca foi conectada ao WhatsApp" },
-  online: { label: "Online", icon: CheckCircle2, badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", tooltip: "Instância conectada e operacional" },
-  offline: { label: "Offline", icon: WifiOff, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "Instância desconectada do WhatsApp" },
-  token_invalid: { label: "Token inválido", icon: Ban, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "Token de autenticação ausente ou inválido — configure nas opções" },
-  api_error: { label: "Erro na API", icon: XCircle, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "URL da API não configurada ou inacessível" },
-  proxy_fail: { label: "Proxy com falha", icon: ShieldAlert, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Proxy vinculado está com status irregular — verifique a configuração" },
-  warming: { label: "Aquecimento", icon: Flame, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Instância em processo de aquecimento ativo" },
-  at_risk: { label: "Em risco", icon: AlertTriangle, badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", tooltip: "Instância online mas sem proxy — risco de bloqueio" },
+  online: { label: "Conectado", icon: CheckCircle2, badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", tooltip: "Instância conectada" },
+  offline: { label: "Desconectado", icon: WifiOff, badgeClass: "bg-red-500/10 text-red-400 border-red-500/20", tooltip: "Instância desconectada" },
 };
 
 function deriveSmartStatus(d: Device, warmupDeviceIds: Set<string>, proxyStatus?: string): SmartStatus {
-  // Priority order matters
-  if (d.status === "Ready") {
-    if (warmupDeviceIds.has(d.id)) return "warming";
-    if (!d.proxy_id) return "at_risk";
-    if (proxyStatus && proxyStatus === "USADA") return "proxy_fail";
-    return "online";
-  }
-  // Disconnected states
-  if (!d.number && d.status === "Disconnected") return "never_connected";
-  if (!d.uazapi_token) return "token_invalid";
-  if (!d.uazapi_base_url) return "api_error";
-  if (d.proxy_id && proxyStatus === "USADA") return "proxy_fail";
-  return "offline";
+  return d.status === "Ready" ? "online" : "offline";
 }
 
 const Devices = () => {
@@ -362,10 +344,7 @@ const Devices = () => {
     switch (activeFilter) {
       case "online": return list.filter(d => d.status === "Ready");
       case "offline": return list.filter(d => d.status === "Disconnected" && d.number);
-      case "error": return list.filter(d => {
-        const s = deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d));
-        return s === "token_invalid" || s === "api_error" || s === "proxy_fail";
-      });
+      case "error": return list.filter(d => deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d)) === "offline");
       case "warmup": return list.filter(d => warmupDeviceIds.has(d.id));
       default: return list;
     }
@@ -970,10 +949,7 @@ const Devices = () => {
     }
   };
 
-  const errorCount = devices.filter(d => {
-    const s = deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d));
-    return s === "token_invalid" || s === "api_error" || s === "proxy_fail";
-  }).length;
+  const errorCount = devices.filter(d => deriveSmartStatus(d, warmupDeviceIds, getProxyStatus(d)) === "offline").length;
 
   const filterTabs: { key: FilterTab; label: string; count: number }[] = [
     { key: "all", label: "Todas", count: devices.length },
