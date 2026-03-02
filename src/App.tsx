@@ -28,6 +28,7 @@ import Groups from "./pages/dashboard/GroupCapture";
 import MyPlan from "./pages/dashboard/MyPlan";
 import CampaignDetail from "./pages/dashboard/CampaignDetail";
 import ReportWhatsApp from "./pages/dashboard/ReportWhatsApp";
+import MonitoringCenter from "./pages/dashboard/MonitoringCenter";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ const App = () => (
                       <Route path="groups" element={<Groups />} />
                       <Route path="reports" element={<Reports />} />
                       <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
+                      <Route path="monitoring" element={<MonitoringCenter />} />
                       <Route path="custom-module" element={<CustomModule />} />
                       <Route path="notifications" element={<Notifications />} />
                       <Route path="settings" element={<SettingsPage />} />
