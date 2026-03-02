@@ -1576,18 +1576,6 @@ const Campaigns = () => {
         {/* ===== STEP 4: Review & Launch ===== */}
         {step === 4 && (
           <div className="space-y-8">
-            {/* Navigation + Launch - top */}
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-              <Button
-                className="gap-3 h-14 px-12 text-sm font-bold tracking-[0.1em] uppercase shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-shadow duration-100"
-                onClick={handleSendCampaign}
-                disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-              >
-                <Send className="w-4.5 h-4.5" />
-                {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
-              </Button>
-            </div>
             {/* Campaign name */}
             <SurfaceCard className="p-6 space-y-3">
               <SectionLabel>Nome da Campanha</SectionLabel>
