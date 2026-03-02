@@ -1,12 +1,20 @@
-import { useState, useMemo } from "react";
-import { Clock, XCircle, Gauge } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Clock, XCircle, Gauge, Pencil, Check, X } from "lucide-react";
 import { format, differenceInDays, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import type { AdminDashboard } from "@/hooks/useAdmin";
 import { PeriodFilter, usePeriodFilter, type PeriodRange } from "./PeriodFilter";
 
-const SERVER_MAX_INSTANCES = 500;
+const DEFAULT_MAX = 500;
+const STORAGE_KEY_MAX = "dg-server-max-instances";
+
+function loadMaxInstances(): number {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY_MAX);
+    return v ? Number(v) : DEFAULT_MAX;
+  } catch { return DEFAULT_MAX; }
+}
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -25,6 +33,9 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const periodFilter = usePeriodFilter();
   const { range } = periodFilter;
   const [chartMetric, setChartMetric] = useState<ChartMetric>("received");
+  const [maxInstances, setMaxInstances] = useState(loadMaxInstances);
+  const [editingMax, setEditingMax] = useState(false);
+  const [editMaxValue, setEditMaxValue] = useState("");
 
   const now = new Date();
 
@@ -151,7 +162,14 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
   const totalAllocated = useMemo(() => users.reduce((s, u) => s + u.max_instances + (u.instance_override || 0), 0), [users]);
   const totalInUse = stats.total_devices;
-  const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
+  const serverOccupancy = Math.round((totalInUse / maxInstances) * 100);
+
+  const startEditMax = () => { setEditMaxValue(String(maxInstances)); setEditingMax(true); };
+  const confirmEditMax = () => {
+    const v = parseInt(editMaxValue);
+    if (v > 0) { setMaxInstances(v); localStorage.setItem(STORAGE_KEY_MAX, String(v)); }
+    setEditingMax(false);
+  };
   const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
   const isPositive = netRevenue >= 0;
@@ -327,11 +345,34 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* ═══ OPERAÇÃO ═══ */}
       <div className="bg-card/50 border border-border/30 rounded-md px-5 py-4">
-        <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold mb-3">Operação</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold">Operação</p>
+          {/* Edit max instances */}
+          {editingMax ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-muted-foreground/40 font-medium">Capacidade:</span>
+              <input
+                type="number"
+                value={editMaxValue}
+                onChange={e => setEditMaxValue(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && confirmEditMax()}
+                className="w-16 h-5 text-[10px] font-bold bg-background border border-border rounded px-1.5 text-foreground focus:outline-none focus:border-foreground/30"
+                autoFocus
+              />
+              <button onClick={confirmEditMax} className="text-emerald-500/70 hover:text-emerald-400 transition-colors"><Check size={12} /></button>
+              <button onClick={() => setEditingMax(false)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"><X size={12} /></button>
+            </div>
+          ) : (
+            <button onClick={startEditMax} className="flex items-center gap-1 text-[9px] text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors group">
+              <span className="font-medium">Capacidade: {maxInstances}</span>
+              <Pencil size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2.5">
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Liberadas</p>
-            <p className="text-base font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {SERVER_MAX_INSTANCES}</span></p>
+            <p className="text-base font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {maxInstances}</span></p>
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Em Uso</p>
@@ -355,7 +396,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
               style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
             />
           </div>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5 font-medium">{totalInUse} / {SERVER_MAX_INSTANCES} instâncias</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5 font-medium">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
     </div>
