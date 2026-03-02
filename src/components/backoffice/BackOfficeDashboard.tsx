@@ -94,7 +94,7 @@ const BackOfficeDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
 
   if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (error) return <div className="text-center py-20 text-destructive">Erro: {(error as Error).message}</div>;
+  if (error) return <div className="text-center py-20 text-destructive">Erro: {(error as any)?.message || "Edge Function returned a non-2xx status code"}<br/><Button variant="outline" className="mt-4" onClick={() => refetch()}>Tentar novamente</Button></div>;
 
   if (selectedClient) return <AdminClientDetail client={selectedClient} onBack={() => setSelectedClient(null)} />;
 

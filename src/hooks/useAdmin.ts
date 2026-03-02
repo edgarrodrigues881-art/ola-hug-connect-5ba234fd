@@ -48,7 +48,10 @@ export function useAdminDashboard() {
     queryKey: ["admin-dashboard"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("admin-data?action=dashboard");
-      if (error) throw error;
+      if (error) {
+        console.error("[admin-dashboard] Edge function error:", error);
+        throw error;
+      }
       return data as AdminDashboard;
     },
   });
