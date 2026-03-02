@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Clock, XCircle, Gauge, Pencil, Check, X } from "lucide-react";
-import { format, differenceInDays, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import type { AdminDashboard } from "@/hooks/useAdmin";
 import { PeriodFilter, usePeriodFilter, type PeriodRange } from "./PeriodFilter";
 
@@ -25,14 +24,11 @@ function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
-type ChartMetric = "received" | "net" | "gross";
-
 const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const { stats, users = [], cycles = [], payments = [], costs = [] } = data ?? { stats: { total_users: 0, total_devices: 0, active_devices: 0, total_campaigns: 0, total_contacts: 0, total_subscriptions: 0 }, users: [], cycles: [], payments: [], costs: [] };
 
   const periodFilter = usePeriodFilter();
   const { range } = periodFilter;
-  const [chartMetric, setChartMetric] = useState<ChartMetric>("received");
   const [maxInstances, setMaxInstances] = useState(loadMaxInstances);
   const [editingMax, setEditingMax] = useState(false);
   const [editMaxValue, setEditMaxValue] = useState("");
@@ -87,50 +83,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const totalCosts = periodCosts + paymentFees;
   const netRevenue = revenueReceived - totalCosts;
 
-  // ── Chart data ──
-  const chartData = useMemo(() => {
-    const spanDays = differenceInDays(range.end, range.start);
-    const useWeeks = spanDays > 60;
-
-    if (useWeeks) {
-      const weeks = eachWeekOfInterval({ start: range.start, end: range.end }, { weekStartsOn: 1 });
-      return weeks.map(weekStart => {
-        const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekPayments = filteredPayments.filter((p: any) => {
-          const d = new Date(p.paid_at);
-          return d >= weekStart && d <= wEnd;
-        });
-        const received = weekPayments.reduce((s: number, p: any) => s + Number(p.amount), 0);
-        const fees = weekPayments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
-        const weekCosts = (costs || []).reduce((s: number, c: any) => {
-          const d = new Date(c.cost_date);
-          return d >= weekStart && d <= wEnd ? s + Number(c.amount) : s;
-        }, 0);
-        return {
-          label: format(weekStart, "dd/MM", { locale: ptBR }),
-          received,
-          net: received - fees - weekCosts,
-          gross: revenueBrute / Math.max(weeks.length, 1), // distributed
-        };
-      });
-    }
-
-    const days = eachDayOfInterval({ start: range.start, end: range.end });
-    return days.map(day => {
-      const dayStr = format(day, "yyyy-MM-dd");
-      const dayPayments = filteredPayments.filter((p: any) => format(new Date(p.paid_at), "yyyy-MM-dd") === dayStr);
-      const received = dayPayments.reduce((s: number, p: any) => s + Number(p.amount), 0);
-      const fees = dayPayments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
-      const dayCosts = (costs || []).reduce((s: number, c: any) => format(new Date(c.cost_date), "yyyy-MM-dd") === dayStr ? s + Number(c.amount) : s, 0);
-      return {
-        label: format(day, "dd/MM", { locale: ptBR }),
-        received,
-        net: received - fees - dayCosts,
-        gross: 0,
-      };
-    });
-  }, [filteredPayments, costs, range, revenueBrute]);
-
   // ── Operational (not period-dependent) ──
   const revenueAtRisk = useMemo(() =>
     users.reduce((sum, u) => {
@@ -174,12 +126,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
   const isPositive = netRevenue >= 0;
   const hasMovements = paymentsCount > 0 || periodCosts > 0;
-
-  const METRIC_OPTIONS: { id: ChartMetric; label: string; color: string }[] = [
-    { id: "received", label: "Recebida", color: "hsl(142, 71%, 45%)" },
-    { id: "net", label: "Líquida", color: "hsl(142, 50%, 50%)" },
-    { id: "gross", label: "Bruta", color: "hsl(217, 91%, 60%)" },
-  ];
 
   return (
     <div className="space-y-3">
@@ -255,42 +201,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
         </div>
       </div>
 
-      {/* ═══ GRÁFICO — full width ═══ */}
-      <div className="bg-card/50 border border-border/30 rounded-md px-3 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold">Faturamento no período</p>
-          <div className="flex gap-1">
-            {METRIC_OPTIONS.map(m => (
-              <button
-                key={m.id}
-                onClick={() => setChartMetric(m.id)}
-                className={`text-[9px] font-semibold px-2 py-0.5 rounded transition-all ${
-                  chartMetric === m.id
-                    ? "bg-foreground/10 text-foreground border border-border"
-                    : "text-muted-foreground/30 hover:text-muted-foreground/60 border border-transparent"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="h-36">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 15%)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} width={35} />
-              <Tooltip
-                contentStyle={{ background: 'hsl(220 15% 8%)', border: '1px solid hsl(220 10% 15%)', borderRadius: 6, fontSize: 10, color: 'hsl(220 10% 70%)' }}
-                formatter={(value: number) => [fmt(value), METRIC_OPTIONS.find(m => m.id === chartMetric)?.label]}
-                labelStyle={{ color: 'hsl(220 10% 50%)', fontSize: 9 }}
-              />
-              <Bar dataKey={chartMetric} fill={METRIC_OPTIONS.find(m => m.id === chartMetric)?.color} radius={[2, 2, 0, 0]} maxBarSize={18} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
       {/* ═══ OPERAÇÃO — card horizontal único ═══ */}
       <div className="bg-card/50 border border-border/30 rounded-md px-4 py-3">
