@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check } from "lucide-react";
+import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AdminOverview from "./AdminOverview";
 import AdminClientsTable from "./AdminClientsTable";
 import AdminClientDetail from "./AdminClientDetail";
 import AdminLogs from "./AdminLogs";
+import CostsTab from "./CostsTab";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -89,7 +90,7 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
 };
 
 const BackOfficeDashboard = () => {
-  const { data, isLoading, error } = useAdminDashboard();
+  const { data, isLoading, error, refetch } = useAdminDashboard();
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
 
   if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -119,12 +120,16 @@ const BackOfficeDashboard = () => {
           <TabsTrigger value="logs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <ScrollText size={16} /> Auditoria
           </TabsTrigger>
+          <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Wallet size={16} /> Custos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview"><AdminOverview data={data!} /></TabsContent>
         <TabsContent value="clients"><AdminClientsTable users={data?.users || []} cycles={data?.cycles || []} adminLogs={data?.admin_logs || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="pendencias"><PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="logs"><AdminLogs /></TabsContent>
+        <TabsContent value="costs"><CostsTab costs={(data?.costs as any[]) || []} onRefresh={() => refetch()} /></TabsContent>
       </Tabs>
     </div>
   );
