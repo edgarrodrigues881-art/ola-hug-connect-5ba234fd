@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Search, ChevronRight, AlertTriangle, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { AdminUser, AdminDashboard } from "@/hooks/useAdmin";
+import type { AdminUser } from "@/hooks/useAdmin";
 import { calculateClientScore, scoreColors, type ScoreLevel } from "@/lib/clientScore";
 
 interface Props {

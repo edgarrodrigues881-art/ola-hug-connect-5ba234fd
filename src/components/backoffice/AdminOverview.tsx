@@ -35,7 +35,7 @@ const StatCard = ({ icon: Icon, label, value, sub, hint, color }: {
 );
 
 const AdminOverview = ({ data }: { data: AdminDashboard }) => {
-  const { stats, users, cycles, payments, costs = [] } = data as AdminDashboard & { costs?: any[] };
+  const { stats, users, cycles, payments, costs } = data;
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
