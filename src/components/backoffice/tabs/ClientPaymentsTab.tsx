@@ -19,6 +19,26 @@ interface Props {
 
 const METHODS = ["PIX", "Cartão", "Boleto", "Transferência", "Outro"];
 
+// Format number to BRL display: 10000 → "10.000,00"
+function fmtBRL(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Parse BRL string back to number: "10.000,00" → 10000
+function parseBRL(s: string): number {
+  const clean = s.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
+}
+
+// Mask input as user types: raw digits → formatted BRL
+function maskCurrency(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = parseInt(digits, 10);
+  return fmtBRL(cents / 100);
+}
+
 const emptyForm = () => ({
   amount: "",
   method: "PIX",
@@ -52,27 +72,27 @@ const ClientPaymentsTab = ({ client }: Props) => {
 
   const openEdit = (p: any) => {
     setForm({
-      amount: String(p.amount),
+      amount: Number(p.amount) > 0 ? fmtBRL(Number(p.amount)) : "",
       method: p.method,
       notes: p.notes || "",
       paid_at: p.paid_at?.split("T")[0] || new Date().toISOString().split("T")[0],
-      discount: p.discount ? String(p.discount) : "",
-      fee: p.fee ? String(p.fee) : "",
+      discount: Number(p.discount) > 0 ? fmtBRL(Number(p.discount)) : "",
+      fee: Number(p.fee) > 0 ? fmtBRL(Number(p.fee)) : "",
     });
     setEditPayment(p);
   };
 
   const buildBody = () => ({
-    amount: Number(form.amount),
+    amount: parseBRL(form.amount),
     method: form.method,
     notes: form.notes,
     paid_at: new Date(form.paid_at).toISOString(),
-    discount: Number(form.discount) || 0,
-    fee: Number(form.fee) || 0,
+    discount: parseBRL(form.discount),
+    fee: parseBRL(form.fee),
   });
 
   const addPayment = () => {
-    if (!form.amount || Number(form.amount) <= 0) return;
+    if (!form.amount || parseBRL(form.amount) <= 0) return;
     adminAction(
       { action: "add-payment", body: { target_user_id: client.id, ...buildBody() } },
       {
@@ -89,7 +109,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
   };
 
   const saveEdit = () => {
-    if (!form.amount || Number(form.amount) <= 0) return;
+    if (!form.amount || parseBRL(form.amount) <= 0) return;
     adminAction(
       { action: "update-payment", body: { payment_id: editPayment.id, target_user_id: client.id, ...buildBody() } },
       {
@@ -128,9 +148,9 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
-          <Input type="number" step="0.01" value={form.amount}
-            onChange={e => setForm({ ...form, amount: e.target.value })}
-            className="bg-card border-border text-foreground mt-1" placeholder="149.90" />
+          <Input type="text" inputMode="numeric" value={form.amount}
+            onChange={e => setForm({ ...form, amount: maskCurrency(e.target.value) })}
+            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Método</Label>
@@ -143,15 +163,15 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
-          <Input type="number" step="0.01" value={form.discount}
-            onChange={e => setForm({ ...form, discount: e.target.value })}
-            className="bg-card border-border text-foreground mt-1" placeholder="0.00" />
+          <Input type="text" inputMode="numeric" value={form.discount}
+            onChange={e => setForm({ ...form, discount: maskCurrency(e.target.value) })}
+            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
-          <Input type="number" step="0.01" value={form.fee}
-            onChange={e => setForm({ ...form, fee: e.target.value })}
-            className="bg-card border-border text-foreground mt-1" placeholder="0.00" />
+          <Input type="text" inputMode="numeric" value={form.fee}
+            onChange={e => setForm({ ...form, fee: maskCurrency(e.target.value) })}
+            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
         </div>
       </div>
       <div>
