@@ -140,6 +140,8 @@ const Devices = () => {
   const [pairingCode, setPairingCode] = useState("");
   const [connectError, setConnectError] = useState("");
   const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch devices from database
   const { data: devices = [] } = useQuery({
@@ -796,6 +798,32 @@ const Devices = () => {
       setPollingInterval(null);
     }
   };
+
+  // QR countdown timer - auto refresh every 30s
+  useEffect(() => {
+    if (connectStep === "qr" && qrCodeBase64) {
+      setQrCountdown(30);
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+      qrCountdownRef.current = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            setQrCodeBase64("");
+            if (connectingDevice) {
+              callApi({ action: "connect", deviceId: connectingDevice.id }).then(result => {
+                const b64 = result?.base64 || result?.qr;
+                if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+              }).catch(() => {});
+            }
+            return 30;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
+    }
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [connectStep, qrCodeBase64, connectingDevice]);
 
   // Poll connection status
   const startPolling = (deviceId: string, proxyId: string | null) => {
@@ -1554,6 +1582,23 @@ const Devices = () => {
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-xs font-medium text-foreground">Aguardando leitura</span>
                   </div>
+                  {qrCodeBase64 && (
+                    <div className="flex items-center justify-center gap-1.5 mt-1">
+                      <div className="relative w-6 h-6">
+                        <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--muted))" strokeWidth="2" />
+                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
+                            strokeDasharray={`${(qrCountdown / 30) * 62.83} 62.83`}
+                            strokeLinecap="round"
+                            className="transition-all duration-1000 ease-linear"
+                          />
+                        </svg>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+                        Atualiza em {qrCountdown}s
+                      </span>
+                    </div>
+                  )}
                   <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
                     Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar
                   </p>
