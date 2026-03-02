@@ -1586,45 +1586,78 @@ const Campaigns = () => {
             {/* Review panel */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Technical summary */}
-              <SurfaceCard className="lg:col-span-3 p-6 space-y-6">
-                <div className="flex items-center gap-2.5">
-                  <Eye className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-bold text-foreground">Resumo Técnico</h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: "Instância(s)", value: selectedDevicesData.length > 0 ? selectedDevicesData.map(d => d.name).join(", ") : "—", icon: Smartphone },
-                    { label: "Contatos", value: String(validContacts.length), icon: Users },
-                    { label: "Intervalo", value: `${minDelay}s – ${maxDelay}s`, icon: Clock },
-                    { label: "Pausa", value: `${pauseEveryMin}–${pauseEveryMax} msgs`, icon: Zap },
-                    { label: "Duração Pausa", value: `${pauseDurationMin}s – ${pauseDurationMax}s`, icon: Activity },
-                    { label: "Tempo Estimado", value: estimatedTime || "—", icon: Timer },
-                  ].map(item => (
-                    <div key={item.label} className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/10 dark:bg-muted/5 border border-border/8">
-                      <div className="w-8 h-8 rounded-lg bg-muted/20 dark:bg-muted/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <item.icon className="w-3.5 h-3.5 text-muted-foreground/40" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 font-semibold">{item.label}</p>
-                        <p className="text-[13px] font-bold text-foreground mt-0.5 leading-tight">{item.value}</p>
-                      </div>
+              <SurfaceCard className="lg:col-span-3 p-6 space-y-5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-transparent pointer-events-none" />
+                <div className="relative z-10 space-y-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Eye className="w-4 h-4 text-primary" />
                     </div>
-                  ))}
-                </div>
-
-                {/* Warnings */}
-                {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
-                  <div className="flex items-center gap-3 text-sm text-destructive bg-destructive/5 border border-destructive/10 rounded-xl px-4 py-3">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span className="text-[12px]">
-                      {!campaignName && "Nome ausente. "}
-                      {selectedDevices.length === 0 && "Sem instância. "}
-                      {validContacts.length === 0 && "Sem contatos. "}
-                      {!message && "Mensagem vazia."}
-                    </span>
+                    <h3 className="text-sm font-bold text-foreground">Resumo Técnico</h3>
                   </div>
-                )}
+
+                  {/* Top stats row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Contatos", value: String(validContacts.length), icon: Users, accent: "text-primary" },
+                      { label: "Instâncias", value: String(selectedDevicesData.length || 0), icon: Smartphone, accent: "text-emerald-400" },
+                      { label: "Tempo", value: estimatedTime || "—", icon: Timer, accent: "text-amber-400" },
+                    ].map(item => (
+                      <div key={item.label} className="text-center p-4 rounded-xl bg-card border border-border/15">
+                        <item.icon className={cn("w-4 h-4 mx-auto mb-2", item.accent)} />
+                        <p className="text-lg font-black text-foreground tabular-nums">{item.value}</p>
+                        <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 font-semibold mt-1">{item.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Delay config row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Intervalo", value: `${minDelay}–${maxDelay}s`, icon: Clock },
+                      { label: "Pausa a cada", value: `${pauseEveryMin}–${pauseEveryMax} msgs`, icon: Zap },
+                      { label: "Duração pausa", value: `${pauseDurationMin}–${pauseDurationMax}s`, icon: Activity },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/8 border border-border/10">
+                        <item.icon className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground/35 font-semibold">{item.label}</p>
+                          <p className="text-[12px] font-bold text-foreground tabular-nums">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Devices list */}
+                  {selectedDevicesData.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground/40 font-medium">Chips:</span>
+                      {selectedDevicesData.map(d => (
+                        <div key={d.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/8 border border-emerald-500/15">
+                          {d.profile_picture ? (
+                            <img src={d.profile_picture} alt="" className="w-4 h-4 rounded-full object-cover" />
+                          ) : (
+                            <Smartphone className="w-3 h-3 text-emerald-400" />
+                          )}
+                          <span className="text-[10px] font-semibold text-foreground">{d.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
+                    <div className="flex items-center gap-3 text-sm text-destructive bg-destructive/5 border border-destructive/10 rounded-xl px-4 py-3">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span className="text-[12px]">
+                        {!campaignName && "Nome ausente. "}
+                        {selectedDevices.length === 0 && "Sem instância. "}
+                        {validContacts.length === 0 && "Sem contatos. "}
+                        {!message && "Mensagem vazia."}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </SurfaceCard>
 
               {/* Message preview */}
@@ -1633,31 +1666,76 @@ const Campaigns = () => {
               </div>
             </div>
 
-            {/* Schedule - after review */}
-            <SurfaceCard className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Calendar className="w-4.5 h-4.5 text-primary" />
+            {/* Schedule + Launch row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Schedule */}
+              <SurfaceCard className="relative p-6 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] to-transparent pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <Calendar className="w-4.5 h-4.5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-foreground">Agendar envio</p>
+                        <p className="text-[11px] text-muted-foreground/50">Programar para data e hora específica</p>
+                      </div>
+                    </div>
+                    <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
                   </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-foreground">Agendar envio</p>
-                    <p className="text-[11px] text-muted-foreground/50">Definir data e hora de início</p>
-                  </div>
+                  {scheduleEnabled && (
+                    <div className="mt-5 p-4 rounded-xl bg-card border border-amber-500/15 space-y-3">
+                      <label className="text-[10px] uppercase tracking-wider text-amber-400/70 font-semibold">Data e hora de início</label>
+                      <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} 
+                        className="h-11 text-sm bg-muted/10 dark:bg-muted/5 border-amber-500/15 focus-visible:ring-amber-500/30" />
+                      {scheduleDate && (
+                        <p className="text-[11px] text-amber-400/60 flex items-center gap-1.5">
+                          <Clock className="w-3 h-3" />
+                          Disparo em {new Date(scheduleDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!scheduleEnabled && (
+                    <p className="text-[11px] text-muted-foreground/30 mt-3 pl-[52px]">Envio imediato ao iniciar</p>
+                  )}
                 </div>
-                <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
-              </div>
-              {scheduleEnabled && (
-                <div className="mt-4 pl-[52px]">
-                  <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-10 text-sm bg-muted/15 dark:bg-muted/8 border-border/15 max-w-xs" />
-                </div>
-              )}
-            </SurfaceCard>
+              </SurfaceCard>
 
-            {/* Security text */}
-            <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/40">
-              <Lock className="w-3 h-3" />
-              <span>Seus dados estão seguros. O envio pode ser cancelado a qualquer momento.</span>
+              {/* Security + info */}
+              <SurfaceCard className="relative p-6 flex flex-col justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
+                <div className="relative z-10 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Lock className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-foreground">Pronto para enviar</p>
+                      <p className="text-[11px] text-muted-foreground/50">Revise e inicie sua campanha</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 pl-[52px]">
+                    {[
+                      { ok: !!campaignName, text: "Nome definido" },
+                      { ok: selectedDevices.length > 0, text: "Instância selecionada" },
+                      { ok: validContacts.length > 0, text: `${validContacts.length} contatos prontos` },
+                      { ok: !!message, text: "Mensagem configurada" },
+                    ].map((c, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        {c.ok ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <X className="w-3.5 h-3.5 text-destructive/50" />
+                        )}
+                        <span className={cn("text-[11px] font-medium", c.ok ? "text-foreground/70" : "text-muted-foreground/40")}>{c.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/30 pl-[52px]">O envio pode ser cancelado a qualquer momento.</p>
+                </div>
+              </SurfaceCard>
             </div>
           </div>
         )}
