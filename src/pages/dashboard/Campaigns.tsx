@@ -867,14 +867,6 @@ const Campaigns = () => {
           </h1>
           <p className="text-sm text-muted-foreground/60 mt-1.5">Controle total sobre sua entrega e performance.</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-xs gap-1.5 h-9 w-[170px] justify-center border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100"
-          onClick={step === 1 ? clearStep1 : step === 2 ? clearStep2 : step === 3 ? clearStep3 : clearAllForm}
-        >
-          <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
-        </Button>
       </div>
 
       {/* ═══ Stepper ═══ */}
@@ -944,6 +936,16 @@ const Campaigns = () => {
             </div>
           </div>
         </SurfaceCard>
+        <div className="flex justify-end mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs gap-1.5 h-9 w-[170px] justify-center border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100"
+            onClick={step === 1 ? clearStep1 : step === 2 ? clearStep2 : step === 3 ? clearStep3 : clearAllForm}
+          >
+            <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
+          </Button>
+        </div>
       </div>
 
       {/* ═══ Step Content ═══ */}
