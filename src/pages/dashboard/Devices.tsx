@@ -134,7 +134,8 @@ const Devices = () => {
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
-  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code" | "connecting" | "done">("choose");
+  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code_phone" | "code" | "connecting" | "done">("choose");
+  const [codePhone, setCodePhone] = useState("");
   const [qrCodeBase64, setQrCodeBase64] = useState("");
   const [pairingCode, setPairingCode] = useState("");
   const [connectError, setConnectError] = useState("");
@@ -860,6 +861,10 @@ const Devices = () => {
     }
 
     setConnectError("");
+    if (connectMethod === "code") {
+      setConnectStep("code_phone");
+      return;
+    }
     setConnectStep(connectMethod);
 
     try {
@@ -1586,20 +1591,120 @@ const Devices = () => {
               </div>
             )}
 
+            {connectStep === "code_phone" && (
+              <div className="space-y-4">
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-muted-foreground">Digite o número do WhatsApp que deseja conectar</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground font-medium">Número com DDD</Label>
+                  <Input
+                    value={codePhone}
+                    onChange={e => setCodePhone(e.target.value)}
+                    placeholder="5511999999999"
+                    className="h-10 text-sm font-mono text-center tracking-wider"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === "Enter" && codePhone.replace(/\D/g, "").length >= 10) {
+                      setConnectStep("code");
+                      // Trigger code connection
+                      (async () => {
+                        try {
+                          if (!connectingDevice) return;
+                          if (!connectingDevice.uazapi_token) {
+                            const createResult = await callApi({
+                              action: "createInstance",
+                              deviceId: connectingDevice.id,
+                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+                            });
+                            connectingDevice.uazapi_token = createResult.instanceToken;
+                            connectingDevice.uazapi_base_url = createResult.baseUrl;
+                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                          }
+                          const result = await callApi({ action: "connect", deviceId: connectingDevice.id });
+                          if (result.alreadyConnected) {
+                            setConnectStep("done");
+                            toast({ title: "Já conectado!" });
+                            return;
+                          }
+                          // The pairing code should come from the connect response
+                          const code = result.pairingCode || result.code || result.pairing_code;
+                          if (code) setPairingCode(code);
+                          startPolling(connectingDevice.id, null);
+                        } catch (err: any) {
+                          setConnectError(err?.message || "Erro ao gerar código");
+                        }
+                      })();
+                    }}}
+                  />
+                  <p className="text-[10px] text-muted-foreground/40 text-center">Exemplo: 5563912345678</p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs h-9" onClick={() => setConnectStep("proxy")}>Voltar</Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs h-9"
+                    disabled={codePhone.replace(/\D/g, "").length < 10}
+                    onClick={() => {
+                      setConnectStep("code");
+                      (async () => {
+                        try {
+                          if (!connectingDevice) return;
+                          if (!connectingDevice.uazapi_token) {
+                            const createResult = await callApi({
+                              action: "createInstance",
+                              deviceId: connectingDevice.id,
+                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+                            });
+                            connectingDevice.uazapi_token = createResult.instanceToken;
+                            connectingDevice.uazapi_base_url = createResult.baseUrl;
+                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                          }
+                          const result = await callApi({ action: "connect", deviceId: connectingDevice.id });
+                          if (result.alreadyConnected) {
+                            setConnectStep("done");
+                            toast({ title: "Já conectado!" });
+                            return;
+                          }
+                          const code = result.pairingCode || result.code || result.pairing_code;
+                          if (code) setPairingCode(code);
+                          startPolling(connectingDevice.id, null);
+                        } catch (err: any) {
+                          setConnectError(err?.message || "Erro ao gerar código");
+                        }
+                      })();
+                    }}
+                  >
+                    Gerar código
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {connectStep === "code" && (
               <div className="flex flex-col items-center gap-4">
                 {pairingCode ? (
-                  <div className="px-8 py-4 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
+                  <div className="relative px-8 py-4 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
                     <p className="text-2xl font-mono font-bold tracking-[0.4em] text-foreground">{pairingCode}</p>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <Lock className="w-4 h-4 text-primary-foreground" />
+                    </div>
                   </div>
                 ) : connectError ? (
                   <div className="px-6 py-4 rounded-2xl bg-destructive/5 border-2 border-destructive/20">
                     <p className="text-xs text-destructive text-center">{connectError}</p>
                   </div>
                 ) : (
-                  <div className="px-8 py-4 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/[0.02] flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                    <p className="text-xs text-muted-foreground">Gerando código...</p>
+                  <div className="w-56 py-6 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02]">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                      <Key className="w-6 h-6 text-primary animate-pulse" />
+                    </div>
+                    <p className="text-xs font-medium text-foreground">Gerando código</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">Aguarde alguns segundos...</p>
+                    <div className="flex items-center gap-1 mt-3">
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
                   </div>
                 )}
                 <div className="text-center space-y-1.5">
@@ -1608,7 +1713,7 @@ const Devices = () => {
                     <span className="text-xs font-medium text-foreground">Aguardando emparelhamento</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
-                    WhatsApp → Aparelhos conectados → Conectar com número
+                    Digite este código no WhatsApp → Aparelhos conectados → Conectar com número
                   </p>
                 </div>
               </div>
