@@ -47,16 +47,17 @@ const menuGroups = [
     label: "📊 VISÃO GERAL",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
+      { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
+      { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
+      { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
   {
     label: "🚀 OPERAÇÕES",
     items: [
-      { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
-      { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
-      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
   {
@@ -70,7 +71,6 @@ const menuGroups = [
   {
     label: "⚙ CONFIGURAÇÕES",
     items: [
-      { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
       { title: "Modelos", url: "/dashboard/templates", icon: FileText },
       { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
       { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
