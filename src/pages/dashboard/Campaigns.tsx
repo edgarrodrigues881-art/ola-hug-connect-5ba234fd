@@ -873,7 +873,7 @@ const Campaigns = () => {
       <div>
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-12">
             {/* Primary action - top */}
             <div className="flex justify-end">
               <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow duration-100">
@@ -881,11 +881,11 @@ const Campaigns = () => {
               </Button>
             </div>
             {/* Editor + Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
               {/* Editor column */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="lg:col-span-3 space-y-8">
                 {/* Message editor */}
-                <SurfaceCard className="p-5 space-y-4">
+                <SurfaceCard className="p-6 space-y-5">
                   <SectionLabel>Mensagem</SectionLabel>
                   
                   {/* Toolbar */}
