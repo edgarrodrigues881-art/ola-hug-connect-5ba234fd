@@ -17,29 +17,24 @@ async function verifyAdmin(req: Request) {
     global: { headers: { Authorization: authHeader } },
   });
 
-  // Use getClaims for reliable token verification
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+  const { data: { user: authUser }, error: userError } = await userClient.auth.getUser();
   
-  if (claimsError || !claimsData?.claims) {
-    console.error("[admin-data] getClaims failed:", claimsError?.message);
+  if (userError || !authUser) {
+    console.error("[admin-data] getUser failed:", userError?.message);
     throw new Error("Não autorizado");
   }
-
-  const userId = claimsData.claims.sub;
-  if (!userId) throw new Error("Não autorizado");
 
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
   const { data: roleData } = await adminClient
     .from("user_roles")
     .select("role")
-    .eq("user_id", userId)
+    .eq("user_id", authUser.id)
     .eq("role", "admin")
     .maybeSingle();
 
   if (!roleData) throw new Error("Acesso negado: não é admin");
 
-  return { user: { id: userId, email: claimsData.claims.email }, adminClient };
+  return { user: { id: authUser.id, email: authUser.email }, adminClient };
 }
 
 async function logAction(adminClient: any, adminId: string, targetUserId: string | null, action: string, details: string) {
