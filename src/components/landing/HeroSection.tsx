@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import dgRemaster from "@/assets/dg-remaster.png";
 
 const chats = [
-  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160", badgeColor: "#07C160" },
-  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C", badgeColor: "#07C160" },
-  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6", badgeColor: "#3B82F6" },
-  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899", badgeColor: "#EC4899" },
-  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6", badgeColor: "#8B5CF6" },
-  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B", badgeColor: "#F59E0B" },
+  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160", badgeColor: "#07C160", online: true },
+  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C", badgeColor: "#07C160", online: true },
+  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6", badgeColor: "#3B82F6", online: false },
+  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899", badgeColor: "#EC4899", online: true },
+  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6", badgeColor: "#8B5CF6", online: false },
+  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B", badgeColor: "#F59E0B", online: true },
 ];
 
 const HeroSection = () => {
@@ -143,26 +143,26 @@ const HeroSection = () => {
                     </div>
 
                     {/* WhatsApp header */}
-                    <div className="px-4 pt-1 pb-2 flex items-center justify-between">
-                      <h3 className="text-[15px] font-bold text-white tracking-tight">Conversas</h3>
-                      <div className="flex items-center gap-3">
-                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <div className="px-4 pt-2 pb-3 flex items-center justify-between">
+                      <h3 className="text-[18px] font-extrabold text-white tracking-tight">Conversas</h3>
+                      <div className="flex items-center gap-3.5">
+                        <svg className="w-[16px] h-[16px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                           <circle cx="12" cy="13" r="3" />
                         </svg>
-                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <svg className="w-[16px] h-[16px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                           <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
                         </svg>
-                        <svg className="w-[14px] h-[14px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-[16px] h-[16px] text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <circle cx="12" cy="6" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="18" r="1" fill="currentColor" />
                         </svg>
                       </div>
                     </div>
 
                     {/* Search */}
-                    <div className="mx-3 mb-2">
-                      <div className="h-[28px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-1.5">
-                        <svg className="w-[10px] h-[10px] text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="mx-3 mb-2.5">
+                      <div className="h-[30px] bg-white/[0.06] rounded-lg flex items-center px-3 gap-2">
+                        <svg className="w-[11px] h-[11px] text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
                         </svg>
                         <span className="text-[11px] text-white/20">Pesquisar</span>
@@ -172,39 +172,45 @@ const HeroSection = () => {
                     {/* Chat list */}
                     <div>
                       {chats.map((chat, i) => (
-                        <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
-                          {chat.name.startsWith("DG CONTINGENCIA") ? (
-                            <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div
-                              className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                              style={{ backgroundColor: chat.color + "20", color: chat.color }}
-                            >
-                              {chat.avatar}
-                            </div>
-                          )}
+                        <div key={i} className="flex items-center gap-3 px-3 py-[10px] border-b border-white/[0.03] last:border-0">
+                          {/* Avatar with online indicator */}
+                          <div className="relative flex-shrink-0">
+                            {chat.name.startsWith("DG CONTINGENCIA") ? (
+                              <img src={dgRemaster} alt="DG" className="w-[44px] h-[44px] rounded-full object-cover" />
+                            ) : (
+                              <div
+                                className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[12px] font-bold"
+                                style={{ backgroundColor: chat.color + "25", color: chat.color }}
+                              >
+                                {chat.avatar}
+                              </div>
+                            )}
+                            {chat.online && (
+                              <div className="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full bg-[#07C160] border-2 border-[#0A0A0A]" />
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-[2px]">
-                              <span className={`text-[13px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                            <div className="flex items-center justify-between mb-[3px]">
+                              <span className={`text-[14px] truncate ${chat.unread > 0 ? "font-bold text-white" : "font-medium text-white/70"}`}>
                                 {chat.name}
                               </span>
-                              <span className={`text-[10px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                              <span className={`text-[10px] flex-shrink-0 ml-2 ${chat.unread > 0 ? "text-[#07C160] font-semibold" : "text-white/20"}`}>
                                 {chat.time}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1 truncate pr-2">
                                 {chat.unread === 0 && (
-                                  <svg className="w-[12px] h-[12px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                  <svg className="w-[13px] h-[13px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
                                     <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
                                   </svg>
                                 )}
-                                <span className="text-[11px] text-white/30 truncate">{chat.msg}</span>
+                                <span className="text-[11px] text-white/35 truncate">{chat.msg}</span>
                               </div>
                               {chat.unread > 0 && (
                                 <span 
-                                  className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full text-[7px] font-bold text-white flex items-center justify-center px-1"
+                                  className="flex-shrink-0 min-w-[18px] h-[18px] rounded-full text-[8px] font-bold text-white flex items-center justify-center px-1"
                                   style={{ backgroundColor: chat.badgeColor }}
                                 >
                                   {chat.unread >= 999 ? "999+" : chat.unread}
