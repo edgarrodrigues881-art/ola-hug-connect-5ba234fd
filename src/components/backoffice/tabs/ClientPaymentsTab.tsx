@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -31,13 +31,33 @@ function parseBRL(s: string): number {
   return isNaN(n) ? 0 : n;
 }
 
-// Mask input as user types: raw digits → formatted BRL
-function maskCurrency(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const cents = parseInt(digits, 10);
-  return fmtBRL(cents / 100);
-}
+// CurrencyInput: stores formatted string, cursor always at end
+const CurrencyInput = ({ value, onChange, placeholder, className }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; className?: string;
+}) => {
+  const ref = useRef<HTMLInputElement>(null);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "");
+    if (!digits) { onChange(""); return; }
+    const cents = parseInt(digits, 10);
+    const formatted = fmtBRL(cents / 100);
+    onChange(formatted);
+    // Force cursor to end after React re-render
+    requestAnimationFrame(() => {
+      if (ref.current) {
+        ref.current.selectionStart = ref.current.value.length;
+        ref.current.selectionEnd = ref.current.value.length;
+      }
+    });
+  }, [onChange]);
+
+  return (
+    <Input ref={ref} type="text" inputMode="numeric" value={value}
+      onChange={handleChange} placeholder={placeholder || "0,00"}
+      className={className} />
+  );
+};
 
 const emptyForm = () => ({
   amount: "",
@@ -148,9 +168,9 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
-          <Input type="text" inputMode="numeric" value={form.amount}
-            onChange={e => setForm({ ...form, amount: maskCurrency(e.target.value) })}
-            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
+          <CurrencyInput value={form.amount}
+            onChange={v => setForm({ ...form, amount: v })}
+            className="bg-card border-border text-foreground mt-1" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Método</Label>
@@ -163,15 +183,15 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
-          <Input type="text" inputMode="numeric" value={form.discount}
-            onChange={e => setForm({ ...form, discount: maskCurrency(e.target.value) })}
-            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
+          <CurrencyInput value={form.discount}
+            onChange={v => setForm({ ...form, discount: v })}
+            className="bg-card border-border text-foreground mt-1" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
-          <Input type="text" inputMode="numeric" value={form.fee}
-            onChange={e => setForm({ ...form, fee: maskCurrency(e.target.value) })}
-            className="bg-card border-border text-foreground mt-1" placeholder="0,00" />
+          <CurrencyInput value={form.fee}
+            onChange={v => setForm({ ...form, fee: v })}
+            className="bg-card border-border text-foreground mt-1" />
         </div>
       </div>
       <div>
