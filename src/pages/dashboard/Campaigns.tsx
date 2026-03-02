@@ -874,6 +874,12 @@ const Campaigns = () => {
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
           <div className="space-y-8">
+            {/* Primary action - top */}
+            <div className="flex justify-end">
+              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow duration-100">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
             {/* Template + Campaign Name Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <SurfaceCard className="p-5 space-y-3">
@@ -1138,18 +1144,20 @@ const Campaigns = () => {
               </div>
             </div>
 
-            {/* Primary action */}
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow duration-100">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+            {/* Primary action - duplicated at top */}
           </div>
         )}
 
         {/* ===== STEP 2: Contacts ===== */}
         {step === 2 && (
           <div className="space-y-8">
+            {/* Navigation - top */}
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
+              <Button onClick={() => setStep(3)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
             {/* Metrics - enhanced hierarchy */}
             <div className="grid grid-cols-3 gap-5">
               {[
@@ -1337,18 +1345,19 @@ const Campaigns = () => {
               );
             })()}
 
-            <div className="flex items-center justify-between pt-2">
-              <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-              <Button onClick={() => setStep(3)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
         )}
 
         {/* ===== STEP 3: Configuration ===== */}
         {step === 3 && (
           <div className="space-y-8">
+            {/* Navigation - top */}
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
+              <Button onClick={() => setStep(4)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
             {/* Instance Selection */}
             <SurfaceCard className="p-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -1697,18 +1706,25 @@ const Campaigns = () => {
               <p className="text-2xl font-bold text-foreground tabular-nums">≈ {estimatedTime || "—"}</p>
             </SurfaceCard>
 
-            <div className="flex items-center justify-between pt-2">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-              <Button onClick={() => setStep(4)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+            {/* Navigation moved to top */}
           </div>
         )}
 
         {/* ===== STEP 4: Review & Launch ===== */}
         {step === 4 && (
           <div className="space-y-8">
+            {/* Navigation + Launch - top */}
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
+              <Button
+                className="gap-3 h-14 px-12 text-sm font-bold tracking-[0.1em] uppercase shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-shadow duration-100"
+                onClick={handleSendCampaign}
+                disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
+              >
+                <Send className="w-4.5 h-4.5" />
+                {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
+              </Button>
+            </div>
             {/* Campaign name */}
             <SurfaceCard className="p-6 space-y-3">
               <SectionLabel>Nome da Campanha</SectionLabel>
@@ -1799,26 +1815,10 @@ const Campaigns = () => {
               </div>
             </div>
 
-            {/* Action buttons - dominant launch */}
-            <div className="flex flex-col items-center gap-4 pt-6">
-              <div className="flex items-center w-full justify-between">
-                <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-                <div>
-                  <Button
-                    className="gap-3 h-16 px-16 text-base font-bold tracking-[0.1em] uppercase shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-shadow duration-100 relative overflow-hidden"
-                    onClick={handleSendCampaign}
-                    disabled={createCampaign.isPending || startCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-                  >
-                    <Send className="w-5 h-5" />
-                    {startCampaign.isPending ? "ENVIANDO..." : createCampaign.isPending ? "SALVANDO..." : "INICIAR CAMPANHA"}
-                  </Button>
-                </div>
-              </div>
-              {/* Security text */}
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground/40">
-                <Lock className="w-3 h-3" />
-                <span>Seus dados estão seguros. O envio pode ser cancelado a qualquer momento.</span>
-              </div>
+            {/* Security text */}
+            <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/40">
+              <Lock className="w-3 h-3" />
+              <span>Seus dados estão seguros. O envio pode ser cancelado a qualquer momento.</span>
             </div>
           </div>
         )}
