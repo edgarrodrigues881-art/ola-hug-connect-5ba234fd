@@ -2,10 +2,13 @@ import { useState, useMemo } from "react";
 import { Search, ChevronRight, AlertTriangle, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { AdminUser } from "@/hooks/useAdmin";
+import type { AdminUser, AdminDashboard } from "@/hooks/useAdmin";
+import { calculateClientScore, scoreColors, type ScoreLevel } from "@/lib/clientScore";
 
 interface Props {
   users: AdminUser[];
+  cycles?: any[];
+  adminLogs?: any[];
   onSelectClient: (u: AdminUser) => void;
 }
 
@@ -33,8 +36,19 @@ function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | n
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
 const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
-const AdminClientsTable = ({ users, onSelectClient }: Props) => {
+const AdminClientsTable = ({ users, cycles = [], adminLogs = [], onSelectClient }: Props) => {
   const [search, setSearch] = useState("");
+
+  const userScores = useMemo(() => {
+    const map = new Map<string, { level: ScoreLevel; label: string; score: number }>();
+    users.forEach(u => {
+      const uCycles = cycles.filter((c: any) => c.user_id === u.id);
+      const uLogs = adminLogs.filter((l: any) => l.target_user_id === u.id);
+      const s = calculateClientScore({ risk_flag: u.risk_flag, cycles: uCycles, admin_logs: uLogs });
+      map.set(u.id, { level: s.level, label: s.label, score: s.score });
+    });
+    return map;
+  }, [users, cycles, adminLogs]);
   const [filter, setFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
@@ -99,6 +113,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
             <thead>
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Cliente</th>
+                <th className="text-left px-3 py-2.5">Score</th>
                 <th className="text-left px-3 py-2.5">Telefone</th>
                 <th className="text-left px-3 py-2.5">Plano</th>
                 <th className="text-left px-3 py-2.5">Instâncias</th>
@@ -110,12 +125,14 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
               ) : filtered.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
                 const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
                 const sub = getSubStatus(u);
+                const us = userScores.get(u.id);
+                const sColor = us ? scoreColors[us.level] : null;
 
                 return (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onSelectClient(u)}>
@@ -126,6 +143,14 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                         {u.roles.includes("admin") && <Shield size={12} className="text-primary" />}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {us && sColor && (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded ${sColor.bg} ${sColor.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sColor.dot}`} />
+                          {us.score}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground text-xs">{u.phone || "—"}</td>
                     <td className="px-3 py-2.5">

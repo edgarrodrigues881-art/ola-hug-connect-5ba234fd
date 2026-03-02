@@ -31,6 +31,7 @@ export interface AdminDashboard {
   devices: any[];
   cycles: any[];
   payments: any[];
+  admin_logs: any[];
   stats: {
     total_users: number;
     total_devices: number;

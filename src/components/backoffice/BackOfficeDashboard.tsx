@@ -122,7 +122,7 @@ const BackOfficeDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview"><AdminOverview data={data!} /></TabsContent>
-        <TabsContent value="clients"><AdminClientsTable users={data?.users || []} onSelectClient={setSelectedClient} /></TabsContent>
+        <TabsContent value="clients"><AdminClientsTable users={data?.users || []} cycles={data?.cycles || []} adminLogs={data?.admin_logs || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="pendencias"><PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="logs"><AdminLogs /></TabsContent>
       </Tabs>
