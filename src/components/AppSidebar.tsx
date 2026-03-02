@@ -68,7 +68,6 @@ const menuGroups = [
     label: "",
     items: [
       { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
-      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
     ],
   },
 ];
@@ -224,6 +223,10 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
               <Settings className="w-4 h-4" strokeWidth={1.5} />
               Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/my-plan")} className="gap-2 cursor-pointer">
+              <CreditCard className="w-4 h-4" strokeWidth={1.5} />
+              Meu Plano
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
