@@ -169,14 +169,13 @@ const ClientPaymentsTab = ({ client }: Props) => {
     if (form.plan_value) setForm(f => ({ ...f, amount: f.plan_value }));
   };
 
-  const PaymentFormFields = () => (
+  const formFields = (
     <div className="space-y-3">
-      {/* Valor do Plano (editável) */}
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
           <CurrencyInput value={form.plan_value}
-            onChange={v => setForm({ ...form, plan_value: v })}
+            onChange={v => setForm(f => ({ ...f, plan_value: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
         <Button type="button" variant="outline" size="sm" onClick={fillPlanValue}
@@ -184,17 +183,16 @@ const ClientPaymentsTab = ({ client }: Props) => {
           Usar como valor recebido
         </Button>
       </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
           <CurrencyInput value={form.amount}
-            onChange={v => setForm({ ...form, amount: v })}
+            onChange={v => setForm(f => ({ ...f, amount: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Método</Label>
-          <select value={form.method} onChange={e => setForm({ ...form, method: e.target.value })}
+          <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}
             className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm">
             {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
@@ -204,25 +202,25 @@ const ClientPaymentsTab = ({ client }: Props) => {
         <div>
           <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
           <CurrencyInput value={form.discount}
-            onChange={v => setForm({ ...form, discount: v })}
+            onChange={v => setForm(f => ({ ...f, discount: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
           <CurrencyInput value={form.fee}
-            onChange={v => setForm({ ...form, fee: v })}
+            onChange={v => setForm(f => ({ ...f, fee: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
       </div>
       <div>
         <Label className="text-muted-foreground text-xs">Data do Pagamento</Label>
         <Input type="date" value={form.paid_at}
-          onChange={e => setForm({ ...form, paid_at: e.target.value })}
+          onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
           className="bg-card border-border text-foreground mt-1" />
       </div>
       <div>
         <Label className="text-muted-foreground text-xs">Observação</Label>
-        <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+        <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
           className="bg-card border-border text-foreground mt-1" rows={2}
           placeholder="Ex: Pagamento referente ao mês de março" />
       </div>
@@ -308,7 +306,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
-          <PaymentFormFields />
+          {formFields}
           <DialogFooter>
             <Button onClick={addPayment} disabled={actionPending} className="bg-green-600 hover:bg-green-700 text-white">
               {actionPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
@@ -322,7 +320,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
       <Dialog open={!!editPayment} onOpenChange={(open) => { if (!open) setEditPayment(null); }}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader><DialogTitle>Editar Pagamento</DialogTitle></DialogHeader>
-          <PaymentFormFields />
+          {formFields}
           <DialogFooter>
             <Button onClick={saveEdit} disabled={actionPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {actionPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
