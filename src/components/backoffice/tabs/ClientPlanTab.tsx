@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle } from "lucide-react";
@@ -79,7 +78,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   };
 
   const handleSuspend = () => {
-    // Set expires_at to now (force expire)
     mutate({
       action: "update-subscription",
       body: {
@@ -91,91 +89,91 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         expires_at: new Date().toISOString(),
       },
     }, {
-      onSuccess: () => toast({ title: "Assinatura suspensa (vencida forçadamente)" }),
+      onSuccess: () => toast({ title: "Assinatura suspensa" }),
       onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
     });
   };
 
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 space-y-5">
+    <div className="bg-card border border-border rounded-lg p-5 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CreditCard size={20} className="text-purple-400" />
-          <h3 className="text-lg font-semibold text-zinc-200">Plano & Assinatura</h3>
-          {isExpired && <Badge className="bg-red-600 text-white text-[10px]"><AlertTriangle size={10} className="mr-1" /> Vencida</Badge>}
-          {isExpiring && <Badge className="bg-yellow-600 text-white text-[10px]">Vence em {daysLeft}d</Badge>}
+          <CreditCard size={18} className="text-primary" />
+          <h3 className="text-base font-bold text-foreground">Plano & Assinatura</h3>
         </div>
-        {daysLeft !== null && !isExpired && (
-          <span className="text-sm font-medium text-zinc-300">{daysLeft} dias restantes</span>
-        )}
+        <div className="text-sm text-muted-foreground">
+          {isExpired && <span className="text-destructive font-medium flex items-center gap-1"><AlertTriangle size={14} /> Vencida</span>}
+          {isExpiring && <span className="text-yellow-500 font-medium">Vence em {daysLeft}d</span>}
+          {daysLeft !== null && !isExpired && !isExpiring && <span>{daysLeft} dias restantes</span>}
+        </div>
       </div>
 
       {sub && (
-        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
+        <div className="bg-muted/50 rounded-md p-4 border border-border">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-            <div><p className="text-xs text-zinc-400">Plano</p><p className="text-zinc-200 font-medium mt-1">{sub.plan_name}</p></div>
-            <div><p className="text-xs text-zinc-400">Valor</p><p className="text-zinc-200 font-medium mt-1">R$ {Number(sub.plan_price).toFixed(2)}</p></div>
-            <div><p className="text-xs text-zinc-400">Instâncias</p><p className="text-zinc-200 font-medium mt-1">{sub.max_instances}</p></div>
-            <div><p className="text-xs text-zinc-400">Início</p><p className="text-zinc-200 font-medium mt-1">{sub.started_at ? new Date(sub.started_at).toLocaleDateString("pt-BR") : "—"}</p></div>
-            <div><p className="text-xs text-zinc-400">Vencimento</p><p className={`font-medium mt-1 ${isExpired ? "text-red-400" : isExpiring ? "text-yellow-400" : "text-zinc-200"}`}>{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p></div>
+            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Plano</p><p className="text-foreground font-medium mt-0.5">{sub.plan_name}</p></div>
+            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Valor</p><p className="text-foreground font-medium mt-0.5">R$ {Number(sub.plan_price).toFixed(2)}</p></div>
+            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Instâncias</p><p className="text-foreground font-medium mt-0.5">{sub.max_instances}</p></div>
+            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Início</p><p className="text-foreground font-medium mt-0.5">{sub.started_at ? new Date(sub.started_at).toLocaleDateString("pt-BR") : "—"}</p></div>
+            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Vencimento</p><p className={`font-medium mt-0.5 ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-foreground"}`}>{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p></div>
           </div>
         </div>
       )}
 
-      <div className="border-t border-zinc-700 pt-4">
-        <h4 className="text-sm font-medium text-zinc-300 mb-4">Alterar Plano</h4>
+      <div className="border-t border-border pt-4">
+        <h4 className="text-sm font-semibold text-foreground mb-4">Alterar Plano</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-zinc-400 text-xs">Plano</Label>
+            <Label className="text-muted-foreground text-xs">Plano</Label>
             <select value={planName} onChange={e => { setPlanName(e.target.value); setStartedAt(new Date().toISOString().split("T")[0]); }}
-              className="mt-1 w-full h-10 rounded-md border border-zinc-700 bg-zinc-900 text-zinc-100 px-3 text-sm">
+              className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
               {Object.keys(PLANS).map(p => <option key={p} value={p}>{p} — R$ {PLANS[p].price.toFixed(2)} ({PLANS[p].max_instances} inst.)</option>)}
             </select>
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Valor (R$)</Label>
-            <Input value={`R$ ${planConfig.price.toFixed(2)}`} disabled className="bg-zinc-900/50 border-zinc-700 text-zinc-500 mt-1" />
+            <Label className="text-muted-foreground text-xs">Valor (R$)</Label>
+            <Input value={`R$ ${planConfig.price.toFixed(2)}`} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Máx. Instâncias</Label>
-            <Input value={planConfig.max_instances} disabled className="bg-zinc-900/50 border-zinc-700 text-zinc-500 mt-1" />
+            <Label className="text-muted-foreground text-xs">Máx. Instâncias</Label>
+            <Input value={planConfig.max_instances} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Data de Início</Label>
-            <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
+            <Label className="text-muted-foreground text-xs">Data de Início</Label>
+            <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Data de Vencimento (início + 30 dias)</Label>
-            <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-zinc-900/50 border-zinc-700 text-zinc-500 mt-1" />
+            <Label className="text-muted-foreground text-xs">Data de Vencimento (início + 30 dias)</Label>
+            <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
           </div>
         </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">
-        <Button onClick={handleSave} disabled={isPending} className="bg-purple-600 hover:bg-purple-700 text-white">
+        <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
           {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
           Salvar Plano
         </Button>
         {sub && (
-          <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
+          <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
             <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
           </Button>
         )}
         {sub && !isExpired && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" className="border-red-600/50 text-red-400 hover:text-red-300" disabled={isPending}>
+              <Button variant="outline" className="border-destructive/30 text-destructive hover:text-destructive/80" disabled={isPending}>
                 <PauseCircle size={14} className="mr-2" /> Suspender Assinatura
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
+            <AlertDialogContent className="bg-card border-border">
               <AlertDialogHeader>
                 <AlertDialogTitle>Suspender assinatura?</AlertDialogTitle>
-                <AlertDialogDescription className="text-zinc-400">Isso forçará o vencimento imediato e bloqueará criação de instâncias.</AlertDialogDescription>
+                <AlertDialogDescription className="text-muted-foreground">Isso forçará o vencimento imediato e bloqueará criação de instâncias.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="border-zinc-600 text-zinc-300">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSuspend} className="bg-red-600 hover:bg-red-700">Suspender</AlertDialogAction>
+                <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSuspend} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Suspender</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Wifi, WifiOff, Loader2, Server, AlertTriangle, Ban, ArrowUpCircle, Lock, Unlock } from "lucide-react";
+import { Plus, Trash2, Wifi, WifiOff, Loader2, Server, AlertTriangle, Ban, ArrowUpCircle, Lock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -24,8 +23,11 @@ const PLAN_ORDER = ["Start", "Pro", "Scale", "Elite"];
 
 interface Props { client: AdminUser; detail: any; }
 
-const statusColors: Record<string, string> = {
-  Connected: "bg-green-600", Disconnected: "bg-zinc-600", connecting: "bg-yellow-600", Blocked: "bg-red-600",
+const statusTextColor: Record<string, string> = {
+  Connected: "text-green-500", Disconnected: "text-muted-foreground", connecting: "text-yellow-500", Blocked: "text-destructive",
+};
+const statusLabel: Record<string, string> = {
+  Connected: "Conectada", Disconnected: "Desconectada", connecting: "Conectando", Blocked: "Bloqueada",
 };
 
 const ClientDevicesTab = ({ client, detail }: Props) => {
@@ -94,14 +96,14 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   };
 
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 space-y-5">
+    <div className="bg-card border border-border rounded-lg p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Server size={20} className="text-purple-400" />
-          <h3 className="text-lg font-semibold text-zinc-200">Instâncias</h3>
-          <span className="text-sm text-zinc-400">({devices.length}/{maxInstances})</span>
+          <Server size={18} className="text-primary" />
+          <h3 className="text-base font-bold text-foreground">Instâncias</h3>
+          <span className="text-sm text-muted-foreground">({devices.length}/{maxInstances})</span>
         </div>
-        <Button size="sm" onClick={handleCreateClick} className="bg-purple-600 hover:bg-purple-700 text-white"
+        <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground"
           disabled={isPending || isBlocked || isExpired}>
           {(isBlocked || isExpired) ? <Ban size={14} className="mr-1" /> : atLimit ? <ArrowUpCircle size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
           {atLimit && !isBlocked && !isExpired ? "Upgrade" : "Criar Instância"}
@@ -109,49 +111,48 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
       </div>
 
       {!canCreate && blockReason && (
-        <div className="flex items-center gap-2 bg-red-900/30 border border-red-800/50 rounded-lg px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-md px-4 py-2.5 text-sm text-destructive">
           <AlertTriangle size={16} className="shrink-0" /> {blockReason}
         </div>
       )}
 
-      <div className="border border-zinc-700 rounded-xl overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-zinc-900 text-zinc-400 text-xs uppercase tracking-wider">
-              <th className="text-left px-4 py-3">Nome</th>
-              <th className="text-left px-4 py-3">Tipo</th>
-              <th className="text-left px-4 py-3">Número</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Criada em</th>
-              <th className="text-right px-4 py-3">Ações</th>
+            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
+              <th className="text-left px-4 py-2.5">Nome</th>
+              <th className="text-left px-4 py-2.5">Tipo</th>
+              <th className="text-left px-4 py-2.5">Número</th>
+              <th className="text-left px-4 py-2.5">Status</th>
+              <th className="text-left px-4 py-2.5">Criada em</th>
+              <th className="text-right px-4 py-2.5">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800">
+          <tbody className="divide-y divide-border">
             {devices.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-zinc-500">Nenhuma instância</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma instância</td></tr>
             ) : devices.map((d: any) => (
-              <tr key={d.id} className="hover:bg-zinc-800/50">
-                <td className="px-4 py-3 text-zinc-200 font-medium">{d.name}</td>
-                <td className="px-4 py-3">
-                  <Badge className={`text-[10px] px-2 ${d.login_type === "contingencia" ? "bg-yellow-600/50 text-yellow-200" : "bg-blue-600/50 text-blue-200"}`}>
-                    {d.login_type === "contingencia" ? "Contingência" : "Principal"}
-                  </Badge>
+              <tr key={d.id} className="hover:bg-muted/30">
+                <td className="px-4 py-2.5 text-foreground font-medium">{d.name}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                  {d.login_type === "contingencia" ? "Contingência" : "Principal"}
                 </td>
-                <td className="px-4 py-3 text-zinc-400">{d.number || "—"}</td>
-                <td className="px-4 py-3">
-                  <Badge className={`${statusColors[d.status] || "bg-zinc-600"} text-white text-[10px] px-2`}>
-                    {d.status === "Connected" ? <><Wifi size={10} className="mr-1" />Conectada</> : d.status === "Blocked" ? <><Lock size={10} className="mr-1" />Bloqueada</> : <><WifiOff size={10} className="mr-1" />Desconectada</>}
-                  </Badge>
+                <td className="px-4 py-2.5 text-muted-foreground">{d.number || "—"}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`text-xs font-medium flex items-center gap-1 ${statusTextColor[d.status] || "text-muted-foreground"}`}>
+                    {d.status === "Connected" ? <Wifi size={12} /> : d.status === "Blocked" ? <Lock size={12} /> : <WifiOff size={12} />}
+                    {statusLabel[d.status] || d.status}
+                  </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-400 text-xs">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
-                <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
+                <td className="px-4 py-2.5 text-right">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300 h-8 w-8"><Trash2 size={14} /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive h-8 w-8"><Trash2 size={14} /></Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
-                      <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-zinc-400">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel className="border-zinc-600 text-zinc-300">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-red-600">Remover</AlertDialogAction></AlertDialogFooter>
+                    <AlertDialogContent className="bg-card border-border">
+                      <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
+                      <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </td>
@@ -163,23 +164,23 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
+        <DialogContent className="bg-card border-border">
           <DialogHeader><DialogTitle>Criar Instância</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-zinc-400 text-xs">Nome</Label>
-              <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
+              <Label className="text-muted-foreground text-xs">Nome</Label>
+              <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-muted/30 border-border mt-1" />
             </div>
             <div>
-              <Label className="text-zinc-400 text-xs">Tipo</Label>
-              <select value={newType} onChange={e => setNewType(e.target.value)} className="mt-1 w-full h-10 rounded-md border border-zinc-700 bg-zinc-900 text-zinc-100 px-3 text-sm">
+              <Label className="text-muted-foreground text-xs">Tipo</Label>
+              <select value={newType} onChange={e => setNewType(e.target.value)} className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
                 <option value="principal">Principal</option>
                 <option value="contingencia">Contingência</option>
               </select>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={createDevice} disabled={isPending} className="bg-purple-600 hover:bg-purple-700 text-white">
+            <Button onClick={createDevice} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Criar
             </Button>
           </DialogFooter>
@@ -188,17 +189,17 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
       {/* Upgrade dialog */}
       <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ArrowUpCircle size={20} className="text-purple-400" />Limite Atingido</DialogTitle>
-            <DialogDescription className="text-zinc-400 pt-2">
-              Limite do plano <strong className="text-zinc-200">{currentPlan}</strong> ({maxInstances} inst.).
-              {nextPlan && nextPlanConfig && <span className="block mt-2">Migrar para <strong className="text-purple-400">{nextPlan}</strong> ({nextPlanConfig.max_instances} inst., R$ {nextPlanConfig.price.toFixed(2)}/mês)?</span>}
+            <DialogTitle className="flex items-center gap-2"><ArrowUpCircle size={18} className="text-primary" />Limite Atingido</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Limite do plano <strong className="text-foreground">{currentPlan}</strong> ({maxInstances} inst.).
+              {nextPlan && nextPlanConfig && <span className="block mt-2">Migrar para <strong className="text-primary">{nextPlan}</strong> ({nextPlanConfig.max_instances} inst., R$ {nextPlanConfig.price.toFixed(2)}/mês)?</span>}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowUpgrade(false)} className="border-zinc-600 text-zinc-300">Cancelar</Button>
-            {nextPlan && <Button onClick={upgradePlan} disabled={isPending} className="bg-purple-600 hover:bg-purple-700 text-white"><ArrowUpCircle size={14} className="mr-2" />Migrar para {nextPlan}</Button>}
+            <Button variant="outline" onClick={() => setShowUpgrade(false)} className="border-border text-muted-foreground">Cancelar</Button>
+            {nextPlan && <Button onClick={upgradePlan} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground"><ArrowUpCircle size={14} className="mr-2" />Migrar para {nextPlan}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

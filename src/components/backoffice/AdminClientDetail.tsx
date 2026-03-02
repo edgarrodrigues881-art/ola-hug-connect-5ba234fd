@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, User, CreditCard, Server, ScrollText, AlertTriangle, Loader2, DollarSign, Clock, MessageSquare, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, User, CreditCard, Server, ScrollText, Loader2, DollarSign, MessageSquare, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AdminUser } from "@/hooks/useAdmin";
@@ -11,15 +11,15 @@ import ClientDevicesTab from "./tabs/ClientDevicesTab";
 import ClientMessagesTab from "./tabs/ClientMessagesTab";
 import ClientLogsTab from "./tabs/ClientLogsTab";
 import ClientPaymentsTab from "./tabs/ClientPaymentsTab";
-import { Badge } from "@/components/ui/badge";
 
 interface Props {
   client: AdminUser;
   onBack: () => void;
 }
 
-const statusColors: Record<string, string> = { active: "bg-green-600", suspended: "bg-yellow-600", cancelled: "bg-red-600" };
-const planBadgeColors: Record<string, string> = { Start: "bg-zinc-600", Pro: "bg-blue-600", Scale: "bg-purple-600", Elite: "bg-amber-600" };
+const planColors: Record<string, string> = { Start: "text-zinc-400", Pro: "text-blue-400", Scale: "text-purple-400", Elite: "text-amber-500" };
+const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
+const statusColors: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -35,51 +35,60 @@ const AdminClientDetail = ({ client, onBack }: Props) => {
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-400 hover:text-zinc-100">
-          <ArrowLeft size={18} className="mr-1" /> Voltar
+        <Button variant="outline" size="sm" onClick={onBack} className="border-border text-muted-foreground hover:text-foreground">
+          <ArrowLeft size={16} className="mr-1" /> Voltar
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl font-bold text-zinc-100">{client.full_name || client.email}</h2>
-            <Badge className={`${statusColors[client.status] || "bg-zinc-600"} text-white text-xs`}>
-              {client.status === "active" ? "Ativo" : client.status === "suspended" ? "Suspenso" : "Cancelado"}
-            </Badge>
-            {client.plan_name && <Badge className={`${planBadgeColors[client.plan_name] || "bg-zinc-600"} text-white text-xs`}>{client.plan_name}</Badge>}
-            {client.risk_flag && <Badge className="bg-red-600/80 text-white text-xs"><AlertTriangle size={12} className="mr-1" /> Risco</Badge>}
-            {isExpired && <Badge className="bg-red-700 text-white text-xs">Vencido</Badge>}
-            {isExpiring && <Badge className="bg-yellow-600 text-white text-xs"><Clock size={12} className="mr-1" /> {daysLeft}d</Badge>}
+          <h2 className="text-xl font-bold text-foreground">{client.full_name || client.email}</h2>
+          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
+            <span>{client.email}</span>
+            <span>·</span>
+            <span>Status: <span className={`font-medium ${statusColors[client.status] || ""}`}>{statusLabels[client.status] || client.status}</span></span>
+            {client.plan_name && (
+              <>
+                <span>·</span>
+                <span>Plano: <span className={`font-medium ${planColors[client.plan_name] || ""}`}>{client.plan_name}</span></span>
+              </>
+            )}
+            {daysLeft !== null && (
+              <>
+                <span>·</span>
+                <span>Vence em: <span className={`font-medium ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : ""}`}>
+                  {client.plan_expires_at ? new Date(client.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
+                  {isExpired ? " (vencido)" : ` (${daysLeft}d)`}
+                </span></span>
+              </>
+            )}
+            <span>·</span>
+            <span>Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}</span>
           </div>
-          <p className="text-sm text-zinc-400 mt-1">
-            {client.email} • Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}
-            {daysLeft !== null && !isExpired && <span className="ml-2 text-zinc-500">• {daysLeft} dias restantes</span>}
-          </p>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-purple-400" /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : (
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="bg-zinc-800 border border-zinc-700 flex-wrap">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+          <TabsList className="bg-card border border-border flex-wrap">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <LayoutDashboard size={14} /> Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <User size={14} /> Dados Pessoais
             </TabsTrigger>
-            <TabsTrigger value="plan" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="plan" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <CreditCard size={14} /> Plano & Assinatura
             </TabsTrigger>
-            <TabsTrigger value="devices" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="devices" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <Server size={14} /> Instâncias
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <MessageSquare size={14} /> Mensagens
             </TabsTrigger>
-            <TabsTrigger value="payments" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="payments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <DollarSign size={14} /> Financeiro
             </TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white gap-1.5 text-xs">
+            <TabsTrigger value="logs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <ScrollText size={14} /> Logs
             </TabsTrigger>
           </TabsList>
