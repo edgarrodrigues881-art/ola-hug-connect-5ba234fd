@@ -15,17 +15,15 @@ import {
   CheckCircle2,
   Signal,
   Shield,
-  Flame,
   Ban,
   RotateCcw,
   Layers,
   Gauge,
-  Clock,
   TrendingUp,
   Search,
-  Server,
   Zap,
   HeartPulse,
+  CircleDot,
 } from "lucide-react";
 
 const CustomModule = () => {
@@ -34,6 +32,7 @@ const CustomModule = () => {
     whatsapp: false,
     structure: false,
     intensity: false,
+    noMix: false,
   });
 
   return (
@@ -43,6 +42,13 @@ const CustomModule = () => {
         <p className="text-sm text-muted-foreground">
           Guia completo para preparar, estruturar e aquecer suas contas com segurança.
         </p>
+      </div>
+
+      {/* Indicador de estado */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatusIndicator color="emerald" label="Conta Estável" description="Pronta para escalar com segurança" />
+        <StatusIndicator color="amber" label="Conta Sensível" description="Requer atenção e progressão lenta" />
+        <StatusIndicator color="red" label="Conta Crítica" description="Risco alto — estabilizar antes de agir" />
       </div>
 
       <Accordion type="multiple" defaultValue={["prep"]} className="space-y-4">
@@ -56,57 +62,67 @@ const CustomModule = () => {
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Passo 1 */}
-                <StepCard
-                  step={1}
-                  title="Formatar o celular"
-                  icon={<RotateCcw className="w-4 h-4 text-emerald-500" />}
-                >
-                  <p className="text-sm text-muted-foreground">
-                    A formatação remove dados antigos, cookies, caches e possíveis resíduos de uso
-                    anterior que podem comprometer a reputação da conta.
-                  </p>
+                <StepCard step={1} title="Formatar o celular" icon={<RotateCcw className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">A formatação é obrigatória quando:</p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    <li>O aparelho já foi usado para disparo</li>
+                    <li>Já houve bloqueio anterior</li>
+                    <li>Já teve múltiplos números operando</li>
+                    <li>Já usou app modificado</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground mt-3 mb-1">A formatação remove:</p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    <li>Resíduos de sessão</li>
+                    <li>Tokens antigos</li>
+                    <li>Cache de apps</li>
+                    <li>Configurações conflitantes</li>
+                  </ul>
+                  <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-400">Não formate parcialmente. Faça reset completo de fábrica.</p>
+                  </div>
                 </StepCard>
 
                 {/* Passo 2 */}
-                <StepCard
-                  step={2}
-                  title="Instalar apenas o necessário"
-                  icon={<Shield className="w-4 h-4 text-emerald-500" />}
-                >
-                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
-                    <li>Fazer login na conta Google</li>
-                    <li>Baixar o WhatsApp oficial na Play Store</li>
-                    <li>Após instalação, remover a conta Google</li>
-                    <li>Remover a Play Store se for estratégia operacional</li>
+                <StepCard step={2} title="Instalar apenas o necessário" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Fluxo correto:</p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    <li>Login com conta Google</li>
+                    <li>Baixar apenas o WhatsApp oficial</li>
+                    <li>Confirmar que é versão oficial</li>
+                    <li>Remover conta Google após instalação (se for parte da sua estratégia)</li>
+                    <li>Evitar instalar apps paralelos</li>
                   </ul>
+                  <p className="text-xs text-muted-foreground mt-3 italic">
+                    Quanto mais limpo o ambiente, menor o risco de cruzamento.
+                  </p>
                 </StepCard>
 
                 {/* Passo 3 */}
-                <StepCard
-                  step={3}
-                  title="Tipo de conexão"
-                  icon={<Signal className="w-4 h-4 text-emerald-500" />}
-                >
-                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
-                    <li>Se não houver histórico problemático, pode usar Wi-Fi na instalação</li>
-                    <li>Se já houve uso indevido, utilizar 4G</li>
-                    <li>Após configuração, priorizar uso em 4G</li>
-                  </ul>
+                <StepCard step={3} title="Tipo de conexão" icon={<Signal className="w-4 h-4 text-emerald-500" />}>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p><strong className="text-foreground">Nunca usado para spam:</strong> Pode usar Wi-Fi na instalação.</p>
+                    <p><strong className="text-foreground">Histórico problemático:</strong> Use 4G desde o início.</p>
+                    <p><strong className="text-foreground">Após configurar:</strong> Operar preferencialmente em 4G.</p>
+                    <p className="text-xs italic mt-2">Evite alternar Wi-Fi e 4G com frequência.</p>
+                  </div>
                 </StepCard>
 
                 {/* Passo 4 */}
-                <StepCard
-                  step={4}
-                  title="Organização de aparelhos"
-                  icon={<Layers className="w-4 h-4 text-emerald-500" />}
-                >
-                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
-                    <li>Evitar múltiplos WhatsApps no mesmo celular</li>
-                    <li>Não misturar contas críticas com contas estáveis</li>
-                    <li>Evitar cruzamento de dados</li>
+                <StepCard step={4} title="Organização de aparelhos" icon={<Layers className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Evite:</p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    <li>3 ou 4 WhatsApps no mesmo celular</li>
+                    <li>Misturar conta forte com conta crítica</li>
+                    <li>Operar contingência no mesmo aparelho principal</li>
                   </ul>
+                  <div className="mt-3 rounded-md border border-border/30 bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Regra prática:</strong> Quanto menos números por aparelho, melhor. Misturar conta crítica com conta estável pode causar efeito cascata.
+                    </p>
+                  </div>
                 </StepCard>
               </div>
             </AccordionContent>
@@ -124,23 +140,32 @@ const CustomModule = () => {
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
-                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
-                  <li>Sempre priorizar conexão estável</li>
-                  <li>Usar proxy de qualidade</li>
-                  <li>Evitar proxy de data center de baixa qualidade</li>
-                  <li>Infraestrutura ruim compromete estabilidade da conta</li>
-                </ul>
+                <p className="text-sm text-muted-foreground">
+                  A conta não depende só do comportamento. <strong className="text-foreground">Depende da estrutura.</strong>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <CheckItem label="IP estável?" />
+                  <CheckItem label="Proxy é residencial?" />
+                  <CheckItem label="Proxy não é data center?" />
+                  <CheckItem label="A conexão oscila?" invert />
+                  <CheckItem label="O IP já foi usado para spam?" invert />
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  Infraestrutura fraca compromete qualquer aquecimento.
+                </p>
 
-                {/* Alerta visual */}
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-amber-400">Se houver bloqueio:</p>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      <li>Ativar modo avião por alguns minutos</li>
-                      <li>Desativar e reativar dados móveis</li>
-                    </ul>
-                  </div>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                  <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Se houver bloqueio
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    <li>Ativar modo avião por alguns minutos</li>
+                    <li>Reativar dados móveis (força renovação de conexão)</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Se continuar bloqueado: <strong className="text-foreground">não forçar envio</strong>. Revisar estrutura antes de tentar novamente.
+                  </p>
                 </div>
               </div>
             </AccordionContent>
@@ -158,25 +183,36 @@ const CustomModule = () => {
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
-                {/* Intensidades */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" />
-                  <IntensityCard label="Intermediário" icon={<Gauge className="w-4 h-4" />} color="amber" />
-                  <IntensityCard label="Agressivo" icon={<Zap className="w-4 h-4" />} color="red" />
+                <p className="text-sm text-muted-foreground">A intensidade deve respeitar:</p>
+                <div className="grid grid-cols-3 gap-3 text-sm text-muted-foreground">
+                  <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
+                    <p className="text-foreground font-medium">Idade do número</p>
+                  </div>
+                  <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
+                    <p className="text-foreground font-medium">Histórico do chip</p>
+                  </div>
+                  <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
+                    <p className="text-foreground font-medium">Estado atual</p>
+                  </div>
                 </div>
 
-                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
-                  <li>A intensidade deve respeitar o estado da conta</li>
-                  <li>Não existe aquecimento real em 24 horas</li>
-                  <li>Construção de estabilidade exige progressão gradual</li>
-                  <li>Pressa aumenta risco</li>
-                </ul>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Para contas novas ou sensíveis. Baixa frequência e progressão lenta." />
+                  <IntensityCard label="Intermediário" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para contas estáveis. Volume moderado com crescimento gradual." />
+                  <IntensityCard label="Agressivo" icon={<Zap className="w-4 h-4" />} color="red" description="Apenas para contas maduras e com histórico limpo." />
+                </div>
+
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-muted-foreground">
+                    <strong className="text-amber-400">Não existe aquecimento real em 24 horas.</strong> Aquecimento é processo de maturação. Pressa gera restrição.
+                  </p>
+                </div>
 
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 flex gap-3">
                   <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    A progressão gradual é a chave para estabilidade a longo prazo. Aumente a
-                    intensidade somente quando a conta estiver estável.
+                    A progressão gradual é a chave para estabilidade a longo prazo. Aumente a intensidade somente quando a conta estiver estável.
                   </p>
                 </div>
               </div>
@@ -196,31 +232,48 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
                 {/* Alerta amarelo */}
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <Search className="w-4 h-4" />
-                    Se a conta não aguenta enviar 1 mensagem:
+                    Se a conta não aguenta enviar 1 mensagem
                   </p>
+                  <p className="text-xs text-muted-foreground">Isso indica:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Verificar qualidade da estrutura</li>
-                    <li>Verificar IP e conexão</li>
-                    <li>Verificar ambiente do aparelho</li>
-                    <li>Verificar se está misturando contas problemáticas</li>
+                    <li>Estrutura comprometida</li>
+                    <li>IP suspeito</li>
+                    <li>Mistura com contas ruins</li>
+                    <li>Histórico muito negativo</li>
                   </ul>
+                  <p className="text-xs text-muted-foreground mt-2">Antes de qualquer envio:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                    <MiniCheck label="Verificar IP" />
+                    <MiniCheck label="Verificar proxy" />
+                    <MiniCheck label="Verificar aparelho" />
+                    <MiniCheck label="Verificar mistura" />
+                  </div>
                 </div>
 
                 {/* Alerta vermelho */}
-                <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 space-y-2">
-                  <p className="text-sm font-medium text-red-400 flex items-center gap-2">
+                <div className="rounded-lg border-2 border-red-500/40 bg-red-500/5 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-red-400 flex items-center gap-2">
                     <Ban className="w-4 h-4" />
-                    Se estiver em estado crítico:
+                    Se estiver em estado crítico
                   </p>
+                  <p className="text-xs text-red-300/70">Não tente "forçar". Ajuste:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Reduzir intensidade do soft ao mínimo</li>
-                    <li>Aumentar intervalos entre ações</li>
-                    <li>Evitar qualquer pico de envio</li>
-                    <li>Priorizar estabilização antes de escalar</li>
+                    <li>Intensidade no mínimo</li>
+                    <li>Intervalos maiores</li>
+                    <li>Zero pico</li>
+                    <li>Zero envio manual paralelo</li>
                   </ul>
+                  <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
+                    <p className="text-xs text-red-300 font-medium">
+                      Objetivo nessa fase: <strong>Estabilizar, não escalar.</strong>
+                    </p>
+                    <p className="text-xs text-red-300/60 mt-1">
+                      Forçar número crítico quase sempre resulta em bloqueio definitivo.
+                    </p>
+                  </div>
                 </div>
               </div>
             </AccordionContent>
@@ -233,33 +286,23 @@ const CustomModule = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            Checklist de Verificação
+            Checklist Final
           </h2>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
-              { key: "formatted" as const, label: "Celular formatado" },
-              { key: "whatsapp" as const, label: "WhatsApp oficial instalado" },
+              { key: "formatted" as const, label: "Aparelho formatado corretamente" },
+              { key: "whatsapp" as const, label: "WhatsApp oficial confirmado" },
               { key: "structure" as const, label: "Estrutura validada" },
-              { key: "intensity" as const, label: "Intensidade ajustada corretamente" },
+              { key: "intensity" as const, label: "Intensidade configurada de acordo com estado" },
+              { key: "noMix" as const, label: "Nenhuma conta crítica misturada" },
             ]).map((item) => (
-              <label
-                key={item.key}
-                className="flex items-center gap-3 cursor-pointer group"
-              >
+              <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
                 <Checkbox
                   checked={checklist[item.key]}
-                  onCheckedChange={(v) =>
-                    setChecklist((prev) => ({ ...prev, [item.key]: !!v }))
-                  }
+                  onCheckedChange={(v) => setChecklist((prev) => ({ ...prev, [item.key]: !!v }))}
                   className="border-border data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                 />
-                <span
-                  className={`text-sm transition-colors ${
-                    checklist[item.key]
-                      ? "text-emerald-400 line-through"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  }`}
-                >
+                <span className={`text-sm transition-colors ${checklist[item.key] ? "text-emerald-400 line-through" : "text-muted-foreground group-hover:text-foreground"}`}>
                   {item.label}
                 </span>
               </label>
@@ -273,23 +316,11 @@ const CustomModule = () => {
 
 /* ─── Sub-components ─── */
 
-function StepCard({
-  step,
-  title,
-  icon,
-  children,
-}: {
-  step: number;
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function StepCard({ step, title, icon, children }: { step: number; title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border/30 bg-muted/30 p-4 space-y-2">
+    <div className="rounded-lg border border-border/30 bg-muted/30 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-500 text-xs font-bold">
-          {step}
-        </span>
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-500 text-xs font-bold">{step}</span>
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
@@ -298,24 +329,64 @@ function StepCard({
   );
 }
 
-function IntensityCard({
-  label,
-  icon,
-  color,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  color: "emerald" | "amber" | "red";
-}) {
+function IntensityCard({ label, icon, color, description }: { label: string; icon: React.ReactNode; color: "emerald" | "amber" | "red"; description: string }) {
   const styles = {
     emerald: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400",
     amber: "border-amber-500/30 bg-amber-500/5 text-amber-400",
     red: "border-red-500/30 bg-red-500/5 text-red-400",
   };
   return (
-    <div className={`rounded-lg border p-3 flex items-center gap-2 ${styles[color]}`}>
-      {icon}
-      <span className="text-sm font-medium">{label}</span>
+    <div className={`rounded-lg border p-4 space-y-2 ${styles[color]}`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className="text-sm font-semibold">{label}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function StatusIndicator({ color, label, description }: { color: "emerald" | "amber" | "red"; label: string; description: string }) {
+  const styles = {
+    emerald: "border-emerald-500/30 bg-emerald-500/5",
+    amber: "border-amber-500/30 bg-amber-500/5",
+    red: "border-red-500/30 bg-red-500/5",
+  };
+  const dotStyles = {
+    emerald: "bg-emerald-500",
+    amber: "bg-amber-500",
+    red: "bg-red-500",
+  };
+  const textStyles = {
+    emerald: "text-emerald-400",
+    amber: "text-amber-400",
+    red: "text-red-400",
+  };
+  return (
+    <div className={`rounded-xl border p-4 flex items-center gap-3 ${styles[color]}`}>
+      <span className={`w-3 h-3 rounded-full ${dotStyles[color]} shrink-0`} />
+      <div>
+        <p className={`text-sm font-semibold ${textStyles[color]}`}>{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function CheckItem({ label, invert }: { label: string; invert?: boolean }) {
+  return (
+    <div className={`rounded-md border p-2.5 text-xs flex items-center gap-2 ${invert ? "border-red-500/20 bg-red-500/5 text-red-300" : "border-emerald-500/20 bg-emerald-500/5 text-emerald-300"}`}>
+      <CircleDot className="w-3 h-3 shrink-0" />
+      {label}
+    </div>
+  );
+}
+
+function MiniCheck({ label }: { label: string }) {
+  return (
+    <div className="rounded-md border border-border/30 bg-muted/30 p-2 text-xs text-muted-foreground flex items-center gap-1.5">
+      <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+      {label}
     </div>
   );
 }
