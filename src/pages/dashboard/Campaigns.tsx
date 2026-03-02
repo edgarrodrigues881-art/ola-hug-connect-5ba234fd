@@ -874,12 +874,6 @@ const Campaigns = () => {
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
           <div className="space-y-12">
-            {/* Primary action - top */}
-            <div className="flex justify-end">
-              <Button onClick={() => setStep(2)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow duration-100">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
             {/* Editor + Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
               {/* Editor column */}
@@ -1879,7 +1873,7 @@ const Campaigns = () => {
             </div>
           </div>
         </SurfaceCard>
-        <div className="flex justify-end mt-3">
+        <div className="flex items-center justify-between mt-3">
           <Button 
             variant="outline" 
             size="sm" 
@@ -1888,6 +1882,11 @@ const Campaigns = () => {
           >
             <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
           </Button>
+          {step < 4 ? (
+            <Button onClick={() => setStep(step + 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+              CONTINUAR <ChevronRight className="w-4 h-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
 
