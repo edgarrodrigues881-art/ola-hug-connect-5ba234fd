@@ -210,9 +210,9 @@ const ClientPaymentsTab = ({ client }: Props) => {
             }}
             className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm"
           >
-            <option value="">Selecione um plano</option>
+            <option value="" className="bg-card text-foreground">Selecione um plano</option>
             {SYSTEM_PLANS.map(p => (
-              <option key={p.name} value={String(p.price)}>
+              <option key={p.name} value={String(p.price)} className="bg-card text-foreground">
                 {p.name} — R$ {fmtBRL(p.price)}
               </option>
             ))}
