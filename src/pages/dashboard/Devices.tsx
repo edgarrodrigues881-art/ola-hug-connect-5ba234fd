@@ -332,6 +332,9 @@ const Devices = () => {
     label: `#${index + 1} - ${p.host}:${p.port}`,
     host: p.host,
     port: p.port,
+    username: p.username,
+    password: p.password,
+    type: p.type,
     status: p.status || "NOVA",
   }));
 
@@ -944,9 +947,20 @@ const Devices = () => {
       let qrFound = false;
       console.log("QR: initial connect call");
       try {
+        // Build proxy config if selected
+        const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+        const proxyPayload = selectedProxyData ? {
+          host: selectedProxyData.host,
+          port: selectedProxyData.port,
+          username: selectedProxyData.username,
+          password: selectedProxyData.password,
+          type: selectedProxyData.type,
+        } : undefined;
+
         const connectResult = await callApi({
           action: "connect",
           deviceId: connectingDevice.id,
+          proxyConfig: proxyPayload,
         });
 
         if (connectResult.alreadyConnected) {
