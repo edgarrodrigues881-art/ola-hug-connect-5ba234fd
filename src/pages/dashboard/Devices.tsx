@@ -26,7 +26,9 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
 
+type PlanState = "noPlan" | "active" | "expired" | "suspended";
 
 interface Device {
   id: string;
@@ -80,6 +82,11 @@ const Devices = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // Plan gate states
+  const [planGateOpen, setPlanGateOpen] = useState(false);
+  const [limitGateOpen, setLimitGateOpen] = useState(false);
 
   // View mode
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -196,6 +203,53 @@ const Devices = () => {
   });
 
   const warmupDeviceIds = useMemo(() => new Set(warmupSessions.map(s => s.device_id)), [warmupSessions]);
+
+  // Fetch user subscription for plan gating
+  const { data: subscription } = useQuery({
+    queryKey: ["my_subscription"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", session!.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["my_profile"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("status, instance_override")
+        .eq("id", session!.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const planState: PlanState = useMemo(() => {
+    if (profile?.status === "suspended" || profile?.status === "cancelled") return "suspended";
+    if (!subscription) return "noPlan";
+    if (new Date(subscription.expires_at) < new Date()) return "expired";
+    return "active";
+  }, [subscription, profile]);
+
+  const maxInstancesAllowed = useMemo(() => {
+    if (planState !== "active") return 0;
+    return (subscription?.max_instances ?? 0) + (profile?.instance_override ?? 0);
+  }, [planState, subscription, profile]);
+
+  const canCreateInstance = planState === "active" && devices.length < maxInstancesAllowed;
+
+  const planBadgeText = planState === "noPlan" ? "Sem plano" : planState === "expired" ? "Plano vencido" : planState === "suspended" ? "Conta suspensa" : null;
 
   // Fetch recent warmup logs for health scoring (last 7 days)
   const { data: recentLogs = [] } = useQuery({
@@ -379,6 +433,8 @@ const Devices = () => {
   });
 
   const handleCreate = () => {
+    if (planState !== "active") { setPlanGateOpen(true); return; }
+    if (devices.length >= maxInstancesAllowed) { setLimitGateOpen(true); return; }
     if (!instanceName.trim()) {
       toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
@@ -931,28 +987,51 @@ const Devices = () => {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-lg font-bold text-foreground">Instâncias</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-foreground">Instâncias</h1>
+          <span className="text-xs text-muted-foreground">({devices.length}/{maxInstancesAllowed})</span>
+          {planBadgeText && (
+            <Badge variant="destructive" className="text-[10px] h-5">{planBadgeText}</Badge>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {selectedDevices.length > 0 && (
             <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
               <Trash2 className="w-3 h-3" /> {selectedDevices.length}
             </Button>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-1 text-xs h-7">
-                <Plus className="w-3 h-3" /> Criar <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-                <Plus className="w-3.5 h-3.5 mr-2" /> Criar uma
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); setBulkNoProxyCount(0); }}>
-                <Layers className="w-3.5 h-3.5 mr-2" /> Criar em massa
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" className="gap-1 text-xs h-7" disabled={planState !== "active"}>
+                        <Plus className="w-3 h-3" /> Criar <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => {
+                        if (!canCreateInstance) { if (planState !== "active") setPlanGateOpen(true); else setLimitGateOpen(true); return; }
+                        setCreateOpen(true);
+                      }}>
+                        <Plus className="w-3.5 h-3.5 mr-2" /> Criar uma
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        if (!canCreateInstance) { if (planState !== "active") setPlanGateOpen(true); else setLimitGateOpen(true); return; }
+                        setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); setBulkNoProxyCount(0);
+                      }}>
+                        <Layers className="w-3.5 h-3.5 mr-2" /> Criar em massa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </TooltipTrigger>
+              {planState !== "active" && (
+                <TooltipContent><p>Ative um plano para liberar instâncias</p></TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <Button
             size="sm"
             variant="outline"
@@ -1941,6 +2020,38 @@ const Devices = () => {
               {wpSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Salvar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan Gate Modal */}
+      <Dialog open={planGateOpen} onOpenChange={setPlanGateOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Ban size={18} className="text-destructive" /> Ative um plano para liberar instâncias</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Sua conta está {planState === "noPlan" ? "sem plano ativo" : planState === "expired" ? "com plano vencido" : "suspensa/cancelada"}. Para criar instâncias, ative um plano.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPlanGateOpen(false)} className="border-border">Cancelar</Button>
+            <Button onClick={() => { setPlanGateOpen(false); navigate("/dashboard/my-plan"); }} className="bg-primary hover:bg-primary/90 text-primary-foreground">Ver planos / Ativar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Limit Gate Modal */}
+      <Dialog open={limitGateOpen} onOpenChange={setLimitGateOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Limite atingido</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Você atingiu o limite de <strong className="text-foreground">{maxInstancesAllowed}</strong> instâncias do seu plano <strong className="text-foreground">{subscription?.plan_name}</strong>. Faça upgrade para liberar mais.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLimitGateOpen(false)} className="border-border">Cancelar</Button>
+            <Button onClick={() => { setLimitGateOpen(false); navigate("/dashboard/my-plan"); }} className="bg-primary hover:bg-primary/90 text-primary-foreground">Fazer upgrade</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

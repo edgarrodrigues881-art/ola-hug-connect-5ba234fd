@@ -33,10 +33,12 @@ const statusLabel: Record<string, string> = {
 const ClientDevicesTab = ({ client, detail }: Props) => {
   const devices = detail?.devices || [];
   const subscription = detail?.subscription;
-  const maxInstances = subscription?.max_instances ?? client.max_instances ?? 10;
-  const currentPlan = subscription?.plan_name || client.plan_name || "Start";
+  const maxInstances = subscription?.max_instances ?? 0;
+  const currentPlan = subscription?.plan_name || "Sem plano";
+  const hasActivePlan = !!subscription && currentPlan !== "Sem plano";
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showNoPlan, setShowNoPlan] = useState(false);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("principal");
   const { mutate, isPending } = useAdminAction();
@@ -45,7 +47,8 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const atLimit = devices.length >= maxInstances;
   const isExpired = subscription?.expires_at ? new Date(subscription.expires_at).getTime() < Date.now() : false;
   const isBlocked = client.status === "suspended" || client.status === "cancelled";
-  const canCreate = !atLimit && !isExpired && !isBlocked;
+  const noPlan = !hasActivePlan || isExpired;
+  const canCreate = !atLimit && !noPlan && !isBlocked;
 
   const currentPlanIndex = PLAN_ORDER.indexOf(currentPlan);
   const nextPlan = currentPlanIndex >= 0 && currentPlanIndex < PLAN_ORDER.length - 1 ? PLAN_ORDER[currentPlanIndex + 1] : null;
@@ -53,12 +56,13 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
   let blockReason = "";
   if (isBlocked) blockReason = `Cliente ${client.status === "suspended" ? "suspenso" : "cancelado"} — bloqueado`;
-  else if (isExpired) blockReason = "Assinatura vencida — criação bloqueada";
+  else if (noPlan) blockReason = !hasActivePlan ? "Sem plano ativo — criação bloqueada" : "Assinatura vencida — criação bloqueada";
   else if (atLimit) blockReason = `Limite do plano atingido (${devices.length}/${maxInstances})`;
 
   const handleCreateClick = () => {
-    if (atLimit && !isExpired && !isBlocked && nextPlan) setShowUpgrade(true);
-    else if (canCreate) setShowCreate(true);
+    if (noPlan || isBlocked) { setShowNoPlan(true); return; }
+    if (atLimit && nextPlan) { setShowUpgrade(true); return; }
+    if (canCreate) setShowCreate(true);
   };
 
   const createDevice = () => {
@@ -104,9 +108,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
           <span className="text-sm text-muted-foreground">({devices.length}/{maxInstances})</span>
         </div>
         <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          disabled={isPending || isBlocked || isExpired}>
-          {(isBlocked || isExpired) ? <Ban size={14} className="mr-1" /> : atLimit ? <ArrowUpCircle size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
-          {atLimit && !isBlocked && !isExpired ? "Upgrade" : "Criar Instância"}
+          disabled={isPending || isBlocked}>
+          {(isBlocked || noPlan) ? <Ban size={14} className="mr-1" /> : atLimit ? <ArrowUpCircle size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
+          {noPlan ? "Sem plano" : atLimit && !isBlocked ? "Upgrade" : "Criar Instância"}
         </Button>
       </div>
 
@@ -200,6 +204,25 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowUpgrade(false)} className="border-border text-muted-foreground">Cancelar</Button>
             {nextPlan && <Button onClick={upgradePlan} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground"><ArrowUpCircle size={14} className="mr-2" />Migrar para {nextPlan}</Button>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* No Plan dialog */}
+      <Dialog open={showNoPlan} onOpenChange={setShowNoPlan}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Ban size={18} className="text-destructive" /> Ative um plano para liberar instâncias</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              {isBlocked
+                ? "Esta conta está suspensa/cancelada. Reative antes de criar instâncias."
+                : !hasActivePlan
+                  ? "Esta conta está sem plano ativo. Atribua um plano na aba Plano para liberar instâncias."
+                  : "A assinatura está vencida. Registre um pagamento para reativar."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNoPlan(false)} className="border-border">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
