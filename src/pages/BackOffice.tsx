@@ -179,7 +179,7 @@ const BackOffice = () => {
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <h1 className="text-lg font-bold text-purple-400">⚙️ Back-Office SaaS</h1>
+        <h1 className="text-lg font-bold text-foreground tracking-tight">DG Control Center</h1>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-zinc-400 hover:text-zinc-100">
           <LogOut size={16} className="mr-1" /> Sair
         </Button>
