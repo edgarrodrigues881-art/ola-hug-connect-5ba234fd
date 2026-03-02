@@ -52,7 +52,12 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
     try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch { errorMsg = text; }
     throw new Error(errorMsg);
   }
-  return JSON.parse(text);
+  // Also check for error in successful response body
+  const parsed = JSON.parse(text);
+  if (parsed?.error && typeof parsed.error === "string") {
+    throw new Error(parsed.error);
+  }
+  return parsed;
 }
 
 async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
@@ -543,7 +548,8 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
-    console.error("Process campaign error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const translated = translateErrorMessage(err.message || "Erro interno");
+    console.error("Process campaign error:", translated);
+    return new Response(JSON.stringify({ error: translated }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
