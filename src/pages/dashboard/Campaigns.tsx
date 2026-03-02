@@ -1071,7 +1071,7 @@ const Campaigns = () => {
             </div>
 
             {/* Template + Mídia Row - below editor */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-5">
               <SurfaceCard className="p-5 space-y-3">
                 <SectionLabel>Modelo Base</SectionLabel>
                 <Select value={selectedTemplate} onValueChange={(val) => {
