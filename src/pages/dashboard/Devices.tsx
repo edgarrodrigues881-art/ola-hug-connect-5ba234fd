@@ -1074,21 +1074,6 @@ const Devices = () => {
             className="h-7 text-xs pl-8 bg-muted/20 border-border/20"
           />
         </div>
-        <div className="flex items-center gap-0.5">
-          {filterTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveFilter(tab.key)}
-              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
-                activeFilter === tab.key
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              }`}
-            >
-              {tab.label} {tab.count > 0 && <span className="ml-0.5 opacity-60">{tab.count}</span>}
-            </button>
-          ))}
-        </div>
         <div className="flex items-center gap-0.5 ml-auto">
           <button
             onClick={() => setViewMode("grid")}
@@ -1281,36 +1266,8 @@ const Devices = () => {
                     </div>
                   </div>
 
-                  {/* Linha 3: Quick Actions + Ações */}
-                  <div className="border-t border-border/10 px-2 py-1 flex items-center gap-0.5">
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(d)}>
-                          <Pencil className="w-2.5 h-2.5" />
-                        </Button>
-                      </TooltipTrigger><TooltipContent className="text-[10px]">Editar</TooltipContent></Tooltip>
-                      <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openQuickToken(d)}>
-                          <Key className="w-2.5 h-2.5" />
-                        </Button>
-                      </TooltipTrigger><TooltipContent className="text-[10px]">Token</TooltipContent></Tooltip>
-                      <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "testApi")}>
-                          {loadingAction === "testApi" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <TestTube className="w-2.5 h-2.5" />}
-                        </Button>
-                      </TooltipTrigger><TooltipContent className="text-[10px]">Testar API</TooltipContent></Tooltip>
-                      <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "testProxy")}>
-                          {loadingAction === "testProxy" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Plug className="w-2.5 h-2.5" />}
-                        </Button>
-                      </TooltipTrigger><TooltipContent className="text-[10px]">Testar Proxy</TooltipContent></Tooltip>
-                      <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "restart")}>
-                          {loadingAction === "restart" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RotateCcw className="w-2.5 h-2.5" />}
-                        </Button>
-                      </TooltipTrigger><TooltipContent className="text-[10px]">Reiniciar</TooltipContent></Tooltip>
-                    </TooltipProvider>
-                    <div className="flex-1" />
+                  {/* Linha 3: Connect + Delete */}
+                  <div className="border-t border-border/10 px-2 py-1 flex items-center justify-end gap-0.5">
                     {connectionButton}
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
                       if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
