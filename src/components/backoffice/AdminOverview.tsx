@@ -182,19 +182,19 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   ];
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-3">
 
       {/* ═══ HEADER ═══ */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-black text-foreground tracking-[-0.03em] leading-none uppercase">
+          <h1 className="text-2xl font-black text-foreground tracking-[-0.03em] leading-none uppercase">
             DG CONTROL CENTER
           </h1>
-          <p className="text-[11px] text-muted-foreground/30 mt-2 capitalize tracking-wide font-medium">
+          <p className="text-[10px] text-muted-foreground/30 mt-1 capitalize tracking-wide font-medium">
             {format(now, "MMMM yyyy", { locale: ptBR })}
           </p>
         </div>
-        <span className="text-[7px] uppercase tracking-[0.35em] font-bold text-emerald-400/40 mb-1">
+        <span className="text-[7px] uppercase tracking-[0.35em] font-bold text-emerald-400/40 mb-0.5">
           ● PROD
         </span>
       </div>
@@ -216,76 +216,48 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* ═══ PERIOD FILTER ═══ */}
       <div>
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-2">
           <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold whitespace-nowrap">Financeiro</p>
           <div className="h-px flex-1 bg-border/20" />
         </div>
         <PeriodFilter {...periodFilter} />
       </div>
 
-      {/* ═══ HERO: RECEITA LÍQUIDA ═══ */}
-      <div
-        className="relative rounded-lg p-8 overflow-hidden"
-        style={{
-          background: isPositive
-            ? 'linear-gradient(135deg, hsl(142 40% 4%), hsl(142 30% 6%))'
-            : 'linear-gradient(135deg, hsl(0 40% 4%), hsl(0 30% 6%))',
-          boxShadow: isPositive
-            ? '0 0 80px -20px rgba(34,197,94,0.08), inset 0 1px 0 rgba(34,197,94,0.06)'
-            : '0 0 80px -20px rgba(239,68,68,0.08), inset 0 1px 0 rgba(239,68,68,0.06)',
-        }}
-      >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: isPositive
-              ? 'radial-gradient(ellipse 60% 50% at 20% 50%, rgba(34,197,94,0.04), transparent)'
-              : 'radial-gradient(ellipse 60% 50% at 20% 50%, rgba(239,68,68,0.04), transparent)',
-          }}
-        />
-        <div className="relative">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] text-muted-foreground/35 uppercase tracking-[0.25em] font-bold">Receita Líquida</p>
-            <span className={`text-[10px] font-bold tracking-wide ${isPositive ? "text-emerald-500/40" : "text-red-500/40"}`}>
-              {!hasMovements ? "SEM MOVIMENTOS" : isPositive ? "▲ POSITIVO" : "▼ NEGATIVO"}
-            </span>
-          </div>
-          <p className={`text-5xl font-black leading-none tracking-tight ${isPositive ? "text-green-400" : "text-red-400"}`}>
-            {fmt(netRevenue)}
-          </p>
-          <p className="text-[10px] text-muted-foreground/20 mt-3 font-medium">
-            Recebida − Taxas & Custos · {range.label}
+      {/* ═══ KPIs — 5 colunas iguais ═══ */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        {/* Receita Líquida — leve destaque */}
+        <div className={`bg-card border rounded-md px-3 py-3 ${isPositive ? "border-emerald-500/25" : "border-red-500/25"}`}>
+          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Receita Líquida</p>
+          <p className={`text-xl font-black mt-1 leading-none ${isPositive ? "text-green-400" : "text-red-400"}`}>{fmt(netRevenue)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5">
+            {!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
           </p>
         </div>
-      </div>
-
-      {/* ═══ FINANCEIRO GRID ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
           <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Recebida</p>
-          <p className="text-2xl font-black text-green-400 mt-1.5 leading-none">{fmt(revenueReceived)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-2">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
+          <p className="text-xl font-black text-green-400 mt-1 leading-none">{fmt(revenueReceived)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
           <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Contratada</p>
-          <p className="text-2xl font-black text-blue-400 mt-1.5 leading-none">{fmt(revenueBrute)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-2">{activePlans} planos</p>
+          <p className="text-xl font-black text-blue-400 mt-1 leading-none">{fmt(revenueBrute)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5">{activePlans} planos</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
           <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Descontos</p>
-          <p className="text-2xl font-black text-orange-400 mt-1.5 leading-none">{fmt(discounts)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-2">Concedidos</p>
+          <p className="text-xl font-black text-orange-400 mt-1 leading-none">{fmt(discounts)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5">Concedidos</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
           <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Taxas & Custos</p>
-          <p className="text-2xl font-black text-red-400 mt-1.5 leading-none">{fmt(totalCosts)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-2">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
+          <p className="text-xl font-black text-red-400 mt-1 leading-none">{fmt(totalCosts)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
         </div>
       </div>
 
-      {/* ═══ REVENUE CHART ═══ */}
-      <div className="bg-card/50 border border-border/30 rounded-md p-4">
-        <div className="flex items-center justify-between mb-4">
+      {/* ═══ GRÁFICO — full width ═══ */}
+      <div className="bg-card/50 border border-border/30 rounded-md px-3 py-3">
+        <div className="flex items-center justify-between mb-3">
           <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold">Faturamento no período</p>
           <div className="flex gap-1">
             {METRIC_OPTIONS.map(m => (
@@ -303,51 +275,27 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
             ))}
           </div>
         </div>
-        <div className="h-40">
+        <div className="h-36">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 15%)" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`}
-                width={35}
-              />
+              <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 9, fill: 'hsl(220 10% 30%)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} width={35} />
               <Tooltip
-                contentStyle={{
-                  background: 'hsl(220 15% 8%)',
-                  border: '1px solid hsl(220 10% 15%)',
-                  borderRadius: 6,
-                  fontSize: 10,
-                  color: 'hsl(220 10% 70%)',
-                }}
+                contentStyle={{ background: 'hsl(220 15% 8%)', border: '1px solid hsl(220 10% 15%)', borderRadius: 6, fontSize: 10, color: 'hsl(220 10% 70%)' }}
                 formatter={(value: number) => [fmt(value), METRIC_OPTIONS.find(m => m.id === chartMetric)?.label]}
                 labelStyle={{ color: 'hsl(220 10% 50%)', fontSize: 9 }}
               />
-              <Bar
-                dataKey={chartMetric}
-                fill={METRIC_OPTIONS.find(m => m.id === chartMetric)?.color}
-                radius={[2, 2, 0, 0]}
-                maxBarSize={20}
-              />
+              <Bar dataKey={chartMetric} fill={METRIC_OPTIONS.find(m => m.id === chartMetric)?.color} radius={[2, 2, 0, 0]} maxBarSize={18} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* ═══ OPERAÇÃO ═══ */}
-      <div className="bg-card/50 border border-border/30 rounded-md px-5 py-4">
-        <div className="flex items-center justify-between mb-3">
+      {/* ═══ OPERAÇÃO — card horizontal único ═══ */}
+      <div className="bg-card/50 border border-border/30 rounded-md px-4 py-3">
+        <div className="flex items-center justify-between mb-2.5">
           <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold">Operação</p>
-          {/* Edit max instances */}
           {editingMax ? (
             <div className="flex items-center gap-1.5">
               <span className="text-[9px] text-muted-foreground/40 font-medium">Capacidade:</span>
@@ -369,26 +317,26 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2.5">
+        <div className="grid grid-cols-4 gap-x-6 gap-y-1">
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Liberadas</p>
-            <p className="text-base font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {maxInstances}</span></p>
+            <p className="text-sm font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {maxInstances}</span></p>
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Em Uso</p>
-            <p className="text-base font-black text-foreground/70 mt-0.5">{totalInUse} <span className="text-[9px] font-medium text-muted-foreground/20">{stats.active_devices} on</span></p>
+            <p className="text-sm font-black text-foreground/70 mt-0.5">{totalInUse} <span className="text-[9px] font-medium text-muted-foreground/20">{stats.active_devices} on</span></p>
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Ocupação</p>
-            <p className={`text-base font-black mt-0.5 ${serverOccupancy >= 80 ? "text-red-400/80" : "text-foreground/70"}`}>{serverOccupancy}%</p>
+            <p className={`text-sm font-black mt-0.5 ${serverOccupancy >= 80 ? "text-red-400/80" : "text-foreground/70"}`}>{serverOccupancy}%</p>
           </div>
           <div>
             <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Bloqueados</p>
-            <p className="text-base font-black text-foreground/70 mt-0.5">{blocked.length}</p>
+            <p className="text-sm font-black text-foreground/70 mt-0.5">{blocked.length}</p>
           </div>
         </div>
-        <div className="mt-4">
-          <div className="relative h-2 bg-background/80 rounded-full overflow-hidden">
+        <div className="mt-2.5">
+          <div className="relative h-1.5 bg-background/80 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
                 serverOccupancy >= 90 ? "bg-red-500" : serverOccupancy >= 70 ? "bg-yellow-500" : "bg-emerald-500/80"
@@ -396,7 +344,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
               style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
             />
           </div>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5 font-medium">{totalInUse} / {maxInstances} instâncias</p>
+          <p className="text-[8px] text-muted-foreground/20 mt-1 font-medium">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
     </div>
