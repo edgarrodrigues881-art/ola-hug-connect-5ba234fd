@@ -1629,10 +1629,13 @@ const Devices = () => {
                           }
                         } catch {}
                       } else {
-                        toast({ title: "Ainda não conectado", description: `Status: ${state || "desconhecido"}`, variant: "destructive" });
+                        toast({ 
+                          title: "⏳ QR Code ainda não foi escaneado", 
+                          description: "Abra o WhatsApp no celular, vá em Aparelhos conectados e escaneie o QR Code acima.",
+                        });
                       }
                     } catch (err: any) {
-                      toast({ title: "Erro ao verificar", description: err?.message, variant: "destructive" });
+                      toast({ title: "Erro ao verificar conexão", description: "Tente escanear o QR Code novamente e clique em sincronizar." });
                     }
                   }}
                 >
