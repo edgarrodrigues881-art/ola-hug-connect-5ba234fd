@@ -1329,13 +1329,6 @@ const Campaigns = () => {
         {/* ===== STEP 3: Configuration ===== */}
         {step === 3 && (
           <div className="space-y-8">
-            {/* Navigation - top */}
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-              <Button onClick={() => setStep(4)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
             {/* Instance Selection */}
             <SurfaceCard className="p-6 space-y-4">
               <div className="flex items-center justify-between">
