@@ -845,9 +845,7 @@ const Devices = () => {
 
   const handleConnect = (method: "qr" | "code") => {
     setConnectMethod(method);
-    const currentIdx = availableProxies.findIndex(p => p.id === selectedProxy);
-    const nextIdx = (currentIdx + 1) % availableProxies.length;
-    setSelectedProxy(availableProxies[nextIdx]?.id || availableProxies[0]?.id || "");
+    setSelectedProxy("none");
     setConnectStep("proxy");
   };
 
@@ -1473,37 +1471,32 @@ const Devices = () => {
 
             {connectStep === "proxy" && (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground font-medium">Proxy</Label>
-                  <Select value={selectedProxy} onValueChange={setSelectedProxy}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Selecionar proxy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableProxies.map(p => {
-                        const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20" : p.status === "USADA" ? "text-red-400 border-red-500/20" : "text-emerald-500 border-emerald-500/20";
-                        return (
-                          <SelectItem key={p.id} value={p.id}>
-                            <div className="flex items-center gap-2">
-                              <Shield className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-xs">{p.label}</span>
-                              <Badge variant="outline" className={`text-[9px] px-1 py-0 ${cls}`}>{p.status}</Badge>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                      <SelectItem value="none">
-                        <span className="text-xs text-muted-foreground">Sem proxy</span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Deseja usar um proxy?</p>
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-muted/20 text-muted-foreground/60 border-border/20">Opcional</Badge>
                 </div>
-                {(!selectedProxy || selectedProxy === "none") && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <p className="text-[10px] text-amber-500/80">Conectar sem proxy aumenta o risco de bloqueio</p>
-                  </div>
-                )}
+                <Select value={selectedProxy} onValueChange={setSelectedProxy}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Sem proxy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-xs text-muted-foreground">Sem proxy</span>
+                    </SelectItem>
+                    {availableProxies.map(p => {
+                      const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20" : p.status === "USADA" ? "text-red-400 border-red-500/20" : "text-emerald-500 border-emerald-500/20";
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs">{p.label}</span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 ${cls}`}>{p.status}</Badge>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
                 <div className="flex items-center gap-2 pt-1">
                   <Button variant="outline" size="sm" className="flex-1 text-xs h-9" onClick={() => setConnectStep("choose")}>Voltar</Button>
                   <Button size="sm" className="flex-1 text-xs h-9" onClick={handleConfirmProxy}>Conectar</Button>
@@ -1515,8 +1508,12 @@ const Devices = () => {
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   {qrCodeBase64 ? (
-                    <div className="p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
+                    <div className="relative p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
                       <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
+                      {/* Lock overlay */}
+                      <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <Lock className="w-4 h-4 text-primary-foreground" />
+                      </div>
                     </div>
                   ) : connectError ? (
                     <div className="w-52 h-52 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-4">
@@ -1524,9 +1521,26 @@ const Devices = () => {
                       <p className="text-[11px] text-destructive text-center leading-relaxed">{connectError}</p>
                     </div>
                   ) : (
-                    <div className="w-52 h-52 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-primary/20 bg-primary/[0.02]">
-                      <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
-                      <p className="text-[11px] text-muted-foreground">Gerando QR Code...</p>
+                    <div className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02] relative overflow-hidden">
+                      {/* Animated border */}
+                      <div className="absolute inset-0 rounded-2xl border-2 border-transparent" style={{
+                        background: "linear-gradient(90deg, hsl(var(--primary)) 0%, transparent 50%, hsl(var(--primary)) 100%) border-box",
+                        WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        animation: "spin 3s linear infinite",
+                        opacity: 0.3,
+                      }} />
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                        <QrCode className="w-6 h-6 text-primary animate-pulse" />
+                      </div>
+                      <p className="text-xs font-medium text-foreground">Preparando QR Code</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">Isso pode levar alguns segundos...</p>
+                      <div className="flex items-center gap-1 mt-3">
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
                     </div>
                   )}
                 </div>
