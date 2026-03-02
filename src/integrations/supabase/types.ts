@@ -497,6 +497,7 @@ export type Database = {
           document: string | null
           full_name: string | null
           id: string
+          instance_override: number
           phone: string | null
           risk_flag: boolean
           status: string
@@ -511,6 +512,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           id: string
+          instance_override?: number
           phone?: string | null
           risk_flag?: boolean
           status?: string
@@ -525,6 +527,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           id?: string
+          instance_override?: number
           phone?: string | null
           risk_flag?: boolean
           status?: string

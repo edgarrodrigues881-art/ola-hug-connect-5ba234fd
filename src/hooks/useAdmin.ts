@@ -21,6 +21,7 @@ export interface AdminUser {
   plan_name: string | null;
   plan_price: number;
   max_instances: number;
+  instance_override: number;
   plan_expires_at: string | null;
   plan_started_at: string | null;
 }

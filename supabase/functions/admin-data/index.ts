@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
           plan_name: sub?.plan_name || null,
           plan_price: sub?.plan_price || 0,
           max_instances: sub?.max_instances || 0,
+          instance_override: profile?.instance_override || 0,
           plan_expires_at: sub?.expires_at || null,
           plan_started_at: sub?.started_at || null,
         };
@@ -142,14 +143,28 @@ Deno.serve(async (req) => {
 
     // ─── UPDATE CLIENT PROFILE ───
     if (action === "update-client" && req.method === "POST") {
-      const { target_user_id, full_name, phone, document, company, status, risk_flag, admin_notes } = await req.json();
+      const { target_user_id, full_name, phone, document, company, status, risk_flag, admin_notes, instance_override } = await req.json();
       
+      // Check if override changed for logging
+      const { data: oldProfile } = await adminClient.from("profiles").select("instance_override").eq("id", target_user_id).maybeSingle();
+      const oldOverride = oldProfile?.instance_override ?? 0;
+      const newOverride = instance_override ?? 0;
+
       await adminClient.from("profiles").update({
         full_name, phone, document, company, status, risk_flag, admin_notes,
+        instance_override: newOverride,
         updated_at: new Date().toISOString(),
       }).eq("id", target_user_id);
 
       await logAction(adminClient, user.id, target_user_id, "update-client", `Dados atualizados`);
+
+      if (oldOverride !== newOverride) {
+        await logAction(adminClient, user.id, target_user_id, "instance-override",
+          newOverride > 0
+            ? `Override de instâncias: ${oldOverride} → ${newOverride} (+${newOverride} extras)`
+            : `Override de instâncias removido (era +${oldOverride})`
+        );
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
