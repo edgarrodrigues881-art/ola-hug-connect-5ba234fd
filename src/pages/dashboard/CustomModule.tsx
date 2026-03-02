@@ -293,10 +293,6 @@ function StepCard({
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
-      {/* Placeholder para imagem */}
-      <div className="w-full h-28 rounded-md bg-muted/50 border border-dashed border-border/40 flex items-center justify-center text-xs text-muted-foreground">
-        Espaço para imagem ilustrativa
-      </div>
       {children}
     </div>
   );
