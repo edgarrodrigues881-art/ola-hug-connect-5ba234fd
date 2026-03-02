@@ -1172,14 +1172,14 @@ const Campaigns = () => {
                 {contacts.length > 0 && (
                   <>
                     <div className="h-5 w-px bg-border/15 mx-1" />
-                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={removeDuplicates} title="Remover duplicados">
-                      <Copy className="w-3.5 h-3.5" />
+                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={removeDuplicates}>
+                      <Copy className="w-3 h-3" /> Duplicados
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={removeInvalid} title="Limpar inválidos">
-                      <XCircle className="w-3.5 h-3.5" />
+                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={removeInvalid}>
+                      <XCircle className="w-3 h-3" /> Inválidos
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={() => addPrefixToNumbers("55")} title="Adicionar DDI (55)">
-                      <Phone className="w-3.5 h-3.5" />
+                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={() => addPrefixToNumbers("55")}>
+                      <Phone className="w-3 h-3" /> DDI (55)
                     </Button>
                   </>
                 )}
