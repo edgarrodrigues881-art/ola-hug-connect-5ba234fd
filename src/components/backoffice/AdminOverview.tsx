@@ -92,9 +92,9 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
     }, 0),
   [costs]);
 
-  // ── Receita Líquida ──
+  // ── Receita Líquida = Recebida − Taxas & Custos (desconto já está embutido no valor recebido) ──
   const totalCosts = monthCosts + paymentFees;
-  const netRevenue = revenueReceived - totalCosts - discounts;
+  const netRevenue = revenueReceived - totalCosts;
 
   // ── Operational ──
   const revenueAtRisk = useMemo(() =>
@@ -190,7 +190,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
           <StatCard icon={Wallet} label="Receita Líquida (No Bolso)"
             value={fmt(netRevenue)}
             sub={netRevenue >= 0 ? "Positivo" : "Negativo"}
-            hint="Recebida − Descontos − Taxas & Custos"
+            hint="Recebida − Taxas & Custos"
             color={netRevenue >= 0 ? "bg-green-600/15 text-green-500" : "bg-destructive/15 text-destructive"} />
         </div>
       </div>
