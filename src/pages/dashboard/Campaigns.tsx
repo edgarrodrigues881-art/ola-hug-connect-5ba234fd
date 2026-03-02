@@ -443,7 +443,9 @@ const Campaigns = () => {
             action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
           });
           startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
-            onSuccess: (result) => { toast({ title: "Envio concluído!", description: `Enviados: ${result?.sent || 0} | Falhas: ${result?.failed || 0}`, action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction> }); },
+            onSuccess: () => {
+              navigate(`/dashboard/campaign/${newCampaign.id}`);
+            },
             onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
           });
         }
