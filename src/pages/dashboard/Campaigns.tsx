@@ -767,7 +767,7 @@ const Campaigns = () => {
     const isSent = previewMode === "sent";
 
     return (
-      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40">
+      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40 h-full flex flex-col">
         {/* ── WhatsApp Header ── */}
         <div className="bg-[#202C33] px-4 py-3 flex items-center gap-3 border-b border-[#313D45]">
           <div className="w-9 h-9 rounded-full bg-[#6B7B8D]/30 flex items-center justify-center">
@@ -802,7 +802,7 @@ const Campaigns = () => {
 
         {/* ── Chat Area ── */}
         <div
-          className="p-4 min-h-[340px] flex flex-col justify-end"
+          className="p-4 flex-1 min-h-[340px] flex flex-col justify-end"
           style={{
             backgroundColor: "#0B141A",
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M50 50v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm30-30v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/svg%3E")`,
@@ -984,9 +984,8 @@ const Campaigns = () => {
               </div>
 
               {/* Preview column */}
-              <div className="lg:col-span-2 space-y-4">
-                
-                <div className="sticky top-4">
+              <div className="lg:col-span-2">
+                <div className="h-full">
                   <WhatsAppPreview />
                 </div>
               </div>
