@@ -7,29 +7,39 @@ const corsHeaders = {
 
 async function verifyAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) throw new Error("Não autorizado");
+  if (!authHeader?.startsWith("Bearer ")) throw new Error("Não autorizado");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-  const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: { user }, error } = await userClient.auth.getUser();
-  if (error || !user) throw new Error("Não autorizado");
+  // Use getClaims for reliable token verification
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+  
+  if (claimsError || !claimsData?.claims) {
+    console.error("[admin-data] getClaims failed:", claimsError?.message);
+    throw new Error("Não autorizado");
+  }
+
+  const userId = claimsData.claims.sub;
+  if (!userId) throw new Error("Não autorizado");
 
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
   const { data: roleData } = await adminClient
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
 
   if (!roleData) throw new Error("Acesso negado: não é admin");
 
-  return { user, adminClient };
+  return { user: { id: userId, email: claimsData.claims.email }, adminClient };
 }
 
 async function logAction(adminClient: any, adminId: string, targetUserId: string | null, action: string, details: string) {
@@ -490,6 +500,16 @@ Deno.serve(async (req) => {
       const { cost_id } = await req.json();
       await adminClient.from("admin_costs").delete().eq("id", cost_id);
       await logAction(adminClient, user.id, null, "delete-cost", `Custo removido: ${cost_id}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── REMOVE SUBSCRIPTION (sem plano) ───
+    if (action === "remove-subscription" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      await adminClient.from("subscriptions").delete().eq("user_id", target_user_id);
+      await logAction(adminClient, user.id, target_user_id, "remove-subscription", "Plano removido — cliente sem plano");
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

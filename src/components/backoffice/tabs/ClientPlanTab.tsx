@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const PLANS: Record<string, { price: number; max_instances: number }> = {
+  "Sem plano": { price: 0, max_instances: 0 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50 },
@@ -44,7 +45,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   );
 
   const planConfig = PLANS[planName] || PLANS.Start;
-  const expiresAt = useMemo(() => addDays(startedAt, 30), [startedAt]);
+  const isNoPlan = planName === "Sem plano";
+  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, 30), [startedAt, isNoPlan]);
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
@@ -54,6 +56,18 @@ const ClientPlanTab = ({ client, detail }: Props) => {
 
   // Save plan (also creates initial cycle)
   const handleSave = () => {
+    if (isNoPlan) {
+      // Remove subscription
+      mutate({
+        action: "remove-subscription",
+        body: { target_user_id: client.id },
+      }, {
+        onSuccess: () => toast({ title: "Plano removido — cliente sem plano" }),
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      });
+      return;
+    }
+
     const cycleStart = new Date(startedAt).toISOString();
     const cycleEnd = new Date(expiresAt).toISOString();
 
@@ -69,7 +83,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
       },
     }, {
       onSuccess: () => {
-        // Also create a cycle record
         mutate({
           action: "create-cycle",
           body: {
@@ -206,7 +219,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         <div className="flex gap-3 flex-wrap">
           <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            Salvar Plano + Criar Ciclo
+            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo"}
           </Button>
           {sub && (
             <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
