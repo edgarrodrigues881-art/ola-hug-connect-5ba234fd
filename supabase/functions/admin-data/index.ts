@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
       const { data: campaigns } = await adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20);
       const { data: logs } = await adminClient.from("admin_logs").select("*").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
       const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
+      const { data: cycles } = await adminClient.from("subscription_cycles").select("*").eq("user_id", target_user_id).order("cycle_start", { ascending: false });
 
       return new Response(JSON.stringify({
         user: authUser?.user || null,
@@ -131,6 +132,7 @@ Deno.serve(async (req) => {
         campaigns: campaigns || [],
         admin_logs: logs || [],
         payments: payments || [],
+        cycles: cycles || [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -342,6 +344,90 @@ Deno.serve(async (req) => {
       const { target_user_id } = await req.json();
       const { data: messages } = await adminClient.from("client_messages").select("*").eq("user_id", target_user_id).order("sent_at", { ascending: false });
       return new Response(JSON.stringify({ messages: messages || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── CREATE CYCLE (renew subscription) ───
+    if (action === "create-cycle" && req.method === "POST") {
+      const { target_user_id, plan_name, cycle_amount, cycle_start, cycle_end } = await req.json();
+
+      // Get or create subscription
+      const { data: existing } = await adminClient.from("subscriptions").select("id").eq("user_id", target_user_id).maybeSingle();
+      
+      let subId = existing?.id;
+      if (!subId) {
+        const { data: newSub } = await adminClient.from("subscriptions").insert({
+          user_id: target_user_id, plan_name, plan_price: cycle_amount, max_instances: 10,
+          started_at: cycle_start, expires_at: cycle_end,
+        }).select("id").single();
+        subId = newSub?.id;
+      } else {
+        // Update subscription expiry to the new cycle end
+        await adminClient.from("subscriptions").update({
+          expires_at: cycle_end, started_at: cycle_start, plan_name,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", target_user_id);
+      }
+
+      // Insert cycle
+      await adminClient.from("subscription_cycles").insert({
+        user_id: target_user_id,
+        subscription_id: subId,
+        plan_name,
+        cycle_start,
+        cycle_end,
+        cycle_amount,
+        status: "pending",
+      });
+
+      await logAction(adminClient, user.id, target_user_id, "create-cycle", `Novo ciclo: ${plan_name}, R$ ${cycle_amount}, ${cycle_start} → ${cycle_end}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── REVERT LAST CYCLE ───
+    if (action === "revert-cycle" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+
+      // Get most recent cycle
+      const { data: cycles } = await adminClient.from("subscription_cycles")
+        .select("*").eq("user_id", target_user_id)
+        .order("cycle_start", { ascending: false }).limit(2);
+
+      if (!cycles || cycles.length === 0) {
+        return new Response(JSON.stringify({ error: "Nenhum ciclo para reverter" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const latest = cycles[0];
+      await adminClient.from("subscription_cycles").delete().eq("id", latest.id);
+
+      // If there's a previous cycle, restore subscription to it
+      if (cycles.length > 1) {
+        const prev = cycles[1];
+        await adminClient.from("subscriptions").update({
+          expires_at: prev.cycle_end, started_at: prev.cycle_start, plan_name: prev.plan_name,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", target_user_id);
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "revert-cycle", `Ciclo revertido: ${latest.plan_name}, ${latest.cycle_start} → ${latest.cycle_end}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── UPDATE CYCLE STATUS ───
+    if (action === "update-cycle-status" && req.method === "POST") {
+      const { cycle_id, status, target_user_id } = await req.json();
+      await adminClient.from("subscription_cycles").update({ status }).eq("id", cycle_id);
+      await logAction(adminClient, user.id, target_user_id, "update-cycle-status", `Ciclo ${cycle_id} → ${status}`);
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
