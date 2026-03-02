@@ -28,6 +28,8 @@ export interface AdminUser {
 export interface AdminDashboard {
   users: AdminUser[];
   devices: any[];
+  cycles: any[];
+  payments: any[];
   stats: {
     total_users: number;
     total_devices: number;
