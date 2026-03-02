@@ -1702,16 +1702,29 @@ const Campaigns = () => {
         </div>
       </div>
 
-      {/* Import Progress Bar */}
+      {/* Import Progress Overlay */}
       {importProgress !== null && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-80">
-          <SurfaceCard className="p-4 space-y-2 shadow-2xl">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-foreground font-medium">Importando...</span>
-              <span className="text-muted-foreground tabular-nums">{importProgress}%</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="flex flex-col items-center gap-6 animate-scale-in">
+            {/* Spinner */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full border-4 border-border/15" />
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin" style={{ animationDuration: "1s" }} />
+              <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-primary/40 animate-spin" style={{ animationDuration: "1.5s", animationDirection: "reverse" }} />
             </div>
-            <Progress value={importProgress} className="h-1.5" />
-          </SurfaceCard>
+            <div className="text-center space-y-2">
+              <p className="text-base font-bold text-foreground">Importando contatos...</p>
+              <p className="text-sm text-muted-foreground/60 tabular-nums">{importProgress}%</p>
+            </div>
+            <div className="w-64">
+              <div className="h-1.5 rounded-full bg-muted/20 overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-primary transition-all duration-200 ease-out"
+                  style={{ width: `${importProgress}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
