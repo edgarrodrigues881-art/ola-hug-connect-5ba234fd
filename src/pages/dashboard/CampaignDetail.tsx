@@ -40,6 +40,14 @@ const contactStatusConfig: Record<string, { label: string; icon: typeof CheckCir
   error: { label: "Erro", icon: AlertTriangle, className: "text-destructive" },
 };
 
+// Frontend translation for old/raw error messages
+function translateError(msg: string | null): string | null {
+  if (!msg) return null;
+  if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists")) return "Número inválido";
+  if (/disconnected|not connected|qr code|logout|unauthorized|not authenticated/i.test(msg)) return "WhatsApp desconectado";
+  return msg;
+}
+
 const CampaignDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -192,6 +200,28 @@ const CampaignDetail = () => {
     failed: contacts.filter(c => c.status === "failed" || c.status === "error").length,
     pending: contacts.filter(c => c.status === "pending").length,
   }), [contacts]);
+
+  // Auto-detect stuck campaigns: running with disconnect failures but still pending
+  useEffect(() => {
+    if (!campaign || !id || !user) return;
+    if (!["running", "processing"].includes(campaign.status)) return;
+    if (stats.pending === 0) return;
+
+    const hasDisconnectFailure = contacts.some(c => 
+      c.status === "failed" && c.error_message && /disconnected|desconectado/i.test(c.error_message)
+    );
+
+    if (hasDisconnectFailure && stats.pending > 0) {
+      console.log("Stuck campaign detected: disconnect + pending contacts. Auto-canceling...");
+      supabase.functions.invoke("process-campaign", {
+        body: { action: "cancel", campaignId: id },
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["campaign", id] });
+        queryClient.invalidateQueries({ queryKey: ["campaign-contacts", id] });
+        toast({ title: "Campanha finalizada", description: "Dispositivo desconectado. Contatos pendentes marcados como falha." });
+      });
+    }
+  }, [campaign?.status, stats.pending, contacts, id, user, queryClient, toast]);
 
   const progress = campaign ? Math.round(((campaign.sent_count || 0) + (campaign.failed_count || 0)) / Math.max(campaign.total_contacts || 1, 1) * 100) : 0;
 
@@ -558,10 +588,10 @@ const CampaignDetail = () => {
                           {c.error_message ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="text-destructive truncate block cursor-help">{c.error_message}</span>
+                                <span className="text-destructive truncate block cursor-help">{translateError(c.error_message)}</span>
                               </TooltipTrigger>
                               <TooltipContent side="left" className="max-w-sm">
-                                <p className="text-xs">{c.error_message}</p>
+                                <p className="text-xs">{translateError(c.error_message)}</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : "—"}
