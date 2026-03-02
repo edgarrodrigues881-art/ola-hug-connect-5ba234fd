@@ -163,8 +163,27 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const totalFees = payments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
   const ticketMedio = payments.length > 0 ? totalPaid / payments.length : 0;
 
+  const planPrice = client.plan_price || 0;
+  const planLabel = client.plan_name ? `${client.plan_name} — R$ ${fmtBRL(planPrice)}` : "Sem plano";
+
+  const fillPlanPrice = () => {
+    if (planPrice > 0) setForm(f => ({ ...f, amount: fmtBRL(planPrice) }));
+  };
+
   const PaymentFormFields = () => (
     <div className="space-y-3">
+      {/* Valor do Plano (referência) */}
+      <div className="flex items-center gap-3 bg-muted/50 border border-border rounded-lg px-4 py-2.5">
+        <span className="text-xs text-muted-foreground">Valor do Plano:</span>
+        <span className="text-sm font-semibold text-foreground">{planLabel}</span>
+        {planPrice > 0 && (
+          <Button type="button" variant="ghost" size="sm" onClick={fillPlanPrice}
+            className="ml-auto text-xs text-primary hover:text-primary/80 h-7 px-2">
+            Usar valor do plano
+          </Button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
