@@ -67,7 +67,7 @@ const menuGroups = [
   {
     label: "",
     items: [
-      { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
+      { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
       { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
     ],
   },
