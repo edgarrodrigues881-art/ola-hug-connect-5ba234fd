@@ -98,167 +98,148 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
   const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
-  return (
-    <div className="space-y-5 max-w-5xl">
+  const isPositive = netRevenue >= 0;
 
-      {/* ════════════════ HEADER ════════════════ */}
-      <header className="flex items-end justify-between pb-4 border-b border-border/40">
+  return (
+    <div className="max-w-5xl space-y-6">
+
+      {/* ═══ HEADER ═══ */}
+      <div className="flex items-end justify-between">
         <div>
-          <p className="text-[10px] text-muted-foreground/30 uppercase tracking-[0.3em] font-medium mb-1">Painel Administrativo</p>
-          <h1 className="text-2xl font-black text-foreground tracking-[-0.02em] leading-none uppercase">
+          <h1 className="text-3xl font-black text-foreground tracking-[-0.03em] leading-none uppercase">
             DG CONTROL CENTER
           </h1>
-          <p className="text-xs text-muted-foreground/40 mt-1.5 capitalize">{monthLabel} {now.getFullYear()}</p>
+          <p className="text-[11px] text-muted-foreground/30 mt-2 capitalize tracking-wide font-medium">{monthLabel} {now.getFullYear()}</p>
         </div>
-        <span className="text-[8px] uppercase tracking-[0.3em] font-bold text-emerald-500/50 border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 rounded-sm mb-1">
-          Produção
+        <span className="text-[7px] uppercase tracking-[0.35em] font-bold text-emerald-400/40 mb-1">
+          ● PROD
         </span>
-      </header>
+      </div>
 
-      {/* ════════════════ ALERTS (inline, compact) ════════════════ */}
+      {/* ═══ ALERTS ═══ */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
         <div className="flex flex-wrap gap-2">
           {expired.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-destructive/5 border border-destructive/15 rounded-sm px-2 py-1">
-              <XCircle size={10} className="text-destructive/70" />
-              <span className="text-[9px] text-destructive/80 font-medium">{expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}</span>
-            </div>
+            <span className="text-[9px] text-destructive/70 font-semibold">⬤ {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}</span>
           )}
           {expiringSoon.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-yellow-500/5 border border-yellow-500/15 rounded-sm px-2 py-1">
-              <Clock size={10} className="text-yellow-500/60" />
-              <span className="text-[9px] text-yellow-500/70 font-medium">{expiringSoon.length} vencendo · {fmt(revenueAtRisk)}</span>
-            </div>
+            <span className="text-[9px] text-yellow-500/60 font-semibold">⬤ {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}</span>
           )}
           {serverOccupancy >= 80 && (
-            <div className="flex items-center gap-1.5 bg-orange-500/5 border border-orange-500/15 rounded-sm px-2 py-1">
-              <Gauge size={10} className="text-orange-500/60" />
-              <span className="text-[9px] text-orange-500/70 font-medium">Servidor {serverOccupancy}%</span>
-            </div>
+            <span className="text-[9px] text-orange-500/60 font-semibold">⬤ Servidor {serverOccupancy}%</span>
           )}
         </div>
       )}
 
-      {/* ════════════════ FINANCEIRO ════════════════ */}
-      <section>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40 font-bold whitespace-nowrap">Financeiro</h2>
-          <div className="h-px flex-1 bg-border/30" />
+      {/* ═══ HERO: RECEITA LÍQUIDA ═══ */}
+      <div
+        className="relative rounded-lg p-8 overflow-hidden"
+        style={{
+          background: isPositive
+            ? 'linear-gradient(135deg, hsl(142 40% 4%), hsl(142 30% 6%))'
+            : 'linear-gradient(135deg, hsl(0 40% 4%), hsl(0 30% 6%))',
+          boxShadow: isPositive
+            ? '0 0 80px -20px rgba(34,197,94,0.08), inset 0 1px 0 rgba(34,197,94,0.06)'
+            : '0 0 80px -20px rgba(239,68,68,0.08), inset 0 1px 0 rgba(239,68,68,0.06)',
+        }}
+      >
+        {/* Glow effect */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: isPositive
+              ? 'radial-gradient(ellipse 60% 50% at 20% 50%, rgba(34,197,94,0.04), transparent)'
+              : 'radial-gradient(ellipse 60% 50% at 20% 50%, rgba(239,68,68,0.04), transparent)',
+          }}
+        />
+
+        <div className="relative">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[11px] text-muted-foreground/35 uppercase tracking-[0.25em] font-bold">Receita Líquida</p>
+            <span className={`text-[10px] font-bold tracking-wide ${isPositive ? "text-emerald-500/40" : "text-red-500/40"}`}>
+              {isPositive ? "▲ POSITIVO" : "▼ NEGATIVO"}
+            </span>
+          </div>
+          <p className={`text-5xl font-black leading-none tracking-tight ${isPositive ? "text-green-400" : "text-red-400"}`}>
+            {fmt(netRevenue)}
+          </p>
+          <p className="text-[10px] text-muted-foreground/20 mt-3 font-medium">
+            Recebida − Taxas & Custos · {monthLabel}
+          </p>
+        </div>
+      </div>
+
+      {/* ═══ FINANCEIRO GRID ═══ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Receita Recebida */}
+        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Recebida</p>
+          <p className="text-2xl font-black text-green-400 mt-1.5 leading-none">{fmt(revenueReceived)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-2">{monthPaymentsCount} pgto{monthPaymentsCount !== 1 ? "s" : ""}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-
-          {/* ── COLUNA ESQUERDA: Hero + secundários (3/5) ── */}
-          <div className="lg:col-span-3 flex flex-col gap-3">
-
-            {/* HERO: Receita Líquida */}
-            <div className={`rounded-md p-5 bg-card border-[1.5px] transition-all duration-300 ${
-              netRevenue >= 0
-                ? "border-green-500/20 hover:border-green-500/35"
-                : "border-red-500/20 hover:border-red-500/35"
-            }`}
-              style={{ boxShadow: netRevenue >= 0 ? '0 0 40px -12px rgba(34,197,94,0.06)' : '0 0 40px -12px rgba(239,68,68,0.06)' }}
-            >
-              <div className="flex items-baseline justify-between">
-                <p className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-semibold">Receita Líquida</p>
-                <span className={`text-[9px] font-medium ${netRevenue >= 0 ? "text-green-500/50" : "text-red-500/50"}`}>
-                  {netRevenue >= 0 ? "▲ Positivo" : "▼ Negativo"}
-                </span>
-              </div>
-              <p className={`text-4xl font-black mt-2 leading-none tracking-tight ${netRevenue >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {fmt(netRevenue)}
-              </p>
-              <p className="text-[9px] text-muted-foreground/30 mt-2.5">Recebida − Taxas & Custos operacionais</p>
-            </div>
-
-            {/* Receita Recebida + Receita Bruta */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-card border border-border/60 rounded-md p-3.5 hover:bg-accent/5 transition-all duration-200">
-                <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Receita Recebida</p>
-                <p className="text-xl font-black text-green-400 mt-1 leading-none">{fmt(revenueReceived)}</p>
-                <p className="text-[9px] text-muted-foreground/30 mt-1.5">{monthPaymentsCount} pgto{monthPaymentsCount !== 1 ? "s" : ""} · Caixa efetivo</p>
-              </div>
-              <div className="bg-card border border-border/60 rounded-md p-3.5 hover:bg-accent/5 transition-all duration-200">
-                <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Receita Bruta</p>
-                <p className="text-xl font-black text-blue-400 mt-1 leading-none">{fmt(revenueBrute)}</p>
-                <p className="text-[9px] text-muted-foreground/30 mt-1.5">{activePlans} planos ativos · Contratada</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── COLUNA DIREITA: Descontos + Custos (2/5) ── */}
-          <div className="lg:col-span-2 flex flex-col gap-3">
-            <div className="bg-card border border-border/60 rounded-md p-3.5 flex-1 hover:bg-accent/5 transition-all duration-200">
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Descontos</p>
-              <p className="text-xl font-black text-orange-400 mt-1 leading-none">{fmt(discounts)}</p>
-              <p className="text-[9px] text-muted-foreground/30 mt-1.5">Concedidos no mês</p>
-            </div>
-            <div className="bg-card border border-border/60 rounded-md p-3.5 flex-1 hover:bg-accent/5 transition-all duration-200">
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Taxas & Custos</p>
-              <p className="text-xl font-black text-red-400 mt-1 leading-none">{fmt(totalCosts)}</p>
-              <div className="flex gap-3 mt-1.5">
-                <p className="text-[9px] text-muted-foreground/30">Op {fmt(monthCosts)}</p>
-                <p className="text-[9px] text-muted-foreground/30">Tx {fmt(paymentFees)}</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ════════════════ OPERAÇÃO ════════════════ */}
-      <section>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40 font-bold whitespace-nowrap">Operação</h2>
-          <div className="h-px flex-1 bg-border/30" />
+        {/* Receita Bruta */}
+        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Contratada</p>
+          <p className="text-2xl font-black text-blue-400 mt-1.5 leading-none">{fmt(revenueBrute)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-2">{activePlans} planos</p>
         </div>
 
-        {/* Metrics row */}
-        <div className="bg-card border border-border/60 rounded-md p-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
-            <div>
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Liberadas</p>
-              <p className="text-lg font-black text-foreground mt-0.5 leading-none">{totalAllocated}</p>
-              <p className="text-[9px] text-muted-foreground/25 mt-1">de {SERVER_MAX_INSTANCES}</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Em Uso</p>
-              <p className="text-lg font-black text-foreground mt-0.5 leading-none">{totalInUse}</p>
-              <p className="text-[9px] text-muted-foreground/25 mt-1">{stats.active_devices} conectadas</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Ocupação</p>
-              <p className={`text-lg font-black mt-0.5 leading-none ${serverOccupancy >= 80 ? "text-red-400" : "text-green-400"}`}>{serverOccupancy}%</p>
-              <p className="text-[9px] text-muted-foreground/25 mt-1">{totalInUse}/{SERVER_MAX_INSTANCES}</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.15em] font-medium">Bloqueados</p>
-              <p className="text-lg font-black text-foreground mt-0.5 leading-none">{blocked.length}</p>
-              <p className="text-[9px] text-muted-foreground/25 mt-1">Suspensos + cancelados</p>
-            </div>
-          </div>
+        {/* Descontos */}
+        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Descontos</p>
+          <p className="text-2xl font-black text-orange-400 mt-1.5 leading-none">{fmt(discounts)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-2">Concedidos</p>
+        </div>
 
-          {/* Capacity bar */}
-          <div className="mt-4 pt-3 border-t border-border/30">
-            <div className="relative h-7 bg-background rounded overflow-hidden">
-              <div
-                className={`h-full rounded transition-all duration-500 flex items-center justify-center ${
-                  serverOccupancy >= 90
-                    ? "bg-gradient-to-r from-red-600 to-red-500"
-                    : serverOccupancy >= 70
-                    ? "bg-gradient-to-r from-yellow-600 to-yellow-500"
-                    : "bg-gradient-to-r from-emerald-600 to-emerald-500"
-                }`}
-                style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 8)}%` }}
-              >
-                <span className="text-[11px] font-black text-white drop-shadow-sm whitespace-nowrap tracking-wide">
-                  {totalInUse} / {SERVER_MAX_INSTANCES}
-                </span>
-              </div>
-            </div>
+        {/* Custos */}
+        <div className="bg-card border border-border/40 rounded-md px-4 py-3.5 hover:border-border/70 transition-colors">
+          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Taxas & Custos</p>
+          <p className="text-2xl font-black text-red-400 mt-1.5 leading-none">{fmt(totalCosts)}</p>
+          <p className="text-[9px] text-muted-foreground/20 mt-2">Op {fmt(monthCosts)} · Tx {fmt(paymentFees)}</p>
+        </div>
+      </div>
+
+      {/* ═══ OPERAÇÃO (secondary, muted) ═══ */}
+      <div className="bg-card/50 border border-border/30 rounded-md px-5 py-4">
+        <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold mb-3">Operação</p>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2.5">
+          <div>
+            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Liberadas</p>
+            <p className="text-base font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {SERVER_MAX_INSTANCES}</span></p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Em Uso</p>
+            <p className="text-base font-black text-foreground/70 mt-0.5">{totalInUse} <span className="text-[9px] font-medium text-muted-foreground/20">{stats.active_devices} on</span></p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Ocupação</p>
+            <p className={`text-base font-black mt-0.5 ${serverOccupancy >= 80 ? "text-red-400/80" : "text-foreground/70"}`}>{serverOccupancy}%</p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Bloqueados</p>
+            <p className="text-base font-black text-foreground/70 mt-0.5">{blocked.length}</p>
           </div>
         </div>
-      </section>
+
+        {/* Capacity */}
+        <div className="mt-4">
+          <div className="relative h-2 bg-background/80 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                serverOccupancy >= 90
+                  ? "bg-red-500"
+                  : serverOccupancy >= 70
+                  ? "bg-yellow-500"
+                  : "bg-emerald-500/80"
+              }`}
+              style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
+            />
+          </div>
+          <p className="text-[9px] text-muted-foreground/20 mt-1.5 font-medium">{totalInUse} / {SERVER_MAX_INSTANCES} instâncias</p>
+        </div>
+      </div>
     </div>
   );
 };
