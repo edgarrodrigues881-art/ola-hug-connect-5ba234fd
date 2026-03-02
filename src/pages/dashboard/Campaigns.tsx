@@ -185,6 +185,9 @@ const Campaigns = () => {
   // Delay profile mutations (after delay state is declared)
   const saveDelayProfile = useMutation({
     mutationFn: async (name: string) => {
+      if (delayProfiles.length >= 3) {
+        throw new Error("Limite de 3 perfis atingido. Exclua um antes de salvar outro.");
+      }
       const { error } = await supabase.from("delay_profiles").insert({
         user_id: session!.user.id,
         name,
@@ -202,6 +205,9 @@ const Campaigns = () => {
       toast({ title: "Perfil salvo!" });
       setSaveProfileName("");
       setShowSaveProfile(false);
+    },
+    onError: (err: any) => {
+      toast({ title: err.message || "Erro ao salvar perfil", variant: "destructive" });
     },
   });
 
@@ -352,17 +358,22 @@ const Campaigns = () => {
   const estimatedTime = useMemo(() => {
     const count = validContacts.length;
     if (count === 0) return null;
-    // Real calculation: backend applies only a random delay between each message (no pauses)
     const avgDelay = (minDelay + maxDelay) / 2;
-    const totalSeconds = count * avgDelay;
+    const avgPauseEvery = (pauseEveryMin + pauseEveryMax) / 2;
+    const avgPauseDur = (pauseDurationMin + pauseDurationMax) / 2;
+    const numPauses = avgPauseEvery > 0 ? Math.floor(count / avgPauseEvery) : 0;
+    const deviceCount = Math.max(selectedDevices.length, 1);
+    const contactsPerDevice = Math.ceil(count / deviceCount);
+    const totalSeconds = (contactsPerDevice * avgDelay) + (numPauses * avgPauseDur / deviceCount);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
-    if (days > 0) return `${days} dias ${remainingHours}h ${minutes}min`;
+    if (days > 0) return `${days}d ${remainingHours}h ${minutes}min`;
     if (hours > 0) return `${hours}h ${minutes}min`;
-    return `${minutes}min`;
-  }, [validContacts.length, minDelay, maxDelay]);
+    if (minutes > 0) return `${minutes}min`;
+    return `< 1min`;
+  }, [validContacts.length, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, selectedDevices.length]);
 
   // Detected variables
   const detectedVars = useMemo(() => {
@@ -1416,9 +1427,13 @@ const Campaigns = () => {
                 <SectionLabel className="flex items-center gap-1.5">
                   <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
                 </SectionLabel>
-                <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
-                  <Plus className="w-3 h-3" /> Salvar atual
-                </Button>
+                {delayProfiles.length < 3 ? (
+                  <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
+                    <Plus className="w-3 h-3" /> Salvar atual
+                  </Button>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground/40">3/3 perfis</span>
+                )}
               </div>
 
               {showSaveProfile && (
