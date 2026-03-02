@@ -7,7 +7,7 @@ import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, Plus, Trash2, Loader2 } from "lucide-react";
+import { DollarSign, Plus, Trash2, Loader2, Pencil } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -35,12 +35,48 @@ const ClientPaymentsTab = ({ client }: Props) => {
   });
 
   const [showAdd, setShowAdd] = useState(false);
+  const [editPayment, setEditPayment] = useState<any>(null);
   const [form, setForm] = useState({
     amount: "",
     method: "PIX",
     notes: "",
     paid_at: new Date().toISOString().split("T")[0],
   });
+
+  const openEdit = (p: any) => {
+    setForm({
+      amount: String(p.amount),
+      method: p.method,
+      notes: p.notes || "",
+      paid_at: p.paid_at?.split("T")[0] || new Date().toISOString().split("T")[0],
+    });
+    setEditPayment(p);
+  };
+
+  const saveEdit = () => {
+    if (!form.amount || Number(form.amount) <= 0) return;
+    adminAction(
+      {
+        action: "update-payment",
+        body: {
+          payment_id: editPayment.id,
+          target_user_id: client.id,
+          amount: Number(form.amount),
+          method: form.method,
+          notes: form.notes,
+          paid_at: new Date(form.paid_at).toISOString(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Pagamento atualizado" });
+          setEditPayment(null);
+          queryClient.invalidateQueries({ queryKey: ["admin-payments", client.id] });
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
 
   const addPayment = () => {
     if (!form.amount || Number(form.amount) <= 0) return;
@@ -136,9 +172,14 @@ const ClientPaymentsTab = ({ client }: Props) => {
                 <td className="px-4 py-3 text-zinc-400">{p.method}</td>
                 <td className="px-4 py-3 text-zinc-500 text-xs max-w-[200px] truncate">{p.notes || "—"}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="icon" onClick={() => deletePayment(p.id)} className="text-red-400 hover:text-red-300 h-8 w-8">
-                    <Trash2 size={14} />
-                  </Button>
+                  <div className="flex gap-1 justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(p)} className="text-zinc-400 hover:text-zinc-200 h-8 w-8">
+                      <Pencil size={14} />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deletePayment(p.id)} className="text-red-400 hover:text-red-300 h-8 w-8">
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -200,6 +241,47 @@ const ClientPaymentsTab = ({ client }: Props) => {
             <Button onClick={addPayment} disabled={actionPending} className="bg-green-600 hover:bg-green-700 text-white">
               {actionPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit payment dialog */}
+      <Dialog open={!!editPayment} onOpenChange={(open) => { if (!open) setEditPayment(null); }}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
+          <DialogHeader><DialogTitle>Editar Pagamento</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-zinc-400 text-xs">Valor (R$)</Label>
+              <Input type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
+                className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs">Método</Label>
+              <select value={form.method} onChange={e => setForm({ ...form, method: e.target.value })}
+                className="mt-1 w-full h-10 rounded-md border border-zinc-700 bg-zinc-900 text-zinc-100 px-3 text-sm">
+                <option value="PIX">PIX</option>
+                <option value="Cartão">Cartão</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs">Data</Label>
+              <Input type="date" value={form.paid_at} onChange={e => setForm({ ...form, paid_at: e.target.value })}
+                className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" />
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs">Observação</Label>
+              <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+                className="bg-zinc-900 border-zinc-700 text-zinc-100 mt-1" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={saveEdit} disabled={actionPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              {actionPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
