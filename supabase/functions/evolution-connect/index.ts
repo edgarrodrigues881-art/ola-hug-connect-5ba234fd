@@ -47,6 +47,13 @@ Deno.serve(async (req) => {
     // Helper to build URL
     const apiUrl = (base: string, endpoint: string) => `${base}${endpoint}`;
 
+    // ACTION: getBaseUrl - Return the admin base URL
+    if (action === "getBaseUrl") {
+      return new Response(JSON.stringify({ success: true, baseUrl: ADMIN_BASE_URL }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ACTION: createInstance - Create a new instance on UaZapi using admin token
     if (action === "createInstance") {
       if (!ADMIN_BASE_URL || !ADMIN_TOKEN) {
