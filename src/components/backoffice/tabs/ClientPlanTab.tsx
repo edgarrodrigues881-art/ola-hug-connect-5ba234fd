@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -23,10 +23,21 @@ function addDays(dateStr: string, days: number) {
   return d.toISOString().split("T")[0];
 }
 
+function toLocalDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
 interface Props { client: AdminUser; detail: any; }
+
+const cycleStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  paid: { label: "Pago", color: "text-green-500", icon: CheckCircle2 },
+  partial: { label: "Parcial", color: "text-yellow-500", icon: MinusCircle },
+  pending: { label: "Pendente", color: "text-destructive", icon: Clock },
+};
 
 const ClientPlanTab = ({ client, detail }: Props) => {
   const sub = detail?.subscription;
+  const cycles: any[] = detail?.cycles || [];
   const [planName, setPlanName] = useState<string>(sub?.plan_name || client.plan_name || "Start");
   const [startedAt, setStartedAt] = useState<string>(
     sub?.started_at ? sub.started_at.split("T")[0] : new Date().toISOString().split("T")[0]
@@ -41,7 +52,11 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isExpired = daysLeft !== null && daysLeft <= 0;
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
 
+  // Save plan (also creates initial cycle)
   const handleSave = () => {
+    const cycleStart = new Date(startedAt).toISOString();
+    const cycleEnd = new Date(expiresAt).toISOString();
+
     mutate({
       action: "update-subscription",
       body: {
@@ -49,30 +64,69 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         plan_name: planName,
         plan_price: planConfig.price,
         max_instances: planConfig.max_instances,
-        started_at: new Date(startedAt).toISOString(),
-        expires_at: new Date(expiresAt).toISOString(),
+        started_at: cycleStart,
+        expires_at: cycleEnd,
       },
     }, {
-      onSuccess: () => toast({ title: "Plano atualizado" }),
+      onSuccess: () => {
+        // Also create a cycle record
+        mutate({
+          action: "create-cycle",
+          body: {
+            target_user_id: client.id,
+            plan_name: planName,
+            cycle_amount: planConfig.price,
+            cycle_start: cycleStart,
+            cycle_end: cycleEnd,
+          },
+        }, {
+          onSuccess: () => toast({ title: "Plano atualizado e ciclo criado" }),
+          onError: (e) => toast({ title: "Plano salvo, mas ciclo falhou", description: e.message, variant: "destructive" }),
+        });
+      },
       onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
     });
   };
 
+  // Renew creates a new cycle from current expiry
   const handleRenew = () => {
     const currentExpiry = sub?.expires_at ? sub.expires_at.split("T")[0] : expiresAt;
-    const newExpiry = addDays(currentExpiry, 30);
+    const newStart = currentExpiry;
+    const newEnd = addDays(currentExpiry, 30);
+
     mutate({
-      action: "update-subscription",
+      action: "create-cycle",
       body: {
         target_user_id: client.id,
-        plan_name: planName,
-        plan_price: planConfig.price,
-        max_instances: planConfig.max_instances,
-        started_at: new Date(currentExpiry).toISOString(),
-        expires_at: new Date(newExpiry).toISOString(),
+        plan_name: sub?.plan_name || planName,
+        cycle_amount: sub?.plan_price || planConfig.price,
+        cycle_start: new Date(newStart).toISOString(),
+        cycle_end: new Date(newEnd).toISOString(),
       },
     }, {
-      onSuccess: () => { toast({ title: "Renovado +30 dias" }); setStartedAt(currentExpiry); },
+      onSuccess: () => toast({ title: "Ciclo renovado +30 dias" }),
+      onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  // Revert last cycle
+  const handleRevert = () => {
+    mutate({
+      action: "revert-cycle",
+      body: { target_user_id: client.id },
+    }, {
+      onSuccess: () => toast({ title: "Último ciclo revertido" }),
+      onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  // Update cycle status
+  const updateCycleStatus = (cycleId: string, status: string) => {
+    mutate({
+      action: "update-cycle-status",
+      body: { cycle_id: cycleId, status, target_user_id: client.id },
+    }, {
+      onSuccess: () => toast({ title: `Ciclo marcado como ${cycleStatusConfig[status]?.label || status}` }),
       onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
     });
   };
@@ -95,88 +149,174 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CreditCard size={18} className="text-primary" />
-          <h3 className="text-base font-bold text-foreground">Plano & Assinatura</h3>
+    <div className="space-y-5">
+      {/* Current subscription info */}
+      <div className="bg-card border border-border rounded-lg p-5 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard size={18} className="text-primary" />
+            <h3 className="text-base font-bold text-foreground">Plano & Assinatura</h3>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {isExpired && <span className="text-destructive font-medium flex items-center gap-1"><AlertTriangle size={14} /> Vencida</span>}
+            {isExpiring && <span className="text-yellow-500 font-medium">Vence em {daysLeft}d</span>}
+            {daysLeft !== null && !isExpired && !isExpiring && <span>{daysLeft} dias restantes</span>}
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {isExpired && <span className="text-destructive font-medium flex items-center gap-1"><AlertTriangle size={14} /> Vencida</span>}
-          {isExpiring && <span className="text-yellow-500 font-medium">Vence em {daysLeft}d</span>}
-          {daysLeft !== null && !isExpired && !isExpiring && <span>{daysLeft} dias restantes</span>}
-        </div>
-      </div>
 
-      {sub && (
-        <div className="bg-muted/50 rounded-md p-4 border border-border">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Plano</p><p className="text-foreground font-medium mt-0.5">{sub.plan_name}</p></div>
-            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Valor</p><p className="text-foreground font-medium mt-0.5">R$ {Number(sub.plan_price).toFixed(2)}</p></div>
-            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Instâncias</p><p className="text-foreground font-medium mt-0.5">{sub.max_instances}</p></div>
-            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Início</p><p className="text-foreground font-medium mt-0.5">{sub.started_at ? new Date(sub.started_at).toLocaleDateString("pt-BR") : "—"}</p></div>
-            <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Vencimento</p><p className={`font-medium mt-0.5 ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-foreground"}`}>{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p></div>
-          </div>
-        </div>
-      )}
-
-      <div className="border-t border-border pt-4">
-        <h4 className="text-sm font-semibold text-foreground mb-4">Alterar Plano</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-muted-foreground text-xs">Plano</Label>
-            <select value={planName} onChange={e => { setPlanName(e.target.value); setStartedAt(new Date().toISOString().split("T")[0]); }}
-              className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
-              {Object.keys(PLANS).map(p => <option key={p} value={p}>{p} — R$ {PLANS[p].price.toFixed(2)} ({PLANS[p].max_instances} inst.)</option>)}
-            </select>
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Valor (R$)</Label>
-            <Input value={`R$ ${planConfig.price.toFixed(2)}`} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Máx. Instâncias</Label>
-            <Input value={planConfig.max_instances} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Data de Início</Label>
-            <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Data de Vencimento (início + 30 dias)</Label>
-            <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-3 flex-wrap">
-        <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-          Salvar Plano
-        </Button>
         {sub && (
-          <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
-            <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
-          </Button>
+          <div className="bg-muted/50 rounded-md p-4 border border-border">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Plano</p><p className="text-foreground font-medium mt-0.5">{sub.plan_name}</p></div>
+              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Valor</p><p className="text-foreground font-medium mt-0.5">R$ {Number(sub.plan_price).toFixed(2)}</p></div>
+              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Instâncias</p><p className="text-foreground font-medium mt-0.5">{sub.max_instances}</p></div>
+              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Início</p><p className="text-foreground font-medium mt-0.5">{sub.started_at ? toLocalDate(sub.started_at) : "—"}</p></div>
+              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Vencimento</p><p className={`font-medium mt-0.5 ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-foreground"}`}>{sub.expires_at ? toLocalDate(sub.expires_at) : "—"}</p></div>
+            </div>
+          </div>
         )}
-        {sub && !isExpired && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="border-destructive/30 text-destructive hover:text-destructive/80" disabled={isPending}>
-                <PauseCircle size={14} className="mr-2" /> Suspender Assinatura
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-card border-border">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Suspender assinatura?</AlertDialogTitle>
-                <AlertDialogDescription className="text-muted-foreground">Isso forçará o vencimento imediato e bloqueará criação de instâncias.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSuspend} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Suspender</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+
+        {/* Change plan form */}
+        <div className="border-t border-border pt-4">
+          <h4 className="text-sm font-semibold text-foreground mb-4">Alterar Plano</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-muted-foreground text-xs">Plano</Label>
+              <select value={planName} onChange={e => { setPlanName(e.target.value); setStartedAt(new Date().toISOString().split("T")[0]); }}
+                className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
+                {Object.keys(PLANS).map(p => <option key={p} value={p}>{p} — R$ {PLANS[p].price.toFixed(2)} ({PLANS[p].max_instances} inst.)</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Valor (R$)</Label>
+              <Input value={`R$ ${planConfig.price.toFixed(2)}`} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Data de Início</Label>
+              <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + 30 dias)</Label>
+              <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3 flex-wrap">
+          <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+            Salvar Plano + Criar Ciclo
+          </Button>
+          {sub && (
+            <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
+              <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
+            </Button>
+          )}
+          {cycles.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground" disabled={isPending}>
+                  <Undo2 size={14} className="mr-2" /> Reverter Último Ciclo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reverter última renovação?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-muted-foreground">
+                    O ciclo mais recente será excluído e o vencimento será recalculado com base no ciclo anterior.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRevert} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Reverter</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {sub && !isExpired && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="border-destructive/30 text-destructive hover:text-destructive/80" disabled={isPending}>
+                  <PauseCircle size={14} className="mr-2" /> Suspender
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Suspender assinatura?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-muted-foreground">Isso forçará o vencimento imediato.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSuspend} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Suspender</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </div>
+
+      {/* Cycle history */}
+      <div className="bg-card border border-border rounded-lg p-5">
+        <h4 className="text-sm font-semibold text-foreground mb-4">Histórico de Ciclos</h4>
+        {cycles.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum ciclo registrado</p>
+        ) : (
+          <div className="border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
+                  <th className="text-left px-3 py-2.5">Plano</th>
+                  <th className="text-left px-3 py-2.5">Início</th>
+                  <th className="text-left px-3 py-2.5">Fim</th>
+                  <th className="text-left px-3 py-2.5">Valor</th>
+                  <th className="text-left px-3 py-2.5">Status</th>
+                  <th className="text-right px-3 py-2.5">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {cycles.map((c: any, idx: number) => {
+                  const cfg = cycleStatusConfig[c.status] || cycleStatusConfig.pending;
+                  const Icon = cfg.icon;
+                  return (
+                    <tr key={c.id} className={idx === 0 ? "bg-primary/5" : "hover:bg-muted/30"}>
+                      <td className="px-3 py-2.5 text-foreground font-medium">{c.plan_name}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{toLocalDate(c.cycle_start)}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{toLocalDate(c.cycle_end)}</td>
+                      <td className="px-3 py-2.5 text-foreground">R$ {Number(c.cycle_amount).toFixed(2)}</td>
+                      <td className="px-3 py-2.5">
+                        <span className={`text-xs font-medium flex items-center gap-1 ${cfg.color}`}>
+                          <Icon size={12} /> {cfg.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="flex gap-1 justify-end">
+                          {c.status !== "paid" && (
+                            <Button variant="ghost" size="sm" className="text-green-500 hover:text-green-400 text-[10px] h-7 px-2"
+                              onClick={() => updateCycleStatus(c.id, "paid")} disabled={isPending}>
+                              Pago
+                            </Button>
+                          )}
+                          {c.status !== "partial" && (
+                            <Button variant="ghost" size="sm" className="text-yellow-500 hover:text-yellow-400 text-[10px] h-7 px-2"
+                              onClick={() => updateCycleStatus(c.id, "partial")} disabled={isPending}>
+                              Parcial
+                            </Button>
+                          )}
+                          {c.status !== "pending" && (
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive/80 text-[10px] h-7 px-2"
+                              onClick={() => updateCycleStatus(c.id, "pending")} disabled={isPending}>
+                              Pendente
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

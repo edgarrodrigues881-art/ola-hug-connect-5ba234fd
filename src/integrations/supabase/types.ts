@@ -684,6 +684,53 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_cycles: {
+        Row: {
+          created_at: string
+          cycle_amount: number
+          cycle_end: string
+          cycle_start: string
+          id: string
+          notes: string | null
+          plan_name: string
+          status: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_amount?: number
+          cycle_end?: string
+          cycle_start?: string
+          id?: string
+          notes?: string | null
+          plan_name: string
+          status?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_amount?: number
+          cycle_end?: string
+          cycle_start?: string
+          id?: string
+          notes?: string | null
+          plan_name?: string
+          status?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_cycles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
