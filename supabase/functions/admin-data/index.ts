@@ -339,16 +339,18 @@ Deno.serve(async (req) => {
 
     // ─── ADD PAYMENT ───
     if (action === "add-payment" && req.method === "POST") {
-      const { target_user_id, amount, method, notes, paid_at } = await req.json();
+      const { target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
       await adminClient.from("payments").insert({
         user_id: target_user_id,
         amount,
         method,
         notes,
         paid_at,
+        discount: discount || 0,
+        fee: fee || 0,
         admin_id: user.id,
       });
-      await logAction(adminClient, user.id, target_user_id, "add-payment", `Pagamento: R$ ${amount} via ${method}`);
+      await logAction(adminClient, user.id, target_user_id, "add-payment", `Pagamento: R$ ${amount} (desc: R$ ${discount || 0}, taxa: R$ ${fee || 0}) via ${method}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -356,9 +358,9 @@ Deno.serve(async (req) => {
 
     // ─── UPDATE PAYMENT ───
     if (action === "update-payment" && req.method === "POST") {
-      const { payment_id, target_user_id, amount, method, notes, paid_at } = await req.json();
-      await adminClient.from("payments").update({ amount, method, notes, paid_at }).eq("id", payment_id);
-      await logAction(adminClient, user.id, target_user_id, "update-payment", `Pagamento atualizado: R$ ${amount} via ${method}`);
+      const { payment_id, target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
+      await adminClient.from("payments").update({ amount, method, notes, paid_at, discount: discount || 0, fee: fee || 0 }).eq("id", payment_id);
+      await logAction(adminClient, user.id, target_user_id, "update-payment", `Pagamento atualizado: R$ ${amount} (desc: R$ ${discount || 0}, taxa: R$ ${fee || 0}) via ${method}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
