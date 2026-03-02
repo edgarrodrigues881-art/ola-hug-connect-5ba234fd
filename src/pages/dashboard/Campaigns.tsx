@@ -991,7 +991,7 @@ const Campaigns = () => {
 
               {/* Preview column */}
               <div className="lg:col-span-2 space-y-4">
-                <SectionLabel className="px-1">Preview WhatsApp</SectionLabel>
+                
                 <div className="sticky top-4">
                   <WhatsAppPreview />
                 </div>
