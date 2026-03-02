@@ -777,27 +777,6 @@ const Campaigns = () => {
             <p className="text-[#E9EDEF] text-[14px] font-medium leading-tight">Destinatário</p>
             <p className="text-[#8696A0] text-[11px]">online</p>
           </div>
-          {/* Sent/Received toggle */}
-          <div className="flex items-center gap-0.5 bg-[#111B21] rounded-lg p-0.5">
-            <button
-              onClick={() => setPreviewMode("sent")}
-              className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors duration-100",
-                isSent ? "bg-[#005C4B] text-[#E9EDEF]" : "text-[#8696A0] hover:text-[#E9EDEF]"
-              )}
-            >
-              Enviada
-            </button>
-            <button
-              onClick={() => setPreviewMode("received")}
-              className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors duration-100",
-                !isSent ? "bg-[#202C33] text-[#E9EDEF] border border-[#313D45]" : "text-[#8696A0] hover:text-[#E9EDEF]"
-              )}
-            >
-              Recebida
-            </button>
-          </div>
         </div>
 
         {/* ── Chat Area ── */}
