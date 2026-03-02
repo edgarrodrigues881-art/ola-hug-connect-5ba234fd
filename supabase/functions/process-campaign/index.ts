@@ -70,17 +70,33 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
 }
 
+function isDisconnectError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return lower.includes("disconnected") || lower.includes("not connected") || lower.includes("qr code") ||
+    lower.includes("logout") || lower.includes("unauthorized") || lower.includes("401") ||
+    lower.includes("session") || lower.includes("not authenticated") || lower.includes("desconectado");
+}
+
+function translateErrorMessage(msg: string): string {
+  if (isDisconnectError(msg)) return "WhatsApp desconectado";
+  if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists") || msg.includes("não está no WhatsApp")) return "Número inválido";
+  return msg;
+}
+
 async function checkNumberExists(baseUrl: string, token: string, phone: string): Promise<{ exists: boolean; error?: string }> {
   try {
     const result = await uazapiRequest(baseUrl, token, "/check/exist", { number: phone });
     if (result?.exists === false || result?.numberExists === false || result?.status === "not_exists") {
-      return { exists: false, error: `Número ${phone} não está no WhatsApp` };
+      return { exists: false, error: "Número inválido" };
     }
     return { exists: true };
   } catch (err: any) {
     const msg = err.message || "";
+    if (isDisconnectError(msg)) {
+      return { exists: false, error: "WhatsApp desconectado" };
+    }
     if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists")) {
-      return { exists: false, error: msg };
+      return { exists: false, error: "Número inválido" };
     }
     return { exists: true };
   }
@@ -331,9 +347,17 @@ Deno.serve(async (req) => {
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
               if (!check.exists) {
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Não está no WhatsApp" }).eq("id", contact.id);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
-                continue;
+                // If disconnect, bulk-fail remaining in this chunk and stop
+                if (check.error === "WhatsApp desconectado") {
+                  const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
+                  if (remainingIds.length > 0) {
+                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
+                    devFailed += remainingIds.length;
+                  }
+                  break;
+                }
               }
               await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
@@ -342,8 +366,18 @@ Deno.serve(async (req) => {
               const delay = randomBetween(minDelayMs, maxDelayMs);
               await new Promise(r => setTimeout(r, delay));
             } catch (err: any) {
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro" }).eq("id", contact.id);
+              const translated = translateErrorMessage(err.message || "Erro");
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
               devFailed++;
+              // If disconnect, bulk-fail all remaining in chunk
+              if (isDisconnectError(err.message || "")) {
+                const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
+                if (remainingIds.length > 0) {
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
+                  devFailed += remainingIds.length;
+                }
+                break;
+              }
             }
           }
           return { sent: devSent, failed: devFailed };
@@ -399,9 +433,19 @@ Deno.serve(async (req) => {
             const normalizedPhone = normalizeBrazilianPhone(phone);
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
             if (!check.exists) {
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Não está no WhatsApp" }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+              // If disconnect, bulk-fail ALL remaining pending contacts at once
+              if (check.error === "WhatsApp desconectado") {
+                const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).eq("status", "pending");
+                if (remaining && remaining.length > 0) {
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
+                  failedCount += remaining.length;
+                  await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+                }
+                break;
+              }
               continue;
             }
 
@@ -440,10 +484,21 @@ Deno.serve(async (req) => {
               console.log(`Next pause after ${pauseAfter} messages`);
             }
           } catch (err: any) {
-            console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, err.message);
-            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro ao enviar" }).eq("id", contact.id);
+            const translated = translateErrorMessage(err.message || "Erro ao enviar");
+            console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, translated);
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+            // If disconnect, bulk-fail ALL remaining pending contacts at once
+            if (isDisconnectError(err.message || "")) {
+              const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).eq("status", "pending");
+              if (remaining && remaining.length > 0) {
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
+                failedCount += remaining.length;
+                await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+              }
+              break;
+            }
           }
         }
       }
