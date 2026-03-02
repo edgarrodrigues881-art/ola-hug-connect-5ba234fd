@@ -1424,108 +1424,149 @@ const Campaigns = () => {
             {/* Row: Perfis de Delay + Tempo Estimado + Instância */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Delay Profiles */}
-              <SurfaceCard className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <SectionLabel className="flex items-center gap-1.5">
-                    <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
-                  </SectionLabel>
-                  {delayProfiles.length < 3 ? (
-                    <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
-                      <Plus className="w-3 h-3" /> Salvar
-                    </Button>
+              <SurfaceCard className="relative p-5 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Settings2 className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-foreground">Perfis</p>
+                        <p className="text-[10px] text-muted-foreground/50">{delayProfiles.length}/3 salvos</p>
+                      </div>
+                    </div>
+                    {delayProfiles.length < 3 ? (
+                      <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-primary/20 text-primary hover:bg-primary/5" onClick={() => setShowSaveProfile(!showSaveProfile)}>
+                        <Plus className="w-3 h-3" /> Salvar
+                      </Button>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">Cheio</Badge>
+                    )}
+                  </div>
+
+                  {showSaveProfile && (
+                    <div className="flex gap-2 mb-3">
+                      <Input value={saveProfileName} onChange={(e) => setSaveProfileName(e.target.value)} placeholder="Nome do perfil..." className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
+                        onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }} />
+                      <Button size="sm" className="h-8 text-xs px-3" disabled={!saveProfileName.trim() || saveDelayProfile.isPending} onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}>
+                        {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      </Button>
+                    </div>
+                  )}
+
+                  {delayProfiles.length > 0 ? (
+                    <div className="space-y-2">
+                      {delayProfiles.map((p: any) => (
+                        <div key={p.id} className="group flex items-center gap-2 px-3 py-2.5 rounded-lg bg-card border border-border/20 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer"
+                          onClick={() => loadDelayProfile(p)}>
+                          <div className="w-2 h-2 rounded-full bg-primary/40" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-semibold text-foreground truncate block">{p.name}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/50 tabular-nums shrink-0">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
+                          <button className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}>
+                            <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground/40">3/3</span>
+                    <div className="py-4 flex flex-col items-center gap-2 opacity-60">
+                      <Settings2 className="w-5 h-5 text-muted-foreground/30" />
+                      <p className="text-[11px] text-muted-foreground/40">Nenhum perfil salvo</p>
+                    </div>
                   )}
                 </div>
-
-                {showSaveProfile && (
-                  <div className="flex gap-2 mb-3">
-                    <Input value={saveProfileName} onChange={(e) => setSaveProfileName(e.target.value)} placeholder="Nome do perfil..." className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
-                      onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }} />
-                    <Button size="sm" className="h-8 text-xs px-3" disabled={!saveProfileName.trim() || saveDelayProfile.isPending} onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}>
-                      {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                )}
-
-                {delayProfiles.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {delayProfiles.map((p: any) => (
-                      <div key={p.id} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/15 dark:bg-muted/8 border border-border/15 hover:border-primary/30 transition-colors cursor-pointer"
-                        onClick={() => loadDelayProfile(p)}>
-                        <span className="text-[11px] font-medium text-foreground">{p.name}</span>
-                        <span className="text-[9px] text-muted-foreground/50">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
-                        <button className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}>
-                          <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground/40">Nenhum perfil salvo.</p>
-                )}
               </SurfaceCard>
 
               {/* Projeção de Envio */}
-              <SurfaceCard className="p-5 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold mb-2">Tempo estimado</p>
-                <p className="text-2xl font-bold text-foreground tabular-nums">≈ {estimatedTime || "—"}</p>
+              <SurfaceCard className="relative p-5 flex flex-col items-center justify-center text-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.06] to-transparent pointer-events-none" />
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                    <Timer className="w-5 h-5 text-accent-foreground/70" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold mb-1.5">Tempo estimado</p>
+                    <p className="text-3xl font-black text-foreground tabular-nums tracking-tight">
+                      {estimatedTime ? `≈ ${estimatedTime}` : "—"}
+                    </p>
+                  </div>
+                  {validContacts.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground/40">{validContacts.length} contato{validContacts.length !== 1 ? "s" : ""} • {selectedDevices.length || 1} instância{(selectedDevices.length || 1) !== 1 ? "s" : ""}</p>
+                  )}
+                </div>
               </SurfaceCard>
 
               {/* Instance Selection */}
-              <SurfaceCard className="p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <SectionLabel className="flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5" /> Instância
-                  </SectionLabel>
-                  {selectedDevices.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                      {selectedDevices.length}
-                    </Badge>
+              <SurfaceCard className="relative p-5 space-y-3 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] to-transparent pointer-events-none" />
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <Smartphone className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-foreground">Instâncias</p>
+                        <p className="text-[10px] text-muted-foreground/50">{devices.length} disponível{devices.length !== 1 ? "is" : ""}</p>
+                      </div>
+                    </div>
+                    {selectedDevices.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                        {selectedDevices.length} ✓
+                      </Badge>
+                    )}
+                  </div>
+
+                  {devices.length === 0 ? (
+                    <div className="py-6 flex flex-col items-center gap-2">
+                      <WifiOff className="w-6 h-6 text-muted-foreground/20" />
+                      <p className="text-[11px] text-muted-foreground/40">Nenhuma instância</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {devices.map(d => {
+                        const st = getDeviceStatus(d.status);
+                        const isSelected = selectedDevices.includes(d.id);
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => setSelectedDevices(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-xl border transition-all duration-150 text-left w-full",
+                              isSelected
+                                ? "border-emerald-500/30 bg-emerald-500/5 shadow-sm shadow-emerald-500/10"
+                                : "border-border/20 hover:border-emerald-500/20 bg-card hover:shadow-sm"
+                            )}
+                          >
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isSelected ? "bg-emerald-500/15" : "bg-muted/20")}>
+                              {d.profile_picture ? (
+                                <img src={d.profile_picture} alt="" className="w-9 h-9 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                              ) : (
+                                <Smartphone className={cn("w-4 h-4", isSelected ? "text-emerald-400" : "text-muted-foreground/40")} />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-xs font-semibold truncate", isSelected ? "text-foreground" : "text-foreground/70")}>{d.name}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <st.icon className={cn("w-3 h-3", st.color)} />
+                                <span className={cn("text-[10px] font-medium", st.color)}>{st.label}</span>
+                              </div>
+                            </div>
+                            <div className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
+                              isSelected ? "border-emerald-400 bg-emerald-400" : "border-border/30"
+                            )}>
+                              {isSelected && <Check className="w-3 h-3 text-emerald-950" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-
-                {devices.length === 0 ? (
-                  <div className="py-4 flex flex-col items-center gap-2">
-                    <WifiOff className="w-6 h-6 text-muted-foreground/20" />
-                    <p className="text-[11px] text-muted-foreground/50">Nenhuma instância</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {devices.map(d => {
-                      const st = getDeviceStatus(d.status);
-                      const isSelected = selectedDevices.includes(d.id);
-                      return (
-                        <button
-                          key={d.id}
-                          onClick={() => setSelectedDevices(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl border transition-all duration-100 text-left w-full",
-                            isSelected
-                              ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-                              : "border-border/30 dark:border-border/15 hover:border-primary/20 bg-muted/5 dark:bg-muted/3"
-                          )}
-                        >
-                          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isSelected ? "bg-primary/15" : "bg-muted/20")}>
-                            {d.profile_picture ? (
-                              <img src={d.profile_picture} alt="" className="w-9 h-9 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                            ) : (
-                              <Smartphone className={cn("w-4 h-4", isSelected ? "text-primary" : "text-muted-foreground/40")} />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("text-xs font-semibold truncate", isSelected ? "text-foreground" : "text-foreground/70")}>{d.name}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <st.icon className={cn("w-3 h-3", st.color)} />
-                              <span className={cn("text-[10px] font-medium", st.color)}>{st.label}</span>
-                            </div>
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </SurfaceCard>
             </div>
 
