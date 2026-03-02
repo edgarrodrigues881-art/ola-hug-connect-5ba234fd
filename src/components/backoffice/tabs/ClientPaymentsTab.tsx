@@ -178,7 +178,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const totalPaid = payments.reduce((s: number, p: any) => s + Number(p.amount), 0);
   const totalDiscount = payments.reduce((s: number, p: any) => s + Number(p.discount || 0), 0);
   const totalFees = payments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
-  const ticketMedio = payments.length > 0 ? totalPaid / payments.length : 0;
+  const totalLiquido = totalPaid - totalFees;
 
   // Auto-calculate discount: plan_value - amount (if plan > amount)
   const autoDiscount = (() => {
@@ -300,8 +300,8 @@ const ClientPaymentsTab = ({ client }: Props) => {
           <p className="text-xl font-bold text-destructive mt-1">R$ {totalFees.toFixed(2)}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-4 border border-border">
-          <p className="text-xs text-muted-foreground">Ticket Médio</p>
-          <p className="text-xl font-bold text-foreground mt-1">R$ {ticketMedio.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">Líquido (No Bolso)</p>
+          <p className="text-xl font-bold text-green-500 mt-1">R$ {totalLiquido.toFixed(2)}</p>
         </div>
       </div>
 
