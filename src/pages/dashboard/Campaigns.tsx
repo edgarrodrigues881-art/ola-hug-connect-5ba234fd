@@ -1131,18 +1131,18 @@ const Campaigns = () => {
                     <p className="text-base font-semibold text-foreground">Importe sua lista de contatos</p>
                     <p className="text-sm text-muted-foreground/60 mt-2 leading-relaxed">Arraste uma planilha ou use os botões abaixo. Detectamos automaticamente colunas de nome e número.</p>
                   </div>
-                  <Button 
-                    onClick={() => fileRef.current?.click()} 
-                    className="gap-2.5 h-12 px-8 text-sm font-bold shadow-lg shadow-primary/25"
-                  >
-                    <Upload className="w-4 h-4" /> Importar Planilha
-                  </Button>
                   <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={() => setImportFromContacts(true)}>
-                      <Users className="w-3.5 h-3.5" /> Base de Contatos
+                    <Button 
+                      onClick={() => fileRef.current?.click()} 
+                      className="gap-2 h-12 px-6 text-sm font-bold shadow-lg shadow-primary/25 flex-1"
+                    >
+                      <Upload className="w-4 h-4" /> Importar Planilha
                     </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
-                      <Plus className="w-3.5 h-3.5" /> Manual
+                    <Button variant="outline" className="h-12 px-6 text-sm font-bold border-border/30 gap-2 hover:bg-primary/5 hover:border-primary/30 flex-1" onClick={() => setImportFromContacts(true)}>
+                      <Users className="w-4 h-4" /> Base de Contatos
+                    </Button>
+                    <Button variant="outline" className="h-12 px-6 text-sm font-bold border-border/30 gap-2 hover:bg-primary/5 hover:border-primary/30 flex-1" onClick={addContact}>
+                      <Plus className="w-4 h-4" /> Manual
                     </Button>
                   </div>
                 </div>
