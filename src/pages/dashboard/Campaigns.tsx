@@ -1704,137 +1704,172 @@ const Campaigns = () => {
 
       {/* Column Mapping Dialog */}
       <Dialog open={!!rawImport} onOpenChange={(open) => !open && setRawImport(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">Mapeamento de Colunas</DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">Selecione o que cada coluna representa. Apenas 1 coluna pode ser "Nome" e 1 "Número".</p>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-border/10">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                </div>
+                Mapeamento de Colunas
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground/60 mt-2 leading-relaxed">Selecione o que cada coluna representa. Apenas 1 coluna pode ser "Nome" e 1 "Número".</p>
+            </DialogHeader>
+          </div>
+
           {rawImport && (
-            <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col">
               {/* Column mappings */}
-              <div className="space-y-2 max-h-[200px] overflow-auto pr-1">
-                <SectionLabel>Colunas detectadas</SectionLabel>
-                {rawImport.headers.map((header, i) => (
-                  <div key={i} className="flex items-center gap-3 py-1.5">
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium text-foreground truncate block">{header}</span>
-                      <span className="text-[10px] text-muted-foreground/50">
-                        Ex: {String(rawImport.rows[0]?.[i] ?? "—").slice(0, 30)}
-                      </span>
+              <div className="px-6 py-4 space-y-3 max-h-[240px] overflow-auto">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-semibold">Colunas detectadas</p>
+                {rawImport.headers.map((header, i) => {
+                  const currentMapping = rawImport.columnMappings[i];
+                  const mappingColors: Record<string, string> = {
+                    nome: "ring-emerald-500/30 bg-emerald-500/5",
+                    numero: "ring-primary/30 bg-primary/5",
+                    ignorar: "",
+                  };
+                  const ringClass = mappingColors[currentMapping] || "ring-amber-500/20 bg-amber-500/5";
+                  return (
+                    <div key={i} className={cn(
+                      "flex items-center gap-4 p-3.5 rounded-xl border border-border/10 transition-all duration-150",
+                      currentMapping !== "ignorar" ? `ring-1 ${ringClass}` : "bg-muted/5 dark:bg-muted/3"
+                    )}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{header}</p>
+                        <p className="text-[11px] text-muted-foreground/40 mt-0.5 font-mono truncate">
+                          Ex: {String(rawImport.rows[0]?.[i] ?? "—").slice(0, 40)}
+                        </p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/20 shrink-0" />
+                      <Select value={currentMapping} onValueChange={(v) => updateColumnMapping(i, v as ColumnMapping)}>
+                        <SelectTrigger className={cn(
+                          "w-[150px] h-9 text-xs font-medium border-border/20",
+                          currentMapping === "nome" && "text-emerald-400 border-emerald-500/30",
+                          currentMapping === "numero" && "text-primary border-primary/30",
+                        )}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ignorar">Ignorar</SelectItem>
+                          <SelectItem value="nome">Nome</SelectItem>
+                          <SelectItem value="numero">Número</SelectItem>
+                          <SelectItem value="var1">Variável 1</SelectItem>
+                          <SelectItem value="var2">Variável 2</SelectItem>
+                          <SelectItem value="var3">Variável 3</SelectItem>
+                          <SelectItem value="var4">Variável 4</SelectItem>
+                          <SelectItem value="var5">Variável 5</SelectItem>
+                          <SelectItem value="var6">Variável 6</SelectItem>
+                          <SelectItem value="var7">Variável 7</SelectItem>
+                          <SelectItem value="var8">Variável 8</SelectItem>
+                          <SelectItem value="var9">Variável 9</SelectItem>
+                          <SelectItem value="var10">Variável 10</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-                    <Select value={rawImport.columnMappings[i]} onValueChange={(v) => updateColumnMapping(i, v as ColumnMapping)}>
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="nome">Nome</SelectItem>
-                        <SelectItem value="numero">Número</SelectItem>
-                        <SelectItem value="var1">Variável 1</SelectItem>
-                        <SelectItem value="var2">Variável 2</SelectItem>
-                        <SelectItem value="var3">Variável 3</SelectItem>
-                        <SelectItem value="var4">Variável 4</SelectItem>
-                        <SelectItem value="var5">Variável 5</SelectItem>
-                        <SelectItem value="var6">Variável 6</SelectItem>
-                        <SelectItem value="var7">Variável 7</SelectItem>
-                        <SelectItem value="var8">Variável 8</SelectItem>
-                        <SelectItem value="var9">Variável 9</SelectItem>
-                        <SelectItem value="var10">Variável 10</SelectItem>
-                        <SelectItem value="ignorar">Ignorar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {/* Preview stats */}
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Total de linhas", value: rawImport.rows.length },
-                  { label: "Colunas detectadas", value: rawImport.headers.length },
-                  { label: "Colunas mapeadas", value: rawImport.columnMappings.filter(m => m !== "ignorar").length },
-                ].map(s => (
-                  <SurfaceCard key={s.label} className="p-3 text-center">
-                    <p className="text-lg font-bold text-foreground tabular-nums">{s.value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
-                  </SurfaceCard>
-                ))}
+              {/* Stats bar */}
+              <div className="px-6 py-3 border-t border-b border-border/8 bg-muted/5 dark:bg-muted/3">
+                <div className="flex items-center justify-around">
+                  {[
+                    { label: "Linhas", value: rawImport.rows.length, color: "text-foreground" },
+                    { label: "Colunas", value: rawImport.headers.length, color: "text-foreground" },
+                    { label: "Mapeadas", value: rawImport.columnMappings.filter(m => m !== "ignorar").length, color: rawImport.columnMappings.filter(m => m !== "ignorar").length > 0 ? "text-primary" : "text-muted-foreground/40" },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <p className={cn("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
+                      <p className="text-[10px] text-muted-foreground/40 font-medium">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Data preview — only mapped columns */}
-              {(() => {
-                const mappedCols = rawImport.columnMappings
-                  .map((m, i) => ({ mapping: m, index: i, header: rawImport.headers[i] }))
-                  .filter(c => c.mapping !== "ignorar");
-                const labelMap: Record<string, string> = {
-                  nome: "Nome", numero: "Número",
-                  var1: "Var 1", var2: "Var 2", var3: "Var 3", var4: "Var 4", var5: "Var 5",
-                  var6: "Var 6", var7: "Var 7", var8: "Var 8", var9: "Var 9", var10: "Var 10",
-                };
-                return mappedCols.length > 0 ? (
-                  <div className="flex-1 overflow-auto rounded-xl border border-border/15 bg-muted/8 dark:bg-muted/4">
-                    <table className="w-full text-[11px]">
-                      <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
-                        <tr className="border-b border-border/15">
-                          <th className="text-left px-3 py-2.5 text-muted-foreground font-semibold w-8">#</th>
-                          {mappedCols.map(col => (
-                            <th key={col.index} className={cn(
-                              "text-left px-3 py-2.5 font-semibold text-[10px]",
-                              col.mapping === "numero" ? "text-primary" :
-                              col.mapping === "nome" ? "text-emerald-400" : "text-muted-foreground"
-                            )}>
-                              <div>{labelMap[col.mapping] || col.mapping}</div>
-                              <div className="font-normal text-[9px] opacity-50">{col.header}</div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rawImport.rows.slice(0, 5).map((row, ri) => (
-                          <tr key={ri} className="border-b border-border/8">
-                            <td className="px-3 py-2 text-muted-foreground/40 tabular-nums">{ri + 1}</td>
+              {/* Data preview */}
+              <div className="flex-1 overflow-auto px-6 py-4">
+                {(() => {
+                  const mappedCols = rawImport.columnMappings
+                    .map((m, i) => ({ mapping: m, index: i, header: rawImport.headers[i] }))
+                    .filter(c => c.mapping !== "ignorar");
+                  const labelMap: Record<string, string> = {
+                    nome: "Nome", numero: "Número",
+                    var1: "Var 1", var2: "Var 2", var3: "Var 3", var4: "Var 4", var5: "Var 5",
+                    var6: "Var 6", var7: "Var 7", var8: "Var 8", var9: "Var 9", var10: "Var 10",
+                  };
+                  const colorMap: Record<string, string> = {
+                    nome: "text-emerald-400", numero: "text-primary",
+                  };
+                  return mappedCols.length > 0 ? (
+                    <div className="rounded-xl border border-border/10 overflow-hidden">
+                      <table className="w-full text-[11px]">
+                        <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
+                          <tr className="border-b border-border/10">
+                            <th className="text-left px-3 py-2.5 text-muted-foreground/40 font-semibold w-8">#</th>
                             {mappedCols.map(col => (
-                              <td key={col.index} className={cn(
-                                "px-3 py-2 text-foreground",
-                                col.mapping === "numero" && "font-mono"
-                              )}>
-                                {String(row[col.index] ?? "—").slice(0, 30)}
-                              </td>
+                              <th key={col.index} className="text-left px-3 py-2.5">
+                                <span className={cn("text-[11px] font-bold", colorMap[col.mapping] || "text-muted-foreground")}>
+                                  {labelMap[col.mapping] || col.mapping}
+                                </span>
+                                <span className="block text-[9px] text-muted-foreground/30 font-normal mt-0.5">{col.header}</span>
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {rawImport.rows.length > 5 && (
-                      <p className="text-[11px] text-muted-foreground text-center py-3">
-                        ...e mais {rawImport.rows.length - 5} linhas
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/50 py-8">
-                    Selecione ao menos uma coluna para ver o preview.
-                  </div>
-                );
-              })()}
+                        </thead>
+                        <tbody>
+                          {rawImport.rows.slice(0, 5).map((row, ri) => (
+                            <tr key={ri} className="border-b border-border/5 hover:bg-muted/5">
+                              <td className="px-3 py-2.5 text-muted-foreground/25 tabular-nums">{ri + 1}</td>
+                              {mappedCols.map(col => (
+                                <td key={col.index} className={cn(
+                                  "px-3 py-2.5 text-foreground/80",
+                                  col.mapping === "numero" && "font-mono"
+                                )}>
+                                  {String(row[col.index] ?? "—").slice(0, 30)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {rawImport.rows.length > 5 && (
+                        <p className="text-[10px] text-muted-foreground/30 text-center py-2.5">
+                          ...e mais {rawImport.rows.length - 5} linhas
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center py-10 gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-muted/10 flex items-center justify-center">
+                        <Eye className="w-5 h-5 text-muted-foreground/20" />
+                      </div>
+                      <p className="text-xs text-muted-foreground/40">Mapeie ao menos uma coluna para ver o preview</p>
+                    </div>
+                  );
+                })()}
+              </div>
 
-              {!rawImport.columnMappings.includes("numero") && (
-                <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  Selecione qual coluna contém o número de telefone para continuar.
-                </div>
-              )}
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setRawImport(null)} className="h-10">Cancelar</Button>
-                <Button 
-                  onClick={confirmMappingImport} 
-                  className="h-10 px-6 font-semibold gap-1.5"
-                  disabled={!rawImport.columnMappings.includes("numero")}
-                >
-                  <Check className="w-4 h-4" /> Confirmar Importação
-                </Button>
-              </DialogFooter>
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-border/10 space-y-3">
+                {!rawImport.columnMappings.includes("numero") && (
+                  <div className="flex items-center gap-2.5 text-xs text-amber-400 bg-amber-500/8 border border-amber-500/15 rounded-xl px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>Selecione qual coluna contém o <strong>número de telefone</strong> para continuar.</span>
+                  </div>
+                )}
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setRawImport(null)} className="h-11 px-6">Cancelar</Button>
+                  <Button 
+                    onClick={confirmMappingImport} 
+                    className="h-11 px-8 font-bold gap-2 shadow-lg shadow-primary/20"
+                    disabled={!rawImport.columnMappings.includes("numero")}
+                  >
+                    <Check className="w-4 h-4" /> Confirmar Importação
+                  </Button>
+                </DialogFooter>
+              </div>
             </div>
           )}
         </DialogContent>
