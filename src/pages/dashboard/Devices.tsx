@@ -1178,12 +1178,6 @@ const Devices = () => {
                 <div className="px-3 pb-1.5">
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
                     <span className="truncate" title={`Última atividade: ${lastActivity}`}>{lastActivity}</span>
-                    <span className="flex items-center gap-0.5 shrink-0">
-                      <Shield className="w-2.5 h-2.5" />{assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
-                    </span>
-                    <span className="flex items-center gap-0.5 shrink-0">
-                      <Key className="w-2.5 h-2.5" />{d.has_api_config ? "Sim" : "Não"}
-                    </span>
                   </div>
                 </div>
 
