@@ -436,6 +436,17 @@ Deno.serve(async (req) => {
             const rand3 = generateUniqueRand3(usedRand3);
             const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
+            // Check device status before sending
+            const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
+            if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
+              console.log(`Device ${activeDevice.name} is ${deviceStatus.status}, bulk-failing remaining contacts`);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
+              const { count: remainingCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+              failedCount += (remainingCount || 0);
+              await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+              break;
+            }
+
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
             if (!check.exists) {
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
@@ -443,12 +454,10 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               // If disconnect, bulk-fail ALL remaining pending contacts at once
               if (check.error === "WhatsApp desconectado") {
-                const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).eq("status", "pending");
-                if (remaining && remaining.length > 0) {
-                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
-                  failedCount += remaining.length;
-                  await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-                }
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
+                const { count: remCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+                failedCount += (remCount || 0);
+                await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
                 break;
               }
               continue;
