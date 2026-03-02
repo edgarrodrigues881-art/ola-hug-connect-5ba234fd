@@ -94,23 +94,23 @@ html {
 
   .dark {
     --background: 220 15% 7%;
-    --foreground: 0 0% 95%;
-    --card: 220 13% 10%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 13% 12%;
-    --popover-foreground: 0 0% 95%;
+    --foreground: 0 0% 96%;
+    --card: 220 13% 11%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 13% 13%;
+    --popover-foreground: 0 0% 96%;
     --primary: 158 64% 51%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 18%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 220 10% 15%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 160 30% 12%;
-    --accent-foreground: 158 64% 60%;
+    --secondary: 220 10% 20%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 220 10% 18%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 160 30% 14%;
+    --accent-foreground: 158 64% 62%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
-    --border: 220 10% 16%;
-    --input: 220 10% 16%;
+    --border: 220 10% 20%;
+    --input: 220 10% 20%;
     --ring: 158 64% 51%;
     --chart-1: 156 71% 66%;
     --chart-2: 141 76% 73%;
