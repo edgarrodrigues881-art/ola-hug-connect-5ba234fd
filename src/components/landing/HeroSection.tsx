@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import dgRemaster from "@/assets/dg-remaster.png";
 
 const chats = [
-  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
-  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C" },
-  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6" },
-  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
-  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6" },
-  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
+  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160", badgeColor: "#07C160" },
+  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C", badgeColor: "#07C160" },
+  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6", badgeColor: "#3B82F6" },
+  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899", badgeColor: "#EC4899" },
+  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6", badgeColor: "#8B5CF6" },
+  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B", badgeColor: "#F59E0B" },
 ];
 
 const HeroSection = () => {
@@ -203,7 +203,10 @@ const HeroSection = () => {
                                 <span className="text-[11px] text-white/30 truncate">{chat.msg}</span>
                               </div>
                               {chat.unread > 0 && (
-                                <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
+                                <span 
+                                  className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full text-[7px] font-bold text-white flex items-center justify-center px-1"
+                                  style={{ backgroundColor: chat.badgeColor }}
+                                >
                                   {chat.unread >= 999 ? "999+" : chat.unread}
                                 </span>
                               )}
