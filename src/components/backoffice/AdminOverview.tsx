@@ -1,14 +1,8 @@
 import { useMemo } from "react";
-import {
-  DollarSign, TrendingDown, AlertTriangle, Server, Gauge,
-  Ban, Clock, XCircle, Receipt, Wallet
-} from "lucide-react";
+import { Clock, XCircle, Gauge } from "lucide-react";
 import type { AdminDashboard } from "@/hooks/useAdmin";
-import dgLogo from "@/assets/dg-logo-new.png";
 
 const SERVER_MAX_INSTANCES = 500;
-
-const PLAN_PRICES: Record<string, number> = { Start: 149.9, Pro: 349.9, Scale: 549.9, Elite: 899.9 };
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -19,25 +13,14 @@ function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
-const StatCard = ({ icon: Icon, label, value, sub, hint, valueColor, highlight, large }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; valueColor?: string; highlight?: boolean; large?: boolean;
+/* ── Metric block (no icons, pure data) ── */
+const Metric = ({ label, value, sub, valueColor, className = "" }: {
+  label: string; value: string | number; sub?: string; valueColor?: string; className?: string;
 }) => (
-  <div className={`rounded-md flex items-start gap-3 transition-all duration-200 cursor-default group ${
-    large ? "px-3.5 py-2.5" : "px-2.5 py-2"
-  } ${
-    highlight
-      ? "bg-card border-[1.5px] border-green-500/25 shadow-[0_0_16px_-6px_rgba(34,197,94,0.1)] hover:border-green-500/35 hover:shadow-[0_0_20px_-4px_rgba(34,197,94,0.15)]"
-      : "bg-card border border-border shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:bg-[hsl(220,15%,12%)] hover:border-[rgba(255,255,255,0.1)]"
-  }`}>
-    <div className="shrink-0 mt-0.5">
-      <Icon size={large ? 17 : 14} className="text-muted-foreground/60" />
-    </div>
-    <div className="min-w-0">
-      <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium leading-tight">{label}</p>
-      <p className={`font-extrabold mt-0.5 ${large ? "text-xl" : "text-base"} ${valueColor || "text-foreground"}`}>{value}</p>
-      {sub && <p className="text-[9px] text-muted-foreground/70 mt-0.5">{sub}</p>}
-      {hint && <p className="text-[8px] text-muted-foreground/40 mt-0.5 italic">{hint}</p>}
-    </div>
+  <div className={`transition-all duration-200 ${className}`}>
+    <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.14em] font-medium mb-0.5">{label}</p>
+    <p className={`font-extrabold leading-none ${valueColor || "text-foreground"}`}>{value}</p>
+    {sub && <p className="text-[9px] text-muted-foreground/40 mt-1">{sub}</p>}
   </div>
 );
 
@@ -130,118 +113,115 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const totalAllocated = useMemo(() => users.reduce((s, u) => s + u.max_instances + (u.instance_override || 0), 0), [users]);
   const totalInUse = stats.total_devices;
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
+  const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
   return (
-    <div className="space-y-2">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src={dgLogo} alt="DG" className="h-6 w-6 rounded object-cover opacity-70 grayscale" />
-          <div>
-            <h1 className="text-base font-extrabold text-foreground tracking-tight leading-none">
-              DG Control Center
-            </h1>
-            <p className="text-[9px] text-muted-foreground/50 mt-0.5 capitalize">{monthLabel} {now.getFullYear()}</p>
-          </div>
+    <div className="space-y-4">
+      {/* ═══ HEADER ═══ */}
+      <div className="flex items-end justify-between border-b border-border/50 pb-3">
+        <div>
+          <h1 className="text-lg font-black text-foreground tracking-tight leading-none uppercase">
+            DG Control Center
+          </h1>
+          <p className="text-[10px] text-muted-foreground/40 mt-1 capitalize tracking-wide">{monthLabel} {now.getFullYear()}</p>
         </div>
-        <span className="text-[7px] uppercase tracking-[0.2em] font-medium text-muted-foreground/40 border border-border px-1.5 py-0.5 rounded">
+        <span className="text-[7px] uppercase tracking-[0.25em] font-semibold text-muted-foreground/30 border border-border/60 px-2 py-0.5 rounded mb-0.5">
           Prod
         </span>
       </div>
 
-      {/* Alert banners */}
+      {/* ═══ ALERTS ═══ */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
-        <div className="space-y-1">
+        <div className="flex flex-wrap gap-1.5">
           {expired.length > 0 && (
-            <div className="flex items-center gap-3 bg-destructive/8 border border-destructive/20 rounded-md px-3 py-1.5">
-              <XCircle size={13} className="text-destructive shrink-0" />
-              <span className="text-[11px] text-destructive/90 font-medium">
-                {expired.length} cliente{expired.length > 1 ? "s" : ""} vencido{expired.length > 1 ? "s" : ""} — {fmt(revenueExpired)} inadimplência
+            <div className="flex items-center gap-2 bg-destructive/8 border border-destructive/20 rounded px-2.5 py-1">
+              <XCircle size={11} className="text-destructive shrink-0" />
+              <span className="text-[10px] text-destructive/90 font-medium">
+                {expired.length} vencido{expired.length > 1 ? "s" : ""} — {fmt(revenueExpired)}
               </span>
             </div>
           )}
           {expiringSoon.length > 0 && (
-            <div className="flex items-center gap-3 bg-yellow-500/8 border border-yellow-600/20 rounded-md px-3 py-1.5">
-              <Clock size={13} className="text-yellow-500/80 shrink-0" />
-              <span className="text-[11px] text-yellow-500/80 font-medium">
-                {expiringSoon.length} cliente{expiringSoon.length > 1 ? "s" : ""} vencendo — {fmt(revenueAtRisk)} em risco
+            <div className="flex items-center gap-2 bg-yellow-500/8 border border-yellow-600/20 rounded px-2.5 py-1">
+              <Clock size={11} className="text-yellow-500/70 shrink-0" />
+              <span className="text-[10px] text-yellow-500/70 font-medium">
+                {expiringSoon.length} vencendo — {fmt(revenueAtRisk)}
               </span>
             </div>
           )}
           {serverOccupancy >= 80 && (
-            <div className="flex items-center gap-3 bg-orange-500/8 border border-orange-600/20 rounded-md px-3 py-1.5">
-              <Gauge size={13} className="text-orange-500/80 shrink-0" />
-              <span className="text-[11px] text-orange-500/80 font-medium">
-                Servidor em {serverOccupancy}% ({totalInUse}/{SERVER_MAX_INSTANCES})
+            <div className="flex items-center gap-2 bg-orange-500/8 border border-orange-600/20 rounded px-2.5 py-1">
+              <Gauge size={11} className="text-orange-500/70 shrink-0" />
+              <span className="text-[10px] text-orange-500/70 font-medium">
+                Servidor {serverOccupancy}%
               </span>
             </div>
           )}
         </div>
       )}
 
-      {/* Financeiro */}
+      {/* ═══ FINANCEIRO — asymmetric layout ═══ */}
       <div>
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="h-px flex-1 bg-border/50" />
-          <span className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground/50 font-semibold">Financeiro — {monthLabel}</span>
-          <div className="h-px flex-1 bg-border/50" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1.5">
-          <StatCard icon={DollarSign} label="Receita Bruta"
-            value={fmt(revenueBrute)}
-            sub={`${users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length} planos ativos`}
-            hint="Contratada no mês"
-            valueColor="text-blue-400" />
-          <StatCard icon={Receipt} label="Receita Recebida"
-            value={fmt(revenueReceived)}
-            sub={`${monthPaymentsCount} pgto${monthPaymentsCount !== 1 ? "s" : ""}`}
-            hint="Caixa efetivo"
-            valueColor="text-green-400" />
-          <StatCard icon={TrendingDown} label="Descontos"
-            value={fmt(discounts)}
-            sub={`${monthPaymentsCount} pgto${monthPaymentsCount !== 1 ? "s" : ""}`}
-            hint="Concedidos no mês"
-            valueColor="text-orange-400" />
-          <StatCard icon={AlertTriangle} label="Taxas & Custos"
-            value={fmt(totalCosts)}
-            sub={`Op: ${fmt(monthCosts)} | Tx: ${fmt(paymentFees)}`}
-            hint="Operacionais + taxas"
-            valueColor="text-red-400" />
-          <StatCard icon={Wallet} label="Receita Líquida"
-            value={fmt(netRevenue)}
-            sub={netRevenue >= 0 ? "Positivo" : "Negativo"}
-            hint="Recebida − Taxas & Custos"
-            valueColor={netRevenue >= 0 ? "text-green-400" : "text-red-400"}
-            highlight={netRevenue >= 0}
-            large />
+        <p className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 font-semibold mb-2">Financeiro</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+          {/* Hero: Receita Líquida */}
+          <div className={`lg:col-span-5 rounded-md px-4 py-4 bg-card border transition-all duration-200 hover:border-green-500/30 ${
+            netRevenue >= 0
+              ? "border-green-500/20 shadow-[0_0_24px_-8px_rgba(34,197,94,0.08)]"
+              : "border-red-500/20"
+          }`}>
+            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.14em] font-medium">Receita Líquida</p>
+            <p className={`text-3xl font-black mt-1 leading-none ${netRevenue >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {fmt(netRevenue)}
+            </p>
+            <p className="text-[9px] text-muted-foreground/35 mt-2">Recebida − Taxas & Custos · {netRevenue >= 0 ? "Positivo" : "Negativo"}</p>
+          </div>
+
+          {/* Secondary: Receita Bruta + Recebida */}
+          <div className="lg:col-span-4 grid grid-cols-1 gap-2">
+            <div className="bg-card border border-border rounded-md px-3.5 py-3 transition-all duration-200 hover:bg-accent/5">
+              <Metric label="Receita Bruta" value={fmt(revenueBrute)} sub={`${activePlans} planos ativos · Contratada`} valueColor="text-blue-400" className="text-lg" />
+            </div>
+            <div className="bg-card border border-border rounded-md px-3.5 py-3 transition-all duration-200 hover:bg-accent/5">
+              <Metric label="Receita Recebida" value={fmt(revenueReceived)} sub={`${monthPaymentsCount} pgto${monthPaymentsCount !== 1 ? "s" : ""} · Caixa`} valueColor="text-green-400" className="text-lg" />
+            </div>
+          </div>
+
+          {/* Tertiary: Descontos + Custos */}
+          <div className="lg:col-span-3 grid grid-cols-1 gap-2">
+            <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+              <Metric label="Descontos" value={fmt(discounts)} sub="Concedidos" valueColor="text-orange-400" className="text-base" />
+            </div>
+            <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+              <Metric label="Taxas & Custos" value={fmt(totalCosts)} sub={`Op ${fmt(monthCosts)} · Tx ${fmt(paymentFees)}`} valueColor="text-red-400" className="text-base" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Operacional */}
+      {/* ═══ OPERACIONAL ═══ */}
       <div>
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="h-px flex-1 bg-border/50" />
-          <span className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground/50 font-semibold">Operacional</span>
-          <div className="h-px flex-1 bg-border/50" />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5">
-          <StatCard icon={Server} label="Instâncias Liberadas"
-            value={totalAllocated} sub={`Capacidade: ${SERVER_MAX_INSTANCES}`} />
-          <StatCard icon={Server} label="Instâncias em Uso"
-            value={totalInUse} sub={`${stats.active_devices} conectadas`} />
-          <StatCard icon={Gauge} label="Ocupação"
-            value={`${serverOccupancy}%`} sub={`${totalInUse}/${SERVER_MAX_INSTANCES}`}
-            valueColor={serverOccupancy >= 80 ? "text-red-400" : "text-green-400"} />
-          <StatCard icon={Ban} label="Bloqueados"
-            value={blocked.length} sub="Suspensos + cancelados" />
+        <p className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 font-semibold mb-2">Operacional</p>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+            <Metric label="Liberadas" value={totalAllocated} sub={`Cap. ${SERVER_MAX_INSTANCES}`} className="text-base" />
+          </div>
+          <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+            <Metric label="Em Uso" value={totalInUse} sub={`${stats.active_devices} conectadas`} className="text-base" />
+          </div>
+          <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+            <Metric label="Ocupação" value={`${serverOccupancy}%`} valueColor={serverOccupancy >= 80 ? "text-red-400" : "text-green-400"} className="text-base" />
+          </div>
+          <div className="bg-card border border-border rounded-md px-3 py-2.5 transition-all duration-200 hover:bg-accent/5">
+            <Metric label="Bloqueados" value={blocked.length} sub="Suspensos + cancelados" className="text-base" />
+          </div>
         </div>
 
         {/* Capacity bar */}
-        <div className="bg-card border border-border rounded-md px-2.5 py-1.5 mt-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.12)]">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Capacidade do Servidor</span>
-          </div>
-          <div className="relative h-6 bg-[hsl(220,12%,10%)] rounded-sm overflow-hidden">
+        <div className="mt-2 bg-card border border-border rounded-md px-3 py-2">
+          <div className="relative h-5 bg-background rounded-sm overflow-hidden">
             <div
               className={`h-full rounded-sm transition-all flex items-center justify-center ${
                 serverOccupancy >= 90
@@ -250,9 +230,9 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
                   ? "bg-gradient-to-r from-yellow-600 to-yellow-500"
                   : "bg-gradient-to-r from-emerald-600/90 to-emerald-500"
               }`}
-              style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 10)}%` }}
+              style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 8)}%` }}
             >
-              <span className="text-[11px] font-bold text-white drop-shadow-sm">
+              <span className="text-[10px] font-bold text-white drop-shadow-sm whitespace-nowrap">
                 {totalInUse} / {SERVER_MAX_INSTANCES}
               </span>
             </div>
