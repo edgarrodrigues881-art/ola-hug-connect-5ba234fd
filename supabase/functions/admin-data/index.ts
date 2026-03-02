@@ -339,9 +339,7 @@ Deno.serve(async (req) => {
 
     // ─── ADD PAYMENT ───
     if (action === "add-payment" && req.method === "POST") {
-      const body = await req.json();
-      console.log("[add-payment] FULL BODY:", JSON.stringify(body));
-      const { target_user_id, amount, method, notes, paid_at, discount, fee } = body;
+      const { target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
       await adminClient.from("payments").insert({
         user_id: target_user_id,
         amount,
@@ -360,9 +358,7 @@ Deno.serve(async (req) => {
 
     // ─── UPDATE PAYMENT ───
     if (action === "update-payment" && req.method === "POST") {
-      const body = await req.json();
-      console.log("[update-payment] FULL BODY:", JSON.stringify(body));
-      const { payment_id, target_user_id, amount, method, notes, paid_at, discount, fee } = body;
+      const { payment_id, target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
       await adminClient.from("payments").update({ amount, method, notes, paid_at, discount: discount || 0, fee: fee || 0 }).eq("id", payment_id);
       await logAction(adminClient, user.id, target_user_id, "update-payment", `Pagamento atualizado: R$ ${amount} (desc: R$ ${discount || 0}, taxa: R$ ${fee || 0}) via ${method}`);
       return new Response(JSON.stringify({ success: true }), {

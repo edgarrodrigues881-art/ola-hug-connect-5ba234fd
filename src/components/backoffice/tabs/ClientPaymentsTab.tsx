@@ -118,17 +118,14 @@ const ClientPaymentsTab = ({ client }: Props) => {
     const am = parseBRL(form.amount);
     const feeVal = parseBRL(form.fee);
     const discount = pv > 0 && am > 0 && pv > am ? pv - am : 0;
-    const body = {
+    return {
       amount: am,
       method: form.method,
       notes: form.notes,
       paid_at: new Date(form.paid_at).toISOString(),
-      discount,
-      fee: feeVal,
+      discount: Math.round(discount * 100) / 100,
+      fee: Math.round(feeVal * 100) / 100,
     };
-    console.log("[buildBody] form:", JSON.stringify(form));
-    console.log("[buildBody] result:", JSON.stringify(body));
-    return body;
   };
 
   const addPayment = () => {
