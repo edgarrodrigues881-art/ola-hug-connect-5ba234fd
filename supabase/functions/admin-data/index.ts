@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     const { user, adminClient } = await verifyAdmin(req);
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "dashboard";
+    console.log("[admin-data] action:", action, "user:", user.id);
 
     // ─── DASHBOARD ───
     if (action === "dashboard") {
@@ -498,6 +499,7 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("[admin-data] ERROR:", error.message, error.stack);
     const status = error.message?.includes("autorizado") ? 401 : error.message?.includes("negado") ? 403 : 500;
     return new Response(JSON.stringify({ error: error.message }), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
