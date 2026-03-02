@@ -1463,7 +1463,19 @@ const Devices = () => {
                   {connectStep === "done" ? "Conectado!" : "Conectar instância"}
                 </DialogTitle>
                 {connectingDevice && connectStep !== "done" && (
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">{connectingDevice.name}</p>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground/50">{connectingDevice.name}</p>
+                    <Input
+                      value={connectingDevice.number || ""}
+                      onChange={e => {
+                        if (connectingDevice) {
+                          setConnectingDevice({ ...connectingDevice, number: e.target.value });
+                        }
+                      }}
+                      placeholder="Seu número: 5563912345678"
+                      className="h-5 text-[10px] font-mono bg-transparent border-none shadow-none px-0 py-0 text-muted-foreground/60 placeholder:text-muted-foreground/30 focus-visible:ring-0 w-44 mt-0.5"
+                    />
+                  </div>
                 )}
               </div>
             </div>
