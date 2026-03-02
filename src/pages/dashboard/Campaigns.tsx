@@ -1674,11 +1674,18 @@ const Campaigns = () => {
           >
             <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
           </Button>
-          {step < 4 ? (
-            <Button onClick={() => setStep(step + 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-              CONTINUAR <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide">
+                ← VOLTAR
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button onClick={() => setStep(step + 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
+                CONTINUAR <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
 
