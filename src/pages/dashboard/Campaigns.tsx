@@ -1118,80 +1118,80 @@ const Campaigns = () => {
           <div className="space-y-8">
 
             {/* Import area */}
-            <SurfaceCard className="p-6 space-y-5">
-              <SectionLabel>Importar Contatos</SectionLabel>
+            <SurfaceCard className="p-0 overflow-hidden">
               <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
               
               {validContacts.length === 0 ? (
-                <div className="py-12 flex flex-col items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center">
-                    <Upload className="w-7 h-7 text-primary" />
+                /* ── Empty state with integrated drag area ── */
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                  onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); const f = e.dataTransfer.files[0]; if (f && fileRef.current) { const dt = new DataTransfer(); dt.items.add(f); fileRef.current.files = dt.files; fileRef.current.dispatchEvent(new Event("change", { bubbles: true })); } }}
+                  className="w-full py-16 flex flex-col items-center gap-6 transition-all duration-200 hover:bg-muted/5 group cursor-pointer"
+                >
+                  <div className="w-18 h-18 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Upload className="w-8 h-8 text-primary" />
                   </div>
-                  <div className="text-center max-w-sm">
-                    <p className="text-base font-semibold text-foreground">Importe sua lista de contatos</p>
-                    <p className="text-sm text-muted-foreground/60 mt-2 leading-relaxed">Arraste uma planilha ou use os botões abaixo. Detectamos automaticamente colunas de nome e número.</p>
+                  <div className="text-center max-w-md">
+                    <p className="text-lg font-bold text-foreground">Arraste sua planilha aqui</p>
+                    <p className="text-sm text-muted-foreground/50 mt-2 leading-relaxed">ou clique para selecionar — .xlsx, .xls, .csv</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button 
-                      onClick={() => fileRef.current?.click()} 
-                      className="gap-2 h-12 px-6 text-sm font-bold shadow-lg shadow-primary/25 flex-1"
-                    >
-                      <Upload className="w-4 h-4" /> Importar Planilha
-                    </Button>
-                    <Button variant="outline" className="h-12 px-6 text-sm font-bold border-border/30 gap-2 hover:bg-primary/5 hover:border-primary/30 flex-1" onClick={() => setImportFromContacts(true)}>
-                      <Users className="w-4 h-4" /> Base de Contatos
-                    </Button>
-                    <Button variant="outline" className="h-12 px-6 text-sm font-bold border-border/30 gap-2 hover:bg-primary/5 hover:border-primary/30 flex-1" onClick={addContact}>
-                      <Plus className="w-4 h-4" /> Manual
-                    </Button>
-                  </div>
-                </div>
+                </button>
               ) : (
-                <>
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2.5 transition-colors duration-100 hover:bg-primary/5 group"
-                  >
-                    <div className="w-11 h-11 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Upload className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-foreground/70 group-hover:text-foreground transition-colors">Arraste ou clique para importar</p>
-                      <p className="text-[11px] text-muted-foreground/40 mt-1">.xlsx, .xls, .csv — Detecção inteligente</p>
-                    </div>
-                  </button>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={() => setImportFromContacts(true)}>
-                      <Users className="w-3.5 h-3.5" /> Base de Contatos
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-9 border-border/30 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
-                      <Plus className="w-3.5 h-3.5" /> Adicionar Manual
-                    </Button>
-                    {contacts.length > 0 && (
-                      <Popover open={showContactTools} onOpenChange={setShowContactTools}>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground gap-1.5 ml-auto">
-                            <Settings2 className="w-3.5 h-3.5" /> Ferramentas
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-44 p-1 bg-popover border-border z-50" align="end">
-                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeDuplicates(); setShowContactTools(false); }}>
-                            <Copy className="w-3.5 h-3.5" /> Remover duplicados
-                          </button>
-                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { removeInvalid(); setShowContactTools(false); }}>
-                            <XCircle className="w-3.5 h-3.5" /> Limpar inválidos
-                          </button>
-                          <div className="h-px bg-border/30 my-1" />
-                          <button className="w-full text-left px-2.5 py-2 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2" onClick={() => { addPrefixToNumbers("55"); setShowContactTools(false); }}>
-                            <Phone className="w-3.5 h-3.5" /> Adicionar DDI (55)
-                          </button>
-                        </PopoverContent>
-                      </Popover>
-                    )}
+                /* ── Compact drag area when contacts exist ── */
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                  onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); const f = e.dataTransfer.files[0]; if (f && fileRef.current) { const dt = new DataTransfer(); dt.items.add(f); fileRef.current.files = dt.files; fileRef.current.dispatchEvent(new Event("change", { bubbles: true })); } }}
+                  className="w-full py-8 flex flex-col items-center gap-3 transition-all duration-200 hover:bg-muted/5 group cursor-pointer border-b border-border/8"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Upload className="w-5 h-5 text-primary" />
                   </div>
-                </>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-foreground/70 group-hover:text-foreground transition-colors">Arraste ou clique para importar mais</p>
+                    <p className="text-[11px] text-muted-foreground/30 mt-1">.xlsx, .xls, .csv — Importação cumulativa</p>
+                  </div>
+                </button>
               )}
+
+              {/* Action bar — always visible */}
+              <div className="px-5 py-3.5 flex items-center gap-2 border-b border-border/8 bg-muted/3 dark:bg-muted/2">
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/20 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={() => fileRef.current?.click()}>
+                  <Upload className="w-3.5 h-3.5" /> Planilha
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/20 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={() => setImportFromContacts(true)}>
+                  <Users className="w-3.5 h-3.5" /> Base
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border/20 gap-1.5 hover:bg-primary/5 hover:border-primary/30" onClick={addContact}>
+                  <Plus className="w-3.5 h-3.5" /> Manual
+                </Button>
+
+                {contacts.length > 0 && (
+                  <>
+                    <div className="h-5 w-px bg-border/15 mx-1" />
+                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={removeDuplicates} title="Remover duplicados">
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={removeInvalid} title="Limpar inválidos">
+                      <XCircle className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs h-9 text-muted-foreground/50 gap-1.5 hover:text-foreground" onClick={() => addPrefixToNumbers("55")} title="Adicionar DDI (55)">
+                      <Phone className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                )}
+
+                {contacts.length > 0 && (
+                  <span className="ml-auto text-[11px] text-muted-foreground/40 tabular-nums font-medium">
+                    {validContacts.length} contato{validContacts.length !== 1 ? "s" : ""}
+                    {invalidContacts.length > 0 && <span className="text-amber-400/70 ml-1.5">· {invalidContacts.length} inválido{invalidContacts.length !== 1 ? "s" : ""}</span>}
+                    {duplicateCount > 0 && <span className="text-amber-400/70 ml-1.5">· {duplicateCount} duplicado{duplicateCount !== 1 ? "s" : ""}</span>}
+                  </span>
+                )}
+              </div>
             </SurfaceCard>
 
             {/* ── Import from saved contacts dialog ── */}
@@ -1227,80 +1227,72 @@ const Campaigns = () => {
             {showContactTable && contacts.length > 0 && (() => {
               const varKeys = (["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const)
                 .filter(k => contacts.some(c => c[k]?.trim()));
+              const isNumValid = (n: string) => /^\d{10,15}$/.test(n.replace(/\D/g, ""));
               return (
               <SurfaceCard className="p-0 overflow-hidden">
-                <div className="overflow-auto max-h-96 rounded-xl">
-                  <table className="w-full text-[11px]">
+                <div className="overflow-auto max-h-[420px] rounded-xl">
+                  <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
-                      <tr className="border-b border-border/15">
-                        <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold w-8">#</th>
-                        <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">Nome</th>
-                        <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">Número</th>
+                      <tr className="border-b border-border/10">
+                        <th className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold w-10 text-[10px]">#</th>
+                        <th className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold text-[10px] uppercase tracking-wider">Nome</th>
+                        <th className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold text-[10px] uppercase tracking-wider">Número</th>
                         {varKeys.map(k => (
-                          <th key={k} className="text-left px-3 py-3 text-muted-foreground/60 font-semibold">{k.replace("var", "Var ")}</th>
+                          <th key={k} className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold text-[10px] uppercase tracking-wider">{k.replace("var", "Var ")}</th>
                         ))}
-                        <th className="text-left px-3 py-3 text-muted-foreground/60 font-semibold w-12"></th>
+                        <th className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold w-10"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedContacts.map((c, i) => (
-                        <tr key={c.id} className="border-b border-border/8 hover:bg-muted/8">
-                          <td className="px-3 py-2 text-muted-foreground/30 tabular-nums">{contactPage * CONTACTS_PER_PAGE + i + 1}</td>
-                          <td className="px-3 py-2">
-                            <Input value={c.nome} onChange={(e) => updateContact(c.id, "nome", e.target.value)} className="h-7 text-[11px] bg-transparent border-none p-0" placeholder="Nome" />
+                      {paginatedContacts.map((c, i) => {
+                        const valid = isNumValid(c.numero);
+                        return (
+                        <tr key={c.id} className={cn(
+                          "border-b border-border/5 transition-colors",
+                          i % 2 === 0 ? "bg-transparent" : "bg-muted/4 dark:bg-muted/2",
+                          "hover:bg-primary/3"
+                        )}>
+                          <td className="px-4 py-2.5 text-muted-foreground/25 tabular-nums text-[11px]">{contactPage * CONTACTS_PER_PAGE + i + 1}</td>
+                          <td className="px-4 py-2.5">
+                            <Input value={c.nome} onChange={(e) => updateContact(c.id, "nome", e.target.value)} className="h-8 text-xs bg-transparent border-none p-0 focus-visible:ring-0" placeholder="Nome" />
                           </td>
-                          <td className="px-3 py-2">
-                            <Input value={c.numero} onChange={(e) => updateContact(c.id, "numero", e.target.value)} className="h-7 text-[11px] bg-transparent border-none p-0 font-mono" placeholder="Número" />
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <Input value={c.numero} onChange={(e) => updateContact(c.id, "numero", e.target.value)} className={cn("h-8 text-xs bg-transparent border-none p-0 font-mono focus-visible:ring-0", !valid && c.numero && "text-amber-400")} placeholder="Número" />
+                              {!valid && c.numero && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="Número inválido" />
+                              )}
+                            </div>
                           </td>
                           {varKeys.map(k => (
-                            <td key={k} className="px-3 py-2">
-                              <Input value={c[k]} onChange={(e) => updateContact(c.id, k, e.target.value)} className="h-7 text-[11px] bg-transparent border-none p-0" placeholder={k.replace("var", "Var ")} />
+                            <td key={k} className="px-4 py-2.5">
+                              <Input value={c[k]} onChange={(e) => updateContact(c.id, k, e.target.value)} className="h-8 text-xs bg-transparent border-none p-0 focus-visible:ring-0" placeholder={k.replace("var", "Var ")} />
                             </td>
                           ))}
-                          <td className="px-3 py-2">
-                            <button onClick={() => removeContact(c.id)} className="text-muted-foreground/20 hover:text-destructive transition-colors">
-                              <X className="w-3 h-3" />
+                          <td className="px-4 py-2.5">
+                            <button onClick={() => removeContact(c.id)} className="text-muted-foreground/15 hover:text-destructive transition-colors p-1 rounded-md hover:bg-destructive/10">
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/10 bg-muted/5">
-                    <span className="text-[10px] text-muted-foreground/40">{contacts.length} contatos</span>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" disabled={contactPage === 0} onClick={() => setContactPage(p => p - 1)} className="h-7 text-[10px]">Anterior</Button>
-                      <span className="text-[10px] text-muted-foreground/50 px-2 flex items-center">{contactPage + 1}/{totalPages}</span>
-                      <Button variant="ghost" size="sm" disabled={contactPage >= totalPages - 1} onClick={() => setContactPage(p => p + 1)} className="h-7 text-[10px]">Próximo</Button>
+                  <div className="flex items-center justify-between px-5 py-3 border-t border-border/8 bg-muted/3">
+                    <span className="text-[11px] text-muted-foreground/40 tabular-nums">{contacts.length} contatos</span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" disabled={contactPage === 0} onClick={() => setContactPage(p => p - 1)} className="h-8 text-xs px-3">← Anterior</Button>
+                      <span className="text-[11px] text-muted-foreground/40 px-3 tabular-nums">{contactPage + 1} / {totalPages}</span>
+                      <Button variant="ghost" size="sm" disabled={contactPage >= totalPages - 1} onClick={() => setContactPage(p => p + 1)} className="h-8 text-xs px-3">Próximo →</Button>
                     </div>
                   </div>
                 )}
               </SurfaceCard>
               );
             })()}
-
-            {/* Metrics - below list */}
-            <div className="grid grid-cols-3 gap-5">
-              {[
-                { label: "Contatos Carregados", value: validContacts.length, icon: Users, color: "text-primary", bgIcon: "bg-primary/10", isMain: true },
-                { label: "Números Inválidos", value: invalidContacts.length, icon: XCircle, color: invalidContacts.length > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: invalidContacts.length > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
-                { label: "Duplicados", value: duplicateCount, icon: Copy, color: duplicateCount > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: duplicateCount > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
-              ].map(m => (
-                <SurfaceCard key={m.label} className={cn("p-5", m.isMain && "ring-1 ring-primary/15")}>
-                  <div className="flex items-center gap-3.5">
-                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", m.bgIcon)}>
-                      <m.icon className={cn("w-5 h-5", m.color)} />
-                    </div>
-                    <div>
-                      <p className={cn("text-2xl font-bold tabular-nums leading-none", m.color)}>{m.value}</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-medium uppercase tracking-wider">{m.label}</p>
-                    </div>
-                  </div>
-                </SurfaceCard>
-              ))}
-            </div>
 
           </div>
         )}
