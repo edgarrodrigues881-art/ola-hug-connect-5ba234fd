@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronRight, AlertTriangle, Shield, Clock, XCircle } from "lucide-react";
+import { Search, ChevronRight, AlertTriangle, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/hooks/useAdmin";
 
@@ -10,21 +9,11 @@ interface Props {
   onSelectClient: (u: AdminUser) => void;
 }
 
-const statusColors: Record<string, string> = {
-  active: "bg-green-600",
-  suspended: "bg-yellow-600",
-  cancelled: "bg-red-600",
-};
-const statusLabels: Record<string, string> = {
-  active: "Ativo",
-  suspended: "Suspenso",
-  cancelled: "Cancelado",
-};
-const planBadgeColors: Record<string, string> = {
-  Start: "bg-zinc-600",
-  Pro: "bg-blue-600",
-  Scale: "bg-purple-600",
-  Elite: "bg-amber-600",
+const planColors: Record<string, string> = {
+  Start: "text-zinc-400",
+  Pro: "text-blue-400",
+  Scale: "text-purple-400",
+  Elite: "text-amber-500",
 };
 
 function getDaysLeft(expiresAt: string | null): number | null {
@@ -33,13 +22,16 @@ function getDaysLeft(expiresAt: string | null): number | null {
 }
 
 function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | null }): { label: string; color: string } {
-  if (!u.plan_name) return { label: "Sem plano", color: "bg-zinc-600" };
+  if (!u.plan_name) return { label: "Sem plano", color: "text-muted-foreground" };
   const d = getDaysLeft(u.plan_expires_at);
-  if (d === null) return { label: "Sem plano", color: "bg-zinc-600" };
-  if (d <= 0) return { label: "Vencida", color: "bg-red-600" };
-  if (d <= 3) return { label: "Vencendo", color: "bg-yellow-600" };
-  return { label: "Ativa", color: "bg-green-600" };
+  if (d === null) return { label: "Sem plano", color: "text-muted-foreground" };
+  if (d <= 0) return { label: "Vencida", color: "text-destructive" };
+  if (d <= 3) return { label: "Vencendo", color: "text-yellow-500" };
+  return { label: "Ativa", color: "text-green-500" };
 }
+
+const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
+const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
 const AdminClientsTable = ({ users, onSelectClient }: Props) => {
   const [search, setSearch] = useState("");
@@ -52,9 +44,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
       if (filter === "expiring" && sub.label !== "Vencendo") return false;
       if (filter === "expired" && sub.label !== "Vencida") return false;
       if (filter === "risk" && !u.risk_flag) return false;
-      if (filter === "Start" || filter === "Pro" || filter === "Scale" || filter === "Elite") {
-        if (u.plan_name !== filter) return false;
-      }
+      if (["Start", "Pro", "Scale", "Elite"].includes(filter) && u.plan_name !== filter) return false;
       if (filter === "active" && u.status !== "active") return false;
       if (filter === "suspended" && u.status !== "suspended") return false;
       if (filter === "cancelled" && u.status !== "cancelled") return false;
@@ -87,43 +77,40 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-          <Input placeholder="Buscar por nome, email ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-zinc-900 border-zinc-700 text-zinc-100" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar por nome, email ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
         </div>
         <div className="flex gap-1 flex-wrap">
           {filters.map(f => (
             <Button key={f.value} size="sm" variant={filter === f.value ? "default" : "outline"}
               onClick={() => setFilter(f.value)}
               className={filter === f.value
-                ? f.value === "expired" || f.value === "risk" ? "bg-red-600 hover:bg-red-700 text-white"
-                : f.value === "expiring" ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : "bg-purple-600 hover:bg-purple-700 text-white"
-                : "border-zinc-700 text-zinc-400 text-[11px] px-2"
+                ? "bg-primary hover:bg-primary/90 text-primary-foreground text-[11px]"
+                : "border-border text-muted-foreground text-[11px] px-2"
               }
             >{f.label}</Button>
           ))}
         </div>
       </div>
 
-      <div className="border border-zinc-700 rounded-xl overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-zinc-800 text-zinc-400 text-[10px] uppercase tracking-wider">
-                <th className="text-left px-3 py-3">Cliente</th>
-                <th className="text-left px-3 py-3">Telefone</th>
-                <th className="text-left px-3 py-3">Plano</th>
-                <th className="text-left px-3 py-3">Instâncias</th>
-                <th className="text-left px-3 py-3">Conta</th>
-                <th className="text-left px-3 py-3">Assinatura</th>
-                <th className="text-left px-3 py-3">Vencimento</th>
-                <th className="text-left px-3 py-3">Dias</th>
-                <th className="text-right px-3 py-3"></th>
+              <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
+                <th className="text-left px-3 py-2.5">Cliente</th>
+                <th className="text-left px-3 py-2.5">Telefone</th>
+                <th className="text-left px-3 py-2.5">Plano</th>
+                <th className="text-left px-3 py-2.5">Instâncias</th>
+                <th className="text-left px-3 py-2.5">Conta</th>
+                <th className="text-left px-3 py-2.5">Assinatura</th>
+                <th className="text-left px-3 py-2.5">Vencimento</th>
+                <th className="text-right px-3 py-2.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-8 text-zinc-500">Nenhum cliente encontrado</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
               ) : filtered.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
@@ -131,51 +118,47 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                 const sub = getSubStatus(u);
 
                 return (
-                  <tr key={u.id} className="hover:bg-zinc-800/50 transition-colors cursor-pointer" onClick={() => onSelectClient(u)}>
-                    <td className="px-3 py-3">
+                  <tr key={u.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onSelectClient(u)}>
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-zinc-100 font-medium text-xs">{u.full_name || "—"}</span>
-                        {u.risk_flag && <Badge className="bg-red-600/80 text-white text-[8px] px-1"><AlertTriangle size={9} /></Badge>}
-                        {u.roles.includes("admin") && <Badge className="bg-purple-600/80 text-white text-[8px] px-1"><Shield size={9} /></Badge>}
+                        <span className="text-foreground font-medium text-xs">{u.full_name || "—"}</span>
+                        {u.risk_flag && <AlertTriangle size={12} className="text-destructive" />}
+                        {u.roles.includes("admin") && <Shield size={12} className="text-primary" />}
                       </div>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">{u.email}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
                     </td>
-                    <td className="px-3 py-3 text-zinc-400 text-xs">{u.phone || "—"}</td>
-                    <td className="px-3 py-3">
-                      {u.plan_name ? (
-                        <Badge className={`${planBadgeColors[u.plan_name] || "bg-zinc-600"} text-white text-[10px] px-2`}>{u.plan_name}</Badge>
-                      ) : <span className="text-zinc-500 text-xs">Sem plano</span>}
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs">{u.phone || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-xs font-medium ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>
+                        {u.plan_name || "—"}
+                      </span>
                     </td>
-                    <td className="px-3 py-3">
-                      <span className={`font-medium text-xs ${u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-red-400" : "text-zinc-300"}`}>
+                    <td className="px-3 py-2.5">
+                      <span className={`font-medium text-xs ${u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-destructive" : "text-foreground"}`}>
                         {u.devices_count}
                       </span>
-                      <span className="text-zinc-500 text-xs">/{u.max_instances}</span>
+                      <span className="text-muted-foreground text-xs">/{u.max_instances}</span>
                     </td>
-                    <td className="px-3 py-3">
-                      <Badge className={`${statusColors[u.status] || "bg-zinc-600"} text-white text-[9px] px-1.5`}>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-xs font-medium ${statusTextColor[u.status] || "text-muted-foreground"}`}>
                         {statusLabels[u.status] || u.status}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="px-3 py-3">
-                      <Badge className={`${sub.color} text-white text-[9px] px-1.5`}>{sub.label}</Badge>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-xs font-medium ${sub.color}`}>{sub.label}</span>
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 text-[11px]">{u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}</span>
-                        {isExpired && <Badge className="bg-red-600/80 text-white text-[8px] px-1">Vencido</Badge>}
-                        {isExpiring && <Badge className="bg-yellow-600/80 text-white text-[8px] px-1">{daysLeft}d</Badge>}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      {daysLeft !== null ? (
-                        <span className={`text-[11px] font-medium ${isExpired ? "text-red-400" : isExpiring ? "text-yellow-400" : "text-zinc-300"}`}>
-                          {isExpired ? "Vencido" : `${daysLeft}d`}
+                    <td className="px-3 py-2.5">
+                      <span className="text-muted-foreground text-[11px]">
+                        {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
+                      </span>
+                      {daysLeft !== null && (
+                        <span className={`ml-1.5 text-[10px] font-medium ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-muted-foreground"}`}>
+                          ({isExpired ? "vencido" : `${daysLeft}d`})
                         </span>
-                      ) : <span className="text-zinc-500 text-[11px]">—</span>}
+                      )}
                     </td>
-                    <td className="px-3 py-3 text-right">
-                      <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 text-xs px-2">
+                    <td className="px-3 py-2.5 text-right">
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
                         Gerenciar <ChevronRight size={12} className="ml-1" />
                       </Button>
                     </td>
@@ -186,7 +169,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
           </table>
         </div>
       </div>
-      <p className="text-xs text-zinc-500 text-right">{filtered.length} de {users.length} clientes</p>
+      <p className="text-xs text-muted-foreground text-right">{filtered.length} de {users.length} clientes</p>
     </div>
   );
 };

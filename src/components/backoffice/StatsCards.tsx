@@ -6,24 +6,24 @@ interface Props {
 }
 
 const Card = ({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) => (
-  <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-5 flex items-start gap-4">
-    <div className="p-2.5 rounded-lg bg-purple-600/20 text-purple-400">
-      <Icon size={22} />
+  <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+    <div className="p-2 rounded-md bg-primary/15 text-primary">
+      <Icon size={20} />
     </div>
     <div className="flex-1">
-      <p className="text-xs text-zinc-400 uppercase tracking-wide">{label}</p>
-      <div className="mt-1">{children}</div>
+      <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">{label}</p>
+      <div className="mt-0.5">{children}</div>
     </div>
   </div>
 );
 
 const StatsCards = ({ totalClients, totalConnected }: Props) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <Card icon={Users} label="Clientes ativos">
-      <p className="text-2xl font-bold">{totalClients}</p>
+      <p className="text-xl font-bold text-foreground">{totalClients}</p>
     </Card>
     <Card icon={Wifi} label="Instâncias conectadas">
-      <p className="text-2xl font-bold">{totalConnected}</p>
+      <p className="text-xl font-bold text-foreground">{totalConnected}</p>
     </Card>
   </div>
 );
