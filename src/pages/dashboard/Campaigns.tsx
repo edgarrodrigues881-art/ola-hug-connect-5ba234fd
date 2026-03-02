@@ -1123,26 +1123,6 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            {/* Metrics - enhanced hierarchy */}
-            <div className="grid grid-cols-3 gap-5">
-              {[
-                { label: "Contatos Carregados", value: validContacts.length, icon: Users, color: "text-primary", bgIcon: "bg-primary/10", isMain: true },
-                { label: "Números Inválidos", value: invalidContacts.length, icon: XCircle, color: invalidContacts.length > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: invalidContacts.length > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
-                { label: "Duplicados", value: duplicateCount, icon: Copy, color: duplicateCount > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: duplicateCount > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
-              ].map(m => (
-                <SurfaceCard key={m.label} className={cn("p-5", m.isMain && "ring-1 ring-primary/15")}>
-                  <div className="flex items-center gap-3.5">
-                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", m.bgIcon)}>
-                      <m.icon className={cn("w-5 h-5", m.color)} />
-                    </div>
-                    <div>
-                      <p className={cn("text-2xl font-bold tabular-nums leading-none", m.color)}>{m.value}</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-medium uppercase tracking-wider">{m.label}</p>
-                    </div>
-                  </div>
-                </SurfaceCard>
-              ))}
-            </div>
 
             {/* Import area */}
             <SurfaceCard className="p-6 space-y-5">
@@ -1150,7 +1130,6 @@ const Campaigns = () => {
               <input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
               
               {validContacts.length === 0 ? (
-                /* Enhanced empty state */
                 <div className="py-12 flex flex-col items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/8 flex items-center justify-center">
                     <Upload className="w-7 h-7 text-primary" />
@@ -1175,7 +1154,6 @@ const Campaigns = () => {
                   </div>
                 </div>
               ) : (
-                /* Existing contacts loaded - compact import area */
                 <>
                   <button
                     onClick={() => fileRef.current?.click()}
@@ -1310,6 +1288,27 @@ const Campaigns = () => {
               );
             })()}
 
+            {/* Metrics - below list */}
+            <div className="grid grid-cols-3 gap-5">
+              {[
+                { label: "Contatos Carregados", value: validContacts.length, icon: Users, color: "text-primary", bgIcon: "bg-primary/10", isMain: true },
+                { label: "Números Inválidos", value: invalidContacts.length, icon: XCircle, color: invalidContacts.length > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: invalidContacts.length > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
+                { label: "Duplicados", value: duplicateCount, icon: Copy, color: duplicateCount > 0 ? "text-amber-400" : "text-muted-foreground/40", bgIcon: duplicateCount > 0 ? "bg-amber-500/10" : "bg-muted/20", isMain: false },
+              ].map(m => (
+                <SurfaceCard key={m.label} className={cn("p-5", m.isMain && "ring-1 ring-primary/15")}>
+                  <div className="flex items-center gap-3.5">
+                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", m.bgIcon)}>
+                      <m.icon className={cn("w-5 h-5", m.color)} />
+                    </div>
+                    <div>
+                      <p className={cn("text-2xl font-bold tabular-nums leading-none", m.color)}>{m.value}</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-medium uppercase tracking-wider">{m.label}</p>
+                    </div>
+                  </div>
+                </SurfaceCard>
+              ))}
+            </div>
+
           </div>
         )}
 
@@ -1330,7 +1329,7 @@ const Campaigns = () => {
                   <Smartphone className="w-3.5 h-3.5" /> Instância de Envio
                 </SectionLabel>
                 {selectedDevices.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                  <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
                     {selectedDevices.length} selecionada(s)
                   </Badge>
                 )}
@@ -1338,190 +1337,43 @@ const Campaigns = () => {
 
               {devices.length === 0 ? (
                 <div className="py-8 flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-muted/20 dark:bg-muted/10 flex items-center justify-center">
-                    <WifiOff className="w-5 h-5 text-muted-foreground/40" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">Nenhuma instância conectada</p>
-                  <Button variant="outline" size="sm" className="text-xs h-9 border-border/30">Conectar agora</Button>
+                  <WifiOff className="w-8 h-8 text-muted-foreground/20" />
+                  <p className="text-sm text-muted-foreground/50">Nenhuma instância encontrada</p>
                 </div>
               ) : (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-11 w-full justify-between text-sm bg-muted/15 dark:bg-muted/8 border-border/25 hover:border-primary/40 font-normal">
-                      <span className="truncate">
-                        {selectedDevices.length === 0 ? "Selecionar instância(s)" : selectedDevices.length === devices.length ? "Todas selecionadas" : selectedDevicesData.map(d => d.name).join(", ")}
-                      </span>
-                      <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-2 space-y-1" align="start">
-                    <button onClick={() => { if (selectedDevices.length === devices.length) setSelectedDevices([]); else setSelectedDevices(devices.map(d => d.id)); }}
-                      className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors hover:bg-accent", selectedDevices.length === devices.length && "bg-accent")}>
-                      <Checkbox checked={selectedDevices.length === devices.length} className="h-4 w-4" />
-                      <span className="font-medium">Selecionar todas</span>
-                      <Badge variant="secondary" className="text-[9px] h-4 ml-auto">{devices.length}</Badge>
-                    </button>
-                    <div className="h-px bg-border/20 my-1" />
-                    {devices.map(d => {
-                      const s = getDeviceStatus(d.status);
-                      const isSelected = selectedDevices.includes(d.id);
-                      return (
-                        <button key={d.id} onClick={() => setSelectedDevices(prev => isSelected ? prev.filter(id => id !== d.id) : [...prev, d.id])}
-                          className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors hover:bg-accent", isSelected && "bg-accent/60")}>
-                          <Checkbox checked={isSelected} className="h-4 w-4" />
-                          <div className={cn("w-2 h-2 rounded-full shrink-0", d.status === "Ready" ? "bg-emerald-400" : d.status === "QR" ? "bg-amber-400" : "bg-red-400")} />
-                          <span className="truncate">{d.name}</span>
-                          <span className={cn("text-[10px] ml-auto shrink-0", s.color)}>{s.label}</span>
-                        </button>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
-              )}
-
-              {/* Instance card */}
-              {selectedDeviceData && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/10">
-                  {selectedDeviceData.profile_picture ? (
-                    <img src={selectedDeviceData.profile_picture} alt={selectedDeviceData.name} className="w-10 h-10 rounded-xl object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center">
-                      <Smartphone className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{selectedDeviceData.number || selectedDeviceData.name}</p>
-                    <p className="text-[11px] text-muted-foreground/60">{selectedDeviceData.name}</p>
-                  </div>
-                  {(() => {
-                    const s = getDeviceStatus(selectedDeviceData.status);
-                    const StatusIcon = s.icon;
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {devices.map(d => {
+                    const st = getDeviceStatus(d.status);
+                    const isSelected = selectedDevices.includes(d.id);
                     return (
-                      <div className="flex items-center gap-1.5 text-xs shrink-0">
-                        <StatusIcon className={cn("w-3.5 h-3.5", s.color)} />
-                        <span className={s.color}>{s.label}</span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Offline warning */}
-              {selectedDeviceData && selectedDeviceData.status !== "Ready" && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
-                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-destructive">Instância offline</p>
-                    <p className="text-xs text-destructive/70">"{selectedDeviceData.name}" está desconectada. O disparo não funcionará até reconectar.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Multi-instance mode config */}
-              {selectedDevices.length > 1 && (
-                <div className="mt-4 p-4 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <RefreshCw className="w-4 h-4 text-primary" /> Modo de Envio Multi-Instância
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {([
-                      { value: "single" as const, label: "Primeira apenas", desc: "Usa só a 1ª instância" },
-                      { value: "rotation" as const, label: "Rotação", desc: "Alterna a cada X msgs" },
-                      { value: "parallel" as const, label: "Paralelo", desc: "Todas enviam ao mesmo tempo" },
-                    ]).map(mode => (
                       <button
-                        key={mode.value}
-                        onClick={() => setSendMode(mode.value)}
+                        key={d.id}
+                        onClick={() => setSelectedDevices(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
                         className={cn(
-                          "p-3 rounded-lg border text-left transition-all",
-                          sendMode === mode.value
-                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                            : "border-border/20 bg-muted/10 hover:border-border/40"
+                          "flex items-center gap-3 p-4 rounded-xl border transition-all duration-100 text-left",
+                          isSelected
+                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border/30 dark:border-border/15 hover:border-primary/20 bg-muted/5 dark:bg-muted/3"
                         )}
                       >
-                        <p className={cn("text-xs font-medium", sendMode === mode.value ? "text-primary" : "text-foreground")}>{mode.label}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{mode.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-
-                  {sendMode === "rotation" && (
-                    <div>
-                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Mensagens por instância antes de trocar</label>
-                      <Input
-                        type="number" min={1} value={messagesPerInstance || ""}
-                        onChange={e => setMessagesPerInstance(Number(e.target.value))}
-                        onBlur={() => { if (!messagesPerInstance || messagesPerInstance < 1) setMessagesPerInstance(5); }}
-                        placeholder="Ex: 5"
-                        className="h-9 mt-1 bg-muted/15 dark:bg-muted/8 border-border/15"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Cada instância enviará {messagesPerInstance || 5} mensagens antes de passar para a próxima.
-                      </p>
-                    </div>
-                  )}
-
-                  {sendMode === "parallel" && validContacts.length > 0 && (
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/15">
-                      <p className="text-[10px] text-muted-foreground">
-                        <strong className="text-foreground">{selectedDevices.length} instâncias</strong> enviarão simultaneamente.
-                        Cada uma receberá ~<strong className="text-foreground">{Math.ceil(validContacts.length / selectedDevices.length)}</strong> contatos.
-                      </p>
-                    </div>
-                  )}
-
-                </div>
-              )}
-
-              {/* Summary: messages per device - always visible when devices selected */}
-              {selectedDevices.length > 1 && validContacts.length > 0 && (
-                <div className="mt-4 p-3 rounded-xl bg-muted/10 border border-border/15 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Distribuição por instância</p>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[10px] text-muted-foreground">Msgs/chip:</label>
-                      <Input
-                        type="number" min={1} value={messagesPerInstance || ""}
-                        onChange={e => setMessagesPerInstance(Number(e.target.value))}
-                        onBlur={() => { if (!messagesPerInstance || messagesPerInstance < 1) setMessagesPerInstance(5); }}
-                        placeholder="5"
-                        className="h-7 w-16 text-xs text-center bg-muted/15 dark:bg-muted/8 border-border/15"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    {selectedDevices.map((devId, idx) => {
-                      const dev = devices.find(d => d.id === devId);
-                      const devName = dev?.name || `Instância ${idx + 1}`;
-                      const mpi = messagesPerInstance || 5;
-                      let msgCount = 0;
-                      if (selectedDevices.length === 1) {
-                        msgCount = Math.min(validContacts.length, mpi);
-                      } else if (sendMode === "single") {
-                        msgCount = idx === 0 ? validContacts.length : 0;
-                      } else if (sendMode === "parallel") {
-                        const perDevice = Math.ceil(validContacts.length / selectedDevices.length);
-                        msgCount = Math.min(perDevice, mpi);
-                      } else if (sendMode === "rotation") {
-                        const fullCycles = Math.floor(validContacts.length / (mpi * selectedDevices.length));
-                        const remainder = validContacts.length % (mpi * selectedDevices.length);
-                        msgCount = fullCycles * mpi;
-                        const remainingForDevice = remainder - idx * mpi;
-                        if (remainingForDevice > 0) msgCount += Math.min(remainingForDevice, mpi);
-                      }
-                      return (
-                        <div key={devId} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground truncate max-w-[60%]">{devName}</span>
-                          <span className={cn("font-mono font-medium", msgCount > 0 ? "text-foreground" : "text-muted-foreground/50")}>{msgCount} msgs</span>
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isSelected ? "bg-primary/15" : "bg-muted/20")}>
+                          {d.profile_picture ? (
+                            <img src={d.profile_picture} alt="" className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          ) : (
+                            <Smartphone className={cn("w-4.5 h-4.5", isSelected ? "text-primary" : "text-muted-foreground/40")} />
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t border-border/15 pt-1.5 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground font-medium">Total</span>
-                    <span className="font-mono font-bold text-foreground">{validContacts.length} msgs</span>
-                  </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-sm font-semibold truncate", isSelected ? "text-foreground" : "text-foreground/70")}>{d.name}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <st.icon className={cn("w-3 h-3", st.color)} />
+                            <span className={cn("text-[10px] font-medium", st.color)}>{st.label}</span>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </SurfaceCard>
@@ -1532,31 +1384,16 @@ const Campaigns = () => {
                 <SectionLabel className="flex items-center gap-1.5">
                   <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
                 </SectionLabel>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[11px] h-7 gap-1 border-border/30"
-                  onClick={() => setShowSaveProfile(!showSaveProfile)}
-                >
+                <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
                   <Plus className="w-3 h-3" /> Salvar atual
                 </Button>
               </div>
 
               {showSaveProfile && (
                 <div className="flex gap-2 mb-3">
-                  <Input
-                    value={saveProfileName}
-                    onChange={(e) => setSaveProfileName(e.target.value)}
-                    placeholder="Nome do perfil..."
-                    className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
-                    onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }}
-                  />
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs px-3"
-                    disabled={!saveProfileName.trim() || saveDelayProfile.isPending}
-                    onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}
-                  >
+                  <Input value={saveProfileName} onChange={(e) => setSaveProfileName(e.target.value)} placeholder="Nome do perfil..." className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
+                    onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }} />
+                  <Button size="sm" className="h-8 text-xs px-3" disabled={!saveProfileName.trim() || saveDelayProfile.isPending} onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}>
                     {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   </Button>
                 </div>
@@ -1566,14 +1403,10 @@ const Campaigns = () => {
                 <div className="flex flex-wrap gap-2">
                   {delayProfiles.map((p: any) => (
                     <div key={p.id} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/15 dark:bg-muted/8 border border-border/15 hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => loadDelayProfile(p)}
-                    >
+                      onClick={() => loadDelayProfile(p)}>
                       <span className="text-[11px] font-medium text-foreground">{p.name}</span>
                       <span className="text-[9px] text-muted-foreground/50">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
-                      <button
-                        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}
-                      >
+                      <button className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}>
                         <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
                       </button>
                     </div>
@@ -1584,7 +1417,7 @@ const Campaigns = () => {
               )}
             </SurfaceCard>
 
-            {/* Send Control Cards - improved typography */}
+            {/* Send Control Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Delay */}
               <SurfaceCard className="p-6 space-y-5">
@@ -1720,7 +1553,7 @@ const Campaigns = () => {
 
             {/* Review panel */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Technical summary - improved organization */}
+              {/* Technical summary */}
               <SurfaceCard className="lg:col-span-3 p-6 space-y-6">
                 <div className="flex items-center gap-2.5">
                   <Eye className="w-4 h-4 text-primary" />
@@ -1742,22 +1575,11 @@ const Campaigns = () => {
                       </div>
                       <div>
                         <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 font-semibold">{item.label}</p>
-                        <p className={cn("text-[13px] font-bold text-foreground mt-0.5 leading-tight", (item as any).valueClass)}>{item.value}</p>
+                        <p className="text-[13px] font-bold text-foreground mt-0.5 leading-tight">{item.value}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-
-                {/* Estimated time in review */}
-                {estimatedTime && (
-                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-primary/5 border border-primary/10">
-                    <Timer className="w-4 h-4 text-primary" />
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40 font-semibold">Tempo estimado</p>
-                      <p className="text-[13px] font-bold text-foreground">{estimatedTime}</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* Warnings */}
                 {(!campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message) && (
@@ -1775,7 +1597,6 @@ const Campaigns = () => {
 
               {/* Message preview */}
               <div className="lg:col-span-2 space-y-3">
-                <SectionLabel className="px-1">Preview</SectionLabel>
                 <WhatsAppPreview />
               </div>
             </div>
@@ -1870,18 +1691,16 @@ const Campaigns = () => {
 
       {/* Import Progress Bar */}
       {importProgress !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <SurfaceCard className="w-80 p-6 space-y-4">
-            <div className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
-              <Upload className="w-4 h-4 animate-pulse text-primary" />
-              Processando arquivo...
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-80">
+          <SurfaceCard className="p-4 space-y-2 shadow-2xl">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-foreground font-medium">Importando...</span>
+              <span className="text-muted-foreground tabular-nums">{importProgress}%</span>
             </div>
-            <Progress value={importProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-center tabular-nums">{importProgress}%</p>
+            <Progress value={importProgress} className="h-1.5" />
           </SurfaceCard>
         </div>
       )}
-
 
       {/* Column Mapping Dialog */}
       <Dialog open={!!rawImport} onOpenChange={(open) => !open && setRawImport(null)}>
