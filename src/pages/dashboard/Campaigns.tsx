@@ -880,80 +880,6 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            {/* Template + Campaign Name Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <SurfaceCard className="p-5 space-y-3">
-                <SectionLabel>Modelo Base</SectionLabel>
-                <Select value={selectedTemplate} onValueChange={(val) => {
-                  setSelectedTemplate(val);
-                  if (val !== "nova") {
-                    const tmpl = savedTemplates.find(t => t.id === val);
-                    if (tmpl) {
-                      setMessage(tmpl.content);
-                      if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
-                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                        setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
-                      } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
-                    }
-                  } else { setMessage(""); setMediaUrl(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
-                }}>
-                  <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
-                    <SelectValue placeholder="Campanha Padrão" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
-                    <SelectItem value="nova">Campanha Padrão</SelectItem>
-                    {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </SurfaceCard>
-
-              <SurfaceCard className="p-5 space-y-3">
-                <SectionLabel>Mídia</SectionLabel>
-                {!mediaUrl ? (
-                  <>
-                    <input type="file" ref={mediaFileRef} accept="image/*,video/*,audio/*,.pdf,.doc,.docx" className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 20 * 1024 * 1024) { toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" }); return; }
-                        setMediaUploading(true);
-                        try {
-                          const ext = file.name.split(".").pop() || "bin";
-                          const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-                          const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
-                          if (uploadError) throw uploadError;
-                          const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-                          setMediaUrl(urlData.publicUrl);
-                          setMediaFileName(file.name);
-                          toast({ title: "Mídia enviada!" });
-                        } catch (err: any) { toast({ title: "Erro no upload", description: err.message, variant: "destructive" }); }
-                        finally { setMediaUploading(false); if (mediaFileRef.current) mediaFileRef.current.value = ""; }
-                      }}
-                    />
-                    <button
-                      onClick={() => mediaFileRef.current?.click()}
-                      disabled={mediaUploading}
-                      className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2 transition-colors duration-100 hover:bg-primary/5 group"
-                    >
-                      {mediaUploading ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <ImageIcon className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />}
-                      <span className="text-[11px] text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">{mediaUploading ? "Enviando..." : "Imagem, vídeo ou documento"}</span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15">
-                    <img src={mediaUrl} alt="preview" className="w-14 h-14 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{mediaFileName || "Mídia"}</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-0.5">Anexado</p>
-                    </div>
-                    <button onClick={() => { setMediaUrl(""); setMediaFileName(""); }} className="text-muted-foreground/30 hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </SurfaceCard>
-            </div>
-
             {/* Editor + Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Editor column */}
@@ -1144,7 +1070,79 @@ const Campaigns = () => {
               </div>
             </div>
 
-            {/* Primary action - duplicated at top */}
+            {/* Template + Mídia Row - below editor */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <SurfaceCard className="p-5 space-y-3">
+                <SectionLabel>Modelo Base</SectionLabel>
+                <Select value={selectedTemplate} onValueChange={(val) => {
+                  setSelectedTemplate(val);
+                  if (val !== "nova") {
+                    const tmpl = savedTemplates.find(t => t.id === val);
+                    if (tmpl) {
+                      setMessage(tmpl.content);
+                      if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
+                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
+                        setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
+                      } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                    }
+                  } else { setMessage(""); setMediaUrl(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                }}>
+                  <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
+                    <SelectValue placeholder="Campanha Padrão" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    <SelectItem value="nova">Campanha Padrão</SelectItem>
+                    {savedTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </SurfaceCard>
+
+              <SurfaceCard className="p-5 space-y-3">
+                <SectionLabel>Mídia</SectionLabel>
+                {!mediaUrl ? (
+                  <>
+                    <input type="file" ref={mediaFileRef} accept="image/*,video/*,audio/*,.pdf,.doc,.docx" className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 20 * 1024 * 1024) { toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" }); return; }
+                        setMediaUploading(true);
+                        try {
+                          const ext = file.name.split(".").pop() || "bin";
+                          const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                          const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+                          if (uploadError) throw uploadError;
+                          const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+                          setMediaUrl(urlData.publicUrl);
+                          setMediaFileName(file.name);
+                          toast({ title: "Mídia enviada!" });
+                        } catch (err: any) { toast({ title: "Erro no upload", description: err.message, variant: "destructive" }); }
+                        finally { setMediaUploading(false); if (mediaFileRef.current) mediaFileRef.current.value = ""; }
+                      }}
+                    />
+                    <button
+                      onClick={() => mediaFileRef.current?.click()}
+                      disabled={mediaUploading}
+                      className="w-full py-6 rounded-xl border-2 border-dashed border-border/30 dark:border-border/15 hover:border-primary/40 bg-muted/5 dark:bg-muted/3 flex flex-col items-center justify-center gap-2 transition-colors duration-100 hover:bg-primary/5 group"
+                    >
+                      {mediaUploading ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <ImageIcon className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />}
+                      <span className="text-[11px] text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">{mediaUploading ? "Enviando..." : "Imagem, vídeo ou documento"}</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15">
+                    <img src={mediaUrl} alt="preview" className="w-14 h-14 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{mediaFileName || "Mídia"}</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-0.5">Anexado</p>
+                    </div>
+                    <button onClick={() => { setMediaUrl(""); setMediaFileName(""); }} className="text-muted-foreground/30 hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </SurfaceCard>
+            </div>
           </div>
         )}
 
