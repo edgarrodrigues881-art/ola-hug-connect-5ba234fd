@@ -581,15 +581,22 @@ const Campaigns = () => {
     if (!file) return;
     setImportProgress(0);
 
-    // Show 3-second spinner while processing
-    const totalSteps = 60;
-    let currentStep = 0;
-    const progressInterval = setInterval(() => {
-      currentStep++;
-      const progress = Math.round(100 * (1 - Math.pow(1 - currentStep / totalSteps, 3)));
-      setImportProgress(Math.min(progress, 95));
-      if (currentStep >= totalSteps) clearInterval(progressInterval);
-    }, 50);
+    // Start 3-second animation
+    const startTime = Date.now();
+    const animDuration = 3000;
+    let animFrame: number;
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(elapsed / animDuration, 1);
+      const eased = Math.round(100 * (1 - Math.pow(1 - t, 3)));
+      setImportProgress(Math.min(eased, t >= 1 ? 100 : 99));
+      if (t < 1) animFrame = requestAnimationFrame(animate);
+    };
+    animFrame = requestAnimationFrame(animate);
+
+    // Read file in background
+    let parsedResult: { headers: string[]; rows: any[][]; hasHeader: boolean; mappings: ColumnMapping[] } | null = null;
+    let parseError: string | null = null;
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -599,12 +606,7 @@ const Campaigns = () => {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
-        if (rows.length < 1) {
-          clearInterval(progressInterval);
-          setImportProgress(null);
-          toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
-          return;
-        }
+        if (rows.length < 1) { parseError = "empty"; return; }
 
         const normalize = (s: string) =>
           String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
@@ -620,35 +622,29 @@ const Campaigns = () => {
           ? firstRow.map((c: any) => String(c).trim() || `Coluna ${firstRow.indexOf(c) + 1}`)
           : Array.from({ length: colCount }, (_, i) => `Coluna ${i + 1}`);
 
-        const autoMappings: ColumnMapping[] = headers.map(() => "ignorar" as ColumnMapping);
-
-        // Wait for the 3s animation to finish
-        const elapsed = currentStep * 50;
-        const remaining = Math.max(3000 - elapsed, 0);
-        clearInterval(progressInterval);
-
-        // Smoothly finish to 100%
-        setImportProgress(98);
-        setTimeout(() => {
-          setImportProgress(100);
-          setTimeout(() => {
-            setImportProgress(null);
-            setRawImport({
-              headers,
-              rows: hasHeader ? rows.slice(1) : rows,
-              hasHeader,
-              columnMappings: autoMappings,
-            });
-          }, 400);
-        }, remaining);
+        parsedResult = { headers, rows: hasHeader ? rows.slice(1) : rows, hasHeader, mappings: headers.map(() => "ignorar" as ColumnMapping) };
       } catch (err) {
         console.error("Import error:", err);
-        clearInterval(progressInterval);
-        setImportProgress(null);
-        toast({ title: "Erro ao ler arquivo", description: "Formato não suportado.", variant: "destructive" });
+        parseError = "format";
       }
     };
     reader.readAsArrayBuffer(file);
+
+    // After exactly 3 seconds, show result
+    setTimeout(() => {
+      cancelAnimationFrame(animFrame);
+      setImportProgress(100);
+      setTimeout(() => {
+        setImportProgress(null);
+        if (parseError === "empty") {
+          toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
+        } else if (parseError) {
+          toast({ title: "Erro ao ler arquivo", description: "Formato não suportado.", variant: "destructive" });
+        } else if (parsedResult) {
+          setRawImport({ headers: parsedResult.headers, rows: parsedResult.rows, hasHeader: parsedResult.hasHeader, columnMappings: parsedResult.mappings });
+        }
+      }, 400);
+    }, animDuration);
     if (fileRef.current) fileRef.current.value = "";
   };
 
