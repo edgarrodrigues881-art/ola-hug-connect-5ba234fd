@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, Plus, Trash2, Loader2, Pencil } from "lucide-react";
-import { useBackOfficeStore } from "@/hooks/useBackOfficeStore";
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -19,6 +19,13 @@ interface Props {
 }
 
 const METHODS = ["PIX", "Cartão"];
+
+const SYSTEM_PLANS = [
+  { name: "Start — 10 instâncias", price: 149.90 },
+  { name: "Pro — 30 instâncias", price: 349.90 },
+  { name: "Scale — 50 instâncias", price: 549.90 },
+  { name: "Elite — 100 instâncias", price: 899.90 },
+];
 
 // Format number to BRL display: 10000 → "10.000,00"
 function fmtBRL(v: number): string {
@@ -74,7 +81,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutate: adminAction, isPending: actionPending } = useAdminAction();
-  const { plans } = useBackOfficeStore();
+  
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["admin-payments", client.id],
@@ -192,7 +199,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
           <select
             value={(() => {
               const pv = parseBRL(form.plan_value);
-              const match = plans.find(p => p.price === pv);
+              const match = SYSTEM_PLANS.find(p => p.price === pv);
               return match ? String(match.price) : "";
             })()}
             onChange={e => {
@@ -204,8 +211,8 @@ const ClientPaymentsTab = ({ client }: Props) => {
             className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm"
           >
             <option value="">Selecione um plano</option>
-            {plans.map(p => (
-              <option key={p.id} value={String(p.price)}>
+            {SYSTEM_PLANS.map(p => (
+              <option key={p.name} value={String(p.price)}>
                 {p.name} — R$ {fmtBRL(p.price)}
               </option>
             ))}
