@@ -64,29 +64,25 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   }, [users, cycles]);
 
   // ── Receita Recebida (Caixa) ──
+  const monthPayments = useMemo(() =>
+    (payments || []).filter((p: any) => new Date(p.paid_at) >= monthStart),
+  [payments]);
+
   const revenueReceived = useMemo(() =>
-    (payments || []).reduce((s: number, p: any) => {
-      const paid = new Date(p.paid_at);
-      return paid >= monthStart ? s + Number(p.amount) : s;
-    }, 0),
-  [payments]);
+    monthPayments.reduce((s: number, p: any) => s + Number(p.amount), 0),
+  [monthPayments]);
 
-  const monthPaymentsCount = useMemo(() =>
-    (payments || []).filter((p: any) => new Date(p.paid_at) >= monthStart).length,
-  [payments]);
+  const monthPaymentsCount = monthPayments.length;
 
-  // ── Descontos Concedidos ──
-  const discounts = useMemo(() => {
-    return (cycles || []).reduce((s: number, c: any) => {
-      const created = new Date(c.created_at);
-      if (created >= monthStart) {
-        const basePrice = PLAN_PRICES[c.plan_name] || 0;
-        const diff = basePrice - Number(c.cycle_amount);
-        if (diff > 0) return s + diff;
-      }
-      return s;
-    }, 0);
-  }, [cycles]);
+  // ── Descontos Concedidos (from payments) ──
+  const discounts = useMemo(() =>
+    monthPayments.reduce((s: number, p: any) => s + Number(p.discount || 0), 0),
+  [monthPayments]);
+
+  // ── Taxas dos Pagamentos ──
+  const paymentFees = useMemo(() =>
+    monthPayments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0),
+  [monthPayments]);
 
   // ── Taxas & Custos ──
   const monthCosts = useMemo(() =>
@@ -97,7 +93,8 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   [costs]);
 
   // ── Receita Líquida ──
-  const netRevenue = revenueReceived - monthCosts;
+  const totalCosts = monthCosts + paymentFees;
+  const netRevenue = revenueReceived - totalCosts - discounts;
 
   // ── Operational ──
   const revenueAtRisk = useMemo(() =>
@@ -182,18 +179,18 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
             color="bg-blue-600/15 text-blue-500" />
           <StatCard icon={TrendingDown} label="Descontos Concedidos"
             value={fmt(discounts)}
-            sub={monthLabel}
-            hint="Diferença entre valor base e valor cobrado"
+            sub={`${monthPaymentsCount} pagamento${monthPaymentsCount !== 1 ? "s" : ""}`}
+            hint="Descontos registrados nos pagamentos do mês"
             color="bg-orange-500/15 text-orange-500" />
           <StatCard icon={AlertTriangle} label="Taxas & Custos"
-            value={fmt(monthCosts)}
-            sub={`${(costs || []).filter((c: any) => new Date(c.cost_date) >= monthStart).length} registros`}
-            hint="VPS, APIs, proxies e ferramentas"
+            value={fmt(totalCosts)}
+            sub={`Custos: ${fmt(monthCosts)} + Taxas: ${fmt(paymentFees)}`}
+            hint="Custos operacionais + taxas dos pagamentos"
             color="bg-destructive/15 text-destructive" />
           <StatCard icon={Wallet} label="Receita Líquida (No Bolso)"
             value={fmt(netRevenue)}
             sub={netRevenue >= 0 ? "Positivo" : "Negativo"}
-            hint="Recebida − Taxas & Custos"
+            hint="Recebida − Descontos − Taxas & Custos"
             color={netRevenue >= 0 ? "bg-green-600/15 text-green-500" : "bg-destructive/15 text-destructive"} />
         </div>
       </div>

@@ -489,6 +489,8 @@ export type Database = {
           admin_id: string
           amount: number
           created_at: string
+          discount: number
+          fee: number
           id: string
           method: string
           notes: string | null
@@ -499,6 +501,8 @@ export type Database = {
           admin_id: string
           amount?: number
           created_at?: string
+          discount?: number
+          fee?: number
           id?: string
           method?: string
           notes?: string | null
@@ -509,6 +513,8 @@ export type Database = {
           admin_id?: string
           amount?: number
           created_at?: string
+          discount?: number
+          fee?: number
           id?: string
           method?: string
           notes?: string | null
