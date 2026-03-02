@@ -959,9 +959,9 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // If device has no instance token, create instance on UaZapi first
+      // If device has no instance config, initialize it automatically
       if (!connectingDevice.uazapi_token) {
-        console.log("No instance token, creating instance on UaZapi...");
+        console.log("No instance config, initializing...");
         try {
           const createResult = await callApi({
             action: "createInstance",
@@ -975,7 +975,7 @@ const Devices = () => {
           queryClient.invalidateQueries({ queryKey: ["devices"] });
         } catch (createErr: any) {
           console.error("Create instance error:", createErr);
-          throw new Error("Erro ao criar instância na UaZapi: " + (createErr?.message || "Erro desconhecido"));
+          throw new Error("Erro ao preparar instância. Tente novamente ou entre em contato com o suporte.");
         }
       }
 
@@ -1431,72 +1431,7 @@ const Devices = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Quick Token Dialog */}
-      <Dialog open={tokenOpen} onOpenChange={(open) => { setTokenOpen(open); if (!open) { setTokenVisible(false); setTokenStatus(null); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Key className="w-4 h-4 text-primary" />
-              Token da API
-            </DialogTitle>
-            <p className="text-[11px] text-muted-foreground/50 mt-0.5">
-              {tokenDevice?.name} {tokenDevice?.number ? `· ${formatPhone(tokenDevice.number)}` : ""}
-            </p>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] text-muted-foreground">Token da Instância</Label>
-                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${
-                  tokenStatus === "valid" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                  tokenStatus === "invalid" ? "bg-red-500/10 text-red-400 border-red-500/20" :
-                  tokenStatus === "auth_error" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                  quickToken.length >= 8 ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                  quickToken.length > 0 ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                  "bg-red-500/10 text-red-400 border-red-500/20"
-                }`}>
-                  {tokenStatus === "valid" ? "Token válido" :
-                   tokenStatus === "invalid" ? "Token inválido" :
-                   tokenStatus === "auth_error" ? "Falha na autenticação" :
-                   quickToken.length >= 8 ? "Configurado" :
-                   quickToken.length > 0 ? `${quickToken.length}/8 min` :
-                   "Ausente"}
-                </Badge>
-              </div>
-              <div className="relative">
-                <Input
-                  value={quickToken}
-                  onChange={e => { setQuickToken(e.target.value); setTokenStatus(null); }}
-                  placeholder="Cole o token aqui"
-                  type={tokenVisible ? "text" : "password"}
-                  className="h-8 text-xs font-mono pr-8"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setTokenVisible(v => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground"
-                >
-                  {tokenVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              {quickToken.length > 0 && quickToken.length < 8 && (
-                <p className="text-[10px] text-amber-500/70">Token deve ter no mínimo 8 caracteres</p>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 p-2 rounded bg-muted/10 border border-border/10">
-              <Lock className="w-3 h-3 text-muted-foreground/30 shrink-0" />
-              <p className="text-[10px] text-muted-foreground/40">Nunca compartilhe seu token. Ele dá acesso total à instância.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setTokenOpen(false); setTokenVisible(false); setTokenStatus(null); }}>Cancelar</Button>
-            <Button size="sm" onClick={handleQuickTokenWithValidation} disabled={!quickToken.trim() || quickToken.length < 8}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Token management is handled automatically via admin panel */}
 
       {/* Logout Confirm Dialog */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>

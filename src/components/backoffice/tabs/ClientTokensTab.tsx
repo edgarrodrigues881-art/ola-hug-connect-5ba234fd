@@ -63,14 +63,14 @@ const ClientTokensTab = ({ client, detail }: Props) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Key size={18} className="text-primary" />
-          <h3 className="text-base font-bold text-foreground">Tokens API (UaZapi)</h3>
+          <h3 className="text-base font-bold text-foreground">Tokens de Instância</h3>
           <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">{available} disponíveis</Badge>
           <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">{inUse} em uso</Badge>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Adicione tokens da UaZapi para este cliente. Quando ele criar uma instância, o próximo token disponível será atribuído automaticamente.
+        Adicione tokens de instância para este cliente. Quando ele criar uma instância, o próximo token disponível será atribuído automaticamente.
       </p>
 
       {/* Add tokens area */}
