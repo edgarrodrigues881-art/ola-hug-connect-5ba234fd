@@ -400,7 +400,21 @@ const Devices = () => {
         }
       }
 
-      const UAZAPI_BASE_URL = tokenRecord ? undefined : null; // will be set by edge function if needed
+      // Get base URL from env for pool tokens
+      const baseUrl = tokenRecord ? (import.meta.env.VITE_SUPABASE_URL ? undefined : null) : null;
+      
+      // Fetch UAZAPI_BASE_URL via edge function if token came from pool
+      let uazapiBaseUrl: string | null = null;
+      if (tokenRecord) {
+        try {
+          const { data: configData } = await supabase.functions.invoke("evolution-connect", {
+            body: { action: "getBaseUrl" },
+          });
+          uazapiBaseUrl = configData?.baseUrl || null;
+        } catch (e) {
+          console.log("Could not fetch base URL, will be set on connect");
+        }
+      }
       
       const { data: newDevice, error } = await supabase.from("devices").insert({
         name: device.name,
@@ -408,6 +422,7 @@ const Devices = () => {
         user_id: session?.user.id,
         whapi_token: null,
         uazapi_token: assignedToken,
+        uazapi_base_url: uazapiBaseUrl,
       } as any).select().single();
       if (error) throw error;
 
