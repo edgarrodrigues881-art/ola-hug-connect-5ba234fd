@@ -44,7 +44,7 @@ import {
 
 const menuGroups = [
   {
-    label: "📊 VISÃO GERAL",
+    label: "",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
       { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
@@ -55,14 +55,14 @@ const menuGroups = [
     ],
   },
   {
-    label: "🚀 OPERAÇÕES",
+    label: "",
     items: [
       { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
     ],
   },
   {
-    label: "📡 MONITORAMENTO",
+    label: "",
     items: [
       { title: "Centro de Monitoramento", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
       { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
@@ -149,7 +149,7 @@ export function AppSidebar() {
           // all sections equal
           return (
             <SidebarGroup key={group.label} className={`py-0.5 ${gi > 0 ? 'mt-3' : ''}`}>
-              {!collapsed && (
+              {!collapsed && group.label && (
                 <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none text-muted-foreground/60">
                   {group.label}
                 </SidebarGroupLabel>
