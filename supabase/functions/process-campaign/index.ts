@@ -143,8 +143,8 @@ function randomBetween(min: number, max: number): number {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaignId: string, deviceId?: string) {
-  console.log(`Self-continuing campaign ${campaignId}...`);
+async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaignId: string, deviceId?: string, batchState?: { batchSent?: number; currentDeviceIndex?: number; instanceMsgCount?: number; msgsSincePause?: number; pauseAfter?: number }) {
+  console.log(`Self-continuing campaign ${campaignId}...`, batchState ? JSON.stringify(batchState) : '');
   try {
     await fetch(`${supabaseUrl}/functions/v1/process-campaign`, {
       method: "POST",
@@ -152,7 +152,7 @@ async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaig
         "Content-Type": "application/json",
         "Authorization": `Bearer ${serviceRoleKey}`,
       },
-      body: JSON.stringify({ action: "continue", campaignId, deviceId }),
+      body: JSON.stringify({ action: "continue", campaignId, deviceId, ...batchState }),
     });
   } catch (err: any) {
     console.error(`Self-continue failed: ${err.message}`);
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
     if (action === "resume") {
       await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
       // Respond immediately, then self-continue to process remaining
-      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       // Mark as running immediately
       await serviceClient.from("campaigns").update({ status: "running", started_at: campaign.started_at || new Date().toISOString() }).eq("id", campaignId);
       // Respond immediately, then self-continue to process
-      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -282,8 +282,7 @@ Deno.serve(async (req) => {
       let batchSent = body.batchSent || 0;
       let currentDeviceIndex = body.currentDeviceIndex || 0;
       let instanceMsgCount = body.instanceMsgCount || 0;
-      // Recalculate pauseAfter randomly each batch
-      let pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
+      let pauseAfter = body.pauseAfter || Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
       let msgsSincePause = body.msgsSincePause || 0;
 
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
@@ -526,7 +525,7 @@ Deno.serve(async (req) => {
         if ((count || 0) > 0) {
           // More contacts to process — self-continue
           console.log(`${count} contacts remaining, scheduling self-continue`);
-          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent, currentDeviceIndex, instanceMsgCount, msgsSincePause, pauseAfter });
         } else {
           // All done
           await serviceClient.from("campaigns").update({
