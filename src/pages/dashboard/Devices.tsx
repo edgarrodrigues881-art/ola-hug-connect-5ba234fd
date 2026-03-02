@@ -60,6 +60,15 @@ function deriveSmartStatus(d: Device, warmupDeviceIds: Set<string>, proxyStatus?
   return d.status === "Ready" ? "online" : "offline";
 }
 
+function formatPhone(num: string): string {
+  const digits = num.replace(/\D/g, "");
+  if (digits.length === 13) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,9)}-${digits.slice(9)}`;
+  if (digits.length === 12) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,8)}-${digits.slice(8)}`;
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  return num;
+}
+
 const Devices = () => {
   const { toast } = useToast();
   const { session } = useAuth();
@@ -1158,7 +1167,7 @@ const Devices = () => {
                           {d.name}
                         </p>
                       )}
-                      {d.number && <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{d.number}</p>}
+                      {d.number && <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{formatPhone(d.number)}</p>}
                     </div>
                   </div>
                   <TooltipProvider delayDuration={200}>
@@ -1241,7 +1250,7 @@ const Devices = () => {
               Editar instância
             </DialogTitle>
             {editingDevice && (
-              <p className="text-[11px] text-muted-foreground/50 mt-0.5">{editingDevice.number || "Sem número vinculado"}</p>
+              <p className="text-[11px] text-muted-foreground/50 mt-0.5">{editingDevice.number ? formatPhone(editingDevice.number) : "Sem número vinculado"}</p>
             )}
           </DialogHeader>
           <div className="space-y-3 py-1">
@@ -1360,7 +1369,7 @@ const Devices = () => {
               Token da API
             </DialogTitle>
             <p className="text-[11px] text-muted-foreground/50 mt-0.5">
-              {tokenDevice?.name} {tokenDevice?.number ? `· ${tokenDevice.number}` : ""}
+              {tokenDevice?.name} {tokenDevice?.number ? `· ${formatPhone(tokenDevice.number)}` : ""}
             </p>
           </DialogHeader>
           <div className="space-y-3 py-1">
