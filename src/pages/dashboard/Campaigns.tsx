@@ -1583,27 +1583,6 @@ const Campaigns = () => {
                 className="h-13 text-base font-semibold bg-muted/15 dark:bg-muted/8 border-border/15 focus-visible:ring-primary/30 px-4" />
             </SurfaceCard>
 
-            {/* Schedule */}
-            <SurfaceCard className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Calendar className="w-4.5 h-4.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-foreground">Agendar envio</p>
-                    <p className="text-[11px] text-muted-foreground/50">Definir data e hora de início</p>
-                  </div>
-                </div>
-                <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
-              </div>
-              {scheduleEnabled && (
-                <div className="mt-4 pl-[52px]">
-                  <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-10 text-sm bg-muted/15 dark:bg-muted/8 border-border/15 max-w-xs" />
-                </div>
-              )}
-            </SurfaceCard>
-
             {/* Review panel */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Technical summary */}
@@ -1653,6 +1632,27 @@ const Campaigns = () => {
                 <WhatsAppPreview />
               </div>
             </div>
+
+            {/* Schedule - after review */}
+            <SurfaceCard className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Calendar className="w-4.5 h-4.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-foreground">Agendar envio</p>
+                    <p className="text-[11px] text-muted-foreground/50">Definir data e hora de início</p>
+                  </div>
+                </div>
+                <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+              </div>
+              {scheduleEnabled && (
+                <div className="mt-4 pl-[52px]">
+                  <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-10 text-sm bg-muted/15 dark:bg-muted/8 border-border/15 max-w-xs" />
+                </div>
+              )}
+            </SurfaceCard>
 
             {/* Security text */}
             <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground/40">
