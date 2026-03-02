@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { useBackOfficeStore } from "@/hooks/useBackOfficeStore";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -73,6 +74,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutate: adminAction, isPending: actionPending } = useAdminAction();
+  const { plans } = useBackOfficeStore();
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["admin-payments", client.id],
@@ -186,10 +188,28 @@ const ClientPaymentsTab = ({ client }: Props) => {
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
-          <CurrencyInput value={form.plan_value}
-            onChange={v => setForm(f => ({ ...f, plan_value: v }))}
-            className="bg-card border-border text-foreground mt-1" />
+          <Label className="text-muted-foreground text-xs">Plano</Label>
+          <select
+            value={(() => {
+              const pv = parseBRL(form.plan_value);
+              const match = plans.find(p => p.price === pv);
+              return match ? String(match.price) : "";
+            })()}
+            onChange={e => {
+              setForm(f => ({
+                ...f,
+                plan_value: e.target.value ? fmtBRL(Number(e.target.value)) : "",
+              }));
+            }}
+            className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm"
+          >
+            <option value="">Selecione um plano</option>
+            {plans.map(p => (
+              <option key={p.id} value={String(p.price)}>
+                {p.name} — R$ {fmtBRL(p.price)}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
