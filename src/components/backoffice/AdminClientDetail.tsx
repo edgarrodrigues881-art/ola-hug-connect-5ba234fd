@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, User, CreditCard, Server, ScrollText, Loader2, DollarSign, MessageSquare, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, User, CreditCard, Server, ScrollText, Loader2, DollarSign, MessageSquare, LayoutDashboard, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AdminUser } from "@/hooks/useAdmin";
@@ -11,6 +11,7 @@ import ClientDevicesTab from "./tabs/ClientDevicesTab";
 import ClientMessagesTab from "./tabs/ClientMessagesTab";
 import ClientLogsTab from "./tabs/ClientLogsTab";
 import ClientPaymentsTab from "./tabs/ClientPaymentsTab";
+import ClientTokensTab from "./tabs/ClientTokensTab";
 
 interface Props {
   client: AdminUser;
@@ -88,6 +89,9 @@ const AdminClientDetail = ({ client, onBack }: Props) => {
             <TabsTrigger value="payments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <DollarSign size={14} /> Financeiro
             </TabsTrigger>
+            <TabsTrigger value="tokens" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Key size={14} /> Tokens API
+            </TabsTrigger>
             <TabsTrigger value="logs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
               <ScrollText size={14} /> Logs
             </TabsTrigger>
@@ -97,6 +101,7 @@ const AdminClientDetail = ({ client, onBack }: Props) => {
           <TabsContent value="profile"><ClientProfileTab client={client} detail={detail} /></TabsContent>
           <TabsContent value="plan"><ClientPlanTab client={client} detail={detail} /></TabsContent>
           <TabsContent value="devices"><ClientDevicesTab client={client} detail={detail} /></TabsContent>
+          <TabsContent value="tokens"><ClientTokensTab client={client} detail={detail} /></TabsContent>
           <TabsContent value="messages"><ClientMessagesTab client={client} detail={detail} /></TabsContent>
           <TabsContent value="payments"><ClientPaymentsTab client={client} detail={detail} /></TabsContent>
           <TabsContent value="logs"><ClientLogsTab detail={detail} /></TabsContent>

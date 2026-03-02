@@ -134,6 +134,13 @@ Deno.serve(async (req) => {
       const { data: logs } = await adminClient.from("admin_logs").select("*").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
       const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
       const { data: cycles } = await adminClient.from("subscription_cycles").select("*").eq("user_id", target_user_id).order("cycle_start", { ascending: false });
+      const { data: apiTokens } = await adminClient.from("user_api_tokens").select("*").eq("user_id", target_user_id).order("created_at", { ascending: true });
+
+      // Enrich tokens with device name
+      const enrichedTokens = (apiTokens || []).map((t: any) => {
+        const dev = (devices || []).find((d: any) => d.id === t.device_id);
+        return { ...t, device_name: dev?.name || null };
+      });
 
       return new Response(JSON.stringify({
         user: authUser?.user || null,
@@ -144,6 +151,7 @@ Deno.serve(async (req) => {
         admin_logs: logs || [],
         payments: payments || [],
         cycles: cycles || [],
+        api_tokens: enrichedTokens,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -298,17 +306,39 @@ Deno.serve(async (req) => {
     // ─── CREATE DEVICE FOR USER ───
     if (action === "create-device" && req.method === "POST") {
       const { target_user_id, name, login_type } = await req.json();
-      
+
+      // Auto-assign next available token from pool
+      const { data: availableToken } = await adminClient.from("user_api_tokens")
+        .select("*")
+        .eq("user_id", target_user_id)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
       const { data, error } = await adminClient.from("devices").insert({
         user_id: target_user_id,
         name,
         login_type: login_type || "qr",
         status: "Disconnected",
+        uazapi_token: availableToken?.token || null,
+        uazapi_base_url: availableToken ? ADMIN_BASE_URL : null,
       }).select().single();
 
       if (error) throw error;
 
-      await logAction(adminClient, user.id, target_user_id, "create-device", `Instância criada: ${name}`);
+      // Mark token as in_use
+      if (availableToken) {
+        await adminClient.from("user_api_tokens").update({
+          status: "in_use",
+          device_id: data.id,
+          assigned_at: new Date().toISOString(),
+        }).eq("id", availableToken.id);
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "create-device", `Instância criada: ${name}${availableToken ? " (token auto-atribuído)" : " (sem token disponível)"}`);
 
       return new Response(JSON.stringify({ success: true, device: data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -319,6 +349,11 @@ Deno.serve(async (req) => {
     if (action === "delete-device" && req.method === "POST") {
       const { target_user_id, device_id, device_name } = await req.json();
       
+      // Release any assigned token
+      await adminClient.from("user_api_tokens").update({
+        status: "available", device_id: null, assigned_at: null,
+      }).eq("device_id", device_id);
+
       await adminClient.from("devices").delete().eq("id", device_id);
 
       await logAction(adminClient, user.id, target_user_id, "delete-device", `Instância removida: ${device_name}`);
@@ -517,6 +552,35 @@ Deno.serve(async (req) => {
       const { target_user_id } = await req.json();
       await adminClient.from("subscriptions").delete().eq("user_id", target_user_id);
       await logAction(adminClient, user.id, target_user_id, "remove-subscription", "Plano removido — cliente sem plano");
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── ADD TOKENS ───
+    if (action === "add-tokens" && req.method === "POST") {
+      const { target_user_id, tokens: tokenList } = await req.json();
+      const inserts = (tokenList || []).map((t: string) => ({
+        user_id: target_user_id,
+        token: t.trim(),
+        admin_id: user.id,
+        status: "available",
+      }));
+      if (inserts.length > 0) {
+        const { error } = await adminClient.from("user_api_tokens").insert(inserts);
+        if (error) throw error;
+      }
+      await logAction(adminClient, user.id, target_user_id, "add-tokens", `${inserts.length} token(s) adicionado(s)`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DELETE TOKEN ───
+    if (action === "delete-token" && req.method === "POST") {
+      const { token_id, target_user_id } = await req.json();
+      await adminClient.from("user_api_tokens").delete().eq("id", token_id);
+      await logAction(adminClient, user.id, target_user_id, "delete-token", `Token removido: ${token_id}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

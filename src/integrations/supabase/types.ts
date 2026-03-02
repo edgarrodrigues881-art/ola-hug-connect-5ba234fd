@@ -842,6 +842,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_api_tokens: {
+        Row: {
+          admin_id: string
+          assigned_at: string | null
+          created_at: string
+          device_id: string | null
+          id: string
+          label: string | null
+          status: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          assigned_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          label?: string | null
+          status?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          assigned_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          label?: string | null
+          status?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_api_tokens_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

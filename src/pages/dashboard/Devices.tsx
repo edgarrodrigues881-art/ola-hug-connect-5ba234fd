@@ -380,13 +380,45 @@ const Devices = () => {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (device: { name: string; login_type: string; token?: string }) => {
-      const { error } = await supabase.from("devices").insert({
+      // Auto-assign token from pool if no manual token provided
+      let assignedToken = device.token || null;
+      let tokenRecord: any = null;
+
+      if (!assignedToken) {
+        const { data: available } = await supabase
+          .from("user_api_tokens")
+          .select("*")
+          .eq("user_id", session?.user.id!)
+          .eq("status", "available")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (available) {
+          assignedToken = available.token;
+          tokenRecord = available;
+        }
+      }
+
+      const UAZAPI_BASE_URL = tokenRecord ? undefined : null; // will be set by edge function if needed
+      
+      const { data: newDevice, error } = await supabase.from("devices").insert({
         name: device.name,
         login_type: device.login_type,
         user_id: session?.user.id,
-        whapi_token: device.token || null,
-      } as any);
+        whapi_token: null,
+        uazapi_token: assignedToken,
+      } as any).select().single();
       if (error) throw error;
+
+      // Mark token as in_use
+      if (tokenRecord && newDevice) {
+        await supabase.from("user_api_tokens").update({
+          status: "in_use",
+          device_id: (newDevice as any).id,
+          assigned_at: new Date().toISOString(),
+        } as any).eq("id", tokenRecord.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -398,6 +430,10 @@ const Devices = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const device = devices.find(d => d.id === id);
+      // Release token back to pool
+      await supabase.from("user_api_tokens").update({
+        status: "available", device_id: null, assigned_at: null,
+      } as any).eq("device_id", id);
       if (device?.proxy_id) {
         await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
         await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
