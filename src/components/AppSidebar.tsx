@@ -64,7 +64,7 @@ const menuGroups = [
   {
     label: "",
     items: [
-      { title: "Centro de Monitoramento", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
+      { title: "Relatório via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
       { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
     ],
