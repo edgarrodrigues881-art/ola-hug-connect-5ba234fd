@@ -1329,101 +1329,6 @@ const Campaigns = () => {
         {/* ===== STEP 3: Configuration ===== */}
         {step === 3 && (
           <div className="space-y-8">
-            {/* Instance Selection */}
-            <SurfaceCard className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <SectionLabel className="flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5" /> Instância de Envio
-                </SectionLabel>
-                {selectedDevices.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                    {selectedDevices.length} selecionada(s)
-                  </Badge>
-                )}
-              </div>
-
-              {devices.length === 0 ? (
-                <div className="py-8 flex flex-col items-center gap-3">
-                  <WifiOff className="w-8 h-8 text-muted-foreground/20" />
-                  <p className="text-sm text-muted-foreground/50">Nenhuma instância encontrada</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {devices.map(d => {
-                    const st = getDeviceStatus(d.status);
-                    const isSelected = selectedDevices.includes(d.id);
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() => setSelectedDevices(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
-                        className={cn(
-                          "flex items-center gap-3 p-4 rounded-xl border transition-all duration-100 text-left",
-                          isSelected
-                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-                            : "border-border/30 dark:border-border/15 hover:border-primary/20 bg-muted/5 dark:bg-muted/3"
-                        )}
-                      >
-                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isSelected ? "bg-primary/15" : "bg-muted/20")}>
-                          {d.profile_picture ? (
-                            <img src={d.profile_picture} alt="" className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                          ) : (
-                            <Smartphone className={cn("w-4.5 h-4.5", isSelected ? "text-primary" : "text-muted-foreground/40")} />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-semibold truncate", isSelected ? "text-foreground" : "text-foreground/70")}>{d.name}</p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <st.icon className={cn("w-3 h-3", st.color)} />
-                            <span className={cn("text-[10px] font-medium", st.color)}>{st.label}</span>
-                          </div>
-                        </div>
-                        {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </SurfaceCard>
-
-            {/* Delay Profiles */}
-            <SurfaceCard className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <SectionLabel className="flex items-center gap-1.5">
-                  <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
-                </SectionLabel>
-                <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
-                  <Plus className="w-3 h-3" /> Salvar atual
-                </Button>
-              </div>
-
-              {showSaveProfile && (
-                <div className="flex gap-2 mb-3">
-                  <Input value={saveProfileName} onChange={(e) => setSaveProfileName(e.target.value)} placeholder="Nome do perfil..." className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
-                    onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }} />
-                  <Button size="sm" className="h-8 text-xs px-3" disabled={!saveProfileName.trim() || saveDelayProfile.isPending} onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}>
-                    {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  </Button>
-                </div>
-              )}
-
-              {delayProfiles.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {delayProfiles.map((p: any) => (
-                    <div key={p.id} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/15 dark:bg-muted/8 border border-border/15 hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => loadDelayProfile(p)}>
-                      <span className="text-[11px] font-medium text-foreground">{p.name}</span>
-                      <span className="text-[9px] text-muted-foreground/50">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
-                      <button className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}>
-                        <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground/40">Nenhum perfil salvo. Configure os valores e salve para reutilizar.</p>
-              )}
-            </SurfaceCard>
-
             {/* Send Control Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Delay */}
@@ -1505,13 +1410,107 @@ const Campaigns = () => {
               </SurfaceCard>
             </div>
 
+            {/* Delay Profiles */}
+            <SurfaceCard className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Settings2 className="w-3.5 h-3.5" /> Perfis de Delay
+                </SectionLabel>
+                <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30" onClick={() => setShowSaveProfile(!showSaveProfile)}>
+                  <Plus className="w-3 h-3" /> Salvar atual
+                </Button>
+              </div>
+
+              {showSaveProfile && (
+                <div className="flex gap-2 mb-3">
+                  <Input value={saveProfileName} onChange={(e) => setSaveProfileName(e.target.value)} placeholder="Nome do perfil..." className="h-8 text-xs flex-1 bg-muted/15 dark:bg-muted/8 border-border/15"
+                    onKeyDown={(e) => { if (e.key === "Enter" && saveProfileName.trim()) saveDelayProfile.mutate(saveProfileName.trim()); }} />
+                  <Button size="sm" className="h-8 text-xs px-3" disabled={!saveProfileName.trim() || saveDelayProfile.isPending} onClick={() => saveDelayProfile.mutate(saveProfileName.trim())}>
+                    {saveDelayProfile.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </Button>
+                </div>
+              )}
+
+              {delayProfiles.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {delayProfiles.map((p: any) => (
+                    <div key={p.id} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/15 dark:bg-muted/8 border border-border/15 hover:border-primary/30 transition-colors cursor-pointer"
+                      onClick={() => loadDelayProfile(p)}>
+                      <span className="text-[11px] font-medium text-foreground">{p.name}</span>
+                      <span className="text-[9px] text-muted-foreground/50">{p.min_delay_seconds}–{p.max_delay_seconds}s</span>
+                      <button className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); deleteDelayProfile.mutate(p.id); }}>
+                        <X className="w-3 h-3 text-muted-foreground/40 hover:text-destructive" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground/40">Nenhum perfil salvo. Configure os valores e salve para reutilizar.</p>
+              )}
+            </SurfaceCard>
+
             {/* Projeção de Envio */}
             <SurfaceCard className="p-6 flex flex-col items-center justify-center text-center">
               <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold mb-2">Tempo estimado de envio</p>
               <p className="text-2xl font-bold text-foreground tabular-nums">≈ {estimatedTime || "—"}</p>
             </SurfaceCard>
 
-            {/* Navigation moved to top */}
+            {/* Instance Selection */}
+            <SurfaceCard className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" /> Instância de Envio
+                </SectionLabel>
+                {selectedDevices.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                    {selectedDevices.length} selecionada(s)
+                  </Badge>
+                )}
+              </div>
+
+              {devices.length === 0 ? (
+                <div className="py-8 flex flex-col items-center gap-3">
+                  <WifiOff className="w-8 h-8 text-muted-foreground/20" />
+                  <p className="text-sm text-muted-foreground/50">Nenhuma instância encontrada</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {devices.map(d => {
+                    const st = getDeviceStatus(d.status);
+                    const isSelected = selectedDevices.includes(d.id);
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => setSelectedDevices(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
+                        className={cn(
+                          "flex items-center gap-3 p-4 rounded-xl border transition-all duration-100 text-left",
+                          isSelected
+                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border/30 dark:border-border/15 hover:border-primary/20 bg-muted/5 dark:bg-muted/3"
+                        )}
+                      >
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isSelected ? "bg-primary/15" : "bg-muted/20")}>
+                          {d.profile_picture ? (
+                            <img src={d.profile_picture} alt="" className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          ) : (
+                            <Smartphone className={cn("w-4.5 h-4.5", isSelected ? "text-primary" : "text-muted-foreground/40")} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-sm font-semibold truncate", isSelected ? "text-foreground" : "text-foreground/70")}>{d.name}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <st.icon className={cn("w-3 h-3", st.color)} />
+                            <span className={cn("text-[10px] font-medium", st.color)}>{st.label}</span>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </SurfaceCard>
+
           </div>
         )}
 
