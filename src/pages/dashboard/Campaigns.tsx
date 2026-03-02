@@ -1116,13 +1116,6 @@ const Campaigns = () => {
         {/* ===== STEP 2: Contacts ===== */}
         {step === 2 && (
           <div className="space-y-8">
-            {/* Navigation - top */}
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-sm text-muted-foreground h-10 px-4">← Voltar</Button>
-              <Button onClick={() => setStep(3)} className="gap-2 h-12 px-8 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
 
             {/* Import area */}
             <SurfaceCard className="p-6 space-y-5">
