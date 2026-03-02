@@ -359,6 +359,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE PAYMENT ───
+    if (action === "update-payment" && req.method === "POST") {
+      const { payment_id, target_user_id, amount, method, notes, paid_at } = await req.json();
+      await adminClient.from("payments").update({ amount, method, notes, paid_at }).eq("id", payment_id);
+      await logAction(adminClient, user.id, target_user_id, "update-payment", `Pagamento atualizado: R$ ${amount} via ${method}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── DELETE PAYMENT ───
     if (action === "delete-payment" && req.method === "POST") {
       const { payment_id, target_user_id } = await req.json();
