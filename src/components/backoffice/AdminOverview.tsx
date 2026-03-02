@@ -18,18 +18,20 @@ function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
-const StatCard = ({ icon: Icon, label, value, sub, hint, color }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; color: string;
+const StatCard = ({ icon: Icon, label, value, sub, hint, valueColor, highlight }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; valueColor?: string; highlight?: boolean;
 }) => (
-  <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
-    <div className={`p-2 rounded-md shrink-0 ${color}`}>
-      <Icon size={18} />
+  <div className={`bg-[hsl(220,15%,10%)] border rounded-md px-3.5 py-2.5 flex items-start gap-3 ${
+    highlight ? "border-green-500/20 shadow-[0_0_12px_-4px_rgba(34,197,94,0.15)]" : "border-[rgba(255,255,255,0.05)]"
+  }`}>
+    <div className="shrink-0 mt-0.5">
+      <Icon size={16} className="text-muted-foreground/70" />
     </div>
     <div className="min-w-0">
-      <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium leading-tight">{label}</p>
-      <p className="text-xl font-bold mt-0.5 text-foreground">{value}</p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
-      {hint && <p className="text-[10px] text-muted-foreground/60 mt-0.5 italic">{hint}</p>}
+      <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider font-medium leading-tight">{label}</p>
+      <p className={`text-lg font-bold mt-0.5 ${valueColor || "text-foreground"}`}>{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{sub}</p>}
+      {hint && <p className="text-[9px] text-muted-foreground/40 mt-0.5 italic">{hint}</p>}
     </div>
   </div>
 );
@@ -130,30 +132,30 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Alert banners */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {expired.length > 0 && (
-            <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-2.5">
-              <XCircle size={16} className="text-destructive shrink-0" />
-              <span className="text-sm text-destructive font-medium">
+            <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/30 rounded-md px-3.5 py-2">
+              <XCircle size={14} className="text-destructive shrink-0" />
+              <span className="text-xs text-destructive font-medium">
                 {expired.length} cliente{expired.length > 1 ? "s" : ""} com plano vencido — {fmt(revenueExpired)} em inadimplência
               </span>
             </div>
           )}
           {expiringSoon.length > 0 && (
-            <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-600/30 rounded-lg px-4 py-2.5">
-              <Clock size={16} className="text-yellow-500 shrink-0" />
-              <span className="text-sm text-yellow-500 font-medium">
+            <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-600/30 rounded-md px-3.5 py-2">
+              <Clock size={14} className="text-yellow-500 shrink-0" />
+              <span className="text-xs text-yellow-500 font-medium">
                 {expiringSoon.length} cliente{expiringSoon.length > 1 ? "s" : ""} vencendo — {fmt(revenueAtRisk)} em risco
               </span>
             </div>
           )}
           {serverOccupancy >= 80 && (
-            <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-600/30 rounded-lg px-4 py-2.5">
-              <Gauge size={16} className="text-orange-500 shrink-0" />
-              <span className="text-sm text-orange-500 font-medium">
+            <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-600/30 rounded-md px-3.5 py-2">
+              <Gauge size={14} className="text-orange-500 shrink-0" />
+              <span className="text-xs text-orange-500 font-medium">
                 Servidor em {serverOccupancy}% ({totalInUse}/{SERVER_MAX_INSTANCES})
               </span>
             </div>
@@ -163,63 +165,61 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* Financeiro */}
       <div>
-        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">
+        <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-2 font-semibold">
           Financeiro — {monthLabel}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           <StatCard icon={DollarSign} label="Receita Bruta (Contratada)"
             value={fmt(revenueBrute)}
             sub={`${users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length} planos ativos`}
             hint="Valor esperado dos ciclos/planos ativos"
-            color="bg-green-600/15 text-green-500" />
+            valueColor="text-blue-400" />
           <StatCard icon={Receipt} label="Receita Recebida (Caixa)"
             value={fmt(revenueReceived)}
             sub={`${monthPaymentsCount} pagamento${monthPaymentsCount !== 1 ? "s" : ""} registrado${monthPaymentsCount !== 1 ? "s" : ""}`}
             hint="Total efetivamente recebido no mês"
-            color="bg-blue-600/15 text-blue-500" />
+            valueColor="text-green-400" />
           <StatCard icon={TrendingDown} label="Descontos Concedidos"
             value={fmt(discounts)}
             sub={`${monthPaymentsCount} pagamento${monthPaymentsCount !== 1 ? "s" : ""}`}
             hint="Descontos registrados nos pagamentos do mês"
-            color="bg-orange-500/15 text-orange-500" />
+            valueColor="text-orange-400" />
           <StatCard icon={AlertTriangle} label="Taxas & Custos"
             value={fmt(totalCosts)}
             sub={`Custos: ${fmt(monthCosts)} + Taxas: ${fmt(paymentFees)}`}
             hint="Custos operacionais + taxas dos pagamentos"
-            color="bg-destructive/15 text-destructive" />
+            valueColor="text-red-400" />
           <StatCard icon={Wallet} label="Receita Líquida (No Bolso)"
             value={fmt(netRevenue)}
             sub={netRevenue >= 0 ? "Positivo" : "Negativo"}
             hint="Recebida − Taxas & Custos"
-            color={netRevenue >= 0 ? "bg-green-600/15 text-green-500" : "bg-destructive/15 text-destructive"} />
+            valueColor={netRevenue >= 0 ? "text-green-400" : "text-red-400"}
+            highlight={netRevenue >= 0} />
         </div>
       </div>
 
       {/* Operacional */}
       <div>
-        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">Operacional</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-2 font-semibold">Operacional</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <StatCard icon={Server} label="Instâncias Liberadas"
-            value={totalAllocated} sub={`Capacidade: ${SERVER_MAX_INSTANCES}`}
-            color="bg-primary/15 text-primary" />
+            value={totalAllocated} sub={`Capacidade: ${SERVER_MAX_INSTANCES}`} />
           <StatCard icon={Server} label="Instâncias em Uso"
-            value={totalInUse} sub={`${stats.active_devices} conectadas`}
-            color="bg-blue-600/15 text-blue-500" />
+            value={totalInUse} sub={`${stats.active_devices} conectadas`} />
           <StatCard icon={Gauge} label="Ocupação do Servidor"
             value={`${serverOccupancy}%`} sub={`${totalInUse}/${SERVER_MAX_INSTANCES}`}
-            color={serverOccupancy >= 80 ? "bg-destructive/15 text-destructive" : "bg-green-600/15 text-green-500"} />
+            valueColor={serverOccupancy >= 80 ? "text-red-400" : "text-green-400"} />
           <StatCard icon={Ban} label="Clientes Bloqueados"
-            value={blocked.length} sub="Suspensos + cancelados"
-            color="bg-muted text-muted-foreground" />
+            value={blocked.length} sub="Suspensos + cancelados" />
         </div>
 
         {/* Capacity bar */}
-        <div className="bg-card border border-border rounded-lg p-4 mt-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Capacidade do Servidor</span>
-            <span className="text-xs text-foreground">{totalInUse} / {SERVER_MAX_INSTANCES}</span>
+        <div className="bg-[hsl(220,15%,10%)] border border-[rgba(255,255,255,0.05)] rounded-md px-3.5 py-2.5 mt-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">Capacidade do Servidor</span>
+            <span className="text-[10px] text-foreground/70">{totalInUse} / {SERVER_MAX_INSTANCES}</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 serverOccupancy >= 90 ? "bg-destructive" : serverOccupancy >= 70 ? "bg-yellow-500" : "bg-primary"
