@@ -104,8 +104,8 @@ const BackOfficeDashboard = () => {
   }).length;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <Tabs defaultValue="overview" className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="bg-card border border-border">
           <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <LayoutDashboard size={16} /> Visão Geral

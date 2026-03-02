@@ -22,21 +22,21 @@ function fmt(v: number) {
 const StatCard = ({ icon: Icon, label, value, sub, hint, valueColor, highlight, large }: {
   icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; valueColor?: string; highlight?: boolean; large?: boolean;
 }) => (
-  <div className={`rounded-md flex items-start gap-3 transition-all ${
-    large ? "px-3.5 py-3" : "px-3 py-2"
+  <div className={`rounded-md flex items-start gap-3 transition-all duration-200 cursor-default group ${
+    large ? "px-3.5 py-2.5" : "px-2.5 py-2"
   } ${
     highlight
-      ? "bg-card border-[1.5px] border-green-500/25 shadow-[0_0_16px_-6px_rgba(34,197,94,0.1)]"
-      : "bg-card border border-border"
+      ? "bg-card border-[1.5px] border-green-500/25 shadow-[0_0_16px_-6px_rgba(34,197,94,0.1)] hover:border-green-500/35 hover:shadow-[0_0_20px_-4px_rgba(34,197,94,0.15)]"
+      : "bg-card border border-border shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:bg-[hsl(220,15%,12%)] hover:border-[rgba(255,255,255,0.1)]"
   }`}>
     <div className="shrink-0 mt-0.5">
-      <Icon size={large ? 18 : 15} className="text-[hsl(220,10%,45%)]" />
+      <Icon size={large ? 17 : 14} className="text-muted-foreground/60" />
     </div>
     <div className="min-w-0">
-      <p className="text-[10px] text-[hsl(220,10%,50%)] uppercase tracking-wider font-medium leading-tight">{label}</p>
-      <p className={`font-bold mt-0.5 ${large ? "text-xl" : "text-lg"} ${valueColor || "text-foreground"}`}>{value}</p>
-      {sub && <p className="text-[10px] text-[hsl(220,10%,40%)] mt-0.5">{sub}</p>}
-      {hint && <p className="text-[9px] text-[hsl(220,10%,32%)] mt-0.5 italic">{hint}</p>}
+      <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium leading-tight">{label}</p>
+      <p className={`font-extrabold mt-0.5 ${large ? "text-xl" : "text-base"} ${valueColor || "text-foreground"}`}>{value}</p>
+      {sub && <p className="text-[9px] text-muted-foreground/70 mt-0.5">{sub}</p>}
+      {hint && <p className="text-[8px] text-muted-foreground/40 mt-0.5 italic">{hint}</p>}
     </div>
   </div>
 );
@@ -132,19 +132,19 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <img src={dgLogo} alt="DG" className="h-7 w-7 rounded object-cover opacity-80 grayscale" />
+        <div className="flex items-center gap-2">
+          <img src={dgLogo} alt="DG" className="h-6 w-6 rounded object-cover opacity-70 grayscale" />
           <div>
-            <h1 className="text-sm font-bold text-foreground tracking-tight leading-none" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-base font-extrabold text-foreground tracking-tight leading-none">
               DG Control Center
             </h1>
-            <p className="text-[10px] text-[hsl(220,10%,38%)] mt-0.5 capitalize">{monthLabel} {now.getFullYear()}</p>
+            <p className="text-[9px] text-muted-foreground/50 mt-0.5 capitalize">{monthLabel} {now.getFullYear()}</p>
           </div>
         </div>
-        <span className="text-[8px] uppercase tracking-widest font-medium text-[hsl(220,10%,35%)] border border-[rgba(255,255,255,0.06)] px-2 py-0.5 rounded-full">
+        <span className="text-[7px] uppercase tracking-[0.2em] font-medium text-muted-foreground/40 border border-border px-1.5 py-0.5 rounded">
           Prod
         </span>
       </div>
@@ -181,10 +181,10 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* Financeiro */}
       <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-px flex-1 bg-[rgba(255,255,255,0.04)]" />
-          <span className="text-[9px] uppercase tracking-[0.15em] text-[hsl(220,10%,38%)] font-semibold">Financeiro — {monthLabel}</span>
-          <div className="h-px flex-1 bg-[rgba(255,255,255,0.04)]" />
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="h-px flex-1 bg-border/50" />
+          <span className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground/50 font-semibold">Financeiro — {monthLabel}</span>
+          <div className="h-px flex-1 bg-border/50" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1.5">
           <StatCard icon={DollarSign} label="Receita Bruta"
@@ -219,10 +219,10 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* Operacional */}
       <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-px flex-1 bg-[rgba(255,255,255,0.04)]" />
-          <span className="text-[9px] uppercase tracking-[0.15em] text-[hsl(220,10%,38%)] font-semibold">Operacional</span>
-          <div className="h-px flex-1 bg-[rgba(255,255,255,0.04)]" />
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="h-px flex-1 bg-border/50" />
+          <span className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground/50 font-semibold">Operacional</span>
+          <div className="h-px flex-1 bg-border/50" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5">
           <StatCard icon={Server} label="Instâncias Liberadas"
@@ -237,7 +237,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
         </div>
 
         {/* Capacity bar */}
-        <div className="bg-card border border-border rounded-md px-3 py-2 mt-1.5">
+        <div className="bg-card border border-border rounded-md px-2.5 py-1.5 mt-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.12)]">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Capacidade do Servidor</span>
           </div>
