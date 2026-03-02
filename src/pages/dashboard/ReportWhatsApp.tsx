@@ -11,82 +11,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Wifi,
-  WifiOff,
-  Search,
-  Users,
-  Send,
-  Save,
-  CheckCircle2,
-  Loader2,
-  Smartphone,
-  ArrowRightLeft,
-  Plug,
-  Circle,
-  QrCode,
-  Power,
-  Activity,
-  AlertTriangle,
-  Info,
-  XCircle,
-  Flame,
-  Megaphone,
-  Zap,
-  Clock,
-  Radio,
-  ShieldAlert,
-  Timer,
-  MessageSquare,
-  ChevronDown,
-  History,
-  RefreshCw,
-  Plus,
-  Trash2,
-  Download,
-  Shield,
-  HeartPulse,
-  FileText,
-  ExternalLink,
+  Wifi, WifiOff, Search, Users, CheckCircle2, Loader2, Smartphone,
+  ArrowRightLeft, Circle, QrCode, Power, Activity, AlertTriangle,
+  XCircle, Flame, Megaphone, Zap, Clock, Radio, ShieldAlert,
+  MessageSquare, History, RefreshCw, Plus, Trash2, ExternalLink,
+  Bell, BellOff, Phone, Settings, FileText, Pause, Play, BarChart3,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type ConnectionStatus = "connected" | "pairing" | "disconnected" | "error";
 type Group = { id: string; name: string; participantsCount?: number | null };
 type ReportType = "warmup" | "campaigns" | "connection";
-
-const REPORT_META: Record<ReportType, { label: string; icon: typeof Flame; color: string; bgColor: string; borderColor: string; description: string }> = {
-  warmup: {
-    label: "Aquecimento 24h",
-    icon: Flame,
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/8",
-    borderColor: "border-orange-500/20",
-    description: "Relatório diário automático do ciclo de aquecimento",
-  },
-  campaigns: {
-    label: "Campanhas",
-    icon: Megaphone,
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/8",
-    borderColor: "border-blue-500/20",
-    description: "Alertas ao iniciar, pausar ou finalizar campanhas",
-  },
-  connection: {
-    label: "Status de Conexão",
-    icon: Zap,
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/8",
-    borderColor: "border-emerald-500/20",
-    description: "Alertas em tempo real de conexão e desconexão",
-  },
-};
 
 const ReportWhatsApp = () => {
   const { user } = useAuth();
@@ -144,6 +82,7 @@ const ReportWhatsApp = () => {
     []
   );
 
+  // ── Polling ──
   useEffect(() => {
     if (!user) return;
     const poll = async () => {
@@ -190,6 +129,7 @@ const ReportWhatsApp = () => {
     return () => clearInterval(interval);
   }, [user, invoke]);
 
+  // Auto-save toggles
   useEffect(() => {
     if (!configured || !selectedDeviceId) return;
     const primaryGroup = reportGroups.warmup || reportGroups.campaigns || reportGroups.connection;
@@ -255,28 +195,17 @@ const ReportWhatsApp = () => {
     }
   };
 
-  const [groupsDebug, setGroupsDebug] = useState<Record<ReportType, { deviceName: string; total: number; endpoint: string } | null>>({
-    warmup: null, campaigns: null, connection: null,
-  });
-
   const handleLoadGroups = async (forType: ReportType) => {
     if (!selectedDeviceId || !isConnected) {
-      toast({ title: "Conecte uma instância do WhatsApp para carregar seus grupos", variant: "destructive" });
+      toast({ title: "Conecte uma instância para carregar grupos", variant: "destructive" });
       return;
     }
     setModuleGroups((prev) => ({ ...prev, [forType]: [] }));
-    setGroupsDebug((prev) => ({ ...prev, [forType]: null }));
     setModuleGroupsLoading((prev) => ({ ...prev, [forType]: true }));
     try {
       const data = await invoke("groups", { instanceId: selectedDeviceId });
       const groups = data.groups || [];
-      const debug = data.debug || {};
       setModuleGroups((prev) => ({ ...prev, [forType]: groups }));
-      setGroupsDebug((prev) => ({ ...prev, [forType]: {
-        deviceName: debug.deviceName || selectedDevice?.name || "—",
-        total: groups.length,
-        endpoint: debug.usedEndpoint || "—",
-      }}));
       if (groups.length === 0) {
         toast({ title: "Nenhum grupo encontrado nesta instância" });
       } else {
@@ -284,7 +213,7 @@ const ReportWhatsApp = () => {
         setGroupSearch("");
       }
     } catch (err: any) {
-      toast({ title: "Erro ao carregar grupos desta instância", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao carregar grupos", description: err.message, variant: "destructive" });
     } finally {
       setModuleGroupsLoading((prev) => ({ ...prev, [forType]: false }));
     }
@@ -310,7 +239,7 @@ const ReportWhatsApp = () => {
         alertCampaignEnd: true,
         alertHighFailures,
       });
-      toast({ title: `Grupo configurado para ${REPORT_META[type].label}` });
+      toast({ title: `Grupo configurado para ${ALERT_CATEGORIES.find(c => c.types.some(t => t.key === type))?.label || type}` });
       try {
         await invoke("test", { reportType: type, groupId: group.id, groupName: group.name });
         toast({ title: "✅ Teste enviado ao grupo!" });
@@ -328,16 +257,14 @@ const ReportWhatsApp = () => {
   const isPairing = connStatus === "pairing";
   const totalEventsSent = events.filter((e) => e.text.includes("enviado") || e.text.includes("enviada")).length;
   const activeReportsCount = Object.values(reportToggles).filter(Boolean).length;
+  const notificationsActive = activeReportsCount > 0 && isConnected;
 
-  // ── Derived data for new layout ──
   const onlineDevices = devices.filter((d) => ["Connected", "Ready", "authenticated"].includes(d.status));
   const offlineDevices = devices.filter((d) => !["Connected", "Ready", "authenticated"].includes(d.status));
 
-  // Active alerts: real issues requiring action now
+  // Active alerts
   const activeAlerts = useMemo(() => {
     const alerts: Array<{ id: string; type: "error" | "warn"; icon: typeof AlertTriangle; message: string; detail?: string }> = [];
-
-    // Offline devices
     offlineDevices.forEach((d) => {
       alerts.push({
         id: `offline-${d.id}`,
@@ -347,8 +274,6 @@ const ReportWhatsApp = () => {
         detail: d.updated_at ? `Desde ${formatDistanceToNow(new Date(d.updated_at), { locale: ptBR, addSuffix: true })}` : undefined,
       });
     });
-
-    // Events with WARN/ERROR level from recent data
     events.forEach((ev) => {
       if (ev.level === "ERROR") {
         alerts.push({ id: ev.id, type: "error", icon: XCircle, message: ev.text });
@@ -356,163 +281,362 @@ const ReportWhatsApp = () => {
         alerts.push({ id: ev.id, type: "warn", icon: AlertTriangle, message: ev.text });
       }
     });
-
-    return alerts.slice(0, 8); // limit
+    return alerts.slice(0, 8);
   }, [offlineDevices, events]);
 
-  // Health status
-  const healthStatus = useMemo(() => {
-    const errorAlerts = activeAlerts.filter((a) => a.type === "error").length;
-    const warnAlerts = activeAlerts.filter((a) => a.type === "warn").length;
-    if (errorAlerts > 0) return "critical";
-    if (warnAlerts > 0 || offlineDevices.length > 0) return "attention";
-    return "stable";
-  }, [activeAlerts, offlineDevices]);
-
-  const healthConfig = {
-    stable: { label: "Estável", color: "text-emerald-400", bg: "bg-emerald-500/8", border: "border-emerald-500/25", dot: "bg-emerald-400", glow: "shadow-emerald-500/10" },
-    attention: { label: "Atenção", color: "text-amber-400", bg: "bg-amber-500/8", border: "border-amber-500/25", dot: "bg-amber-400 animate-pulse", glow: "shadow-amber-500/10" },
-    critical: { label: "Crítico", color: "text-red-400", bg: "bg-red-500/8", border: "border-red-500/25", dot: "bg-red-400 animate-pulse", glow: "shadow-red-500/10" },
-  };
-
-  const health = healthConfig[healthStatus];
+  // Alert categories config
+  const ALERT_CATEGORIES = [
+    {
+      label: "Alertas de Conexão",
+      icon: Radio,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/8",
+      borderColor: "border-emerald-500/20",
+      types: [
+        { key: "connection" as ReportType, label: "Instância conectada", sublabel: "Instância desconectada • Oscilação detectada" },
+      ],
+    },
+    {
+      label: "Alertas de Campanha",
+      icon: Megaphone,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/8",
+      borderColor: "border-blue-500/20",
+      types: [
+        { key: "campaigns" as ReportType, label: "Campanha iniciada", sublabel: "Campanha pausada • Campanha finalizada" },
+      ],
+    },
+    {
+      label: "Alertas Operacionais",
+      icon: BarChart3,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/8",
+      borderColor: "border-orange-500/20",
+      types: [
+        { key: "warmup" as ReportType, label: "Relatório diário", sublabel: "Ciclo concluído • Erro detectado" },
+      ],
+    },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
 
       {/* ═══════════════════════════════════════════
-          1. SAÚDE GERAL DA ESTRUTURA
+          1. TÍTULO + SUBTÍTULO
           ═══════════════════════════════════════════ */}
-      <Card className={`overflow-hidden border ${health.border} shadow-xl ${health.glow} bg-card`}>
-        <div className={`h-1.5 w-full ${
-          healthStatus === "stable" ? "bg-emerald-500" :
-          healthStatus === "attention" ? "bg-amber-500 animate-pulse" :
-          "bg-red-500 animate-pulse"
-        }`} />
-        <CardContent className="p-8">
-          <div className="flex items-start justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                Centro de Monitoramento
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Visão operacional em tempo real
-              </p>
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Bell className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+              Central de Alertas via WhatsApp
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Receba notificações automáticas no WhatsApp sobre desconexões, campanhas e eventos operacionais.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════
+          2. NÚMERO VINCULADO PARA ALERTAS
+          ═══════════════════════════════════════════ */}
+      <Card className={`overflow-hidden border ${isConnected ? "border-emerald-500/25" : "border-amber-500/25"} bg-card shadow-lg`}>
+        <div className={`h-1 w-full ${isConnected ? "bg-emerald-500" : configured ? "bg-amber-500" : "bg-muted-foreground/20"}`} />
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Phone className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Número Vinculado para Alertas
+            </h2>
+          </div>
+
+          {!configured || !selectedDeviceId ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Nenhum número vinculado</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Configure para começar a receber alertas no WhatsApp.</p>
+                </div>
+              </div>
+              <Button className="gap-2" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
+                <Plus className="w-4 h-4" />
+                Vincular número
+              </Button>
             </div>
-            <Badge className={`text-sm font-bold px-5 py-2.5 gap-2.5 shrink-0 border ${health.bg} ${health.color} ${health.border}`}>
-              <span className={`w-3 h-3 rounded-full ${health.dot}`} />
-              {health.label}
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                    isConnected ? "bg-emerald-500/10" : "bg-red-500/10"
+                  }`}>
+                    <Smartphone className={`w-6 h-6 ${isConnected ? "text-emerald-400" : "text-red-400"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-foreground truncate">{selectedDevice?.name || "Dispositivo"}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {isConnected && connPhone ? connPhone : selectedDevice?.number || "Sem número"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className={`text-xs px-3 py-1 gap-1.5 ${
+                    isConnected ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : isPairing ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      isConnected ? "bg-emerald-400" : isPairing ? "bg-yellow-400 animate-pulse" : "bg-red-400"
+                    }`} />
+                    {isConnected ? "Ativo" : isPairing ? "Pareando" : "Não configurado"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* QR Code */}
+              {(isPairing || qrDataUrl) && !isConnected && (
+                <div className="flex flex-col items-center gap-3 py-4 border-t border-border/10">
+                  {qrDataUrl ? (
+                    <>
+                      <div className="p-2.5 bg-white rounded-xl">
+                        <img src={qrDataUrl} alt="QR Code" className="w-44 h-44 object-contain" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Escaneie com o WhatsApp</p>
+                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={handleGenerateQr} disabled={!!loading}>
+                        {loading === "qr" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+                        Atualizar QR
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-3">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Gerando QR...</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isConnected && connPhone && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs text-foreground">Conectado: <strong>{connPhone}</strong></span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  Alterar número
+                </Button>
+                {connStatus === "disconnected" && (
+                  <Button size="sm" className="gap-1.5 text-xs" onClick={handleGenerateQr} disabled={!!loading}>
+                    {loading === "qr" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Reconectar
+                  </Button>
+                )}
+                {isConnected && (
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={!!loading}>
+                    {loading === "disconnect" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
+                    Desconectar
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══════════════════════════════════════════
+          3. STATUS GERAL DAS NOTIFICAÇÕES
+          ═══════════════════════════════════════════ */}
+      <Card className={`overflow-hidden border ${notificationsActive ? "border-emerald-500/25 shadow-emerald-500/5" : "border-red-500/20 shadow-red-500/5"} bg-card shadow-xl`}>
+        <div className={`h-1.5 w-full ${notificationsActive ? "bg-emerald-500" : "bg-red-500"}`} />
+        <CardContent className="p-8">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                notificationsActive ? "bg-emerald-500/10" : "bg-red-500/10"
+              }`}>
+                {notificationsActive
+                  ? <Bell className="w-7 h-7 text-emerald-400" />
+                  : <BellOff className="w-7 h-7 text-red-400" />
+                }
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">
+                  {notificationsActive ? "Notificações Ativas" : "Notificações Desativadas"}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {notificationsActive
+                    ? "Você será alertado sobre eventos operacionais no WhatsApp."
+                    : "Configure um número e ative alertas para receber notificações."
+                  }
+                </p>
+              </div>
+            </div>
+            <Badge className={`text-sm font-bold px-4 py-2 gap-2 shrink-0 border ${
+              notificationsActive
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : "bg-red-500/10 text-red-400 border-red-500/20"
+            }`}>
+              <span className={`w-3 h-3 rounded-full ${notificationsActive ? "bg-emerald-400" : "bg-red-400"}`} />
+              {notificationsActive ? "Ativas" : "Inativas"}
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <HealthMetric
-              icon={<Wifi className="w-4 h-4" />}
-              label="Instâncias online"
-              value={String(onlineDevices.length)}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatusMetric
+              icon={<Radio className="w-4 h-4" />}
+              label="Instâncias monitoradas"
+              value={String(devices.length)}
+              accent="blue"
+            />
+            <StatusMetric
+              icon={<MessageSquare className="w-4 h-4" />}
+              label="Alertas enviados hoje"
+              value={String(totalEventsSent)}
               accent="emerald"
             />
-            <HealthMetric
-              icon={<WifiOff className="w-4 h-4" />}
-              label="Instâncias offline"
-              value={String(offlineDevices.length)}
-              accent={offlineDevices.length > 0 ? "red" : "muted"}
-            />
-            <HealthMetric
-              icon={<AlertTriangle className="w-4 h-4" />}
-              label="Alertas ativos"
-              value={String(activeAlerts.length)}
-              accent={activeAlerts.length > 0 ? "amber" : "muted"}
-            />
-            <HealthMetric
-              icon={<Activity className="w-4 h-4" />}
-              label="Oscilações detectadas"
-              value={String(events.filter((e) => e.level === "WARN").length)}
-              accent={events.filter((e) => e.level === "WARN").length > 0 ? "amber" : "muted"}
+            <StatusMetric
+              icon={<Clock className="w-4 h-4" />}
+              label="Último alerta enviado"
+              value={events.length > 0
+                ? new Date(events[0].ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : "—"
+              }
+              accent="muted"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* ═══════════════════════════════════════════
-          2. INSTÂNCIAS MONITORADAS
+          4. TIPOS DE ALERTAS DISPONÍVEIS
           ═══════════════════════════════════════════ */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1">
-          <Radio className="w-4 h-4 text-muted-foreground" />
+          <Settings className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Instâncias Monitoradas
+            Tipos de Alertas Disponíveis
           </h2>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1">{devices.length}</Badge>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1">
+            {activeReportsCount} de 3 ativos
+          </Badge>
         </div>
 
-        {devices.length === 0 ? (
-          <Card className="border border-border/30 bg-card">
-            <CardContent className="py-12 text-center">
-              <Smartphone className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhuma instância cadastrada.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {devices.map((device) => {
-              const isOnline = ["Connected", "Ready", "authenticated"].includes(device.status);
-              const statusLabel = isOnline ? "Conectado" : "Desconectado";
-              const statusColor = isOnline ? "text-emerald-400" : "text-red-400";
-              const dotColor = isOnline ? "bg-emerald-400" : "bg-red-400";
-              const borderColor = isOnline ? "border-emerald-500/15" : "border-red-500/15";
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {ALERT_CATEGORIES.map((cat) => {
+            const CatIcon = cat.icon;
+            const type = cat.types[0].key;
+            const isActive = reportToggles[type];
+            const group = reportGroups[type];
 
-              // Check if device has active warmup session
-              const hasActiveCycle = false; // Simplified - would need warmup_sessions query
-
-              return (
-                <Card key={device.id} className={`border ${borderColor} bg-card hover:bg-muted/5 transition-colors`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{device.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{device.number || "Sem número"}</p>
-                      </div>
-                      <Badge variant="outline" className={`text-[10px] px-2 py-0.5 shrink-0 ${statusColor} border-current/20`}>
-                        {statusLabel}
-                      </Badge>
+            return (
+              <Card key={type} className={`border transition-all ${isActive ? cat.borderColor : "border-border/30 opacity-60"} bg-card`}>
+                <CardContent className="p-5 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${cat.bgColor} flex items-center justify-center shrink-0`}>
+                      <CatIcon className={`w-5 h-5 ${cat.color}`} />
                     </div>
-
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <div className="text-center">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Última atividade</p>
-                        <p className="text-[11px] font-medium text-foreground mt-0.5">
-                          {device.updated_at
-                            ? formatDistanceToNow(new Date(device.updated_at), { locale: ptBR, addSuffix: true })
-                            : "—"}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ciclo ativo</p>
-                        <p className="text-[11px] font-medium text-foreground mt-0.5">—</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                          {isOnline ? "Status" : "Tempo offline"}
-                        </p>
-                        <p className={`text-[11px] font-medium mt-0.5 ${statusColor}`}>
-                          {isOnline ? "Operando" : device.updated_at
-                            ? formatDistanceToNow(new Date(device.updated_at), { locale: ptBR })
-                            : "—"}
-                        </p>
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-bold text-foreground">{cat.label}</h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{cat.types[0].sublabel}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  </div>
+
+                  {/* Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-muted/10 border border-border/30">
+                    <span className="text-xs font-medium text-foreground">Ativar alertas</span>
+                    <Switch
+                      checked={isActive}
+                      onCheckedChange={(v) => setReportToggles((prev) => ({ ...prev, [type]: v }))}
+                    />
+                  </div>
+
+                  {/* Active: group selector & stats */}
+                  {isActive && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Grupo de destino
+                      </p>
+
+                      {group ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                              <span className="text-xs font-semibold text-foreground truncate">{group.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground"
+                                onClick={() => handleLoadGroups(type)} disabled={!isConnected || moduleGroupsLoading[type]}>
+                                <RefreshCw className="w-3 h-3" /> Alterar
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                onClick={() => {
+                                  setReportGroups((prev) => ({ ...prev, [type]: null }));
+                                  invoke("config", {
+                                    instanceId: selectedDeviceId, reportType: type,
+                                    perTypeGroup: { id: "", name: "" }, frequency: "24h",
+                                    toggleCampaigns: reportToggles.campaigns, toggleWarmup: reportToggles.warmup,
+                                    toggleInstances: reportToggles.connection, alertDisconnect, alertCampaignEnd: true, alertHighFailures,
+                                  }).catch(() => {});
+                                }}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2 rounded-lg bg-muted/5 border border-border/20 text-center">
+                              <p className="text-[9px] text-muted-foreground uppercase">Alertas enviados</p>
+                              <p className="text-sm font-bold text-foreground">{totalEventsSent}</p>
+                            </div>
+                            <div className="p-2 rounded-lg bg-muted/5 border border-border/20 text-center">
+                              <p className="text-[9px] text-muted-foreground uppercase">Último envio</p>
+                              <p className="text-[11px] font-semibold text-foreground">
+                                {events.length > 0 ? new Date(events[0].ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : !isConnected ? (
+                        <p className="text-[10px] text-muted-foreground text-center py-3">
+                          Conecte uma instância para carregar grupos.
+                        </p>
+                      ) : (
+                        <Button variant="outline" className="w-full h-10 gap-2 text-xs"
+                          onClick={() => handleLoadGroups(type)} disabled={moduleGroupsLoading[type]}>
+                          {moduleGroupsLoading[type] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                          Carregar grupos
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Disabled warning */}
+                  {!isActive && (
+                    <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                      <p className="text-[10px] text-amber-400 font-medium">⚠ Alertas desativados</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Esses eventos não serão enviados para o WhatsApp.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════
-          3. ALERTAS ATIVOS
+          5. ALERTAS ATIVOS AGORA
           ═══════════════════════════════════════════ */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1">
@@ -545,7 +669,7 @@ const ReportWhatsApp = () => {
               return (
                 <Card key={alert.id} className={`border ${isError ? "border-red-500/20" : "border-amber-500/20"} bg-card`}>
                   <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                       isError ? "bg-red-500/10" : "bg-amber-500/10"
                     }`}>
                       <AlertIcon className={`w-4 h-4 ${isError ? "text-red-400" : "text-amber-400"}`} />
@@ -570,256 +694,32 @@ const ReportWhatsApp = () => {
       </div>
 
       {/* ═══════════════════════════════════════════
-          4. RELATÓRIOS ATIVOS
+          6. HISTÓRICO COMPLETO
           ═══════════════════════════════════════════ */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 px-1">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Relatórios Ativos
-          </h2>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1">
-            {activeReportsCount} de 3
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {(["warmup", "campaigns", "connection"] as ReportType[]).map((type) => {
-            const meta = REPORT_META[type];
-            const Icon = meta.icon;
-            const group = reportGroups[type];
-            const isActive = reportToggles[type];
-
-            return (
-              <Card key={type} className={`border transition-all ${isActive ? meta.borderColor : "border-border/30 opacity-50"} bg-card`}>
-                <CardContent className="p-5 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${meta.bgColor} flex items-center justify-center shrink-0`}>
-                      <Icon className={`w-5 h-5 ${meta.color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-foreground">{meta.label}</h3>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Toggle */}
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/30">
-                    <span className="text-xs font-medium text-foreground">Ativar relatório</span>
-                    <Switch
-                      checked={isActive}
-                      onCheckedChange={(v) => setReportToggles((prev) => ({ ...prev, [type]: v }))}
-                    />
-                  </div>
-
-                  {/* Status info when active */}
-                  {isActive && (
-                    <div className="space-y-3">
-                      {/* Group selector */}
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        Grupo de destino
-                      </p>
-
-                      {group ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                              <span className="text-xs font-semibold text-foreground truncate">{group.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground"
-                                onClick={() => handleLoadGroups(type)} disabled={!isConnected || moduleGroupsLoading[type]}>
-                                <RefreshCw className="w-3 h-3" /> Alterar
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                onClick={() => {
-                                  setReportGroups((prev) => ({ ...prev, [type]: null }));
-                                  invoke("config", {
-                                    instanceId: selectedDeviceId, reportType: type,
-                                    perTypeGroup: { id: "", name: "" }, frequency: "24h",
-                                    toggleCampaigns: reportToggles.campaigns, toggleWarmup: reportToggles.warmup,
-                                    toggleInstances: reportToggles.connection, alertDisconnect, alertCampaignEnd: true, alertHighFailures,
-                                  }).catch(() => {});
-                                }}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          {/* Report stats */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="p-2 rounded-lg bg-muted/5 border border-border/20 text-center">
-                              <p className="text-[9px] text-muted-foreground uppercase">Alertas enviados</p>
-                              <p className="text-sm font-bold text-foreground">{totalEventsSent}</p>
-                            </div>
-                            <div className="p-2 rounded-lg bg-muted/5 border border-border/20 text-center">
-                              <p className="text-[9px] text-muted-foreground uppercase">Último envio</p>
-                              <p className="text-[11px] font-semibold text-foreground">
-                                {events.length > 0 ? new Date(events[0].ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : !isConnected ? (
-                        <p className="text-[10px] text-muted-foreground text-center py-3">
-                          Conecte uma instância do WhatsApp para carregar seus grupos.
-                        </p>
-                      ) : (
-                        <>
-                          <Button variant="outline" className="w-full h-10 gap-2 text-xs"
-                            onClick={() => handleLoadGroups(type)} disabled={moduleGroupsLoading[type]}>
-                            {moduleGroupsLoading[type] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-                            Carregar grupos
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Impact when disabled */}
-                  {!isActive && (
-                    <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-                      <p className="text-[10px] text-amber-400 font-medium">⚠ Relatório desativado</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Você não receberá alertas de {meta.label.toLowerCase()} no WhatsApp.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
-          5. NÚMERO DE RELATÓRIO + VER LOGS
-          ═══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Device config */}
-        <Card className="border border-border/30 bg-card">
-          <CardContent className="p-0">
-            <div className="px-5 pt-4 pb-2">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Smartphone className="w-3.5 h-3.5" />
-                Número de Relatório
-              </h2>
-            </div>
-
-            {!configured || !selectedDeviceId ? (
-              <div className="px-5 pb-4">
-                <Button className="w-full h-9 gap-2 text-xs" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
-                  <Plus className="w-3.5 h-3.5" />
-                  Vincular instância
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-2 px-5 pb-1.5">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isConnected ? "bg-emerald-400" : isPairing ? "bg-yellow-400 animate-pulse" : "bg-red-400"}`} />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-foreground truncate leading-tight">
-                        {selectedDevice?.name || "Dispositivo"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/50 truncate leading-tight">
-                        {isConnected && connPhone ? connPhone : selectedDevice?.number || "Sem número"}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 ${
-                    isConnected ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : isPairing ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                  }`}>
-                    {isConnected ? <><Wifi className="w-2.5 h-2.5" /> Online</> :
-                     isPairing ? <><Loader2 className="w-2.5 h-2.5 animate-spin" /> Pareando</> :
-                     <><WifiOff className="w-2.5 h-2.5" /> Offline</>}
-                  </Badge>
-                </div>
-
-                {/* QR Code section */}
-                {(isPairing || qrDataUrl) && !isConnected && (
-                  <div className="flex flex-col items-center gap-3 py-4 border-t border-border/10">
-                    {qrDataUrl ? (
-                      <>
-                        <div className="p-2.5 bg-white rounded-xl">
-                          <img src={qrDataUrl} alt="QR Code" className="w-44 h-44 object-contain" />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">Escaneie com o WhatsApp</p>
-                        <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={handleGenerateQr} disabled={!!loading}>
-                          {loading === "qr" ? <Loader2 className="w-3 h-3 animate-spin" /> : <QrCode className="w-3 h-3" />}
-                          Atualizar
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 py-3">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        <p className="text-[11px] text-muted-foreground">Gerando QR...</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {isConnected && connPhone && (
-                  <div className="mx-5 mb-2 flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span className="text-[10px] text-foreground">Conectado: <strong>{connPhone}</strong></span>
-                  </div>
-                )}
-
-                <div className="border-t border-border/10 px-3 py-1.5 flex items-center gap-0.5">
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setModalSelection(""); setModalOpen(true); }}>
-                    <ArrowRightLeft className="w-2.5 h-2.5" />
-                  </Button>
-                  <div className="flex-1" />
-                  {connStatus === "disconnected" ? (
-                    <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={handleGenerateQr} disabled={!!loading}>
-                      {loading === "qr" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RefreshCw className="w-2.5 h-2.5" />}
-                      Reconectar
-                    </Button>
-                  ) : isConnected ? (
-                    <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={!!loading}>
-                      {loading === "disconnect" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Power className="w-2.5 h-2.5" />}
-                      Desconectar
-                    </Button>
-                  ) : null}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Ver Logs Completos */}
-        <Card className="border border-border/30 bg-card flex flex-col justify-center">
-          <CardContent className="p-6 text-center space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto">
-              <History className="w-7 h-7 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Histórico Completo</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Acesse o log detalhado de todos os eventos, alertas e atividades do sistema.
-              </p>
-            </div>
-            <Button
-              className="gap-2"
-              onClick={() => navigate("/dashboard/reports")}
-            >
-              <ExternalLink className="w-4 h-4" />
-              Ver Logs Completos
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border border-border/30 bg-card">
+        <CardContent className="p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto">
+            <History className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-foreground">Histórico Completo</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Acesse o log detalhado de todos os eventos e notificações enviadas.
+            </p>
+          </div>
+          <Button className="gap-2" onClick={() => navigate("/dashboard/reports")}>
+            <ExternalLink className="w-4 h-4" />
+            Ver Logs Completos
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* ── Modal: Selecionar instância ── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Selecionar número</DialogTitle>
-            <DialogDescription>Escolha uma instância para receber os relatórios.</DialogDescription>
+            <DialogDescription>Escolha uma instância para receber os alertas via WhatsApp.</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
             {devices.length === 0 ? (
@@ -830,7 +730,7 @@ const ReportWhatsApp = () => {
                 const isSelected = modalSelection === d.id;
                 return (
                   <button key={d.id} onClick={() => setModalSelection(d.id)}
-                    className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors flex items-center justify-between ${
                       isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/30 border border-transparent"
                     }`}>
                     <div>
@@ -856,7 +756,7 @@ const ReportWhatsApp = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Modal: Selecionar grupo para relatório ── */}
+      {/* ── Modal: Selecionar grupo ── */}
       <Dialog open={!!groupPickerOpen} onOpenChange={(v) => !v && setGroupPickerOpen(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -865,7 +765,7 @@ const ReportWhatsApp = () => {
               Selecionar grupo
             </DialogTitle>
             <DialogDescription>
-              {groupPickerOpen && `Escolha o grupo de destino para ${REPORT_META[groupPickerOpen].label}`}
+              {groupPickerOpen && `Escolha o grupo de destino para ${ALERT_CATEGORIES.find(c => c.types[0].key === groupPickerOpen)?.label || ""}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -897,7 +797,7 @@ const ReportWhatsApp = () => {
                 const isCurrentlySelected = groupPickerOpen && reportGroups[groupPickerOpen]?.id === g.id;
                 return (
                   <button key={g.id} onClick={() => groupPickerOpen && handleSelectGroupForType(groupPickerOpen, g)}
-                    className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors flex items-center justify-between ${
                       isCurrentlySelected ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/20 border border-transparent"
                     }`}>
                     <div className="min-w-0">
@@ -918,8 +818,8 @@ const ReportWhatsApp = () => {
   );
 };
 
-/* ── Health Metric Component ── */
-function HealthMetric({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
+/* ── Status Metric Component ── */
+function StatusMetric({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
   const colors: Record<string, { text: string; bg: string }> = {
     emerald: { text: "text-emerald-400", bg: "bg-emerald-500/8" },
     red: { text: "text-red-400", bg: "bg-red-500/8" },
