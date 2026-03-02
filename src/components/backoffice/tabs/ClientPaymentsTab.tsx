@@ -17,7 +17,7 @@ interface Props {
   detail: any;
 }
 
-const METHODS = ["PIX", "Cartão", "Boleto", "Transferência", "Outro"];
+const METHODS = ["PIX", "Cartão"];
 
 // Format number to BRL display: 10000 → "10.000,00"
 function fmtBRL(v: number): string {
