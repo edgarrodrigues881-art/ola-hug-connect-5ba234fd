@@ -37,7 +37,7 @@ const CustomModule = () => {
   });
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 pb-12">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">Roteiros de Aquecimento</h1>
         <p className="text-sm text-muted-foreground">
