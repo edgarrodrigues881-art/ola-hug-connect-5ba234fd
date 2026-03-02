@@ -32,6 +32,7 @@ export interface AdminDashboard {
   cycles: any[];
   payments: any[];
   admin_logs: any[];
+  costs: any[];
   stats: {
     total_users: number;
     total_devices: number;

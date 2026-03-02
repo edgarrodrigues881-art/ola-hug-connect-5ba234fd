@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       const { data: cycles } = await adminClient.from("subscription_cycles").select("*");
       const { data: payments } = await adminClient.from("payments").select("*");
       const { data: adminLogs } = await adminClient.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(500);
+      const { data: costs } = await adminClient.from("admin_costs").select("*");
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
         total_subscriptions: subscriptions?.length || 0,
       };
 
-      return new Response(JSON.stringify({ users, devices: devicesWithOwner, stats, cycles: cycles || [], payments: payments || [], admin_logs: adminLogs || [] }), {
+      return new Response(JSON.stringify({ users, devices: devicesWithOwner, stats, cycles: cycles || [], payments: payments || [], admin_logs: adminLogs || [], costs: costs || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -457,6 +458,37 @@ Deno.serve(async (req) => {
         user_id: target_user_id, admin_id: user.id, template_type, message_content, observation,
       });
       await logAction(adminClient, user.id, target_user_id, "send-message", `Mensagem: ${template_type}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── ADD COST ───
+    if (action === "add-cost" && req.method === "POST") {
+      const { category, amount, description, cost_date } = await req.json();
+      await adminClient.from("admin_costs").insert({
+        admin_id: user.id, category, amount, description, cost_date,
+      });
+      await logAction(adminClient, user.id, null, "add-cost", `Custo: ${category} R$ ${amount}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── UPDATE COST ───
+    if (action === "update-cost" && req.method === "POST") {
+      const { cost_id, category, amount, description, cost_date } = await req.json();
+      await adminClient.from("admin_costs").update({ category, amount, description, cost_date }).eq("id", cost_id);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DELETE COST ───
+    if (action === "delete-cost" && req.method === "POST") {
+      const { cost_id } = await req.json();
+      await adminClient.from("admin_costs").delete().eq("id", cost_id);
+      await logAction(adminClient, user.id, null, "delete-cost", `Custo removido: ${cost_id}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

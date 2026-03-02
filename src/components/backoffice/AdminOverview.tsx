@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import {
-  DollarSign, TrendingUp, AlertTriangle, Server, Gauge,
-  Ban, Clock, XCircle, Receipt
+  DollarSign, TrendingDown, AlertTriangle, Server, Gauge,
+  Ban, Clock, XCircle, Receipt, Wallet
 } from "lucide-react";
 import type { AdminDashboard } from "@/hooks/useAdmin";
 
 const SERVER_MAX_INSTANCES = 500;
+
+const PLAN_PRICES: Record<string, number> = { Start: 149.9, Pro: 349.9, Scale: 549.9, Elite: 899.9 };
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -16,35 +18,88 @@ function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
-const StatCard = ({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; color: string;
+const StatCard = ({ icon: Icon, label, value, sub, hint, color }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string; hint?: string; color: string;
 }) => (
   <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
-    <div className={`p-2 rounded-md ${color}`}>
+    <div className={`p-2 rounded-md shrink-0 ${color}`}>
       <Icon size={18} />
     </div>
     <div className="min-w-0">
-      <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">{label}</p>
+      <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium leading-tight">{label}</p>
       <p className="text-xl font-bold mt-0.5 text-foreground">{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      {hint && <p className="text-[10px] text-muted-foreground/60 mt-0.5 italic">{hint}</p>}
     </div>
   </div>
 );
 
 const AdminOverview = ({ data }: { data: AdminDashboard }) => {
-  const { stats, users, cycles, payments } = data;
+  const { stats, users, cycles, payments, costs = [] } = data as AdminDashboard & { costs?: any[] };
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(now);
 
-  // ── Financial metrics ──
-  const mrr = useMemo(() =>
-    users.reduce((sum, u) => {
-      if (u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0) return sum + u.plan_price;
-      return sum;
+  // ── Receita Bruta (Contratada) ──
+  // Sum cycle_amount for cycles active this month, fallback to plan_price for users without cycles
+  const revenueBrute = useMemo(() => {
+    const monthCycles = (cycles || []).filter((c: any) => {
+      const start = new Date(c.cycle_start);
+      const end = new Date(c.cycle_end);
+      return end >= monthStart && start <= now;
+    });
+
+    const usersWithCycles = new Set(monthCycles.map((c: any) => c.user_id));
+    let total = monthCycles.reduce((s: number, c: any) => s + Number(c.cycle_amount), 0);
+
+    // Users with active plans but no cycles this month → use plan_price
+    users.forEach(u => {
+      if (!usersWithCycles.has(u.id) && u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0) {
+        total += u.plan_price;
+      }
+    });
+
+    return total;
+  }, [users, cycles]);
+
+  // ── Receita Recebida (Caixa) ──
+  const revenueReceived = useMemo(() =>
+    (payments || []).reduce((s: number, p: any) => {
+      const paid = new Date(p.paid_at);
+      return paid >= monthStart ? s + Number(p.amount) : s;
     }, 0),
-  [users]);
+  [payments]);
 
+  const monthPaymentsCount = useMemo(() =>
+    (payments || []).filter((p: any) => new Date(p.paid_at) >= monthStart).length,
+  [payments]);
+
+  // ── Descontos Concedidos ──
+  const discounts = useMemo(() => {
+    return (cycles || []).reduce((s: number, c: any) => {
+      const created = new Date(c.created_at);
+      if (created >= monthStart) {
+        const basePrice = PLAN_PRICES[c.plan_name] || 0;
+        const diff = basePrice - Number(c.cycle_amount);
+        if (diff > 0) return s + diff;
+      }
+      return s;
+    }, 0);
+  }, [cycles]);
+
+  // ── Taxas & Custos ──
+  const monthCosts = useMemo(() =>
+    (costs || []).reduce((s: number, c: any) => {
+      const d = new Date(c.cost_date);
+      return d >= monthStart ? s + Number(c.amount) : s;
+    }, 0),
+  [costs]);
+
+  // ── Receita Líquida ──
+  const netRevenue = revenueReceived - monthCosts;
+
+  // ── Operational ──
   const revenueAtRisk = useMemo(() =>
     users.reduce((sum, u) => {
       const d = getDaysLeft(u.plan_expires_at);
@@ -61,29 +116,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
     }, 0),
   [users]);
 
-  const monthDiscounts = useMemo(() =>
-    (cycles as any[]).reduce((sum, c) => {
-      const created = new Date(c.created_at);
-      if (created >= monthStart) {
-        const plan = c.plan_name;
-        const PLAN_PRICES: Record<string, number> = { Start: 149.9, Pro: 349.9, Scale: 549.9, Elite: 899.9 };
-        const basePrice = PLAN_PRICES[plan] || 0;
-        const diff = basePrice - Number(c.cycle_amount);
-        if (diff > 0) return sum + diff;
-      }
-      return sum;
-    }, 0),
-  [cycles]);
-
-  const monthReceived = useMemo(() =>
-    (payments as any[]).reduce((sum, p) => {
-      const paid = new Date(p.paid_at);
-      if (paid >= monthStart) return sum + Number(p.amount);
-      return sum;
-    }, 0),
-  [payments]);
-
-  // ── Operational metrics ──
   const expiringSoon = useMemo(() =>
     users.filter(u => { const d = getDaysLeft(u.plan_expires_at); return d !== null && d > 0 && d <= 3; }),
   [users]);
@@ -134,28 +166,35 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
       {/* Financeiro */}
       <div>
-        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">Financeiro</h3>
+        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">
+          Financeiro — {monthLabel}
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <StatCard icon={DollarSign} label="MRR (Receita Ativa)"
-            value={fmt(mrr)}
+          <StatCard icon={DollarSign} label="Receita Bruta (Contratada)"
+            value={fmt(revenueBrute)}
             sub={`${users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length} planos ativos`}
+            hint="Valor esperado dos ciclos/planos ativos"
             color="bg-green-600/15 text-green-500" />
-          <StatCard icon={AlertTriangle} label="Receita em Risco"
-            value={fmt(revenueAtRisk)}
-            sub={`${expiringSoon.length} vencendo ≤3d`}
-            color="bg-yellow-500/15 text-yellow-500" />
-          <StatCard icon={XCircle} label="Receita Vencida"
-            value={fmt(revenueExpired)}
-            sub={`${expired.length} inadimplentes`}
-            color="bg-destructive/15 text-destructive" />
-          <StatCard icon={TrendingUp} label="Descontos no Mês"
-            value={fmt(monthDiscounts)}
-            sub={new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(now)}
-            color="bg-orange-500/15 text-orange-500" />
-          <StatCard icon={Receipt} label="Recebido no Mês"
-            value={fmt(monthReceived)}
-            sub={`${(payments as any[]).filter(p => new Date(p.paid_at) >= monthStart).length} pagamentos`}
+          <StatCard icon={Receipt} label="Receita Recebida (Caixa)"
+            value={fmt(revenueReceived)}
+            sub={`${monthPaymentsCount} pagamento${monthPaymentsCount !== 1 ? "s" : ""} registrado${monthPaymentsCount !== 1 ? "s" : ""}`}
+            hint="Total efetivamente recebido no mês"
             color="bg-blue-600/15 text-blue-500" />
+          <StatCard icon={TrendingDown} label="Descontos Concedidos"
+            value={fmt(discounts)}
+            sub={monthLabel}
+            hint="Diferença entre valor base e valor cobrado"
+            color="bg-orange-500/15 text-orange-500" />
+          <StatCard icon={AlertTriangle} label="Taxas & Custos"
+            value={fmt(monthCosts)}
+            sub={`${(costs || []).filter((c: any) => new Date(c.cost_date) >= monthStart).length} registros`}
+            hint="VPS, APIs, proxies e ferramentas"
+            color="bg-destructive/15 text-destructive" />
+          <StatCard icon={Wallet} label="Receita Líquida (No Bolso)"
+            value={fmt(netRevenue)}
+            sub={netRevenue >= 0 ? "Positivo" : "Negativo"}
+            hint="Recebida − Taxas & Custos"
+            color={netRevenue >= 0 ? "bg-green-600/15 text-green-500" : "bg-destructive/15 text-destructive"} />
         </div>
       </div>
 
