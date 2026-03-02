@@ -1682,7 +1682,15 @@ const Campaigns = () => {
                         <p className="text-[11px] text-muted-foreground/50">Programar para data e hora específica</p>
                       </div>
                     </div>
-                    <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+                    <Switch checked={scheduleEnabled} onCheckedChange={(checked) => {
+                      setScheduleEnabled(checked);
+                      if (checked && !scheduleDate) {
+                        const now = new Date();
+                        now.setMinutes(now.getMinutes() + 30);
+                        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        setScheduleDate(local);
+                      }
+                    }} />
                   </div>
                   {scheduleEnabled && (
                     <div className="mt-5 p-4 rounded-xl bg-card border border-amber-500/15 space-y-3">
