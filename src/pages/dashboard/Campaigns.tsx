@@ -987,73 +987,6 @@ const Campaigns = () => {
                     </div>
                   )}
                 </SurfaceCard>
-
-                {/* ── Botões Interativos ── */}
-                <SurfaceCard className="p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <SectionLabel>Botões Interativos</SectionLabel>
-                    <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                      {buttons.length}/10
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {buttons.map((btn, idx) => {
-                      const typeLabel = btn.type === "reply" ? "Resposta Rápida" : btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)";
-                      const TypeIcon = btn.type === "reply" ? MousePointerClick : btn.type === "url" ? Link : Phone;
-                      return (
-                        <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <TypeIcon className="w-3.5 h-3.5 text-primary" />
-                              </div>
-                              <span className="text-[11px] font-semibold text-foreground/70">{typeLabel}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === 0} onClick={() => moveButton(btn.id, "up")}><ArrowUp className="w-3.5 h-3.5" /></button>
-                              <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === buttons.length - 1} onClick={() => moveButton(btn.id, "down")}><ArrowDown className="w-3.5 h-3.5" /></button>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="text-muted-foreground/40 hover:text-primary transition-colors p-1 rounded-lg hover:bg-primary/10"><Pencil className="w-3.5 h-3.5" /></button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-44 p-1.5 bg-popover border-border z-50" align="end">
-                                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Alterar tipo</p>
-                                  {[
-                                    { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
-                                    { t: "url" as const, label: "Link (URL)", Ic: Link },
-                                    { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
-                                  ].map(opt => (
-                                    <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
-                                      onClick={() => updateButton(btn.id, "type", opt.t)}>
-                                      <opt.Ic className="w-3.5 h-3.5 text-muted-foreground" />
-                                      <span className="font-medium">{opt.label}</span>
-                                    </button>
-                                  ))}
-                                </PopoverContent>
-                              </Popover>
-                              <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeButton(btn.id)}><X className="w-3.5 h-3.5" /></button>
-                            </div>
-                          </div>
-                          {btn.type === "reply" ? (
-                            <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido no botão" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
-                          ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                              <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
-                              <Input value={btn.value} onChange={(e) => updateButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-mono" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <Button variant="outline" size="sm" disabled={buttons.length >= 10}
-                    className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors duration-100 text-xs font-medium"
-                    onClick={() => addButton("reply")}>
-                    <Plus className="w-4 h-4" /> Adicionar Botão
-                  </Button>
-                </SurfaceCard>
               </div>
 
               {/* Preview column */}
@@ -1141,6 +1074,73 @@ const Campaigns = () => {
                     </button>
                   </div>
                 )}
+              </SurfaceCard>
+
+              {/* ── Botões Interativos ── */}
+              <SurfaceCard className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <SectionLabel>Botões Interativos</SectionLabel>
+                  <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                    {buttons.length}/10
+                  </Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  {buttons.map((btn, idx) => {
+                    const typeLabel = btn.type === "reply" ? "Resposta Rápida" : btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)";
+                    const TypeIcon = btn.type === "reply" ? MousePointerClick : btn.type === "url" ? Link : Phone;
+                    return (
+                      <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <TypeIcon className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <span className="text-[11px] font-semibold text-foreground/70">{typeLabel}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === 0} onClick={() => moveButton(btn.id, "up")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                            <button className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/30 disabled:opacity-20" disabled={idx === buttons.length - 1} onClick={() => moveButton(btn.id, "down")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="text-muted-foreground/40 hover:text-primary transition-colors p-1 rounded-lg hover:bg-primary/10"><Pencil className="w-3.5 h-3.5" /></button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-44 p-1.5 bg-popover border-border z-50" align="end">
+                                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1">Alterar tipo</p>
+                                {[
+                                  { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
+                                  { t: "url" as const, label: "Link (URL)", Ic: Link },
+                                  { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
+                                ].map(opt => (
+                                  <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
+                                    onClick={() => updateButton(btn.id, "type", opt.t)}>
+                                    <opt.Ic className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span className="font-medium">{opt.label}</span>
+                                  </button>
+                                ))}
+                              </PopoverContent>
+                            </Popover>
+                            <button className="text-muted-foreground/30 hover:text-destructive transition-colors p-1 rounded-lg hover:bg-destructive/10" onClick={() => removeButton(btn.id)}><X className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                        {btn.type === "reply" ? (
+                          <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido no botão" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3">
+                            <Input value={btn.text} onChange={(e) => updateButton(btn.id, "text", e.target.value)} placeholder="Texto exibido" className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-medium" maxLength={20} />
+                            <Input value={btn.value} onChange={(e) => updateButton(btn.id, "value", e.target.value)} placeholder={btn.type === "url" ? "https://..." : "+5511999999999"} className="h-10 text-sm bg-background/50 dark:bg-background/20 border-border/15 font-mono" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button variant="outline" size="sm" disabled={buttons.length >= 10}
+                  className="w-full h-11 gap-2 border-dashed border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors duration-100 text-xs font-medium"
+                  onClick={() => addButton("reply")}>
+                  <Plus className="w-4 h-4" /> Adicionar Botão
+                </Button>
               </SurfaceCard>
             </div>
           </div>
