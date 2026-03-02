@@ -276,7 +276,18 @@ const Campaigns = () => {
           if (draft.pauseDurationMin) setPauseDurationMin(draft.pauseDurationMin);
           if (draft.pauseDurationMax) setPauseDurationMax(draft.pauseDurationMax);
           if (draft.scheduleEnabled) setScheduleEnabled(draft.scheduleEnabled);
-          if (draft.scheduleDate) setScheduleDate(draft.scheduleDate);
+          if (draft.scheduleDate) {
+            // Se a data do draft já passou, recalcula para agora + 30min
+            const draftDate = new Date(draft.scheduleDate);
+            if (draftDate <= new Date()) {
+              const now = new Date();
+              now.setMinutes(now.getMinutes() + 30);
+              const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+              setScheduleDate(local);
+            } else {
+              setScheduleDate(draft.scheduleDate);
+            }
+          }
         }
       } catch { /* ignore corrupt data */ }
 
