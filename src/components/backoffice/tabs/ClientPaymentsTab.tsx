@@ -59,13 +59,14 @@ const CurrencyInput = ({ value, onChange, placeholder, className }: {
   );
 };
 
-const emptyForm = () => ({
+const emptyForm = (planPrice = 0) => ({
   amount: "",
   method: "PIX",
   notes: "",
   paid_at: new Date().toISOString().split("T")[0],
   discount: "",
   fee: "",
+  plan_value: planPrice > 0 ? fmtBRL(planPrice) : "",
 });
 
 const ClientPaymentsTab = ({ client }: Props) => {
@@ -88,7 +89,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const [editPayment, setEditPayment] = useState<any>(null);
   const [form, setForm] = useState(emptyForm());
 
-  const openAdd = () => { setForm(emptyForm()); setShowAdd(true); };
+  const openAdd = () => { setForm(emptyForm(client.plan_price)); setShowAdd(true); };
 
   const openEdit = (p: any) => {
     setForm({
@@ -98,6 +99,7 @@ const ClientPaymentsTab = ({ client }: Props) => {
       paid_at: p.paid_at?.split("T")[0] || new Date().toISOString().split("T")[0],
       discount: Number(p.discount) > 0 ? fmtBRL(Number(p.discount)) : "",
       fee: Number(p.fee) > 0 ? fmtBRL(Number(p.fee)) : "",
+      plan_value: client.plan_price > 0 ? fmtBRL(client.plan_price) : "",
     });
     setEditPayment(p);
   };
@@ -163,25 +165,24 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const totalFees = payments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
   const ticketMedio = payments.length > 0 ? totalPaid / payments.length : 0;
 
-  const planPrice = client.plan_price || 0;
-  const planLabel = client.plan_name ? `${client.plan_name} — R$ ${fmtBRL(planPrice)}` : "Sem plano";
-
-  const fillPlanPrice = () => {
-    if (planPrice > 0) setForm(f => ({ ...f, amount: fmtBRL(planPrice) }));
+  const fillPlanValue = () => {
+    if (form.plan_value) setForm(f => ({ ...f, amount: f.plan_value }));
   };
 
   const PaymentFormFields = () => (
     <div className="space-y-3">
-      {/* Valor do Plano (referência) */}
-      <div className="flex items-center gap-3 bg-muted/50 border border-border rounded-lg px-4 py-2.5">
-        <span className="text-xs text-muted-foreground">Valor do Plano:</span>
-        <span className="text-sm font-semibold text-foreground">{planLabel}</span>
-        {planPrice > 0 && (
-          <Button type="button" variant="ghost" size="sm" onClick={fillPlanPrice}
-            className="ml-auto text-xs text-primary hover:text-primary/80 h-7 px-2">
-            Usar valor do plano
-          </Button>
-        )}
+      {/* Valor do Plano (editável) */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
+          <CurrencyInput value={form.plan_value}
+            onChange={v => setForm({ ...form, plan_value: v })}
+            className="bg-card border-border text-foreground mt-1" />
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={fillPlanValue}
+          className="mt-5 text-xs h-9 px-3 shrink-0">
+          Usar como valor recebido
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
