@@ -994,7 +994,7 @@ const Devices = () => {
             <Badge variant="destructive" className="text-[10px] h-5">{planBadgeText}</Badge>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {selectedDevices.length > 0 && (
             <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
               <Trash2 className="w-3 h-3" /> {selectedDevices.length}
@@ -1006,8 +1006,8 @@ const Devices = () => {
                 <div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" className="gap-1 text-xs h-7" disabled={planState !== "active"}>
-                        <Plus className="w-3 h-3" /> Criar <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
+                      <Button size="sm" className="gap-1.5 text-xs h-8 px-4" disabled={planState !== "active"}>
+                        <Plus className="w-3.5 h-3.5" /> Nova instância
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -1034,8 +1034,8 @@ const Devices = () => {
           </TooltipProvider>
           <Button
             size="sm"
-            variant="outline"
-            className="gap-1 text-xs h-7"
+            variant="ghost"
+            className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
             disabled={syncLoading}
             onClick={async () => {
               setSyncLoading(true);
@@ -1058,13 +1058,13 @@ const Devices = () => {
               }
             }}
           >
-            <RefreshCw className={`w-3 h-3 ${syncLoading ? "animate-spin" : ""}`} /> Sync
+            <RefreshCw className={`w-3.5 h-3.5 ${syncLoading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
-      {/* Search + Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Search */}
+      <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/40" />
           <Input
@@ -1073,20 +1073,6 @@ const Devices = () => {
             placeholder="Buscar instância..."
             className="h-7 text-xs pl-8 bg-muted/20 border-border/20"
           />
-        </div>
-        <div className="flex items-center gap-0.5 ml-auto">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-1 rounded ${viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-1 rounded ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <List className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
@@ -1105,182 +1091,109 @@ const Devices = () => {
         </div>
       )}
 
-      {/* Device grid/list */}
-      {viewMode === "list" ? (
-        /* Compact List View */
-        <div className="space-y-0.5">
-          <div className="grid grid-cols-[auto_1fr_auto_80px_80px_auto] gap-2 px-3 py-1 text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider">
-            <span></span><span>Instância</span><span>Status</span><span>Saúde</span><span>Proxy</span><span>Ações</span>
-          </div>
-          {filteredDevices.map((d) => {
-            const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
-            const proxyStatus = assignedProxy?.status;
-            const smartStatus = deriveSmartStatus(d, warmupDeviceIds, proxyStatus);
-            const ss = smartStatusConfig[smartStatus];
-            const StatusIcon = ss.icon;
-            const isSelected = selectedDevices.includes(d.id);
-            const healthScore = deviceHealthScores[d.id] ?? 100;
-            const loadingAction = quickActionLoading[d.id];
+      {/* Device grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
+        {filteredDevices.map((d) => {
+          const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
+          const proxyStatus = assignedProxy?.status;
+          const smartStatus = deriveSmartStatus(d, warmupDeviceIds, proxyStatus);
+          const ss = smartStatusConfig[smartStatus];
+          const StatusIcon = ss.icon;
+          const isSelected = selectedDevices.includes(d.id);
+          const isEditing = inlineEditId === d.id;
+          const lastActivity = formatDistanceToNow(new Date(d.updated_at || d.created_at), { locale: ptBR, addSuffix: true });
+          const hadPreviousConnection = !!d.number;
+          const healthScore = deviceHealthScores[d.id] ?? 100;
+          const loadingAction = quickActionLoading[d.id];
 
-            return (
-              <div
-                key={d.id}
-                className={`grid grid-cols-[auto_1fr_auto_80px_80px_auto] gap-2 items-center px-3 py-1.5 rounded bg-card/40 border border-border/10 ${isSelected ? "ring-1 ring-primary" : ""}`}
-              >
-                <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectDevice(d.id)} className="shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
-                  {d.number && <p className="text-[9px] text-muted-foreground/40 truncate">{d.number}</p>}
-                </div>
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 gap-1 cursor-default ${ss.badgeClass}`}>
-                        <StatusIcon className="w-2.5 h-2.5" />{ss.label}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-[10px] max-w-[200px]">{ss.tooltip}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+          let connectionButton: React.ReactNode = null;
+          if (d.status === "Ready") {
+            connectionButton = (
+              <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openLogout(d)}>
+                <Power className="w-2.5 h-2.5" /> Desconectar
+              </Button>
+            );
+          } else if (hadPreviousConnection) {
+            connectionButton = (
+              <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
+                <RefreshCw className="w-2.5 h-2.5" /> Reconectar
+              </Button>
+            );
+          } else {
+            connectionButton = (
+              <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
+                <Link2 className="w-2.5 h-2.5" /> Conectar
+              </Button>
+            );
+          }
 
-
-                <span className="text-[9px] text-muted-foreground/50 truncate flex items-center gap-0.5">
-                  <Shield className="w-2.5 h-2.5" />{assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
-                </span>
-                <div className="flex items-center gap-0.5">
+          return (
+            <Card key={d.id} className={`border-border/10 bg-card/40 ${isSelected ? "ring-1 ring-primary" : ""}`}>
+              <CardContent className="p-0">
+                {/* Linha 1: Nome + Status */}
+                <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectDevice(d.id)} className="shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      {isEditing ? (
+                        <input
+                          ref={inlineInputRef}
+                          value={inlineEditName}
+                          onChange={(e) => setInlineEditName(e.target.value)}
+                          onBlur={commitInlineEdit}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitInlineEdit();
+                            if (e.key === "Escape") setInlineEditId(null);
+                          }}
+                          className="text-[13px] font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
+                        />
+                      ) : (
+                        <p className="text-[13px] font-bold text-foreground cursor-pointer hover:text-primary truncate leading-tight" onClick={() => startInlineEdit(d)} title={d.name}>
+                          {d.name}
+                        </p>
+                      )}
+                      {d.number && <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{d.number}</p>}
+                    </div>
+                  </div>
                   <TooltipProvider delayDuration={200}>
-                    <Tooltip><TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "testApi")}>
-                        {loadingAction === "testApi" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <TestTube className="w-2.5 h-2.5" />}
-                      </Button>
-                    </TooltipTrigger><TooltipContent className="text-[10px]">Testar API</TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "testProxy")}>
-                        {loadingAction === "testProxy" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Plug className="w-2.5 h-2.5" />}
-                      </Button>
-                    </TooltipTrigger><TooltipContent className="text-[10px]">Testar Proxy</TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!!loadingAction} onClick={() => handleQuickAction(d.id, "restart")}>
-                        {loadingAction === "restart" ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RotateCcw className="w-2.5 h-2.5" />}
-                      </Button>
-                    </TooltipTrigger><TooltipContent className="text-[10px]">Reiniciar</TooltipContent></Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 cursor-default ${ss.badgeClass}`}>
+                          <StatusIcon className="w-2.5 h-2.5" />{ss.label}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-[10px] max-w-[200px]">{ss.tooltip}</TooltipContent>
+                    </Tooltip>
                   </TooltipProvider>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground/30 hover:text-destructive" onClick={() => {
+                </div>
+
+                {/* Meta info */}
+                <div className="px-3 pb-1.5">
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
+                    <span className="truncate" title={`Última atividade: ${lastActivity}`}>{lastActivity}</span>
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      <Shield className="w-2.5 h-2.5" />{assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
+                    </span>
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      <Key className="w-2.5 h-2.5" />{d.has_api_config ? "Sim" : "Não"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Connect + Delete */}
+                <div className="border-t border-border/10 px-2 py-1 flex items-center justify-end gap-0.5">
+                  {connectionButton}
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
                     if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
                   }}>
                     <Trash2 className="w-2.5 h-2.5" />
                   </Button>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
-          {filteredDevices.map((d) => {
-            const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
-            const proxyStatus = assignedProxy?.status;
-            const smartStatus = deriveSmartStatus(d, warmupDeviceIds, proxyStatus);
-            const ss = smartStatusConfig[smartStatus];
-            const StatusIcon = ss.icon;
-            const isSelected = selectedDevices.includes(d.id);
-            const isEditing = inlineEditId === d.id;
-            const lastActivity = formatDistanceToNow(new Date(d.updated_at || d.created_at), { locale: ptBR, addSuffix: true });
-            const hadPreviousConnection = !!d.number;
-            const healthScore = deviceHealthScores[d.id] ?? 100;
-            const loadingAction = quickActionLoading[d.id];
-
-            let connectionButton: React.ReactNode = null;
-            if (d.status === "Ready") {
-              connectionButton = (
-                <Button variant="ghost" size="sm" className="h-6 gap-0.5 text-[10px] px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openLogout(d)}>
-                  <Power className="w-2.5 h-2.5" /> Desconectar
-                </Button>
-              );
-            } else if (hadPreviousConnection) {
-              connectionButton = (
-                <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
-                  <RefreshCw className="w-2.5 h-2.5" /> Reconectar
-                </Button>
-              );
-            } else {
-              connectionButton = (
-                <Button size="sm" className="h-6 gap-0.5 text-[10px] px-1.5" onClick={() => openConnect(d)}>
-                  <Link2 className="w-2.5 h-2.5" /> Conectar
-                </Button>
-              );
-            }
-
-            return (
-              <Card key={d.id} className={`border-border/10 bg-card/40 ${isSelected ? "ring-1 ring-primary" : ""}`}>
-                <CardContent className="p-0">
-                  {/* Linha 1: Nome + Status */}
-                  <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectDevice(d.id)} className="shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        {isEditing ? (
-                          <input
-                            ref={inlineInputRef}
-                            value={inlineEditName}
-                            onChange={(e) => setInlineEditName(e.target.value)}
-                            onBlur={commitInlineEdit}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitInlineEdit();
-                              if (e.key === "Escape") setInlineEditId(null);
-                            }}
-                            className="text-[13px] font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
-                          />
-                        ) : (
-                          <p className="text-[13px] font-bold text-foreground cursor-pointer hover:text-primary truncate leading-tight" onClick={() => startInlineEdit(d)} title={d.name}>
-                            {d.name}
-                          </p>
-                        )}
-                        {d.number && <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{d.number}</p>}
-                      </div>
-                    </div>
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 cursor-default ${ss.badgeClass}`}>
-                            <StatusIcon className="w-2.5 h-2.5" />{ss.label}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="text-[10px] max-w-[200px]">{ss.tooltip}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-
-                  {/* Meta info */}
-                  <div className="px-3 pb-1.5">
-
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
-                      <span className="truncate" title={`Última atividade: ${lastActivity}`}>{lastActivity}</span>
-                      <span className="flex items-center gap-0.5 shrink-0">
-                        <Shield className="w-2.5 h-2.5" />{assignedProxy ? assignedProxy.label.split(" - ")[0] : "—"}
-                      </span>
-                      <span className="flex items-center gap-0.5 shrink-0">
-                        <Key className="w-2.5 h-2.5" />{d.has_api_config ? "Sim" : "Não"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Linha 3: Connect + Delete */}
-                  <div className="border-t border-border/10 px-2 py-1 flex items-center justify-end gap-0.5">
-                    {connectionButton}
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
-                      if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
-                    }}>
-                      <Trash2 className="w-2.5 h-2.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {filteredDevices.length === 0 && devices.length > 0 && (
         <p className="text-xs text-muted-foreground/40 text-center py-8">Nenhuma instância encontrada</p>
