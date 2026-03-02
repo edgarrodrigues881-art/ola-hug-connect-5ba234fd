@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, deviceId, number, text, instanceName, profileName, profileStatus, profilePictureUrl, profilePictureData } = body;
+    const { action, deviceId, number, text, instanceName, profileName, profileStatus, profilePictureUrl, profilePictureData, proxyConfig } = body;
     console.log("v2 ACTION:", action, "DEVICE:", deviceId);
 
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -165,6 +165,44 @@ Deno.serve(async (req) => {
 
     // ACTION: connect - Start connection and get QR code
     if (action === "connect") {
+      // If proxy config provided, set it on the instance first
+      if (proxyConfig && proxyConfig.host && proxyConfig.port) {
+        try {
+          const proxyPayload: any = {
+            host: proxyConfig.host,
+            port: proxyConfig.port,
+            username: proxyConfig.username || "",
+            password: proxyConfig.password || "",
+            type: (proxyConfig.type || "HTTP").toLowerCase(),
+          };
+          console.log("Setting proxy on instance:", proxyPayload.host + ":" + proxyPayload.port);
+          
+          // Try multiple proxy endpoints
+          const proxyEndpoints = ["/instance/proxy", "/proxy/set", "/settings/proxy"];
+          let proxySet = false;
+          for (const ep of proxyEndpoints) {
+            try {
+              const proxyRes = await fetch(apiUrl(INSTANCE_BASE_URL, ep), {
+                method: "POST",
+                headers: instanceHeaders,
+                body: JSON.stringify(proxyPayload),
+              });
+              const proxyData = await proxyRes.json().catch(() => ({}));
+              console.log(`Proxy ${ep} result:`, proxyRes.status, JSON.stringify(proxyData).substring(0, 200));
+              if (proxyRes.ok) {
+                proxySet = true;
+                break;
+              }
+            } catch (e) {
+              console.log(`Proxy ${ep} error:`, e);
+            }
+          }
+          console.log("Proxy configured:", proxySet);
+        } catch (e) {
+          console.log("Proxy setup error (non-blocking):", e);
+        }
+      }
+
       // Check current status first
       let currentStatus = "";
       try {
