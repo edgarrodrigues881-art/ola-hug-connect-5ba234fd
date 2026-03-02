@@ -60,6 +60,8 @@ Deno.serve(async (req) => {
       const { data: campaigns } = await adminClient.from("campaigns").select("*");
       const { data: contacts } = await adminClient.from("contacts").select("*");
       const { data: subscriptions } = await adminClient.from("subscriptions").select("*");
+      const { data: cycles } = await adminClient.from("subscription_cycles").select("*");
+      const { data: payments } = await adminClient.from("payments").select("*");
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
         total_subscriptions: subscriptions?.length || 0,
       };
 
-      return new Response(JSON.stringify({ users, devices: devicesWithOwner, stats }), {
+      return new Response(JSON.stringify({ users, devices: devicesWithOwner, stats, cycles: cycles || [], payments: payments || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
