@@ -994,11 +994,6 @@ const Campaigns = () => {
                 <SectionLabel className="px-1">Preview WhatsApp</SectionLabel>
                 <div className="sticky top-4">
                   <WhatsAppPreview />
-                  {/* Deliverability tip */}
-                  <div className="mt-5 flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/6 border border-amber-500/12">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400/80 mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-amber-400/70 leading-relaxed">Evite repetições excessivas e links suspeitos para melhorar a entregabilidade.</p>
-                  </div>
                 </div>
               </div>
             </div>
