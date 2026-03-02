@@ -1135,12 +1135,11 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className={`border-border/10 bg-card/40 ${isSelected ? "ring-1 ring-primary" : ""}`}>
+            <Card key={d.id} className="border-border/10 bg-card/40">
               <CardContent className="p-0">
                 {/* Linha 1: Nome + Status */}
                 <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectDevice(d.id)} className="shrink-0" />
                     <div className="min-w-0 flex-1">
                       {isEditing ? (
                         <input
