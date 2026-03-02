@@ -59,21 +59,16 @@ const menuGroups = [
     items: [
       { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+      { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
+      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
+      { title: "Relatório via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
     label: "",
     items: [
-      { title: "Relatório via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
-      { title: "Relatórios", url: "/dashboard/reports", icon: Activity, exact: true },
-      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
-    ],
-  },
-  {
-    label: "⚙ CONFIGURAÇÕES",
-    items: [
-      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
       { title: "Orientação", url: "/dashboard/custom-module", icon: Box },
+      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
     ],
   },
 ];
