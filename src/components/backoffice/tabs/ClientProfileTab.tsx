@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Server } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -22,9 +22,13 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     admin_notes: profile.admin_notes || client.admin_notes || "",
     risk_flag: profile.risk_flag ?? client.risk_flag ?? false,
     status: profile.status || client.status || "active",
+    instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
+
+  const planLimit = client.max_instances || 0;
+  const totalAllowed = planLimit + (form.instance_override || 0);
 
   const handleSave = () => {
     mutate(
@@ -69,6 +73,40 @@ const ClientProfileTab = ({ client, detail }: Props) => {
             <option value="cancelled">Cancelado</option>
           </select>
         </div>
+      </div>
+
+      {/* Override de Instâncias */}
+      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Server size={16} className="text-purple-400" />
+          <h4 className="text-sm font-semibold text-zinc-200">Override Manual de Instâncias</h4>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label className="text-zinc-500 text-[11px] uppercase tracking-wide">Limite do Plano</Label>
+            <p className="text-lg font-bold text-zinc-300 mt-0.5">{planLimit}</p>
+          </div>
+          <div>
+            <Label className="text-zinc-500 text-[11px] uppercase tracking-wide">Override</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={form.instance_override}
+              onChange={e => setForm({...form, instance_override: Math.max(0, parseInt(e.target.value) || 0)})}
+              className="bg-zinc-800 border-zinc-600 text-zinc-100 mt-0.5 h-9 w-24"
+            />
+          </div>
+          <div>
+            <Label className="text-zinc-500 text-[11px] uppercase tracking-wide">Total Permitido</Label>
+            <p className="text-lg font-bold text-purple-400 mt-0.5">{totalAllowed}</p>
+          </div>
+        </div>
+        {form.instance_override > 0 && (
+          <p className="text-[11px] text-yellow-500/80">
+            ⚠ Override ativo: +{form.instance_override} instâncias extras além do plano
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-3 pt-2">

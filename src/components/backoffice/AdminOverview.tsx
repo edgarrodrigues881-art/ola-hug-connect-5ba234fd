@@ -96,7 +96,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
     users.filter(u => u.status === "suspended" || u.status === "cancelled"),
   [users]);
 
-  const totalAllocated = useMemo(() => users.reduce((s, u) => s + u.max_instances, 0), [users]);
+  const totalAllocated = useMemo(() => users.reduce((s, u) => s + u.max_instances + (u.instance_override || 0), 0), [users]);
   const totalInUse = stats.total_devices;
   const serverOccupancy = Math.round((totalInUse / SERVER_MAX_INSTANCES) * 100);
 
