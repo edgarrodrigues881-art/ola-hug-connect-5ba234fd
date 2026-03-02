@@ -536,22 +536,37 @@ const Devices = () => {
     setEditOpen(true);
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
-    const proxyId = editProxyValue === "none" ? null : editProxyValue;
+    // Save instance name to DB
     updateMutation.mutate({
       id: editingDevice.id,
       updates: {
         name: editName,
-        proxy_id: proxyId,
-        whapi_token: editToken || null,
-        uazapi_token: editUazapiToken || null,
-        uazapi_base_url: editUazapiBaseUrl || null,
+        proxy_id: editingDevice.proxy_id || null,
+        uazapi_token: editingDevice.uazapi_token || null,
+        uazapi_base_url: editingDevice.uazapi_base_url || null,
       },
     });
+    // Save WP profile changes via API
+    try {
+      const promises: Promise<any>[] = [];
+      if (wpName.trim()) {
+        promises.push(callApi({ action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() }));
+      }
+      if (wpRemovePhoto) {
+        promises.push(callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" }));
+      } else if (wpPhotoBase64) {
+        promises.push(callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 }));
+      }
+      if (promises.length > 0) await Promise.all(promises);
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar perfil WhatsApp", description: err?.message, variant: "destructive" });
+    }
     toast({ title: "Instância atualizada" });
     setEditOpen(false);
     setEditingDevice(null);
+    queryClient.invalidateQueries({ queryKey: ["devices"] });
   };
 
   // Edit proxy
@@ -1192,6 +1207,20 @@ const Devices = () => {
                 {/* Connect + Delete */}
                 <div className="border-t border-border/10 px-2 py-1 flex items-center justify-end gap-0.5">
                   {connectionButton}
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-primary shrink-0" onClick={() => {
+                    setEditingDevice(d);
+                    setEditName(d.name);
+                    setEditUazapiToken(d.uazapi_token || "");
+                    setEditUazapiBaseUrl(d.uazapi_base_url || "");
+                    setEditProxyValue(d.proxy_id || "none");
+                    setWpName("");
+                    setWpPhotoUrl("");
+                    setWpPhotoBase64("");
+                    setWpRemovePhoto(false);
+                    setEditOpen(true);
+                  }}>
+                    <Pencil className="w-2.5 h-2.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
                     if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
                   }}>
@@ -1243,25 +1272,33 @@ const Devices = () => {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-primary" />
-              Editar instância
-            </DialogTitle>
-            {editingDevice && (
-              <p className="text-[11px] text-muted-foreground/50 mt-0.5">{editingDevice.number ? formatPhone(editingDevice.number) : "Sem número vinculado"}</p>
-            )}
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            {/* Nome */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Nome da instância</Label>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Pencil className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold">Editar instância</DialogTitle>
+                {editingDevice && (
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                    {editingDevice.number ? formatPhone(editingDevice.number) : "Sem número vinculado"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-6 space-y-5">
+            {/* Nome da instância */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-medium">Nome da instância</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-8 text-xs"
+                className="h-9 text-sm"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
@@ -1276,87 +1313,71 @@ const Devices = () => {
               </div>
             </div>
 
-            {/* Token */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] text-muted-foreground">Token da Instância</Label>
-                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${editUazapiToken ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
-                  {editUazapiToken ? "Configurado" : "Ausente"}
-                </Badge>
-              </div>
-              <Input
-                value={editUazapiToken}
-                onChange={e => setEditUazapiToken(e.target.value)}
-                placeholder="Cole o token aqui"
-                className="h-8 text-xs font-mono"
-              />
-            </div>
+            {editingDevice?.status === "Ready" && (
+              <>
+                <div className="border-t border-border/10" />
+                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-medium">Perfil do WhatsApp</p>
 
-            {/* URL da API */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] text-muted-foreground">URL da API</Label>
-                {editUazapiBaseUrl && (
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${
-                    /^https?:\/\/.+/.test(editUazapiBaseUrl)
-                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                  }`}>
-                    {/^https?:\/\/.+/.test(editUazapiBaseUrl) ? "Válida" : "Formato inválido"}
-                  </Badge>
-                )}
-              </div>
-              <Input
-                value={editUazapiBaseUrl}
-                onChange={e => setEditUazapiBaseUrl(e.target.value)}
-                placeholder="https://sua-api.com"
-                className="h-8 text-xs font-mono"
-              />
-              {editUazapiBaseUrl && !/^https?:\/\/.+/.test(editUazapiBaseUrl) && (
-                <p className="text-[10px] text-amber-500/70">A URL deve começar com http:// ou https://</p>
-              )}
-            </div>
+                {/* Nome do WhatsApp */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Smartphone className="w-3 h-3" /> Nome exibido
+                  </Label>
+                  <Input
+                    value={wpName}
+                    onChange={e => setWpName(e.target.value)}
+                    placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
+                    className="h-9 text-sm"
+                    maxLength={25}
+                  />
+                  <p className="text-[10px] text-muted-foreground/30">{wpName.length}/25 caracteres</p>
+                </div>
 
-            {/* Proxy */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Proxy</Label>
-              <Select value={editProxyValue} onValueChange={setEditProxyValue}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Selecionar proxy" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableProxies.map(p => {
-                    const proxyStatusClass = p.status === "USANDO"
-                      ? "text-amber-500 border-amber-500/20"
-                      : p.status === "USADA"
-                        ? "text-red-400 border-red-500/20"
-                        : "text-emerald-500 border-emerald-500/20";
-                    return (
-                      <SelectItem key={p.id} value={p.id}>
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs">{p.label}</span>
-                          <Badge variant="outline" className={`text-[9px] px-1 py-0 ${proxyStatusClass}`}>{p.status}</Badge>
+                {/* Foto do WhatsApp */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Camera className="w-3 h-3" /> Foto do perfil
+                  </Label>
+                  <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
+                  <div className="flex justify-center">
+                    <div
+                      className="relative group cursor-pointer"
+                      onClick={() => { if (!wpPhotoUrl && !wpRemovePhoto) wpFileRef.current?.click(); }}
+                    >
+                      {wpPhotoUrl && !wpRemovePhoto ? (
+                        <>
+                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover border-2 border-border" />
+                          <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
+                              <Camera className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/40 transition-colors"
+                          onClick={() => wpFileRef.current?.click()}
+                        >
+                          <Camera className="w-5 h-5 text-muted-foreground/40 mb-1" />
+                          <span className="text-[9px] text-muted-foreground/30">
+                            {wpRemovePhoto ? "Removida" : "Escolher"}
+                          </span>
                         </div>
-                      </SelectItem>
-                    );
-                  })}
-                  <SelectItem value="none">
-                    <span className="text-xs text-muted-foreground">Sem proxy</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {editProxyValue === "none" && (
-                <p className="text-[10px] text-amber-500/70 flex items-center gap-0.5">
-                  <AlertTriangle className="w-2.5 h-2.5" /> Instância sem proxy — risco maior de bloqueio
-                </p>
-              )}
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button size="sm" className="flex-1" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
