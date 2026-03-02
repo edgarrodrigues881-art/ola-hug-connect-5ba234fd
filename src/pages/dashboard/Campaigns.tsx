@@ -580,28 +580,31 @@ const Campaigns = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportProgress(0);
+
+    // Show 3-second spinner while processing
+    const totalSteps = 60;
+    let currentStep = 0;
+    const progressInterval = setInterval(() => {
+      currentStep++;
+      const progress = Math.round(100 * (1 - Math.pow(1 - currentStep / totalSteps, 3)));
+      setImportProgress(Math.min(progress, 95));
+      if (currentStep >= totalSteps) clearInterval(progressInterval);
+    }, 50);
+
     const reader = new FileReader();
-    reader.onprogress = (evt) => {
-      if (evt.lengthComputable) {
-        setImportProgress(Math.round((evt.loaded / evt.total) * 40));
-      }
-    };
     reader.onload = (evt) => {
       try {
-        setImportProgress(45);
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
-        setImportProgress(60);
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
         if (rows.length < 1) {
+          clearInterval(progressInterval);
           setImportProgress(null);
           toast({ title: "Arquivo vazio", description: "O arquivo não contém dados.", variant: "destructive" });
           return;
         }
-
-        setImportProgress(80);
 
         const normalize = (s: string) =>
           String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
@@ -617,21 +620,30 @@ const Campaigns = () => {
           ? firstRow.map((c: any) => String(c).trim() || `Coluna ${firstRow.indexOf(c) + 1}`)
           : Array.from({ length: colCount }, (_, i) => `Coluna ${i + 1}`);
 
-        // All columns start as "ignorar" — user must manually map
         const autoMappings: ColumnMapping[] = headers.map(() => "ignorar" as ColumnMapping);
 
-        setImportProgress(100);
+        // Wait for the 3s animation to finish
+        const elapsed = currentStep * 50;
+        const remaining = Math.max(3000 - elapsed, 0);
+        clearInterval(progressInterval);
+
+        // Smoothly finish to 100%
+        setImportProgress(98);
         setTimeout(() => {
-          setImportProgress(null);
-          setRawImport({
-            headers,
-            rows: hasHeader ? rows.slice(1) : rows,
-            hasHeader,
-            columnMappings: autoMappings,
-          });
-        }, 300);
+          setImportProgress(100);
+          setTimeout(() => {
+            setImportProgress(null);
+            setRawImport({
+              headers,
+              rows: hasHeader ? rows.slice(1) : rows,
+              hasHeader,
+              columnMappings: autoMappings,
+            });
+          }, 400);
+        }, remaining);
       } catch (err) {
         console.error("Import error:", err);
+        clearInterval(progressInterval);
         setImportProgress(null);
         toast({ title: "Erro ao ler arquivo", description: "Formato não suportado.", variant: "destructive" });
       }
