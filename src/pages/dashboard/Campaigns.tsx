@@ -1752,19 +1752,28 @@ const Campaigns = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ignorar">Ignorar</SelectItem>
-                          <SelectItem value="nome">Nome</SelectItem>
-                          <SelectItem value="numero">Número</SelectItem>
-                          <SelectItem value="var1">Variável 1</SelectItem>
-                          <SelectItem value="var2">Variável 2</SelectItem>
-                          <SelectItem value="var3">Variável 3</SelectItem>
-                          <SelectItem value="var4">Variável 4</SelectItem>
-                          <SelectItem value="var5">Variável 5</SelectItem>
-                          <SelectItem value="var6">Variável 6</SelectItem>
-                          <SelectItem value="var7">Variável 7</SelectItem>
-                          <SelectItem value="var8">Variável 8</SelectItem>
-                          <SelectItem value="var9">Variável 9</SelectItem>
-                          <SelectItem value="var10">Variável 10</SelectItem>
+                          {[
+                            { value: "ignorar", label: "Ignorar" },
+                            { value: "nome", label: "Nome" },
+                            { value: "numero", label: "Número" },
+                            { value: "var1", label: "Variável 1" },
+                            { value: "var2", label: "Variável 2" },
+                            { value: "var3", label: "Variável 3" },
+                            { value: "var4", label: "Variável 4" },
+                            { value: "var5", label: "Variável 5" },
+                            { value: "var6", label: "Variável 6" },
+                            { value: "var7", label: "Variável 7" },
+                            { value: "var8", label: "Variável 8" },
+                            { value: "var9", label: "Variável 9" },
+                            { value: "var10", label: "Variável 10" },
+                          ].map(opt => {
+                            const takenByOther = opt.value !== "ignorar" && rawImport.columnMappings.some((m, idx) => idx !== i && m === opt.value);
+                            return (
+                              <SelectItem key={opt.value} value={opt.value} disabled={takenByOther} className={takenByOther ? "opacity-30" : ""}>
+                                {opt.label}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
