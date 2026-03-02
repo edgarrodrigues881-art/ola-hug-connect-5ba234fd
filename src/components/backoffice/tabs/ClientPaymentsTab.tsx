@@ -218,18 +218,29 @@ const ClientPaymentsTab = ({ client }: Props) => {
             className="bg-card border-border text-foreground mt-1" />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
           <Input type="text" readOnly value={autoDiscount}
             className="bg-muted border-border text-orange-500 font-medium mt-1 cursor-default" />
-          <p className="text-[10px] text-muted-foreground mt-0.5">Calculado automaticamente</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Plano − Recebido</p>
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
           <CurrencyInput value={form.fee}
             onChange={v => setForm(f => ({ ...f, fee: v }))}
             className="bg-card border-border text-foreground mt-1" />
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-xs">Líquido (R$)</Label>
+          <Input type="text" readOnly value={(() => {
+            const am = parseBRL(form.amount);
+            const fe = parseBRL(form.fee);
+            const liq = am - fe;
+            return liq > 0 ? fmtBRL(liq) : "0,00";
+          })()}
+            className="bg-muted border-border text-green-500 font-bold mt-1 cursor-default" />
+          <p className="text-[10px] text-muted-foreground mt-0.5">Recebido − Taxa</p>
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Método</Label>
