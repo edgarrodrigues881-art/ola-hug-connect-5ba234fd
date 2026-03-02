@@ -73,18 +73,15 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
 async function checkNumberExists(baseUrl: string, token: string, phone: string): Promise<{ exists: boolean; error?: string }> {
   try {
     const result = await uazapiRequest(baseUrl, token, "/check/exist", { number: phone });
-    // UaZapi returns different formats, handle common ones
     if (result?.exists === false || result?.numberExists === false || result?.status === "not_exists") {
       return { exists: false, error: `Número ${phone} não está no WhatsApp` };
     }
     return { exists: true };
   } catch (err: any) {
-    // If the endpoint doesn't exist or fails, skip validation and try sending anyway
     const msg = err.message || "";
     if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists")) {
       return { exists: false, error: msg };
     }
-    // Don't block sending if check endpoint is unavailable
     return { exists: true };
   }
 }
@@ -122,6 +119,25 @@ function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+// Max time we allow per invocation before self-continuing (45s safety margin)
+const MAX_EXECUTION_MS = 45_000;
+
+async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaignId: string, deviceId?: string) {
+  console.log(`Self-continuing campaign ${campaignId}...`);
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/process-campaign`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ action: "continue", campaignId, deviceId }),
+    });
+  } catch (err: any) {
+    console.error(`Self-continue failed: ${err.message}`);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -133,18 +149,20 @@ Deno.serve(async (req) => {
   }
 
   const token = authHeader.replace("Bearer ", "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const isServiceRole = token === serviceRoleKey;
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-  const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
   let userId: string;
 
+  const body = await req.json();
+  const { action, campaignId, deviceId } = body;
+
   if (isServiceRole) {
-    // Called by cron/service - get userId from the campaign itself
-    const body = await req.clone().json();
-    const { data: camp } = await serviceClient.from("campaigns").select("user_id").eq("id", body.campaignId).single();
+    const { data: camp } = await serviceClient.from("campaigns").select("user_id").eq("id", campaignId).single();
     if (!camp) {
       return new Response(JSON.stringify({ error: "Campaign not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -158,8 +176,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, campaignId, deviceId } = await req.json();
-
     // ─── PAUSE ───
     if (action === "pause") {
       await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
@@ -169,7 +185,6 @@ Deno.serve(async (req) => {
     // ─── CANCEL ───
     if (action === "cancel") {
       await serviceClient.from("campaigns").update({ status: "canceled", completed_at: new Date().toISOString() }).eq("id", campaignId).eq("user_id", userId);
-      // Mark remaining pending contacts as canceled
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -177,64 +192,102 @@ Deno.serve(async (req) => {
     // ─── RESUME ───
     if (action === "resume") {
       await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
-      // The resume will re-trigger sending of remaining pending contacts
-      // Fall through to start logic below with action override
+      // Respond immediately, then self-continue to process remaining
+      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+      return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ─── START / RESUME ───
-    if (action === "start" || action === "resume") {
+    // ─── START ───
+    if (action === "start") {
+      const { data: campaign } = await serviceClient.from("campaigns").select("*").eq("id", campaignId).single();
+      if (!campaign) {
+        return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Mark as running immediately
+      await serviceClient.from("campaigns").update({ status: "running", started_at: campaign.started_at || new Date().toISOString() }).eq("id", campaignId);
+      // Respond immediately, then self-continue to process
+      selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+      return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── CONTINUE (internal batch processing) ───
+    if (action === "continue") {
+      const startTime = Date.now();
+
       const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("*").eq("id", campaignId).single();
       if (campErr || !campaign) {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Get devices - support multi-device rotation
+      // If campaign is not running, stop
+      if (campaign.status !== "running") {
+        console.log(`Campaign ${campaignId} is ${campaign.status}, not processing.`);
+        return new Response(JSON.stringify({ success: true, status: campaign.status }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Get devices
       const deviceIds: string[] = Array.isArray(campaign.device_ids) && campaign.device_ids.length > 0
         ? campaign.device_ids
         : deviceId ? [deviceId] : (campaign.device_id ? [campaign.device_id] : []);
 
       const messagesPerInstance = campaign.messages_per_instance || 0;
-      
-      // Fetch all selected devices
+
       let allDevices: any[] = [];
       if (deviceIds.length > 0) {
-        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", userId).in("id", deviceIds);
+        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
         allDevices = (devs || []).filter(d => d.uazapi_token && d.uazapi_base_url);
       }
-      
+
       if (allDevices.length === 0) {
-        // Fallback: get any ready device
-        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", userId).eq("status", "Ready").limit(1);
+        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", campaign.user_id).eq("status", "Ready").limit(1);
         allDevices = devs || [];
       }
 
       const device = allDevices[0];
-      const deviceToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-      const deviceBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-
-      if (!device || !deviceToken || !deviceBaseUrl) {
-        return new Response(JSON.stringify({ error: "Nenhum dispositivo conectado com token configurado encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!device) {
+        await serviceClient.from("campaigns").update({ status: "failed" }).eq("id", campaignId);
+        return new Response(JSON.stringify({ error: "Nenhum dispositivo encontrado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
-      const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
-      console.log(`Starting campaign ${campaignId} via ${allDevices.length} device(s)${useRotation ? ` (rotation every ${messagesPerInstance} msgs)` : useParallel ? " (PARALLEL)" : ""}`);
-
-      // Read delay config from campaign
+      // Read delay config
       const minDelayMs = (campaign.min_delay_seconds || 8) * 1000;
       const maxDelayMs = (campaign.max_delay_seconds || 25) * 1000;
       const pauseEveryMin = campaign.pause_every_min || 10;
       const pauseEveryMax = campaign.pause_every_max || 20;
       const pauseDurMinMs = (campaign.pause_duration_min || 30) * 1000;
       const pauseDurMaxMs = (campaign.pause_duration_max || 120) * 1000;
-      const pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
 
-      // Get pending contacts
-      const { data: contacts, error: contactsErr } = await serviceClient.from("campaign_contacts").select("*").eq("campaign_id", campaignId).eq("status", "pending");
+      // Get batch state from body or defaults
+      let batchSent = body.batchSent || 0;
+      let currentDeviceIndex = body.currentDeviceIndex || 0;
+      let instanceMsgCount = body.instanceMsgCount || 0;
+      // Recalculate pauseAfter randomly each batch
+      let pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
+      let msgsSincePause = body.msgsSincePause || 0;
+
+      const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
+      const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
+
+      // Get pending contacts (batch of 100 for efficiency)
+      const { data: contacts, error: contactsErr } = await serviceClient
+        .from("campaign_contacts")
+        .select("*")
+        .eq("campaign_id", campaignId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true })
+        .limit(100);
+
       if (contactsErr) throw contactsErr;
 
-      // Update campaign status to running
-      await serviceClient.from("campaigns").update({ status: "running", started_at: campaign.started_at || new Date().toISOString() }).eq("id", campaignId);
+      if (!contacts || contacts.length === 0) {
+        // No more pending contacts — complete the campaign
+        await serviceClient.from("campaigns").update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        }).eq("id", campaignId);
+        console.log(`Campaign ${campaignId} completed!`);
+        return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
 
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
@@ -242,16 +295,15 @@ Deno.serve(async (req) => {
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
+      const usedRand4 = new Set<string>();
+      const usedRand3 = new Set<string>();
+      let needsContinue = false;
 
       // ─── PARALLEL MODE ───
       if (useParallel) {
-        // Split contacts evenly across devices
         const chunks: any[][] = allDevices.map(() => [] as any[]);
-        (contacts || []).forEach((c, i) => chunks[i % allDevices.length].push(c));
+        contacts.forEach((c, i) => chunks[i % allDevices.length].push(c));
 
-        console.log(`Parallel: splitting ${(contacts || []).length} contacts across ${allDevices.length} devices`);
-
-        // Process each device's chunk concurrently
         const results = await Promise.allSettled(allDevices.map(async (dev, devIdx) => {
           const chunk = chunks[devIdx];
           const devToken = dev.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
@@ -259,10 +311,10 @@ Deno.serve(async (req) => {
           let devSent = 0, devFailed = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
-          let devBatchSent = 0;
 
           for (const contact of chunk) {
-            // Check pause/cancel
+            if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
+
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
             if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) break;
 
@@ -286,49 +338,43 @@ Deno.serve(async (req) => {
               await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
-              devBatchSent++;
-              console.log(`[${dev.name}] Sent to ${phone} (${devBatchSent}/${chunk.length})`);
 
               const delay = randomBetween(minDelayMs, maxDelayMs);
               await new Promise(r => setTimeout(r, delay));
-              if (devBatchSent > 0 && devBatchSent % pauseAfter === 0) {
-                const pd = randomBetween(pauseDurMinMs, pauseDurMaxMs);
-                await new Promise(r => setTimeout(r, pd));
-              }
             } catch (err: any) {
-              console.error(`[${dev.name}] Failed ${phone}:`, err.message);
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: err.message || "Erro" }).eq("id", contact.id);
               devFailed++;
             }
           }
-          return { sent: devSent, failed: devFailed, device: dev.name };
+          return { sent: devSent, failed: devFailed };
         }));
 
-        // Aggregate results
         for (const r of results) {
           if (r.status === "fulfilled") {
             sentCount += r.value.sent;
             failedCount += r.value.failed;
           }
         }
-        // Update counters
         await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
       } else {
         // ─── SEQUENTIAL / ROTATION MODE ───
-        let batchSent = 0;
-        let instanceMsgCount = 0;
-        let currentDeviceIndex = 0;
-        const usedRand4 = new Set<string>();
-        const usedRand3 = new Set<string>();
+        for (const contact of contacts) {
+          // Time guard — if close to timeout, save state and self-continue
+          if (Date.now() - startTime > MAX_EXECUTION_MS) {
+            needsContinue = true;
+            console.log(`Time guard hit at ${Date.now() - startTime}ms, will self-continue`);
+            break;
+          }
 
-        for (const contact of contacts || []) {
+          // Check if paused/canceled
           const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
           if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
             console.log(`Campaign ${campaignId} was ${freshCampaign.status}. Stopping.`);
             break;
           }
 
+          // Rotation logic
           if (useRotation && instanceMsgCount >= messagesPerInstance) {
             currentDeviceIndex = (currentDeviceIndex + 1) % allDevices.length;
             instanceMsgCount = 0;
@@ -364,14 +410,34 @@ Deno.serve(async (req) => {
             sentCount++;
             batchSent++;
             instanceMsgCount++;
+            msgsSincePause++;
             await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-            console.log(`Sent to ${phone} via ${activeDevice.name} (${batchSent}/${(contacts || []).length})`);
+            console.log(`Sent to ${phone} via ${activeDevice.name} (batch ${batchSent}, sincePause ${msgsSincePause}/${pauseAfter})`);
+
+            // Delay between messages
             const delay = randomBetween(minDelayMs, maxDelayMs);
             await new Promise(resolve => setTimeout(resolve, delay));
-            if (batchSent > 0 && batchSent % pauseAfter === 0) {
+
+            // Pause logic — randomize pauseAfter each time
+            if (msgsSincePause >= pauseAfter) {
               const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
+              console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${msgsSincePause} msgs (next pause after ${pauseAfter} msgs)`);
+
+              // If pause would exceed our time budget, self-continue instead of waiting
+              if (Date.now() - startTime + pauseDuration > MAX_EXECUTION_MS) {
+                console.log(`Pause too long for this invocation, scheduling self-continue after pause`);
+                // Schedule continuation — the pause will happen as a delay before next batch
+                needsContinue = true;
+                // Store that we need to wait before resuming
+                break;
+              }
+
               await new Promise(resolve => setTimeout(resolve, pauseDuration));
+              msgsSincePause = 0;
+              // Recalculate next pause threshold randomly
+              pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
+              console.log(`Next pause after ${pauseAfter} messages`);
             }
           } catch (err: any) {
             console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, err.message);
@@ -382,21 +448,35 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Final status
+      // Check if we need to continue processing
       const { data: finalCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
+
       if (finalCampaign && finalCampaign.status === "running") {
         const { count } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
-        const finalStatus = (count || 0) > 0 ? "paused" : "completed";
-        await serviceClient.from("campaigns").update({
-          status: finalStatus,
-          sent_count: sentCount,
-          failed_count: failedCount,
-          delivered_count: sentCount,
-          completed_at: finalStatus === "completed" ? new Date().toISOString() : null,
-        }).eq("id", campaignId);
+
+        if ((count || 0) > 0) {
+          // More contacts to process — self-continue
+          console.log(`${count} contacts remaining, scheduling self-continue`);
+          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId);
+        } else {
+          // All done
+          await serviceClient.from("campaigns").update({
+            status: "completed",
+            sent_count: sentCount,
+            failed_count: failedCount,
+            delivered_count: sentCount,
+            completed_at: new Date().toISOString(),
+          }).eq("id", campaignId);
+          console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}`);
+        }
       }
 
-      return new Response(JSON.stringify({ success: true, sent: sentCount, failed: failedCount, total: (contacts || []).length, devices: allDevices.map(d => d.name) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({
+        success: true,
+        sent: sentCount,
+        failed: failedCount,
+        status: finalCampaign?.status || "running",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── STATUS ───
