@@ -104,14 +104,19 @@ const ClientPaymentsTab = ({ client }: Props) => {
     setEditPayment(p);
   };
 
-  const buildBody = () => ({
-    amount: parseBRL(form.amount),
-    method: form.method,
-    notes: form.notes,
-    paid_at: new Date(form.paid_at).toISOString(),
-    discount: parseBRL(form.discount),
-    fee: parseBRL(form.fee),
-  });
+  const buildBody = () => {
+    const pv = parseBRL(form.plan_value);
+    const am = parseBRL(form.amount);
+    const discount = pv > 0 && am > 0 && pv > am ? pv - am : 0;
+    return {
+      amount: am,
+      method: form.method,
+      notes: form.notes,
+      paid_at: new Date(form.paid_at).toISOString(),
+      discount,
+      fee: parseBRL(form.fee),
+    };
+  };
 
   const addPayment = () => {
     if (!form.amount || parseBRL(form.amount) <= 0) return;
@@ -165,29 +170,45 @@ const ClientPaymentsTab = ({ client }: Props) => {
   const totalFees = payments.reduce((s: number, p: any) => s + Number(p.fee || 0), 0);
   const ticketMedio = payments.length > 0 ? totalPaid / payments.length : 0;
 
+  // Auto-calculate discount: plan_value - amount (if plan > amount)
+  const autoDiscount = (() => {
+    const pv = parseBRL(form.plan_value);
+    const am = parseBRL(form.amount);
+    if (pv > 0 && am > 0 && pv > am) return fmtBRL(pv - am);
+    return "0,00";
+  })();
+
   const fillPlanValue = () => {
     if (form.plan_value) setForm(f => ({ ...f, amount: f.plan_value }));
   };
 
   const formFields = (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
           <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
           <CurrencyInput value={form.plan_value}
             onChange={v => setForm(f => ({ ...f, plan_value: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={fillPlanValue}
-          className="mt-5 text-xs h-9 px-3 shrink-0">
-          Usar como valor recebido
-        </Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
           <CurrencyInput value={form.amount}
             onChange={v => setForm(f => ({ ...f, amount: v }))}
+            className="bg-card border-border text-foreground mt-1" />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
+          <Input type="text" readOnly value={autoDiscount}
+            className="bg-muted border-border text-orange-500 font-medium mt-1 cursor-default" />
+          <p className="text-[10px] text-muted-foreground mt-0.5">Calculado automaticamente</p>
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
+          <CurrencyInput value={form.fee}
+            onChange={v => setForm(f => ({ ...f, fee: v }))}
             className="bg-card border-border text-foreground mt-1" />
         </div>
         <div>
@@ -196,20 +217,6 @@ const ClientPaymentsTab = ({ client }: Props) => {
             className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm">
             {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
-          <CurrencyInput value={form.discount}
-            onChange={v => setForm(f => ({ ...f, discount: v }))}
-            className="bg-card border-border text-foreground mt-1" />
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
-          <CurrencyInput value={form.fee}
-            onChange={v => setForm(f => ({ ...f, fee: v }))}
-            className="bg-card border-border text-foreground mt-1" />
         </div>
       </div>
       <div>
