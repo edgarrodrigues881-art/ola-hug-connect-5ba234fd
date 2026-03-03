@@ -1910,7 +1910,16 @@ const Campaigns = () => {
               <Button onClick={() => setStep(step + 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
                 CONTINUAR <ChevronRight className="w-4 h-4" />
               </Button>
-            ) : null}
+            ) : (
+              <Button 
+                onClick={handleSendCampaign} 
+                disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
+                className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
