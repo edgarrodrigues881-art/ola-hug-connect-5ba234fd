@@ -1571,10 +1571,6 @@ const Devices = () => {
                   {qrCodeBase64 ? (
                     <div className="relative p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
                       <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
-                      {/* Lock overlay */}
-                      <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                        <Lock className="w-4 h-4 text-primary-foreground" />
-                      </div>
                     </div>
                   ) : connectError ? (
                     <div className="w-52 h-52 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-4">
