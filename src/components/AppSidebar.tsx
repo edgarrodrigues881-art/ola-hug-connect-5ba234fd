@@ -62,7 +62,7 @@ const menuGroups = [
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
-      { title: "Centro de Monitoramento", url: "/dashboard/monitoring", icon: HeartPulse },
+      { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
       { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
