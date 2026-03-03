@@ -143,7 +143,7 @@ function randomBetween(min: number, max: number): number {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaignId: string, deviceId?: string, batchState?: { batchSent?: number; currentDeviceIndex?: number; instanceMsgCount?: number; msgsSincePause?: number; pauseAfter?: number }) {
+async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaignId: string, deviceId?: string, batchState?: { batchSent?: number; currentDeviceIndex?: number; instanceMsgCount?: number; msgsSincePause?: number; pauseAfter?: number; pendingPauseMs?: number }) {
   console.log(`Self-continuing campaign ${campaignId}...`, batchState ? JSON.stringify(batchState) : '');
   try {
     await fetch(`${supabaseUrl}/functions/v1/process-campaign`, {
@@ -284,6 +284,7 @@ Deno.serve(async (req) => {
       let instanceMsgCount = body.instanceMsgCount || 0;
       let pauseAfter = body.pauseAfter || Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
       let msgsSincePause = body.msgsSincePause || 0;
+      let pendingPauseMs = body.pendingPauseMs || 0; // Deferred pause from previous invocation
 
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
       const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
@@ -345,6 +346,7 @@ Deno.serve(async (req) => {
               continue;
             }
             try {
+              const msgStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
               const msg = replaceVariables(messageContent, contact, rand4, rand3);
@@ -353,7 +355,6 @@ Deno.serve(async (req) => {
               if (!check.exists) {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
-                // If disconnect, bulk-fail remaining in this chunk and stop
                 if (check.error === "WhatsApp desconectado") {
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                   if (remainingIds.length > 0) {
@@ -367,8 +368,11 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
 
-              const delay = randomBetween(minDelayMs, maxDelayMs);
-              await new Promise(r => setTimeout(r, delay));
+              // Subtract API time from configured delay
+              const apiTime = Date.now() - msgStart;
+              const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+              const actualDelay = Math.max(targetDelay - apiTime, 500);
+              await new Promise(r => setTimeout(r, actualDelay));
             } catch (err: any) {
               const translated = translateErrorMessage(err.message || "Erro");
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
@@ -397,6 +401,26 @@ Deno.serve(async (req) => {
 
       } else {
         // ─── SEQUENTIAL / ROTATION MODE ───
+
+        // Handle deferred pause from previous invocation
+        if (pendingPauseMs > 0) {
+          console.log(`Applying deferred pause of ${Math.round(pendingPauseMs / 1000)}s from previous invocation`);
+          if (pendingPauseMs > MAX_EXECUTION_MS - 5000) {
+            // Pause is too long even for a fresh invocation, split it
+            const waitNow = MAX_EXECUTION_MS - 10000;
+            const remaining = pendingPauseMs - waitNow;
+            await new Promise(resolve => setTimeout(resolve, waitNow));
+            console.log(`Pause partially done, ${Math.round(remaining / 1000)}s remaining, self-continuing`);
+            selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent, currentDeviceIndex, instanceMsgCount, msgsSincePause: 0, pauseAfter, pendingPauseMs: remaining });
+            return new Response(JSON.stringify({ success: true, status: "running", waitingPause: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          await new Promise(resolve => setTimeout(resolve, pendingPauseMs));
+          pendingPauseMs = 0;
+          msgsSincePause = 0;
+          pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
+          console.log(`Deferred pause completed. Next pause after ${pauseAfter} messages`);
+        }
+
         for (const contact of contacts) {
           // Time guard — if close to timeout, save state and self-continue
           if (Date.now() - startTime > MAX_EXECUTION_MS) {
@@ -431,10 +455,13 @@ Deno.serve(async (req) => {
           }
 
           try {
+            const msgStartTime = Date.now(); // Track time spent on API calls
+
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
             const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
+
             // Check device status before sending
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
@@ -451,7 +478,6 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
-              // If disconnect, bulk-fail ALL remaining pending contacts at once
               if (check.error === "WhatsApp desconectado") {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).eq("status", "pending");
                 const { count: remCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
@@ -470,31 +496,32 @@ Deno.serve(async (req) => {
             msgsSincePause++;
             await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-            console.log(`Sent to ${phone} via ${activeDevice.name} (batch ${batchSent}, sincePause ${msgsSincePause}/${pauseAfter})`);
+            // Calculate delay: subtract API call time from configured delay
+            const apiElapsedMs = Date.now() - msgStartTime;
+            const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+            const actualDelay = Math.max(targetDelay - apiElapsedMs, 500); // At least 500ms
+            console.log(`Sent to ${phone} via ${activeDevice.name} (batch ${batchSent}, sincePause ${msgsSincePause}/${pauseAfter}, apiTime ${Math.round(apiElapsedMs / 1000)}s, delay ${Math.round(actualDelay / 1000)}s)`);
 
-            // Delay between messages
-            const delay = randomBetween(minDelayMs, maxDelayMs);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise(resolve => setTimeout(resolve, actualDelay));
 
-            // Pause logic — randomize pauseAfter each time
+            // Pause logic — check if we reached the pause threshold
             if (msgsSincePause >= pauseAfter) {
               const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
-              console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${msgsSincePause} msgs (next pause after ${pauseAfter} msgs)`);
+              console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${msgsSincePause} msgs`);
 
-              // If pause would exceed our time budget, self-continue instead of waiting
+              // If pause would exceed our time budget, defer to next invocation
               if (Date.now() - startTime + pauseDuration > MAX_EXECUTION_MS) {
-                console.log(`Pause too long for this invocation, scheduling self-continue after pause`);
-                // Schedule continuation — the pause will happen as a delay before next batch
+                console.log(`Pause too long for this invocation, deferring ${Math.round(pauseDuration / 1000)}s pause to next invocation`);
                 needsContinue = true;
-                // Store that we need to wait before resuming
+                pendingPauseMs = pauseDuration;
+                msgsSincePause = 0;
                 break;
               }
 
               await new Promise(resolve => setTimeout(resolve, pauseDuration));
               msgsSincePause = 0;
-              // Recalculate next pause threshold randomly
               pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
-              console.log(`Next pause after ${pauseAfter} messages`);
+              console.log(`Pause done. Next pause after ${pauseAfter} messages`);
             }
           } catch (err: any) {
             const translated = translateErrorMessage(err.message || "Erro ao enviar");
@@ -502,7 +529,6 @@ Deno.serve(async (req) => {
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
-            // If disconnect, bulk-fail ALL remaining pending contacts at once
             if (isDisconnectError(err.message || "")) {
               const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).eq("status", "pending");
               if (remaining && remaining.length > 0) {
@@ -525,7 +551,7 @@ Deno.serve(async (req) => {
         if ((count || 0) > 0) {
           // More contacts to process — self-continue
           console.log(`${count} contacts remaining, scheduling self-continue`);
-          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent, currentDeviceIndex, instanceMsgCount, msgsSincePause, pauseAfter });
+          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent, currentDeviceIndex, instanceMsgCount, msgsSincePause, pauseAfter, pendingPauseMs });
         } else {
           // All done
           await serviceClient.from("campaigns").update({
