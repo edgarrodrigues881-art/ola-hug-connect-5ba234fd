@@ -137,9 +137,10 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
+      const msg = translateAuthError(error.message);
       toast({
         title: "Erro",
-        description: error.message,
+        description: msg,
         variant: "destructive",
       });
     } finally {
