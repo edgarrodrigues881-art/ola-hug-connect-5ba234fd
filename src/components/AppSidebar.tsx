@@ -7,6 +7,7 @@ import {
   Flame,
   Shield,
   UsersRound,
+  Radio,
   LogOut,
   Settings,
   ChevronUp,
@@ -62,6 +63,7 @@ const menuGroups = [
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Centro de Monitoramento", url: "/dashboard/monitoring", icon: HeartPulse },
+      { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
