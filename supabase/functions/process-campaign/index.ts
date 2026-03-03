@@ -363,6 +363,9 @@ Deno.serve(async (req) => {
                   }
                   break;
                 }
+                // Skip delay — number doesn't exist, move to next immediately
+                console.log(`Number ${normalized} invalid, skipping without delay`);
+                continue;
               }
               await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
@@ -485,6 +488,7 @@ Deno.serve(async (req) => {
                 await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
                 break;
               }
+              console.log(`Number ${normalizedPhone} invalid, skipping without delay`);
               continue;
             }
 
