@@ -68,8 +68,15 @@ export function useNotifications() {
       error: "destructive",
       warning: "destructive",
     };
+    const iconMap: Record<string, string> = {
+      success: "✅",
+      warning: "⚠️",
+      error: "❌",
+      info: "ℹ️",
+    };
+    const icon = iconMap[n.type] || "🔔";
     toast({
-      title: n.title,
+      title: `${icon} ${n.title}`,
       description: n.message,
       variant: variantMap[n.type] || "default",
       duration: 3000,
