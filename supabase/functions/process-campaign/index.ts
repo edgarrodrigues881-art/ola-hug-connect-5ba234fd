@@ -371,11 +371,14 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
 
-              // Subtract API time from configured delay
-              const apiTime = Date.now() - msgStart;
-              const targetDelay = randomBetween(minDelayMs, maxDelayMs);
-              const actualDelay = Math.max(targetDelay - apiTime, 500);
-              await new Promise(r => setTimeout(r, actualDelay));
+              // Skip delay if last contact in chunk
+              const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
+              if (!isLastInChunk) {
+                const apiTime = Date.now() - msgStart;
+                const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+                const actualDelay = Math.max(targetDelay - apiTime, 500);
+                await new Promise(r => setTimeout(r, actualDelay));
+              }
             } catch (err: any) {
               const translated = translateErrorMessage(err.message || "Erro");
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
@@ -501,12 +504,17 @@ Deno.serve(async (req) => {
             await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
             // Calculate delay: subtract API call time from configured delay
+            // Skip delay if this is the last contact in the batch
+            const isLastContact = contacts.indexOf(contact) === contacts.length - 1;
             const apiElapsedMs = Date.now() - msgStartTime;
-            const targetDelay = randomBetween(minDelayMs, maxDelayMs);
-            const actualDelay = Math.max(targetDelay - apiElapsedMs, 500); // At least 500ms
-            console.log(`Sent to ${phone} via ${activeDevice.name} (batch ${batchSent}, sincePause ${msgsSincePause}/${pauseAfter}, apiTime ${Math.round(apiElapsedMs / 1000)}s, delay ${Math.round(actualDelay / 1000)}s)`);
-
-            await new Promise(resolve => setTimeout(resolve, actualDelay));
+            if (!isLastContact) {
+              const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+              const actualDelay = Math.max(targetDelay - apiElapsedMs, 500);
+              console.log(`Sent to ${phone} via ${activeDevice.name} (batch ${batchSent}, sincePause ${msgsSincePause}/${pauseAfter}, apiTime ${Math.round(apiElapsedMs / 1000)}s, delay ${Math.round(actualDelay / 1000)}s)`);
+              await new Promise(resolve => setTimeout(resolve, actualDelay));
+            } else {
+              console.log(`Sent to ${phone} via ${activeDevice.name} (LAST in batch, no delay)`);
+            }
 
             // Pause logic — check if we reached the pause threshold
             if (msgsSincePause >= pauseAfter) {
