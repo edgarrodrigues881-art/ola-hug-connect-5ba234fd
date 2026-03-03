@@ -9,6 +9,21 @@ import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, Eye, Ey
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.png";
 
+const translateAuthError = (msg: string): string => {
+  const map: Record<string, string> = {
+    "Invalid login credentials": "E-mail ou senha incorretos.",
+    "Email not confirmed": "E-mail ainda não confirmado. Verifique sua caixa de entrada.",
+    "User already registered": "Este e-mail já está cadastrado.",
+    "Signup requires a valid password": "Informe uma senha válida.",
+    "Password should be at least 6 characters": "A senha deve ter no mínimo 6 caracteres.",
+    "Email rate limit exceeded": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+    "For security purposes, you can only request this after 60 seconds.": "Por segurança, aguarde 60 segundos antes de tentar novamente.",
+    "User not found": "Usuário não encontrado.",
+    "New password should be different from the old password.": "A nova senha deve ser diferente da anterior.",
+  };
+  return map[msg] || msg;
+};
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
@@ -51,7 +66,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: translateAuthError(error.message),
         variant: "destructive",
       });
     } finally {
@@ -137,9 +152,10 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
+      const msg = translateAuthError(error.message);
       toast({
         title: "Erro",
-        description: error.message,
+        description: msg,
         variant: "destructive",
       });
     } finally {
