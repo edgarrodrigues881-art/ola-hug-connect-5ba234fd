@@ -15,7 +15,7 @@ import {
   Box,
   Activity,
   ScrollText,
-  HeartPulse,
+  
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -62,7 +62,6 @@ const menuGroups = [
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
-      { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
       { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
