@@ -102,7 +102,7 @@ const PlansSection = () => {
 
                 <button
                   onClick={handleContratarPlano}
-                  className={`w-full py-3 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                  className={`w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 btn-press ${
                     plan.popular
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
                       : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"

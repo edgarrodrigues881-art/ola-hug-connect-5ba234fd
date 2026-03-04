@@ -125,7 +125,7 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row items-start gap-3">
               <Button
                 onClick={() => navigate("/auth")}
-                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white transition-colors duration-120"
+                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
               >
                 Começar Agora
                 <ArrowRight className="w-4 h-4 ml-2" />
