@@ -25,6 +25,7 @@ export default function ReportWhatsApp() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
+  const [creatingInstance, setCreatingInstance] = useState(false);
   const navigate = useNavigate();
 
   const { data: config, isLoading: loadingConfig } = useQuery({
@@ -41,24 +42,48 @@ export default function ReportWhatsApp() {
     enabled: !!user,
   });
 
-  const { data: devices = [] } = useQuery({
-    queryKey: ["devices-for-report", user?.id],
+  // Dedicated report device
+  const { data: reportDevice, isLoading: loadingDevice } = useQuery({
+    queryKey: ["report-device", user?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("devices")
-        .select("id, name, number, status, uazapi_token, uazapi_base_url")
-        .eq("user_id", user!.id);
-      return data || [];
+        .select("id, name, number, status, uazapi_token, uazapi_base_url, login_type")
+        .eq("user_id", user!.id)
+        .eq("login_type", "report_wa")
+        .maybeSingle();
+      return data;
     },
     enabled: !!user,
   });
 
-  const connectedDevices = devices.filter(
-    (d) => d.status === "Ready" && d.uazapi_token && d.uazapi_base_url
-  );
+  const isConnected = reportDevice?.status === "Ready";
 
-  const selectedDevice = devices.find((d) => d.id === config?.device_id);
-  const isConnected = selectedDevice?.status === "Ready";
+  const handleCreateReportInstance = async () => {
+    if (!user) return;
+    setCreatingInstance(true);
+    try {
+      const { data, error } = await supabase.from("devices").insert({
+        user_id: user.id,
+        name: "Relatorio Via Whatsapp",
+        login_type: "report_wa",
+        status: "Disconnected",
+      } as any).select().single();
+      if (error) throw error;
+      
+      // Link to config
+      if (data) {
+        await upsertConfig.mutateAsync({ device_id: data.id });
+      }
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      toast.success("Instância de relatório criada");
+    } catch (err: any) {
+      console.error("Error creating report instance:", err);
+      toast.error(err.message || "Erro ao criar instância");
+    } finally {
+      setCreatingInstance(false);
+    }
+  };
 
   const fetchGroups = async (deviceId: string) => {
     setLoadingGroups(true);
