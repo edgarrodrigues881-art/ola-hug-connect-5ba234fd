@@ -53,7 +53,7 @@ const HowItWorksSection = () => (
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.1 }}
             transition={{ duration: 0.5, delay: i * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-            className="group rounded-2xl p-6 border border-[#07C160]/20 hover:-translate-y-1 transition-transform duration-300"
+            className="group rounded-2xl p-6 border border-[#07C160]/20 hover:-translate-y-[3px] transition-transform duration-150 ease-out"
             style={{
               background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))",
             }}
