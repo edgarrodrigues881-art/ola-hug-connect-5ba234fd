@@ -1,15 +1,14 @@
 const LandingBackground = () => {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {/* Static mesh gradient blobs */}
+      {/* Static glow blobs — using opacity instead of filter:blur for GPU perf */}
       <div
         className="absolute w-[800px] h-[800px] rounded-full"
         style={{
           top: "-15%",
           left: "50%",
-          transform: "translateX(-50%)",
-          background: "radial-gradient(circle, rgba(7,193,96,0.07) 0%, transparent 70%)",
-          filter: "blur(80px)",
+          transform: "translateX(-50%) translateZ(0)",
+          background: "radial-gradient(circle, rgba(7,193,96,0.06) 0%, transparent 60%)",
         }}
       />
       <div
@@ -17,8 +16,8 @@ const LandingBackground = () => {
         style={{
           top: "25%",
           left: "-8%",
-          background: "radial-gradient(circle, rgba(7,193,96,0.05) 0%, transparent 70%)",
-          filter: "blur(100px)",
+          transform: "translateZ(0)",
+          background: "radial-gradient(circle, rgba(7,193,96,0.04) 0%, transparent 60%)",
         }}
       />
       <div
@@ -26,8 +25,8 @@ const LandingBackground = () => {
         style={{
           top: "45%",
           right: "-8%",
-          background: "radial-gradient(circle, rgba(7,193,96,0.05) 0%, transparent 70%)",
-          filter: "blur(100px)",
+          transform: "translateZ(0)",
+          background: "radial-gradient(circle, rgba(7,193,96,0.04) 0%, transparent 60%)",
         }}
       />
       <div
@@ -35,9 +34,8 @@ const LandingBackground = () => {
         style={{
           bottom: "-10%",
           left: "50%",
-          transform: "translateX(-50%)",
-          background: "radial-gradient(ellipse, rgba(7,193,96,0.06) 0%, transparent 65%)",
-          filter: "blur(100px)",
+          transform: "translateX(-50%) translateZ(0)",
+          background: "radial-gradient(ellipse, rgba(7,193,96,0.05) 0%, transparent 55%)",
         }}
       />
 

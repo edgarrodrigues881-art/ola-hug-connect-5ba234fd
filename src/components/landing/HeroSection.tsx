@@ -13,6 +13,9 @@ const chats = [
   { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
 ];
 
+const onceViewport = { once: true, amount: 0.1 } as const;
+const easeSmooth = [0.25, 0.1, 0.25, 1] as const;
+
 const HeroSection = () => {
   const navigate = useNavigate();
 
@@ -26,8 +29,8 @@ const HeroSection = () => {
             <motion.h1
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={onceViewport}
+              transition={{ duration: 0.5, ease: easeSmooth }}
               className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
@@ -37,8 +40,8 @@ const HeroSection = () => {
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={onceViewport}
+              transition={{ duration: 0.5, delay: 0.08, ease: easeSmooth }}
               className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md"
             >
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
@@ -47,18 +50,18 @@ const HeroSection = () => {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={onceViewport}
+              transition={{ duration: 0.5, delay: 0.15, ease: easeSmooth }}
               className="flex flex-col sm:flex-row items-start gap-3"
             >
               <Button
                 onClick={() => navigate("/auth")}
-                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(7,193,96,0.2)]"
+                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white transition-colors duration-150"
               >
                 Começar Agora
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.03]">
                 <div className="w-8 h-8 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -75,14 +78,15 @@ const HeroSection = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.1 }}
-            transition={{ duration: 0.8, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+            viewport={onceViewport}
+            transition={{ duration: 0.6, delay: 0.1, ease: easeSmooth }}
             className="relative flex items-center justify-center"
           >
-            {/* Ambient glow — static, no animation */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-80 lg:h-80">
-              <div className="w-full h-full rounded-full bg-[#07C160]/[0.06] blur-[100px] opacity-50" />
-            </div>
+            {/* Ambient glow — static, no blur filter */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-80 lg:h-80 rounded-full opacity-40"
+              style={{ background: "radial-gradient(circle, rgba(7,193,96,0.12) 0%, transparent 70%)" }}
+            />
 
             {/* Phone */}
             <div className="relative" style={{ perspective: "900px" }}>
@@ -90,35 +94,28 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)", transformStyle: "preserve-3d", willChange: "transform" }}
               >
-                {/* Outer glow — animated */}
-                <motion.div
-                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 blur-md"
+                {/* Outer glow — STATIC, no infinite animation */}
+                <div
+                  className="absolute -inset-[6px] rounded-[2.8rem] z-0 opacity-35"
                   style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-                    backgroundSize: "300% 300%",
+                    background: "linear-gradient(135deg, rgba(7,193,96,0.4), rgba(10,212,124,0.2), transparent, rgba(7,193,96,0.3))",
+                    filter: "blur(12px)",
                   }}
-                  animate={{
-                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-                    opacity: [0.3, 0.5, 0.3],
-                  }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* Border — animated */}
-                <motion.div
+                {/* Border — STATIC */}
+                <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
                   style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, #07C160, transparent, #07C160)",
-                    backgroundSize: "300% 300%",
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.3), transparent, #07C160)",
                   }}
-                  animate={{
-                    backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-                  }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 />
 
                 {/* Phone chassis */}
-                <div className="relative rounded-[2.4rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] z-10"
-                  style={{ background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)" }}
+                <div className="relative rounded-[2.4rem] p-[5px] z-10"
+                  style={{
+                    background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)",
+                    boxShadow: "0 40px 80px -20px rgba(0,0,0,0.8)",
+                  }}
                 >
                   {/* Screen bezel */}
                   <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
@@ -174,7 +171,7 @@ const HeroSection = () => {
                       {chats.map((chat, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
                           {chat.name.startsWith("DG CONTINGENCIA") ? (
-                            <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
+                            <img src={dgRemaster} alt="DG" className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" loading="lazy" />
                           ) : (
                             <div
                               className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
@@ -236,18 +233,18 @@ const HeroSection = () => {
                   </div>
                 </div>
 
-                {/* Shadow beneath phone */}
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[65%] h-8 bg-[#07C160]/[0.06] blur-3xl rounded-full" />
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[75%] h-6 bg-black/50 blur-2xl rounded-full" />
+                {/* Shadow beneath phone — static, no blur filter */}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[65%] h-8 rounded-full opacity-30"
+                  style={{ background: "radial-gradient(ellipse, rgba(7,193,96,0.15) 0%, transparent 70%)" }} />
               </div>
             </div>
 
-            {/* Floating notification bubbles — simulating real-time activity */}
+            {/* Floating notification bubbles */}
             <div className="hidden lg:block">
-              {/* Notification 1 — Message sent (right side, top) */}
+              {/* Notification 1 — Message sent */}
               <motion.div
-                initial={{ opacity: 0, x: -10, scale: 0.9 }}
-                whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                initial={{ opacity: 0, x: -10 }}
+                whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: 0.2 }}
                 className="absolute right-[-60px] top-[8%] w-[210px]"
@@ -255,24 +252,24 @@ const HeroSection = () => {
                 <div className="relative rounded-2xl p-4 overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))",
-                    boxShadow: "0 24px 48px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(7,193,96,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
+                    boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.15)",
                   }}
                 >
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                   
-                  {/* Header */}
+                  {/* Header — replaced animate-pulse with static dot */}
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 rounded-full bg-[#07C160] animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                     <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                   </div>
 
-                  {/* Simulated sent messages */}
+                  {/* Simulated sent messages — once only */}
                   <div className="space-y-2">
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 0.5 }}
+                      transition={{ delay: 0.5, duration: 0.3 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-[#07C160]/[0.12] border border-[#07C160]/10 flex items-center px-2.5 gap-1.5">
@@ -289,7 +286,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 0.7 }}
+                      transition={{ delay: 0.7, duration: 0.3 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-[#07C160]/[0.12] border border-[#07C160]/10 flex items-center px-2.5 gap-1.5">
@@ -306,7 +303,7 @@ const HeroSection = () => {
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 0.9 }}
+                      transition={{ delay: 0.9, duration: 0.3 }}
                       className="flex items-center gap-2"
                     >
                       <div className="flex-1 h-[28px] rounded-lg bg-white/[0.03] border border-white/[0.04] flex items-center px-2.5 gap-1.5">
@@ -326,14 +323,14 @@ const HeroSection = () => {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 1.0 }}
+                      transition={{ delay: 1.0, duration: 0.3 }}
                       className="text-[13px] font-bold text-white tabular-nums"
                     >342</motion.span>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Notification 2 — Progress ring (left side) */}
+              {/* Notification 2 — Progress ring */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -344,7 +341,7 @@ const HeroSection = () => {
                 <div className="relative rounded-2xl p-4 overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))",
-                    boxShadow: "0 24px 48px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(7,193,96,0.12), inset 0 1px 0 rgba(255,255,255,0.05)",
+                    boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.12)",
                   }}
                 >
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
@@ -360,7 +357,7 @@ const HeroSection = () => {
                           initial={{ strokeDashoffset: 2 * Math.PI * 20 }}
                           whileInView={{ strokeDashoffset: 2 * Math.PI * 20 * (1 - 0.89) }}
                           viewport={{ once: true }}
-                          transition={{ duration: 1.2, delay: 0.6, ease: "easeOut" }}
+                          transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -375,7 +372,7 @@ const HeroSection = () => {
                 </div>
               </motion.div>
 
-              {/* Notification 3 — Instâncias conectadas (bottom left) */}
+              {/* Notification 3 — Instâncias conectadas */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -386,7 +383,7 @@ const HeroSection = () => {
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))",
-                    boxShadow: "0 16px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
+                    boxShadow: "0 16px 32px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(7,193,96,0.1)",
                   }}
                 >
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
