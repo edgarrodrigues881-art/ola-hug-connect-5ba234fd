@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
     };
 
     if (action === "list_chats") {
-      // UaZapi V2 endpoint: GET /group/list
-      const endpoint = `${apiBaseUrl}/group/list`;
+      // UaZapi V2 endpoint: GET /group/list — try with GetParticipants=false for speed
+      const endpoint = `${apiBaseUrl}/group/list?GetParticipants=false`;
       console.log(`Fetching groups from: ${endpoint}`);
       
       const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
@@ -101,7 +101,8 @@ Deno.serve(async (req) => {
       const groupArray = Array.isArray(groups) ? groups : [];
       
       if (groupArray.length > 0) {
-        console.log(`Found ${groupArray.length} groups. Sample keys: ${Object.keys(groupArray[0] || {}).join(",")}`);
+        console.log(`Found ${groupArray.length} groups. First 3 names: ${groupArray.slice(0, 3).map((g: any) => g.Name || g.name || g.Subject || "?").join(", ")}`);
+        console.log(`Last 3 names: ${groupArray.slice(-3).map((g: any) => g.Name || g.name || g.Subject || "?").join(", ")}`);
       } else {
         console.log(`No groups found. Response: ${JSON.stringify(data).substring(0, 500)}`);
       }
