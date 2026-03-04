@@ -108,9 +108,9 @@ Deno.serve(async (req) => {
 
       // Map to standardized format
       const chats = groupArray.map((g: any) => ({
-        id: g.jid || g.id || g.groupJid || "",
-        name: g.name || g.subject || g.groupName || "Grupo sem nome",
-        participants: g.participants?.length || g.participantsCount || g.size || undefined,
+        id: g.JID || g.jid || g.id || g.groupJid || "",
+        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "Grupo sem nome",
+        participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
         isGroup: true,
       }));
 
