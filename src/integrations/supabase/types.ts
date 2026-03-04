@@ -616,6 +616,7 @@ export type Database = {
           risk_flag: boolean
           status: string
           updated_at: string
+          whatsapp_monitor_token: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -631,6 +632,7 @@ export type Database = {
           risk_flag?: boolean
           status?: string
           updated_at?: string
+          whatsapp_monitor_token?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -646,6 +648,7 @@ export type Database = {
           risk_flag?: boolean
           status?: string
           updated_at?: string
+          whatsapp_monitor_token?: string | null
         }
         Relationships: []
       }
