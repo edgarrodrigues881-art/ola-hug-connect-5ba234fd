@@ -58,7 +58,7 @@ const HeroSection = () => {
               />
               {/* Edge-blend overlays to hide image border */}
               <div className="absolute inset-0 pointer-events-none" style={{
-                boxShadow: "inset 0 40px 40px -10px #0B0F14, inset 0 -40px 40px -10px #0B0F14, inset 40px 0 40px -10px #0B0F14, inset -40px 0 40px -10px #0B0F14"
+                boxShadow: "inset 0 60px 50px -10px #0B0F14, inset 0 -50px 50px -10px #0B0F14, inset 50px 0 50px -10px #0B0F14, inset -50px 0 50px -10px #0B0F14"
               }} />
             </div>
 
