@@ -25,6 +25,7 @@ export default function ReportWhatsApp() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
+  const [creatingInstance, setCreatingInstance] = useState(false);
   const navigate = useNavigate();
 
   const { data: config, isLoading: loadingConfig } = useQuery({
@@ -41,24 +42,48 @@ export default function ReportWhatsApp() {
     enabled: !!user,
   });
 
-  const { data: devices = [] } = useQuery({
-    queryKey: ["devices-for-report", user?.id],
+  // Dedicated report device
+  const { data: reportDevice, isLoading: loadingDevice } = useQuery({
+    queryKey: ["report-device", user?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("devices")
-        .select("id, name, number, status, uazapi_token, uazapi_base_url")
-        .eq("user_id", user!.id);
-      return data || [];
+        .select("id, name, number, status, uazapi_token, uazapi_base_url, login_type")
+        .eq("user_id", user!.id)
+        .eq("login_type", "report_wa")
+        .maybeSingle();
+      return data;
     },
     enabled: !!user,
   });
 
-  const connectedDevices = devices.filter(
-    (d) => d.status === "Ready" && d.uazapi_token && d.uazapi_base_url
-  );
+  const isConnected = reportDevice?.status === "Ready";
 
-  const selectedDevice = devices.find((d) => d.id === config?.device_id);
-  const isConnected = selectedDevice?.status === "Ready";
+  const handleCreateReportInstance = async () => {
+    if (!user) return;
+    setCreatingInstance(true);
+    try {
+      const { data, error } = await supabase.from("devices").insert({
+        user_id: user.id,
+        name: "Relatorio Via Whatsapp",
+        login_type: "report_wa",
+        status: "Disconnected",
+      } as any).select().single();
+      if (error) throw error;
+      
+      // Link to config
+      if (data) {
+        await upsertConfig.mutateAsync({ device_id: data.id });
+      }
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      toast.success("Instância de relatório criada");
+    } catch (err: any) {
+      console.error("Error creating report instance:", err);
+      toast.error(err.message || "Erro ao criar instância");
+    } finally {
+      setCreatingInstance(false);
+    }
+  };
 
   const fetchGroups = async (deviceId: string) => {
     setLoadingGroups(true);
@@ -108,7 +133,7 @@ export default function ReportWhatsApp() {
         return;
       }
       const testGroupName = groups.find(g => g.id === testGroupId)?.name || testGroupId;
-      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${selectedDevice?.name || "—"}\nNúmero: ${selectedDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
+      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${reportDevice?.name || "—"}\nNúmero: ${reportDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
 
       let whatsappSent = false;
       let whatsappError: string | null = null;
@@ -131,8 +156,8 @@ export default function ReportWhatsApp() {
         user_id: user!.id,
         type: "TEST_ALERT" as any,
         severity: "INFO" as any,
-        instance_name: selectedDevice?.name || null,
-        phone_number: selectedDevice?.number || null,
+        instance_name: reportDevice?.name || null,
+        phone_number: reportDevice?.number || null,
         instance_id: config.device_id,
         message_rendered: message,
         whatsapp_sent: whatsappSent,
@@ -150,10 +175,10 @@ export default function ReportWhatsApp() {
   };
 
   useEffect(() => {
-    if (config?.device_id && connectedDevices.some((d) => d.id === config.device_id)) {
-      fetchGroups(config.device_id);
+    if (reportDevice?.id && reportDevice?.status === "Ready") {
+      fetchGroups(reportDevice.id);
     }
-  }, [config?.device_id, connectedDevices.length]);
+  }, [reportDevice?.id, reportDevice?.status]);
 
   const upsertConfig = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
@@ -179,10 +204,8 @@ export default function ReportWhatsApp() {
     upsertConfig.mutate({ [field]: groupId, [nameField]: group?.name || "" });
   };
 
-  const handleDeviceSelect = (deviceId: string) => {
-    upsertConfig.mutate({ device_id: deviceId });
-    fetchGroups(deviceId);
-  };
+
+
 
   if (loadingConfig) {
     return (
@@ -229,7 +252,7 @@ export default function ReportWhatsApp() {
               </div>
               Instância de Notificação
             </CardTitle>
-            {selectedDevice && (
+            {reportDevice && (
               isConnected ? (
                 <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10 px-3 py-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Online
@@ -243,50 +266,32 @@ export default function ReportWhatsApp() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-1 w-full">
-              <Label className="text-xs font-medium mb-2 block text-muted-foreground">Selecionar instância</Label>
-              <Select value={config?.device_id || ""} onValueChange={handleDeviceSelect}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Selecione uma instância conectada" />
-                </SelectTrigger>
-                <SelectContent>
-                  {connectedDevices.length === 0 ? (
-                    <SelectItem value="none" disabled>Nenhuma instância conectada</SelectItem>
-                  ) : (
-                    connectedDevices.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.name} {d.number ? `(${d.number})` : ""}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {connectedDevices.length === 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/dashboard/devices")}
-                  className="mt-2 gap-1.5 text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Criar instância
-                </Button>
-              )}
+          {!reportDevice ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+              <Smartphone className="w-10 h-10 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground text-center">
+                Nenhuma instância de relatório configurada.
+              </p>
+              <Button
+                onClick={handleCreateReportInstance}
+                disabled={creatingInstance}
+                className="gap-1.5"
+              >
+                {creatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Criar instância "Relatorio Via Whatsapp"
+              </Button>
             </div>
-          </div>
-
-          {selectedDevice && (
+          ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
               <div className="flex-1 space-y-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Número</p>
-                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.number || "Sem número"}</p>
+                    <p className="text-sm font-semibold mt-0.5">{reportDevice.number || "Sem número"}</p>
                   </div>
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Instância</p>
-                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.name}</p>
+                    <p className="text-sm font-semibold mt-0.5">{reportDevice.name}</p>
                   </div>
                 </div>
                 {groups.length > 0 && (
@@ -299,8 +304,8 @@ export default function ReportWhatsApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => config?.device_id && fetchGroups(config.device_id)}
-                  disabled={!config?.device_id || loadingGroups}
+                  onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+                  disabled={!reportDevice?.id || loadingGroups}
                   className="gap-1.5"
                 >
                   {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -310,7 +315,7 @@ export default function ReportWhatsApp() {
                   variant="outline"
                   size="sm"
                   onClick={sendTestMessage}
-                  disabled={sendingTest || !config?.device_id}
+                  disabled={sendingTest || !reportDevice?.id}
                   className="gap-1.5"
                 >
                   {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -339,7 +344,7 @@ export default function ReportWhatsApp() {
             { icon: <Clock className="w-4 h-4" />, label: "Frequência", value: "24 horas (automática)" },
           ]}
           monitoredEvents={["Ciclo de aquecimento concluído"]}
-          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
+          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
 
         <AlertCard
@@ -375,7 +380,7 @@ export default function ReportWhatsApp() {
             { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 5 segundos" },
           ]}
           monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
-          previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
+          previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
     </div>
