@@ -114,12 +114,15 @@ Deno.serve(async (req) => {
 
     if (action === "send_message" && req.method === "POST") {
       const body = await req.json();
-      const phone = body.to?.replace(/\D/g, "");
+      // Keep group JIDs (@g.us) intact, only strip non-digits for phone numbers
+      const to = body.to || "";
+      const isGroup = to.includes("@g.us");
+      const number = isGroup ? to : to.replace(/\D/g, "");
       const message = body.message;
       const res = await fetch(`${apiBaseUrl}/send/text`, {
         method: "POST",
         headers: apiHeaders,
-        body: JSON.stringify({ number: phone, text: message }),
+        body: JSON.stringify({ number, text: message }),
       });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
