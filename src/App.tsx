@@ -29,6 +29,7 @@ import MyPlan from "./pages/dashboard/MyPlan";
 import CampaignDetail from "./pages/dashboard/CampaignDetail";
 
 import ReportWhatsApp from "./pages/dashboard/ReportWhatsApp";
+import AlertCockpit from "./pages/dashboard/AlertCockpit";
 
 
 const queryClient = new QueryClient({
@@ -75,6 +76,7 @@ const App = () => (
                       <Route path="reports" element={<Reports />} />
                       
                       <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
+                      <Route path="cockpit" element={<AlertCockpit />} />
                       <Route path="custom-module" element={<CustomModule />} />
                       <Route path="notifications" element={<Notifications />} />
                       <Route path="settings" element={<SettingsPage />} />

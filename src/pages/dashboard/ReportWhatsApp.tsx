@@ -108,17 +108,40 @@ export default function ReportWhatsApp() {
       const testGroupName = groups.find(g => g.id === testGroupId)?.name || testGroupId;
       const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${selectedDevice?.name || "—"}\nNúmero: ${selectedDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
 
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=send_message&device_id=${config.device_id}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ to: testGroupId, message }),
-        }
-      );
-      toast.success("Mensagem de teste enviada!");
+      let whatsappSent = false;
+      let whatsappError: string | null = null;
+      try {
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=send_message&device_id=${config.device_id}`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ to: testGroupId, message }),
+          }
+        );
+        whatsappSent = true;
+      } catch (e: any) {
+        whatsappError = e?.message || "Erro ao enviar";
+      }
+
+      // Register alert in cockpit
+      await supabase.from("alerts").insert({
+        user_id: user!.id,
+        type: "TEST_ALERT" as any,
+        severity: "INFO" as any,
+        instance_name: selectedDevice?.name || null,
+        phone_number: selectedDevice?.number || null,
+        instance_id: config.device_id,
+        message_rendered: message,
+        whatsapp_sent: whatsappSent,
+        whatsapp_group_id: testGroupId,
+        whatsapp_sent_at: whatsappSent ? new Date().toISOString() : null,
+        whatsapp_error: whatsappError,
+      });
+
+      toast.success(whatsappSent ? "Alerta de teste enviado!" : "Alerta registrado (WhatsApp falhou)");
     } catch {
-      toast.error("Erro ao enviar mensagem de teste");
+      toast.error("Erro ao enviar alerta de teste");
     } finally {
       setSendingTest(false);
     }
