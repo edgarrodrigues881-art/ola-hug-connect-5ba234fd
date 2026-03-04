@@ -65,10 +65,8 @@ async function uazapiRequest(
     fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
   }
 
-  console.log(`UaZapi ${method}: ${url}`);
   const res = await fetch(url, fetchOptions);
   const text = await res.text();
-  console.log(`UaZapi response: ${res.status} ${text.substring(0, 300)}`);
 
   // Method fallback: POST -> GET on 405
   if (res.status === 405 && method === "POST") {
@@ -111,10 +109,6 @@ function isWithinTimeWindow(startTime: string, endTime: string): boolean {
   return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
 }
 
-/**
- * Fetch all groups the device is currently in from UaZapi.
- * Returns array of { jid, name }.
- */
 async function fetchDeviceGroups(
   baseUrl: string,
   token: string
@@ -122,7 +116,6 @@ async function fetchDeviceGroups(
   const results: Array<{ jid: string; name: string }> = [];
 
   try {
-    // Try GET /group/list first (UaZapi V2)
     const data = await uazapiRequest(baseUrl, token, "/group/list", {}, "GET");
 
     if (Array.isArray(data)) {
@@ -143,8 +136,6 @@ async function fetchDeviceGroups(
       }
     }
   } catch (e) {
-    console.log("group/list failed, trying chat/getChats:", e);
-    // Fallback: get all chats and filter groups
     try {
       const chats = await uazapiRequest(baseUrl, token, "/chat/getChats", {}, "GET");
       if (Array.isArray(chats)) {
@@ -157,11 +148,10 @@ async function fetchDeviceGroups(
         }
       }
     } catch (e2) {
-      console.error("chat/getChats also failed:", e2);
+      console.error("Failed to fetch groups");
     }
   }
 
-  console.log(`Found ${results.length} groups for device`);
   return results;
 }
 
@@ -170,11 +160,33 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // === AUTH VALIDATION ===
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  let targetUserId: string | null = null;
+  // Validate the JWT
+  const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const targetUserId = claimsData.claims.sub as string;
   let targetSessionId: string | null = null;
   let forceExecute = false;
 
@@ -182,23 +194,16 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     targetSessionId = body.sessionId || null;
     forceExecute = body.forceExecute === true;
-
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-      const { data: { user } } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-      if (user) targetUserId = user.id;
-    }
   } catch {}
 
   try {
     let query = supabase
       .from("warmup_sessions")
       .select("*")
-      .eq("status", "running");
+      .eq("status", "running")
+      .eq("user_id", targetUserId);
 
     if (targetSessionId) query = query.eq("id", targetSessionId);
-    if (targetUserId) query = query.eq("user_id", targetUserId);
 
     const { data: sessions, error: sessErr } = await query;
     if (sessErr) throw sessErr;
@@ -214,13 +219,11 @@ Deno.serve(async (req) => {
 
     for (const session of sessions) {
       try {
-        // Check time window (skip if manual execution)
         if (!forceExecute && !isWithinTimeWindow(session.start_time, session.end_time)) {
           results.push({ session_id: session.id, status: "skipped", reason: "outside_time_window" });
           continue;
         }
 
-        // Calculate today's limit with progressive curve
         const dailyLimit = Math.min(
           session.messages_per_day + (session.current_day - 1) * session.daily_increment,
           session.max_messages_per_day
@@ -232,7 +235,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get device credentials
         const { data: device } = await supabase
           .from("devices")
           .select("id, name, uazapi_token, uazapi_base_url, status")
@@ -247,19 +249,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Check device is online
         const onlineStatuses = ["Connected", "Ready", "authenticated", "ready"];
         if (device?.status && !onlineStatuses.includes(device.status)) {
           results.push({ session_id: session.id, status: "error", reason: "device_offline", deviceStatus: device.status });
-          
-          // Safety: if device is offline, set session to alert state
           if (session.safety_state === "normal") {
             await supabase.from("warmup_sessions").update({ safety_state: "alerta" }).eq("id", session.id);
           }
           continue;
         }
 
-        // Fetch groups the device is currently in
         const deviceGroups = await fetchDeviceGroups(deviceBaseUrl, deviceToken);
 
         if (deviceGroups.length === 0) {
@@ -267,7 +265,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get user's custom warmup messages (fallback to defaults)
         const { data: userMessages } = await supabase
           .from("warmup_messages")
           .select("content")
@@ -278,8 +275,6 @@ Deno.serve(async (req) => {
             ? userMessages.map((m) => m.content)
             : defaultMessages;
 
-        // Decide batch size
-        // When forceExecute, send to ALL groups; otherwise limit by profile
         let batchSize: number;
         if (forceExecute) {
           batchSize = Math.min(remaining, deviceGroups.length);
@@ -291,7 +286,6 @@ Deno.serve(async (req) => {
         let sentCount = 0;
         let errorCount = 0;
 
-        // When forceExecute, send to each group; otherwise pick random
         const targetGroups = forceExecute
           ? deviceGroups.slice(0, batchSize)
           : Array.from({ length: batchSize }, () => pickRandom(deviceGroups));
@@ -301,17 +295,13 @@ Deno.serve(async (req) => {
           const message = pickRandom(messagePool);
 
           try {
-            console.log(`Warmup: sending to group ${group.name} (${group.jid}) for session ${session.id}`);
-
             await uazapiRequest(deviceBaseUrl, deviceToken, "/send/text", {
               number: group.jid,
               text: message,
             });
 
             sentCount++;
-            console.log(`Warmup: sent "${message.substring(0, 30)}..." to ${group.name}`);
 
-            // Log success
             await supabase.from("warmup_logs").insert({
               session_id: session.id,
               user_id: session.user_id,
@@ -322,17 +312,15 @@ Deno.serve(async (req) => {
               status: "sent",
             });
 
-            // Random delay between messages (shorter for manual execution)
             if (i < targetGroups.length - 1) {
               if (forceExecute) {
-                await randomDelay(3, 8); // 3-8s for manual
+                await randomDelay(3, 8);
               } else {
                 await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
               }
             }
           } catch (msgErr: any) {
             errorCount++;
-            console.error(`Warmup message error for group ${group.name}:`, msgErr.message);
 
             await supabase
               .from("warmup_logs")
@@ -350,7 +338,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update session counters
         const newSentToday = session.messages_sent_today + sentCount;
         const newSentTotal = session.messages_sent_total + sentCount;
 
@@ -360,27 +347,18 @@ Deno.serve(async (req) => {
           last_executed_at: new Date().toISOString(),
         };
 
-        // Safety state management
         if (errorCount > 0 && sentCount === 0) {
-          // All messages failed - escalate safety
           if (session.safety_state === "normal") {
             updates.safety_state = "alerta";
-            console.log(`Session ${session.id}: escalated to ALERTA`);
           } else if (session.safety_state === "alerta") {
             updates.safety_state = "recuo";
-            console.log(`Session ${session.id}: escalated to RECUO`);
           } else if (session.safety_state === "recuo") {
-            // Too many errors, pause session
             updates.status = "paused";
-            console.log(`Session ${session.id}: PAUSED due to persistent errors`);
           }
         } else if (sentCount > 0 && session.safety_state !== "normal") {
-          // Successful send - recover safety state
           updates.safety_state = "normal";
-          console.log(`Session ${session.id}: recovered to NORMAL`);
         }
 
-        // Check if warmup is complete
         if (session.current_day >= session.total_days && newSentToday >= dailyLimit) {
           updates.status = "completed";
         }
@@ -389,7 +367,6 @@ Deno.serve(async (req) => {
 
         results.push({
           session_id: session.id,
-          device: device?.name,
           status: "ok",
           sent: sentCount,
           errors: errorCount,
@@ -398,7 +375,7 @@ Deno.serve(async (req) => {
           groups_available: deviceGroups.length,
         });
       } catch (sessionErr: any) {
-        console.error(`Session ${session.id} error:`, sessionErr.message);
+        console.error(`Session error:`, sessionErr.message);
         results.push({ session_id: session.id, status: "error", reason: sessionErr.message });
       }
     }
@@ -422,7 +399,6 @@ Deno.serve(async (req) => {
               .from("warmup_sessions")
               .update({ messages_sent_today: 0, current_day: newDay })
               .eq("id", s.id);
-            console.log(`Reset daily counter for session ${s.id}, now day ${newDay}`);
           }
         }
       }
@@ -432,8 +408,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    console.error("Warmup execute error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("Warmup execute error:", err.message);
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

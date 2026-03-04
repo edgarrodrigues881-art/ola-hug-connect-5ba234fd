@@ -1177,6 +1177,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_profile_safe: {
+        Args: { profile_row: Database["public"]["Tables"]["profiles"]["Row"] }
+        Returns: {
+          admin_notes: string | null
+          avatar_url: string | null
+          client_type: string
+          company: string | null
+          created_at: string
+          document: string | null
+          full_name: string | null
+          id: string
+          instance_override: number
+          phone: string | null
+          risk_flag: boolean
+          status: string
+          updated_at: string
+          whatsapp_monitor_token: string | null
+        }
+        SetofOptions: {
+          from: "profiles"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
