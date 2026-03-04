@@ -516,14 +516,20 @@ Deno.serve(async (req) => {
 
             if (sendAllMode && messageVariants.length > 1) {
               // Send all messages sequentially to same contact
+              console.log(`SEQUENTIAL: Sending ${messageVariants.length} msgs to ${normalizedPhone} in order 1→${messageVariants.length}`);
               for (let mi = 0; mi < messageVariants.length; mi++) {
                 const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
+                console.log(`  → Msg ${mi + 1}/${messageVariants.length}: "${allMsg.substring(0, 50)}..."`);
                 await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
                 if (mi < messageVariants.length - 1) {
-                  await new Promise(r => setTimeout(r, randomBetween(minDelayMs, maxDelayMs)));
+                  const seqDelay = randomBetween(minDelayMs, maxDelayMs);
+                  console.log(`  ⏱ Delay between msgs: ${Math.round(seqDelay / 1000)}s`);
+                  await new Promise(r => setTimeout(r, seqDelay));
                 }
               }
             } else {
+              const pickedIndex = messageVariants.indexOf(chosenMessage);
+              console.log(`RANDOM: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}: "${personalizedMessage.substring(0, 50)}..."`);
               await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
             }
             await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
