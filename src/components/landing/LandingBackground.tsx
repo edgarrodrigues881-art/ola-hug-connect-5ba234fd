@@ -1,45 +1,23 @@
 const LandingBackground = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {/* Static glow blobs — using opacity instead of filter:blur for GPU perf */}
+    <div
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ contain: "strict", willChange: "auto" }}
+    >
+      {/* Single background layer with all effects baked in — no individual GPU layers */}
       <div
-        className="absolute w-[800px] h-[800px] rounded-full"
+        className="absolute inset-0"
         style={{
-          top: "-15%",
-          left: "50%",
-          transform: "translateX(-50%) translateZ(0)",
-          background: "radial-gradient(circle, rgba(7,193,96,0.06) 0%, transparent 60%)",
-        }}
-      />
-      <div
-        className="absolute w-[600px] h-[600px] rounded-full"
-        style={{
-          top: "25%",
-          left: "-8%",
-          transform: "translateZ(0)",
-          background: "radial-gradient(circle, rgba(7,193,96,0.04) 0%, transparent 60%)",
-        }}
-      />
-      <div
-        className="absolute w-[600px] h-[600px] rounded-full"
-        style={{
-          top: "45%",
-          right: "-8%",
-          transform: "translateZ(0)",
-          background: "radial-gradient(circle, rgba(7,193,96,0.04) 0%, transparent 60%)",
-        }}
-      />
-      <div
-        className="absolute w-[900px] h-[600px] rounded-full"
-        style={{
-          bottom: "-10%",
-          left: "50%",
-          transform: "translateX(-50%) translateZ(0)",
-          background: "radial-gradient(ellipse, rgba(7,193,96,0.05) 0%, transparent 55%)",
+          background: `
+            radial-gradient(800px 800px at 50% -15%, rgba(7,193,96,0.06) 0%, transparent 60%),
+            radial-gradient(600px 600px at -8% 25%, rgba(7,193,96,0.04) 0%, transparent 60%),
+            radial-gradient(600px 600px at 108% 45%, rgba(7,193,96,0.04) 0%, transparent 60%),
+            radial-gradient(900px 600px at 50% 110%, rgba(7,193,96,0.05) 0%, transparent 55%)
+          `,
         }}
       />
 
-      {/* Subtle static grid */}
+      {/* Static grid — single layer */}
       <div
         className="absolute inset-0 opacity-[0.025]"
         style={{
@@ -53,13 +31,11 @@ const LandingBackground = () => {
         }}
       />
 
-      {/* Edge fade — top & bottom only */}
+      {/* Edge fade */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0"
         style={{
-          background: `
-            linear-gradient(to bottom, rgba(11,15,20,0.7) 0%, transparent 8%, transparent 92%, rgba(11,15,20,0.85) 100%)
-          `,
+          background: "linear-gradient(to bottom, rgba(11,15,20,0.7) 0%, transparent 8%, transparent 92%, rgba(11,15,20,0.85) 100%)",
         }}
       />
     </div>
