@@ -134,10 +134,10 @@ const PlansSection = () => {
               viewport={{ once: true }}
               variants={fadeUp}
               custom={i + 3}
-              className={`relative flex flex-col rounded-2xl transition-all duration-300 ${
+              className={`relative flex flex-col rounded-2xl transition-transform duration-150 ease-out ${
                 plan.popular
-                  ? "border border-emerald-600/25 hover:border-emerald-600/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/30"
-                  : "border border-white/[0.06] hover:border-white/[0.1] hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20"
+                  ? "border border-emerald-600/25 hover:border-emerald-600/40 hover:-translate-y-[3px]"
+                  : "border border-white/[0.06] hover:border-white/[0.1] hover:-translate-y-[3px]"
               }`}
             >
               <div
