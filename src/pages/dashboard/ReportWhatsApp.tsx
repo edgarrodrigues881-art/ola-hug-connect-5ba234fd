@@ -488,6 +488,18 @@ export default function ReportWhatsApp() {
                     Sincronizar grupos
                   </Button>
                 )}
+                {isConnected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    disabled={disconnecting}
+                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                    Desconectar
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
