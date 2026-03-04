@@ -64,28 +64,23 @@ const HeroSection = () => {
             {/* Phone — no perspective/preserve-3d to avoid compositor overhead */}
             <div className="relative">
               <div
-                className="relative w-[280px] lg:w-[300px]"
+                className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)" }}
               >
-                {/* iPhone frame image */}
-                <img
-                  src={iphoneFrame}
-                  alt="iPhone"
-                  className="relative z-20 w-full h-auto pointer-events-none select-none"
-                  draggable={false}
+                {/* Border */}
+                <div
+                  className="absolute -inset-[2px] rounded-[2.6rem] z-0"
+                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.3), transparent, #07C160)" }}
                 />
 
-                {/* Screen content behind the frame */}
-                <div className="absolute z-10 overflow-hidden"
+                {/* Phone chassis */}
+                <div className="relative rounded-[2.4rem] p-[5px] z-10"
                   style={{
-                    top: "3.2%",
-                    left: "5.5%",
-                    right: "5.5%",
-                    bottom: "3.2%",
-                    borderRadius: "2rem",
+                    background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)",
+                    boxShadow: "none",
                   }}
                 >
-                  <div className="w-full h-full bg-[#0A0A0A] flex flex-col">
+                  <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
                     {/* Status bar */}
                     <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
                       <span className="text-[10px] text-white/40 font-medium">9:41</span>
@@ -134,7 +129,7 @@ const HeroSection = () => {
                     </div>
 
                     {/* Chat list */}
-                    <div className="flex-1 overflow-hidden">
+                    <div>
                       {chats.map((chat, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
                           {chat.name.startsWith("DG CONTINGENCIA") ? (
