@@ -873,17 +873,26 @@ function AlertCard({
           {/* Group selector */}
           <div>
             <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
-            <Select value={selectedGroupId} onValueChange={onGroupSelect}>
+            <Select value={selectedGroupId} onValueChange={(v) => { onGroupSelect(v); setGroupSearch(""); }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder={loadingGroups ? "Carregando..." : "Selecione um grupo"} />
               </SelectTrigger>
               <SelectContent>
-                {groups.length === 0 ? (
+                <div className="px-2 pb-2">
+                  <Input
+                    placeholder="Pesquisar grupo..."
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    className="h-8 text-xs"
+                    autoFocus
+                  />
+                </div>
+                {filteredGroups.length === 0 ? (
                   <SelectItem value="none" disabled>
-                    {loadingGroups ? "Carregando grupos..." : "Conecte uma instância primeiro"}
+                    {loadingGroups ? "Carregando grupos..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância primeiro"}
                   </SelectItem>
                 ) : (
-                  groups.map((g) => (
+                  filteredGroups.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
                       <div className="flex items-center gap-2">
                         <span>{g.name}</span>
