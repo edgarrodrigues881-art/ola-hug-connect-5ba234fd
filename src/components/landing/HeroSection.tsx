@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroPhone from "@/assets/hero-phone-nobg.png";
+import heroPhone from "@/assets/hero-phone-clean.png";
 
 const cardBg = "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))";
 const cardShadow = "0 0 0 1px rgba(7,193,96,0.12)";
