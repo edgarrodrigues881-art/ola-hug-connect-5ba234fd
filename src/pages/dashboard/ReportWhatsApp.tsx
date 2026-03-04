@@ -190,7 +190,7 @@ export default function ReportWhatsApp() {
 
   // QR auto-refresh every 30s
   useEffect(() => {
-    if (qrDialogOpen && qrCodeBase64) {
+    if (connectStep === "qr" && qrCodeBase64) {
       setQrCountdown(30);
       if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
       qrCountdownRef.current = setInterval(() => {
@@ -208,9 +208,11 @@ export default function ReportWhatsApp() {
           return prev - 1;
         });
       }, 1000);
+    } else {
+      if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
     }
     return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
-  }, [qrDialogOpen, qrCodeBase64, reportDevice?.id]);
+  }, [connectStep, qrCodeBase64, reportDevice?.id]);
 
   // Poll connection status while QR dialog open
   useEffect(() => {
