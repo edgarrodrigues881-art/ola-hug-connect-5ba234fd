@@ -23,7 +23,7 @@ const iconMap = {
 
 export function ActivityTimeline({ events }: Props) {
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="border-border/50 bg-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           <Clock className="w-4 h-4 text-blue-400" />

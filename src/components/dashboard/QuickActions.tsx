@@ -19,7 +19,7 @@ export function QuickActions() {
           variant="outline"
           size="sm"
           onClick={() => navigate(a.path)}
-          className="border-border/50 bg-card/50 backdrop-blur-sm hover:bg-muted/50 hover:scale-105 transition-all duration-200 gap-2"
+          className="border-border/50 bg-card/50 hover:bg-muted/50 gap-2"
         >
           <a.icon className={`w-4 h-4 ${a.color}`} />
           {a.label}

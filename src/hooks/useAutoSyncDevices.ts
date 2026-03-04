@@ -5,10 +5,10 @@ import { useAuth } from "@/lib/auth";
 
 /**
  * Auto-syncs device statuses by calling sync-devices edge function periodically.
- * Also sets up realtime subscription for instant DB updates.
- * @param intervalMs - sync interval in milliseconds (default 30s)
+ * Pauses when the browser tab is hidden.
+ * @param intervalMs - sync interval in milliseconds (default 15s)
  */
-export function useAutoSyncDevices(intervalMs = 30000) {
+export function useAutoSyncDevices(intervalMs = 15000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
@@ -17,7 +17,7 @@ export function useAutoSyncDevices(intervalMs = 30000) {
     if (!session?.access_token) return;
 
     const doSync = async () => {
-      if (syncingRef.current) return;
+      if (syncingRef.current || document.hidden) return;
       syncingRef.current = true;
       try {
         await supabase.functions.invoke("sync-devices");

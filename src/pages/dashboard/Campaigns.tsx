@@ -1923,7 +1923,7 @@ const Campaigns = () => {
 
       {/* Import Progress Overlay */}
       {importProgress !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90">
           <div className="flex flex-col items-center gap-6 animate-scale-in">
             {/* Spinner */}
             <div className="relative w-20 h-20">
