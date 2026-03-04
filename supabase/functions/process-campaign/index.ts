@@ -140,6 +140,37 @@ function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+// Shuffle bag: cycles through all variants before repeating, never picks same consecutively
+class ShuffleBag {
+  private bag: number[] = [];
+  private lastPicked: number = -1;
+  private total: number;
+
+  constructor(totalVariants: number) {
+    this.total = totalVariants;
+    this.refill();
+  }
+
+  private refill() {
+    this.bag = Array.from({ length: this.total }, (_, i) => i);
+    for (let i = this.bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
+    }
+    if (this.bag.length > 1 && this.bag[0] === this.lastPicked) {
+      const swapIdx = 1 + Math.floor(Math.random() * (this.bag.length - 1));
+      [this.bag[0], this.bag[swapIdx]] = [this.bag[swapIdx], this.bag[0]];
+    }
+  }
+
+  next(): number {
+    if (this.bag.length === 0) this.refill();
+    const picked = this.bag.shift()!;
+    this.lastPicked = picked;
+    return picked;
+  }
+}
+
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
@@ -325,6 +356,7 @@ Deno.serve(async (req) => {
       const msgType = campaign.message_type || "texto";
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
+      const shuffleBag = new ShuffleBag(messageVariants.length);
       let needsContinue = false;
 
       // ─── PARALLEL MODE ───
@@ -339,6 +371,7 @@ Deno.serve(async (req) => {
           let devSent = 0, devFailed = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
+          const devShuffleBag = new ShuffleBag(messageVariants.length);
 
           for (const contact of chunk) {
             if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
@@ -356,7 +389,7 @@ Deno.serve(async (req) => {
               const msgStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
-              const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+              const chosenMessage = messageVariants[devShuffleBag.next()];
               const msg = replaceVariables(chosenMessage, contact, rand4, rand3);
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
@@ -483,7 +516,7 @@ Deno.serve(async (req) => {
 
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+            const chosenMessage = messageVariants[shuffleBag.next()];
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
