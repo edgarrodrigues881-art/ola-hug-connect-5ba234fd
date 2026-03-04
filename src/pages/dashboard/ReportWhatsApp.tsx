@@ -404,14 +404,11 @@ function AlertCard({
       <Card className="flex flex-col border-border/60">
         <CardHeader className="pb-3 space-y-3">
           <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-                {icon}
-              </div>
-              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
+              {icon}
             </div>
-              </div>
-              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            </div>
+            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+          </div>
           <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 flex-1 pt-0">
