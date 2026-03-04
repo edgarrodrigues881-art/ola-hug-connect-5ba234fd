@@ -393,16 +393,6 @@ export default function ReportWhatsApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
-                  disabled={!reportDevice?.id || loadingGroups || !isConnected}
-                  className="gap-1.5"
-                >
-                  {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Atualizar grupos
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   onClick={sendTestMessage}
                   disabled={sendingTest || !reportDevice?.id || !isConnected}
                   className="gap-1.5"
