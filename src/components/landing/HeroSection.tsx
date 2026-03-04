@@ -56,8 +56,8 @@ const HeroSection = () => {
                 alt="WhatsApp mockup" 
                 className="w-[280px] lg:w-[340px] h-auto"
                 style={{ 
-                  maskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to right, transparent 0%, black 5%, black 80%, transparent 100%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%), linear-gradient(to right, transparent 0%, black 5%, black 80%, transparent 100%)",
+                  maskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 90%, transparent 100%), linear-gradient(to right, transparent 0%, black 8%, black 82%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 90%, transparent 100%), linear-gradient(to right, transparent 0%, black 8%, black 82%, transparent 100%)",
                   maskComposite: "intersect",
                   WebkitMaskComposite: "destination-in" as any,
                 }}
