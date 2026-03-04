@@ -139,7 +139,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
               <tr key={d.id} className="hover:bg-muted/30">
                 <td className="px-4 py-2.5 text-foreground font-medium">{d.name}</td>
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {d.login_type === "contingencia" ? "Contingência" : "Principal"}
+                  {d.instance_type === "notificacao" ? (
+                    <span className="text-amber-500 font-medium">Notificação</span>
+                  ) : d.login_type === "contingencia" ? "Contingência" : "Principal"}
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{d.number || "—"}</td>
                 <td className="px-4 py-2.5">
@@ -180,6 +182,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
               <select value={newType} onChange={e => setNewType(e.target.value)} className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
                 <option value="principal">Principal</option>
                 <option value="contingencia">Contingência</option>
+                <option value="notificacao">Notificação</option>
               </select>
             </div>
           </div>
