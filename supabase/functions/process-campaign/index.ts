@@ -140,6 +140,37 @@ function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+// Shuffle bag: cycles through all variants before repeating, never picks same consecutively
+class ShuffleBag {
+  private bag: number[] = [];
+  private lastPicked: number = -1;
+  private total: number;
+
+  constructor(totalVariants: number) {
+    this.total = totalVariants;
+    this.refill();
+  }
+
+  private refill() {
+    this.bag = Array.from({ length: this.total }, (_, i) => i);
+    for (let i = this.bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
+    }
+    if (this.bag.length > 1 && this.bag[0] === this.lastPicked) {
+      const swapIdx = 1 + Math.floor(Math.random() * (this.bag.length - 1));
+      [this.bag[0], this.bag[swapIdx]] = [this.bag[swapIdx], this.bag[0]];
+    }
+  }
+
+  next(): number {
+    if (this.bag.length === 0) this.refill();
+    const picked = this.bag.shift()!;
+    this.lastPicked = picked;
+    return picked;
+  }
+}
+
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
