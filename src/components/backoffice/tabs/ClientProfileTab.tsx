@@ -26,6 +26,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     status: profile.status || client.status || "active",
     instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
+  const [notificacaoLiberada, setNotificacaoLiberada] = useState(profile.notificacao_liberada ?? false);
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
