@@ -526,6 +526,7 @@ export default function ReportWhatsApp() {
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
@@ -543,6 +544,7 @@ export default function ReportWhatsApp() {
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
@@ -560,6 +562,7 @@ export default function ReportWhatsApp() {
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
