@@ -256,19 +256,19 @@ Deno.serve(async (req) => {
       let allDevices: any[] = [];
       if (deviceIds.length > 0) {
         const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
-        allDevices = (devs || []).filter(d => d.uazapi_token && d.uazapi_base_url);
+        // Keep only devices that have credentials, but preserve the order of deviceIds
+        const devMap = new Map((devs || []).map(d => [d.id, d]));
+        allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!d.uazapi_base_url);
       }
 
       if (allDevices.length === 0) {
-        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url").eq("user_id", campaign.user_id).eq("status", "Ready").limit(1);
-        allDevices = devs || [];
+        console.error(`No valid devices found for campaign ${campaignId}. Selected device IDs: ${deviceIds.join(', ')}`);
+        await serviceClient.from("campaigns").update({ status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+        return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado. Verifique se o dispositivo selecionado está conectado e configurado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const device = allDevices[0];
-      if (!device) {
-        await serviceClient.from("campaigns").update({ status: "failed" }).eq("id", campaignId);
-        return new Response(JSON.stringify({ error: "Nenhum dispositivo encontrado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
+      console.log(`Campaign ${campaignId} using device: ${device.name} (${device.id})${allDevices.length > 1 ? `, total devices: ${allDevices.length}` : ''}`);
 
       // Read delay config
       const minDelayMs = (campaign.min_delay_seconds || 8) * 1000;
