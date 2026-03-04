@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, AlertTriangle, Server } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Server, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { calculateClientScore, scoreColors } from "@/lib/clientScore";
 
 interface Props {

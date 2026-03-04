@@ -382,6 +382,28 @@ Deno.serve(async (req) => {
 
       await logAction(adminClient, user.id, target_user_id, "create-device", `Instância criada: ${name}${availableToken ? " (token auto-atribuído)" : " (sem token disponível)"}`);
 
+      // Dispatch webhook to Make
+      const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+      if (makeUrl) {
+        try {
+          const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
+          const { data: sub } = await adminClient.from("subscriptions").select("plan_name").eq("user_id", target_user_id).maybeSingle();
+          await fetch(makeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "instance.created",
+              client_id: target_user_id,
+              client_email: authUser?.user?.email || null,
+              plan: sub?.plan_name || null,
+              instance: { id: data.id, name: data.name, type: data.instance_type || "principal", status: "desconectada", created_at: data.created_at },
+              token: availableToken ? { value: availableToken.token, status: "em_uso", health: "valido" } : null,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } catch (e) { console.log("Make webhook error:", e.message); }
+      }
+
       return new Response(JSON.stringify({ success: true, device: data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
