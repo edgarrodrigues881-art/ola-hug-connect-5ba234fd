@@ -1891,13 +1891,20 @@ const Devices = () => {
                 <Input
                   type="number"
                   min={0}
+                  max={Math.max(0, maxInstancesAllowed - devices.length - bulkSelectedProxies.length)}
                   value={bulkNoProxyCount || ""}
                   placeholder="0"
-                  onChange={e => setBulkNoProxyCount(Math.max(0, parseInt(e.target.value) || 0))}
+                  onChange={e => {
+                    const remaining = Math.max(0, maxInstancesAllowed - devices.length - bulkSelectedProxies.length);
+                    setBulkNoProxyCount(Math.min(remaining, Math.max(0, parseInt(e.target.value) || 0)));
+                  }}
                   className="h-7 w-16 text-xs"
                 />
                 <span className="text-[10px] text-muted-foreground/50">extra sem proxy</span>
               </div>
+              <p className="text-[10px] text-muted-foreground/40">
+                Disponível: {Math.max(0, maxInstancesAllowed - devices.length)} de {maxInstancesAllowed} ({devices.length} em uso)
+              </p>
             </div>
 
             {/* Summary */}
