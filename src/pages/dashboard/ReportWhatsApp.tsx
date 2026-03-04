@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, Key, Lock, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 
 interface WhatsAppGroup {
@@ -849,6 +850,7 @@ function AlertCard({
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
   const filteredGroups = groups.filter((g) => 
     g.name.toLowerCase().includes(groupSearch.toLowerCase())
@@ -876,39 +878,47 @@ function AlertCard({
           {/* Group selector */}
           <div>
             <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
-            <div className="mb-2">
-              <Input
-                placeholder="Pesquisar grupo..."
-                value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-            <Select value={selectedGroupId} onValueChange={(v) => { onGroupSelect(v); setGroupSearch(""); }}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder={loadingGroups ? "Carregando..." : "Selecione um grupo"} />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredGroups.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    {loadingGroups ? "Carregando grupos..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância primeiro"}
-                  </SelectItem>
-                ) : (
-                  filteredGroups.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{g.name}</span>
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between h-9 text-xs font-normal">
+                  {selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}
+                  <Users className="w-3.5 h-3.5 ml-2 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <div className="p-2 border-b border-border/40">
+                  <Input
+                    placeholder="Pesquisar grupo..."
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    className="h-8 text-xs"
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-[200px] overflow-y-auto p-1">
+                  {filteredGroups.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      {loadingGroups ? "Carregando..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância"}
+                    </p>
+                  ) : (
+                    filteredGroups.map((g) => (
+                      <button
+                        key={g.id}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
+                        onClick={() => { onGroupSelect(g.id); setGroupSearch(""); setPopoverOpen(false); }}
+                      >
+                        <span className="truncate">{g.name}</span>
                         {g.participants && (
-                          <span className="text-muted-foreground flex items-center gap-0.5">
+                          <span className="text-muted-foreground flex items-center gap-0.5 shrink-0">
                             <Users className="w-3 h-3" />{g.participants}
                           </span>
                         )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
             {selectedGroup && (
               <div className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-md bg-emerald-500/[0.04] border border-emerald-500/10">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
