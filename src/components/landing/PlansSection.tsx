@@ -58,13 +58,13 @@ const PlansSection = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {plans.map((plan, i) => (
             <AnimateOnView key={plan.name} animation="slide-up" delay={Math.min(i + 1, 4)}>
-              key={plan.name}
-              className={`relative flex flex-col rounded-2xl card-hover-lift ${
-                plan.popular
-                  ? "border border-emerald-600/25"
-                  : "border border-white/[0.06]"
-              }`}
-            >
+              <div
+                className={`relative flex flex-col rounded-2xl card-hover-lift ${
+                  plan.popular
+                    ? "border border-emerald-600/25"
+                    : "border border-white/[0.06]"
+                }`}
+              >
               <div
                 className={`relative flex flex-col rounded-2xl p-7 h-full ${
                   plan.popular ? "bg-[#0d1318]" : "bg-[#0f1419]"
@@ -113,6 +113,7 @@ const PlansSection = () => {
                 </button>
               </div>
             </div>
+            </AnimateOnView>
           ))}
         </div>
 
