@@ -403,16 +403,11 @@ function AlertCard({
     <>
       <Card className="flex flex-col border-border/60">
         <CardHeader className="pb-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-                {icon}
-              </div>
-              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
+              {icon}
             </div>
-            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${statusBadge.className}`}>
-              {statusBadge.label}
-            </Badge>
+            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
           </div>
           <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
         </CardHeader>
@@ -500,8 +495,7 @@ function AlertCard({
             className="w-full text-xs gap-2 mt-auto h-9"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="w-4 h-4" />
-            👁 Ver mensagem
+            Ver mensagem
           </Button>
         </CardContent>
       </Card>
