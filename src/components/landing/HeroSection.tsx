@@ -50,16 +50,17 @@ const HeroSection = () => {
 
           {/* Right — Phone */}
           <div className="relative flex items-center justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
-            <div className="relative z-10">
+            <div className="relative z-10 w-[280px] lg:w-[340px]">
+              {/* Base layer: dark bg matching site */}
+              <div className="absolute inset-0 bg-[#0B0F14] rounded-[2rem]" />
               <img 
                 src={heroPhone} 
                 alt="WhatsApp mockup" 
-                className="w-[280px] lg:w-[340px] h-auto block"
+                className="relative w-full h-auto block"
+                style={{ 
+                  mixBlendMode: "lighten",
+                }}
               />
-              {/* Edge-blend overlays to hide image border */}
-              <div className="absolute inset-0 pointer-events-none" style={{
-                boxShadow: "inset 0 60px 50px -10px #0B0F14, inset 0 -50px 50px -10px #0B0F14, inset 50px 0 50px -10px #0B0F14, inset -50px 0 50px -10px #0B0F14"
-              }} />
             </div>
 
             {/* Floating notifications */}
