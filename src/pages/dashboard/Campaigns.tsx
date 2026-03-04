@@ -162,8 +162,11 @@ const Campaigns = () => {
       return copy;
     });
   };
+  const [rotateMessages, setRotateMessages] = useState(true);
   const allMessages = messages.filter(m => m.trim());
-  const combinedMessage = allMessages.join("|||");
+  const combinedMessage = allMessages.length > 1 
+    ? (rotateMessages ? allMessages.join("|||") : allMessages.join("|&&|"))
+    : allMessages[0] || "";
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
@@ -328,13 +331,13 @@ const Campaigns = () => {
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
-      campaignName, messages, messageType, mediaUrl, contacts,
+      campaignName, messages, rotateMessages, messageType, mediaUrl, contacts,
       buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, messages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, messages, rotateMessages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
     setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setMediaUrl(""); setMediaFileName("");
