@@ -216,23 +216,23 @@ export default function ReportWhatsApp() {
 
   // Poll connection status while QR dialog open
   useEffect(() => {
-    if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
+    if (!qrDialogOpen || !reportDevice?.id || qrConnected || connectStep === "choose" || connectStep === "code_phone") return;
     pollRef.current = setInterval(async () => {
       try {
         const result = await callApi({ action: "status", deviceId: reportDevice.id });
         if (result?.status === "authenticated" || result?.status === "connected") {
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           setQrConnected(true);
+          setConnectStep("done");
           await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
           queryClient.invalidateQueries({ queryKey: ["report-device"] });
           toast.success("Instância conectada com sucesso!");
-          // Auto-close after 2s
           setTimeout(() => setQrDialogOpen(false), 2000);
         }
       } catch {}
     }, 3000);
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [qrDialogOpen, reportDevice?.id, qrConnected]);
+  }, [qrDialogOpen, reportDevice?.id, qrConnected, connectStep]);
 
   const fetchGroups = async (deviceId: string) => {
     setLoadingGroups(true);
