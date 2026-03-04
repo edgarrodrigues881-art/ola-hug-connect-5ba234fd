@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import dgRemaster from "@/assets/dg-remaster.png";
 
 const chats = [
-  { name: "DG Contingência #01", msg: "Aquecimento iniciado com sucesso ✅", time: "10:45", unread: 99, avatar: "DG", color: "#07C160" },
-  { name: "DG Contingência #02", msg: "Simulação de envio em andamento", time: "10:45", unread: 99, avatar: "DG", color: "#0AD47C" },
-  { name: "Cliente Clara", msg: "Subi as contas aqui", time: "10:42", unread: 3, avatar: "C", color: "#F59E0B" },
-  { name: "Cliente Rafael", msg: "Rodando liso agora 🔥🔥", time: "10:36", unread: 0, avatar: "R", color: "#8B5CF6" },
-  { name: "Cliente Marcos", msg: "Valeu pelo suporte 🐚", time: "10:21", unread: 7, avatar: "M", color: "#07C160" },
+  { name: "DG CONTINGENCIA #01", msg: "Você: aquecimento iniciado ✅", time: "10:45", unread: 999, avatar: "DG", color: "#07C160" },
+  { name: "DG CONTINGENCIA #02", msg: "Bot: simulação em andamento", time: "10:43", unread: 999, avatar: "DG", color: "#0AD47C" },
+  { name: "Lucas Mendes", msg: "Beleza, te mando amanhã cedo", time: "10:42", unread: 0, avatar: "LM", color: "#3B82F6" },
+  { name: "Ana Clara", msg: "Obrigada pelo retorno! 😊", time: "10:38", unread: 2, avatar: "AC", color: "#EC4899" },
+  { name: "Grupo Marketing", msg: "Pedro: alguém tem o relatório?", time: "10:35", unread: 5, avatar: "GM", color: "#8B5CF6" },
+  { name: "Carlos Eduardo", msg: "Vou verificar e te aviso", time: "10:21", unread: 0, avatar: "CE", color: "#F59E0B" },
 ];
 
 const cardBg = "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))";
@@ -63,7 +64,7 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)" }}
               >
-                {/* Green glow border */}
+                {/* Border */}
                 <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
                   style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.3), transparent, #07C160)" }}
@@ -73,20 +74,20 @@ const HeroSection = () => {
                 <div className="relative rounded-[2.4rem] p-[5px] z-10"
                   style={{
                     background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)",
-                    boxShadow: "0 25px 60px -15px rgba(0,0,0,0.6)",
+                    boxShadow: "none",
                   }}
                 >
                   <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
                     {/* Status bar */}
                     <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
-                      <span className="text-[10px] text-white/40 font-medium">6:41</span>
+                      <span className="text-[10px] text-white/40 font-medium">9:41</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-white/30 font-semibold">56</span>
+                        <span className="text-[9px] text-white/30 font-semibold">5G</span>
                         <div className="flex items-end gap-[1px]">
                           <div className="w-[2px] h-[4px] bg-white/40 rounded-[0.5px]" />
                           <div className="w-[2px] h-[6px] bg-white/40 rounded-[0.5px]" />
                           <div className="w-[2px] h-[8px] bg-white/40 rounded-[0.5px]" />
-                          <div className="w-[2px] h-[10px] bg-white/40 rounded-[0.5px]" />
+                          <div className="w-[2px] h-[10px] bg-white/15 rounded-[0.5px]" />
                         </div>
                         <div className="flex items-center gap-[1px]">
                           <div className="w-[14px] h-[7px] border border-white/30 rounded-[2px] p-[1px]">
@@ -128,7 +129,7 @@ const HeroSection = () => {
                     <div>
                       {chats.map((chat, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
-                          {chat.name.startsWith("DG Contingência") ? (
+                          {chat.name.startsWith("DG CONTINGENCIA") ? (
                             <img src={dgRemaster} alt="DG" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                           ) : (
                             <div
@@ -159,7 +160,7 @@ const HeroSection = () => {
                               </div>
                               {chat.unread > 0 && (
                                 <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
-                                  {chat.unread}
+                                  {chat.unread >= 999 ? "999+" : chat.unread}
                                 </span>
                               )}
                             </div>
@@ -195,22 +196,22 @@ const HeroSection = () => {
 
             {/* Floating notifications */}
             <div className="hidden lg:block">
-              {/* Notification 1 — Ao vivo */}
-              <div className="absolute right-[-40px] top-[5%] w-[200px] z-20">
-                <div className="relative rounded-2xl p-3.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
+              {/* Notification 1 */}
+              <div className="absolute right-[-60px] top-[8%] w-[210px]">
+                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
-                  <div className="flex items-center gap-2 mb-2.5">
+                  <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                     <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {[
                       { phone: "+55 11 ****-2847", time: "agora", active: true },
                       { phone: "+55 21 ****-9314", time: "2s", active: true },
                       { phone: "+55 31 ****-7720", time: "5s", active: false },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <div className={`flex-1 h-[26px] rounded-lg flex items-center px-2 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
+                        <div className={`flex-1 h-[28px] rounded-lg flex items-center px-2.5 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
                           {item.active ? (
                             <svg className="w-3 h-3 text-[#07C160] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                               <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
@@ -227,7 +228,7 @@ const HeroSection = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between">
                     <span className="text-[9px] text-white/25">Mensagens hoje</span>
                     <span className="text-[13px] font-bold text-white tabular-nums">342</span>
                   </div>
@@ -235,18 +236,18 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 2 — Progress ring */}
-              <div className="absolute left-[-30px] top-[30%] z-20">
-                <div className="relative rounded-2xl p-3.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
+              <div className="absolute left-[-55px] top-[25%]">
+                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                   <div className="flex items-center gap-3">
-                    <div className="relative w-11 h-11">
-                      <svg className="w-11 h-11 -rotate-90" viewBox="0 0 48 48">
+                    <div className="relative w-12 h-12">
+                      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
                         <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
                         <circle cx="24" cy="24" r="20" fill="none" stroke="#07C160" strokeWidth="3" strokeLinecap="round"
                           strokeDasharray={`${2 * Math.PI * 20}`} strokeDashoffset={2 * Math.PI * 20 * (1 - 0.89)} />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-white">89%</span>
+                        <span className="text-[11px] font-bold text-white">89%</span>
                       </div>
                     </div>
                     <div>
@@ -258,7 +259,7 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 3 — Instâncias */}
-              <div className="absolute left-[0px] bottom-[15%] z-20">
+              <div className="absolute left-[-30px] bottom-[12%]">
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                   <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
