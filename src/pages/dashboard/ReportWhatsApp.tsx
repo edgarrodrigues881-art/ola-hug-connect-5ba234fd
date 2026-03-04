@@ -852,9 +852,9 @@ function AlertCard({
   const [groupSearch, setGroupSearch] = useState("");
   const [popoverOpen, setPopoverOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
-  const filteredGroups = groups.filter((g) => 
-    g.name.toLowerCase().includes(groupSearch.toLowerCase())
-  );
+  const filteredGroups = groups
+    .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   const iconGlow = {
     orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
