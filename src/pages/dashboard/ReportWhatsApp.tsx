@@ -260,6 +260,9 @@ export default function ReportWhatsApp() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
+      if (!res.ok) {
+        throw new Error(`Erro ${res.status}: ${res.statusText}`);
+      }
       const json = await res.json();
       const chats = json.chats || [];
       const groupChats: WhatsAppGroup[] = chats.map((c: any) => ({
@@ -873,20 +876,19 @@ function AlertCard({
           {/* Group selector */}
           <div>
             <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
+            <div className="mb-2">
+              <Input
+                placeholder="Pesquisar grupo..."
+                value={groupSearch}
+                onChange={(e) => setGroupSearch(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
             <Select value={selectedGroupId} onValueChange={(v) => { onGroupSelect(v); setGroupSearch(""); }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder={loadingGroups ? "Carregando..." : "Selecione um grupo"} />
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 pb-2">
-                  <Input
-                    placeholder="Pesquisar grupo..."
-                    value={groupSearch}
-                    onChange={(e) => setGroupSearch(e.target.value)}
-                    className="h-8 text-xs"
-                    autoFocus
-                  />
-                </div>
                 {filteredGroups.length === 0 ? (
                   <SelectItem value="none" disabled>
                     {loadingGroups ? "Carregando grupos..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância primeiro"}
