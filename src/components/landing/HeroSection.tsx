@@ -242,12 +242,12 @@ const HeroSection = () => {
             {/* Floating notifications */}
             <div className="hidden lg:block">
               {/* Notification 1 */}
-              <div className="absolute right-[-60px] top-[8%] w-[210px]">
+              <div className="absolute right-[-70px] top-[6%] w-[240px]">
                 <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 rounded-full bg-[#07C160]" />
-                    <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
+                    <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                   </div>
                   <div className="space-y-2">
                     {[
