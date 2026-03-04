@@ -313,7 +313,12 @@ Deno.serve(async (req) => {
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
       const messageContent = campaign.message_content || "";
-      const messageVariants = messageContent.includes("|||") ? messageContent.split("|||").filter((m: string) => m.trim()) : [messageContent];
+      const sendAllMode = messageContent.includes("|&&|");
+      const messageVariants = sendAllMode 
+        ? messageContent.split("|&&|").filter((m: string) => m.trim())
+        : messageContent.includes("|||") 
+          ? messageContent.split("|||").filter((m: string) => m.trim()) 
+          : [messageContent];
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
