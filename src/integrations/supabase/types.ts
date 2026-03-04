@@ -420,6 +420,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          instance_type: string
           login_type: string
           name: string
           number: string | null
@@ -436,6 +437,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          instance_type?: string
           login_type?: string
           name: string
           number?: string | null
@@ -452,6 +454,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          instance_type?: string
           login_type?: string
           name?: string
           number?: string | null
@@ -612,6 +615,7 @@ export type Database = {
           full_name: string | null
           id: string
           instance_override: number
+          notificacao_liberada: boolean
           phone: string | null
           risk_flag: boolean
           status: string
@@ -628,6 +632,7 @@ export type Database = {
           full_name?: string | null
           id: string
           instance_override?: number
+          notificacao_liberada?: boolean
           phone?: string | null
           risk_flag?: boolean
           status?: string
@@ -644,6 +649,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           instance_override?: number
+          notificacao_liberada?: boolean
           phone?: string | null
           risk_flag?: boolean
           status?: string
@@ -1189,6 +1195,7 @@ export type Database = {
           full_name: string | null
           id: string
           instance_override: number
+          notificacao_liberada: boolean
           phone: string | null
           risk_flag: boolean
           status: string

@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.report-wa]
 verify_jwt = false
+
+[functions.webhook-instances]
+verify_jwt = false
+
+[functions.webhook-dispatch]
+verify_jwt = false

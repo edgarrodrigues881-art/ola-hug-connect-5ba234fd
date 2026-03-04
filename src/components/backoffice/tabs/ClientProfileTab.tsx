@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, AlertTriangle, Server } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Server, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { calculateClientScore, scoreColors } from "@/lib/clientScore";
 
 interface Props {
@@ -25,6 +26,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     status: profile.status || client.status || "active",
     instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
+  const [notificacaoLiberada, setNotificacaoLiberada] = useState(profile.notificacao_liberada ?? false);
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
@@ -134,6 +136,43 @@ const ClientProfileTab = ({ client, detail }: Props) => {
             ⚠ Override ativo: +{form.instance_override} instâncias extras além do plano
           </p>
         )}
+      </div>
+
+      {/* Notification Toggle */}
+      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell size={16} className="text-amber-400" />
+          <h4 className="text-sm font-semibold text-zinc-200">Notificação via WhatsApp</h4>
+          {notificacaoLiberada ? (
+            <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">Liberada</Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">Bloqueada</Badge>
+          )}
+        </div>
+        <p className="text-[11px] text-zinc-500">
+          Ao liberar, instâncias de notificação deste cliente serão ativadas e um webhook será disparado para o Make.
+        </p>
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={notificacaoLiberada}
+            onCheckedChange={(v) => {
+              setNotificacaoLiberada(v);
+              mutate(
+                { action: "toggle-notification", body: { target_user_id: client.id, enabled: v } },
+                {
+                  onSuccess: () => toast({ title: v ? "Notificação liberada" : "Notificação bloqueada" }),
+                  onError: (e) => {
+                    toast({ title: "Erro", description: e.message, variant: "destructive" });
+                    setNotificacaoLiberada(!v);
+                  },
+                }
+              );
+            }}
+          />
+          <Label className="text-zinc-300 text-sm">
+            {notificacaoLiberada ? "Notificação liberada para este cliente" : "Notificação bloqueada"}
+          </Label>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 pt-2">

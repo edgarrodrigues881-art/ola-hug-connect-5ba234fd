@@ -360,10 +360,13 @@ Deno.serve(async (req) => {
         }
       }
 
+      const instanceType = login_type === "notificacao" ? "notificacao" : "principal";
+
       const { data, error } = await adminClient.from("devices").insert({
         user_id: target_user_id,
         name,
-        login_type: login_type || "qr",
+        login_type: instanceType === "notificacao" ? "report_wa" : (login_type || "qr"),
+        instance_type: instanceType,
         status: "Disconnected",
         uazapi_token: availableToken?.token || null,
         uazapi_base_url: availableToken ? ADMIN_BASE_URL : null,
@@ -381,6 +384,28 @@ Deno.serve(async (req) => {
       }
 
       await logAction(adminClient, user.id, target_user_id, "create-device", `Instância criada: ${name}${availableToken ? " (token auto-atribuído)" : " (sem token disponível)"}`);
+
+      // Dispatch webhook to Make
+      const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+      if (makeUrl) {
+        try {
+          const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
+          const { data: sub } = await adminClient.from("subscriptions").select("plan_name").eq("user_id", target_user_id).maybeSingle();
+          await fetch(makeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "instance.created",
+              client_id: target_user_id,
+              client_email: authUser?.user?.email || null,
+              plan: sub?.plan_name || null,
+              instance: { id: data.id, name: data.name, type: data.instance_type || "principal", status: "desconectada", created_at: data.created_at },
+              token: availableToken ? { value: availableToken.token, status: "em_uso", health: "valido" } : null,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } catch (e) { console.log("Make webhook error:", e.message); }
+      }
 
       return new Response(JSON.stringify({ success: true, device: data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -702,6 +727,56 @@ Deno.serve(async (req) => {
       }).eq("id", target_user_id);
       await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
         whatsapp_monitor_token ? `Token de monitoramento configurado` : `Token de monitoramento removido`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── TOGGLE NOTIFICATION APPROVAL ───
+    if (action === "toggle-notification" && req.method === "POST") {
+      const { target_user_id, enabled } = await req.json();
+      
+      await adminClient.from("profiles").update({
+        notificacao_liberada: !!enabled,
+        updated_at: new Date().toISOString(),
+      }).eq("id", target_user_id);
+
+      // If enabling, activate any pending notification instances
+      if (enabled) {
+        const { data: notifDevices } = await adminClient.from("devices")
+          .select("id, name")
+          .eq("user_id", target_user_id)
+          .eq("instance_type", "notificacao");
+
+        for (const dev of (notifDevices || [])) {
+          // Dispatch webhook to Make
+          const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+          if (makeUrl) {
+            const { data: tok } = await adminClient.from("user_api_tokens")
+              .select("token, status, healthy").eq("device_id", dev.id).limit(1).maybeSingle();
+            
+            try {
+              await fetch(makeUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  event: "notification.approved",
+                  client_id: target_user_id,
+                  instance: { id: dev.id, name: dev.name, type: "notificacao", status: "aprovada" },
+                  token: tok ? { value: tok.token, status: "em_uso", health: tok.healthy ? "valido" : "invalido" } : null,
+                  timestamp: new Date().toISOString(),
+                }),
+              });
+            } catch (e) {
+              console.log("Make webhook dispatch error:", e.message);
+            }
+          }
+        }
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "toggle-notification",
+        enabled ? "Notificação WhatsApp liberada" : "Notificação WhatsApp bloqueada");
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
