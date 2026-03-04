@@ -8,9 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap } from "lucide-react";
 
 interface WhatsAppGroup {
   id: string;
@@ -102,10 +102,11 @@ export default function ReportWhatsApp() {
       const testGroupId = config?.warmup_group_id || config?.campaigns_group_id || config?.connection_group_id;
       if (!testGroupId) {
         toast.error("Selecione ao menos um grupo antes de enviar teste");
+        setSendingTest(false);
         return;
       }
       const testGroupName = groups.find(g => g.id === testGroupId)?.name || testGroupId;
-      const message = `[Relatório - Teste]\n\n✅ Conectado com sucesso\n\nInstância: ${selectedDevice?.name || "—"}\nNúmero: ${selectedDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}`;
+      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${selectedDevice?.name || "—"}\nNúmero: ${selectedDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
 
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=send_message&device_id=${config.device_id}`,
@@ -169,14 +170,26 @@ export default function ReportWhatsApp() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Radio className="w-6 h-6 text-primary" />
-          Central de Alertas
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Configure alertas automáticos via WhatsApp sobre suas operações.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Radio className="w-6 h-6 text-primary" />
+            Central de Alertas
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Configure alertas automáticos via WhatsApp sobre suas operações.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={sendTestMessage}
+          disabled={sendingTest || !config?.device_id}
+          className="gap-1.5 self-start"
+        >
+          {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          Enviar alerta de teste
+        </Button>
       </div>
 
       {/* Instância de Notificação */}
@@ -232,26 +245,15 @@ export default function ReportWhatsApp() {
                   <p className="text-xs text-muted-foreground">{groups.length} grupos encontrados</p>
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => config?.device_id && fetchGroups(config.device_id)}
-                  disabled={!config?.device_id || loadingGroups}
-                >
-                  {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
-                  Atualizar grupos
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={sendTestMessage}
-                  disabled={sendingTest || !config?.device_id}
-                >
-                  {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                  Enviar teste
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => config?.device_id && fetchGroups(config.device_id)}
+                disabled={!config?.device_id || loadingGroups}
+              >
+                {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+                Atualizar grupos
+              </Button>
             </div>
           )}
         </CardContent>
@@ -259,91 +261,71 @@ export default function ReportWhatsApp() {
 
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Aquecimento */}
         <AlertCard
           icon={<Flame className="w-5 h-5 text-orange-500" />}
           title="Relatórios de Aquecimento"
-          description="Relatórios automáticos das atividades de aquecimento da instância."
+          description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
-          selectedGroupName={config?.warmup_group_name || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
-          extraContent={
-            <div>
-              <Label className="text-xs font-medium mb-1.5 block">Frequência</Label>
-              <Select value={config?.frequency || "1h"} onValueChange={(v) => upsertConfig.mutate({ frequency: v })}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1h">1 hora</SelectItem>
-                  <SelectItem value="6h">6 horas</SelectItem>
-                  <SelectItem value="12h">12 horas</SelectItem>
-                  <SelectItem value="24h">24 horas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          }
+          infoItems={[
+            { icon: <Clock className="w-3.5 h-3.5" />, text: "Frequência automática: 24 horas" },
+          ]}
+          monitoredEvents={[
+            "Ciclo de aquecimento concluído",
+          ]}
           previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\nMensagens enviadas: {msgs_enviadas}\nMensagens recebidas: {msgs_recebidas}\n\nFotos enviadas: {fotos}\nÁudios enviados: {audios}\n\nStatus postados: {status}\n\nInterações em grupos: {grupos_interacoes}\n\nÚltima atividade: {ultima_atividade}\n\nStatus atual: ${isConnected ? "🟢 Online" : "🔴 Offline"}`}
         />
 
+        {/* Campanhas */}
         <AlertCard
           icon={<Megaphone className="w-5 h-5 text-blue-500" />}
           title="Relatórios de Campanhas"
-          description="Notificações sobre o andamento e conclusão das suas campanhas."
+          description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
-          selectedGroupName={config?.campaigns_group_name || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
-          extraContent={
-            <div className="space-y-2">
-              <Label className="text-xs font-medium block">Eventos</Label>
-              <ToggleRow label="Campanha iniciada" checked={config?.toggle_instances ?? true} onChange={(v) => handleToggle("toggle_instances", v)} />
-              <ToggleRow label="Campanha pausada" checked={config?.alert_high_failures ?? false} onChange={(v) => handleToggle("alert_high_failures", v)} />
-              <ToggleRow label="Campanha finalizada" checked={config?.alert_campaign_end ?? true} onChange={(v) => handleToggle("alert_campaign_end", v)} />
-              <ToggleRow label="Alerta de falhas" checked={config?.alert_high_failures ?? false} onChange={(v) => handleToggle("alert_high_failures", v)} />
-            </div>
-          }
+          infoItems={[
+            { icon: <Zap className="w-3.5 h-3.5" />, text: "Tempo médio de envio: < 10 segundos" },
+          ]}
+          monitoredEvents={[
+            "Campanha iniciada",
+            "Campanha pausada",
+            "Campanha finalizada",
+            "Falhas detectadas",
+          ]}
           previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\nTotal de contatos: {total}\n\nEnviadas: {enviadas}\nEntregues: {entregues}\n\nFalhas: {falhas}\n\nPendentes: {pendentes}\n\nTempo total: {tempo_execucao}\n\nStatus: Concluída`}
         />
 
+        {/* Conexão */}
         <AlertCard
           icon={<Plug className="w-5 h-5 text-emerald-500" />}
           title="Alertas de Conexão"
-          description="Alertas instantâneos sobre mudanças no status das instâncias."
+          description="Alertas enviados automaticamente quando o status da instância muda."
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
-          selectedGroupName={config?.connection_group_name || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
-          extraContent={
-            <div className="space-y-2">
-              <Label className="text-xs font-medium block">Eventos</Label>
-              <ToggleRow label="Instância conectada" checked={config?.toggle_instances ?? true} onChange={(v) => handleToggle("toggle_instances", v)} />
-              <ToggleRow label="Instância desconectada" checked={config?.alert_disconnect ?? true} onChange={(v) => handleToggle("alert_disconnect", v)} />
-              <ToggleRow label="QR Code gerado" checked={config?.alert_high_failures ?? false} onChange={(v) => handleToggle("alert_high_failures", v)} />
-            </div>
-          }
+          infoItems={[
+            { icon: <Zap className="w-3.5 h-3.5" />, text: "Tempo médio de envio: < 5 segundos" },
+          ]}
+          monitoredEvents={[
+            "Instância conectada",
+            "Instância desconectada",
+            "QR Code gerado",
+          ]}
           previewMessage={`⚠️ AVISO IMPORTANTE\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\n\nNúmero: ${selectedDevice?.number || "{numero}"}\n\nStatus: ❌ Desconectado\n\nHorário: ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA reconexão é necessária para continuar operações.`}
         />
       </div>
-    </div>
-  );
-}
-
-// ─── Toggle Row ───
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="scale-75" />
     </div>
   );
 }
@@ -355,18 +337,18 @@ interface AlertCardProps {
   description: string;
   groups: WhatsAppGroup[];
   selectedGroupId: string;
-  selectedGroupName: string;
   onGroupSelect: (id: string) => void;
   enabled: boolean;
   onToggle: (v: boolean) => void;
   loadingGroups: boolean;
-  extraContent?: React.ReactNode;
+  infoItems: { icon: React.ReactNode; text: string }[];
+  monitoredEvents: string[];
   previewMessage: string;
 }
 
 function AlertCard({
-  icon, title, description, groups, selectedGroupId, selectedGroupName,
-  onGroupSelect, enabled, onToggle, loadingGroups, extraContent, previewMessage,
+  icon, title, description, groups, selectedGroupId,
+  onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
@@ -409,9 +391,7 @@ function AlertCard({
             </Select>
             {selectedGroup && (
               <div className="flex items-center gap-2 mt-1.5">
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {selectedGroup.name}
-                </p>
+                <p className="text-[11px] text-muted-foreground truncate">{selectedGroup.name}</p>
                 {selectedGroup.participants && (
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5">
                     <Users className="w-2.5 h-2.5" />{selectedGroup.participants}
@@ -427,18 +407,38 @@ function AlertCard({
             <Switch checked={enabled} onCheckedChange={onToggle} />
           </div>
 
-          {/* Extra content */}
-          {extraContent}
+          {/* Info items */}
+          <div className="space-y-1.5">
+            {infoItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                {item.icon}
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Monitored events */}
+          <div>
+            <Label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Eventos monitorados</Label>
+            <div className="space-y-1">
+              {monitoredEvents.map((evt) => (
+                <div key={evt} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span>{evt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Preview button */}
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-xs gap-1.5"
+            className="w-full text-xs gap-1.5 mt-auto"
             onClick={() => setPreviewOpen(true)}
           >
             <Eye className="w-3.5 h-3.5" />
-            Ver preview da mensagem
+            Visualizar mensagem
           </Button>
         </CardContent>
       </Card>
@@ -451,7 +451,7 @@ function AlertCard({
               <Smartphone className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-white text-sm font-medium">Relatório Automático</p>
+              <p className="text-white text-sm font-medium">Central de Alertas</p>
               <p className="text-white/70 text-[11px]">online</p>
             </div>
           </div>
