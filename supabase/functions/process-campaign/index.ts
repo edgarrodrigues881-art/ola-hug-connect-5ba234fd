@@ -371,6 +371,7 @@ Deno.serve(async (req) => {
           let devSent = 0, devFailed = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
+          const devShuffleBag = new ShuffleBag(messageVariants.length);
 
           for (const contact of chunk) {
             if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
