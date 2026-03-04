@@ -89,40 +89,32 @@ Deno.serve(async (req) => {
     };
 
     if (action === "list_chats") {
-      const count = url.searchParams.get("count") || "30";
+      // UaZapi V2 endpoint: GET /group/list
+      const endpoint = `${apiBaseUrl}/group/list`;
+      console.log(`Fetching groups from: ${endpoint}`);
       
-      // Try multiple UaZapi endpoints for listing chats/groups
-      const endpoints = [
-        `${apiBaseUrl}/v1/chats`,
-        `${apiBaseUrl}/instance/chats`,
-        `${apiBaseUrl}/chat/chats?count=${count}`,
-      ];
-
-      let allChats: any[] = [];
-
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`Trying endpoint: ${endpoint}`);
-          const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
-          const data = await res.json();
-          console.log(`Endpoint ${endpoint} status: ${res.status}, keys: ${Object.keys(data || {}).join(",")}, isArray: ${Array.isArray(data)}`);
-          
-          if (res.status === 404) continue;
-          
-          const chats = data.chats || data.groups || data || [];
-          const chatArray = Array.isArray(chats) ? chats : [];
-          
-          if (chatArray.length > 0) {
-            console.log(`Found ${chatArray.length} chats. Sample keys: ${Object.keys(chatArray[0] || {}).join(",")}`);
-            allChats = chatArray;
-            break;
-          }
-        } catch (e) {
-          console.log(`Endpoint ${endpoint} failed: ${e.message}`);
-        }
+      const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+      const data = await res.json();
+      console.log(`Group list status: ${res.status}, isArray: ${Array.isArray(data)}, keys: ${Object.keys(data || {}).join(",")}`);
+      
+      const groups = data.groups || data || [];
+      const groupArray = Array.isArray(groups) ? groups : [];
+      
+      if (groupArray.length > 0) {
+        console.log(`Found ${groupArray.length} groups. Sample keys: ${Object.keys(groupArray[0] || {}).join(",")}`);
+      } else {
+        console.log(`No groups found. Response: ${JSON.stringify(data).substring(0, 500)}`);
       }
 
-      return new Response(JSON.stringify({ chats: allChats }), {
+      // Map to standardized format
+      const chats = groupArray.map((g: any) => ({
+        id: g.jid || g.id || g.groupJid || "",
+        name: g.name || g.subject || g.groupName || "Grupo sem nome",
+        participants: g.participants?.length || g.participantsCount || g.size || undefined,
+        isGroup: true,
+      }));
+
+      return new Response(JSON.stringify({ chats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
