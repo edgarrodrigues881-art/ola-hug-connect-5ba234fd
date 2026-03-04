@@ -311,7 +311,7 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 3 — Instâncias */}
-              <div className="absolute left-[-30px] bottom-[12%]">
+              <div className="absolute left-[-20px] xl:left-[-30px] bottom-[12%]">
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                   <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
