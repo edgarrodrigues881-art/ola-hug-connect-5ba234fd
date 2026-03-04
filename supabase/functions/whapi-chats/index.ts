@@ -90,12 +90,37 @@ Deno.serve(async (req) => {
 
     if (action === "list_chats") {
       const count = url.searchParams.get("count") || "30";
-      const res = await fetch(`${apiBaseUrl}/chat/chats?count=${count}`, {
-        method: "GET",
-        headers: apiHeaders,
-      });
-      const data = await res.json();
-      return new Response(JSON.stringify({ chats: data.chats || data || [] }), {
+      
+      // Try multiple UaZapi endpoints for listing groups/chats
+      const endpoints = [
+        `${apiBaseUrl}/chat/chats?count=${count}`,
+        `${apiBaseUrl}/group/fetchAllGroups`,
+        `${apiBaseUrl}/chat/fetchChats?count=${count}`,
+      ];
+
+      let allChats: any[] = [];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+          const data = await res.json();
+          console.log(`Endpoint ${endpoint} status: ${res.status}, keys: ${Object.keys(data || {}).join(",")}, isArray: ${Array.isArray(data)}`);
+          
+          const chats = data.chats || data.groups || data || [];
+          const chatArray = Array.isArray(chats) ? chats : [];
+          
+          if (chatArray.length > 0) {
+            console.log(`Found ${chatArray.length} chats from endpoint. Sample: ${JSON.stringify(chatArray[0]).substring(0, 200)}`);
+            allChats = chatArray;
+            break;
+          }
+        } catch (e) {
+          console.log(`Endpoint ${endpoint} failed: ${e.message}`);
+        }
+      }
+
+      return new Response(JSON.stringify({ chats: allChats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
