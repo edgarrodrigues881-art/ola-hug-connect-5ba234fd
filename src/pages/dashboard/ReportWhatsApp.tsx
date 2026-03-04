@@ -533,7 +533,7 @@ export default function ReportWhatsApp() {
         />
       </div>
 
-      {/* QR Code Dialog */}
+      {/* Connect Dialog */}
       <Dialog open={qrDialogOpen} onOpenChange={(open) => {
         if (!open) { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } setQrDialogOpen(false); }
       }}>
@@ -543,9 +543,9 @@ export default function ReportWhatsApp() {
             <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                {qrConnected ? (
+                {connectStep === "done" ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                ) : qrCodeBase64 || qrLoading ? (
+                ) : connectStep === "qr" || connectStep === "code" ? (
                   <Loader2 className="w-5 h-5 text-primary animate-spin" />
                 ) : (
                   <Smartphone className="w-5 h-5 text-primary" />
@@ -553,9 +553,9 @@ export default function ReportWhatsApp() {
               </div>
               <div>
                 <DialogTitle className="text-base font-bold">
-                  {qrConnected ? "Conectado!" : "Conectar instância"}
+                  {connectStep === "done" ? "Conectado!" : "Conectar instância"}
                 </DialogTitle>
-                {reportDevice && !qrConnected && (
+                {reportDevice && connectStep !== "done" && (
                   <div>
                     <p className="text-[11px] text-muted-foreground/50">{reportDevice.name}</p>
                     {reportDevice.number && (
@@ -568,17 +568,73 @@ export default function ReportWhatsApp() {
           </div>
 
           <div className="px-6 pb-6">
-            {qrConnected ? (
-              <div className="flex flex-col items-center gap-4 py-6">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-semibold text-foreground">Instância conectada</p>
-                  <p className="text-xs text-muted-foreground">A instância de relatório está online e pronta.</p>
+            {/* Choose method */}
+            {connectStep === "choose" && (
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">Como deseja conectar?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleConnectQR}
+                    className="group relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border/20 hover:border-primary/40 bg-card hover:bg-primary/[0.03] transition-all duration-200"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/15 flex items-center justify-center transition-colors">
+                      <QrCode className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <span className="text-sm font-semibold text-foreground block">QR Code</span>
+                      <span className="text-[10px] text-muted-foreground/50 mt-0.5 block">Escaneie com o celular</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setConnectStep("code_phone")}
+                    className="group relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-border/20 hover:border-primary/40 bg-card hover:bg-primary/[0.03] transition-all duration-200"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/15 flex items-center justify-center transition-colors">
+                      <Key className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <span className="text-sm font-semibold text-foreground block">Código</span>
+                      <span className="text-[10px] text-muted-foreground/50 mt-0.5 block">Digite no WhatsApp</span>
+                    </div>
+                  </button>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Code phone input */}
+            {connectStep === "code_phone" && (
+              <div className="space-y-4">
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-muted-foreground">Digite o número do WhatsApp que deseja conectar</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-muted-foreground font-medium">Número com DDD</label>
+                  <Input
+                    value={codePhone}
+                    onChange={e => setCodePhone(e.target.value)}
+                    placeholder="5511999999999"
+                    className="h-10 text-sm font-mono text-center tracking-wider"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === "Enter" && codePhone.replace(/\D/g, "").length >= 10) handleConnectCode(); }}
+                  />
+                  <p className="text-[10px] text-muted-foreground/40 text-center">Exemplo: 5563912345678</p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs h-9" onClick={() => setConnectStep("choose")}>Voltar</Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs h-9"
+                    disabled={codePhone.replace(/\D/g, "").length < 10}
+                    onClick={handleConnectCode}
+                  >
+                    Gerar código
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* QR Code display */}
+            {connectStep === "qr" && (
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   {qrCodeBase64 ? (
@@ -592,7 +648,6 @@ export default function ReportWhatsApp() {
                     </div>
                   ) : (
                     <div className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02] relative overflow-hidden">
-                      {/* Animated border */}
                       <div className="absolute inset-0 rounded-2xl border-2 border-transparent" style={{
                         background: "linear-gradient(90deg, hsl(var(--primary)) 0%, transparent 50%, hsl(var(--primary)) 100%) border-box",
                         WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
@@ -651,6 +706,7 @@ export default function ReportWhatsApp() {
                       if (state === "authenticated" || state === "connected") {
                         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
                         setQrConnected(true);
+                        setConnectStep("done");
                         await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice!.id);
                         queryClient.invalidateQueries({ queryKey: ["report-device"] });
                         toast.success("Conectado!");
@@ -671,6 +727,60 @@ export default function ReportWhatsApp() {
                 >
                   <RefreshCw className="w-3 h-3" /> Já escaneei, sincronizar
                 </Button>
+              </div>
+            )}
+
+            {/* Pairing code display */}
+            {connectStep === "code" && (
+              <div className="flex flex-col items-center gap-4">
+                {pairingCode ? (
+                  <div className="relative px-8 py-4 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
+                    <p className="text-2xl font-mono font-bold tracking-[0.4em] text-foreground">{pairingCode}</p>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <Lock className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                  </div>
+                ) : connectError ? (
+                  <div className="px-6 py-4 rounded-2xl bg-destructive/5 border-2 border-destructive/20">
+                    <p className="text-xs text-destructive text-center">{connectError}</p>
+                  </div>
+                ) : (
+                  <div className="w-56 py-6 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02]">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                      <Key className="w-6 h-6 text-primary animate-pulse" />
+                    </div>
+                    <p className="text-xs font-medium text-foreground">Gerando código</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">Aguarde alguns segundos...</p>
+                    <div className="flex items-center gap-1 mt-3">
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
+                )}
+                <div className="text-center space-y-1.5">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-medium text-foreground">Aguardando emparelhamento</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
+                    Digite este código no WhatsApp → Aparelhos conectados → Conectar com número
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Done */}
+            {connectStep === "done" && (
+              <div className="flex flex-col items-center gap-4 py-6">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-base font-semibold text-foreground">Conectado com sucesso</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">A instância de relatório está online e pronta.</p>
+                </div>
+                <Button size="sm" className="h-9 px-6" onClick={() => setQrDialogOpen(false)}>Fechar</Button>
               </div>
             )}
           </div>
