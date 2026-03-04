@@ -53,28 +53,28 @@ const HeroSection = () => {
             <img 
               src={heroPhone} 
               alt="WhatsApp mockup" 
-              className="w-[320px] lg:w-[380px] h-auto drop-shadow-2xl"
-              style={{ filter: "drop-shadow(0 0 40px rgba(7,193,96,0.15))" }}
+              className="w-[280px] lg:w-[340px] h-auto relative z-10"
+              style={{ filter: "drop-shadow(0 20px 60px rgba(0,0,0,0.5)) drop-shadow(0 0 30px rgba(7,193,96,0.12))" }}
             />
 
-            {/* Floating notifications — static, minimal shadows */}
+            {/* Floating notifications */}
             <div className="hidden lg:block">
-              {/* Notification 1 */}
-              <div className="absolute right-[-60px] top-[8%] w-[210px]">
-                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
+              {/* Notification 1 — Ao vivo */}
+              <div className="absolute right-[-40px] top-[5%] w-[200px] z-20">
+                <div className="relative rounded-2xl p-3.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2.5">
                     <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                     <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {[
                       { phone: "+55 11 ****-2847", time: "agora", active: true },
                       { phone: "+55 21 ****-9314", time: "2s", active: true },
                       { phone: "+55 31 ****-7720", time: "5s", active: false },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <div className={`flex-1 h-[28px] rounded-lg flex items-center px-2.5 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
+                        <div className={`flex-1 h-[26px] rounded-lg flex items-center px-2 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
                           {item.active ? (
                             <svg className="w-3 h-3 text-[#07C160] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                               <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
@@ -91,7 +91,7 @@ const HeroSection = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between">
+                  <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between">
                     <span className="text-[9px] text-white/25">Mensagens hoje</span>
                     <span className="text-[13px] font-bold text-white tabular-nums">342</span>
                   </div>
@@ -99,18 +99,18 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 2 — Progress ring */}
-              <div className="absolute left-[-55px] top-[25%]">
-                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
+              <div className="absolute left-[-30px] top-[30%] z-20">
+                <div className="relative rounded-2xl p-3.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                   <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12">
-                      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                    <div className="relative w-11 h-11">
+                      <svg className="w-11 h-11 -rotate-90" viewBox="0 0 48 48">
                         <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
                         <circle cx="24" cy="24" r="20" fill="none" stroke="#07C160" strokeWidth="3" strokeLinecap="round"
                           strokeDasharray={`${2 * Math.PI * 20}`} strokeDashoffset={2 * Math.PI * 20 * (1 - 0.89)} />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[11px] font-bold text-white">89%</span>
+                        <span className="text-[10px] font-bold text-white">89%</span>
                       </div>
                     </div>
                     <div>
@@ -122,7 +122,7 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 3 — Instâncias */}
-              <div className="absolute left-[-30px] bottom-[12%]">
+              <div className="absolute left-[0px] bottom-[15%] z-20">
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                   <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
