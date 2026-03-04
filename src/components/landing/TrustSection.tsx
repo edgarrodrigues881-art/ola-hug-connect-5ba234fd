@@ -11,27 +11,27 @@ const items = [
 ];
 
 const TrustSection = () => (
-  <section id="confianca" className="relative py-24 lg:py-32 bg-transparent">
-    <div className="container max-w-5xl">
-      <AnimateOnView animation="slide-up" className="text-center mb-16">
-        <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-3 block">Confiança</span>
-        <h2 className="text-3xl lg:text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+  <section id="confianca" className="relative py-28 lg:py-36 bg-transparent">
+    <div className="container max-w-6xl">
+      <AnimateOnView animation="slide-up" className="text-center mb-20">
+        <span className="text-[#07C160] text-sm font-semibold tracking-widest uppercase mb-4 block">Confiança</span>
+        <h2 className="text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           Tecnologia pensada para uso responsável
         </h2>
       </AnimateOnView>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {items.map((item, i) => (
           <AnimateOnView key={item.title} animation="slide-up" delay={Math.min(i + 1, 5)}>
             <div
-              className="relative rounded-2xl p-5 border border-[#07C160]/15 cursor-default card-hover-lift h-full"
+              className="relative rounded-2xl p-7 border border-[#07C160]/15 cursor-default card-hover-lift h-full"
               style={{ background: "linear-gradient(160deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
             >
-              <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">
-                <item.icon className="w-5 h-5 flex-shrink-0 text-[#07C160]/70" />
+              <div className="w-12 h-12 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-5 flex-shrink-0">
+                <item.icon className="w-6 h-6 flex-shrink-0 text-[#07C160]/70" />
               </div>
-              <h3 className="text-[15px] font-semibold text-white mb-1.5">{item.title}</h3>
-              <p className="text-[12px] text-white/35 leading-relaxed">{item.desc}</p>
+              <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
+              <p className="text-sm text-white/35 leading-relaxed">{item.desc}</p>
             </div>
           </AnimateOnView>
         ))}
