@@ -388,7 +388,7 @@ Deno.serve(async (req) => {
               const msgStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
-              const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+              const chosenMessage = messageVariants[devShuffleBag.next()];
               const msg = replaceVariables(chosenMessage, contact, rand4, rand3);
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
@@ -515,7 +515,7 @@ Deno.serve(async (req) => {
 
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+            const chosenMessage = messageVariants[shuffleBag.next()];
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
