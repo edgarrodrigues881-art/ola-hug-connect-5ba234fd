@@ -45,14 +45,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { resolvedTheme, setTheme } = useTheme();
 
   // Global auto-sync of device statuses every 1s across all dashboard pages
-  useAutoSyncDevices(5000);
+  useAutoSyncDevices(15000);
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-h-screen">
-          <header className="h-14 border-b border-border/50 bg-card/80 backdrop-blur-sm flex items-center px-4 shrink-0 gap-3">
+          <header className="h-14 border-b border-border/50 bg-card flex items-center px-4 shrink-0 gap-3">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <img src={logo} alt="DG Contingência Pro" className="w-7 h-7 rounded-md sm:hidden" />
 

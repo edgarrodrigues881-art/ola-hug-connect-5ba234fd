@@ -1,47 +1,60 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
-import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import BackOffice from "./pages/BackOffice";
-import DashboardLayout from "./components/DashboardLayout";
-import DashboardHome from "./pages/dashboard/DashboardHome";
-import Devices from "./pages/dashboard/Devices";
-import Campaigns from "./pages/dashboard/Campaigns";
-import CampaignList from "./pages/dashboard/CampaignList";
-import Contacts from "./pages/dashboard/Contacts";
-import Reports from "./pages/dashboard/Reports";
-import Templates from "./pages/dashboard/Templates";
-import Warmup from "./pages/dashboard/Warmup";
-import Proxy from "./pages/dashboard/Proxy";
 
-import Notifications from "./pages/dashboard/Notifications";
-import SettingsPage from "./pages/dashboard/Settings";
-import CustomModule from "./pages/dashboard/CustomModule";
-import Groups from "./pages/dashboard/GroupCapture";
-import MyPlan from "./pages/dashboard/MyPlan";
-import CampaignDetail from "./pages/dashboard/CampaignDetail";
+// Lazy-loaded pages
+const Landing = lazy(() => import("./pages/Landing"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const BackOffice = lazy(() => import("./pages/BackOffice"));
+const DashboardLayout = lazy(() => import("./components/DashboardLayout"));
+const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
+const Devices = lazy(() => import("./pages/dashboard/Devices"));
+const Campaigns = lazy(() => import("./pages/dashboard/Campaigns"));
+const CampaignList = lazy(() => import("./pages/dashboard/CampaignList"));
+const Contacts = lazy(() => import("./pages/dashboard/Contacts"));
+const Reports = lazy(() => import("./pages/dashboard/Reports"));
+const Templates = lazy(() => import("./pages/dashboard/Templates"));
+const Warmup = lazy(() => import("./pages/dashboard/Warmup"));
+const Proxy = lazy(() => import("./pages/dashboard/Proxy"));
+const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
+const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
+const CustomModule = lazy(() => import("./pages/dashboard/CustomModule"));
+const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
+const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
+const CampaignDetail = lazy(() => import("./pages/dashboard/CampaignDetail"));
+const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
 
-import ReportWhatsApp from "./pages/dashboard/ReportWhatsApp";
-
-
+// Pause polling when tab is hidden
+focusManager.setEventListener((handleFocus) => {
+  const onVisibilityChange = () => handleFocus(document.visibilityState === "visible");
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 2,      // 2 min — show cached data instantly
-      gcTime: 1000 * 60 * 10,         // 10 min — keep in memory
+      staleTime: 1000 * 30,             // 30s
+      gcTime: 1000 * 60 * 10,           // 10 min
       refetchOnWindowFocus: false,
       retry: 1,
+      refetchIntervalInBackground: false, // pause polling when tab hidden
     },
   },
 });
+
+const PageFallback = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -51,44 +64,44 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard/*"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Routes>
-                      <Route index element={<DashboardHome />} />
-                      <Route path="devices" element={<Devices />} />
-                      <Route path="campaigns" element={<Campaigns />} />
-                      <Route path="campaign-list" element={<CampaignList />} />
-                      <Route path="campaign/:id" element={<CampaignDetail />} />
-                      
-                      <Route path="templates" element={<Templates />} />
-                      <Route path="contacts" element={<Contacts />} />
-                      
-                      <Route path="warmup" element={<Warmup />} />
-                      <Route path="proxy" element={<Proxy />} />
-                      <Route path="groups" element={<Groups />} />
-                      <Route path="reports" element={<Reports />} />
-                      
-                      <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
-                      
-                      <Route path="custom-module" element={<CustomModule />} />
-                      <Route path="notifications" element={<Notifications />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="my-plan" element={<MyPlan />} />
-                    </Routes>
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/backoffice" element={<BackOffice />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/dashboard/*"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<PageFallback />}>
+                        <Routes>
+                          <Route index element={<DashboardHome />} />
+                          <Route path="devices" element={<Devices />} />
+                          <Route path="campaigns" element={<Campaigns />} />
+                          <Route path="campaign-list" element={<CampaignList />} />
+                          <Route path="campaign/:id" element={<CampaignDetail />} />
+                          <Route path="templates" element={<Templates />} />
+                          <Route path="contacts" element={<Contacts />} />
+                          <Route path="warmup" element={<Warmup />} />
+                          <Route path="proxy" element={<Proxy />} />
+                          <Route path="groups" element={<Groups />} />
+                          <Route path="reports" element={<Reports />} />
+                          <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
+                          <Route path="custom-module" element={<CustomModule />} />
+                          <Route path="notifications" element={<Notifications />} />
+                          <Route path="settings" element={<SettingsPage />} />
+                          <Route path="my-plan" element={<MyPlan />} />
+                        </Routes>
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/backoffice" element={<BackOffice />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
