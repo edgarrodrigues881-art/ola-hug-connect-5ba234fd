@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, Key, Lock } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, Key, Lock, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 
@@ -27,6 +27,7 @@ export default function ReportWhatsApp() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
   const [creatingInstance, setCreatingInstance] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrCodeBase64, setQrCodeBase64] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
@@ -96,6 +97,22 @@ export default function ReportWhatsApp() {
       toast.error(err.message || "Erro ao criar instância");
     } finally {
       setCreatingInstance(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!reportDevice?.id) return;
+    setDisconnecting(true);
+    try {
+      await callApi({ action: "disconnect", deviceId: reportDevice.id });
+      await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", reportDevice.id);
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      setGroups([]);
+      toast.success("Instância desconectada");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -469,6 +486,18 @@ export default function ReportWhatsApp() {
                   >
                     {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                     Sincronizar grupos
+                  </Button>
+                )}
+                {isConnected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    disabled={disconnecting}
+                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                    Desconectar
                   </Button>
                 )}
                 <Button
