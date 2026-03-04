@@ -485,7 +485,8 @@ export default function ReportWhatsApp() {
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <AlertCard
-          icon={<Flame className="w-6 h-6 text-orange-500" />}
+          icon={<Flame className="w-7 h-7 text-orange-500" />}
+          iconColor="orange"
           title="Relatórios de Aquecimento"
           description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
           status={warmupStatus}
@@ -503,7 +504,8 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-6 h-6 text-blue-500" />}
+          icon={<Megaphone className="w-7 h-7 text-blue-500" />}
+          iconColor="blue"
           title="Relatórios de Campanhas"
           description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
           status={campaignsStatus}
@@ -521,7 +523,8 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Plug className="w-6 h-6 text-emerald-500" />}
+          icon={<Plug className="w-7 h-7 text-emerald-500" />}
+          iconColor="emerald"
           title="Alertas de Conexão"
           description="Alertas enviados automaticamente quando o status da instância muda."
           status={connectionStatus}
