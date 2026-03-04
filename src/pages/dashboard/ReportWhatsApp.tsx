@@ -881,8 +881,19 @@ function AlertCard({
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full justify-between h-9 text-xs font-normal">
-                  {selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}
-                  <Users className="w-3.5 h-3.5 ml-2 text-muted-foreground" />
+                  <span className="truncate">{selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}</span>
+                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                    {selectedGroup && (
+                      <span
+                        role="button"
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={(e) => { e.stopPropagation(); onGroupSelect(""); }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
