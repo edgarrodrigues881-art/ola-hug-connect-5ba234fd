@@ -47,25 +47,35 @@ const menuGroups = [
     label: "",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
+    label: "Operação",
+    items: [
       { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+      { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
       { title: "Modelos", url: "/dashboard/templates", icon: FileText },
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
   {
-    label: "",
+    label: "Monitoramento",
     items: [
-      { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
-      { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
-    label: "",
+    label: "Conta",
     items: [
       { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
     ],
@@ -138,19 +148,19 @@ export function AppSidebar() {
         )}
       </div>
 
-      <SidebarContent className="py-3">
+      <SidebarContent className="py-2">
         {menuGroups.map((group, gi) => (
-          <SidebarGroup key={gi} className={`py-0.5 ${gi > 0 ? 'mt-3' : ''}`}>
+          <SidebarGroup key={gi} className={`py-0 ${gi > 0 ? 'mt-1' : ''}`}>
             {!collapsed && group.label && (
-              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none text-muted-foreground/60">
+              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] px-5 mb-1 mt-2 select-none text-muted-foreground/50">
                 {group.label}
               </SidebarGroupLabel>
             )}
-            {collapsed && gi > 0 && (
-              <div className="mx-3 mb-2 border-t border-sidebar-border" />
+            {collapsed && gi > 0 && group.label && (
+              <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-0.5 px-2">
+              <SidebarMenu className="px-2.5 space-y-[2px]">
                 {group.items.map((item) => {
                   const active = isActive(item.url, (item as any).exact);
                   const badgeVal = getBadgeValue((item as any).badgeKey);
@@ -159,16 +169,17 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild tooltip={item.title}>
                         <NavLink
                           to={item.url}
-                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] relative
+                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
                             transition-all duration-150 ease-out
+                            ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : 'gap-[11px] px-3.5 py-[11px]'}
                             ${active
-                              ? 'bg-primary/8 text-foreground font-bold'
-                              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
+                              ? 'bg-primary/[0.08] text-foreground font-semibold'
+                              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/30'
                             }`}
                           activeClassName=""
                         >
                           {active && !collapsed && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary transition-opacity duration-150" />
                           )}
                           <item.icon
                             className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : ''}`}
@@ -197,7 +208,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`flex items-center gap-3 w-full rounded-lg hover:bg-sidebar-accent/50 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
+            <button className={`flex items-center gap-3 w-full rounded-[10px] hover:bg-sidebar-accent/30 transition-colors duration-150 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
               ) : (
