@@ -104,7 +104,7 @@ export default function ReportWhatsApp() {
     if (!reportDevice?.id) return;
     setDisconnecting(true);
     try {
-      await callApi({ action: "disconnect", deviceId: reportDevice.id });
+      await callApi({ action: "logout", deviceId: reportDevice.id });
       await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", reportDevice.id);
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       setGroups([]);
