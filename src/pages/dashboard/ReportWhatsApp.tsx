@@ -802,6 +802,7 @@ export default function ReportWhatsApp() {
 // ─── Alert Card ───
 interface AlertCardProps {
   icon: React.ReactNode;
+  iconColor: "orange" | "blue" | "emerald";
   title: string;
   description: string;
   status: "active" | "incomplete" | "off";
@@ -817,34 +818,49 @@ interface AlertCardProps {
 }
 
 function AlertCard({
-  icon, title, description, status, groups, selectedGroupId,
+  icon, iconColor, title, description, status, groups, selectedGroupId,
   onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   const statusBadge = {
-    active: { label: "Ativo", className: "border-emerald-500/30 text-emerald-500 bg-emerald-500/10" },
-    incomplete: { label: "Configuração incompleta", className: "border-yellow-500/30 text-yellow-500 bg-yellow-500/10" },
-    off: { label: "Desativado", className: "border-destructive/30 text-destructive bg-destructive/10" },
+    active: { label: "Ativo", className: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10", dot: "bg-emerald-500" },
+    incomplete: { label: "Incompleto", className: "border-yellow-500/30 text-yellow-400 bg-yellow-500/10", dot: "bg-yellow-500" },
+    off: { label: "Desativado", className: "border-destructive/30 text-destructive/80 bg-destructive/10", dot: "bg-destructive" },
   }[status];
+
+  const iconGlow = {
+    orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
+    blue: "bg-blue-500/10 shadow-[0_0_14px_rgba(59,130,246,0.15)] border-blue-500/20",
+    emerald: "bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.15)] border-emerald-500/20",
+  }[iconColor];
 
   return (
     <>
-      <Card className="flex flex-col border-border/60">
+      <Card className="flex flex-col border-border/60 relative overflow-hidden">
+        {/* Top status indicator strip */}
+        <div className={`h-0.5 w-full ${status === "active" ? "bg-emerald-500/50" : status === "incomplete" ? "bg-yellow-500/50" : "bg-muted-foreground/10"}`} />
+
         <CardHeader className="pb-3 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-              {icon}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${iconGlow}`}>
+                {icon}
+              </div>
+              <CardTitle className="text-sm font-bold text-foreground">{title}</CardTitle>
             </div>
-            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 gap-1 ${statusBadge.className}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
+              {statusBadge.label}
+            </Badge>
           </div>
-          <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
+          <CardDescription className="text-xs leading-relaxed text-muted-foreground/80">{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 flex-1 pt-0">
           {/* Group selector */}
           <div>
-            <Label className="text-[11px] font-semibold mb-2 block text-muted-foreground uppercase tracking-wider">Grupo de destino</Label>
+            <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
             <Select value={selectedGroupId} onValueChange={onGroupSelect}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder={loadingGroups ? "Carregando..." : "Selecione um grupo"} />
@@ -871,11 +887,11 @@ function AlertCard({
               </SelectContent>
             </Select>
             {selectedGroup && (
-              <div className="flex items-center gap-2 mt-2 px-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                <p className="text-[11px] text-muted-foreground truncate">{selectedGroup.name}</p>
+              <div className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-md bg-emerald-500/[0.04] border border-emerald-500/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <p className="text-[11px] text-foreground/80 font-medium truncate">{selectedGroup.name}</p>
                 {selectedGroup.participants && (
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5">
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5 ml-auto shrink-0">
                     <Users className="w-2.5 h-2.5" />{selectedGroup.participants}
                   </Badge>
                 )}
@@ -884,22 +900,24 @@ function AlertCard({
           </div>
 
           {/* Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
+          <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors duration-300 ${enabled ? "bg-emerald-500/[0.04] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
             <div>
-              <Label className="text-xs font-semibold block">Ativar envio para WhatsApp</Label>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{enabled ? "Notificações ativas" : "Notificações desativadas"}</p>
+              <Label className="text-xs font-semibold block text-foreground/90">Ativar envio para WhatsApp</Label>
+              <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${enabled ? "text-emerald-500/70" : "text-muted-foreground/50"}`}>{enabled ? "Notificações ativas" : "Notificações desativadas"}</p>
             </div>
-            <Switch checked={enabled} onCheckedChange={onToggle} />
+            <Switch checked={enabled} onCheckedChange={onToggle} className="transition-all duration-300" />
           </div>
 
-          {/* Info items - highlighted */}
+          {/* Info items — badge style */}
           <div className="space-y-2">
             {infoItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-primary/5 border border-primary/10">
-                <div className="text-primary">{item.icon}</div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{item.label}</p>
-                  <p className="text-xs font-semibold text-foreground">{item.value}</p>
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/[0.04] border border-primary/10">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="text-primary">{item.icon}</div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold">{item.label}</p>
+                  <p className="text-xs font-bold text-foreground mt-0.5">{item.value}</p>
                 </div>
               </div>
             ))}
@@ -907,12 +925,12 @@ function AlertCard({
 
           {/* Monitored events */}
           <div>
-            <Label className="text-[11px] font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">Eventos monitorados</Label>
+            <Label className="text-[10px] font-bold text-muted-foreground/60 mb-2 block uppercase tracking-widest">Eventos monitorados</Label>
             <div className="space-y-1.5">
               {monitoredEvents.map((evt) => (
                 <div key={evt} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span className="text-foreground/80">{evt}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/80 shrink-0" />
+                  <span className="text-foreground/70">{evt}</span>
                 </div>
               ))}
             </div>
@@ -922,9 +940,10 @@ function AlertCard({
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-xs gap-2 mt-auto h-9"
+            className="w-full text-xs gap-2 mt-auto h-9 border-border/50 hover:bg-primary/[0.04] hover:border-primary/20 transition-all duration-200"
             onClick={() => setPreviewOpen(true)}
           >
+            <Eye className="w-3.5 h-3.5" />
             Ver mensagem
           </Button>
         </CardContent>
