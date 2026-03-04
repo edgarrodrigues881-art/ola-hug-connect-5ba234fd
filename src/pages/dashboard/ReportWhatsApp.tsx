@@ -898,14 +898,19 @@ function AlertCard({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <div className="p-2 border-b border-border/40">
+                <div className="p-2 border-b border-border/40 flex gap-1.5">
                   <Input
                     placeholder="Pesquisar grupo..."
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs flex-1"
                     autoFocus
                   />
+                  {onRefreshGroups && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
+                    </Button>
+                  )}
                 </div>
                 <div className="max-h-[200px] overflow-y-auto p-1">
                   {filteredGroups.length === 0 ? (
