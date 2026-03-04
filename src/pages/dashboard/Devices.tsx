@@ -511,8 +511,10 @@ const Devices = () => {
     const remaining = maxInstancesAllowed - devices.length;
     if (totalCount > remaining) {
       toast({ 
-        title: "Limite de instâncias excedido", 
-        description: `Você pode criar no máximo ${remaining} instância${remaining !== 1 ? "s" : ""} (${devices.length}/${maxInstancesAllowed} em uso).`,
+        title: `Seu plano permite apenas ${maxInstancesAllowed} instância${maxInstancesAllowed !== 1 ? "s" : ""}`, 
+        description: remaining > 0 
+          ? `Você já possui ${devices.length} instância${devices.length !== 1 ? "s" : ""}. Só é possível criar mais ${remaining}.`
+          : `Você já atingiu o limite de ${maxInstancesAllowed} instância${maxInstancesAllowed !== 1 ? "s" : ""} do seu plano.`,
         variant: "destructive" 
       });
       return;
