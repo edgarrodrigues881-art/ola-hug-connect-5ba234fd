@@ -313,6 +313,7 @@ Deno.serve(async (req) => {
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
       const messageContent = campaign.message_content || "";
+      const messageVariants = messageContent.includes("|||") ? messageContent.split("|||").filter((m: string) => m.trim()) : [messageContent];
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
@@ -349,7 +350,8 @@ Deno.serve(async (req) => {
               const msgStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
-              const msg = replaceVariables(messageContent, contact, rand4, rand3);
+              const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+              const msg = replaceVariables(chosenMessage, contact, rand4, rand3);
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
               if (!check.exists) {
@@ -465,7 +467,8 @@ Deno.serve(async (req) => {
 
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const personalizedMessage = replaceVariables(messageContent, contact, rand4, rand3);
+            const chosenMessage = messageVariants[Math.floor(Math.random() * messageVariants.length)];
+            const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
             // Check device status before sending

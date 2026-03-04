@@ -152,7 +152,18 @@ const Campaigns = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [messageType, setMessageType] = useState("texto");
   const [campaignName, setCampaignName] = useState("");
-  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<string[]>(["", "", "", "", ""]);
+  const [activeMessageTab, setActiveMessageTab] = useState(0);
+  const message = messages[activeMessageTab];
+  const setMessage = (val: string | ((prev: string) => string)) => {
+    setMessages(prev => {
+      const copy = [...prev];
+      copy[activeMessageTab] = typeof val === "function" ? val(copy[activeMessageTab]) : val;
+      return copy;
+    });
+  };
+  const allMessages = messages.filter(m => m.trim());
+  const combinedMessage = allMessages.join("|||");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
@@ -259,7 +270,8 @@ const Campaigns = () => {
         if (saved) {
           const draft = JSON.parse(saved);
           if (draft.campaignName) setCampaignName(draft.campaignName);
-          if (draft.message) setMessage(draft.message);
+          if (draft.messages) setMessages(draft.messages);
+          else if (draft.message) setMessages(prev => { const c = [...prev]; c[0] = draft.message; return c; });
           if (draft.messageType) setMessageType(draft.messageType);
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
@@ -298,7 +310,7 @@ const Campaigns = () => {
           sessionStorage.removeItem("resend_campaign_data");
           const resend = JSON.parse(resendRaw);
           if (resend.contacts?.length) { setContacts(resend.contacts); setShowContactTable(true); }
-          if (resend.message) setMessage(resend.message);
+          if (resend.message) setMessages(prev => { const c = [...prev]; c[0] = resend.message; return c; });
           if (resend.mediaUrl) setMediaUrl(resend.mediaUrl);
           if (resend.campaignName) setCampaignName(resend.campaignName);
           if (resend.buttons && Array.isArray(resend.buttons) && resend.buttons.length > 0) {
@@ -316,16 +328,16 @@ const Campaigns = () => {
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
-      campaignName, message, messageType, mediaUrl, contacts,
+      campaignName, messages, messageType, mediaUrl, contacts,
       buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, message, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, messages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
-    setMessage(""); setMediaUrl(""); setMediaFileName("");
+    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setMediaUrl(""); setMediaFileName("");
     setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
     setSelectedTemplate("nova");
     toast({ title: "Mensagem limpa" });
@@ -388,9 +400,10 @@ const Campaigns = () => {
 
   // Detected variables
   const detectedVars = useMemo(() => {
-    const matches = message.match(/{{[^}]+}}/g);
+    const allText = messages.join(" ");
+    const matches = allText.match(/{{[^}]+}}/g);
     return matches ? [...new Set(matches)] : [];
-  }, [message]);
+  }, [messages]);
 
   // Step completion status
   const getStepStatus = (num: number): "done" | "configured" | "incomplete" | "pending" => {
@@ -434,9 +447,9 @@ const Campaigns = () => {
       return;
     }
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
-    if (!message.trim()) { toast({ title: "Mensagem vazia", description: "Escreva a mensagem.", variant: "destructive" }); return; }
+    if (!combinedMessage.trim()) { toast({ title: "Mensagem vazia", description: "Escreva pelo menos uma mensagem.", variant: "destructive" }); return; }
     createCampaign.mutate({
-      name: campaignName, message_type: computedMessageType, message_content: message,
+      name: campaignName, message_type: computedMessageType, message_content: combinedMessage,
       media_url: mediaUrl || undefined,
       buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
@@ -911,6 +924,33 @@ const Campaigns = () => {
                 {/* Message editor */}
                 <SurfaceCard className="p-6 space-y-5">
                   <SectionLabel>Mensagem</SectionLabel>
+                  
+                  {/* Message Tabs */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {[0, 1, 2, 3, 4].map(i => {
+                      const hasText = messages[i]?.trim();
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setActiveMessageTab(i)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border",
+                            activeMessageTab === i
+                              ? "bg-primary/15 text-primary border-primary/30"
+                              : hasText
+                                ? "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/30"
+                                : "bg-muted/8 text-muted-foreground/40 border-border/10 hover:bg-muted/15"
+                          )}
+                        >
+                          Msg {i + 1}
+                          {hasText && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary inline-block" />}
+                        </button>
+                      );
+                    })}
+                    <span className="text-[9px] text-muted-foreground/40 ml-2">
+                      {allMessages.length}/5 ativas
+                    </span>
+                  </div>
                   
                   {/* Toolbar */}
                   <div className="flex items-center gap-0.5 flex-wrap p-1.5 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/10">
@@ -1664,7 +1704,7 @@ const Campaigns = () => {
                         {!campaignName && "Nome ausente. "}
                         {selectedDevices.length === 0 && "Sem instância. "}
                         {validContacts.length === 0 && "Sem contatos. "}
-                        {!message && "Mensagem vazia."}
+                        {!combinedMessage && "Mensagem vazia."}
                       </span>
                     </div>
                   )}
@@ -1740,7 +1780,7 @@ const Campaigns = () => {
                       { ok: !!campaignName, text: "Nome definido" },
                       { ok: selectedDevices.length > 0, text: "Instância selecionada" },
                       { ok: validContacts.length > 0, text: `${validContacts.length} contatos prontos` },
-                      { ok: !!message, text: "Mensagem configurada" },
+                      { ok: !!combinedMessage, text: "Mensagem configurada" },
                     ].map((c, i) => (
                       <div key={i} className="flex items-center gap-2">
                         {c.ok ? (
