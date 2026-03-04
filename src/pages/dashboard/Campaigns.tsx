@@ -925,6 +925,33 @@ const Campaigns = () => {
                 <SurfaceCard className="p-6 space-y-5">
                   <SectionLabel>Mensagem</SectionLabel>
                   
+                  {/* Message Tabs */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {[0, 1, 2, 3, 4].map(i => {
+                      const hasText = messages[i]?.trim();
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setActiveMessageTab(i)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border",
+                            activeMessageTab === i
+                              ? "bg-primary/15 text-primary border-primary/30"
+                              : hasText
+                                ? "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/30"
+                                : "bg-muted/8 text-muted-foreground/40 border-border/10 hover:bg-muted/15"
+                          )}
+                        >
+                          Msg {i + 1}
+                          {hasText && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary inline-block" />}
+                        </button>
+                      );
+                    })}
+                    <span className="text-[9px] text-muted-foreground/40 ml-2">
+                      {allMessages.length}/5 ativas
+                    </span>
+                  </div>
+                  
                   {/* Toolbar */}
                   <div className="flex items-center gap-0.5 flex-wrap p-1.5 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/10">
                     <Popover>
