@@ -112,6 +112,8 @@ export default function ReportWhatsApp() {
     setQrDialogOpen(true);
     setQrLoading(true);
     setQrCodeBase64("");
+    setQrConnected(false);
+    setConnectError("");
     try {
       const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
       const b64 = result?.base64 || result?.qr;
