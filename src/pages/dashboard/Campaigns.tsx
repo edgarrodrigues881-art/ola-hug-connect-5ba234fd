@@ -152,7 +152,18 @@ const Campaigns = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [messageType, setMessageType] = useState("texto");
   const [campaignName, setCampaignName] = useState("");
-  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<string[]>(["", "", "", "", ""]);
+  const [activeMessageTab, setActiveMessageTab] = useState(0);
+  const message = messages[activeMessageTab];
+  const setMessage = (val: string | ((prev: string) => string)) => {
+    setMessages(prev => {
+      const copy = [...prev];
+      copy[activeMessageTab] = typeof val === "function" ? val(copy[activeMessageTab]) : val;
+      return copy;
+    });
+  };
+  const allMessages = messages.filter(m => m.trim());
+  const combinedMessage = allMessages.join("|||");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
