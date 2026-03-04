@@ -13,7 +13,7 @@ const chats = [
 ];
 
 const cardBg = "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))";
-const cardShadow = "0 2px 8px -3px rgba(0,0,0,0.3), 0 0 0 1px rgba(7,193,96,0.12)";
+const cardShadow = "0 0 0 1px rgba(7,193,96,0.12)";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -59,11 +59,7 @@ const HeroSection = () => {
 
           {/* Right — Phone */}
           <div className="relative flex items-center justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
-            {/* Ambient glow — static */}
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-80 lg:h-80 rounded-full opacity-40"
-              style={{ background: "radial-gradient(circle, rgba(7,193,96,0.12) 0%, transparent 70%)" }}
-            />
+           {/* Ambient glow removed for scroll perf */}
 
             {/* Phone — no perspective/preserve-3d to avoid compositor overhead */}
             <div className="relative">
@@ -71,11 +67,7 @@ const HeroSection = () => {
                 className="relative w-[260px] lg:w-[270px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)" }}
               >
-                {/* Outer glow */}
-                <div
-                  className="absolute -inset-[10px] rounded-[3rem] z-0 opacity-30"
-                  style={{ background: "radial-gradient(ellipse at center, rgba(7,193,96,0.25) 0%, rgba(10,212,124,0.1) 40%, transparent 70%)" }}
-                />
+                {/* Outer glow removed for scroll perf */}
                 {/* Border */}
                 <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
@@ -86,7 +78,7 @@ const HeroSection = () => {
                 <div className="relative rounded-[2.4rem] p-[5px] z-10"
                   style={{
                     background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)",
-                    boxShadow: "0 4px 12px -6px rgba(0,0,0,0.5)",
+                    boxShadow: "none",
                   }}
                 >
                   <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
@@ -204,9 +196,7 @@ const HeroSection = () => {
                   </div>
                 </div>
 
-                {/* Shadow beneath phone — simplified */}
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[65%] h-8 rounded-full opacity-30"
-                  style={{ background: "radial-gradient(ellipse, rgba(7,193,96,0.15) 0%, transparent 70%)" }} />
+                {/* Phone shadow removed for scroll perf */}
               </div>
             </div>
 

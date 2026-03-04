@@ -23,20 +23,14 @@ const TrustSection = () => (
         {items.map((item) => (
           <div
             key={item.title}
-            className="group relative rounded-2xl p-5 overflow-hidden border border-[#07C160]/15 cursor-default hover:-translate-y-[3px] transition-transform duration-150 ease-out"
+            className="relative rounded-2xl p-5 border border-[#07C160]/15 cursor-default"
             style={{ background: "linear-gradient(160deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
           >
-            <div
-              className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-150"
-              style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.06) 0%, transparent 70%)" }}
-            />
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0 group-hover:bg-[#07C160]/[0.15] transition-colors duration-150">
-                <item.icon className="w-5 h-5 flex-shrink-0 text-[#07C160]/70 group-hover:text-[#07C160] transition-colors duration-150" />
-              </div>
-              <h3 className="text-[15px] font-semibold text-white mb-1.5">{item.title}</h3>
-              <p className="text-[12px] text-white/35 leading-relaxed">{item.desc}</p>
+            <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">
+              <item.icon className="w-5 h-5 flex-shrink-0 text-[#07C160]/70" />
             </div>
+            <h3 className="text-[15px] font-semibold text-white mb-1.5">{item.title}</h3>
+            <p className="text-[12px] text-white/35 leading-relaxed">{item.desc}</p>
           </div>
         ))}
       </div>
