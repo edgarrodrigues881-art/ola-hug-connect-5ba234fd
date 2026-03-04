@@ -262,16 +262,11 @@ export default function ReportWhatsApp() {
       );
       const json = await res.json();
       const chats = json.chats || [];
-      const groupChats: WhatsAppGroup[] = chats
-        .filter((c: any) => {
-          const jid = c.id || c.jid || c.chatId || "";
-          return jid.includes("@g.us") || c.isGroup === true;
-        })
-        .map((c: any) => ({
-          id: c.id || c.jid || c.chatId || "",
-          name: c.name || c.subject || c.title || c.id || "Grupo sem nome",
-          participants: c.participants?.length || c.participantsCount || c.size || undefined,
-        }));
+      const groupChats: WhatsAppGroup[] = chats.map((c: any) => ({
+        id: c.id || c.jid || c.chatId || "",
+        name: c.name || c.subject || c.title || c.id || "Grupo sem nome",
+        participants: c.participants?.length || c.participantsCount || c.size || undefined,
+      }));
       setGroups(groupChats);
       if (groupChats.length === 0) {
         toast.info("Nenhum grupo encontrado neste WhatsApp");
