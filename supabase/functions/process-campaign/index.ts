@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
                   const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
                   await sendUazapiMessage(devBaseUrl, devToken, normalized, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
                   if (mi < messageVariants.length - 1) {
-                    await new Promise(r => setTimeout(r, randomBetween(2000, 5000)));
+                    await new Promise(r => setTimeout(r, randomBetween(minDelayMs, maxDelayMs)));
                   }
                 }
               } else {
@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
                 const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
                 await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
                 if (mi < messageVariants.length - 1) {
-                  await new Promise(r => setTimeout(r, randomBetween(2000, 5000)));
+                  await new Promise(r => setTimeout(r, randomBetween(minDelayMs, maxDelayMs)));
                 }
               }
             } else {
