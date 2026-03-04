@@ -472,6 +472,48 @@ export default function ReportWhatsApp() {
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              Conectar Instância de Relatório
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrCodeBase64 ? (
+              <div className="relative">
+                <div className="p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
+                  <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
+                </div>
+                <div className="flex items-center justify-center gap-1.5 mt-3">
+                  <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-primary">{qrCountdown}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Atualiza automaticamente</span>
+                </div>
+              </div>
+            ) : qrLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <QrCode className="w-6 h-6 text-primary animate-pulse" />
+                </div>
+                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
+                <Button size="sm" onClick={handleConnectQR}>Tentar novamente</Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Abra o WhatsApp no celular, vá em <strong>Dispositivos Conectados</strong> e escaneie o QR Code acima.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
