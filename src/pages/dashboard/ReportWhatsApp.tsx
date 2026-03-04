@@ -489,9 +489,7 @@ export default function ReportWhatsApp() {
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Clock className="w-4 h-4" />, label: "Frequência", value: "24 horas (automática)" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Ciclo de aquecimento concluído"]}
           previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
@@ -508,9 +506,7 @@ export default function ReportWhatsApp() {
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 10 segundos" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Campanha iniciada", "Campanha pausada", "Campanha finalizada", "Falhas detectadas"]}
           previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: {total}\n\n✅ Mensagens enviadas: {enviadas}\n📬 Mensagens entregues: {entregues}\n\n❌ Falhas registradas: {falhas}\n⏳ Pendentes: {pendentes}\n\n⏱ Tempo total de execução:\n{tempo_execucao}\n\nStatus da campanha: Concluída`}
         />
@@ -527,9 +523,7 @@ export default function ReportWhatsApp() {
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 5 segundos" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
