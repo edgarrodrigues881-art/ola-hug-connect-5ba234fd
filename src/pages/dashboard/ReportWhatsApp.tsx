@@ -379,12 +379,22 @@ export default function ReportWhatsApp() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {!isConnected && (
+                  <Button
+                    size="sm"
+                    onClick={handleConnectQR}
+                    className="gap-1.5"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    Conectar
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
-                  disabled={!reportDevice?.id || loadingGroups}
+                  disabled={!reportDevice?.id || loadingGroups || !isConnected}
                   className="gap-1.5"
                 >
                   {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -394,7 +404,7 @@ export default function ReportWhatsApp() {
                   variant="outline"
                   size="sm"
                   onClick={sendTestMessage}
-                  disabled={sendingTest || !reportDevice?.id}
+                  disabled={sendingTest || !reportDevice?.id || !isConnected}
                   className="gap-1.5"
                 >
                   {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
