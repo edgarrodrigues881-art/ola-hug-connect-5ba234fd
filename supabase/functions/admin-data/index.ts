@@ -586,6 +586,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE WHATSAPP MONITOR TOKEN ───
+    if (action === "update-monitor-token" && req.method === "POST") {
+      const { target_user_id, whatsapp_monitor_token } = await req.json();
+      await adminClient.from("profiles").update({
+        whatsapp_monitor_token: whatsapp_monitor_token || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", target_user_id);
+      await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
+        whatsapp_monitor_token ? `Token de monitoramento configurado` : `Token de monitoramento removido`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -19,6 +20,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
   const [newTokens, setNewTokens] = useState("");
+  const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
+
+  useEffect(() => {
+    setMonitorToken(detail?.profile?.whatsapp_monitor_token || "");
+  }, [detail?.profile?.whatsapp_monitor_token]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleAddTokens = () => {
@@ -58,8 +64,52 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   const available = tokens.filter((t: any) => t.status === "available").length;
   const inUse = tokens.filter((t: any) => t.status === "in_use").length;
 
+  const handleSaveMonitorToken = () => {
+    mutate(
+      { action: "update-monitor-token", body: { target_user_id: client.id, whatsapp_monitor_token: monitorToken.trim() } },
+      {
+        onSuccess: () => toast({ title: monitorToken.trim() ? "Token de monitoramento salvo" : "Token de monitoramento removido" }),
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
+
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+    <div className="space-y-4">
+      {/* WhatsApp Monitor Token */}
+      <div className="bg-card border border-border rounded-lg p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Radio size={18} className="text-primary" />
+          <h3 className="text-base font-bold text-foreground">Token de Monitoramento WhatsApp</h3>
+          {monitorToken.trim() ? (
+            <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">Configurado</Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">Não configurado</Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Token da instância que será usada para enviar notificações e alertas via WhatsApp para este cliente.
+        </p>
+        <div className="flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Token da instância de monitoramento</Label>
+            <Input
+              placeholder="Cole o token aqui..."
+              value={monitorToken}
+              onChange={e => setMonitorToken(e.target.value)}
+              className="bg-muted/30 border-border font-mono text-xs"
+            />
+          </div>
+          <Button size="sm" onClick={handleSaveMonitorToken} disabled={isPending}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save size={14} className="mr-1" />}
+            Salvar
+          </Button>
+        </div>
+      </div>
+
+      {/* Instance Tokens */}
+      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Key size={18} className="text-primary" />
@@ -153,6 +203,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 };
