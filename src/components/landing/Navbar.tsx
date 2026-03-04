@@ -6,7 +6,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/95 border-b border-white/5">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D] border-b border-white/5" style={{ contain: "layout style" }}>
       <div className="container flex items-center justify-between h-16 px-4">
         <div className="flex items-center gap-2 flex-shrink-0">
           <img src={logo} alt="DG Contingência PRO" width={36} height={36} className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
