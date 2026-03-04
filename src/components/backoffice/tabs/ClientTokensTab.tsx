@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -19,6 +20,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
   const [newTokens, setNewTokens] = useState("");
+  const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
+
+  useEffect(() => {
+    setMonitorToken(detail?.profile?.whatsapp_monitor_token || "");
+  }, [detail?.profile?.whatsapp_monitor_token]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleAddTokens = () => {
