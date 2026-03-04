@@ -106,37 +106,37 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      <div className="container relative z-10 py-16 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+      <div className="container relative z-10 py-20 lg:py-28">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left — Copy */}
-          <div className="max-w-lg animate-fade-in">
+          <div className="max-w-xl animate-fade-in">
             <h1
-              className="text-[2.5rem] sm:text-5xl lg:text-[3.25rem] font-semibold text-white leading-[1.12] mb-6 tracking-[-0.02em]"
+              className="text-[2.8rem] sm:text-[3.2rem] lg:text-[3.75rem] font-semibold text-white leading-[1.1] mb-7 tracking-[-0.02em]"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
               <span className="text-[#07C160]">segurança.</span>
             </h1>
 
-            <p className="text-[15px] lg:text-base text-white/40 leading-relaxed mb-10 max-w-md">
+            <p className="text-base lg:text-lg text-white/40 leading-relaxed mb-10 max-w-lg">
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-start gap-3">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
               <Button
                 onClick={() => navigate("/auth")}
-                className="h-12 px-8 text-sm font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
+                className="h-14 px-10 text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
               >
                 Começar Agora
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.03]">
-                <div className="w-8 h-8 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-white/[0.06] bg-white/[0.03]">
+                <div className="w-10 h-10 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <p className="text-[12px] text-white/40 leading-snug">
+                <p className="text-sm text-white/40 leading-snug">
                   Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
                 </p>
               </div>
@@ -147,7 +147,7 @@ const HeroSection = () => {
           <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms" }}>
             <div className="relative">
               <div
-                className="relative w-[260px] lg:w-[270px]"
+                className="relative w-[300px] lg:w-[320px]"
                 style={{ transform: "rotateY(-8deg) rotateX(2deg)" }}
               >
                 {/* Border */}
