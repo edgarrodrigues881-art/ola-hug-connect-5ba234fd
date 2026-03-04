@@ -473,7 +473,7 @@ const Devices = () => {
       toast({ title: "Informe o nome da instância", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ name: instanceName, login_type: loginType, token: instanceToken || undefined });
+    createMutation.mutate({ name: instanceName, login_type: loginType });
     setCreateOpen(false);
     setInstanceName("");
     setInstanceToken("");
