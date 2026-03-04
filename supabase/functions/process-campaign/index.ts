@@ -319,6 +319,7 @@ Deno.serve(async (req) => {
         : messageContent.includes("|||") 
           ? messageContent.split("|||").filter((m: string) => m.trim()) 
           : [messageContent];
+      console.log(`Message mode: ${sendAllMode ? 'SEQUENTIAL (|&&|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}, content preview: ${messageContent.substring(0, 100)}`);
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
