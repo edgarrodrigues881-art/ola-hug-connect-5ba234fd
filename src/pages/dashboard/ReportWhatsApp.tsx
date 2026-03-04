@@ -845,7 +845,11 @@ function AlertCard({
   onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const filteredGroups = groups.filter((g) => 
+    g.name.toLowerCase().includes(groupSearch.toLowerCase())
+  );
 
   const iconGlow = {
     orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
