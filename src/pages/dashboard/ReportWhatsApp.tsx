@@ -391,24 +391,26 @@ export default function ReportWhatsApp() {
         </div>
       </div>
 
-      {/* Instância de Notificação */}
-      <Card className="border-border/60">
+      {/* Instância de Notificação — Status Panel */}
+      <Card className={`border-border/60 relative overflow-hidden ${isConnected ? "shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)]" : ""}`}>
+        {/* Top status strip */}
+        <div className={`h-1 w-full ${isConnected ? "bg-gradient-to-r from-emerald-500/60 via-emerald-400/40 to-emerald-500/60" : "bg-gradient-to-r from-destructive/40 via-destructive/20 to-destructive/40"}`} />
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Smartphone className="w-4 h-4 text-primary" />
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isConnected ? "bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.2)]" : "bg-destructive/10"}`}>
+                <Smartphone className={`w-4.5 h-4.5 ${isConnected ? "text-emerald-500" : "text-destructive"}`} />
               </div>
               Instância de Notificação
             </CardTitle>
             {reportDevice && (
               isConnected ? (
-                <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Online
+                <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-3 py-1 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" /> Online
                 </Badge>
               ) : (
                 <Badge variant="outline" className="gap-1.5 text-xs border-destructive/30 text-destructive bg-destructive/10 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive" /> Offline
+                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" /> Offline
                 </Badge>
               )
             )}
@@ -416,37 +418,41 @@ export default function ReportWhatsApp() {
         </CardHeader>
         <CardContent className="space-y-5">
           {!reportDevice ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-3">
-              <Smartphone className="w-10 h-10 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground text-center">
-                Nenhuma instância de relatório configurada.
-              </p>
+            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/40 flex items-center justify-center">
+                <Smartphone className="w-8 h-8 text-muted-foreground/40" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground/70">Nenhuma instância configurada</p>
+                <p className="text-xs text-muted-foreground/60">Crie uma instância para começar a receber alertas.</p>
+              </div>
               <Button
                 onClick={handleCreateReportInstance}
                 disabled={creatingInstance}
                 className="gap-1.5"
               >
                 {creatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Criar instância "Relatorio Via Whatsapp"
+                Criar instância
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
-              <div className="flex-1 space-y-2">
-                <div className="grid grid-cols-2 gap-3">
+            <div className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border ${isConnected ? "bg-emerald-500/[0.03] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
+              <div className="flex-1 space-y-2.5">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Número</p>
-                    <p className="text-sm font-semibold mt-0.5">{reportDevice.number || "Sem número"}</p>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Número</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5 font-mono">{reportDevice.number || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Instância</p>
-                    <p className="text-sm font-semibold mt-0.5">{reportDevice.name}</p>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Instância</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{reportDevice.name}</p>
                   </div>
                 </div>
                 {groups.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    <Users className="w-3 h-3 inline mr-1" />{groups.length} grupos disponíveis
-                  </p>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{groups.length} grupos disponíveis</span>
+                  </div>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
