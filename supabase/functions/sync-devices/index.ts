@@ -107,6 +107,31 @@ Deno.serve(async (req) => {
               profile_name: syncedProfileName || device.profile_name || "",
             })
             .eq("id", device.id);
+
+          // Dispatch webhook for status changes
+          if (statusChanged) {
+            const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+            if (makeUrl) {
+              try {
+                const event = newStatus === "Ready" ? "instance.connected" : "instance.disconnected";
+                await fetch(makeUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    event,
+                    client_id: userId,
+                    instance: {
+                      id: device.id,
+                      name: device.name,
+                      type: device.instance_type || "principal",
+                      status: newStatus === "Ready" ? "conectada" : "desconectada",
+                    },
+                    timestamp: new Date().toISOString(),
+                  }),
+                });
+              } catch (e) { console.log("Make webhook error:", e); }
+            }
+          }
         }
       } catch (err) {
         console.error(`Error syncing device ${device.name}:`, err);
