@@ -71,6 +71,84 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts: {
+        Row: {
+          campaign_id: string | null
+          campaign_name: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          instance_name: string | null
+          message_rendered: string
+          payload_json: Json | null
+          phone_number: string | null
+          resolved: boolean
+          resolved_at: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          type: Database["public"]["Enums"]["alert_type"]
+          user_id: string
+          whatsapp_error: string | null
+          whatsapp_group_id: string | null
+          whatsapp_sent: boolean
+          whatsapp_sent_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          message_rendered: string
+          payload_json?: Json | null
+          phone_number?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          type: Database["public"]["Enums"]["alert_type"]
+          user_id: string
+          whatsapp_error?: string | null
+          whatsapp_group_id?: string | null
+          whatsapp_sent?: boolean
+          whatsapp_sent_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          message_rendered?: string
+          payload_json?: Json | null
+          phone_number?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          type?: Database["public"]["Enums"]["alert_type"]
+          user_id?: string
+          whatsapp_error?: string | null
+          whatsapp_group_id?: string | null
+          whatsapp_sent?: boolean
+          whatsapp_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_contacts: {
         Row: {
           campaign_id: string
@@ -1099,6 +1177,18 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity: "INFO" | "WARNING" | "CRITICAL"
+      alert_type:
+        | "INSTANCE_CONNECTED"
+        | "INSTANCE_DISCONNECTED"
+        | "QRCODE_GENERATED"
+        | "CAMPAIGN_STARTED"
+        | "CAMPAIGN_PAUSED"
+        | "CAMPAIGN_FINISHED"
+        | "CAMPAIGN_ERROR"
+        | "HIGH_FAILURE_RATE"
+        | "WARMUP_REPORT_24H"
+        | "TEST_ALERT"
       app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
@@ -1227,6 +1317,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["INFO", "WARNING", "CRITICAL"],
+      alert_type: [
+        "INSTANCE_CONNECTED",
+        "INSTANCE_DISCONNECTED",
+        "QRCODE_GENERATED",
+        "CAMPAIGN_STARTED",
+        "CAMPAIGN_PAUSED",
+        "CAMPAIGN_FINISHED",
+        "CAMPAIGN_ERROR",
+        "HIGH_FAILURE_RATE",
+        "WARMUP_REPORT_24H",
+        "TEST_ALERT",
+      ],
       app_role: ["admin", "moderator", "user"],
     },
   },
