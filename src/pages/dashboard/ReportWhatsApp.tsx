@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,9 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface WhatsAppGroup {
@@ -26,7 +26,16 @@ export default function ReportWhatsApp() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
   const [creatingInstance, setCreatingInstance] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
+
+
+
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["report-wa-config", user?.id],
@@ -84,6 +93,76 @@ export default function ReportWhatsApp() {
       setCreatingInstance(false);
     }
   };
+
+  const callApi = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Não autenticado");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) throw response.error;
+    return response.data;
+  };
+
+  const handleConnectQR = async () => {
+    if (!reportDevice?.id) return;
+    setQrDialogOpen(true);
+    setQrLoading(true);
+    setQrCodeBase64("");
+    try {
+      const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
+      const b64 = result?.base64 || result?.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao gerar QR Code");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // QR auto-refresh every 30s
+  useEffect(() => {
+    if (qrDialogOpen && qrCodeBase64) {
+      setQrCountdown(30);
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+      qrCountdownRef.current = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            setQrCodeBase64("");
+            if (reportDevice?.id) {
+              callApi({ action: "connect", deviceId: reportDevice.id }).then(result => {
+                const b64 = result?.base64 || result?.qr;
+                if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+              }).catch(() => {});
+            }
+            return 30;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [qrDialogOpen, qrCodeBase64, reportDevice?.id]);
+
+  // Poll connection status while QR dialog open
+  useEffect(() => {
+    if (!qrDialogOpen || !reportDevice?.id) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await callApi({ action: "status", deviceId: reportDevice.id });
+        if (result?.status === "authenticated" || result?.status === "connected") {
+          setQrDialogOpen(false);
+          await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
+          queryClient.invalidateQueries({ queryKey: ["report-device"] });
+          toast.success("Instância conectada com sucesso!");
+        }
+      } catch {}
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [qrDialogOpen, reportDevice?.id]);
 
   const fetchGroups = async (deviceId: string) => {
     setLoadingGroups(true);
@@ -300,12 +379,22 @@ export default function ReportWhatsApp() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {!isConnected && (
+                  <Button
+                    size="sm"
+                    onClick={handleConnectQR}
+                    className="gap-1.5"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    Conectar
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
-                  disabled={!reportDevice?.id || loadingGroups}
+                  disabled={!reportDevice?.id || loadingGroups || !isConnected}
                   className="gap-1.5"
                 >
                   {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -315,7 +404,7 @@ export default function ReportWhatsApp() {
                   variant="outline"
                   size="sm"
                   onClick={sendTestMessage}
-                  disabled={sendingTest || !reportDevice?.id}
+                  disabled={sendingTest || !reportDevice?.id || !isConnected}
                   className="gap-1.5"
                 >
                   {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -383,6 +472,48 @@ export default function ReportWhatsApp() {
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              Conectar Instância de Relatório
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrCodeBase64 ? (
+              <div className="relative">
+                <div className="p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
+                  <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
+                </div>
+                <div className="flex items-center justify-center gap-1.5 mt-3">
+                  <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-primary">{qrCountdown}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Atualiza automaticamente</span>
+                </div>
+              </div>
+            ) : qrLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <QrCode className="w-6 h-6 text-primary animate-pulse" />
+                </div>
+                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
+                <Button size="sm" onClick={handleConnectQR}>Tentar novamente</Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Abra o WhatsApp no celular, vá em <strong>Dispositivos Conectados</strong> e escaneie o QR Code acima.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
