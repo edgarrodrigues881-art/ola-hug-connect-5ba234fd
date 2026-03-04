@@ -1,4 +1,5 @@
 import { Users, Layers, Settings, XCircle } from "lucide-react";
+import AnimateOnView from "@/components/AnimateOnView";
 
 const forWhom = [
   { icon: Users, title: "Operadores com múltiplos números", desc: "Gerencie dezenas de instâncias em um único painel centralizado." },
@@ -16,32 +17,33 @@ const notFor = [
 const HowItWorksSection = () => (
   <section id="para-quem" className="py-24 lg:py-32 bg-transparent">
     <div className="container">
-      <div className="text-center mb-16">
+      <AnimateOnView animation="slide-up" className="text-center mb-16">
         <span className="inline-block text-xs font-semibold text-[#07C160] tracking-widest uppercase mb-3">
           Público
         </span>
         <h2 className="text-3xl sm:text-4xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           Para quem é essa plataforma?
         </h2>
-      </div>
+      </AnimateOnView>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-8">
         {forWhom.map((item, i) => (
-          <div
-            key={i}
-            className="rounded-2xl p-6 border border-[#07C160]/20 card-hover-lift"
-            style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
-          >
-            <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">
-              <item.icon className="w-5 h-5 text-[#07C160] flex-shrink-0" />
+          <AnimateOnView key={i} animation="slide-up" delay={i + 1}>
+            <div
+              className="rounded-2xl p-6 border border-[#07C160]/20 card-hover-lift h-full"
+              style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
+            >
+              <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">
+                <item.icon className="w-5 h-5 text-[#07C160] flex-shrink-0" />
+              </div>
+              <h3 className="text-[15px] font-semibold text-white mb-2">{item.title}</h3>
+              <p className="text-[13px] text-white/35 leading-relaxed">{item.desc}</p>
             </div>
-            <h3 className="text-[15px] font-semibold text-white mb-2">{item.title}</h3>
-            <p className="text-[13px] text-white/35 leading-relaxed">{item.desc}</p>
-          </div>
+          </AnimateOnView>
         ))}
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <AnimateOnView animation="fade-in" delay={4} className="max-w-4xl mx-auto">
         <div
           className="rounded-2xl p-6 border border-red-500/20"
           style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.04), rgba(17,24,39,0.95), rgba(239,68,68,0.02))" }}
@@ -63,7 +65,7 @@ const HowItWorksSection = () => (
             </div>
           </div>
         </div>
-      </div>
+      </AnimateOnView>
     </div>
   </section>
 );
