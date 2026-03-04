@@ -234,6 +234,17 @@
 .aov-delay-3 { animation-delay: 180ms; }
 .aov-delay-4 { animation-delay: 240ms; }
 
+/* ── Hero phone float ── */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.hero-phone-float {
+  animation: hero-float 6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+
 /* ── Reduced-motion fallback: kill all animations ── */
 @media (prefers-reduced-motion: reduce) {
   *,
