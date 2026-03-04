@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import AnimateOnView from "@/components/AnimateOnView";
 
 const plans = [
   {
@@ -44,17 +45,19 @@ const PlansSection = () => {
   return (
     <section id="planos" className="py-20 px-6 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-3 text-white">
-          Escolha o plano ideal para escalar sua operação com estabilidade
-        </h2>
-        <p className="text-white/30 text-center text-sm mb-14 max-w-xl mx-auto leading-relaxed">
-          Todos os planos incluem aquecimento automatizado, disparador inteligente e monitoramento em tempo real.
-          <br />A diferença está na capacidade operacional e nível de suporte.
-        </p>
+        <AnimateOnView animation="slide-up">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3 text-white">
+            Escolha o plano ideal para escalar sua operação com estabilidade
+          </h2>
+          <p className="text-white/30 text-center text-sm mb-14 max-w-xl mx-auto leading-relaxed">
+            Todos os planos incluem aquecimento automatizado, disparador inteligente e monitoramento em tempo real.
+            <br />A diferença está na capacidade operacional e nível de suporte.
+          </p>
+        </AnimateOnView>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {plans.map((plan) => (
-            <div
+          {plans.map((plan, i) => (
+            <AnimateOnView key={plan.name} animation="slide-up" delay={Math.min(i + 1, 4)}>
               key={plan.name}
               className={`relative flex flex-col rounded-2xl card-hover-lift ${
                 plan.popular
