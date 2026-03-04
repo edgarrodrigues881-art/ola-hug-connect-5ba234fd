@@ -534,8 +534,9 @@ const Devices = () => {
       setBulkOpen(false);
     } catch (err: any) {
       const msg = err?.message || "";
-      if (msg.includes("device_limit") || msg.includes("LIMIT")) {
-        toast({ title: "Limite de instâncias atingido", description: `Seu plano permite no máximo ${maxInstancesAllowed} instâncias.`, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      if (msg.includes("device_limit") || msg.includes("Limite") || msg.includes("LIMIT")) {
+        toast({ title: "Limite de instâncias atingido", description: msg, variant: "destructive" });
       } else {
         toast({ title: "Erro ao criar instâncias", description: msg, variant: "destructive" });
       }
