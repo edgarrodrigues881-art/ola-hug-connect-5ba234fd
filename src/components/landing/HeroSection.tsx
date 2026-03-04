@@ -58,7 +58,7 @@ const HeroSection = () => {
           </div>
 
           {/* Right — Phone */}
-          <div className="relative flex items-center justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms" }}>
             <div className="relative">
               <div
                 className="relative w-[260px] lg:w-[270px]"
