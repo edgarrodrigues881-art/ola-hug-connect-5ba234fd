@@ -15,8 +15,93 @@ const chats = [
 
 const cardBg = "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))";
 const cardShadow = "0 0 0 1px rgba(7,193,96,0.12)";
+const ChatListAnimated = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState<boolean[]>([]);
+  const triggered = useRef(false);
 
-const HeroSection = () => {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisible(chats.map(() => true));
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !triggered.current) {
+          triggered.current = true;
+          chats.forEach((_, i) => {
+            setTimeout(() => setVisible((prev) => {
+              const next = [...prev];
+              next[i] = true;
+              return next;
+            }), i * 600);
+          });
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {chats.map((chat, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0"
+          style={{
+            opacity: visible[i] ? 1 : 0,
+            transform: visible[i] ? "translateY(0)" : "translateY(10px)",
+            transition: "opacity 300ms cubic-bezier(0.4,0,0.2,1), transform 300ms cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          {chat.name.startsWith("DG CONTINGENCIA") ? (
+            <img src={dgRemaster} alt="DG" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <div
+              className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+              style={{ backgroundColor: chat.color + "20", color: chat.color }}
+            >
+              {chat.avatar}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-[2px]">
+              <span className={`text-[13px] truncate ${chat.unread > 0 ? "font-semibold text-white" : "text-white/70"}`}>
+                {chat.name}
+              </span>
+              <span className={`text-[10px] flex-shrink-0 ml-1 ${chat.unread > 0 ? "text-[#07C160]" : "text-white/20"}`}>
+                {chat.time}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 truncate pr-2">
+                {chat.unread === 0 && (
+                  <svg className="w-[12px] h-[12px] text-[#53BDEB] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
+                    <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
+                  </svg>
+                )}
+                <span className="text-[11px] text-white/30 truncate">{chat.msg}</span>
+              </div>
+              {chat.unread > 0 && (
+                <span className="flex-shrink-0 min-w-[16px] h-[16px] rounded-full bg-[#07C160] text-[7px] font-bold text-white flex items-center justify-center px-1">
+                  {chat.unread >= 999 ? "999+" : chat.unread}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+
   const navigate = useNavigate();
 
   return (
