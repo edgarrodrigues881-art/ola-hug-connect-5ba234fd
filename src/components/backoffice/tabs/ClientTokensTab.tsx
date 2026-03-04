@@ -204,6 +204,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
         </table>
       </div>
     </div>
+    </div>
   );
 };
 
