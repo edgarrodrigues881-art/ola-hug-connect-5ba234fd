@@ -133,7 +133,7 @@ export default function ReportWhatsApp() {
         return;
       }
       const testGroupName = groups.find(g => g.id === testGroupId)?.name || testGroupId;
-      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${selectedDevice?.name || "—"}\nNúmero: ${selectedDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
+      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${reportDevice?.name || "—"}\nNúmero: ${reportDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
 
       let whatsappSent = false;
       let whatsappError: string | null = null;
@@ -156,8 +156,8 @@ export default function ReportWhatsApp() {
         user_id: user!.id,
         type: "TEST_ALERT" as any,
         severity: "INFO" as any,
-        instance_name: selectedDevice?.name || null,
-        phone_number: selectedDevice?.number || null,
+        instance_name: reportDevice?.name || null,
+        phone_number: reportDevice?.number || null,
         instance_id: config.device_id,
         message_rendered: message,
         whatsapp_sent: whatsappSent,
@@ -175,10 +175,10 @@ export default function ReportWhatsApp() {
   };
 
   useEffect(() => {
-    if (config?.device_id && connectedDevices.some((d) => d.id === config.device_id)) {
-      fetchGroups(config.device_id);
+    if (reportDevice?.id && reportDevice?.status === "Ready") {
+      fetchGroups(reportDevice.id);
     }
-  }, [config?.device_id, connectedDevices.length]);
+  }, [reportDevice?.id, reportDevice?.status]);
 
   const upsertConfig = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
