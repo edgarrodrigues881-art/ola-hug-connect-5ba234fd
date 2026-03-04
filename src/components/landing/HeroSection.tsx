@@ -105,7 +105,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 pb-10 overflow-hidden">
+    <section className="relative min-h-screen flex items-center pt-20 pb-10 overflow-x-clip">
       <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
         <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
