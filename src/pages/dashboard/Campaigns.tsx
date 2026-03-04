@@ -275,6 +275,7 @@ const Campaigns = () => {
           if (draft.campaignName) setCampaignName(draft.campaignName);
           if (draft.messages) setMessages(draft.messages);
           else if (draft.message) setMessages(prev => { const c = [...prev]; c[0] = draft.message; return c; });
+          if (draft.rotateMessages !== undefined) setRotateMessages(draft.rotateMessages);
           if (draft.messageType) setMessageType(draft.messageType);
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
