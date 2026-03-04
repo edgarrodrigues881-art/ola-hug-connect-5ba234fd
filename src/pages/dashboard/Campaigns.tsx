@@ -954,6 +954,27 @@ const Campaigns = () => {
                       {allMessages.length}/5 ativas
                     </span>
                   </div>
+
+                  {/* Rotation toggle - only show when multiple messages */}
+                  {allMessages.length > 1 && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/10 border border-border/10">
+                      <Switch checked={rotateMessages} onCheckedChange={setRotateMessages} />
+                      <div className="flex-1">
+                        <p className="text-[12px] font-medium text-foreground/80">
+                          {rotateMessages ? "Rotacionar mensagens" : "Enviar todas as mensagens"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                          {rotateMessages 
+                            ? "Uma mensagem aleatória será escolhida para cada contato" 
+                            : "Todas as mensagens serão enviadas para cada contato em sequência"}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-border/20">
+                        {rotateMessages ? <Sparkles className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
+                        {rotateMessages ? "Aleatório" : "Sequencial"}
+                      </Badge>
+                    </div>
+                  )}
                   
                   {/* Toolbar */}
                   <div className="flex items-center gap-0.5 flex-wrap p-1.5 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/10">
