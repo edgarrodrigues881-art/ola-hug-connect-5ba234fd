@@ -503,9 +503,23 @@ const Devices = () => {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
       return;
     }
+    // Check plan limits before attempting
+    if (planState !== "active") {
+      setPlanGateOpen(true);
+      return;
+    }
+    const remaining = maxInstancesAllowed - devices.length;
+    if (totalCount > remaining) {
+      toast({ 
+        title: "Limite de instâncias excedido", 
+        description: `Você pode criar no máximo ${remaining} instância${remaining !== 1 ? "s" : ""} (${devices.length}/${maxInstancesAllowed} em uso).`,
+        variant: "destructive" 
+      });
+      return;
+    }
     try {
       const inserts: any[] = [];
-      let idx = 1;
+      let idx = devices.length + 1;
       for (const proxyId of bulkSelectedProxies) {
         inserts.push({
           name: `${bulkPrefix} ${idx}`,
@@ -529,8 +543,13 @@ const Devices = () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
       setBulkOpen(false);
-    } catch {
-      toast({ title: "Erro ao criar instâncias", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("device_limit") || msg.includes("LIMIT")) {
+        toast({ title: "Limite de instâncias atingido", description: `Seu plano permite no máximo ${maxInstancesAllowed} instâncias.`, variant: "destructive" });
+      } else {
+        toast({ title: "Erro ao criar instâncias", description: msg, variant: "destructive" });
+      }
     }
   };
 
@@ -1872,7 +1891,8 @@ const Devices = () => {
                 <Input
                   type="number"
                   min={0}
-                  value={bulkNoProxyCount}
+                  value={bulkNoProxyCount || ""}
+                  placeholder="0"
                   onChange={e => setBulkNoProxyCount(Math.max(0, parseInt(e.target.value) || 0))}
                   className="h-7 w-16 text-xs"
                 />
