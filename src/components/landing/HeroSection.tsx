@@ -340,7 +340,7 @@ const HeroSection = () => {
                 <div className="relative rounded-2xl p-4 overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))",
-                    boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(7,193,96,0.12)",
+                    boxShadow: "0 4px 16px -4px rgba(0,0,0,0.4), 0 0 0 1px rgba(7,193,96,0.12)",
                   }}
                 >
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
@@ -382,7 +382,7 @@ const HeroSection = () => {
                 <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))",
-                    boxShadow: "0 16px 32px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(7,193,96,0.1)",
+                    boxShadow: "0 4px 12px -4px rgba(0,0,0,0.4), 0 0 0 1px rgba(7,193,96,0.1)",
                   }}
                 >
                   <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
