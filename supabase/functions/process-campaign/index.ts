@@ -356,6 +356,7 @@ Deno.serve(async (req) => {
       const msgType = campaign.message_type || "texto";
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
+      const shuffleBag = new ShuffleBag(messageVariants.length);
       let needsContinue = false;
 
       // ─── PARALLEL MODE ───
