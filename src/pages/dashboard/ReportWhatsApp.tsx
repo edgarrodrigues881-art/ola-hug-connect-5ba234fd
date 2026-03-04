@@ -204,10 +204,8 @@ export default function ReportWhatsApp() {
     upsertConfig.mutate({ [field]: groupId, [nameField]: group?.name || "" });
   };
 
-  const handleDeviceSelect = (deviceId: string) => {
-    upsertConfig.mutate({ device_id: deviceId });
-    fetchGroups(deviceId);
-  };
+
+
 
   if (loadingConfig) {
     return (
