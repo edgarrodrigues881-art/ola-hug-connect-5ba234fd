@@ -100,6 +100,22 @@ export default function ReportWhatsApp() {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (!reportDevice?.id) return;
+    setDisconnecting(true);
+    try {
+      await callApi({ action: "disconnect", deviceId: reportDevice.id });
+      await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", reportDevice.id);
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      setGroups([]);
+      toast.success("Instância desconectada");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   const callApi = async (body: Record<string, any>) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Não autenticado");
