@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface WhatsAppGroup {
@@ -30,6 +30,8 @@ export default function ReportWhatsApp() {
   const [qrCodeBase64, setQrCodeBase64] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCountdown, setQrCountdown] = useState(30);
+  const [qrConnected, setQrConnected] = useState(false);
+  const [connectError, setConnectError] = useState("");
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
@@ -110,6 +112,8 @@ export default function ReportWhatsApp() {
     setQrDialogOpen(true);
     setQrLoading(true);
     setQrCodeBase64("");
+    setQrConnected(false);
+    setConnectError("");
     try {
       const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
       const b64 = result?.base64 || result?.qr;
@@ -149,20 +153,23 @@ export default function ReportWhatsApp() {
 
   // Poll connection status while QR dialog open
   useEffect(() => {
-    if (!qrDialogOpen || !reportDevice?.id) return;
+    if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
     pollRef.current = setInterval(async () => {
       try {
         const result = await callApi({ action: "status", deviceId: reportDevice.id });
         if (result?.status === "authenticated" || result?.status === "connected") {
-          setQrDialogOpen(false);
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setQrConnected(true);
           await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
           queryClient.invalidateQueries({ queryKey: ["report-device"] });
           toast.success("Instância conectada com sucesso!");
+          // Auto-close after 2s
+          setTimeout(() => setQrDialogOpen(false), 2000);
         }
       } catch {}
     }, 3000);
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [qrDialogOpen, reportDevice?.id]);
+  }, [qrDialogOpen, reportDevice?.id, qrConnected]);
 
   const fetchGroups = async (deviceId: string) => {
     setLoadingGroups(true);
@@ -464,43 +471,145 @@ export default function ReportWhatsApp() {
       </div>
 
       {/* QR Code Dialog */}
-      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary" />
-              Conectar Instância de Relatório
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            {qrCodeBase64 ? (
-              <div className="relative">
-                <div className="p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
-                  <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
-                </div>
-                <div className="flex items-center justify-center gap-1.5 mt-3">
-                  <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-primary">{qrCountdown}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Atualiza automaticamente</span>
-                </div>
+      <Dialog open={qrDialogOpen} onOpenChange={(open) => {
+        if (!open) { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } setQrDialogOpen(false); }
+      }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          {/* Header com gradiente */}
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                {qrConnected ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                ) : qrCodeBase64 || qrLoading ? (
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                ) : (
+                  <Smartphone className="w-5 h-5 text-primary" />
+                )}
               </div>
-            ) : qrLoading ? (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <QrCode className="w-6 h-6 text-primary animate-pulse" />
+              <div>
+                <DialogTitle className="text-base font-bold">
+                  {qrConnected ? "Conectado!" : "Conectar instância"}
+                </DialogTitle>
+                {reportDevice && !qrConnected && (
+                  <div>
+                    <p className="text-[11px] text-muted-foreground/50">{reportDevice.name}</p>
+                    {reportDevice.number && (
+                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-0.5">{reportDevice.number}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-6">
+            {qrConnected ? (
+              <div className="flex flex-col items-center gap-4 py-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                 </div>
-                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Instância conectada</p>
+                  <p className="text-xs text-muted-foreground">A instância de relatório está online e pronta.</p>
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <p className="text-sm text-muted-foreground">Aguardando QR Code...</p>
-                <Button size="sm" onClick={handleConnectQR}>Tentar novamente</Button>
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  {qrCodeBase64 ? (
+                    <div className="relative p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
+                      <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
+                    </div>
+                  ) : connectError ? (
+                    <div className="w-52 h-52 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-4">
+                      <XCircle className="w-8 h-8 text-destructive mb-2" />
+                      <p className="text-[11px] text-destructive text-center leading-relaxed">{connectError}</p>
+                    </div>
+                  ) : (
+                    <div className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02] relative overflow-hidden">
+                      {/* Animated border */}
+                      <div className="absolute inset-0 rounded-2xl border-2 border-transparent" style={{
+                        background: "linear-gradient(90deg, hsl(var(--primary)) 0%, transparent 50%, hsl(var(--primary)) 100%) border-box",
+                        WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        animation: "spin 3s linear infinite",
+                        opacity: 0.3,
+                      }} />
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                        <QrCode className="w-6 h-6 text-primary animate-pulse" />
+                      </div>
+                      <p className="text-xs font-medium text-foreground">Preparando QR Code</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">Isso pode levar alguns segundos...</p>
+                      <div className="flex items-center gap-1 mt-3">
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="text-center space-y-1.5">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-medium text-foreground">Aguardando leitura</span>
+                  </div>
+                  {qrCodeBase64 && (
+                    <div className="flex items-center justify-center gap-1.5 mt-1">
+                      <div className="relative w-6 h-6">
+                        <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--muted))" strokeWidth="2" />
+                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
+                            strokeDasharray={`${(qrCountdown / 30) * 62.83} 62.83`}
+                            strokeLinecap="round"
+                            className="transition-all duration-1000 ease-linear"
+                          />
+                        </svg>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+                        Atualiza em {qrCountdown}s
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
+                    Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs h-8"
+                  onClick={async () => {
+                    try {
+                      const result = await callApi({ action: "status", deviceId: reportDevice!.id });
+                      const state = result?.status;
+                      if (state === "authenticated" || state === "connected") {
+                        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+                        setQrConnected(true);
+                        await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice!.id);
+                        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                        toast.success("Conectado!");
+                        try {
+                          const { data: { session: s } } = await supabase.auth.getSession();
+                          if (s) {
+                            await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
+                            queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                          }
+                        } catch {}
+                      } else {
+                        toast.info("QR Code ainda não foi escaneado. Escaneie e tente novamente.");
+                      }
+                    } catch {
+                      toast.error("Erro ao verificar conexão");
+                    }
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3" /> Já escaneei, sincronizar
+                </Button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground text-center max-w-xs">
-              Abra o WhatsApp no celular, vá em <strong>Dispositivos Conectados</strong> e escaneie o QR Code acima.
-            </p>
           </div>
         </DialogContent>
       </Dialog>
