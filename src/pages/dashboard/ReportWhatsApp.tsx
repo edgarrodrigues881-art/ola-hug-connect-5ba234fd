@@ -836,6 +836,7 @@ interface AlertCardProps {
   groups: WhatsAppGroup[];
   selectedGroupId: string;
   onGroupSelect: (id: string) => void;
+  onRefreshGroups?: () => void;
   enabled: boolean;
   onToggle: (v: boolean) => void;
   loadingGroups: boolean;
@@ -846,7 +847,7 @@ interface AlertCardProps {
 
 function AlertCard({
   icon, iconColor, title, description, groups, selectedGroupId,
-  onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
+  onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
