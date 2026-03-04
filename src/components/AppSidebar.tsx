@@ -10,12 +10,12 @@ import {
   Radio,
   LogOut,
   Settings,
-  ChevronUp,
   CreditCard,
   Box,
   Activity,
   ScrollText,
-  
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -24,13 +24,6 @@ import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import logo from "@/assets/logo.png";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -43,41 +36,30 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuGroups = [
-  {
-    label: "",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
-      { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
-      { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
-      { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
-      { title: "Modelos", url: "/dashboard/templates", icon: FileText },
-      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-    ],
-  },
-  {
-    label: "",
-    items: [
-      { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
-      { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
-      { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
-      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
-      { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
-      
-    ],
-  },
-  {
-    label: "",
-    items: [
-      { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
-    ],
-  },
+const mainItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
+  { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
+  { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
+  { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+  { title: "Modelos", url: "/dashboard/templates", icon: FileText },
+  { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+  { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+  { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+  { title: "Relatório", url: "/dashboard/reports", icon: Activity, exact: true },
+  { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
+  { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
+];
+
+const accountItems = [
+  { title: "Configurações", url: "/dashboard/settings", icon: Settings },
+  { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
+  { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,115 +110,105 @@ export function AppSidebar() {
     return stats[key] || 0;
   };
 
+  const renderItem = (item: typeof mainItems[0]) => {
+    const active = isActive(item.url, (item as any).exact);
+    const badgeVal = getBadgeValue((item as any).badgeKey);
+    return (
+      <SidebarMenuItem key={item.title}>
+        <SidebarMenuButton asChild tooltip={item.title}>
+          <NavLink
+            to={item.url}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors duration-150
+              ${active
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            activeClassName=""
+          >
+            <item.icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
+            {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+            {!collapsed && badgeVal > 0 && (
+              <span className={`ml-auto text-[11px] font-bold min-w-[22px] h-[22px] rounded-full flex items-center justify-center ${
+                active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary text-primary-foreground'
+              }`}>
+                {badgeVal}
+              </span>
+            )}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
   return (
-    <Sidebar collapsible="icon" className="sidebar-premium">
-      {/* Header / Brand */}
-      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-0' : 'gap-3 px-5 py-5'}`}>
-        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
-        {!collapsed && (
-          <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
-            DG Contingência
-          </span>
-        )}
+    <Sidebar collapsible="icon">
+      {/* Header / Profile */}
+      <div className={`border-b border-border/50 ${collapsed ? 'py-4 px-2 flex justify-center' : 'px-4 py-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="w-9 h-9 rounded-full shrink-0 object-cover ring-2 ring-border" />
+          ) : (
+            <div className="w-9 h-9 rounded-full shrink-0 bg-primary/10 ring-2 ring-border flex items-center justify-center">
+              <span className="text-[11px] font-bold text-primary">{initials}</span>
+            </div>
+          )}
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{displayName}</p>
+              <p className="text-[11px] text-muted-foreground truncate leading-tight">Pro Plan</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <SidebarContent className="py-3">
-        {menuGroups.map((group, gi) => {
-          // all sections equal
-          return (
-            <SidebarGroup key={group.label} className={`py-0.5 ${gi > 0 ? 'mt-3' : ''}`}>
-              {!collapsed && group.label && (
-                <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.08em] px-5 mb-1.5 select-none text-muted-foreground/60">
-                  {group.label}
-                </SidebarGroupLabel>
-              )}
-              {collapsed && gi > 0 && (
-                <div className="mx-3 mb-2 border-t border-sidebar-border" />
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-0.5 px-2">
-                  {group.items.map((item) => {
-                    const active = isActive(item.url, (item as any).exact);
-                    const badgeVal = getBadgeValue((item as any).badgeKey);
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild tooltip={item.title}>
-                          <NavLink
-                            to={item.url}
-                            className={`sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] relative
-                              transition-all duration-150 ease-out
-                              ${active
-                                ? 'bg-primary/8 text-foreground font-bold'
-                                : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/40'
-                              }`}
-                            activeClassName=""
-                          >
-                            {active && !collapsed && (
-                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
-                            )}
-                            <item.icon
-                              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : ''}`}
-                              strokeWidth={active ? 2.2 : 1.5}
-                            />
-                            {!collapsed && (
-                              <span className="truncate flex-1">{item.title}</span>
-                            )}
-                            {!collapsed && badgeVal > 0 && (
-                              <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                                {badgeVal}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
+      <SidebarContent className="py-2 flex-1">
+        {/* Main nav */}
+        <SidebarGroup className="py-0">
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-0.5 px-2">
+              {mainItems.map(renderItem)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Account section */}
+        <SidebarGroup className="mt-auto pt-2">
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] px-4 mb-1 text-muted-foreground/60">
+              Conta
+            </SidebarGroupLabel>
+          )}
+          {collapsed && <div className="mx-3 mb-2 border-t border-border/50" />}
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-0.5 px-2">
+              {accountItems.map(renderItem)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer profile */}
-      <div className="mt-auto border-t border-sidebar-border p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={`flex items-center gap-3 w-full rounded-lg hover:bg-sidebar-accent/50 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
-              ) : (
-                <div className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 bg-primary/10 ring-1 ring-border flex items-center justify-center">
-                  <span className="text-[11px] font-semibold text-primary">{initials}</span>
-                </div>
-              )}
-              {!collapsed && (
-                <>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-[13px] font-medium text-sidebar-foreground truncate leading-tight">{displayName}</p>
-                    <p className="text-[11px] text-muted-foreground/50 truncate leading-tight">Gerenciar conta</p>
-                  </div>
-                  <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
-                </>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/my-plan")} className="gap-2 cursor-pointer">
-              <CreditCard className="w-4 h-4" strokeWidth={1.5} />
-              Meu Plano
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
-              <LogOut className="w-4 h-4" strokeWidth={1.5} />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Footer: Hide/Show + Logout */}
+      <div className="border-t border-border/50 p-2 space-y-0.5">
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-destructive hover:bg-destructive/10 transition-colors ${collapsed ? 'justify-center' : ''}`}
+        >
+          <LogOut className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
+          {!collapsed && <span>Sair</span>}
+        </button>
+        <button
+          onClick={toggleSidebar}
+          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors ${collapsed ? 'justify-center' : ''}`}
+        >
+          {collapsed ? (
+            <ChevronsRight className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
+          ) : (
+            <>
+              <ChevronsLeft className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
+              <span>Esconder</span>
+            </>
+          )}
+        </button>
       </div>
     </Sidebar>
   );
