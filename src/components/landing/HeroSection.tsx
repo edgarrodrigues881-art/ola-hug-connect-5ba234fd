@@ -54,14 +54,12 @@ const HeroSection = () => {
               <img 
                 src={heroPhone} 
                 alt="WhatsApp mockup" 
-                className="w-[280px] lg:w-[340px] h-auto"
-                style={{ 
-                  maskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 90%, transparent 100%), linear-gradient(to right, transparent 0%, black 8%, black 82%, transparent 100%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 90%, transparent 100%), linear-gradient(to right, transparent 0%, black 8%, black 82%, transparent 100%)",
-                  maskComposite: "intersect",
-                  WebkitMaskComposite: "destination-in" as any,
-                }}
+                className="w-[280px] lg:w-[340px] h-auto block"
               />
+              {/* Edge-blend overlays to hide image border */}
+              <div className="absolute inset-0 pointer-events-none" style={{
+                boxShadow: "inset 0 40px 40px -10px #0B0F14, inset 0 -40px 40px -10px #0B0F14, inset 40px 0 40px -10px #0B0F14, inset -40px 0 40px -10px #0B0F14"
+              }} />
             </div>
 
             {/* Floating notifications */}
