@@ -91,7 +91,7 @@ const PlansSection = () => {
                 <div className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
                     <div key={fi} className="flex items-center gap-2.5 text-sm text-white/40">
-                      <Check className="w-3.5 h-3.5 text-white/20 shrink-0" />
+                      <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-white/20 shrink-0" />
                       {f}
                     </div>
                   ))}
@@ -106,7 +106,7 @@ const PlansSection = () => {
                   }`}
                 >
                   {plan.cta}
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
                 </button>
               </div>
             </div>
@@ -115,30 +115,30 @@ const PlansSection = () => {
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-xs text-white/30">
           <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
             Sem fidelidade
           </div>
           <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
             Upgrade imediato
           </div>
           <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 text-emerald-500/50" />
+            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
             Garantia de 7 dias
           </div>
         </div>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-white/20">
           <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5" />
+            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
             Infraestrutura segura
           </div>
           <div className="flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5" />
+            <Activity className="w-3.5 h-3.5 flex-shrink-0" />
             Operação estável
           </div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-3.5 h-3.5" />
+            <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
             Monitoramento contínuo
           </div>
         </div>
