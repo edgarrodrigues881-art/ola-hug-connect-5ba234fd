@@ -29,6 +29,7 @@ import MyPlan from "./pages/dashboard/MyPlan";
 import CampaignDetail from "./pages/dashboard/CampaignDetail";
 
 import ReportWhatsApp from "./pages/dashboard/ReportWhatsApp";
+import AlertCockpit from "./pages/dashboard/AlertCockpit";
 
 
 const queryClient = new QueryClient({
