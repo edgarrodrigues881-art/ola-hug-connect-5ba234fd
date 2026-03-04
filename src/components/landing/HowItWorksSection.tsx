@@ -29,7 +29,7 @@ const HowItWorksSection = () => (
         {forWhom.map((item, i) => (
           <div
             key={i}
-            className="rounded-2xl p-6 border border-[#07C160]/20"
+            className="rounded-2xl p-6 border border-[#07C160]/20 card-hover-lift"
             style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
           >
             <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">

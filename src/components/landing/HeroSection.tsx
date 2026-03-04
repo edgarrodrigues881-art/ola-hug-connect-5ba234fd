@@ -101,7 +101,7 @@ const ChatListAnimated = () => {
   );
 };
 
-
+const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
