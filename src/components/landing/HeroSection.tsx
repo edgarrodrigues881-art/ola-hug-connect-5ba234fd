@@ -55,8 +55,8 @@ const HeroSection = () => {
               alt="WhatsApp mockup" 
               className="w-[280px] lg:w-[340px] h-auto relative z-10"
               style={{ 
-                mixBlendMode: "lighten",
-                filter: "drop-shadow(0 20px 60px rgba(0,0,0,0.5)) drop-shadow(0 0 30px rgba(7,193,96,0.12))" 
+                mixBlendMode: "screen",
+                filter: "drop-shadow(0 0 30px rgba(7,193,96,0.12))" 
               }}
             />
 
