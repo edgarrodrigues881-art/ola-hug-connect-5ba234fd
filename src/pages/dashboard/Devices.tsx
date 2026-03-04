@@ -997,29 +997,6 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // If device has no instance config, initialize it automatically
-      const ensureInstance = async () => {
-        if (!connectingDevice.uazapi_token) {
-          const createResult = await callApi({
-            action: "createInstance",
-            deviceId: connectingDevice.id,
-            instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-          });
-          connectingDevice.uazapi_token = createResult.instanceToken;
-          connectingDevice.uazapi_base_url = createResult.baseUrl;
-          queryClient.invalidateQueries({ queryKey: ["devices"] });
-        }
-      };
-
-      try {
-        await ensureInstance();
-      } catch (createErr: any) {
-        console.error("Create instance error:", createErr);
-        throw new Error("Erro ao preparar instância. Tente novamente ou entre em contato com o suporte.");
-      }
-
-      // Now connect (triggers QR)
-      let qrFound = false;
       // Build proxy config if selected
       const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
       const proxyPayload = selectedProxyData ? {
@@ -1030,81 +1007,28 @@ const Devices = () => {
         type: selectedProxyData.type,
       } : undefined;
 
-      // QR: initial connect call
-      try {
-        const connectResult = await callApi({
-          action: "connect",
-          deviceId: connectingDevice.id,
-          proxyConfig: proxyPayload,
-        });
+      // Single connect call — edge function handles everything:
+      // auto-create instance, validate token, recreate if invalid, set proxy, get QR
+      const connectResult = await callApi({
+        action: "connect",
+        deviceId: connectingDevice.id,
+        proxyConfig: proxyPayload,
+      });
 
-        if (connectResult.alreadyConnected) {
-          queryClient.invalidateQueries({ queryKey: ["devices"] });
-          setConnectStep("done");
-          const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
-          toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
-          setConnectOpen(false);
-          return;
-        }
-
-        const b64 = connectResult.base64 || connectResult.qr;
-        if (b64) {
-          setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-          qrFound = true;
-        }
-      } catch (connectErr: any) {
-        console.error("Connect error, recreating instance:", connectErr);
-        // Token might be invalid — recreate the instance
-        try {
-          connectingDevice.uazapi_token = null;
-          await ensureInstance();
-          const retryResult = await callApi({
-            action: "connect",
-            deviceId: connectingDevice.id,
-            proxyConfig: proxyPayload,
-          });
-          if (retryResult.alreadyConnected) {
-            queryClient.invalidateQueries({ queryKey: ["devices"] });
-            setConnectStep("done");
-            setConnectOpen(false);
-            return;
-          }
-          const b64 = retryResult.base64 || retryResult.qr;
-          if (b64) {
-            setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-            qrFound = true;
-          }
-        } catch (retryErr) {
-          console.error("Retry connect also failed:", retryErr);
-        }
+      if (connectResult.alreadyConnected) {
+        queryClient.invalidateQueries({ queryKey: ["devices"] });
+        setConnectStep("done");
+        const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
+        toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
+        setConnectOpen(false);
+        return;
       }
 
-      // If first call didn't return QR, poll with status (no disconnect)
-      if (!qrFound) {
-        for (let attempt = 1; attempt <= 15; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          // QR status poll
-          try {
-            const statusResult = await callApi({
-              action: "status",
-              deviceId: connectingDevice.id,
-            });
-
-            // Check if QR is in the response (edge function also returns instance fields)
-            const b64 = statusResult.base64 || statusResult.qr || statusResult.qrcode || statusResult.instance?.qrcode;
-            if (b64) {
-              setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-              qrFound = true;
-              break;
-            }
-          } catch (e) {
-            // QR poll error
-          }
-        }
-      }
-
-      if (!qrFound) {
-        throw new Error("Não foi possível gerar o QR Code após várias tentativas. Verifique sua configuração.");
+      const b64 = connectResult.base64 || connectResult.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      } else {
+        throw new Error("QR Code não retornado. Tente novamente.");
       }
 
       // Start polling for connection status
