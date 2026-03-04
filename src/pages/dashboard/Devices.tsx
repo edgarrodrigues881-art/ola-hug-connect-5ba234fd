@@ -911,7 +911,7 @@ const Devices = () => {
       try {
         const result = await callApi({ action: "status", deviceId });
         const apiStatus = result?.status;
-        console.log("Polling status result:", apiStatus);
+        // Status polling check
         if (apiStatus === "authenticated") {
           clearInterval(interval);
           setPollingInterval(null);
@@ -977,14 +977,12 @@ const Devices = () => {
     try {
       // If device has no instance config, initialize it automatically
       if (!connectingDevice.uazapi_token) {
-        console.log("No instance config, initializing...");
         try {
           const createResult = await callApi({
             action: "createInstance",
             deviceId: connectingDevice.id,
             instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
           });
-          console.log("Instance created:", createResult);
           // Update local device state with new token
           connectingDevice.uazapi_token = createResult.instanceToken;
           connectingDevice.uazapi_base_url = createResult.baseUrl;
@@ -997,7 +995,7 @@ const Devices = () => {
 
       // Now connect (triggers QR)
       let qrFound = false;
-      console.log("QR: initial connect call");
+      // QR: initial connect call
       try {
         // Build proxy config if selected
         const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
@@ -1030,14 +1028,14 @@ const Devices = () => {
           qrFound = true;
         }
       } catch (e) {
-        console.log("QR initial connect error:", e);
+        console.error("Connect error");
       }
 
       // If first call didn't return QR, poll with status (no disconnect)
       if (!qrFound) {
         for (let attempt = 1; attempt <= 15; attempt++) {
           await new Promise(resolve => setTimeout(resolve, 1000));
-          console.log(`QR status poll ${attempt}/10`);
+          // QR status poll
           try {
             const statusResult = await callApi({
               action: "status",
@@ -1052,7 +1050,7 @@ const Devices = () => {
               break;
             }
           } catch (e) {
-            console.log(`QR status poll ${attempt} error:`, e);
+            // QR poll error
           }
         }
       }

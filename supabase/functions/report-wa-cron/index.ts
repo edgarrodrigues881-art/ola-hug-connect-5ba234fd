@@ -3,22 +3,47 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+  // === AUTH VALIDATION ===
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
-    // Get all users with report configs that have a device and group configured
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  // Validate JWT
+  const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const callerUserId = claimsData.claims.sub as string;
+
+  try {
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Only process configs for the authenticated user
     const { data: configs } = await serviceClient
       .from("report_wa_configs")
       .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_high_failures, connection_status")
+      .eq("user_id", callerUserId)
       .not("device_id", "is", null)
       .not("group_id", "is", null);
 
@@ -38,9 +63,9 @@ Deno.serve(async (req) => {
         .single();
       if (!device) return null;
       const baseUrl = (device.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-      const token = device.uazapi_token || Deno.env.get("UAZAPI_TOKEN") || "";
-      if (!baseUrl || !token) return null;
-      return { baseUrl, token, device };
+      const apiToken = device.uazapi_token || Deno.env.get("UAZAPI_TOKEN") || "";
+      if (!baseUrl || !apiToken) return null;
+      return { baseUrl, token: apiToken, device };
     }
 
     async function uazapiRequest(baseUrl: string, apiToken: string, path: string, method = "GET", reqBody?: unknown) {
@@ -61,7 +86,6 @@ Deno.serve(async (req) => {
       const creds = await getDeviceCredentials(config.device_id!, config.user_id);
       if (!creds) continue;
 
-      // Only process if the report instance is connected
       if (config.connection_status !== "connected") continue;
 
       const pendingMessages: string[] = [];
@@ -176,7 +200,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("report-wa-cron error:", error);
+    console.error("report-wa-cron error");
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
