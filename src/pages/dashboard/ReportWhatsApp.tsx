@@ -453,10 +453,10 @@ export default function ReportWhatsApp() {
                 {!isConnected && (
                   <Button
                     size="sm"
-                    onClick={handleConnectQR}
+                    onClick={openConnectDialog}
                     className="gap-1.5"
                   >
-                    <QrCode className="w-3.5 h-3.5" />
+                    <Plug className="w-3.5 h-3.5" />
                     Conectar
                   </Button>
                 )}
