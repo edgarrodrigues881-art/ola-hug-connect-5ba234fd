@@ -381,50 +381,30 @@ const Devices = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (device: { name: string; login_type: string; token?: string }) => {
-      // Auto-assign token from pool if no manual token provided
-      let assignedToken = device.token || null;
+    mutationFn: async (device: { name: string; login_type: string }) => {
+      // Auto-assign token from pool if available
+      let assignedToken: string | null = null;
       let tokenRecord: any = null;
 
-      if (!assignedToken) {
-        const { data: available } = await supabase
-          .from("user_api_tokens")
-          .select("*")
-          .eq("user_id", session?.user.id!)
-          .eq("status", "available")
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+      const { data: available } = await supabase
+        .from("user_api_tokens")
+        .select("*")
+        .eq("user_id", session?.user.id!)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-        if (available) {
-          assignedToken = available.token;
-          tokenRecord = available;
-        }
-      }
-
-      // Get base URL from env for pool tokens
-      const baseUrl = tokenRecord ? (import.meta.env.VITE_SUPABASE_URL ? undefined : null) : null;
-      
-      // Fetch UAZAPI_BASE_URL via edge function if token came from pool
-      let uazapiBaseUrl: string | null = null;
-      if (tokenRecord) {
-        try {
-          const { data: configData } = await supabase.functions.invoke("evolution-connect", {
-            body: { action: "getBaseUrl" },
-          });
-          uazapiBaseUrl = configData?.baseUrl || null;
-        } catch (e) {
-          console.log("Could not fetch base URL, will be set on connect");
-        }
+      if (available) {
+        assignedToken = available.token;
+        tokenRecord = available;
       }
       
       const { data: newDevice, error } = await supabase.from("devices").insert({
         name: device.name,
         login_type: device.login_type,
         user_id: session?.user.id,
-        whapi_token: null,
         uazapi_token: assignedToken,
-        uazapi_base_url: uazapiBaseUrl,
       } as any).select().single();
       if (error) throw error;
 
@@ -441,7 +421,14 @@ const Devices = () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       toast({ title: "Instância criada" });
     },
-    onError: () => toast({ title: "Erro ao criar instância", variant: "destructive" }),
+    onError: (err: any) => {
+      const msg = err?.message || "";
+      if (msg.includes("device_limit") || msg.includes("Limite")) {
+        toast({ title: `Seu plano permite apenas ${maxInstancesAllowed} instâncias`, variant: "destructive" });
+      } else {
+        toast({ title: "Erro ao criar instância", variant: "destructive" });
+      }
+    },
   });
 
   const deleteMutation = useMutation({
