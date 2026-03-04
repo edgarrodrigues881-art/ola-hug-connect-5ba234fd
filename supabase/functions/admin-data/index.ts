@@ -360,10 +360,13 @@ Deno.serve(async (req) => {
         }
       }
 
+      const instanceType = login_type === "notificacao" ? "notificacao" : "principal";
+
       const { data, error } = await adminClient.from("devices").insert({
         user_id: target_user_id,
         name,
-        login_type: login_type || "qr",
+        login_type: instanceType === "notificacao" ? "report_wa" : (login_type || "qr"),
+        instance_type: instanceType,
         status: "Disconnected",
         uazapi_token: availableToken?.token || null,
         uazapi_base_url: availableToken ? ADMIN_BASE_URL : null,
