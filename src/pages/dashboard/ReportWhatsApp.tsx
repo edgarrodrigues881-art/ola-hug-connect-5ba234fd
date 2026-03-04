@@ -25,6 +25,7 @@ export default function ReportWhatsApp() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
+  const navigate = useNavigate();
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["report-wa-config", user?.id],
@@ -261,6 +262,17 @@ export default function ReportWhatsApp() {
                   )}
                 </SelectContent>
               </Select>
+              {connectedDevices.length === 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/dashboard/devices")}
+                  className="mt-2 gap-1.5 text-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Criar instância
+                </Button>
+              )}
             </div>
           </div>
 
