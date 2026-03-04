@@ -27,6 +27,7 @@ export default function ReportWhatsApp() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
   const [creatingInstance, setCreatingInstance] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrCodeBase64, setQrCodeBase64] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
