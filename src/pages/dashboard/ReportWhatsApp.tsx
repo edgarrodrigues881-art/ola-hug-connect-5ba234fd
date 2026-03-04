@@ -260,6 +260,9 @@ export default function ReportWhatsApp() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
+      if (!res.ok) {
+        throw new Error(`Erro ${res.status}: ${res.statusText}`);
+      }
       const json = await res.json();
       const chats = json.chats || [];
       const groupChats: WhatsAppGroup[] = chats.map((c: any) => ({
