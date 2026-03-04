@@ -41,14 +41,14 @@ const Navbar = () => {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/auth")}
-            className="text-xs sm:text-sm text-white/60 hover:text-white hover:bg-white/5 px-2 sm:px-3"
+            className="text-xs sm:text-sm text-white/60 hover:text-white hover:bg-white/5 px-2 sm:px-3 btn-press"
           >
             Entrar
           </Button>
           <Button
             size="sm"
             onClick={() => navigate("/auth?mode=signup")}
-            className="text-xs sm:text-sm bg-[#07C160] hover:bg-[#06a050] text-white px-3 sm:px-4"
+            className="text-xs sm:text-sm bg-[#07C160] hover:bg-[#06a050] text-white px-3 sm:px-4 btn-press"
           >
             Criar conta
           </Button>
