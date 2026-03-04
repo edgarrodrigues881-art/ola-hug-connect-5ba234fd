@@ -60,7 +60,7 @@ const ChatListAnimated = () => {
           }}
         >
           {chat.name.startsWith("DG CONTINGENCIA") ? (
-            <img src={dgRemaster} alt="DG" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+            <img src={dgRemaster} alt="DG" width={36} height={36} loading="lazy" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
           ) : (
             <div
               className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
