@@ -102,14 +102,14 @@ const PlansSection = () => {
 
                 <button
                   onClick={handleContratarPlano}
-                  className={`w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 btn-press ${
+                  className={`w-full py-3.5 rounded-lg font-medium text-base flex items-center justify-center gap-2 btn-press ${
                     plan.popular
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
                       : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
                   }`}
                 >
                   {plan.cta}
-                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
                 </button>
               </div>
             </div>
@@ -117,32 +117,32 @@ const PlansSection = () => {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-xs text-white/30">
-          <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-white/30">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
             Sem fidelidade
           </div>
-          <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
             Upgrade imediato
           </div>
-          <div className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500/50" />
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
             Garantia de 7 dias
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-white/20">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-10 text-sm text-white/20">
           <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+            <Lock className="w-4 h-4 flex-shrink-0" />
             Infraestrutura segura
           </div>
           <div className="flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 flex-shrink-0" />
+            <Activity className="w-4 h-4 flex-shrink-0" />
             Operação estável
           </div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+            <TrendingUp className="w-4 h-4 flex-shrink-0" />
             Monitoramento contínuo
           </div>
         </div>
