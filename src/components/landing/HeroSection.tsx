@@ -145,6 +145,13 @@ const HeroSection = () => {
 
           {/* Right — Phone */}
           <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms" }}>
+            {/* Ambient glow — radial gradient, no blur/filter */}
+            <div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.12) 0%, transparent 70%)",
+              }}
+            />
             <div className="relative">
               <div
                 className="relative w-[300px] lg:w-[320px]"
