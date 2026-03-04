@@ -278,7 +278,7 @@ export default function ReportWhatsApp() {
           monitoredEvents={[
             "Ciclo de aquecimento concluído",
           ]}
-          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\nMensagens enviadas: {msgs_enviadas}\nMensagens recebidas: {msgs_recebidas}\n\nFotos enviadas: {fotos}\nÁudios enviados: {audios}\n\nStatus postados: {status}\n\nInterações em grupos: {grupos_interacoes}\n\nÚltima atividade: {ultima_atividade}\n\nStatus atual: ${isConnected ? "🟢 Online" : "🔴 Offline"}`}
+          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
 
         {/* Campanhas */}
@@ -301,7 +301,7 @@ export default function ReportWhatsApp() {
             "Campanha finalizada",
             "Falhas detectadas",
           ]}
-          previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\nTotal de contatos: {total}\n\nEnviadas: {enviadas}\nEntregues: {entregues}\n\nFalhas: {falhas}\n\nPendentes: {pendentes}\n\nTempo total: {tempo_execucao}\n\nStatus: Concluída`}
+          previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: {total}\n\n✅ Mensagens enviadas: {enviadas}\n📬 Mensagens entregues: {entregues}\n\n❌ Falhas registradas: {falhas}\n⏳ Pendentes: {pendentes}\n\n⏱ Tempo total de execução:\n{tempo_execucao}\n\nStatus da campanha: Concluída`}
         />
 
         {/* Conexão */}
@@ -323,7 +323,7 @@ export default function ReportWhatsApp() {
             "Instância desconectada",
             "QR Code gerado",
           ]}
-          previewMessage={`⚠️ AVISO IMPORTANTE\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\n\nNúmero: ${selectedDevice?.number || "{numero}"}\n\nStatus: ❌ Desconectado\n\nHorário: ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA reconexão é necessária para continuar operações.`}
+          previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
     </div>
