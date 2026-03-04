@@ -6,7 +6,6 @@ interface AnimateOnViewProps {
   animation?: "fade-in" | "slide-up" | "scale-in";
   delay?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
 }
 
 /**
@@ -18,14 +17,13 @@ const AnimateOnView = ({
   animation = "slide-up",
   delay = 0,
   className = "",
-  as: Tag = "div",
 }: AnimateOnViewProps) => {
   const { ref, className: animClass } = useAnimateOnView({ animation, delay });
 
   return (
-    <Tag ref={ref as any} className={`${animClass} ${className}`.trim()}>
+    <div ref={ref} className={`${animClass} ${className}`.trim()}>
       {children}
-    </Tag>
+    </div>
   );
 };
 
