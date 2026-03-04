@@ -188,7 +188,6 @@ html {
     transition-property: background-color, color, opacity !important;
   }
 
-  /* Sidebar premium */
   .sidebar-premium {
     box-shadow: 1px 0 0 0 hsl(220 12% 12%), 4px 0 12px -2px hsl(0 0% 0% / 0.15);
   }
@@ -205,5 +204,28 @@ html {
       hsl(220 15% 11%) 100%
     );
   }
+}
 
+/* ── Reduced-motion fallback: kill all animations ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Mobile: disable hover transforms for touch devices ── */
+@media (max-width: 768px) {
+  .landing-dark [class*="hover\\:-translate"] {
+    --tw-translate-y: 0 !important;
+  }
+
+  .landing-dark [class*="transition-transform"] {
+    transition-property: opacity !important;
+    transition-duration: 100ms !important;
+  }
 }
