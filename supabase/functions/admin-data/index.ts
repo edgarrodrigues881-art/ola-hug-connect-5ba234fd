@@ -707,6 +707,56 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── TOGGLE NOTIFICATION APPROVAL ───
+    if (action === "toggle-notification" && req.method === "POST") {
+      const { target_user_id, enabled } = await req.json();
+      
+      await adminClient.from("profiles").update({
+        notificacao_liberada: !!enabled,
+        updated_at: new Date().toISOString(),
+      }).eq("id", target_user_id);
+
+      // If enabling, activate any pending notification instances
+      if (enabled) {
+        const { data: notifDevices } = await adminClient.from("devices")
+          .select("id, name")
+          .eq("user_id", target_user_id)
+          .eq("instance_type", "notificacao");
+
+        for (const dev of (notifDevices || [])) {
+          // Dispatch webhook to Make
+          const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+          if (makeUrl) {
+            const { data: tok } = await adminClient.from("user_api_tokens")
+              .select("token, status, healthy").eq("device_id", dev.id).limit(1).maybeSingle();
+            
+            try {
+              await fetch(makeUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  event: "notification.approved",
+                  client_id: target_user_id,
+                  instance: { id: dev.id, name: dev.name, type: "notificacao", status: "aprovada" },
+                  token: tok ? { value: tok.token, status: "em_uso", health: tok.healthy ? "valido" : "invalido" } : null,
+                  timestamp: new Date().toISOString(),
+                }),
+              });
+            } catch (e) {
+              console.log("Make webhook dispatch error:", e.message);
+            }
+          }
+        }
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "toggle-notification",
+        enabled ? "Notificação WhatsApp liberada" : "Notificação WhatsApp bloqueada");
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
