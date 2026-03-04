@@ -31,8 +31,8 @@ const TrustSection = () => (
               style={{ background: "radial-gradient(ellipse at top, rgba(7,193,96,0.06) 0%, transparent 70%)" }}
             />
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 group-hover:bg-[#07C160]/[0.15] transition-colors duration-150">
-                <item.icon className="w-5 h-5 text-[#07C160]/70 group-hover:text-[#07C160] transition-colors duration-150" />
+              <div className="w-10 h-10 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0 group-hover:bg-[#07C160]/[0.15] transition-colors duration-150">
+                <item.icon className="w-5 h-5 flex-shrink-0 text-[#07C160]/70 group-hover:text-[#07C160] transition-colors duration-150" />
               </div>
               <h3 className="text-[15px] font-semibold text-white mb-1.5">{item.title}</h3>
               <p className="text-[12px] text-white/35 leading-relaxed">{item.desc}</p>

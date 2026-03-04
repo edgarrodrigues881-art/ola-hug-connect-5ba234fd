@@ -152,7 +152,7 @@ const HeroSection = () => {
                       {chats.map((chat, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-[8px] border-b border-white/[0.02] last:border-0">
                           {chat.name.startsWith("DG CONTINGENCIA") ? (
-                            <img src={dgRemaster} alt="DG" width={36} height={36} className="w-[36px] h-[36px] rounded-full object-cover flex-shrink-0" />
+                            <img src={dgRemaster} alt="DG" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                           ) : (
                             <div
                               className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"

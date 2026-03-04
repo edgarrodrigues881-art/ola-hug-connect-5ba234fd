@@ -32,8 +32,8 @@ const HowItWorksSection = () => (
             className="group rounded-2xl p-6 border border-[#07C160]/20 hover:-translate-y-[3px] transition-transform duration-150 ease-out"
             style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.95), rgba(10,15,25,0.9))" }}
           >
-            <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4">
-              <item.icon className="w-5 h-5 text-[#07C160]" />
+            <div className="w-11 h-11 rounded-xl bg-[#07C160]/[0.08] border border-[#07C160]/10 flex items-center justify-center mb-4 flex-shrink-0">
+              <item.icon className="w-5 h-5 text-[#07C160] flex-shrink-0" />
             </div>
             <h3 className="text-[15px] font-semibold text-white mb-2">{item.title}</h3>
             <p className="text-[13px] text-white/35 leading-relaxed">{item.desc}</p>
@@ -49,14 +49,14 @@ const HowItWorksSection = () => (
           <div className="pl-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-red-500/[0.08] border border-red-500/10 flex items-center justify-center flex-shrink-0">
-                <XCircle className="w-[18px] h-[18px] text-red-400" />
+                <XCircle className="w-[18px] h-[18px] text-red-400 flex-shrink-0" />
               </div>
               <p className="text-[14px] font-semibold text-white/80">Não é indicado para:</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 pl-1">
               {notFor.map((text, i) => (
                 <div key={i} className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-400/50 flex-shrink-0" />
+                  <div className="w-1.5 h-1.5 min-w-[6px] min-h-[6px] rounded-full bg-red-400/50 flex-shrink-0" />
                   <p className="text-[12px] text-white/40 leading-relaxed">{text}</p>
                 </div>
               ))}
