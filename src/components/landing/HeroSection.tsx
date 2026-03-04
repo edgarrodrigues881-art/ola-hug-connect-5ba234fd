@@ -105,9 +105,9 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      <div className="container relative z-10 py-16 sm:py-20 lg:py-28">
-        <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-12 xl:gap-20 items-center">
+    <section className="relative min-h-screen flex items-center pt-20 pb-10 overflow-x-clip">
+      <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
+        <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
           <div className="max-w-xl animate-fade-in">
             <h1
@@ -154,7 +154,7 @@ const HeroSection = () => {
             />
             <div className="relative">
               <div
-                className="relative w-[260px] sm:w-[280px] lg:w-[300px] xl:w-[320px]"
+                className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
                 style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
               >
                 {/* Border */}
@@ -249,7 +249,7 @@ const HeroSection = () => {
             {/* Floating notifications */}
             <div className="hidden lg:block">
               {/* Notification 1 */}
-              <div className="absolute right-[-50px] xl:right-[-70px] top-[6%] w-[200px] xl:w-[240px]">
+              <div className="absolute right-[-40px] xl:right-[-60px] top-[6%] w-[190px] xl:w-[220px]">
                 <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                   <div className="flex items-center gap-2 mb-3">
