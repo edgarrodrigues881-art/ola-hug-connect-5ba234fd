@@ -212,42 +212,83 @@ Deno.serve(async (req) => {
 
       // Check current status first
       let currentStatus = "";
+      let tokenInvalid = false;
       try {
         const checkRes = await fetch(apiUrl(INSTANCE_BASE_URL, "/instance/status"), { method: "GET", headers: instanceHeaders });
-        const checkData = await checkRes.json();
-        const inst = checkData.instance || checkData;
-        currentStatus = inst.status || checkData.status || "";
+        if (checkRes.status === 401) {
+          console.log("Instance token invalid (401), will recreate");
+          tokenInvalid = true;
+        } else {
+          const checkData = await checkRes.json();
+          const inst = checkData.instance || checkData;
+          currentStatus = inst.status || checkData.status || "";
 
-        // Already connected? Return immediately
-        if (currentStatus === "connected") {
-          const phone = inst.owner || inst.phone || "";
-          let formattedPhone = "";
-          if (phone) {
-            const raw = String(phone).replace(/\D/g, "");
-            if (raw.startsWith("55") && raw.length >= 12) {
-              formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-            } else if (raw) {
-              formattedPhone = `+${raw}`;
+          if (currentStatus === "connected") {
+            const phone = inst.owner || inst.phone || "";
+            let formattedPhone = "";
+            if (phone) {
+              const raw = String(phone).replace(/\D/g, "");
+              if (raw.startsWith("55") && raw.length >= 12) {
+                formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+              } else if (raw) {
+                formattedPhone = `+${raw}`;
+              }
             }
+            if (deviceId) {
+              await serviceClient.from("devices").update({ status: "Ready", number: formattedPhone }).eq("id", deviceId);
+            }
+            return new Response(JSON.stringify({
+              success: true, alreadyConnected: true, phone: formattedPhone, status: "authenticated",
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
-          if (deviceId) {
-            await serviceClient.from("devices").update({ status: "Ready", number: formattedPhone }).eq("id", deviceId);
-          }
-          return new Response(JSON.stringify({
-            success: true, alreadyConnected: true, phone: formattedPhone, status: "authenticated",
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
 
-        // Has QR already? Return it
-        const existingQr = inst.qrcode || checkData.qrcode;
-        if (existingQr && currentStatus === "connecting") {
-          console.log("QR already available, returning immediately");
-          return new Response(JSON.stringify({
-            success: true, base64: existingQr, qr: existingQr, status: "connecting",
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          const existingQr = inst.qrcode || checkData.qrcode;
+          if (existingQr && currentStatus === "connecting") {
+            console.log("QR already available, returning immediately");
+            return new Response(JSON.stringify({
+              success: true, base64: existingQr, qr: existingQr, status: "connecting",
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
         }
       } catch (e) {
         console.log("Status check skipped:", e);
+      }
+
+      // If token is invalid, recreate the instance automatically
+      if (tokenInvalid && ADMIN_BASE_URL && ADMIN_TOKEN && deviceId) {
+        console.log("Recreating instance due to invalid token...");
+        const instName = `inst-${Date.now()}`;
+        let res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+          method: "POST",
+          headers: { "admintoken": ADMIN_TOKEN, "Accept": "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ name: instName }),
+        });
+        if (res.status === 401) {
+          res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+            method: "POST",
+            headers: { "token": ADMIN_TOKEN, "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name: instName }),
+          });
+        }
+        if (res.status === 401) {
+          res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${ADMIN_TOKEN}`, "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name: instName }),
+          });
+        }
+        if (res.ok) {
+          const createData = await res.json();
+          const newToken = createData.token || createData.instance?.token;
+          if (newToken) {
+            INSTANCE_TOKEN = newToken;
+            instanceHeaders["token"] = newToken;
+            await serviceClient.from("devices").update({ uazapi_token: newToken, uazapi_base_url: ADMIN_BASE_URL }).eq("id", deviceId);
+            console.log("Instance recreated with new token");
+          }
+        } else {
+          console.log("Failed to recreate instance:", res.status);
+        }
       }
 
       // Only disconnect if not already disconnected
@@ -267,6 +308,14 @@ Deno.serve(async (req) => {
         headers: instanceHeaders,
         body: JSON.stringify({}),
       });
+
+      // If connect also returns 401, return clear error
+      if (connectRes.status === 401) {
+        return new Response(JSON.stringify({
+          success: false, error: "TOKEN_INVALID",
+          message: "Token da instância inválido. Não foi possível recriar automaticamente.",
+        }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
 
       const connectText = await connectRes.text();
       let connectData;
