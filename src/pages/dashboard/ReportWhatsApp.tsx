@@ -190,44 +190,62 @@ export default function ReportWhatsApp() {
     );
   }
 
+  const getCardStatus = (enabled: boolean, groupId: string | null | undefined) => {
+    if (!enabled) return "off" as const;
+    if (!groupId) return "incomplete" as const;
+    return "active" as const;
+  };
+
+  const warmupStatus = getCardStatus(config?.toggle_warmup ?? false, config?.warmup_group_id);
+  const campaignsStatus = getCardStatus(config?.toggle_campaigns ?? false, config?.campaigns_group_id);
+  const connectionStatus = getCardStatus(config?.alert_disconnect ?? false, config?.connection_group_id);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Radio className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Radio className="w-5 h-5 text-primary" />
+            </div>
             Central de Alertas
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Configure alertas automáticos via WhatsApp sobre suas operações.
+          <p className="text-muted-foreground text-sm mt-1.5 ml-[46px]">
+            Painel de monitoramento e configuração de notificações via WhatsApp.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={sendTestMessage}
-          disabled={sendingTest || !config?.device_id}
-          className="gap-1.5 self-start"
-        >
-          {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          Enviar alerta de teste
-        </Button>
       </div>
 
       {/* Instância de Notificação */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Smartphone className="w-4 h-4" />
-            Instância de Notificação
-          </CardTitle>
+      <Card className="border-border/60">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Smartphone className="w-4 h-4 text-primary" />
+              </div>
+              Instância de Notificação
+            </CardTitle>
+            {selectedDevice && (
+              isConnected ? (
+                <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10 px-3 py-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Online
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1.5 text-xs border-destructive/30 text-destructive bg-destructive/10 px-3 py-1">
+                  <span className="w-2 h-2 rounded-full bg-destructive" /> Offline
+                </Badge>
+              )
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex-1 w-full">
+              <Label className="text-xs font-medium mb-2 block text-muted-foreground">Selecionar instância</Label>
               <Select value={config?.device_id || ""} onValueChange={handleDeviceSelect}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Selecione uma instância conectada" />
                 </SelectTrigger>
                 <SelectContent>
@@ -246,37 +264,46 @@ export default function ReportWhatsApp() {
           </div>
 
           {selectedDevice && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 rounded-lg bg-muted/40 border">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">WhatsApp conectado:</span>
-                  <span className="font-medium">{selectedDevice.number || "Sem número"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Status:</span>
-                  {isConnected ? (
-                    <Badge variant="outline" className="gap-1 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Conectado
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="gap-1 text-xs border-destructive/30 text-destructive bg-destructive/10">
-                      <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> Desconectado
-                    </Badge>
-                  )}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
+              <div className="flex-1 space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Número</p>
+                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.number || "Sem número"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Instância</p>
+                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.name}</p>
+                  </div>
                 </div>
                 {groups.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{groups.length} grupos encontrados</p>
+                  <p className="text-xs text-muted-foreground">
+                    <Users className="w-3 h-3 inline mr-1" />{groups.length} grupos disponíveis
+                  </p>
                 )}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => config?.device_id && fetchGroups(config.device_id)}
-                disabled={!config?.device_id || loadingGroups}
-              >
-                {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
-                Atualizar grupos
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => config?.device_id && fetchGroups(config.device_id)}
+                  disabled={!config?.device_id || loadingGroups}
+                  className="gap-1.5"
+                >
+                  {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  Atualizar grupos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={sendTestMessage}
+                  disabled={sendingTest || !config?.device_id}
+                  className="gap-1.5"
+                >
+                  {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Enviar teste
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -284,11 +311,11 @@ export default function ReportWhatsApp() {
 
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Aquecimento */}
         <AlertCard
-          icon={<Flame className="w-5 h-5 text-orange-500" />}
+          icon={<Flame className="w-6 h-6 text-orange-500" />}
           title="Relatórios de Aquecimento"
           description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
+          status={warmupStatus}
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
@@ -296,19 +323,17 @@ export default function ReportWhatsApp() {
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
           infoItems={[
-            { icon: <Clock className="w-3.5 h-3.5" />, text: "Frequência automática: 24 horas" },
+            { icon: <Clock className="w-4 h-4" />, label: "Frequência", value: "24 horas (automática)" },
           ]}
-          monitoredEvents={[
-            "Ciclo de aquecimento concluído",
-          ]}
+          monitoredEvents={["Ciclo de aquecimento concluído"]}
           previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
 
-        {/* Campanhas */}
         <AlertCard
-          icon={<Megaphone className="w-5 h-5 text-blue-500" />}
+          icon={<Megaphone className="w-6 h-6 text-blue-500" />}
           title="Relatórios de Campanhas"
           description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
+          status={campaignsStatus}
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
@@ -316,22 +341,17 @@ export default function ReportWhatsApp() {
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
           infoItems={[
-            { icon: <Zap className="w-3.5 h-3.5" />, text: "Tempo médio de envio: < 10 segundos" },
+            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 10 segundos" },
           ]}
-          monitoredEvents={[
-            "Campanha iniciada",
-            "Campanha pausada",
-            "Campanha finalizada",
-            "Falhas detectadas",
-          ]}
+          monitoredEvents={["Campanha iniciada", "Campanha pausada", "Campanha finalizada", "Falhas detectadas"]}
           previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: {total}\n\n✅ Mensagens enviadas: {enviadas}\n📬 Mensagens entregues: {entregues}\n\n❌ Falhas registradas: {falhas}\n⏳ Pendentes: {pendentes}\n\n⏱ Tempo total de execução:\n{tempo_execucao}\n\nStatus da campanha: Concluída`}
         />
 
-        {/* Conexão */}
         <AlertCard
-          icon={<Plug className="w-5 h-5 text-emerald-500" />}
+          icon={<Plug className="w-6 h-6 text-emerald-500" />}
           title="Alertas de Conexão"
           description="Alertas enviados automaticamente quando o status da instância muda."
+          status={connectionStatus}
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
@@ -339,13 +359,9 @@ export default function ReportWhatsApp() {
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
           infoItems={[
-            { icon: <Zap className="w-3.5 h-3.5" />, text: "Tempo médio de envio: < 5 segundos" },
+            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 5 segundos" },
           ]}
-          monitoredEvents={[
-            "Instância conectada",
-            "Instância desconectada",
-            "QR Code gerado",
-          ]}
+          monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${selectedDevice?.name || "{nome_instancia}"}\nNúmero: ${selectedDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
@@ -358,37 +374,54 @@ interface AlertCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
+  status: "active" | "incomplete" | "off";
   groups: WhatsAppGroup[];
   selectedGroupId: string;
   onGroupSelect: (id: string) => void;
   enabled: boolean;
   onToggle: (v: boolean) => void;
   loadingGroups: boolean;
-  infoItems: { icon: React.ReactNode; text: string }[];
+  infoItems: { icon: React.ReactNode; label: string; value: string }[];
   monitoredEvents: string[];
   previewMessage: string;
 }
 
 function AlertCard({
-  icon, title, description, groups, selectedGroupId,
+  icon, title, description, status, groups, selectedGroupId,
   onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
+  const statusBadge = {
+    active: { label: "Ativo", className: "border-emerald-500/30 text-emerald-500 bg-emerald-500/10" },
+    incomplete: { label: "Configuração incompleta", className: "border-yellow-500/30 text-yellow-500 bg-yellow-500/10" },
+    off: { label: "Desativado", className: "border-destructive/30 text-destructive bg-destructive/10" },
+  }[status];
+
   return (
     <>
-      <Card className="flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">{icon}{title}</CardTitle>
-          <CardDescription className="text-xs">{description}</CardDescription>
+      <Card className="flex flex-col border-border/60">
+        <CardHeader className="pb-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
+                {icon}
+              </div>
+              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            </div>
+            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${statusBadge.className}`}>
+              {statusBadge.label}
+            </Badge>
+          </div>
+          <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 flex-1">
+        <CardContent className="space-y-5 flex-1 pt-0">
           {/* Group selector */}
           <div>
-            <Label className="text-xs font-medium mb-1.5 block">Selecionar Grupo</Label>
+            <Label className="text-[11px] font-semibold mb-2 block text-muted-foreground uppercase tracking-wider">Grupo de destino</Label>
             <Select value={selectedGroupId} onValueChange={onGroupSelect}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder={loadingGroups ? "Carregando..." : "Selecione um grupo"} />
               </SelectTrigger>
               <SelectContent>
@@ -413,7 +446,8 @@ function AlertCard({
               </SelectContent>
             </Select>
             {selectedGroup && (
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex items-center gap-2 mt-2 px-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
                 <p className="text-[11px] text-muted-foreground truncate">{selectedGroup.name}</p>
                 {selectedGroup.participants && (
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5">
@@ -425,29 +459,35 @@ function AlertCard({
           </div>
 
           {/* Toggle */}
-          <div className="flex items-center justify-between p-2 rounded-md bg-muted/30">
-            <Label className="text-xs font-medium">Ativar envio</Label>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
+            <div>
+              <Label className="text-xs font-semibold block">Ativar envio para WhatsApp</Label>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{enabled ? "Notificações ativas" : "Notificações desativadas"}</p>
+            </div>
             <Switch checked={enabled} onCheckedChange={onToggle} />
           </div>
 
-          {/* Info items */}
-          <div className="space-y-1.5">
+          {/* Info items - highlighted */}
+          <div className="space-y-2">
             {infoItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                {item.icon}
-                <span>{item.text}</span>
+              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="text-primary">{item.icon}</div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{item.label}</p>
+                  <p className="text-xs font-semibold text-foreground">{item.value}</p>
+                </div>
               </div>
             ))}
           </div>
 
           {/* Monitored events */}
           <div>
-            <Label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">Eventos monitorados</Label>
-            <div className="space-y-1">
+            <Label className="text-[11px] font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">Eventos monitorados</Label>
+            <div className="space-y-1.5">
               {monitoredEvents.map((evt) => (
-                <div key={evt} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                  <span>{evt}</span>
+                <div key={evt} className="flex items-center gap-2 text-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="text-foreground/80">{evt}</span>
                 </div>
               ))}
             </div>
@@ -457,11 +497,11 @@ function AlertCard({
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-xs gap-1.5 mt-auto"
+            className="w-full text-xs gap-2 mt-auto h-9"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="w-3.5 h-3.5" />
-            Visualizar mensagem
+            <Eye className="w-4 h-4" />
+            👁 Ver mensagem
           </Button>
         </CardContent>
       </Card>
@@ -469,8 +509,8 @@ function AlertCard({
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-sm p-0 overflow-hidden">
-          <div className="bg-[#075E54] p-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <div className="bg-[#075E54] p-3.5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
               <Smartphone className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -478,12 +518,12 @@ function AlertCard({
               <p className="text-white/70 text-[11px]">online</p>
             </div>
           </div>
-          <div className="bg-[#ECE5DD] dark:bg-[#0B141A] p-4 min-h-[200px]">
-            <div className="bg-white dark:bg-[#1F2C34] rounded-lg p-3 shadow-sm max-w-[90%] ml-auto">
+          <div className="bg-[#ECE5DD] dark:bg-[#0B141A] p-4 min-h-[220px]">
+            <div className="bg-white dark:bg-[#1F2C34] rounded-lg p-3.5 shadow-sm max-w-[90%] ml-auto">
               <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-[#111B21] dark:text-[#E9EDEF]">
                 {previewMessage}
               </p>
-              <p className="text-[10px] text-[#667781] dark:text-[#8696A0] text-right mt-1.5 flex items-center justify-end gap-1">
+              <p className="text-[10px] text-[#667781] dark:text-[#8696A0] text-right mt-2 flex items-center justify-end gap-1">
                 {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 <CheckCircle2 className="w-3 h-3 text-[#53BDEB]" />
               </p>
