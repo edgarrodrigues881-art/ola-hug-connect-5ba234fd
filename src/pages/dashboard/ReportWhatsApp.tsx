@@ -364,15 +364,8 @@ export default function ReportWhatsApp() {
     );
   }
 
-  const getCardStatus = (enabled: boolean, groupId: string | null | undefined) => {
-    if (!enabled) return "off" as const;
-    if (!groupId) return "incomplete" as const;
-    return "active" as const;
-  };
 
-  const warmupStatus = getCardStatus(config?.toggle_warmup ?? false, config?.warmup_group_id);
-  const campaignsStatus = getCardStatus(config?.toggle_campaigns ?? false, config?.campaigns_group_id);
-  const connectionStatus = getCardStatus(config?.alert_disconnect ?? false, config?.connection_group_id);
+
 
   return (
     <div className="space-y-8">
@@ -489,16 +482,14 @@ export default function ReportWhatsApp() {
           iconColor="orange"
           title="Relatórios de Aquecimento"
           description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
-          status={warmupStatus}
+          
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Clock className="w-4 h-4" />, label: "Frequência", value: "24 horas (automática)" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Ciclo de aquecimento concluído"]}
           previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: {msgs_enviadas}\n📩 Mensagens recebidas: {msgs_recebidas}\n\n🖼 Fotos enviadas: {fotos}\n🎧 Áudios enviados: {audios}\n\n🟢 Status postados: {status}\n👥 Interações em grupos: {grupos_interacoes}\n\n⏱ Última atividade registrada:\n{ultima_atividade}\n\n🔎 Status atual da instância:\n${isConnected ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
@@ -508,16 +499,14 @@ export default function ReportWhatsApp() {
           iconColor="blue"
           title="Relatórios de Campanhas"
           description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
-          status={campaignsStatus}
+          
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 10 segundos" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Campanha iniciada", "Campanha pausada", "Campanha finalizada", "Falhas detectadas"]}
           previewMessage={`📣 CAMPANHA FINALIZADA\n\nCampanha: {nome_campanha}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: {total}\n\n✅ Mensagens enviadas: {enviadas}\n📬 Mensagens entregues: {entregues}\n\n❌ Falhas registradas: {falhas}\n⏳ Pendentes: {pendentes}\n\n⏱ Tempo total de execução:\n{tempo_execucao}\n\nStatus da campanha: Concluída`}
         />
@@ -527,16 +516,14 @@ export default function ReportWhatsApp() {
           iconColor="emerald"
           title="Alertas de Conexão"
           description="Alertas enviados automaticamente quando o status da instância muda."
-          status={connectionStatus}
+          
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
-          infoItems={[
-            { icon: <Zap className="w-4 h-4" />, label: "Tempo de envio", value: "< 5 segundos" },
-          ]}
+          infoItems={[]}
           monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
@@ -805,7 +792,7 @@ interface AlertCardProps {
   iconColor: "orange" | "blue" | "emerald";
   title: string;
   description: string;
-  status: "active" | "incomplete" | "off";
+  
   groups: WhatsAppGroup[];
   selectedGroupId: string;
   onGroupSelect: (id: string) => void;
@@ -818,17 +805,11 @@ interface AlertCardProps {
 }
 
 function AlertCard({
-  icon, iconColor, title, description, status, groups, selectedGroupId,
+  icon, iconColor, title, description, groups, selectedGroupId,
   onGroupSelect, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage,
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
-
-  const statusBadge = {
-    active: { label: "Ativo", className: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10", dot: "bg-emerald-500" },
-    incomplete: { label: "Incompleto", className: "border-yellow-500/30 text-yellow-400 bg-yellow-500/10", dot: "bg-yellow-500" },
-    off: { label: "Desativado", className: "border-destructive/30 text-destructive/80 bg-destructive/10", dot: "bg-destructive" },
-  }[status];
 
   const iconGlow = {
     orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
@@ -839,21 +820,12 @@ function AlertCard({
   return (
     <>
       <Card className="flex flex-col border-border/60 relative overflow-hidden">
-        {/* Top status indicator strip */}
-        <div className={`h-0.5 w-full ${status === "active" ? "bg-emerald-500/50" : status === "incomplete" ? "bg-yellow-500/50" : "bg-muted-foreground/10"}`} />
-
         <CardHeader className="pb-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${iconGlow}`}>
-                {icon}
-              </div>
-              <CardTitle className="text-sm font-bold text-foreground">{title}</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${iconGlow}`}>
+              {icon}
             </div>
-            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 gap-1 ${statusBadge.className}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
-              {statusBadge.label}
-            </Badge>
+            <CardTitle className="text-sm font-bold text-foreground">{title}</CardTitle>
           </div>
           <CardDescription className="text-xs leading-relaxed text-muted-foreground/80">{description}</CardDescription>
         </CardHeader>
@@ -908,20 +880,22 @@ function AlertCard({
             <Switch checked={enabled} onCheckedChange={onToggle} className="transition-all duration-300" />
           </div>
 
-          {/* Info items — badge style */}
-          <div className="space-y-2">
-            {infoItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/[0.04] border border-primary/10">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <div className="text-primary">{item.icon}</div>
+          {/* Info items */}
+          {infoItems.length > 0 && (
+            <div className="space-y-2">
+              {infoItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/[0.04] border border-primary/10">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="text-primary">{item.icon}</div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold">{item.label}</p>
+                    <p className="text-xs font-bold text-foreground mt-0.5">{item.value}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold">{item.label}</p>
-                  <p className="text-xs font-bold text-foreground mt-0.5">{item.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Monitored events */}
           <div>
