@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -21,6 +21,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   const { toast } = useToast();
   const [newTokens, setNewTokens] = useState("");
   const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     setMonitorToken(detail?.profile?.whatsapp_monitor_token || "");
@@ -36,11 +37,31 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "add-tokens", body: { target_user_id: client.id, tokens: lines } },
       {
-        onSuccess: () => {
-          toast({ title: `${lines.length} token(s) adicionado(s)` });
+        onSuccess: (data: any) => {
+          const info = data?.healthy !== undefined
+            ? `${data.total} token(s) adicionado(s) — ${data.healthy} válidos, ${data.invalid} inválidos`
+            : `${lines.length} token(s) adicionado(s)`;
+          toast({ title: info });
           setNewTokens("");
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleValidateAll = () => {
+    setValidating(true);
+    mutate(
+      { action: "validate-tokens", body: { target_user_id: client.id } },
+      {
+        onSuccess: (data: any) => {
+          toast({ title: `${data.total} tokens validados — ${data.healthy} válidos, ${data.invalid} inválidos` });
+          setValidating(false);
+        },
+        onError: (e) => {
+          toast({ title: "Erro", description: e.message, variant: "destructive" });
+          setValidating(false);
+        },
       }
     );
   };
@@ -63,6 +84,8 @@ const ClientTokensTab = ({ client, detail }: Props) => {
 
   const available = tokens.filter((t: any) => t.status === "available").length;
   const inUse = tokens.filter((t: any) => t.status === "in_use").length;
+  const healthyCount = tokens.filter((t: any) => t.healthy === true).length;
+  const invalidCount = tokens.filter((t: any) => t.healthy === false).length;
 
   const handleSaveMonitorToken = () => {
     mutate(
@@ -72,6 +95,18 @@ const ClientTokensTab = ({ client, detail }: Props) => {
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
+  };
+
+  const getHealthIcon = (healthy: boolean | null) => {
+    if (healthy === true) return <ShieldCheck size={14} className="text-emerald-500" />;
+    if (healthy === false) return <ShieldX size={14} className="text-destructive" />;
+    return <ShieldQuestion size={14} className="text-muted-foreground/50" />;
+  };
+
+  const getHealthBadge = (healthy: boolean | null) => {
+    if (healthy === true) return <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30 gap-1"><ShieldCheck size={10} />Válido</Badge>;
+    if (healthy === false) return <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30 gap-1"><ShieldX size={10} />Inválido</Badge>;
+    return <Badge variant="outline" className="text-[10px] text-muted-foreground border-border gap-1"><ShieldQuestion size={10} />Não verificado</Badge>;
   };
 
   return (
@@ -111,16 +146,29 @@ const ClientTokensTab = ({ client, detail }: Props) => {
       {/* Instance Tokens */}
       <div className="bg-card border border-border rounded-lg p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Key size={18} className="text-primary" />
           <h3 className="text-base font-bold text-foreground">Tokens de Instância</h3>
           <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">{available} disponíveis</Badge>
           <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">{inUse} em uso</Badge>
+          {invalidCount > 0 && (
+            <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">{invalidCount} inválidos</Badge>
+          )}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleValidateAll}
+          disabled={validating || isPending || tokens.length === 0}
+          className="gap-1.5 text-xs"
+        >
+          {validating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          Validar todos
+        </Button>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Adicione tokens de instância para este cliente. Quando ele criar uma instância, o próximo token disponível será atribuído automaticamente.
+        Adicione tokens de instância para este cliente. Tokens são validados automaticamente ao adicionar. Tokens inválidos (401) não serão atribuídos a novas instâncias.
       </p>
 
       {/* Add tokens area */}
@@ -146,6 +194,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
             <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
               <th className="text-left px-4 py-2.5">#</th>
               <th className="text-left px-4 py-2.5">Token</th>
+              <th className="text-left px-4 py-2.5">Saúde</th>
               <th className="text-left px-4 py-2.5">Status</th>
               <th className="text-left px-4 py-2.5">Instância</th>
               <th className="text-left px-4 py-2.5">Criado em</th>
@@ -154,9 +203,9 @@ const ClientTokensTab = ({ client, detail }: Props) => {
           </thead>
           <tbody className="divide-y divide-border">
             {tokens.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum token cadastrado</td></tr>
+              <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum token cadastrado</td></tr>
             ) : tokens.map((t: any, idx: number) => (
-              <tr key={t.id} className="hover:bg-muted/30">
+              <tr key={t.id} className={`hover:bg-muted/30 ${t.healthy === false ? "bg-destructive/[0.03]" : ""}`}>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{idx + 1}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-1.5">
@@ -167,6 +216,9 @@ const ClientTokensTab = ({ client, detail }: Props) => {
                       {copiedId === t.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                     </button>
                   </div>
+                </td>
+                <td className="px-4 py-2.5">
+                  {getHealthBadge(t.healthy)}
                 </td>
                 <td className="px-4 py-2.5">
                   <Badge variant="outline" className={`text-[10px] ${t.status === "in_use" ? "text-amber-500 border-amber-500/30" : "text-emerald-500 border-emerald-500/30"}`}>

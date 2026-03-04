@@ -307,16 +307,58 @@ Deno.serve(async (req) => {
     if (action === "create-device" && req.method === "POST") {
       const { target_user_id, name, login_type } = await req.json();
 
-      // Auto-assign next available token from pool
-      const { data: availableToken } = await adminClient.from("user_api_tokens")
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+      // Auto-assign next available AND healthy token from pool
+      // First try healthy=true, then healthy=null (unchecked), skip healthy=false
+      let availableToken: any = null;
+      
+      // Try healthy tokens first
+      const { data: healthyToken } = await adminClient.from("user_api_tokens")
         .select("*")
         .eq("user_id", target_user_id)
         .eq("status", "available")
+        .eq("healthy", true)
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-
-      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      
+      if (healthyToken) {
+        availableToken = healthyToken;
+      } else {
+        // Fallback to unchecked tokens (healthy IS NULL)
+        const { data: uncheckedToken } = await adminClient.from("user_api_tokens")
+          .select("*")
+          .eq("user_id", target_user_id)
+          .eq("status", "available")
+          .is("healthy", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        
+        if (uncheckedToken) {
+          // Validate it before assigning
+          try {
+            const checkRes = await fetch(`${ADMIN_BASE_URL}/instance/status`, {
+              method: "GET",
+              headers: { "token": uncheckedToken.token, "Accept": "application/json" },
+            });
+            const isHealthy = checkRes.status !== 401;
+            await adminClient.from("user_api_tokens").update({
+              healthy: isHealthy,
+              last_checked_at: new Date().toISOString(),
+            }).eq("id", uncheckedToken.id);
+            if (isHealthy) {
+              availableToken = uncheckedToken;
+            } else {
+              console.log(`Token ${uncheckedToken.id} is invalid (401), skipping`);
+            }
+          } catch {
+            // Network error, still assign it
+            availableToken = uncheckedToken;
+          }
+        }
+      }
 
       const { data, error } = await adminClient.from("devices").insert({
         user_id: target_user_id,
@@ -557,24 +599,89 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── ADD TOKENS ───
+    // ─── ADD TOKENS (with auto-validation) ───
     if (action === "add-tokens" && req.method === "POST") {
       const { target_user_id, tokens: tokenList } = await req.json();
-      const inserts = (tokenList || []).map((t: string) => ({
-        user_id: target_user_id,
-        token: t.trim(),
-        admin_id: user.id,
-        status: "available",
-      }));
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      
+      const inserts = [];
+      for (const t of (tokenList || [])) {
+        const token = t.trim();
+        if (!token) continue;
+        
+        // Validate token against API
+        let healthy: boolean | null = null;
+        try {
+          const checkRes = await fetch(`${ADMIN_BASE_URL}/instance/status`, {
+            method: "GET",
+            headers: { "token": token, "Accept": "application/json" },
+          });
+          healthy = checkRes.status !== 401;
+          console.log(`Token validation: ${token.substring(0, 8)}... -> ${checkRes.status} -> healthy=${healthy}`);
+        } catch (e) {
+          console.log(`Token validation failed for ${token.substring(0, 8)}...: ${e.message}`);
+        }
+        
+        inserts.push({
+          user_id: target_user_id,
+          token,
+          admin_id: user.id,
+          status: "available",
+          healthy,
+          last_checked_at: healthy !== null ? new Date().toISOString() : null,
+        });
+      }
+      
       if (inserts.length > 0) {
         const { error } = await adminClient.from("user_api_tokens").insert(inserts);
         if (error) throw error;
       }
-      await logAction(adminClient, user.id, target_user_id, "add-tokens", `${inserts.length} token(s) adicionado(s)`);
-      return new Response(JSON.stringify({ success: true }), {
+      
+      const healthyCount = inserts.filter(i => i.healthy === true).length;
+      const invalidCount = inserts.filter(i => i.healthy === false).length;
+      await logAction(adminClient, user.id, target_user_id, "add-tokens", `${inserts.length} token(s) adicionado(s) (${healthyCount} válidos, ${invalidCount} inválidos)`);
+      return new Response(JSON.stringify({ success: true, total: inserts.length, healthy: healthyCount, invalid: invalidCount }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ─── VALIDATE TOKENS ───
+    if (action === "validate-tokens" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      
+      const { data: allTokens } = await adminClient.from("user_api_tokens")
+        .select("id, token, status")
+        .eq("user_id", target_user_id);
+      
+      let healthyCount = 0;
+      let invalidCount = 0;
+      
+      for (const t of (allTokens || [])) {
+        try {
+          const checkRes = await fetch(`${ADMIN_BASE_URL}/instance/status`, {
+            method: "GET",
+            headers: { "token": t.token, "Accept": "application/json" },
+          });
+          const isHealthy = checkRes.status !== 401;
+          await adminClient.from("user_api_tokens").update({
+            healthy: isHealthy,
+            last_checked_at: new Date().toISOString(),
+          }).eq("id", t.id);
+          if (isHealthy) healthyCount++;
+          else invalidCount++;
+          console.log(`Validate ${t.token.substring(0, 8)}... -> ${checkRes.status} -> ${isHealthy}`);
+        } catch (e) {
+          console.log(`Validate error for ${t.token.substring(0, 8)}...: ${e.message}`);
+        }
+      }
+      
+      await logAction(adminClient, user.id, target_user_id, "validate-tokens", `${allTokens?.length || 0} tokens validados (${healthyCount} válidos, ${invalidCount} inválidos)`);
+      return new Response(JSON.stringify({ success: true, total: allTokens?.length || 0, healthy: healthyCount, invalid: invalidCount }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     // ─── DELETE TOKEN ───
     if (action === "delete-token" && req.method === "POST") {

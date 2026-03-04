@@ -929,8 +929,10 @@ export type Database = {
           assigned_at: string | null
           created_at: string
           device_id: string | null
+          healthy: boolean | null
           id: string
           label: string | null
+          last_checked_at: string | null
           status: string
           token: string
           user_id: string
@@ -940,8 +942,10 @@ export type Database = {
           assigned_at?: string | null
           created_at?: string
           device_id?: string | null
+          healthy?: boolean | null
           id?: string
           label?: string | null
+          last_checked_at?: string | null
           status?: string
           token: string
           user_id: string
@@ -951,8 +955,10 @@ export type Database = {
           assigned_at?: string | null
           created_at?: string
           device_id?: string | null
+          healthy?: boolean | null
           id?: string
           label?: string | null
+          last_checked_at?: string | null
           status?: string
           token?: string
           user_id?: string
