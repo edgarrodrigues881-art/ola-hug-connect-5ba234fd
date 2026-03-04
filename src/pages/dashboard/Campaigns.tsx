@@ -162,8 +162,11 @@ const Campaigns = () => {
       return copy;
     });
   };
+  const [rotateMessages, setRotateMessages] = useState(true);
   const allMessages = messages.filter(m => m.trim());
-  const combinedMessage = allMessages.join("|||");
+  const combinedMessage = allMessages.length > 1 
+    ? (rotateMessages ? allMessages.join("|||") : allMessages.join("|&&|"))
+    : allMessages[0] || "";
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
@@ -272,6 +275,7 @@ const Campaigns = () => {
           if (draft.campaignName) setCampaignName(draft.campaignName);
           if (draft.messages) setMessages(draft.messages);
           else if (draft.message) setMessages(prev => { const c = [...prev]; c[0] = draft.message; return c; });
+          if (draft.rotateMessages !== undefined) setRotateMessages(draft.rotateMessages);
           if (draft.messageType) setMessageType(draft.messageType);
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
@@ -328,16 +332,16 @@ const Campaigns = () => {
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
-      campaignName, messages, messageType, mediaUrl, contacts,
+      campaignName, messages, rotateMessages, messageType, mediaUrl, contacts,
       buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, messages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, messages, rotateMessages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
-    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setMediaUrl(""); setMediaFileName("");
+    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotateMessages(true); setMediaUrl(""); setMediaFileName("");
     setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
     setSelectedTemplate("nova");
     toast({ title: "Mensagem limpa" });
@@ -951,6 +955,27 @@ const Campaigns = () => {
                       {allMessages.length}/5 ativas
                     </span>
                   </div>
+
+                  {/* Rotation toggle - only show when multiple messages */}
+                  {allMessages.length > 1 && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/10 border border-border/10">
+                      <Switch checked={rotateMessages} onCheckedChange={setRotateMessages} />
+                      <div className="flex-1">
+                        <p className="text-[12px] font-medium text-foreground/80">
+                          {rotateMessages ? "Rotacionar mensagens" : "Enviar todas as mensagens"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                          {rotateMessages 
+                            ? "Uma mensagem aleatória será escolhida para cada contato" 
+                            : "Todas as mensagens serão enviadas para cada contato em sequência"}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-border/20">
+                        {rotateMessages ? <Sparkles className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
+                        {rotateMessages ? "Aleatório" : "Sequencial"}
+                      </Badge>
+                    </div>
+                  )}
                   
                   {/* Toolbar */}
                   <div className="flex items-center gap-0.5 flex-wrap p-1.5 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/10">

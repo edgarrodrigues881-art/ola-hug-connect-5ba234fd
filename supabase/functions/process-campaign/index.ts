@@ -313,7 +313,12 @@ Deno.serve(async (req) => {
       let sentCount = campaign.sent_count || 0;
       let failedCount = campaign.failed_count || 0;
       const messageContent = campaign.message_content || "";
-      const messageVariants = messageContent.includes("|||") ? messageContent.split("|||").filter((m: string) => m.trim()) : [messageContent];
+      const sendAllMode = messageContent.includes("|&&|");
+      const messageVariants = sendAllMode 
+        ? messageContent.split("|&&|").filter((m: string) => m.trim())
+        : messageContent.includes("|||") 
+          ? messageContent.split("|||").filter((m: string) => m.trim()) 
+          : [messageContent];
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
@@ -365,11 +370,21 @@ Deno.serve(async (req) => {
                   }
                   break;
                 }
-                // Skip delay — number doesn't exist, move to next immediately
                 console.log(`Number ${normalized} invalid, skipping without delay`);
                 continue;
               }
-              await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
+              if (sendAllMode && messageVariants.length > 1) {
+                // Send all messages sequentially to same contact
+                for (let mi = 0; mi < messageVariants.length; mi++) {
+                  const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
+                  await sendUazapiMessage(devBaseUrl, devToken, normalized, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                  if (mi < messageVariants.length - 1) {
+                    await new Promise(r => setTimeout(r, randomBetween(2000, 5000)));
+                  }
+                }
+              } else {
+                await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
+              }
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
 
@@ -498,7 +513,18 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+            if (sendAllMode && messageVariants.length > 1) {
+              // Send all messages sequentially to same contact
+              for (let mi = 0; mi < messageVariants.length; mi++) {
+                const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
+                await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                if (mi < messageVariants.length - 1) {
+                  await new Promise(r => setTimeout(r, randomBetween(2000, 5000)));
+                }
+              }
+            } else {
+              await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+            }
             await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
             sentCount++;
             batchSent++;
