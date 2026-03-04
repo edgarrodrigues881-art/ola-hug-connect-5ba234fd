@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, Key, Lock, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 
 interface WhatsAppGroup {
@@ -849,6 +850,7 @@ function AlertCard({
 }: AlertCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
   const filteredGroups = groups.filter((g) => 
     g.name.toLowerCase().includes(groupSearch.toLowerCase())
