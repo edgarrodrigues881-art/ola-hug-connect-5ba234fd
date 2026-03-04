@@ -392,7 +392,7 @@ export default function ReportWhatsApp() {
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
               <Radio className="w-5 h-5 text-primary" />
             </div>
-            Central de Alertas
+            Relatório Via WhatsApp
           </h1>
           <p className="text-muted-foreground text-sm mt-1.5 ml-[46px]">
             Painel de monitoramento e configuração de notificações via WhatsApp.
