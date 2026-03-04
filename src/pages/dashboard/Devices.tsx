@@ -998,37 +998,40 @@ const Devices = () => {
 
     try {
       // If device has no instance config, initialize it automatically
-      if (!connectingDevice.uazapi_token) {
-        try {
+      const ensureInstance = async () => {
+        if (!connectingDevice.uazapi_token) {
           const createResult = await callApi({
             action: "createInstance",
             deviceId: connectingDevice.id,
             instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
           });
-          // Update local device state with new token
           connectingDevice.uazapi_token = createResult.instanceToken;
           connectingDevice.uazapi_base_url = createResult.baseUrl;
           queryClient.invalidateQueries({ queryKey: ["devices"] });
-        } catch (createErr: any) {
-          console.error("Create instance error:", createErr);
-          throw new Error("Erro ao preparar instância. Tente novamente ou entre em contato com o suporte.");
         }
+      };
+
+      try {
+        await ensureInstance();
+      } catch (createErr: any) {
+        console.error("Create instance error:", createErr);
+        throw new Error("Erro ao preparar instância. Tente novamente ou entre em contato com o suporte.");
       }
 
       // Now connect (triggers QR)
       let qrFound = false;
+      // Build proxy config if selected
+      const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      const proxyPayload = selectedProxyData ? {
+        host: selectedProxyData.host,
+        port: selectedProxyData.port,
+        username: selectedProxyData.username,
+        password: selectedProxyData.password,
+        type: selectedProxyData.type,
+      } : undefined;
+
       // QR: initial connect call
       try {
-        // Build proxy config if selected
-        const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
-        const proxyPayload = selectedProxyData ? {
-          host: selectedProxyData.host,
-          port: selectedProxyData.port,
-          username: selectedProxyData.username,
-          password: selectedProxyData.password,
-          type: selectedProxyData.type,
-        } : undefined;
-
         const connectResult = await callApi({
           action: "connect",
           deviceId: connectingDevice.id,
@@ -1049,8 +1052,31 @@ const Devices = () => {
           setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
           qrFound = true;
         }
-      } catch (e) {
-        console.error("Connect error");
+      } catch (connectErr: any) {
+        console.error("Connect error, recreating instance:", connectErr);
+        // Token might be invalid — recreate the instance
+        try {
+          connectingDevice.uazapi_token = null;
+          await ensureInstance();
+          const retryResult = await callApi({
+            action: "connect",
+            deviceId: connectingDevice.id,
+            proxyConfig: proxyPayload,
+          });
+          if (retryResult.alreadyConnected) {
+            queryClient.invalidateQueries({ queryKey: ["devices"] });
+            setConnectStep("done");
+            setConnectOpen(false);
+            return;
+          }
+          const b64 = retryResult.base64 || retryResult.qr;
+          if (b64) {
+            setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+            qrFound = true;
+          }
+        } catch (retryErr) {
+          console.error("Retry connect also failed:", retryErr);
+        }
       }
 
       // If first call didn't return QR, poll with status (no disconnect)
