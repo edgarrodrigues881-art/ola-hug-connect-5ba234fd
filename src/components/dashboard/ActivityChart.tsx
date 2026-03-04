@@ -15,7 +15,7 @@ interface Props {
 
 export function ActivityChart({ data }: Props) {
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="border-border/50 bg-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-muted-foreground" />

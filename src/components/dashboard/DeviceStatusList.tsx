@@ -23,7 +23,7 @@ const statusConfig: Record<string, { dot: string; label: string }> = {
 
 export function DeviceStatusList({ devices, loading }: Props) {
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm h-full">
+    <Card className="border-border/50 bg-card h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-emerald-400" />
