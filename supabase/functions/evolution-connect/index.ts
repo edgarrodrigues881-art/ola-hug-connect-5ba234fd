@@ -189,7 +189,9 @@ Deno.serve(async (req) => {
     // ── Helper: auto-create or recreate instance ──
     const ensureValidInstance = async (): Promise<boolean> => {
       if (!BASE_URL || !ADMIN_TOKEN) return false;
-      const uniqueName = deviceName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + deviceId.slice(0, 8);
+      const slug = deviceName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const rand = crypto.randomUUID().slice(0, 6);
+      const uniqueName = `${slug}-${deviceId.slice(0, 8)}-${rand}`;
       console.log("Creating/recreating instance:", uniqueName);
       const result = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, uniqueName);
       if (!result.ok || !result.token) {
