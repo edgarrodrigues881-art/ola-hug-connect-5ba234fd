@@ -159,6 +159,7 @@ const Devices = () => {
       const { data, error } = await supabase
         .from("devices")
         .select("*")
+        .neq("login_type", "report_wa")
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });
       if (error) throw error;
