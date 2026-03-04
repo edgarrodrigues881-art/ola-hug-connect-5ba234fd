@@ -245,6 +245,17 @@
   will-change: transform;
 }
 
+/* ── Card hover micro-interaction (desktop only) ── */
+@media (min-width: 769px) {
+  .card-hover-lift {
+    transition: transform 150ms ease-out, border-color 150ms ease-out;
+  }
+  .card-hover-lift:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: rgba(7, 193, 96, 0.3);
+  }
+}
+
 /* ── Reduced-motion fallback: kill all animations ── */
 @media (prefers-reduced-motion: reduce) {
   *,

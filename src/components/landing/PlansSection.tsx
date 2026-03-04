@@ -56,7 +56,7 @@ const PlansSection = () => {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl ${
+              className={`relative flex flex-col rounded-2xl card-hover-lift ${
                 plan.popular
                   ? "border border-emerald-600/25"
                   : "border border-white/[0.06]"
