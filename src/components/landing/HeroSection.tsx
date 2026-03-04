@@ -106,26 +106,26 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      <div className="container relative z-10 py-20 lg:py-28">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="container relative z-10 py-16 sm:py-20 lg:py-28">
+        <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-12 xl:gap-20 items-center">
           {/* Left — Copy */}
           <div className="max-w-xl animate-fade-in">
             <h1
-              className="text-[2.8rem] sm:text-[3.2rem] lg:text-[3.75rem] font-semibold text-white leading-[1.1] mb-7 tracking-[-0.02em]"
+              className="text-3xl sm:text-4xl md:text-[3.2rem] lg:text-[3.5rem] xl:text-[3.75rem] font-semibold text-white leading-[1.1] mb-6 sm:mb-7 tracking-[-0.02em]"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
               <span className="text-[#07C160]">segurança.</span>
             </h1>
 
-            <p className="text-base lg:text-lg text-white/40 leading-relaxed mb-10 max-w-lg">
+            <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-relaxed mb-8 sm:mb-10 max-w-lg">
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <Button
                 onClick={() => navigate("/auth")}
-                className="h-14 px-10 text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
+                className="h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
               >
                 Começar Agora
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -154,8 +154,8 @@ const HeroSection = () => {
             />
             <div className="relative">
               <div
-                className="relative w-[300px] lg:w-[320px]"
-                style={{ transform: "rotateY(-8deg) rotateX(2deg)" }}
+                className="relative w-[260px] sm:w-[280px] lg:w-[300px] xl:w-[320px]"
+                style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
               >
                 {/* Border */}
                 <div
@@ -249,7 +249,7 @@ const HeroSection = () => {
             {/* Floating notifications */}
             <div className="hidden lg:block">
               {/* Notification 1 */}
-              <div className="absolute right-[-70px] top-[6%] w-[240px]">
+              <div className="absolute right-[-50px] xl:right-[-70px] top-[6%] w-[200px] xl:w-[240px]">
                 <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                   <div className="flex items-center gap-2 mb-3">
@@ -288,7 +288,7 @@ const HeroSection = () => {
               </div>
 
               {/* Notification 2 — Progress ring */}
-              <div className="absolute left-[-55px] top-[25%]">
+              <div className="absolute left-[-40px] xl:left-[-55px] top-[25%]">
                 <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                   <div className="flex items-center gap-3">
