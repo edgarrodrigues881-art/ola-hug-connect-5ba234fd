@@ -254,7 +254,7 @@ export default function ReportWhatsApp() {
               </div>
               Instância de Notificação
             </CardTitle>
-            {selectedDevice && (
+            {reportDevice && (
               isConnected ? (
                 <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10 px-3 py-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Online
@@ -268,50 +268,32 @@ export default function ReportWhatsApp() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-1 w-full">
-              <Label className="text-xs font-medium mb-2 block text-muted-foreground">Selecionar instância</Label>
-              <Select value={config?.device_id || ""} onValueChange={handleDeviceSelect}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Selecione uma instância conectada" />
-                </SelectTrigger>
-                <SelectContent>
-                  {connectedDevices.length === 0 ? (
-                    <SelectItem value="none" disabled>Nenhuma instância conectada</SelectItem>
-                  ) : (
-                    connectedDevices.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.name} {d.number ? `(${d.number})` : ""}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {connectedDevices.length === 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/dashboard/devices")}
-                  className="mt-2 gap-1.5 text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Criar instância
-                </Button>
-              )}
+          {!reportDevice ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+              <Smartphone className="w-10 h-10 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground text-center">
+                Nenhuma instância de relatório configurada.
+              </p>
+              <Button
+                onClick={handleCreateReportInstance}
+                disabled={creatingInstance}
+                className="gap-1.5"
+              >
+                {creatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Criar instância "Relatorio Via Whatsapp"
+              </Button>
             </div>
-          </div>
-
-          {selectedDevice && (
+          ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
               <div className="flex-1 space-y-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Número</p>
-                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.number || "Sem número"}</p>
+                    <p className="text-sm font-semibold mt-0.5">{reportDevice.number || "Sem número"}</p>
                   </div>
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Instância</p>
-                    <p className="text-sm font-semibold mt-0.5">{selectedDevice.name}</p>
+                    <p className="text-sm font-semibold mt-0.5">{reportDevice.name}</p>
                   </div>
                 </div>
                 {groups.length > 0 && (
@@ -324,8 +306,8 @@ export default function ReportWhatsApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => config?.device_id && fetchGroups(config.device_id)}
-                  disabled={!config?.device_id || loadingGroups}
+                  onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+                  disabled={!reportDevice?.id || loadingGroups}
                   className="gap-1.5"
                 >
                   {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -335,7 +317,7 @@ export default function ReportWhatsApp() {
                   variant="outline"
                   size="sm"
                   onClick={sendTestMessage}
-                  disabled={sendingTest || !config?.device_id}
+                  disabled={sendingTest || !reportDevice?.id}
                   className="gap-1.5"
                 >
                   {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
