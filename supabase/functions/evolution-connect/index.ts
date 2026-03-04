@@ -256,8 +256,11 @@ Deno.serve(async (req) => {
 
       // If token is invalid, recreate the instance automatically
       if (tokenInvalid && ADMIN_BASE_URL && ADMIN_TOKEN && deviceId) {
-        console.log("Recreating instance due to invalid token...");
-        const instName = `inst-${Date.now()}`;
+        // Get device name for UaZapi instance name
+        const { data: deviceData } = await serviceClient.from("devices").select("name").eq("id", deviceId).single();
+        const deviceName = deviceData?.name || `inst-${Date.now()}`;
+        const instName = deviceName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + deviceId.slice(0, 8);
+        console.log("Recreating instance due to invalid token, name:", instName);
         let res = await fetch(apiUrl(ADMIN_BASE_URL, "/instance/init"), {
           method: "POST",
           headers: { "admintoken": ADMIN_TOKEN, "Accept": "application/json", "Content-Type": "application/json" },
