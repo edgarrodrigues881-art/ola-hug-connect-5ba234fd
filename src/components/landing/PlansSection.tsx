@@ -56,10 +56,10 @@ const PlansSection = () => {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl transition-transform duration-150 ease-out ${
+              className={`relative flex flex-col rounded-2xl ${
                 plan.popular
-                  ? "border border-emerald-600/25 hover:border-emerald-600/40 hover:-translate-y-[3px]"
-                  : "border border-white/[0.06] hover:border-white/[0.1] hover:-translate-y-[3px]"
+                  ? "border border-emerald-600/25"
+                  : "border border-white/[0.06]"
               }`}
             >
               <div

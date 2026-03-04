@@ -1,6 +1,4 @@
-html {
-  scroll-behavior: smooth;
-}
+/* scroll-behavior: smooth removed — causes jank on some devices */
 
 #lovable-badge {
   display: none !important;
