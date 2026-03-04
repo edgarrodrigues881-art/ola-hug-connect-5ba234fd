@@ -89,26 +89,47 @@ Deno.serve(async (req) => {
     };
 
     if (action === "list_chats") {
-      // UaZapi V2 endpoint: GET /group/list — try with GetParticipants=false for speed
-      const endpoint = `${apiBaseUrl}/group/list?GetParticipants=false`;
-      console.log(`Fetching groups from: ${endpoint}`);
+      // UaZapi V2: fetch ALL groups using pagination
+      const allGroups: any[] = [];
+      const seenJids = new Set<string>();
       
-      const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
-      const data = await res.json();
-      console.log(`Group list status: ${res.status}, isArray: ${Array.isArray(data)}, keys: ${Object.keys(data || {}).join(",")}`);
-      
-      const groups = data.groups || data || [];
-      const groupArray = Array.isArray(groups) ? groups : [];
-      
-      if (groupArray.length > 0) {
-        console.log(`Found ${groupArray.length} groups. First 3 names: ${groupArray.slice(0, 3).map((g: any) => g.Name || g.name || g.Subject || "?").join(", ")}`);
-        console.log(`Last 3 names: ${groupArray.slice(-3).map((g: any) => g.Name || g.name || g.Subject || "?").join(", ")}`);
-      } else {
-        console.log(`No groups found. Response: ${JSON.stringify(data).substring(0, 500)}`);
+      // Try multiple pages to get all groups
+      const maxPages = 5;
+      for (let page = 0; page < maxPages; page++) {
+        const endpoint = `${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`;
+        console.log(`Fetching groups page ${page}: ${endpoint}`);
+        
+        const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+        if (!res.ok) {
+          console.log(`Page ${page} failed: ${res.status}`);
+          break;
+        }
+        const data = await res.json();
+        const groups = data.groups || data || [];
+        const groupArray = Array.isArray(groups) ? groups : [];
+        
+        if (groupArray.length === 0) break;
+        
+        let newCount = 0;
+        for (const g of groupArray) {
+          const jid = g.JID || g.jid || g.id || "";
+          if (jid && !seenJids.has(jid)) {
+            seenJids.add(jid);
+            allGroups.push(g);
+            newCount++;
+          }
+        }
+        
+        console.log(`Page ${page}: ${groupArray.length} returned, ${newCount} new. Total unique: ${allGroups.length}`);
+        
+        // If no new groups were found, we've got them all
+        if (newCount === 0) break;
       }
+      
+      console.log(`Total unique groups: ${allGroups.length}`);
 
       // Map to standardized format
-      const chats = groupArray.map((g: any) => ({
+      const chats = allGroups.map((g: any) => ({
         id: g.JID || g.jid || g.id || g.groupJid || "",
         name: g.Name || g.name || g.Subject || g.subject || g.groupName || "Grupo sem nome",
         participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
