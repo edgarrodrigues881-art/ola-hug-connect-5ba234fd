@@ -43,19 +43,19 @@ const PlansSection = () => {
   };
 
   return (
-    <section id="planos" className="py-20 px-6 scroll-mt-24">
-      <div className="max-w-6xl mx-auto">
+    <section id="planos" className="py-24 lg:py-32 px-6 scroll-mt-24">
+      <div className="max-w-7xl mx-auto">
         <AnimateOnView animation="slide-up">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3 text-white">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 text-white">
             Escolha o plano ideal para escalar sua operação com estabilidade
           </h2>
-          <p className="text-white/30 text-center text-sm mb-14 max-w-xl mx-auto leading-relaxed">
+          <p className="text-white/30 text-center text-base mb-16 max-w-2xl mx-auto leading-relaxed">
             Todos os planos incluem aquecimento automatizado, disparador inteligente e monitoramento em tempo real.
             <br />A diferença está na capacidade operacional e nível de suporte.
           </p>
         </AnimateOnView>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan, i) => (
             <AnimateOnView key={plan.name} animation="slide-up" delay={Math.min(i + 1, 4)}>
               <div
@@ -66,35 +66,35 @@ const PlansSection = () => {
                 }`}
               >
               <div
-                className={`relative flex flex-col rounded-2xl p-7 h-full ${
+                className={`relative flex flex-col rounded-2xl p-8 h-full ${
                   plan.popular ? "bg-[#0d1318]" : "bg-[#0f1419]"
                 }`}
               >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-semibold uppercase tracking-widest px-4 py-1 rounded-full whitespace-nowrap">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-semibold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap">
                     Recomendado
                   </span>
                 )}
 
-                <h3 className="text-lg font-semibold mt-1 text-white/90">{plan.name}</h3>
-                <p className="text-xs text-white/30 mb-1">{plan.instances} instâncias</p>
-                <p className="text-[11px] text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
+                <h3 className="text-xl font-semibold mt-1 text-white/90">{plan.name}</h3>
+                <p className="text-sm text-white/30 mb-1">{plan.instances} instâncias</p>
+                <p className="text-xs text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
                 {plan.extraCopy && (
-                  <p className="text-[11px] text-emerald-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
+                  <p className="text-xs text-emerald-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
                 )}
                 {!plan.extraCopy && <div className="mb-3" />}
 
-                <div className="mb-1">
-                  <span className="text-3xl font-bold text-white/90">R$ {plan.price}</span>
-                  <span className="text-white/20 text-sm"> / mês</span>
+                <div className="mb-2">
+                  <span className="text-4xl font-bold text-white/90">R$ {plan.price}</span>
+                  <span className="text-white/20 text-base"> / mês</span>
                 </div>
 
-                <div className="h-px bg-white/[0.05] mb-6" />
+                <div className="h-px bg-white/[0.05] mb-7" />
 
-                <div className="space-y-3 mb-8 flex-1">
+                <div className="space-y-3.5 mb-8 flex-1">
                   {plan.features.map((f, fi) => (
-                    <div key={fi} className="flex items-center gap-2.5 text-sm text-white/40">
-                      <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-white/20 shrink-0" />
+                    <div key={fi} className="flex items-center gap-3 text-sm text-white/40">
+                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-white/20 shrink-0" />
                       {f}
                     </div>
                   ))}
