@@ -50,15 +50,17 @@ const HeroSection = () => {
 
           {/* Right — Phone */}
           <div className="relative flex items-center justify-center animate-fade-in" style={{ animationDelay: "80ms" }}>
-            <img 
-              src={heroPhone} 
-              alt="WhatsApp mockup" 
-              className="w-[280px] lg:w-[340px] h-auto relative z-10"
-              style={{ 
-                mixBlendMode: "screen",
-                filter: "drop-shadow(0 0 30px rgba(7,193,96,0.12))" 
-              }}
-            />
+            <div className="relative z-10">
+              <img 
+                src={heroPhone} 
+                alt="WhatsApp mockup" 
+                className="w-[280px] lg:w-[340px] h-auto"
+                style={{ 
+                  maskImage: "radial-gradient(ellipse 85% 80% at 45% 50%, black 50%, transparent 100%)",
+                  WebkitMaskImage: "radial-gradient(ellipse 85% 80% at 45% 50%, black 50%, transparent 100%)",
+                }}
+              />
+            </div>
 
             {/* Floating notifications */}
             <div className="hidden lg:block">
