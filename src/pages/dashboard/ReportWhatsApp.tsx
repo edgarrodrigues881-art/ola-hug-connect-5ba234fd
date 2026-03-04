@@ -110,23 +110,81 @@ export default function ReportWhatsApp() {
     return response.data;
   };
 
-  const handleConnectQR = async () => {
-    if (!reportDevice?.id) return;
+  const openConnectDialog = () => {
     setQrDialogOpen(true);
-    setQrLoading(true);
+    setConnectStep("choose");
     setQrCodeBase64("");
     setQrConnected(false);
     setConnectError("");
+    setPairingCode("");
+    setCodePhone("");
+  };
+
+  const handleConnectQR = async () => {
+    if (!reportDevice?.id) return;
+    setConnectStep("qr");
+    setQrLoading(true);
+    setQrCodeBase64("");
+    setConnectError("");
     try {
+      if (!reportDevice.uazapi_token) {
+        const createResult = await callApi({
+          action: "createInstance",
+          deviceId: reportDevice.id,
+          instanceName: reportDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        });
+        reportDevice.uazapi_token = createResult.instanceToken;
+        reportDevice.uazapi_base_url = createResult.baseUrl;
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      }
       const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        setConnectStep("done");
+        await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+        toast.success("Já conectado!");
+        return;
+      }
       const b64 = result?.base64 || result?.qr;
       if (b64) {
         setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
       }
     } catch (err: any) {
+      setConnectError(err?.message || "Erro ao gerar QR Code");
       toast.error("Erro ao gerar QR Code");
     } finally {
       setQrLoading(false);
+    }
+  };
+
+  const handleConnectCode = async () => {
+    if (!reportDevice?.id) return;
+    setConnectStep("code");
+    setPairingCode("");
+    setConnectError("");
+    try {
+      if (!reportDevice.uazapi_token) {
+        const createResult = await callApi({
+          action: "createInstance",
+          deviceId: reportDevice.id,
+          instanceName: reportDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        });
+        reportDevice.uazapi_token = createResult.instanceToken;
+        reportDevice.uazapi_base_url = createResult.baseUrl;
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      }
+      const result = await callApi({ action: "connect", deviceId: reportDevice.id });
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        setConnectStep("done");
+        toast.success("Já conectado!");
+        return;
+      }
+      const code = result?.pairingCode || result?.code || result?.pairing_code;
+      if (code) setPairingCode(code);
+    } catch (err: any) {
+      setConnectError(err?.message || "Erro ao gerar código");
     }
   };
 
