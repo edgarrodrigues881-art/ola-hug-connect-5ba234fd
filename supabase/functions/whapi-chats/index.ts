@@ -91,11 +91,11 @@ Deno.serve(async (req) => {
     if (action === "list_chats") {
       const count = url.searchParams.get("count") || "30";
       
-      // Try multiple UaZapi endpoints for listing groups/chats
+      // Try multiple UaZapi endpoints for listing chats/groups
       const endpoints = [
+        `${apiBaseUrl}/v1/chats`,
+        `${apiBaseUrl}/instance/chats`,
         `${apiBaseUrl}/chat/chats?count=${count}`,
-        `${apiBaseUrl}/group/fetchAllGroups`,
-        `${apiBaseUrl}/chat/fetchChats?count=${count}`,
       ];
 
       let allChats: any[] = [];
@@ -107,11 +107,13 @@ Deno.serve(async (req) => {
           const data = await res.json();
           console.log(`Endpoint ${endpoint} status: ${res.status}, keys: ${Object.keys(data || {}).join(",")}, isArray: ${Array.isArray(data)}`);
           
+          if (res.status === 404) continue;
+          
           const chats = data.chats || data.groups || data || [];
           const chatArray = Array.isArray(chats) ? chats : [];
           
           if (chatArray.length > 0) {
-            console.log(`Found ${chatArray.length} chats from endpoint. Sample: ${JSON.stringify(chatArray[0]).substring(0, 200)}`);
+            console.log(`Found ${chatArray.length} chats. Sample keys: ${Object.keys(chatArray[0] || {}).join(",")}`);
             allChats = chatArray;
             break;
           }
