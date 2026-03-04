@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
@@ -7,21 +8,36 @@ import Footer from "@/components/landing/Footer";
 import LandingBackground from "@/components/landing/LandingBackground";
 import SupportButton from "@/components/SupportButton";
 
-const Landing = () => (
-  <div className="landing-dark min-h-screen bg-[#0B0F14] scroll-smooth relative overflow-hidden" style={{ isolation: "isolate" }}>
-    <LandingBackground />
+// Prefetch Auth and MyPlan chunks on idle
+const prefetchRoutes = () => {
+  requestIdleCallback?.(() => {
+    import("../pages/Auth");
+    import("../pages/dashboard/MyPlan");
+  }) ?? setTimeout(() => {
+    import("../pages/Auth");
+    import("../pages/dashboard/MyPlan");
+  }, 2000);
+};
 
-    <div className="relative z-10">
-      <Navbar />
-      <HeroSection />
-      <HowItWorksSection />
-      <TrustSection />
-      <PlansSection />
-      <Footer />
+const Landing = () => {
+  useEffect(() => { prefetchRoutes(); }, []);
+
+  return (
+    <div className="landing-dark min-h-screen bg-[#0B0F14] scroll-smooth relative overflow-hidden" style={{ isolation: "isolate" }}>
+      <LandingBackground />
+
+      <div className="relative z-10">
+        <Navbar />
+        <HeroSection />
+        <HowItWorksSection />
+        <TrustSection />
+        <PlansSection />
+        <Footer />
+      </div>
+
+      <SupportButton />
     </div>
-
-    <SupportButton />
-  </div>
-);
+  );
+};
 
 export default Landing;
