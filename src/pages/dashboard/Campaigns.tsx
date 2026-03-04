@@ -341,7 +341,7 @@ const Campaigns = () => {
   }, [draftLoaded, campaignName, messages, rotateMessages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
-    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setMediaUrl(""); setMediaFileName("");
+    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotateMessages(true); setMediaUrl(""); setMediaFileName("");
     setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
     setSelectedTemplate("nova");
     toast({ title: "Mensagem limpa" });
