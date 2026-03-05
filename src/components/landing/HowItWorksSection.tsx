@@ -16,8 +16,8 @@ const notFor = [
 
 const HowItWorksSection = () => (
   <section id="para-quem" className="py-28 lg:py-36 bg-transparent">
-    {/* Mobile scroll-reveal: Aquecimento card */}
-    <div className="lg:hidden flex justify-center mb-10">
+    {/* Tablet scroll-reveal: Aquecimento card — hidden on mobile (<768px) */}
+    <div className="hidden md:flex lg:hidden justify-center mb-10">
       <AnimateOnView animation="slide-up">
         <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 max-w-[340px]"
           style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))", boxShadow: "0 0 0 1px rgba(7,193,96,0.12)" }}>
