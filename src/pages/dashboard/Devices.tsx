@@ -1536,36 +1536,35 @@ const Devices = () => {
             )}
 
             {connectStep === "proxy" && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">Deseja usar um proxy?</p>
                   <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-muted/20 text-muted-foreground/60 border-border/20">Opcional</Badge>
                 </div>
                 <Select value={selectedProxy} onValueChange={setSelectedProxy}>
-                  <SelectTrigger className="h-10 text-sm">
+                  <SelectTrigger className="h-11 text-sm rounded-xl">
                     <SelectValue placeholder="Sem proxy" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" className="max-h-[250px]">
                     <SelectItem value="none">
                       <span className="text-sm text-muted-foreground">Sem proxy</span>
                     </SelectItem>
                     {availableProxies.map(p => {
-                      const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20" : p.status === "USADA" ? "text-red-400 border-red-500/20" : "text-emerald-500 border-emerald-500/20";
+                      const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20 bg-amber-500/10" : p.status === "USADA" ? "text-red-400 border-red-500/20 bg-red-500/10" : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10";
                       return (
                         <SelectItem key={p.id} value={p.id}>
                           <div className="flex items-center gap-2">
-                            <Shield className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-sm">{p.label}</span>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${cls}`}>{p.status}</Badge>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-semibold ${cls}`}>{p.status}</Badge>
                           </div>
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
-                <div className="flex items-center gap-3 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1 h-10" onClick={() => setConnectStep("choose")}>Voltar</Button>
-                  <Button size="sm" className="flex-1 h-10" onClick={handleConfirmProxy}>Conectar</Button>
+                <div className="flex items-center gap-3 pt-1">
+                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setConnectStep("choose")}>Voltar</Button>
+                  <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleConfirmProxy}>Conectar</Button>
                 </div>
               </div>
             )}
