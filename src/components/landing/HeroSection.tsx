@@ -105,7 +105,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
+    <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-8 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
         <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
@@ -343,7 +343,7 @@ const HeroSection = () => {
             {/* End HeroPhoneStage */}
 
             {/* Mobile/Tablet: stacked cards below phone (lg:hidden) */}
-            <div className="flex flex-col gap-3 mt-6 lg:hidden w-full max-w-[280px]">
+            <div className="flex flex-col gap-2 mt-3 lg:hidden w-full max-w-[340px] mx-auto">
               <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                 <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                 <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
