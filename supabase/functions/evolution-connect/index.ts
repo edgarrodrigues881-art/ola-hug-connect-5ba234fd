@@ -223,13 +223,14 @@ Deno.serve(async (req) => {
       if (!phone) return { isDuplicate: false };
       const digits = phone.replace(/\D/g, "");
       if (digits.length < 10) return { isDuplicate: false };
-      // Search for any other device with a matching number (by digits)
+      // Search for any other CONNECTED device with a matching number (by digits)
       const { data: existing } = await svc
         .from("devices")
-        .select("id, name, number")
+        .select("id, name, number, status")
         .eq("user_id", user.id)
         .neq("id", deviceId)
-        .not("number", "is", null);
+        .not("number", "is", null)
+        .in("status", ["Connected", "Ready", "authenticated"]);
       if (!existing || existing.length === 0) return { isDuplicate: false };
       const match = existing.find((d: any) => {
         const dDigits = (d.number || "").replace(/\D/g, "");
