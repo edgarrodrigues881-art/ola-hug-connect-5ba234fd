@@ -329,6 +329,11 @@ const AutoSave = () => {
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
+          {contacts.length > 0 && (
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:bg-destructive/10" onClick={handleDeleteAll}>
+              <Trash2 className="w-3.5 h-3.5" /> Apagar todos
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
