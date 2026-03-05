@@ -226,9 +226,7 @@ const GroupCapture = () => {
               responseStatus: result.responseStatus,
             });
 
-            if (result.responseStatus === 429) {
-              dynamicDelay = Math.min(dynamicDelay + 10, 120);
-            }
+            // 429 handled by random delay range
           } else {
             updateItem(i, { status: "error", error: "Resposta vazia do servidor" });
           }
