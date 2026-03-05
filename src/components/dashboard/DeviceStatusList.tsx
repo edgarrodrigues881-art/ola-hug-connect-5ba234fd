@@ -54,9 +54,8 @@ export function DeviceStatusList({ devices, loading }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">
-                    {d.number || d.name}
+                    {d.name}{d.number ? ` · ${d.number}` : ""}
                   </p>
-                  <p className="text-[10px] text-muted-foreground truncate">{d.name}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
