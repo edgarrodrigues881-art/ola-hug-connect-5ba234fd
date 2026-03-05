@@ -346,6 +346,7 @@ export type Database = {
           id: string
           instance_id_a: string
           instance_id_b: string
+          meta: Json | null
           status: string
         }
         Insert: {
@@ -355,6 +356,7 @@ export type Database = {
           id?: string
           instance_id_a: string
           instance_id_b: string
+          meta?: Json | null
           status?: string
         }
         Update: {
@@ -364,6 +366,7 @@ export type Database = {
           id?: string
           instance_id_a?: string
           instance_id_b?: string
+          meta?: Json | null
           status?: string
         }
         Relationships: [
@@ -389,6 +392,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -1137,7 +1164,9 @@ export type Database = {
           disabled_at: string | null
           enabled_at: string | null
           id: string
+          is_eligible: boolean
           is_enabled: boolean
+          notes: string | null
           updated_at: string
           user_id: string
         }
@@ -1148,7 +1177,9 @@ export type Database = {
           disabled_at?: string | null
           enabled_at?: string | null
           id?: string
+          is_eligible?: boolean
           is_enabled?: boolean
+          notes?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1159,7 +1190,9 @@ export type Database = {
           disabled_at?: string | null
           enabled_at?: string | null
           id?: string
+          is_eligible?: boolean
           is_enabled?: boolean
+          notes?: string | null
           updated_at?: string
           user_id?: string
         }
