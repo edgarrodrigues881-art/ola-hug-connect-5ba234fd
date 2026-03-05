@@ -1595,16 +1595,19 @@ const Devices = () => {
                       <p className="text-sm text-destructive text-center leading-relaxed">{connectError}</p>
                     </div>
                   ) : (
-                    <div className="w-64 h-64 rounded-2xl flex flex-col items-center justify-center border-2 border-border/20 bg-muted/10">
-                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                        <QrCode className="w-7 h-7 text-primary animate-pulse" />
+                    <div className="w-64 h-64 rounded-2xl flex flex-col items-center justify-center border border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent relative overflow-hidden">
+                      {/* Scan line animation */}
+                      <div
+                        className="absolute left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"
+                        style={{
+                          animation: "scanLine 2.5s ease-in-out infinite",
+                        }}
+                      />
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4" style={{ animation: "qrPulse 2s ease-in-out infinite" }}>
+                        <QrCode className="w-8 h-8 text-primary" />
                       </div>
-                      <p className="text-sm font-medium text-foreground">Gerando QR Code...</p>
-                      <div className="flex items-center gap-1.5 mt-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </div>
+                      <p className="text-sm font-semibold text-foreground">Gerando QR Code...</p>
+                      <p className="text-xs text-muted-foreground/50 mt-1">Aguarde alguns segundos</p>
                     </div>
                   )}
                 </div>
