@@ -624,8 +624,16 @@ const Devices = () => {
       } else if (wpPhotoBase64) {
         promises.push(callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 }));
       }
-      if (promises.length > 0) await Promise.all(promises);
+      if (promises.length > 0) {
+        const results = await Promise.all(promises);
+        console.log("Profile update results:", results);
+        const anyFailed = results.some(r => r?.success === false);
+        if (anyFailed) {
+          toast({ title: "Aviso", description: "Alguns endpoints de perfil não responderam. Verifique se o chip está conectado.", variant: "destructive" });
+        }
+      }
     } catch (err: any) {
+      console.error("Profile update error:", err);
       toast({ title: "Erro ao atualizar perfil WhatsApp", description: err?.message, variant: "destructive" });
     }
     toast({ title: "Instância atualizada" });
