@@ -466,6 +466,12 @@ Deno.serve(async (req) => {
             formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
           else if (raw) formatted = `+${raw}`;
         }
+        // Check for duplicate phone
+        const refreshDup = await checkDuplicatePhone(phone);
+        if (refreshDup.isDuplicate) {
+          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+          return json({ error: `Este número já está conectado na instância "${refreshDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+        }
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
