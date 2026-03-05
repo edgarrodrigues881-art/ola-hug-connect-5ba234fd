@@ -155,10 +155,10 @@ const AutoSave = () => {
   };
 
   // ── Import ──
-  const handleValidateImport = () => {
-    const lines = importText.split("\n").map(l => l.trim()).filter(Boolean);
+  const handleValidateImport = (inputLines?: string[], nameMap?: Map<string, string>) => {
+    const lines = inputLines || importText.split("\n").map(l => l.trim()).filter(Boolean);
     const existingPhones = new Set(contacts.map(c => c.phone_e164));
-    const valid: { phone: string; original: string }[] = [];
+    const valid: { phone: string; original: string; name?: string }[] = [];
     const invalid: string[] = [];
     const duplicates: string[] = [];
     const seenInBatch = new Set<string>();
@@ -170,7 +170,7 @@ const AutoSave = () => {
       } else if (existingPhones.has(parsed.phone) || seenInBatch.has(parsed.phone)) {
         duplicates.push(line);
       } else {
-        valid.push(parsed);
+        valid.push({ ...parsed, name: nameMap?.get(line) || "" });
         seenInBatch.add(parsed.phone);
       }
     });
@@ -178,25 +178,87 @@ const AutoSave = () => {
     setImportPreview({ valid, invalid, duplicates });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setImportPreview(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: "", raw: false });
+
+        if (rows.length === 0) {
+          toast({ title: "Arquivo vazio", variant: "destructive" });
+          return;
+        }
+
+        const cols = Object.keys(rows[0]);
+        setFileColumns(cols);
+        setFileRows(rows);
+
+        // Auto-detect phone/name columns
+        const phoneLike = cols.find(c => /phone|telefone|numero|número|celular|whatsapp|fone/i.test(c));
+        const nameLike = cols.find(c => /name|nome|contato/i.test(c));
+        setPhoneCol(phoneLike || cols[0]);
+        setNameCol(nameLike || "");
+        setImportMode("file");
+      } catch {
+        toast({ title: "Erro ao ler arquivo", description: "Verifique se o arquivo é CSV ou XLSX válido", variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleValidateFile = () => {
+    if (!phoneCol || fileRows.length === 0) return;
+    const phones = fileRows.map(r => String(r[phoneCol] || "").trim()).filter(Boolean);
+    const nameMap = new Map<string, string>();
+    if (nameCol) {
+      fileRows.forEach(r => {
+        const phone = String(r[phoneCol] || "").trim();
+        const name = String(r[nameCol] || "").trim();
+        if (phone && name) nameMap.set(phone, name);
+      });
+    }
+    handleValidateImport(phones, nameMap);
+  };
+
   const handleImport = async () => {
     if (!importPreview || importPreview.valid.length === 0) return;
     setImporting(true);
     try {
       await bulkCreate.mutateAsync(
-        importPreview.valid.map(v => ({ contact_name: "", phone_e164: v.phone, tags: "importado" }))
+        importPreview.valid.map(v => ({ contact_name: v.name || "", phone_e164: v.phone, tags: "importado" }))
       );
       toast({
         title: "Importação concluída",
         description: `${importPreview.valid.length} contatos importados`,
       });
-      setImportOpen(false);
-      setImportText("");
-      setImportPreview(null);
+      resetImport();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally {
       setImporting(false);
     }
+  };
+
+  const resetImport = () => {
+    setImportOpen(false);
+    setImportText("");
+    setImportPreview(null);
+    setImportMode("text");
+    setFileName("");
+    setFileColumns([]);
+    setFileRows([]);
+    setPhoneCol("");
+    setNameCol("");
   };
 
   return (
