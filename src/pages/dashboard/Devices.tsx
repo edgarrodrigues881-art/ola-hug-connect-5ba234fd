@@ -1025,6 +1025,13 @@ const Devices = () => {
         proxyConfig: proxyPayload,
       });
 
+      // Check for duplicate phone error
+      if (connectResult?.error && connectResult?.code === "DUPLICATE_PHONE") {
+        setConnectError(connectResult.error);
+        queryClient.invalidateQueries({ queryKey: ["devices"] });
+        return;
+      }
+
       if (connectResult.alreadyConnected) {
         queryClient.invalidateQueries({ queryKey: ["devices"] });
         setConnectStep("done");
