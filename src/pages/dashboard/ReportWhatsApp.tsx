@@ -216,7 +216,14 @@ export default function ReportWhatsApp() {
           if (prev <= 1) {
             setQrCodeBase64("");
             if (reportDevice?.id) {
-              callApi({ action: "connect", deviceId: reportDevice.id }).then(result => {
+              // Use refreshQr to avoid recreating the instance
+              callApi({ action: "refreshQr", deviceId: reportDevice.id }).then(result => {
+                if (result?.alreadyConnected) {
+                  setQrConnected(true);
+                  setConnectStep("done");
+                  queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                  return;
+                }
                 const b64 = result?.base64 || result?.qr;
                 if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
               }).catch(() => {});

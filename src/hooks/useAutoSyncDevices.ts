@@ -45,11 +45,12 @@ export function useAutoSyncDevices(intervalMs = 30000) {
     const doKeepAlive = async () => {
       if (document.hidden) return;
       try {
-        // Get connected devices
+        // Get connected devices (excluding report_wa devices - they have separate management)
         const { data: connectedDevices } = await supabase
           .from("devices")
           .select("id")
-          .eq("status", "Ready");
+          .eq("status", "Ready")
+          .neq("login_type", "report_wa");
         
         if (!connectedDevices?.length) return;
 
