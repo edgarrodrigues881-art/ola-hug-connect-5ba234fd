@@ -1190,73 +1190,109 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="border-border/10 bg-card/40">
-              <CardContent className="p-0">
-                {/* Linha 1: Nome + Status */}
-                <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="min-w-0 flex-1">
-                      {isEditing ? (
-                        <input
-                          ref={inlineInputRef}
-                          value={inlineEditName}
-                          onChange={(e) => setInlineEditName(e.target.value)}
-                          onBlur={commitInlineEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") commitInlineEdit();
-                            if (e.key === "Escape") setInlineEditId(null);
-                          }}
-                          className="text-[13px] font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
-                        />
-                      ) : (
-                        <p className="text-[13px] font-bold text-foreground cursor-pointer hover:text-primary truncate leading-tight" onClick={() => startInlineEdit(d)} title={d.name}>
+            <Card key={d.id} className="border-border/30 bg-card shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                {/* Row 1: Avatar + Name + Status badge */}
+                <div className="flex items-start gap-3 mb-3">
+                  {d.profile_picture ? (
+                    <img src={d.profile_picture} alt={d.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 shrink-0" />
+                  ) : (
+                    <div className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-lg font-bold ring-2 ${smartStatus === 'online' ? 'bg-emerald-500/15 text-emerald-500 ring-emerald-500/30' : 'bg-muted text-muted-foreground ring-border'}`}>
+                      {d.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    {isEditing ? (
+                      <input
+                        ref={inlineInputRef}
+                        value={inlineEditName}
+                        onChange={(e) => setInlineEditName(e.target.value)}
+                        onBlur={commitInlineEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitInlineEdit();
+                          if (e.key === "Escape") setInlineEditId(null);
+                        }}
+                        className="text-sm font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-foreground truncate cursor-pointer hover:text-primary" onClick={() => startInlineEdit(d)} title={d.name}>
                           {d.name}
                         </p>
-                      )}
-                      {d.number && <p className="text-[10px] text-muted-foreground/40 truncate leading-tight">{formatPhone(d.number)}</p>}
-                    </div>
-                  </div>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 whitespace-nowrap gap-1 cursor-default ${ss.badgeClass}`}>
-                          <StatusIcon className="w-2.5 h-2.5" />{ss.label}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="text-[10px] max-w-[200px]">{ss.tooltip}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                {/* Meta info */}
-                <div className="px-3 pb-1.5">
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
-                    <span className="truncate" title={`Última atividade: ${lastActivity}`}>{lastActivity}</span>
+                        {d.status === "Ready" && (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0 h-5 shrink-0">
+                            <CheckCircle2 className="w-3 h-3 mr-0.5" /> Online
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground/50 mt-0.5">ID: {devices.indexOf(d) + 1}</p>
                   </div>
                 </div>
 
-                {/* Connect + Delete */}
-                <div className="border-t border-border/10 px-2 py-1 flex items-center justify-end gap-0.5">
-                  {connectionButton}
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-primary shrink-0" onClick={() => {
-                    setEditingDevice(d);
-                    setEditName(d.name);
-                    setEditUazapiToken(d.uazapi_token || "");
-                    setEditUazapiBaseUrl(d.uazapi_base_url || "");
-                    setEditProxyValue(d.proxy_id || "none");
-                    setWpName("");
-                    setWpPhotoUrl("");
-                    setWpPhotoBase64("");
-                    setWpRemovePhoto(false);
-                    setEditOpen(true);
-                  }}>
-                    <Pencil className="w-2.5 h-2.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/30 hover:text-destructive shrink-0" onClick={() => {
-                    if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
-                  }}>
-                    <Trash2 className="w-2.5 h-2.5" />
-                  </Button>
+                {/* Row 2: Status + Phone */}
+                <div className="space-y-1.5 mb-4">
+                  <div className="flex items-center gap-2 text-xs">
+                    <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-emerald-500' : 'text-red-400'}`} />
+                    <span className={`font-medium ${smartStatus === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {ss.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Smartphone className="w-4 h-4" />
+                    <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
+                  </div>
+                </div>
+
+                {/* Row 3: Action buttons */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {d.status === "Ready" ? (
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={() => openLogout(d)}>
+                      <Power className="w-3.5 h-3.5" /> Desconectar
+                    </Button>
+                  ) : hadPreviousConnection ? (
+                    <>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
+                        <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+                      </Button>
+                      <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
+                        <QrCode className="w-3.5 h-3.5" /> Novo QR Code
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
+                      <QrCode className="w-3.5 h-3.5" /> Novo QR Code
+                    </Button>
+                  )}
+                </div>
+
+                {/* Row 4: Edit + Delete links */}
+                <div className="flex items-center gap-4 border-t border-border/20 pt-3">
+                  <button
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                    onClick={() => {
+                      setEditingDevice(d);
+                      setEditName(d.name);
+                      setEditUazapiToken(d.uazapi_token || "");
+                      setEditUazapiBaseUrl(d.uazapi_base_url || "");
+                      setEditProxyValue(d.proxy_id || "none");
+                      setWpName("");
+                      setWpPhotoUrl("");
+                      setWpPhotoBase64("");
+                      setWpRemovePhoto(false);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </button>
+                  <button
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors font-medium"
+                    onClick={() => {
+                      if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Excluir
+                  </button>
                 </div>
               </CardContent>
             </Card>
