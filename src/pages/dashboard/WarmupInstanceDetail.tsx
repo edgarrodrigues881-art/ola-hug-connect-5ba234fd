@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
-  useDeviceCycle, useCreateCycle, useUpdateCycle,
+  useDeviceCycle,
   useInstanceGroups, useAutosaveContacts, useCommunityMembership,
   useWarmupAuditLogs, useWarmupPlans,
   type WarmupCycle,
 } from "@/hooks/useWarmupV2";
+import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,8 +64,7 @@ const WarmupInstanceDetail = () => {
 
   // Cycle
   const { data: cycle, isLoading: cycleLoading } = useDeviceCycle(deviceId!);
-  const createCycle = useCreateCycle();
-  const updateCycle = useUpdateCycle();
+  const engine = useWarmupEngine();
 
   // Related data
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
@@ -101,8 +101,8 @@ const WarmupInstanceDetail = () => {
   const handleStartWarmup = () => {
     if (!deviceId) return;
     const plan = plans.find(p => p.days_total === Number(daysTotal));
-    createCycle.mutate(
-      { device_id: deviceId, chip_state: chipState, days_total: Number(daysTotal), plan_id: plan?.id },
+    engine.mutate(
+      { action: "start", device_id: deviceId, chip_state: chipState, days_total: Number(daysTotal), plan_id: plan?.id },
       {
         onSuccess: () => toast({ title: "Aquecimento iniciado!", description: "O ciclo começou. As primeiras 24h são de adaptação." }),
         onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -111,25 +111,25 @@ const WarmupInstanceDetail = () => {
   };
 
   const handlePause = () => {
-    if (!cycle) return;
-    updateCycle.mutate(
-      { id: cycle.id, is_running: false, phase: "paused" } as any,
+    if (!deviceId) return;
+    engine.mutate(
+      { action: "pause", device_id: deviceId },
       { onSuccess: () => toast({ title: "Aquecimento pausado" }) }
     );
   };
 
   const handleResume = () => {
-    if (!cycle) return;
-    updateCycle.mutate(
-      { id: cycle.id, is_running: true, phase: "groups_only", next_run_at: new Date().toISOString() } as any,
+    if (!deviceId) return;
+    engine.mutate(
+      { action: "resume", device_id: deviceId },
       { onSuccess: () => toast({ title: "Aquecimento retomado" }) }
     );
   };
 
   const handleFinish = () => {
-    if (!cycle) return;
-    updateCycle.mutate(
-      { id: cycle.id, is_running: false, phase: "completed" } as any,
+    if (!deviceId) return;
+    engine.mutate(
+      { action: "stop", device_id: deviceId },
       { onSuccess: () => toast({ title: "Ciclo encerrado" }) }
     );
   };
