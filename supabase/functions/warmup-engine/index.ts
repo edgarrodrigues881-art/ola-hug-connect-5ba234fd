@@ -510,6 +510,108 @@ Deno.serve(async (req) => {
             break;
           }
 
+          case "autosave_interaction": {
+            // Check budget
+            if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target) {
+              await db.from("warmup_audit_logs").insert({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "info", event_type: "autosave_budget_exhausted",
+                message: `Orçamento diário esgotado (${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target})`,
+              });
+              break;
+            }
+
+            // Check unique recipients cap
+            if (cycle.daily_unique_recipients_used >= cycle.daily_unique_recipients_cap) {
+              break;
+            }
+
+            // Get active autosave contacts
+            const { data: asContacts } = await db
+              .from("warmup_autosave_contacts")
+              .select("phone_e164")
+              .eq("user_id", job.user_id)
+              .eq("is_active", true);
+
+            if (!asContacts || asContacts.length === 0) {
+              await db.from("warmup_audit_logs").insert({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "warn", event_type: "autosave_no_contacts",
+                message: "Sem contatos Auto Save ativos para interação",
+              });
+              break;
+            }
+
+            // Pick a random contact
+            const contact = pickRandom(asContacts);
+            const recipientPhone = contact.phone_e164;
+
+            // Get device credentials
+            const { data: asDevice } = await db
+              .from("devices")
+              .select("uazapi_token, uazapi_base_url, status")
+              .eq("id", job.device_id)
+              .single();
+
+            const asToken = asDevice?.uazapi_token;
+            const asBaseUrl = (asDevice?.uazapi_base_url || "").replace(/\/+$/, "");
+
+            if (!asToken || !asBaseUrl) {
+              throw new Error("Dispositivo sem credenciais API configuradas");
+            }
+
+            // Check device online
+            const onlineStatuses = ["Connected", "Ready", "authenticated", "ready"];
+            if (asDevice?.status && !onlineStatuses.includes(asDevice.status)) {
+              throw new Error(`Dispositivo offline: ${asDevice.status}`);
+            }
+
+            // Get user custom messages or use defaults
+            const { data: userMsgs } = await db
+              .from("warmup_messages")
+              .select("content")
+              .eq("user_id", job.user_id);
+
+            const msgPool = userMsgs && userMsgs.length > 0
+              ? userMsgs.map((m: any) => m.content)
+              : defaultAutosaveMessages;
+
+            const message = pickRandom(msgPool);
+
+            // Format phone for WhatsApp (E.164 without +)
+            const waNumber = recipientPhone.replace(/^\+/, "") + "@s.whatsapp.net";
+
+            // Send message via uazapi
+            await uazapiRequest(asBaseUrl, asToken, "/send/text", {
+              number: waNumber,
+              text: message,
+            });
+
+            // Track unique recipient
+            const todayDate = new Date().toISOString().split("T")[0];
+            await db.from("warmup_unique_recipients").insert({
+              user_id: job.user_id,
+              cycle_id: job.cycle_id,
+              recipient_phone_e164: recipientPhone,
+              day_date: todayDate,
+            }).catch(() => {}); // ignore duplicates
+
+            // Update budget counters
+            await db.from("warmup_cycles").update({
+              daily_interaction_budget_used: cycle.daily_interaction_budget_used + 1,
+              daily_unique_recipients_used: cycle.daily_unique_recipients_used + 1,
+            }).eq("id", cycle.id);
+
+            // Audit log
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "autosave_sent",
+              message: `Auto Save: mensagem enviada para ${recipientPhone}`,
+              meta: { phone: recipientPhone, message_preview: message.slice(0, 50) },
+            });
+            break;
+          }
+
           case "enable_community": {
             if (cycle.phase !== "autosave_enabled") {
               await db.from("warmup_audit_logs").insert({
