@@ -238,7 +238,8 @@ const GroupCapture = () => {
       }
 
       if (i < items.length - 1 && !cancelledRef.current) {
-        await startCountdown(dynamicDelay);
+        const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        await startCountdown(randomDelay);
       }
     }
 
