@@ -320,7 +320,95 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── refreshQr - Get fresh QR without recreating instance ──
+    // ── requestPairingCode - Generate pairing code using phone number ──
+    if (action === "requestPairingCode") {
+      const phoneNumber = body.phoneNumber?.replace(/\D/g, "");
+      if (!phoneNumber || phoneNumber.length < 10) {
+        return json({ error: "Número de telefone inválido." }, 400);
+      }
+
+      // Ensure instance exists
+      const currentCheck = await checkInstanceStatus();
+      if (!currentCheck.valid) {
+        const created = await ensureValidInstance();
+        if (!created) return json({ error: "Falha ao criar instância." }, 500);
+      }
+
+      // Set proxy if provided
+      if (body.proxyConfig?.host) {
+        await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+      }
+
+      // Check if already connected
+      const statusCheck = await checkInstanceStatus();
+      if (statusCheck.status === "connected") {
+        const phone = statusCheck.owner || "";
+        let formatted = "";
+        if (phone) {
+          const raw = String(phone).replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12)
+            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          else if (raw) formatted = `+${raw}`;
+        }
+        await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
+        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
+      }
+
+      // Disconnect if in a bad state
+      if (statusCheck.status && statusCheck.status !== "disconnected" && statusCheck.status !== "connecting") {
+        await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // Try multiple endpoint patterns for pairing code
+      const endpoints = [
+        { url: `/instance/connect?number=${phoneNumber}`, method: "POST" as const },
+        { url: `/instance/connect?number=${phoneNumber}`, method: "GET" as const },
+        { url: `/instance/pairingcode?number=${phoneNumber}`, method: "POST" as const },
+      ];
+
+      let pairingCode: string | null = null;
+      let lastError = "";
+
+      for (const ep of endpoints) {
+        try {
+          console.log(`Trying pairing code: ${ep.method} ${ep.url}`);
+          const res = await uazapi(instanceUrl, ep.url, instanceToken, ep.method, ep.method === "POST" ? { number: phoneNumber } : undefined);
+          console.log(`Pairing response:`, JSON.stringify(res.data).substring(0, 300));
+          
+          const code = res.data?.pairingCode || res.data?.pairing_code || res.data?.code;
+          if (code && typeof code === "string" && code.length >= 6 && code.length <= 12) {
+            pairingCode = code;
+            break;
+          }
+          
+          // Some APIs return the code inside instance object
+          const inst = res.data?.instance || {};
+          const instCode = inst.pairingCode || inst.pairing_code;
+          if (instCode && typeof instCode === "string" && instCode.length >= 6) {
+            pairingCode = instCode;
+            break;
+          }
+
+          if (!res.ok) {
+            lastError = `${res.status}: ${JSON.stringify(res.data).substring(0, 100)}`;
+          }
+        } catch (e: any) {
+          lastError = e.message || "Request failed";
+          console.log(`Endpoint failed: ${ep.url}`, lastError);
+        }
+      }
+
+      if (pairingCode) {
+        return json({ success: true, pairingCode, status: "connecting" });
+      }
+
+      return json({ 
+        error: "Não foi possível gerar o código de pareamento. O servidor pode não suportar essa funcionalidade.",
+        detail: lastError,
+      }, 500);
+    }
+
     if (action === "refreshQr") {
       const statusCheck = await checkInstanceStatus();
 
