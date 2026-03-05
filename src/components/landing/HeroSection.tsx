@@ -144,7 +144,7 @@ const HeroSection = () => {
           </div>
 
           {/* Right — HeroPhoneStage */}
-          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
+          <div className="relative flex flex-col items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
             {/* Ambient glow */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
@@ -153,11 +153,11 @@ const HeroSection = () => {
               }}
             />
 
-            {/* HeroPhoneStage — relative container, overflow visible */}
-            <div className="relative" style={{ overflow: "visible" }}>
+            {/* HeroPhoneStage — takes full width so overlays have room */}
+            <div className="relative w-full flex items-center justify-center" style={{ overflow: "visible" }}>
 
               {/* === PhoneLayer (z-10) === */}
-              <div className="relative z-10">
+              <div className="relative z-10 flex-shrink-0">
                 <div
                   className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
                   style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
