@@ -66,7 +66,8 @@ const GroupCapture = () => {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [delaySeconds, setDelaySeconds] = useState(10);
+  const [minDelay, setMinDelay] = useState(8);
+  const [maxDelay, setMaxDelay] = useState(25);
   const [activeTab, setActiveTab] = useState("groups");
 
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
@@ -188,7 +189,7 @@ const GroupCapture = () => {
     cancelledRef.current = false;
     setJoinStatus("running");
 
-    let dynamicDelay = delaySeconds;
+    
 
     for (let i = startFrom; i < items.length; i++) {
       if (cancelledRef.current) break;
@@ -225,9 +226,7 @@ const GroupCapture = () => {
               responseStatus: result.responseStatus,
             });
 
-            if (result.responseStatus === 429) {
-              dynamicDelay = Math.min(dynamicDelay + 10, 120);
-            }
+            // 429 handled by random delay range
           } else {
             updateItem(i, { status: "error", error: "Resposta vazia do servidor" });
           }
@@ -237,7 +236,8 @@ const GroupCapture = () => {
       }
 
       if (i < items.length - 1 && !cancelledRef.current) {
-        await startCountdown(dynamicDelay);
+        const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        await startCountdown(randomDelay);
       }
     }
 
@@ -252,7 +252,7 @@ const GroupCapture = () => {
       description: `${successCount} sucesso, ${errorCount} erros de ${finalItems.length} tentativas`,
       variant: errorCount > 0 ? "destructive" : "default",
     });
-  }, [delaySeconds, waitForResume, startCountdown, toast]);
+  }, [minDelay, maxDelay, waitForResume, startCountdown, toast]);
 
   const startJoinProcess = useCallback(async () => {
     const uniqueGrps = [
@@ -351,7 +351,8 @@ const GroupCapture = () => {
   });
   const canStart = selectedGroups.length > 0 && selectedDevices.length > 0 && !hasOfflineDevices;
   const totalOps = selectedGroups.length * selectedDevices.length;
-  const estimatedTime = totalOps > 1 ? (totalOps - 1) * delaySeconds : 0;
+  const avgDelay = (minDelay + maxDelay) / 2;
+  const estimatedTime = totalOps > 1 ? (totalOps - 1) * avgDelay : 0;
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -511,46 +512,39 @@ const GroupCapture = () => {
                   </div>
                 </div>
 
-                {/* Delay — always visible */}
+                {/* Delay min/max — same style as campaigns */}
                 <div className="p-3 rounded-lg border border-border/20 bg-muted/5 space-y-2">
                   <div className="flex items-center gap-2">
                     <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-[13px] font-medium text-foreground">Delay entre entradas</span>
-                    <div className="ml-auto flex items-center gap-1.5">
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
                       <Input
                         type="number"
+                        value={minDelay}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMinDelay(v); }}
+                        onBlur={() => { const v = Math.max(minDelay, 1); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }}
+                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
                         min={1}
-                        max={600}
-                        value={delaySeconds}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value);
-                          if (!isNaN(v) && v >= 1 && v <= 600) setDelaySeconds(v);
-                        }}
-                        className="w-16 h-7 text-xs font-mono text-center px-1"
                       />
-                      <span className="text-xs text-muted-foreground">segundos</span>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
+                      <Input
+                        type="number"
+                        value={maxDelay}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMaxDelay(v); }}
+                        onBlur={() => { const v = Math.max(maxDelay, 1); setMaxDelay(v < minDelay ? minDelay : v); }}
+                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
+                        min={1}
+                      />
                     </div>
                   </div>
+                  <p className="text-[10px] text-muted-foreground/40 tabular-nums">{minDelay}s – {maxDelay}s a cada entrada</p>
 
-                  {/* Quick presets */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {[5, 10, 15, 20, 30, 45, 60, 90, 120].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setDelaySeconds(v)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors border ${
-                          delaySeconds === v
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/40"
-                        }`}
-                      >
-                        {v}s
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Speed warning */}
-                  {delaySeconds < 8 && (
+                  {minDelay < 8 && (
                     <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-amber-500/5 border border-amber-500/15">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       <p className="text-[11px] text-amber-400/80">
@@ -621,7 +615,7 @@ const GroupCapture = () => {
                   <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Próximo em</span>
                   <span className="font-mono text-foreground font-medium">{countdown}s</span>
-                  <span className="text-muted-foreground/30 ml-auto">delay: {delaySeconds}s</span>
+                  <span className="text-muted-foreground/30 ml-auto">delay: {minDelay}–{maxDelay}s</span>
                 </div>
               )}
 
