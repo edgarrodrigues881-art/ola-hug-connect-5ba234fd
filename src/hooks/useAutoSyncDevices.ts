@@ -5,10 +5,11 @@ import { useAuth } from "@/lib/auth";
 
 /**
  * Auto-syncs device statuses by calling sync-devices edge function periodically.
+ * Also sends keep-alive pings to connected instances to prevent session timeout.
  * Pauses when the browser tab is hidden.
- * @param intervalMs - sync interval in milliseconds (default 15s)
+ * @param intervalMs - sync interval in milliseconds (default 30s)
  */
-export function useAutoSyncDevices(intervalMs = 15000) {
+export function useAutoSyncDevices(intervalMs = 30000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
@@ -36,6 +37,45 @@ export function useAutoSyncDevices(intervalMs = 15000) {
     const interval = setInterval(doSync, intervalMs);
     return () => clearInterval(interval);
   }, [session?.access_token, intervalMs, queryClient]);
+
+  // Keep-alive: ping connected devices every 10 minutes to prevent UaZapi session timeout
+  useEffect(() => {
+    if (!session?.access_token) return;
+
+    const doKeepAlive = async () => {
+      if (document.hidden) return;
+      try {
+        // Get connected devices
+        const { data: connectedDevices } = await supabase
+          .from("devices")
+          .select("id")
+          .eq("status", "Ready");
+        
+        if (!connectedDevices?.length) return;
+
+        // Send keepAlive to each connected device (parallel, fire-and-forget)
+        await Promise.allSettled(
+          connectedDevices.map(d =>
+            supabase.functions.invoke("evolution-connect", {
+              body: { action: "keepAlive", deviceId: d.id },
+            })
+          )
+        );
+      } catch {
+        // silent fail
+      }
+    };
+
+    // Keep-alive every 10 minutes
+    const keepAliveInterval = setInterval(doKeepAlive, 10 * 60 * 1000);
+    // First keep-alive after 5 minutes
+    const initialTimeout = setTimeout(doKeepAlive, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(keepAliveInterval);
+      clearTimeout(initialTimeout);
+    };
+  }, [session?.access_token]);
 
   // Realtime subscription for instant DB change propagation
   useEffect(() => {
