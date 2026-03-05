@@ -145,11 +145,11 @@ const HeroSection = () => {
 
           {/* Right — HeroPhoneStage */}
           <div className="relative flex flex-col items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
-            {/* Ambient glow */}
+            {/* Ambient glow — behind phone */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
               style={{
-                background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.10) 0%, transparent 70%)",
+                background: "radial-gradient(circle at 50% 50%, rgba(7,193,96,0.15) 0%, rgba(7,193,96,0.06) 35%, transparent 65%)",
               }}
             />
 
@@ -162,20 +162,31 @@ const HeroSection = () => {
                   className="relative w-[240px] sm:w-[260px] md:w-[270px] lg:w-[290px] xl:w-[320px]"
                   style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
                 >
-                {/* Border */}
+                {/* Neon border glow */}
                 <div
-                  className="absolute -inset-[2px] rounded-[2.6rem] z-0"
-                  style={{ background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.3), transparent, #07C160)" }}
+                  className="absolute -inset-[3px] rounded-[2.7rem] z-0"
+                  style={{
+                    background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.35), transparent 60%, #07C160)",
+                    boxShadow: "0 0 24px rgba(7,193,96,0.3), 0 0 60px rgba(7,193,96,0.08)",
+                  }}
                 />
 
                 {/* Phone chassis */}
-                <div className="relative rounded-[2.4rem] p-[5px] z-10"
+                <div className="relative rounded-[2.4rem] p-[6px] z-10"
                   style={{
-                    background: "linear-gradient(145deg, #2A2A2E, #1A1A1E, #2A2A2E)",
-                    boxShadow: "none",
+                    background: "linear-gradient(145deg, #333338, #1E1E22, #2A2A2E, #1A1A1E)",
+                    boxShadow: "0 40px 120px rgba(0,0,0,0.6), 0 15px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
                   }}
                 >
-                  <div className="rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
+                  <div className="relative rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
+                    {/* Glass reflection overlay */}
+                    <div
+                      className="absolute inset-0 z-50 pointer-events-none rounded-[2rem]"
+                      style={{
+                        background: "linear-gradient(120deg, rgba(255,255,255,0.06) 0%, transparent 40%)",
+                        opacity: 0.07,
+                      }}
+                    />
                     {/* Status bar */}
                     <div className="flex items-center justify-between px-5 pt-[10px] pb-1">
                       <span className="text-[10px] text-white/40 font-medium">9:41</span>
