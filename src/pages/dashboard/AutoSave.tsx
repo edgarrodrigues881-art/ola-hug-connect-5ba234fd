@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   useAutosaveContacts, type WarmupAutosaveContact,
@@ -18,8 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Plus, Upload, Search, Zap, Trash2, Edit2, Power, PowerOff,
-  CheckCircle2, XCircle, AlertTriangle, Loader2, Users,
+  CheckCircle2, XCircle, AlertTriangle, Loader2, Users, FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 // ── E.164 parser ──
 function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {
@@ -66,11 +67,18 @@ const AutoSave = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<{
-    valid: { phone: string; original: string }[];
+    valid: { phone: string; original: string; name?: string }[];
     invalid: string[];
     duplicates: string[];
   } | null>(null);
   const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<"text" | "file">("text");
+  const [fileName, setFileName] = useState("");
+  const [fileColumns, setFileColumns] = useState<string[]>([]);
+  const [fileRows, setFileRows] = useState<Record<string, string>[]>([]);
+  const [phoneCol, setPhoneCol] = useState("");
+  const [nameCol, setNameCol] = useState("");
 
   // All unique tags
   const allTags = useMemo(() => {
@@ -147,10 +155,10 @@ const AutoSave = () => {
   };
 
   // ── Import ──
-  const handleValidateImport = () => {
-    const lines = importText.split("\n").map(l => l.trim()).filter(Boolean);
+  const handleValidateImport = (inputLines?: string[], nameMap?: Map<string, string>) => {
+    const lines = inputLines || importText.split("\n").map(l => l.trim()).filter(Boolean);
     const existingPhones = new Set(contacts.map(c => c.phone_e164));
-    const valid: { phone: string; original: string }[] = [];
+    const valid: { phone: string; original: string; name?: string }[] = [];
     const invalid: string[] = [];
     const duplicates: string[] = [];
     const seenInBatch = new Set<string>();
@@ -162,7 +170,7 @@ const AutoSave = () => {
       } else if (existingPhones.has(parsed.phone) || seenInBatch.has(parsed.phone)) {
         duplicates.push(line);
       } else {
-        valid.push(parsed);
+        valid.push({ ...parsed, name: nameMap?.get(line) || "" });
         seenInBatch.add(parsed.phone);
       }
     });
@@ -170,25 +178,87 @@ const AutoSave = () => {
     setImportPreview({ valid, invalid, duplicates });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setImportPreview(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: "", raw: false });
+
+        if (rows.length === 0) {
+          toast({ title: "Arquivo vazio", variant: "destructive" });
+          return;
+        }
+
+        const cols = Object.keys(rows[0]);
+        setFileColumns(cols);
+        setFileRows(rows);
+
+        // Auto-detect phone/name columns
+        const phoneLike = cols.find(c => /phone|telefone|numero|número|celular|whatsapp|fone/i.test(c));
+        const nameLike = cols.find(c => /name|nome|contato/i.test(c));
+        setPhoneCol(phoneLike || cols[0]);
+        setNameCol(nameLike || "");
+        setImportMode("file");
+      } catch {
+        toast({ title: "Erro ao ler arquivo", description: "Verifique se o arquivo é CSV ou XLSX válido", variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleValidateFile = () => {
+    if (!phoneCol || fileRows.length === 0) return;
+    const phones = fileRows.map(r => String(r[phoneCol] || "").trim()).filter(Boolean);
+    const nameMap = new Map<string, string>();
+    if (nameCol) {
+      fileRows.forEach(r => {
+        const phone = String(r[phoneCol] || "").trim();
+        const name = String(r[nameCol] || "").trim();
+        if (phone && name) nameMap.set(phone, name);
+      });
+    }
+    handleValidateImport(phones, nameMap);
+  };
+
   const handleImport = async () => {
     if (!importPreview || importPreview.valid.length === 0) return;
     setImporting(true);
     try {
       await bulkCreate.mutateAsync(
-        importPreview.valid.map(v => ({ contact_name: "", phone_e164: v.phone, tags: "importado" }))
+        importPreview.valid.map(v => ({ contact_name: v.name || "", phone_e164: v.phone, tags: "importado" }))
       );
       toast({
         title: "Importação concluída",
         description: `${importPreview.valid.length} contatos importados`,
       });
-      setImportOpen(false);
-      setImportText("");
-      setImportPreview(null);
+      resetImport();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally {
       setImporting(false);
     }
+  };
+
+  const resetImport = () => {
+    setImportOpen(false);
+    setImportText("");
+    setImportPreview(null);
+    setImportMode("text");
+    setFileName("");
+    setFileColumns([]);
+    setFileRows([]);
+    setPhoneCol("");
+    setNameCol("");
   };
 
   return (
@@ -387,28 +457,91 @@ const AutoSave = () => {
       </Dialog>
 
       {/* ── Import Modal ── */}
-      <Dialog open={importOpen} onOpenChange={v => { setImportOpen(v); if (!v) { setImportText(""); setImportPreview(null); } }}>
+      <Dialog open={importOpen} onOpenChange={v => { if (!v) resetImport(); else setImportOpen(true); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Importar Contatos</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Cole os números (um por linha)</Label>
-              <Textarea
-                value={importText}
-                onChange={e => { setImportText(e.target.value); setImportPreview(null); }}
-                placeholder={"62994192500\n11987654321\n+5521999887766"}
-                className="mt-1 font-mono text-xs min-h-[120px]"
-              />
-            </div>
+            {/* Mode tabs */}
+            <Tabs value={importMode} onValueChange={v => { setImportMode(v as any); setImportPreview(null); }}>
+              <TabsList className="h-8 w-full">
+                <TabsTrigger value="text" className="text-xs h-6 flex-1">Colar números</TabsTrigger>
+                <TabsTrigger value="file" className="text-xs h-6 flex-1 gap-1">
+                  <FileSpreadsheet className="w-3 h-3" /> Arquivo (CSV/XLSX)
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {importMode === "text" ? (
+              <div>
+                <Label className="text-xs">Cole os números (um por linha)</Label>
+                <Textarea
+                  value={importText}
+                  onChange={e => { setImportText(e.target.value); setImportPreview(null); }}
+                  placeholder={"62994192500\n11987654321\n+5521999887766"}
+                  className="mt-1 font-mono text-xs min-h-[120px]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 h-16 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+                  <div className="text-left">
+                    <p className="text-xs font-medium">{fileName || "Selecionar arquivo"}</p>
+                    <p className="text-[10px] text-muted-foreground">CSV, XLSX ou XLS</p>
+                  </div>
+                </Button>
+
+                {fileColumns.length > 0 && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border/20 bg-muted/5">
+                    <p className="text-[11px] font-medium text-foreground">Mapear colunas</p>
+                    <p className="text-[10px] text-muted-foreground">{fileRows.length} linhas encontradas</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Coluna do Número *</Label>
+                        <select
+                          value={phoneCol}
+                          onChange={e => { setPhoneCol(e.target.value); setImportPreview(null); }}
+                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
+                        >
+                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Coluna do Nome</Label>
+                        <select
+                          value={nameCol}
+                          onChange={e => { setNameCol(e.target.value); setImportPreview(null); }}
+                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
+                        >
+                          <option value="">— nenhuma —</option>
+                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {!importPreview ? (
               <Button
                 variant="outline"
                 className="w-full gap-1.5"
-                onClick={handleValidateImport}
-                disabled={!importText.trim()}
+                onClick={() => importMode === "text" ? handleValidateImport() : handleValidateFile()}
+                disabled={importMode === "text" ? !importText.trim() : fileRows.length === 0}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> Validar
               </Button>
