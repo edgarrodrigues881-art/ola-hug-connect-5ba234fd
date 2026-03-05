@@ -154,6 +154,21 @@ const AutoSave = () => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
   };
 
+  const handleDeleteAll = async () => {
+    if (!contacts.length) return;
+    const confirmed = window.confirm(`Tem certeza que deseja apagar todos os ${contacts.length} contatos?`);
+    if (!confirmed) return;
+    try {
+      for (const c of contacts) {
+        await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
+      }
+      qc.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
+      toast({ title: `${contacts.length} contatos apagados` });
+    } catch {
+      toast({ title: "Erro ao apagar contatos", variant: "destructive" });
+    }
+  };
+
   // ── Import ──
   const handleValidateImport = (inputLines?: string[], nameMap?: Map<string, string>) => {
     const lines = inputLines || importText.split("\n").map(l => l.trim()).filter(Boolean);
