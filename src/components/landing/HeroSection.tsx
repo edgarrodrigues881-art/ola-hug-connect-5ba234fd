@@ -15,6 +15,7 @@ const chats = [
 
 const cardBg = "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))";
 const cardShadow = "0 0 0 1px rgba(7,193,96,0.12)";
+
 const ChatListAnimated = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState<boolean[]>([]);
@@ -105,38 +106,38 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
-      <div className="relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20 mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(420px,560px)] gap-8 md:gap-10 lg:gap-6 items-center">
+    <section className="relative min-h-[auto] lg:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
+      <div className="relative z-10 py-4 sm:py-8 lg:py-12 xl:py-16 mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(340px,460px)] gap-8 md:gap-10 lg:gap-16 items-center">
           {/* Left — Copy */}
-          <div className="max-w-2xl animate-fade-in">
+          <div className="max-w-xl animate-fade-in">
             <h1
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold text-white leading-[1.05] mb-6 sm:mb-8 tracking-[-0.03em]"
+              className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-5xl xl:text-[3.5rem] font-semibold text-white leading-[1.1] mb-5 sm:mb-6 tracking-[-0.02em]"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
               <span className="text-[#07C160]">segurança.</span>
             </h1>
 
-            <p className="text-base sm:text-lg lg:text-xl text-white/40 leading-relaxed mb-8 sm:mb-10 max-w-lg">
+            <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-relaxed mb-6 sm:mb-8 max-w-md">
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
             <Button
               onClick={() => navigate("/auth")}
-              className="h-14 sm:h-16 px-10 sm:px-12 text-base sm:text-lg font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
+              className="h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
             >
               Começar Agora
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
 
-            <div className="mt-4 flex items-center gap-3 px-5 py-4 sm:py-5 rounded-xl border border-white/[0.06] bg-white/[0.03] max-w-md">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="mt-4 flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl border border-white/[0.06] bg-white/[0.03] max-w-sm">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-snug">
+              <p className="text-xs sm:text-sm text-white/40 leading-snug">
                 Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
               </p>
             </div>
@@ -148,17 +149,17 @@ const HeroSection = () => {
             <div
               className="absolute inset-0 pointer-events-none z-0"
               style={{
-                background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.12) 0%, transparent 70%)",
+                background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.10) 0%, transparent 70%)",
               }}
             />
 
             {/* HeroPhoneStage */}
             <div className="relative flex items-center justify-center" style={{ overflow: "visible" }}>
 
-              {/* === PhoneLayer (z-10) — overlays are relative to this === */}
+              {/* === PhoneLayer (z-10) === */}
               <div className="relative z-10 flex-shrink-0">
                 <div
-                  className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[340px] xl:w-[380px]"
+                  className="relative w-[240px] sm:w-[260px] md:w-[270px] lg:w-[290px] xl:w-[320px]"
                   style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
                 >
                 {/* Border */}
@@ -250,26 +251,26 @@ const HeroSection = () => {
               </div>
               {/* End phone sizing div */}
 
-              {/* === OverlayLayer (z-20) — desktop only, positioned relative to PhoneLayer === */}
+              {/* === OverlayLayer (z-20) — desktop only === */}
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
-                {/* Card 1 — AO VIVO (top-right, outside phone) */}
-                <div className="absolute w-[190px] xl:w-[210px]"
-                  style={{ top: "5%", right: "-8px", transform: "translateX(80%)" }}>
-                  <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
+                {/* Card 1 — AO VIVO (top-right) */}
+                <div className="absolute w-[170px] xl:w-[185px]"
+                  style={{ top: "5%", right: "-8px", transform: "translateX(65%)" }}>
+                  <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-2.5">
                       <div className="w-2 h-2 rounded-full bg-[#07C160]" />
-                      <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
+                      <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {[
                         { phone: "+55 11 ****-2847", time: "agora", active: true },
                         { phone: "+55 21 ****-9314", time: "2s", active: true },
                         { phone: "+55 31 ****-7720", time: "5s", active: false },
                       ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className={`flex-1 h-[28px] rounded-lg flex items-center px-2.5 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
+                        <div key={i} className="flex items-center gap-1.5">
+                          <div className={`flex-1 h-[26px] rounded-lg flex items-center px-2 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
                             {item.active ? (
                               <svg className="w-3 h-3 text-[#07C160] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                 <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
@@ -280,55 +281,55 @@ const HeroSection = () => {
                                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
                               </div>
                             )}
-                            <span className={`text-[10px] truncate ${item.active ? "text-white/50" : "text-white/30"}`}>{item.phone}</span>
+                            <span className={`text-[9px] truncate ${item.active ? "text-white/50" : "text-white/30"}`}>{item.phone}</span>
                           </div>
                           <span className={`text-[8px] flex-shrink-0 ${item.active ? "text-white/20" : "text-white/15"}`}>{item.time}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between">
-                      <span className="text-[9px] text-white/25">Mensagens hoje</span>
-                      <span className="text-[13px] font-bold text-white tabular-nums">342</span>
+                    <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between">
+                      <span className="text-[8px] text-white/25">Mensagens hoje</span>
+                      <span className="text-[12px] font-bold text-white tabular-nums">342</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Card 2 — Aquecimento 89% (left, outside phone) */}
+                {/* Card 2 — Aquecimento 89% (left) */}
                 <div className="absolute"
-                  style={{ top: "35%", left: "0px", transform: "translateX(-90%)" }}>
-                  <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
+                  style={{ top: "32%", left: "0px", transform: "translateX(-88%)" }}>
+                  <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                    <div className="flex items-center gap-2.5">
+                      <div className="relative w-10 h-10">
+                        <svg className="w-10 h-10 -rotate-90" viewBox="0 0 48 48">
                           <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
                           <circle cx="24" cy="24" r="20" fill="none" stroke="#07C160" strokeWidth="3" strokeLinecap="round"
                             strokeDasharray={`${2 * Math.PI * 20}`} strokeDashoffset={2 * Math.PI * 20 * (1 - 0.89)} />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-[11px] font-bold text-white">89%</span>
+                          <span className="text-[10px] font-bold text-white">89%</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-[11px] text-white/80 font-semibold">Aquecimento</p>
-                        <p className="text-[9px] text-[#07C160]/70 mt-0.5">Dia 12 de 14</p>
+                        <p className="text-[10px] text-white/80 font-semibold">Aquecimento</p>
+                        <p className="text-[8px] text-[#07C160]/70 mt-0.5">Dia 12 de 14</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
+                {/* Card 3 — 43 instâncias (bottom-left) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "0px", transform: "translateX(-90%)" }}>
-                  <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
+                  style={{ bottom: "15%", left: "0px", transform: "translateX(-88%)" }}>
+                  <div className="relative rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
-                    <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
-                      <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="w-6 h-6 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                      <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
-                      <span className="text-[11px] text-white/70 font-medium block">43 instâncias</span>
+                      <span className="text-[10px] text-white/70 font-medium block">43 instâncias</span>
                       <span className="text-[8px] text-[#07C160]/60">Todas online</span>
                     </div>
                   </div>
