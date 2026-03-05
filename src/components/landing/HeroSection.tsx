@@ -264,7 +264,7 @@ const HeroSection = () => {
 
                 {/* Card 1 — AO VIVO (top-right, 30px from edge) */}
                 <div className="absolute w-[170px] xl:w-[185px]"
-                  style={{ top: "-30px", right: "-10px", transform: "translateX(55%)" }}>
+                  style={{ top: "-30px", right: "-10px", transform: "translateX(45%)" }}>
                   <div className="relative rounded-xl p-3.5 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="flex items-center gap-2 mb-2.5">
