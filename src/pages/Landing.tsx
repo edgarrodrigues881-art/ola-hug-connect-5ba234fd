@@ -24,7 +24,7 @@ const Landing = () => {
   useEffect(() => { prefetchRoutes(); }, []);
 
   return (
-    <div className="landing-dark min-h-screen bg-[#0B0F14] relative">
+    <div className="landing-dark min-h-screen bg-[#0B0F14] relative" style={{ overflowX: "hidden" }}>
       <LandingBackground />
 
       <div className="relative z-10">

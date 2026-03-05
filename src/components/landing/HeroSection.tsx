@@ -105,7 +105,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 pb-10" style={{ overflow: "visible" }}>
+    <section className="relative min-h-screen flex items-center pt-20 pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
         <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
@@ -257,7 +257,7 @@ const HeroSection = () => {
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
                 <div className="absolute w-[190px] xl:w-[220px]"
-                  style={{ top: "5%", left: "calc(100% - 20px)" }}>
+                  style={{ top: "5%", right: "-10px", transform: "translateX(100%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-3">
@@ -297,7 +297,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left, outside phone) */}
                 <div className="absolute"
-                  style={{ top: "30%", right: "calc(100% - 20px)" }}>
+                  style={{ top: "30%", left: "-10px", transform: "translateX(-100%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", right: "calc(100% - 30px)" }}>
+                  style={{ bottom: "15%", left: "-10px", transform: "translateX(-100%)" }}>
                   <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
