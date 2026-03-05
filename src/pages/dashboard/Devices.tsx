@@ -1520,30 +1520,18 @@ const Devices = () => {
           <div className="px-6 pb-6 pt-5">
             {connectStep === "choose" && (
               <div className="space-y-5">
-                <p className="text-sm text-muted-foreground">Escolha como deseja conectar seu WhatsApp:</p>
-                <div className="grid grid-cols-2 gap-4">
+                <p className="text-sm text-muted-foreground">Conecte seu WhatsApp escaneando o QR Code:</p>
+                <div className="flex justify-center">
                   <button
                     onClick={() => handleConnect("qr")}
-                    className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
+                    className="group relative flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200 w-full max-w-[220px]"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                      <QrCode className="w-7 h-7 text-primary" />
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                      <QrCode className="w-8 h-8 text-primary" />
                     </div>
                     <div className="text-center">
-                      <span className="text-sm font-bold text-foreground block">QR Code</span>
+                      <span className="text-sm font-bold text-foreground block">Conectar via QR Code</span>
                       <span className="text-xs text-muted-foreground mt-1 block">Escaneie com o celular</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleConnect("code")}
-                    className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                      <Key className="w-7 h-7 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <span className="text-sm font-bold text-foreground block">Código</span>
-                      <span className="text-xs text-muted-foreground mt-1 block">Digite no WhatsApp</span>
                     </div>
                   </button>
                 </div>
