@@ -333,6 +333,20 @@ Deno.serve(async (req) => {
       if (contactsErr) throw contactsErr;
 
       if (!contacts || contacts.length === 0) {
+        // Double-check: ensure no contacts are stuck in "processing" state
+        const { count: processingCount } = await serviceClient
+          .from("campaign_contacts")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", campaignId)
+          .eq("status", "processing");
+        
+        if (processingCount && processingCount > 0) {
+          // Some contacts still being processed by another invocation, wait
+          console.log(`${processingCount} contacts still processing, will retry`);
+          selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
+          return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
         // No more pending contacts — complete the campaign
         await serviceClient.from("campaigns").update({
           status: "completed",
