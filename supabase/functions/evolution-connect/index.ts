@@ -575,9 +575,17 @@ Deno.serve(async (req) => {
         return json({ success: true, note: "Foto removida localmente" });
       }
 
+      // profilePictureData can be a URL or base64
+      const isUrl = profilePictureData.startsWith("http");
+      console.log("Profile picture type:", isUrl ? "URL" : "base64", "length:", profilePictureData.length);
+
       const picEndpoints = [
         { path: "/profile/picture", payload: { picture: profilePictureData } },
         { path: "/profile/picture", payload: { url: profilePictureData } },
+        { path: "/profile/picture", payload: { image: profilePictureData } },
+        ...(isUrl ? [
+          { path: "/profile/picture", payload: { picture: { url: profilePictureData } } },
+        ] : []),
         { path: "/profile/update-picture", payload: { picture: profilePictureData } },
         { path: "/instance/profile/picture", payload: { picture: profilePictureData } },
         { path: "/profile-picture", payload: { value: profilePictureData } },
@@ -586,10 +594,10 @@ Deno.serve(async (req) => {
       let lastPicResult: any = null;
       for (const ep of picEndpoints) {
         const r = await uazapi(instanceUrl, ep.path, instanceToken, "POST", ep.payload);
-        console.log(`updatePicture ${ep.path}: ${r.status}`, JSON.stringify(r.data).substring(0, 200));
+        console.log(`updatePicture ${ep.path} payload-keys=${Object.keys(ep.payload).join(",")}: ${r.status}`, JSON.stringify(r.data).substring(0, 300));
         if (r.ok) {
           if (deviceId) {
-            await svc.from("devices").update({ profile_picture: profilePictureData.substring(0, 500) }).eq("id", deviceId);
+            await svc.from("devices").update({ profile_picture: profilePictureData }).eq("id", deviceId);
           }
           return json({ success: true, endpoint: ep.path, ...r.data });
         }
