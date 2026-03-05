@@ -834,7 +834,7 @@ const Devices = () => {
     }
     updateMutation.mutate({
       id: loggingOutDevice.id,
-      updates: { status: "Disconnected", number: "", proxy_id: null },
+      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
     });
     toast({ title: "Desconectado", description: `${loggingOutDevice.name} foi desconectado.` });
     setLogoutOpen(false);
