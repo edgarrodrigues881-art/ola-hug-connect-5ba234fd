@@ -434,13 +434,11 @@ const Devices = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const device = devices.find(d => d.id === id);
-      // Delete instance from UaZapi server (non-blocking)
-      if (device?.uazapi_token) {
-        try {
-          await callApi({ action: "deleteInstance", deviceId: id });
-        } catch (e) {
-          console.warn("Failed to delete instance from server (non-blocking):", e);
-        }
+      // Always try to delete instance from UaZapi server (non-blocking)
+      try {
+        await callApi({ action: "deleteInstance", deviceId: id });
+      } catch (e) {
+        console.warn("Failed to delete instance from server (non-blocking):", e);
       }
       // Release token back to pool
       await supabase.from("user_api_tokens").update({
