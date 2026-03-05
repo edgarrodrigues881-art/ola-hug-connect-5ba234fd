@@ -782,6 +782,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── GROUPS POOL CRUD ───
+    if (action === "groups-pool-add" && req.method === "POST") {
+      const { name, external_group_ref } = await req.json();
+      const { error } = await adminClient.from("warmup_groups_pool").insert({ name, external_group_ref: external_group_ref || "" });
+      if (error) throw error;
+      await logAction(adminClient, user.id, null, "groups_pool_updated", `Grupo adicionado: ${name}`);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "groups-pool-toggle" && req.method === "POST") {
+      const { group_id, is_active } = await req.json();
+      const { error } = await adminClient.from("warmup_groups_pool").update({ is_active, updated_at: new Date().toISOString() }).eq("id", group_id);
+      if (error) throw error;
+      await logAction(adminClient, user.id, null, "groups_pool_updated", `Grupo ${is_active ? "ativado" : "desativado"}: ${group_id}`);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "groups-pool-update" && req.method === "POST") {
+      const { group_id, name, external_group_ref } = await req.json();
+      const { error } = await adminClient.from("warmup_groups_pool").update({ name, external_group_ref, updated_at: new Date().toISOString() }).eq("id", group_id);
+      if (error) throw error;
+      await logAction(adminClient, user.id, null, "groups_pool_updated", `Grupo atualizado: ${name}`);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "groups-pool-delete" && req.method === "POST") {
+      const { group_id } = await req.json();
+      const { error } = await adminClient.from("warmup_groups_pool").delete().eq("id", group_id);
+      if (error) throw error;
+      await logAction(adminClient, user.id, null, "groups_pool_updated", `Grupo removido: ${group_id}`);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

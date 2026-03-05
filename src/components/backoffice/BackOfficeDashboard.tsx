@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet, Flame, ListTodo, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AdminOverview from "./AdminOverview";
@@ -9,6 +9,9 @@ import AdminClientsTable from "./AdminClientsTable";
 import AdminClientDetail from "./AdminClientDetail";
 import AdminLogs from "./AdminLogs";
 import CostsTab from "./CostsTab";
+import AdminGroupsPool from "./AdminGroupsPool";
+import AdminWarmupCycles from "./AdminWarmupCycles";
+import AdminWarmupJobs from "./AdminWarmupJobs";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
