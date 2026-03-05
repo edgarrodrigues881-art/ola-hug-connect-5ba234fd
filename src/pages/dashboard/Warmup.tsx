@@ -56,7 +56,7 @@ const Warmup = () => {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices-for-warmup", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("devices").select("id, name, status, number");
+      const { data, error } = await supabase.from("devices").select("id, name, status, number").neq("login_type", "report_wa");
       if (error) throw error;
       return data;
     },

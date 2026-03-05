@@ -100,6 +100,7 @@ const GroupCapture = () => {
         .from("devices")
         .select("id, name, number, status")
         .eq("user_id", user!.id)
+        .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
       return data;

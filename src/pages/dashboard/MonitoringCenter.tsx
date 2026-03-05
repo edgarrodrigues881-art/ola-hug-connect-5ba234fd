@@ -27,6 +27,7 @@ export default function MonitoringCenter() {
         .from("devices")
         .select("id, name, number, status, profile_name, updated_at")
         .eq("user_id", user.id)
+        .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
       return data as DeviceStatus[];

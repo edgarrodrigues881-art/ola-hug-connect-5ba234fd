@@ -71,7 +71,8 @@ const Proxy = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devices")
-        .select("id, name, number, proxy_id");
+        .select("id, name, number, proxy_id")
+        .neq("login_type", "report_wa");
       if (error) throw error;
       return (data || []) as { id: string; name: string; number: string | null; proxy_id: string | null }[];
     },
