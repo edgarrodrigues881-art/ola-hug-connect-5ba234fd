@@ -619,6 +619,24 @@ const AutoSave = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete All Confirmation ── */}
+      <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Apagar todos os contatos?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
+              Apagar todos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
