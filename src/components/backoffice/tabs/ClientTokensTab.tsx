@@ -234,7 +234,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
                 <td className="px-4 py-2.5 text-right">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive h-8 w-8" disabled={t.status === "in_use"}>
+                      <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive h-8 w-8">
                         <Trash2 size={14} />
                       </Button>
                     </AlertDialogTrigger>
