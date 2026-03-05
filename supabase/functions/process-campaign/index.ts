@@ -497,8 +497,9 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Time guard — if close to timeout, save state and self-continue
+          // Time guard — if close to timeout, revert lock and self-continue
           if (Date.now() - startTime > MAX_EXECUTION_MS) {
+            await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
             needsContinue = true;
             console.log(`Time guard hit at ${Date.now() - startTime}ms, will self-continue`);
             break;
