@@ -264,7 +264,7 @@ const HeroSection = () => {
 
                 {/* Card 1 — AO VIVO (top-right, 30px from edge) */}
                 <div className="absolute w-[170px] xl:w-[185px]"
-                  style={{ top: "-20px", right: "0px", transform: "translateX(30%)" }}>
+                  style={{ top: "-30px", right: "-10px", transform: "translateX(55%)" }}>
                   <div className="relative rounded-xl p-3.5 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="flex items-center gap-2 mb-2.5">
@@ -304,7 +304,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (mid-left, vertically centered) */}
                 <div className="absolute"
-                  style={{ top: "50%", left: "-30px", transform: "translate(-100%, -50%)" }}>
+                  style={{ top: "50%", left: "-40px", transform: "translate(-100%, -50%)" }}>
                   <div className="relative rounded-xl p-3.5 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="flex items-center gap-2.5">
@@ -328,7 +328,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left) */}
                 <div className="absolute"
-                  style={{ bottom: "5%", left: "-30px", transform: "translateX(-100%)" }}>
+                  style={{ bottom: "5%", left: "-40px", transform: "translateX(-100%)" }}>
                   <div className="relative rounded-xl px-3 py-2.5 flex items-center gap-2 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-6 h-6 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
