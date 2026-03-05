@@ -67,10 +67,10 @@ export function useAutoSyncDevices(intervalMs = 30000) {
       }
     };
 
-    // Keep-alive every 10 minutes
-    const keepAliveInterval = setInterval(doKeepAlive, 10 * 60 * 1000);
-    // First keep-alive after 5 minutes
-    const initialTimeout = setTimeout(doKeepAlive, 5 * 60 * 1000);
+    // Keep-alive every 5 minutes (prevents 30-day session timeout)
+    const keepAliveInterval = setInterval(doKeepAlive, 5 * 60 * 1000);
+    // First keep-alive after 2 minutes
+    const initialTimeout = setTimeout(doKeepAlive, 2 * 60 * 1000);
 
     return () => {
       clearInterval(keepAliveInterval);

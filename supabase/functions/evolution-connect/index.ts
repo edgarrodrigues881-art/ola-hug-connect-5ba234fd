@@ -379,6 +379,39 @@ Deno.serve(async (req) => {
       if (check.status === "connected") {
         return json({ success: true, status: "authenticated", alive: true });
       }
+
+      // If device was Ready but UaZapi shows disconnected, try auto-reconnect
+      if (check.valid && check.status === "disconnected") {
+        console.log(`keepAlive: device ${deviceName} disconnected, attempting auto-reconnect...`);
+        try {
+          const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+          const connInst = connectRes.data?.instance || connectRes.data || {};
+          const st = connInst.status || connectRes.data?.status;
+          if (st === "connected") {
+            console.log(`keepAlive: auto-reconnect successful for ${deviceName}`);
+            return json({ success: true, status: "authenticated", alive: true, reconnected: true });
+          }
+          // If it started connecting (QR needed), mark as disconnected
+          await svc.from("devices").update({ status: "Disconnected" }).eq("id", deviceId);
+        } catch (e) {
+          console.log("keepAlive reconnect error:", e);
+        }
+      }
+
+      // If token is invalid, try recreating the instance
+      if (!check.valid) {
+        console.log(`keepAlive: token invalid for ${deviceName}, recreating...`);
+        const created = await ensureValidInstance();
+        if (created) {
+          const reconnect = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+          const ri = reconnect.data?.instance || reconnect.data || {};
+          if ((ri.status || reconnect.data?.status) === "connected") {
+            return json({ success: true, status: "authenticated", alive: true, recreated: true });
+          }
+        }
+        await svc.from("devices").update({ status: "Disconnected" }).eq("id", deviceId);
+      }
+
       return json({ success: true, status: check.status, alive: false });
     }
 
