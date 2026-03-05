@@ -267,7 +267,7 @@ const HeroSection = () => {
 
                 {/* Card 1 — AO VIVO (top-right) */}
                 <div className="absolute w-[170px] xl:w-[185px]"
-                  style={{ top: "5%", right: "-8px", transform: "translateX(65%)" }}>
+                  style={{ top: "5%", right: "-8px", transform: "translateX(50%)" }}>
                   <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-2.5">
@@ -307,7 +307,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left) */}
                 <div className="absolute"
-                  style={{ top: "32%", left: "0px", transform: "translateX(-88%)" }}>
+                  style={{ top: "22%", left: "0px", transform: "translateX(-105%)" }}>
                   <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-2.5">
@@ -331,7 +331,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "0px", transform: "translateX(-88%)" }}>
+                  style={{ bottom: "15%", left: "0px", transform: "translateX(-105%)" }}>
                   <div className="relative rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-6 h-6 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
