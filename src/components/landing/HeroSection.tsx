@@ -122,7 +122,7 @@ const HeroSection = () => {
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
-            <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-start gap-4">
+            <div className="flex flex-col items-start gap-4">
               <Button
                 onClick={() => navigate("/auth")}
                 className="h-14 sm:h-16 px-10 sm:px-12 text-base sm:text-lg font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
