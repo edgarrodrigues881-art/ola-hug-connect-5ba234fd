@@ -188,10 +188,23 @@ const AutoSave = () => {
     reader.onload = (evt) => {
       try {
         const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: "array", cellText: true });
+        const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         
-        // Read as raw arrays to avoid scientific notation in headers
+        // Force all number cells to text to avoid scientific notation (e.g. 5.51E+12)
+        const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = sheet[addr];
+            if (cell && cell.t === "n") {
+              cell.t = "s";
+              cell.v = String(cell.v);
+              cell.w = String(cell.v);
+            }
+          }
+        }
+        
         const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
         
         if (rawRows.length < 2) {
