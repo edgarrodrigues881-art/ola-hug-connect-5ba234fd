@@ -1,0 +1,30 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export function useWarmupEngine() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      action: "start" | "pause" | "resume" | "stop" | "tick";
+      device_id?: string;
+      chip_state?: string;
+      days_total?: number;
+      plan_id?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke("warmup-engine", {
+        body: params,
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
+      qc.invalidateQueries({ queryKey: ["warmup_cycle_device"] });
+      qc.invalidateQueries({ queryKey: ["warmup_instance_groups"] });
+      qc.invalidateQueries({ queryKey: ["warmup_audit_logs"] });
+      qc.invalidateQueries({ queryKey: ["warmup_jobs"] });
+    },
+  });
+}
