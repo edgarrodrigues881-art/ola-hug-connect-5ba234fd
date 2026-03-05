@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet, Flame, ListTodo, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AdminOverview from "./AdminOverview";
@@ -9,6 +9,9 @@ import AdminClientsTable from "./AdminClientsTable";
 import AdminClientDetail from "./AdminClientDetail";
 import AdminLogs from "./AdminLogs";
 import CostsTab from "./CostsTab";
+import AdminGroupsPool from "./AdminGroupsPool";
+import AdminWarmupCycles from "./AdminWarmupCycles";
+import AdminWarmupJobs from "./AdminWarmupJobs";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -123,6 +126,15 @@ const BackOfficeDashboard = () => {
           <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <Wallet size={16} /> Custos
           </TabsTrigger>
+          <TabsTrigger value="groups-pool" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Database size={16} /> Grupos Pool
+          </TabsTrigger>
+          <TabsTrigger value="warmup-cycles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Flame size={16} /> Ciclos
+          </TabsTrigger>
+          <TabsTrigger value="warmup-jobs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <ListTodo size={16} /> Jobs
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">{data ? <AdminOverview data={data} /> : null}</TabsContent>
@@ -130,6 +142,9 @@ const BackOfficeDashboard = () => {
         <TabsContent value="pendencias"><PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="logs"><AdminLogs /></TabsContent>
         <TabsContent value="costs"><CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} /></TabsContent>
+        <TabsContent value="groups-pool"><AdminGroupsPool /></TabsContent>
+        <TabsContent value="warmup-cycles"><AdminWarmupCycles /></TabsContent>
+        <TabsContent value="warmup-jobs"><AdminWarmupJobs /></TabsContent>
       </Tabs>
     </div>
   );
