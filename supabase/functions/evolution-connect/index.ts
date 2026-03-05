@@ -376,6 +376,7 @@ Deno.serve(async (req) => {
           const res = await uazapi(instanceUrl, ep.url, instanceToken, ep.method, ep.method === "POST" ? { number: phoneNumber } : undefined);
           console.log(`Pairing response:`, JSON.stringify(res.data).substring(0, 300));
           
+          // Check multiple field names for the pairing code
           const code = res.data?.pairingCode || res.data?.pairing_code || res.data?.code;
           if (code && typeof code === "string" && code.length >= 6 && code.length <= 12) {
             pairingCode = code;
@@ -384,9 +385,15 @@ Deno.serve(async (req) => {
           
           // Some APIs return the code inside instance object
           const inst = res.data?.instance || {};
-          const instCode = inst.pairingCode || inst.pairing_code;
+          const instCode = inst.pairingCode || inst.pairing_code || inst.paircode;
           if (instCode && typeof instCode === "string" && instCode.length >= 6) {
             pairingCode = instCode;
+            break;
+          }
+
+          // Check paircode at root level too
+          if (res.data?.paircode && typeof res.data.paircode === "string" && res.data.paircode.length >= 6) {
+            pairingCode = res.data.paircode;
             break;
           }
 
@@ -403,10 +410,21 @@ Deno.serve(async (req) => {
         return json({ success: true, pairingCode, status: "connecting" });
       }
 
+      // If no pairing code but we got a QR code, suggest QR method instead
+      const fallbackStatus = await checkInstanceStatus();
+      if (fallbackStatus.qrcode) {
+        return json({ 
+          success: false, 
+          error: "Este servidor não suporta código de pareamento. Use o QR Code para conectar.",
+          suggestQr: true,
+          qrCode: fallbackStatus.qrcode,
+        }, 200);
+      }
+
       return json({ 
-        error: "Não foi possível gerar o código de pareamento. O servidor pode não suportar essa funcionalidade.",
-        detail: lastError,
-      }, 500);
+        error: "Não foi possível gerar o código de pareamento. Use o QR Code para conectar.",
+        suggestQr: true,
+      }, 200);
     }
 
     if (action === "refreshQr") {
