@@ -1524,7 +1524,7 @@ const Devices = () => {
       </Dialog>
 
       <Dialog open={connectOpen} onOpenChange={(open) => {
-        if (!open) { stopPolling(); setConnectOpen(false); }
+        if (!open) { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }
       }}>
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           {/* Header */}
@@ -1602,7 +1602,7 @@ const Devices = () => {
                   </SelectContent>
                 </Select>
                 <div className="flex items-center gap-3 pt-1">
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { stopPolling(); setConnectOpen(false); }}>Cancelar</Button>
+                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Cancelar</Button>
                   <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleConfirmProxy}>Conectar</Button>
                 </div>
               </div>
@@ -1890,7 +1890,7 @@ const Devices = () => {
                   <p className="text-lg font-bold text-foreground">Conectado com sucesso!</p>
                   <p className="text-sm text-muted-foreground mt-1">Sua instância está pronta para uso</p>
                 </div>
-                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectOpen(false); }}>Fechar</Button>
+                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Fechar</Button>
               </div>
             )}
           </div>
