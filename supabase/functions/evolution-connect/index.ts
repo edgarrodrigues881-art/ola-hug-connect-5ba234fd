@@ -218,6 +218,31 @@ Deno.serve(async (req) => {
       return true;
     };
 
+    // ── Helper: check for duplicate phone number across user's devices ──
+    const checkDuplicatePhone = async (phone: string, currentDeviceId: string): Promise<string | null> => {
+      if (!phone) return null;
+      const rawPhone = String(phone).replace(/\D/g, "");
+      if (!rawPhone || rawPhone.length < 8) return null;
+      
+      // Check all user devices (except current and report_wa) for same number
+      const { data: existing } = await svc
+        .from("devices")
+        .select("id, name, number")
+        .eq("user_id", user.id)
+        .neq("id", currentDeviceId)
+        .neq("login_type", "report_wa");
+      
+      if (!existing) return null;
+      
+      const duplicate = existing.find(d => {
+        if (!d.number) return false;
+        const dRaw = String(d.number).replace(/\D/g, "");
+        return dRaw === rawPhone || dRaw.endsWith(rawPhone.slice(-8)) || rawPhone.endsWith(dRaw.slice(-8));
+      });
+      
+      return duplicate ? duplicate.name : null;
+    };
+
     // ── connect ──
     if (action === "connect") {
       // Step 1: Check current instance status FIRST before creating anything
@@ -249,6 +274,18 @@ Deno.serve(async (req) => {
           if (raw.startsWith("55") && raw.length >= 12)
             formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
           else if (raw) formatted = `+${raw}`;
+        }
+        // Check for duplicate phone number
+        const dupName = await checkDuplicatePhone(phone, deviceId);
+        if (dupName) {
+          // Disconnect since it's a duplicate
+          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+          await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
+          return json({ 
+            error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`,
+            code: "DUPLICATE_PHONE",
+            duplicateInstance: dupName,
+          }, 409);
         }
         await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
@@ -301,6 +338,13 @@ Deno.serve(async (req) => {
               const raw = String(phone).replace(/\D/g, "");
               if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
               else if (raw) fmt = `+${raw}`;
+            }
+            // Check for duplicate phone
+            const dupName = await checkDuplicatePhone(phone, deviceId);
+            if (dupName) {
+              await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+              await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
+              return json({ error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`, code: "DUPLICATE_PHONE", duplicateInstance: dupName }, 409);
             }
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
@@ -394,6 +438,29 @@ Deno.serve(async (req) => {
       if (!check.valid) return json({ success: true, status: "token_invalid", tokenInvalid: true });
 
       const isConnected = check.status === "connected";
+
+      // On first authenticated detection via polling, check for duplicate phone
+      if (isConnected && check.owner) {
+        const dupName = await checkDuplicatePhone(check.owner, deviceId);
+        if (dupName) {
+          // Disconnect and reject
+          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+          await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
+          return json({ 
+            error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`,
+            code: "DUPLICATE_PHONE",
+            duplicateInstance: dupName,
+            status: "duplicate_phone",
+          }, 409);
+        }
+        // Save phone and mark Ready
+        const raw = String(check.owner).replace(/\D/g, "");
+        let fmt = "";
+        if (raw.startsWith("55") && raw.length >= 12)
+          fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+        else if (raw) fmt = `+${raw}`;
+        await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
+      }
 
       return json({
         success: true,
