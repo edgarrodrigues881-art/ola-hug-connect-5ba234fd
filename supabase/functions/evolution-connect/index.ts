@@ -324,6 +324,12 @@ Deno.serve(async (req) => {
               if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
               else if (raw) fmt = `+${raw}`;
             }
+            // Check for duplicate phone
+            const pollDup = await checkDuplicatePhone(phone);
+            if (pollDup.isDuplicate) {
+              await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+              return json({ error: `Este número já está conectado na instância "${pollDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+            }
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
           }
