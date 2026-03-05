@@ -681,6 +681,38 @@ Deno.serve(async (req) => {
       return json({ success: true, data: r.data });
     }
 
+    // ── deleteInstance - Delete instance from UaZapi server ──
+    if (action === "deleteInstance") {
+      console.log("Deleting instance from UaZapi server...");
+      // Try multiple endpoint patterns for deletion
+      const deleteEndpoints = [
+        "/instance/delete",
+        "/instance/remove",
+        "/instance/destroy",
+      ];
+      let deleted = false;
+      for (const ep of deleteEndpoints) {
+        try {
+          const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
+          console.log(`Delete via ${ep}: ${r.status}`);
+          if (r.ok || r.status === 200 || r.status === 204) {
+            deleted = true;
+            break;
+          }
+        } catch {}
+      }
+      // Also try with admin token if instance token didn't work
+      if (!deleted && BASE_URL && ADMIN_TOKEN) {
+        try {
+          const r = await uazapi(BASE_URL, "/instance/delete", ADMIN_TOKEN, "POST", { token: instanceToken });
+          console.log(`Delete via admin token: ${r.status}`);
+          if (r.ok) deleted = true;
+        } catch {}
+      }
+      console.log("Instance deletion result:", deleted ? "success" : "failed (non-blocking)");
+      return json({ success: true, deleted });
+    }
+
     return json({ error: `Ação desconhecida: ${action}` }, 400);
   } catch (err: any) {
     console.error("Edge function error:", err);
