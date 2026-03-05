@@ -440,17 +440,9 @@ const AutoSave = () => {
           <DialogHeader><DialogTitle>Adicionar Contato</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Nome</Label>
-              <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Nome do contato" className="mt-1" />
-            </div>
-            <div>
               <Label className="text-xs">Número (E.164)</Label>
               <Input value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="62994192500" className="mt-1 font-mono" />
               <p className="text-[10px] text-muted-foreground mt-1">Exemplo: 62994192500 ou +5562994192500</p>
-            </div>
-            <div>
-              <Label className="text-xs">Tags (separadas por vírgula)</Label>
-              <Input value={addTags} onChange={e => setAddTags(e.target.value)} placeholder="cliente, vip" className="mt-1" />
             </div>
           </div>
           <DialogFooter>
