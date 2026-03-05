@@ -45,7 +45,6 @@ async function adminCreateInstance(
   adminToken: string,
   name: string,
 ): Promise<{ ok: boolean; token?: string; error?: string }> {
-  // Try admintoken, token, Bearer in sequence
   const headerVariants = [
     { admintoken: adminToken },
     { token: adminToken },
@@ -145,7 +144,6 @@ Deno.serve(async (req) => {
       const result = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, instName);
       if (!result.ok) return json({ error: result.error }, 500);
 
-      // Save token to device
       if (deviceId && result.token) {
         await svc.from("devices").update({
           uazapi_token: result.token,
@@ -179,11 +177,24 @@ Deno.serve(async (req) => {
       return json({ error: "Instância sem token. Conecte primeiro." }, 400);
     }
 
-    // ── Helper: check if token is valid ──
-    const isTokenValid = async (): Promise<boolean> => {
-      if (!instanceToken) return false;
-      const r = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
-      return r.status !== 401;
+    // ── Helper: check if token is valid, returns status info ──
+    const checkInstanceStatus = async (): Promise<{ valid: boolean; status: string; qrcode?: string; owner?: string; profileName?: string; profilePicUrl?: string }> => {
+      if (!instanceToken) return { valid: false, status: "no_token" };
+      try {
+        const r = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
+        if (r.status === 401) return { valid: false, status: "token_invalid" };
+        const inst = r.data?.instance || r.data || {};
+        return {
+          valid: true,
+          status: inst.status || r.data?.status || "unknown",
+          qrcode: inst.qrcode || r.data?.qrcode,
+          owner: inst.owner || inst.phone || r.data?.phone || "",
+          profileName: inst.profileName || "",
+          profilePicUrl: inst.profilePicUrl || "",
+        };
+      } catch {
+        return { valid: false, status: "error" };
+      }
     };
 
     // ── Helper: auto-create or recreate instance ──
@@ -209,33 +220,29 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Step 1: Ensure we have a valid instance
-      if (!instanceToken) {
+      // Step 1: Check current instance status FIRST before creating anything
+      const currentCheck = await checkInstanceStatus();
+      console.log("Current instance status:", JSON.stringify(currentCheck));
+
+      // If token is invalid or doesn't exist, create/recreate
+      if (!currentCheck.valid) {
+        console.log("Token invalid/missing, creating instance...");
         const created = await ensureValidInstance();
         if (!created) return json({ error: "Falha ao criar instância na UaZapi." }, 500);
-      } else {
-        // Check if existing token is still valid
-        const valid = await isTokenValid();
-        if (!valid) {
-          console.log("Token invalid, recreating...");
-          const created = await ensureValidInstance();
-          if (!created) return json({ error: "Falha ao recriar instância (token expirado)." }, 500);
-        }
       }
 
-      // Step 2: Set proxy if provided
+      // Step 2: Set proxy if provided (only on first connect, not on QR refresh)
       if (body.proxyConfig?.host) {
         await setProxy(instanceUrl, instanceToken, body.proxyConfig);
       }
 
-      // Step 3: Check current status
-      const statusCheck = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
-      const inst = statusCheck.data?.instance || statusCheck.data || {};
-      const currentStatus = inst.status || statusCheck.data?.status || "";
+      // Step 3: Re-check status with (possibly new) token
+      const statusCheck = await checkInstanceStatus();
+      const currentStatus = statusCheck.status;
 
       // Already connected
       if (currentStatus === "connected") {
-        const phone = inst.owner || inst.phone || "";
+        const phone = statusCheck.owner || "";
         let formatted = "";
         if (phone) {
           const raw = String(phone).replace(/\D/g, "");
@@ -247,22 +254,31 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // Existing QR
-      const existingQr = inst.qrcode || statusCheck.data?.qrcode;
-      if (existingQr && currentStatus === "connecting") {
-        return json({ success: true, base64: existingQr, qr: existingQr, status: "connecting" });
+      // If "connecting" and we have a QR, return it without calling connect again
+      if (currentStatus === "connecting" && statusCheck.qrcode) {
+        console.log("Already connecting, returning existing QR");
+        return json({ success: true, base64: statusCheck.qrcode, qr: statusCheck.qrcode, status: "connecting" });
       }
 
-      // Disconnect if needed
-      if (currentStatus && currentStatus !== "disconnected") {
+      // Disconnect if in a bad state (not disconnected/connecting)
+      if (currentStatus && currentStatus !== "disconnected" && currentStatus !== "connecting") {
         await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // Step 4: Connect
+      // Step 4: Call connect to generate QR
       const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
       if (connectRes.status === 401) {
-        return json({ error: "Token inválido mesmo após recriação.", code: "TOKEN_INVALID" }, 401);
+        // Token became invalid after creation - try one more time
+        const retryCreated = await ensureValidInstance();
+        if (!retryCreated) return json({ error: "Token inválido mesmo após recriação.", code: "TOKEN_INVALID" }, 401);
+        const retryConnect = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+        const retryInst = retryConnect.data?.instance || retryConnect.data || {};
+        const retryQr = retryInst.qrcode || retryConnect.data?.qrcode;
+        if (retryQr) {
+          return json({ success: true, base64: retryQr, qr: retryQr, status: "connecting", instanceToken });
+        }
+        return json({ error: "Não foi possível gerar QR Code." }, 500);
       }
 
       const connInst = connectRes.data?.instance || connectRes.data || {};
@@ -277,7 +293,6 @@ Deno.serve(async (req) => {
           qr = pi.qrcode || poll.data?.qrcode;
           if (qr) break;
 
-          // Check if connected during polling
           const st = pi.status || poll.data?.status;
           if (st === "connected") {
             const phone = pi.owner || pi.phone || "";
@@ -303,23 +318,85 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── status ──
-    if (action === "status") {
-      const r = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
-      if (r.status === 401) return json({ success: true, status: "token_invalid", tokenInvalid: true });
+    // ── refreshQr - Get fresh QR without recreating instance ──
+    if (action === "refreshQr") {
+      const statusCheck = await checkInstanceStatus();
 
-      const inst = r.data?.instance || r.data || {};
-      const state = inst.status || r.data?.state || r.data?.status || "unknown";
-      const isConnected = state === "connected";
+      // If connected, return success
+      if (statusCheck.status === "connected") {
+        const phone = statusCheck.owner || "";
+        let formatted = "";
+        if (phone) {
+          const raw = String(phone).replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12)
+            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          else if (raw) formatted = `+${raw}`;
+        }
+        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
+      }
+
+      // If token is invalid, need to recreate
+      if (!statusCheck.valid) {
+        const created = await ensureValidInstance();
+        if (!created) return json({ error: "Token expirado, falha ao recriar." }, 500);
+      }
+
+      // If connecting and has QR, return it
+      if (statusCheck.status === "connecting" && statusCheck.qrcode) {
+        return json({ success: true, base64: statusCheck.qrcode, qr: statusCheck.qrcode, status: "connecting" });
+      }
+
+      // Otherwise request a new QR by calling connect (same instance, no recreation)
+      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+      const connInst = connectRes.data?.instance || connectRes.data || {};
+      let qr = connInst.qrcode || connectRes.data?.qrcode;
+
+      if (!qr) {
+        // Quick poll
+        for (let i = 0; i < 3; i++) {
+          await new Promise(r => setTimeout(r, 1000));
+          const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
+          const pi = poll.data?.instance || poll.data || {};
+          qr = pi.qrcode || poll.data?.qrcode;
+          if (qr) break;
+          if ((pi.status || poll.data?.status) === "connected") {
+            return json({ success: true, alreadyConnected: true, status: "authenticated" });
+          }
+        }
+      }
 
       return json({
         success: true,
-        status: isConnected ? "authenticated" : state,
-        phone: inst.owner || r.data?.phone || r.data?.number || "",
-        base64: inst.qrcode || r.data?.qrcode || null,
-        qr: inst.qrcode || r.data?.qrcode || null,
-        profileName: inst.profileName || "",
-        profilePicUrl: inst.profilePicUrl || "",
+        base64: qr || null,
+        qr: qr || null,
+        status: qr ? "connecting" : "waiting",
+      });
+    }
+
+    // ── keepAlive - Prevent session timeout ──
+    if (action === "keepAlive") {
+      const check = await checkInstanceStatus();
+      if (check.status === "connected") {
+        return json({ success: true, status: "authenticated", alive: true });
+      }
+      return json({ success: true, status: check.status, alive: false });
+    }
+
+    // ── status ──
+    if (action === "status") {
+      const check = await checkInstanceStatus();
+      if (!check.valid) return json({ success: true, status: "token_invalid", tokenInvalid: true });
+
+      const isConnected = check.status === "connected";
+
+      return json({
+        success: true,
+        status: isConnected ? "authenticated" : check.status,
+        phone: check.owner || "",
+        base64: check.qrcode || null,
+        qr: check.qrcode || null,
+        profileName: check.profileName || "",
+        profilePicUrl: check.profilePicUrl || "",
       });
     }
 
@@ -365,7 +442,6 @@ Deno.serve(async (req) => {
         return json({ success: r.ok, ...r.data });
       }
 
-      // Upload base64
       const r = await uazapi(instanceUrl, "/profile/picture", instanceToken, "POST", {
         picture: profilePictureData,
       });
