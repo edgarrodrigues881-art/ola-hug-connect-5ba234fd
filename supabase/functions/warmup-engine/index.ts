@@ -691,6 +691,21 @@ Deno.serve(async (req) => {
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
             });
+
+            // If phase includes autosave, schedule interaction jobs for the new day
+            if (["autosave_enabled", "community_enabled"].includes(cycle.phase)) {
+              const scheduled = await scheduleAutosaveInteractions(
+                db, job.user_id, job.device_id, job.cycle_id, newTarget, 0
+              );
+              if (scheduled > 0) {
+                await db.from("warmup_audit_logs").insert({
+                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                  level: "info", event_type: "autosave_scheduled",
+                  message: `${scheduled} interações Auto Save agendadas para o dia ${newDay}`,
+                  meta: { count: scheduled, day: newDay },
+                });
+              }
+            }
             break;
           }
 
