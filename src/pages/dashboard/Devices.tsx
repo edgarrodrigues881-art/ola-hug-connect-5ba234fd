@@ -849,7 +849,21 @@ const Devices = () => {
       body,
       headers: { Authorization: `Bearer ${s.access_token}` },
     });
-    if (response.error) throw response.error;
+    // For non-2xx responses, supabase-js puts error in response.error
+    // but the JSON body with our custom code/error is in the error context
+    if (response.error) {
+      // Try to extract the response body from the error
+      try {
+        const errBody = await (response.error as any).context?.json?.() 
+          || (typeof (response.error as any).message === 'string' && JSON.parse((response.error as any).message))
+          || null;
+        if (errBody?.code) {
+          // Return the error body so callers can check .code and .error
+          return errBody;
+        }
+      } catch {}
+      throw response.error;
+    }
     return response.data;
   };
 
