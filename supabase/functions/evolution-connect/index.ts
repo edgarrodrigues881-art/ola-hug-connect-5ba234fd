@@ -197,26 +197,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    // ── Helper: auto-create or recreate instance ──
-    const ensureValidInstance = async (): Promise<boolean> => {
-      if (!BASE_URL || !ADMIN_TOKEN) return false;
-      const slug = deviceName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      const rand = crypto.randomUUID().slice(0, 6);
-      const uniqueName = `${slug}-${deviceId.slice(0, 8)}-${rand}`;
-      console.log("Creating/recreating instance:", uniqueName);
-      const result = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, uniqueName);
-      if (!result.ok || !result.token) {
-        console.log("Instance creation failed:", result.error);
-        return false;
-      }
-      instanceToken = result.token;
-      instanceUrl = BASE_URL;
-      await svc.from("devices").update({
-        uazapi_token: instanceToken,
-        uazapi_base_url: BASE_URL,
-      }).eq("id", deviceId);
-      return true;
-    };
+    // (auto-creation removed — tokens are now assigned manually by admin via pool)
 
     // ── Helper: check if phone number is already used by another device ──
     const checkDuplicatePhone = async (phone: string): Promise<{ isDuplicate: boolean; existingDeviceName?: string }> => {
