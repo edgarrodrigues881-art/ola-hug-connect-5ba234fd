@@ -349,15 +349,6 @@ const HeroSection = () => {
                 <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
                 <span className="text-[9px] text-white/25 ml-auto">342 msgs hoje</span>
               </div>
-              <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
-                <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
-                  <span className="text-[9px] font-bold text-[#07C160]">89%</span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-white/70 font-medium block">Aquecimento</span>
-                  <span className="text-[8px] text-[#07C160]/60">Dia 12 de 14</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
