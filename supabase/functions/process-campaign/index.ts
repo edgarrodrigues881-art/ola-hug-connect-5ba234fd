@@ -568,8 +568,8 @@ Deno.serve(async (req) => {
                 }
               }
             } else {
-              const pickedIndex = messageVariants.indexOf(chosenMessage);
-              console.log(`RANDOM: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}: "${personalizedMessage.substring(0, 50)}..."`);
+              const pickedIndex = msgIndex % messageVariants.length;
+              console.log(`${sequentialMode ? 'SEQ' : 'RANDOM'}: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}: "${personalizedMessage.substring(0, 50)}..."`);
               await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
             }
             await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
