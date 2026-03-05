@@ -896,12 +896,10 @@ const Devices = () => {
       qrCountdownRef.current = setInterval(() => {
         setQrCountdown(prev => {
           if (prev <= 1) {
-            setQrCodeBase64("");
+            // DON'T clear qrCodeBase64 — keep old QR visible while fetching new one
             if (connectingDevice) {
-              // Use refreshQr instead of connect to avoid recreating the instance
               callApi({ action: "refreshQr", deviceId: connectingDevice.id }).then(result => {
                 if (result?.alreadyConnected) {
-                  // Device got connected during refresh
                   setConnectStep("done");
                   queryClient.invalidateQueries({ queryKey: ["devices"] });
                   return;
