@@ -1890,7 +1890,7 @@ const Devices = () => {
                   <p className="text-lg font-bold text-foreground">Conectado com sucesso!</p>
                   <p className="text-sm text-muted-foreground mt-1">Sua instância está pronta para uso</p>
                 </div>
-                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectOpen(false); }}>Fechar</Button>
+                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Fechar</Button>
               </div>
             )}
           </div>
