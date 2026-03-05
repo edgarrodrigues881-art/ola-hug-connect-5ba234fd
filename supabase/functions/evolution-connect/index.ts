@@ -218,6 +218,31 @@ Deno.serve(async (req) => {
       return true;
     };
 
+    // ── Helper: check for duplicate phone number across user's devices ──
+    const checkDuplicatePhone = async (phone: string, currentDeviceId: string): Promise<string | null> => {
+      if (!phone) return null;
+      const rawPhone = String(phone).replace(/\D/g, "");
+      if (!rawPhone || rawPhone.length < 8) return null;
+      
+      // Check all user devices (except current and report_wa) for same number
+      const { data: existing } = await svc
+        .from("devices")
+        .select("id, name, number")
+        .eq("user_id", user.id)
+        .neq("id", currentDeviceId)
+        .neq("login_type", "report_wa");
+      
+      if (!existing) return null;
+      
+      const duplicate = existing.find(d => {
+        if (!d.number) return false;
+        const dRaw = String(d.number).replace(/\D/g, "");
+        return dRaw === rawPhone || dRaw.endsWith(rawPhone.slice(-8)) || rawPhone.endsWith(dRaw.slice(-8));
+      });
+      
+      return duplicate ? duplicate.name : null;
+    };
+
     // ── connect ──
     if (action === "connect") {
       // Step 1: Check current instance status FIRST before creating anything
