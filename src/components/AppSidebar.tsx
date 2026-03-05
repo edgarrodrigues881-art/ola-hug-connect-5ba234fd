@@ -78,7 +78,6 @@ const menuGroups = [
   {
     label: "Conta",
     items: [
-      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
     ],
   },
@@ -232,6 +231,10 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/dashboard/my-plan")} className="gap-2 cursor-pointer">
               <CreditCard className="w-4 h-4" strokeWidth={1.5} />
               Meu Plano
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/notifications")} className="gap-2 cursor-pointer">
+              <ScrollText className="w-4 h-4" strokeWidth={1.5} />
+              Logs
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
