@@ -484,6 +484,19 @@ Deno.serve(async (req) => {
         }
 
         for (const contact of contacts) {
+          // Optimistic lock: mark as processing to prevent duplicate sends
+          const { count: lockCount } = await serviceClient
+            .from("campaign_contacts")
+            .update({ status: "processing" })
+            .eq("id", contact.id)
+            .eq("status", "pending")
+            .select("id", { count: "exact", head: true });
+          
+          if (!lockCount || lockCount === 0) {
+            // Already picked up by another invocation, skip
+            continue;
+          }
+
           // Time guard — if close to timeout, save state and self-continue
           if (Date.now() - startTime > MAX_EXECUTION_MS) {
             needsContinue = true;
