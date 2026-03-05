@@ -159,15 +159,17 @@ const AutoSave = () => {
 
   const queryClient = useQueryClient();
   const handleDeleteAll = async () => {
-    if (!contacts.length) return;
+    if (!contacts.length || !user) return;
     try {
-      for (const c of contacts) {
-        await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
-      }
+      const { error } = await supabase
+        .from("warmup_autosave_contacts" as any)
+        .delete()
+        .eq("user_id", user.id);
+      if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
       toast({ title: `${contacts.length} contatos apagados` });
-    } catch {
-      toast({ title: "Erro ao apagar contatos", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro ao apagar contatos", description: err.message, variant: "destructive" });
     }
     setDeleteAllOpen(false);
   };
