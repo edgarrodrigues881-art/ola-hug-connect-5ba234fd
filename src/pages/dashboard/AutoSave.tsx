@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   useAutosaveContacts, type WarmupAutosaveContact,
@@ -18,8 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Plus, Upload, Search, Zap, Trash2, Edit2, Power, PowerOff,
-  CheckCircle2, XCircle, AlertTriangle, Loader2, Users,
+  CheckCircle2, XCircle, AlertTriangle, Loader2, Users, FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 // ── E.164 parser ──
 function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {
