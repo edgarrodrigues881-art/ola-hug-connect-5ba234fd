@@ -144,7 +144,7 @@ const HeroSection = () => {
           </div>
 
           {/* Right — HeroPhoneStage */}
-          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
+          <div className="relative flex flex-col items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
             {/* Ambient glow */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
@@ -153,11 +153,11 @@ const HeroSection = () => {
               }}
             />
 
-            {/* HeroPhoneStage — relative container, overflow visible */}
-            <div className="relative" style={{ overflow: "visible" }}>
+            {/* HeroPhoneStage — takes full width so overlays have room */}
+            <div className="relative w-full flex items-center justify-center" style={{ overflow: "visible" }}>
 
               {/* === PhoneLayer (z-10) === */}
-              <div className="relative z-10">
+              <div className="relative z-10 flex-shrink-0">
                 <div
                   className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
                   style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
@@ -249,15 +249,15 @@ const HeroSection = () => {
                   </div>
                 </div>
               </div>
-              {/* End PhoneLayer */}
-              </div>
+               {/* End PhoneLayer */}
+               </div>
 
-              {/* === OverlayLayer (z-20) — absolute, pointer-events-none, overflow visible === */}
+              {/* === OverlayLayer (z-20) — desktop only, positioned relative to stage === */}
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
                 <div className="absolute w-[190px] xl:w-[220px]"
-                  style={{ top: "2%", right: "-50%", transform: "translateX(0)" }}>
+                  style={{ top: "5%", left: "calc(100% - 20px)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-3">
@@ -297,7 +297,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left, outside phone) */}
                 <div className="absolute"
-                  style={{ top: "25%", left: "-55%", transform: "translateX(0)" }}>
+                  style={{ top: "30%", right: "calc(100% - 20px)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
                 <div className="absolute"
-                  style={{ bottom: "12%", left: "-40%", transform: "translateX(0)" }}>
+                  style={{ bottom: "15%", right: "calc(100% - 30px)" }}>
                   <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
@@ -342,7 +342,7 @@ const HeroSection = () => {
             </div>
             {/* End HeroPhoneStage */}
 
-            {/* Mobile: stacked cards below phone */}
+            {/* Mobile/Tablet: stacked cards below phone (lg:hidden) */}
             <div className="flex flex-col gap-3 mt-6 lg:hidden w-full max-w-[280px]">
               <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                 <div className="w-2 h-2 rounded-full bg-[#07C160]" />
