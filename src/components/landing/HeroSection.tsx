@@ -105,7 +105,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 pb-10 overflow-x-clip">
+    <section className="relative min-h-screen flex items-center pt-20 pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
         <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
@@ -143,20 +143,25 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Right — Phone */}
-          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms" }}>
-            {/* Ambient glow — radial gradient, no blur/filter */}
+          {/* Right — HeroPhoneStage */}
+          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
+            {/* Ambient glow */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
               style={{
                 background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.12) 0%, transparent 70%)",
               }}
             />
-            <div className="relative">
-              <div
-                className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
-                style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
-              >
+
+            {/* HeroPhoneStage — relative container, overflow visible */}
+            <div className="relative" style={{ overflow: "visible" }}>
+
+              {/* === PhoneLayer (z-10) === */}
+              <div className="relative z-10">
+                <div
+                  className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
+                  style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
+                >
                 {/* Border */}
                 <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
@@ -244,85 +249,113 @@ const HeroSection = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Floating notifications */}
-            <div className="hidden lg:block">
-              {/* Notification 1 */}
-              <div className="absolute right-[-40px] xl:right-[-60px] top-[6%] w-[190px] xl:w-[220px]">
-                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
-                  <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 rounded-full bg-[#07C160]" />
-                    <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { phone: "+55 11 ****-2847", time: "agora", active: true },
-                      { phone: "+55 21 ****-9314", time: "2s", active: true },
-                      { phone: "+55 31 ****-7720", time: "5s", active: false },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className={`flex-1 h-[28px] rounded-lg flex items-center px-2.5 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
-                          {item.active ? (
-                            <svg className="w-3 h-3 text-[#07C160] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
-                              <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
-                            </svg>
-                          ) : (
-                            <div className="w-3 h-3 rounded-full border border-white/10 flex items-center justify-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
-                            </div>
-                          )}
-                          <span className={`text-[10px] truncate ${item.active ? "text-white/50" : "text-white/30"}`}>{item.phone}</span>
-                        </div>
-                        <span className={`text-[8px] flex-shrink-0 ${item.active ? "text-white/20" : "text-white/15"}`}>{item.time}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between">
-                    <span className="text-[9px] text-white/25">Mensagens hoje</span>
-                    <span className="text-[13px] font-bold text-white tabular-nums">342</span>
-                  </div>
-                </div>
+              {/* End PhoneLayer */}
               </div>
 
-              {/* Notification 2 — Progress ring */}
-              <div className="absolute left-[-40px] xl:left-[-55px] top-[25%]">
-                <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
-                  <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12">
-                      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
-                        <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
-                        <circle cx="24" cy="24" r="20" fill="none" stroke="#07C160" strokeWidth="3" strokeLinecap="round"
-                          strokeDasharray={`${2 * Math.PI * 20}`} strokeDashoffset={2 * Math.PI * 20 * (1 - 0.89)} />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[11px] font-bold text-white">89%</span>
+              {/* === OverlayLayer (z-20) — absolute, pointer-events-none, overflow visible === */}
+              <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
+
+                {/* Card 1 — AO VIVO (top-right, outside phone) */}
+                <div className="absolute w-[190px] xl:w-[220px]"
+                  style={{ top: "2%", right: "-50%", transform: "translateX(0)" }}>
+                  <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
+                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-[#07C160]" />
+                      <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { phone: "+55 11 ****-2847", time: "agora", active: true },
+                        { phone: "+55 21 ****-9314", time: "2s", active: true },
+                        { phone: "+55 31 ****-7720", time: "5s", active: false },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className={`flex-1 h-[28px] rounded-lg flex items-center px-2.5 gap-1.5 ${item.active ? "bg-[#07C160]/[0.12] border border-[#07C160]/10" : "bg-white/[0.03] border border-white/[0.04]"}`}>
+                            {item.active ? (
+                              <svg className="w-3 h-3 text-[#07C160] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M11.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.5 8.36l3.47-3.43a.75.75 0 011.06 0z" />
+                                <path d="M14.07 4.93a.75.75 0 010 1.06l-4 4a.75.75 0 01-1.06-1.06l4-4a.75.75 0 011.06 0z" />
+                              </svg>
+                            ) : (
+                              <div className="w-3 h-3 rounded-full border border-white/10 flex items-center justify-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
+                              </div>
+                            )}
+                            <span className={`text-[10px] truncate ${item.active ? "text-white/50" : "text-white/30"}`}>{item.phone}</span>
+                          </div>
+                          <span className={`text-[8px] flex-shrink-0 ${item.active ? "text-white/20" : "text-white/15"}`}>{item.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between">
+                      <span className="text-[9px] text-white/25">Mensagens hoje</span>
+                      <span className="text-[13px] font-bold text-white tabular-nums">342</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2 — Aquecimento 89% (left, outside phone) */}
+                <div className="absolute"
+                  style={{ top: "25%", left: "-55%", transform: "translateX(0)" }}>
+                  <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
+                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                          <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
+                          <circle cx="24" cy="24" r="20" fill="none" stroke="#07C160" strokeWidth="3" strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 20}`} strokeDashoffset={2 * Math.PI * 20 * (1 - 0.89)} />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[11px] font-bold text-white">89%</span>
+                        </div>
                       </div>
+                      <div>
+                        <p className="text-[11px] text-white/80 font-semibold">Aquecimento</p>
+                        <p className="text-[9px] text-[#07C160]/70 mt-0.5">Dia 12 de 14</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
+                <div className="absolute"
+                  style={{ bottom: "12%", left: "-40%", transform: "translateX(0)" }}>
+                  <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
+                    <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
+                    <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                      <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
                     </div>
                     <div>
-                      <p className="text-[11px] text-white/80 font-semibold">Aquecimento</p>
-                      <p className="text-[9px] text-[#07C160]/70 mt-0.5">Dia 12 de 14</p>
+                      <span className="text-[11px] text-white/70 font-medium block">43 instâncias</span>
+                      <span className="text-[8px] text-[#07C160]/60">Todas online</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Notification 3 — Instâncias */}
-              <div className="absolute left-[-20px] xl:left-[-30px] bottom-[12%]">
-                <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 overflow-hidden" style={{ background: cardBg, boxShadow: cardShadow }}>
-                  <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
-                  <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
-                    <svg className="w-3.5 h-3.5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-white/70 font-medium block">43 instâncias</span>
-                    <span className="text-[8px] text-[#07C160]/60">Todas online</span>
-                  </div>
+              </div>
+              {/* End OverlayLayer */}
+
+            </div>
+            {/* End HeroPhoneStage */}
+
+            {/* Mobile: stacked cards below phone */}
+            <div className="flex flex-col gap-3 mt-6 lg:hidden w-full max-w-[280px]">
+              <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
+                <div className="w-2 h-2 rounded-full bg-[#07C160]" />
+                <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
+                <span className="text-[9px] text-white/25 ml-auto">342 msgs hoje</span>
+              </div>
+              <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
+                <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+                  <span className="text-[9px] font-bold text-[#07C160]">89%</span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-white/70 font-medium block">Aquecimento</span>
+                  <span className="text-[8px] text-[#07C160]/60">Dia 12 de 14</span>
                 </div>
               </div>
             </div>
