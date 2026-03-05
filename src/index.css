@@ -195,6 +195,19 @@
   }
 }
 
+/* ── QR Code loading animations ── */
+@keyframes scanLine {
+  0%, 100% { top: 15%; opacity: 0; }
+  10% { opacity: 1; }
+  50% { top: 80%; opacity: 1; }
+  90% { opacity: 0; }
+}
+
+@keyframes qrPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
 /* ── Viewport-triggered animations (GPU-only: transform + opacity) ── */
 .aov-hidden {
   opacity: 0;
