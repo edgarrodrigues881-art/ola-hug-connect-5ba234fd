@@ -237,6 +237,66 @@ export function useCommunityMembership(deviceId: string) {
   });
 }
 
+// ── Toggle Community ──
+export function useToggleCommunity() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ deviceId, cycleId, enable }: { deviceId: string; cycleId: string | null; enable: boolean }) => {
+      // Upsert membership
+      const now = new Date().toISOString();
+      const { data: existing } = await supabase
+        .from("warmup_community_membership" as any)
+        .select("id")
+        .eq("device_id", deviceId)
+        .limit(1);
+
+      if ((existing as any[])?.length) {
+        await supabase
+          .from("warmup_community_membership" as any)
+          .update({
+            is_enabled: enable,
+            cycle_id: cycleId,
+            ...(enable ? { enabled_at: now } : { disabled_at: now }),
+          })
+          .eq("id", (existing as any[])[0].id);
+      } else {
+        await supabase
+          .from("warmup_community_membership" as any)
+          .insert({
+            user_id: user!.id,
+            device_id: deviceId,
+            cycle_id: cycleId,
+            is_enabled: enable,
+            ...(enable ? { enabled_at: now } : {}),
+          });
+      }
+
+      // Audit log
+      await supabase.from("warmup_audit_logs" as any).insert({
+        user_id: user!.id,
+        device_id: deviceId,
+        cycle_id: cycleId,
+        event_type: enable ? "community_enabled" : "community_disabled",
+        level: "info",
+        message: enable ? "Comunidade habilitada pelo usuário" : "Comunidade desabilitada pelo usuário",
+        meta: { toggled_at: now },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["warmup_community"] });
+      qc.invalidateQueries({ queryKey: ["warmup_audit_logs"] });
+    },
+  });
+}
+
+// ── Placeholder: Create Pairs for Day ──
+export async function createPairsForDay(cycleId: string): Promise<{ wouldCreate: number }> {
+  // Placeholder: logs that pairing would happen but does not execute conversations
+  console.log(`[community] createPairsForDay called for cycle ${cycleId} — no-op placeholder`);
+  return { wouldCreate: 0 };
+}
+
 // ── Audit Logs ──
 export function useWarmupAuditLogs(cycleId?: string, limit = 30) {
   const { user } = useAuth();
