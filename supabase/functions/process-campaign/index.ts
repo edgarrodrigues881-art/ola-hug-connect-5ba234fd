@@ -346,12 +346,15 @@ Deno.serve(async (req) => {
       let failedCount = campaign.failed_count || 0;
       const messageContent = campaign.message_content || "";
       const sendAllMode = messageContent.includes("|&&|");
+      const sequentialMode = messageContent.includes("|>>|");
       const messageVariants = sendAllMode 
         ? messageContent.split("|&&|").filter((m: string) => m.trim())
-        : messageContent.includes("|||") 
-          ? messageContent.split("|||").filter((m: string) => m.trim()) 
-          : [messageContent];
-      console.log(`Message mode: ${sendAllMode ? 'SEQUENTIAL (|&&|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}, content preview: ${messageContent.substring(0, 100)}`);
+        : sequentialMode
+          ? messageContent.split("|>>|").filter((m: string) => m.trim())
+          : messageContent.includes("|||") 
+            ? messageContent.split("|||").filter((m: string) => m.trim()) 
+            : [messageContent];
+      console.log(`Message mode: ${sendAllMode ? 'ALL (|&&|)' : sequentialMode ? 'SEQUENTIAL (|>>|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}`);
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
