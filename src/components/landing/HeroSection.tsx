@@ -44,9 +44,11 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Right column — globe */}
+          {/* Right column — globe card */}
           <div className="flex items-center justify-center order-2">
-            <InteractiveGlobe size={420} />
+            <div className="relative w-full max-w-[520px] aspect-square rounded-2xl border border-emerald-500/15 bg-black/20 overflow-hidden">
+              <InteractiveGlobe className="w-full h-full" />
+            </div>
           </div>
         </div>
       </div>
