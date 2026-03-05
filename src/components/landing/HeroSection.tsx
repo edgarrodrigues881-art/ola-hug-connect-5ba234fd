@@ -106,37 +106,37 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
-      <div className="container relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
+      <div className="relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20 mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(380px,480px)] gap-8 md:gap-10 lg:gap-12 items-center">
           {/* Left — Copy */}
-          <div className="max-w-xl animate-fade-in">
+          <div className="max-w-2xl animate-fade-in">
             <h1
-              className="text-3xl sm:text-4xl md:text-[3.2rem] lg:text-[3.5rem] xl:text-[3.75rem] font-semibold text-white leading-[1.1] mb-6 sm:mb-7 tracking-[-0.02em]"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold text-white leading-[1.05] mb-6 sm:mb-8 tracking-[-0.03em]"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Automação inteligente para preparar seu WhatsApp com{" "}
               <span className="text-[#07C160]">segurança.</span>
             </h1>
 
-            <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-relaxed mb-8 sm:mb-10 max-w-lg">
+            <p className="text-base sm:text-lg lg:text-xl text-white/40 leading-relaxed mb-8 sm:mb-10 max-w-lg">
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <Button
                 onClick={() => navigate("/auth")}
-                className="h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
+                className="h-14 sm:h-16 px-10 sm:px-12 text-base sm:text-lg font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
               >
                 Começar Agora
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-white/[0.06] bg-white/[0.03]">
-                <div className="w-10 h-10 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex items-center gap-3 px-5 py-4 sm:py-5 rounded-xl border border-white/[0.06] bg-white/[0.03]">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <p className="text-sm text-white/40 leading-snug">
+                <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-snug">
                   Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
                 </p>
               </div>
@@ -159,7 +159,7 @@ const HeroSection = () => {
               {/* === PhoneLayer (z-10) === */}
               <div className="relative z-10 flex-shrink-0">
                 <div
-                  className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
+                  className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[340px] xl:w-[380px]"
                   style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
                 >
                 {/* Border */}
@@ -256,8 +256,8 @@ const HeroSection = () => {
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
-                <div className="absolute w-[190px] xl:w-[220px]"
-                  style={{ top: "5%", right: "-10px", transform: "translateX(100%)" }}>
+                <div className="absolute w-[200px] xl:w-[230px]"
+                  style={{ top: "5%", right: "-6px", transform: "translateX(100%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-3">
@@ -297,7 +297,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left, outside phone) */}
                 <div className="absolute"
-                  style={{ top: "30%", left: "-10px", transform: "translateX(-100%)" }}>
+                  style={{ top: "30%", left: "-6px", transform: "translateX(-100%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "-10px", transform: "translateX(-100%)" }}>
+                  style={{ bottom: "15%", left: "-6px", transform: "translateX(-100%)" }}>
                   <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
