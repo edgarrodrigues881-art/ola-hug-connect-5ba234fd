@@ -56,6 +56,7 @@ const AutoSave = () => {
 
   // Add modal
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [addName, setAddName] = useState("");
   const [addPhone, setAddPhone] = useState("");
   const [addTags, setAddTags] = useState("");
