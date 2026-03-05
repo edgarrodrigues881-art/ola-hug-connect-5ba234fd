@@ -126,6 +126,15 @@ const BackOfficeDashboard = () => {
           <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <Wallet size={16} /> Custos
           </TabsTrigger>
+          <TabsTrigger value="groups-pool" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Database size={16} /> Grupos Pool
+          </TabsTrigger>
+          <TabsTrigger value="warmup-cycles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Flame size={16} /> Ciclos
+          </TabsTrigger>
+          <TabsTrigger value="warmup-jobs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <ListTodo size={16} /> Jobs
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">{data ? <AdminOverview data={data} /> : null}</TabsContent>
@@ -133,6 +142,9 @@ const BackOfficeDashboard = () => {
         <TabsContent value="pendencias"><PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} /></TabsContent>
         <TabsContent value="logs"><AdminLogs /></TabsContent>
         <TabsContent value="costs"><CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} /></TabsContent>
+        <TabsContent value="groups-pool"><AdminGroupsPool /></TabsContent>
+        <TabsContent value="warmup-cycles"><AdminWarmupCycles /></TabsContent>
+        <TabsContent value="warmup-jobs"><AdminWarmupJobs /></TabsContent>
       </Tabs>
     </div>
   );
