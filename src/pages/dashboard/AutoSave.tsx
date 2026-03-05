@@ -56,6 +56,7 @@ const AutoSave = () => {
 
   // Add modal
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [addName, setAddName] = useState("");
   const [addPhone, setAddPhone] = useState("");
   const [addTags, setAddTags] = useState("");
@@ -159,8 +160,6 @@ const AutoSave = () => {
   const queryClient = useQueryClient();
   const handleDeleteAll = async () => {
     if (!contacts.length) return;
-    const confirmed = window.confirm(`Tem certeza que deseja apagar todos os ${contacts.length} contatos?`);
-    if (!confirmed) return;
     try {
       for (const c of contacts) {
         await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
@@ -170,6 +169,7 @@ const AutoSave = () => {
     } catch {
       toast({ title: "Erro ao apagar contatos", variant: "destructive" });
     }
+    setDeleteAllOpen(false);
   };
 
   // ── Import ──
@@ -330,7 +330,7 @@ const AutoSave = () => {
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           {contacts.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:bg-destructive/10" onClick={handleDeleteAll}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
               <Trash2 className="w-3.5 h-3.5" /> Apagar todos
             </Button>
           )}
@@ -617,6 +617,24 @@ const AutoSave = () => {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete All Confirmation ── */}
+      <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Apagar todos os contatos?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
+              Apagar todos
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
