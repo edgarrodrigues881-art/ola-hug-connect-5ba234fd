@@ -746,25 +746,25 @@ const Devices = () => {
     if (!file) return;
     setWpUploading(true);
     try {
-      // Convert to base64 for direct API upload
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        setWpPhotoBase64(base64);
-        setWpPhotoUrl(URL.createObjectURL(file));
-        setWpRemovePhoto(false);
-        toast({ title: "Foto carregada" });
-        setWpUploading(false);
-      };
-      reader.onerror = () => {
-        toast({ title: "Erro ao ler foto", variant: "destructive" });
-        setWpUploading(false);
-      };
-      reader.readAsDataURL(file);
+      // Upload to Supabase Storage and get public URL
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl;
+      console.log("Photo uploaded, public URL:", publicUrl);
+      setWpPhotoBase64(publicUrl); // Store URL instead of base64
+      setWpPhotoUrl(URL.createObjectURL(file));
+      setWpRemovePhoto(false);
+      toast({ title: "Foto carregada" });
     } catch (err: any) {
+      console.error("Photo upload error:", err);
       toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
-      setWpUploading(false);
     } finally {
+      setWpUploading(false);
       if (wpFileRef.current) wpFileRef.current.value = "";
     }
   };
