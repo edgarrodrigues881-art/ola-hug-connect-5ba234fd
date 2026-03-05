@@ -1012,7 +1012,7 @@ function AlertCard({
               <Smartphone className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-white text-sm font-medium">Central de Alertas</p>
+              <p className="text-white text-sm font-medium">Relatório Via WhatsApp</p>
               <p className="text-white/70 text-[11px]">online</p>
             </div>
           </div>
