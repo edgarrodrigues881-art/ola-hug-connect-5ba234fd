@@ -163,11 +163,11 @@ const Campaigns = () => {
       return copy;
     });
   };
-  const [rotationMode, setRotationMode] = useState<"random" | "sequential" | "all">("random");
+  const [rotationMode, setRotationMode] = useState<"random" | "all">("random");
   const rotateMessages = rotationMode !== "all"; // backward compat
   const allMessages = messages.filter(m => m.trim());
   const combinedMessage = allMessages.length > 1 
-    ? (rotationMode === "random" ? allMessages.join("|||") : rotationMode === "sequential" ? allMessages.join("|>>|") : allMessages.join("|&&|"))
+    ? (rotationMode === "random" ? allMessages.join("|||") : allMessages.join("|&&|"))
     : allMessages[0] || "";
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
@@ -966,7 +966,6 @@ const Campaigns = () => {
                       <div className="flex gap-2">
                         {([
                           { value: "random" as const, label: "Aleatório", icon: <Sparkles className="w-3 h-3 mr-1" />, desc: "Uma mensagem aleatória para cada contato" },
-                          { value: "sequential" as const, label: "Sequencial", icon: <ArrowDown className="w-3 h-3 mr-1" />, desc: "Msg 1→contato 1, Msg 2→contato 2, etc." },
                           { value: "all" as const, label: "Todas", icon: <ArrowDown className="w-3 h-3 mr-1" />, desc: "Todas as mensagens para cada contato" },
                         ]).map(opt => (
                           <button
