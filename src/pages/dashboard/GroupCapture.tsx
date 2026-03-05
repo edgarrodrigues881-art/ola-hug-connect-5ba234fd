@@ -516,21 +516,37 @@ const GroupCapture = () => {
                   <div className="flex items-center gap-2">
                     <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-[13px] font-medium text-foreground">Delay entre entradas</span>
-                    <span className="text-xs font-mono bg-muted/30 px-2 py-0.5 rounded text-foreground ml-auto">
-                      {delaySeconds}s
-                    </span>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={600}
+                        value={delaySeconds}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          if (!isNaN(v) && v >= 1 && v <= 600) setDelaySeconds(v);
+                        }}
+                        className="w-16 h-7 text-xs font-mono text-center px-1"
+                      />
+                      <span className="text-xs text-muted-foreground">segundos</span>
+                    </div>
                   </div>
-                  <Slider
-                    value={[delaySeconds]}
-                    onValueChange={([v]) => setDelaySeconds(v)}
-                    min={3}
-                    max={120}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground/40">
-                    <span>3s (rápido)</span>
-                    <span>120s (seguro)</span>
+
+                  {/* Quick presets */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[5, 10, 15, 20, 30, 45, 60, 90, 120].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setDelaySeconds(v)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors border ${
+                          delaySeconds === v
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/40"
+                        }`}
+                      >
+                        {v}s
+                      </button>
+                    ))}
                   </div>
 
                   {/* Speed warning */}
