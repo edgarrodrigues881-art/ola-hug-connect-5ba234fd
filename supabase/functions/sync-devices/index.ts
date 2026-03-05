@@ -36,11 +36,9 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // Get global UaZapi config as fallback
     const GLOBAL_UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
     const GLOBAL_UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
 
-    // Get user's devices with per-device config
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: devices, error: devError } = await serviceClient
       .from("devices")
@@ -52,7 +50,6 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const device of (devices || [])) {
-      // Use per-device token/url, fallback to global
       const deviceToken = device.uazapi_token || GLOBAL_UAZAPI_TOKEN;
       const deviceBaseUrl = (device.uazapi_base_url || GLOBAL_UAZAPI_BASE_URL || "").replace(/\/+$/, "");
 
@@ -61,7 +58,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      let newStatus = "Disconnected";
+      let newStatus = device.status; // PRESERVE current status by default
       let formattedPhone = device.number || "";
       let profilePicture = device.profile_picture || null;
 
@@ -70,6 +67,20 @@ Deno.serve(async (req) => {
           method: "GET",
           headers: { "token": deviceToken, "Accept": "application/json" },
         });
+
+        // If token is invalid (401), DON'T change device status - just skip
+        if (res.status === 401) {
+          console.log(`Device ${device.name}: token invalid (401), preserving current status: ${device.status}`);
+          results.push({
+            id: device.id,
+            name: device.name,
+            found: false,
+            status: device.status,
+            error: "Token invalid",
+          });
+          continue;
+        }
+
         const data = await res.json();
         console.log(`Device ${device.name} status:`, res.status, JSON.stringify(data).substring(0, 300));
 
@@ -91,7 +102,6 @@ Deno.serve(async (req) => {
         const syncedProfileName = inst.profileName || inst.pushname || "";
         newStatus = isConnected ? "Ready" : "Disconnected";
 
-        // Only update DB if something actually changed to avoid duplicate trigger fires
         const statusChanged = newStatus !== device.status;
         const phoneChanged = formattedPhone !== (device.number || "");
         const picChanged = profilePicture !== (device.profile_picture || null);
@@ -108,7 +118,6 @@ Deno.serve(async (req) => {
             })
             .eq("id", device.id);
 
-          // Dispatch webhook for status changes
           if (statusChanged) {
             const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
             if (makeUrl) {
@@ -135,17 +144,7 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         console.error(`Error syncing device ${device.name}:`, err);
-        // Only update if status actually changed
-        if (newStatus !== device.status) {
-          await serviceClient
-            .from("devices")
-            .update({
-              status: newStatus,
-              number: formattedPhone,
-              profile_picture: profilePicture,
-            })
-            .eq("id", device.id);
-        }
+        // On network error, DON'T change status - preserve current state
       }
 
       results.push({

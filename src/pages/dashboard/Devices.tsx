@@ -898,7 +898,14 @@ const Devices = () => {
           if (prev <= 1) {
             setQrCodeBase64("");
             if (connectingDevice) {
-              callApi({ action: "connect", deviceId: connectingDevice.id }).then(result => {
+              // Use refreshQr instead of connect to avoid recreating the instance
+              callApi({ action: "refreshQr", deviceId: connectingDevice.id }).then(result => {
+                if (result?.alreadyConnected) {
+                  // Device got connected during refresh
+                  setConnectStep("done");
+                  queryClient.invalidateQueries({ queryKey: ["devices"] });
+                  return;
+                }
                 const b64 = result?.base64 || result?.qr;
                 if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
               }).catch(() => {});
