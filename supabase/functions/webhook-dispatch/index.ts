@@ -32,6 +32,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── Auth: require WEBHOOK_SECRET ──
+    const secret = req.headers.get("x-webhook-secret") || "";
+    const expectedSecret = Deno.env.get("WEBHOOK_SECRET") || "";
+    if (!expectedSecret || secret !== expectedSecret) {
+      console.log("[webhook-dispatch] Invalid or missing secret");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const { event, client_id, instance_id, data: eventData } = body;
 
