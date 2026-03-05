@@ -188,16 +188,36 @@ const AutoSave = () => {
     reader.onload = (evt) => {
       try {
         const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: "array" });
+        const workbook = XLSX.read(data, { type: "array", cellText: true });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: "", raw: false });
-
-        if (rows.length === 0) {
-          toast({ title: "Arquivo vazio", variant: "destructive" });
+        
+        // Read as raw arrays to avoid scientific notation in headers
+        const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+        
+        if (rawRows.length < 2) {
+          toast({ title: "Arquivo vazio ou sem dados", variant: "destructive" });
           return;
         }
 
-        const cols = Object.keys(rows[0]);
+        // First row = headers, rest = data
+        const headers = rawRows[0].map((h: any) => String(h).trim() || `Col${Math.random().toString(36).slice(2, 6)}`);
+        const dataRows = rawRows.slice(1).filter(r => r.some((c: any) => String(c).trim() !== ""));
+        
+        if (dataRows.length === 0) {
+          toast({ title: "Arquivo sem dados", variant: "destructive" });
+          return;
+        }
+
+        // Convert to Record<string, string> using headers
+        const rows: Record<string, string>[] = dataRows.map(row => {
+          const obj: Record<string, string> = {};
+          headers.forEach((h: string, i: number) => {
+            obj[h] = String(row[i] ?? "").trim();
+          });
+          return obj;
+        });
+
+        const cols = headers;
         setFileColumns(cols);
         setFileRows(rows);
 
