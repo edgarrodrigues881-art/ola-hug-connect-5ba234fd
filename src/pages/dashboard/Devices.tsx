@@ -1317,43 +1317,52 @@ const Devices = () => {
 
       {/* Create Instance Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">Nova instância</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Nome</Label>
+        <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Plus className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">Nova instância</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">Crie uma nova conexão WhatsApp</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground font-medium">Nome da instância</Label>
               <Input
                 value={instanceName}
                 onChange={e => setInstanceName(e.target.value)}
                 placeholder="Ex: Chip 01"
-                className="h-8 text-xs"
+                className="h-11 text-sm rounded-xl"
                 autoFocus
                 onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
               />
             </div>
+            <div className="flex items-center gap-3 pt-1">
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleCreate} disabled={!instanceName.trim()}>Criar</Button>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleCreate} disabled={!instanceName.trim()}>Criar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-          <div className="relative px-6 pt-6 pb-4">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
-            <div className="relative flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Pencil className="w-5 h-5 text-primary" />
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Pencil className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-base font-bold">Editar instância</DialogTitle>
+                <DialogTitle className="text-lg font-bold">Editar instância</DialogTitle>
                 {editingDevice && (
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {editingDevice.number ? formatPhone(editingDevice.number) : "Sem número vinculado"}
                   </p>
                 )}
@@ -1361,53 +1370,53 @@ const Devices = () => {
             </div>
           </div>
 
-          <div className="px-6 pb-6 space-y-5">
+          <div className="px-6 py-5 space-y-5">
             {/* Nome da instância */}
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground font-medium">Nome da instância</Label>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground font-medium">Nome da instância</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-9 text-sm"
+                className="h-11 text-sm rounded-xl"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
                 <div>
                   {editName.trim() && devices.some(d => d.name.toLowerCase() === editName.trim().toLowerCase() && d.id !== editingDevice?.id) && (
-                    <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
-                      <AlertTriangle className="w-2.5 h-2.5" /> Nome já em uso
+                    <span className="text-[11px] text-amber-500 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> Nome já em uso
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground/30">{editName.length}/30</span>
+                <span className="text-[11px] text-muted-foreground/40">{editName.length}/30</span>
               </div>
             </div>
 
             {editingDevice?.status === "Ready" && (
               <>
-                <div className="border-t border-border/10" />
-                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-medium">Perfil do WhatsApp</p>
+                <div className="border-t border-border/15" />
+                <p className="text-[11px] text-muted-foreground/60 uppercase tracking-wider font-semibold">Perfil do WhatsApp</p>
 
                 {/* Nome do WhatsApp */}
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Smartphone className="w-3 h-3" /> Nome exibido
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" /> Nome exibido
                   </Label>
                   <Input
                     value={wpName}
                     onChange={e => setWpName(e.target.value)}
                     placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
-                    className="h-9 text-sm"
+                    className="h-11 text-sm rounded-xl"
                     maxLength={25}
                   />
-                  <p className="text-[10px] text-muted-foreground/30">{wpName.length}/25 caracteres</p>
+                  <p className="text-[11px] text-muted-foreground/40">{wpName.length}/25 caracteres</p>
                 </div>
 
                 {/* Foto do WhatsApp */}
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Camera className="w-3 h-3" /> Foto do perfil
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
                   <div className="flex justify-center">
@@ -1417,23 +1426,23 @@ const Devices = () => {
                     >
                       {wpPhotoUrl && !wpRemovePhoto ? (
                         <>
-                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover border-2 border-border" />
+                          <img src={wpPhotoUrl} alt="Foto" className="w-24 h-24 rounded-full object-cover ring-[3px] ring-primary/20 shadow-md" />
                           <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
                               <Camera className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
                               <XCircle className="w-4 h-4" />
                             </Button>
                           </div>
                         </>
                       ) : (
                         <div
-                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/40 transition-colors"
+                          className="w-24 h-24 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/40 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
-                          <Camera className="w-5 h-5 text-muted-foreground/40 mb-1" />
-                          <span className="text-[9px] text-muted-foreground/30">
+                          <Camera className="w-6 h-6 text-muted-foreground/40 mb-1" />
+                          <span className="text-[10px] text-muted-foreground/40">
                             {wpRemovePhoto ? "Removida" : "Escolher"}
                           </span>
                         </div>
@@ -1444,9 +1453,9 @@ const Devices = () => {
               </>
             )}
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditOpen(false)}>Cancelar</Button>
-              <Button size="sm" className="flex-1" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
+            <div className="flex items-center gap-3 pt-2">
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
         </DialogContent>
