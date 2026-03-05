@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet, Flame, ListTodo, Database } from "lucide-react";
+import { LayoutDashboard, Users, ScrollText, Loader2, Bell, Copy, ChevronRight, Check, Wallet, Flame, ListTodo, Database, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AdminOverview from "./AdminOverview";
@@ -12,6 +12,7 @@ import CostsTab from "./CostsTab";
 import AdminGroupsPool from "./AdminGroupsPool";
 import AdminWarmupCycles from "./AdminWarmupCycles";
 import AdminWarmupJobs from "./AdminWarmupJobs";
+import AdminInfra from "./AdminInfra";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -135,6 +136,9 @@ const BackOfficeDashboard = () => {
           <TabsTrigger value="warmup-jobs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <ListTodo size={16} /> Jobs
           </TabsTrigger>
+          <TabsTrigger value="infra" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Server size={16} /> Infra
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">{data ? <AdminOverview data={data} /> : null}</TabsContent>
@@ -145,6 +149,7 @@ const BackOfficeDashboard = () => {
         <TabsContent value="groups-pool"><AdminGroupsPool /></TabsContent>
         <TabsContent value="warmup-cycles"><AdminWarmupCycles /></TabsContent>
         <TabsContent value="warmup-jobs"><AdminWarmupJobs /></TabsContent>
+        <TabsContent value="infra"><AdminInfra /></TabsContent>
       </Tabs>
     </div>
   );
