@@ -1000,6 +1000,224 @@ export type Database = {
         }
         Relationships: []
       }
+      warmup_audit_logs: {
+        Row: {
+          created_at: string
+          cycle_id: string | null
+          device_id: string
+          event_type: string
+          id: string
+          level: Database["public"]["Enums"]["warmup_log_level"]
+          message: string
+          meta: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id: string
+          event_type: string
+          id?: string
+          level?: Database["public"]["Enums"]["warmup_log_level"]
+          message?: string
+          meta?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id?: string
+          event_type?: string
+          id?: string
+          level?: Database["public"]["Enums"]["warmup_log_level"]
+          message?: string
+          meta?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_audit_logs_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_autosave_contacts: {
+        Row: {
+          contact_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          phone_e164: string
+          tags: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          phone_e164: string
+          tags?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          phone_e164?: string
+          tags?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      warmup_community_membership: {
+        Row: {
+          created_at: string
+          cycle_id: string | null
+          device_id: string
+          disabled_at: string | null
+          enabled_at: string | null
+          id: string
+          is_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id?: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_community_membership_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_community_membership_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_cycles: {
+        Row: {
+          chip_state: Database["public"]["Enums"]["warmup_chip_state"]
+          created_at: string
+          daily_interaction_budget_max: number
+          daily_interaction_budget_min: number
+          daily_interaction_budget_target: number
+          daily_interaction_budget_used: number
+          daily_unique_recipients_cap: number
+          daily_unique_recipients_used: number
+          day_index: number
+          days_total: number
+          device_id: string
+          first_24h_ends_at: string
+          id: string
+          is_running: boolean
+          last_daily_reset_at: string | null
+          last_error: string | null
+          next_run_at: string | null
+          phase: Database["public"]["Enums"]["warmup_phase"]
+          plan_id: string | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chip_state?: Database["public"]["Enums"]["warmup_chip_state"]
+          created_at?: string
+          daily_interaction_budget_max?: number
+          daily_interaction_budget_min?: number
+          daily_interaction_budget_target?: number
+          daily_interaction_budget_used?: number
+          daily_unique_recipients_cap?: number
+          daily_unique_recipients_used?: number
+          day_index?: number
+          days_total?: number
+          device_id: string
+          first_24h_ends_at?: string
+          id?: string
+          is_running?: boolean
+          last_daily_reset_at?: string | null
+          last_error?: string | null
+          next_run_at?: string | null
+          phase?: Database["public"]["Enums"]["warmup_phase"]
+          plan_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chip_state?: Database["public"]["Enums"]["warmup_chip_state"]
+          created_at?: string
+          daily_interaction_budget_max?: number
+          daily_interaction_budget_min?: number
+          daily_interaction_budget_target?: number
+          daily_interaction_budget_used?: number
+          daily_unique_recipients_cap?: number
+          daily_unique_recipients_used?: number
+          day_index?: number
+          days_total?: number
+          device_id?: string
+          first_24h_ends_at?: string
+          id?: string
+          is_running?: boolean
+          last_daily_reset_at?: string | null
+          last_error?: string | null
+          next_run_at?: string | null
+          phase?: Database["public"]["Enums"]["warmup_phase"]
+          plan_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_cycles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_cycles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warmup_groups: {
         Row: {
           created_at: string
@@ -1029,6 +1247,157 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      warmup_groups_pool: {
+        Row: {
+          created_at: string
+          external_group_ref: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_group_ref?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_group_ref?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      warmup_instance_groups: {
+        Row: {
+          created_at: string
+          cycle_id: string | null
+          device_id: string
+          group_id: string
+          id: string
+          join_status: Database["public"]["Enums"]["warmup_group_join_status"]
+          joined_at: string | null
+          last_error: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id: string
+          group_id: string
+          id?: string
+          join_status?: Database["public"]["Enums"]["warmup_group_join_status"]
+          joined_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string | null
+          device_id?: string
+          group_id?: string
+          id?: string
+          join_status?: Database["public"]["Enums"]["warmup_group_join_status"]
+          joined_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_instance_groups_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_instance_groups_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_instance_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_groups_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warmup_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          cycle_id: string
+          device_id: string
+          id: string
+          job_type: Database["public"]["Enums"]["warmup_job_type"]
+          last_error: string | null
+          max_attempts: number
+          payload: Json | null
+          run_at: string
+          status: Database["public"]["Enums"]["warmup_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          cycle_id: string
+          device_id: string
+          id?: string
+          job_type: Database["public"]["Enums"]["warmup_job_type"]
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json | null
+          run_at?: string
+          status?: Database["public"]["Enums"]["warmup_job_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          cycle_id?: string
+          device_id?: string
+          id?: string
+          job_type?: Database["public"]["Enums"]["warmup_job_type"]
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json | null
+          run_at?: string
+          status?: Database["public"]["Enums"]["warmup_job_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_jobs_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warmup_jobs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       warmup_logs: {
         Row: {
@@ -1098,6 +1467,30 @@ export type Database = {
           created_at?: string
           id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      warmup_plans: {
+        Row: {
+          created_at: string
+          days_total: number
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          days_total: number
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          days_total?: number
+          id?: string
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }
@@ -1178,6 +1571,41 @@ export type Database = {
           },
         ]
       }
+      warmup_unique_recipients: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          day_date: string
+          id: string
+          recipient_phone_e164: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          day_date?: string
+          id?: string
+          recipient_phone_e164: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          day_date?: string
+          id?: string
+          recipient_phone_e164?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warmup_unique_recipients_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1231,6 +1659,32 @@ export type Database = {
         | "WARMUP_REPORT_24H"
         | "TEST_ALERT"
       app_role: "admin" | "moderator" | "user"
+      warmup_chip_state: "new" | "recovered"
+      warmup_group_join_status: "pending" | "joined" | "failed" | "left"
+      warmup_job_status:
+        | "pending"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+      warmup_job_type:
+        | "join_group"
+        | "enable_autosave"
+        | "enable_community"
+        | "autosave_interaction"
+        | "community_interaction"
+        | "daily_reset"
+        | "phase_transition"
+        | "health_check"
+      warmup_log_level: "info" | "warn" | "error"
+      warmup_phase:
+        | "pre_24h"
+        | "groups_only"
+        | "autosave_enabled"
+        | "community_enabled"
+        | "completed"
+        | "paused"
+        | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1372,6 +1826,35 @@ export const Constants = {
         "TEST_ALERT",
       ],
       app_role: ["admin", "moderator", "user"],
+      warmup_chip_state: ["new", "recovered"],
+      warmup_group_join_status: ["pending", "joined", "failed", "left"],
+      warmup_job_status: [
+        "pending",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ],
+      warmup_job_type: [
+        "join_group",
+        "enable_autosave",
+        "enable_community",
+        "autosave_interaction",
+        "community_interaction",
+        "daily_reset",
+        "phase_transition",
+        "health_check",
+      ],
+      warmup_log_level: ["info", "warn", "error"],
+      warmup_phase: [
+        "pre_24h",
+        "groups_only",
+        "autosave_enabled",
+        "community_enabled",
+        "completed",
+        "paused",
+        "error",
+      ],
     },
   },
 } as const
