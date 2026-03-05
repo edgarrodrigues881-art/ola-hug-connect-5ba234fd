@@ -105,8 +105,8 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-8 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
-      <div className="container relative z-10 py-8 sm:py-12 lg:py-16 xl:py-20">
+    <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
+      <div className="container relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20">
         <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
           <div className="max-w-xl animate-fade-in">
