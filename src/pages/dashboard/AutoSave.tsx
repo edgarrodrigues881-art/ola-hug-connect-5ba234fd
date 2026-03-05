@@ -627,14 +627,32 @@ const AutoSave = () => {
                   </div>
                 )}
 
-                <Button
-                  className="w-full gap-1.5"
-                  onClick={handleImport}
-                  disabled={importPreview.valid.length === 0 || importing}
-                >
-                  {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  Importar {importPreview.valid.length} contato{importPreview.valid.length !== 1 ? "s" : ""}
-                </Button>
+                {importing ? (
+                  <div className="space-y-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <p className="text-sm font-medium text-foreground">Importando contatos...</p>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${Math.min(importProgress, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      {Math.round(Math.min(importProgress, 100))}% — {importPreview.valid.length} contatos
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full gap-1.5"
+                    onClick={handleImport}
+                    disabled={importPreview.valid.length === 0}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Importar {importPreview.valid.length} contato{importPreview.valid.length !== 1 ? "s" : ""}
+                  </Button>
+                )}
               </div>
             )}
           </div>
