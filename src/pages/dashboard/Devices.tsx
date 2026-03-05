@@ -933,6 +933,15 @@ const Devices = () => {
     const interval = setInterval(async () => {
       try {
         const result = await callApi({ action: "status", deviceId });
+        // Check for duplicate phone error
+        if (result?.error && result?.code === "DUPLICATE_PHONE") {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setConnectError(result.error);
+          setQrCodeBase64("");
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+          return;
+        }
         const apiStatus = result?.status;
         // Status polling check
         if (apiStatus === "authenticated") {
