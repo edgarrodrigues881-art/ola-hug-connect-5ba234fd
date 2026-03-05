@@ -55,7 +55,7 @@ const menuGroups = [
       { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
-      { title: "Aquecimento", url: "/dashboard/warmup", icon: Flame },
+      { title: "Aquecimento", url: "/dashboard/warmup-v2", icon: Flame },
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
     ],
   },
