@@ -1,57 +1,107 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import InteractiveGlobe from "@/components/ui/interactive-globe";
+import dashboardPreview from "@/assets/dashboard-preview.png";
 
 const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-[auto] lg:min-h-screen flex items-center pt-20 pb-4 md:pb-10">
-      <div className="relative z-10 py-4 sm:py-8 lg:py-12 xl:py-16 mx-auto w-full max-w-[1300px] px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* Left column — text */}
-          <div className="animate-fade-in text-center lg:text-left order-1">
-            <h1
-              className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-5xl xl:text-[3.5rem] font-semibold text-white leading-[1.1] mb-5 sm:mb-6 tracking-[-0.02em]"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-            >
-              Automação inteligente para preparar seu WhatsApp com{" "}
-              <span className="text-[#07C160]">segurança.</span>
-            </h1>
+    <section className="relative min-h-screen flex flex-col items-center justify-start pt-28 pb-12 overflow-hidden">
+      {/* Announcement badge */}
+      <aside
+        className="mb-8 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-emerald-500/20 bg-black/50 backdrop-blur-md max-w-full"
+        style={{ animation: "fadeIn 0.6s ease-out" }}
+      >
+        <span className="text-xs text-center whitespace-nowrap text-emerald-400 font-medium">
+          Plataforma atualizada com novas funcionalidades!
+        </span>
+        <a
+          href="#planos"
+          className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
+          aria-label="Ver novidades"
+        >
+          Saiba mais
+          <ArrowRight size={12} />
+        </a>
+      </aside>
 
-            <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-relaxed mb-6 sm:mb-8 max-w-md mx-auto lg:mx-0">
-              Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
-            </p>
+      {/* Headline */}
+      <h1
+        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-center max-w-4xl px-6 mb-6 leading-[1.1] tracking-tight"
+        style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          background: "linear-gradient(to bottom, #ffffff, #ffffff, rgba(255, 255, 255, 0.6))",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          letterSpacing: "-0.03em",
+          animation: "fadeIn 0.6s ease-out 0.1s both",
+        }}
+      >
+        Automação inteligente para o seu WhatsApp
+      </h1>
 
-            <Button
-              onClick={() => navigate("/auth")}
-              className="h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
-            >
-              Começar Agora
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+      {/* Subtitle */}
+      <p
+        className="text-sm sm:text-base md:text-lg text-white/40 text-center max-w-2xl px-6 mb-10"
+        style={{ animation: "fadeIn 0.6s ease-out 0.2s both" }}
+      >
+        Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
+        <br />
+        Plataforma completa de gestão e contingência.
+      </p>
 
-            <div className="mt-4 flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl border border-white/[0.06] bg-white/[0.03] max-w-sm mx-auto lg:mx-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <p className="text-xs sm:text-sm text-white/40 leading-snug">
-                Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
-              </p>
-            </div>
-          </div>
+      {/* CTA */}
+      <div
+        className="flex items-center gap-4 relative z-10 mb-16"
+        style={{ animation: "fadeIn 0.6s ease-out 0.3s both" }}
+      >
+        <Button
+          onClick={() => navigate("/auth")}
+          size="lg"
+          className="h-12 px-8 text-base font-medium rounded-xl bg-gradient-to-b from-white via-white/95 to-white/60 text-black hover:scale-105 active:scale-95 transition-transform btn-press"
+        >
+          Começar Agora
+        </Button>
+      </div>
 
-          {/* Right column — globe card */}
-          <div className="flex items-center justify-center order-2">
-            <div className="relative w-full max-w-[520px] aspect-square rounded-2xl border border-emerald-500/15 bg-black/20 overflow-hidden">
-              <InteractiveGlobe className="w-full h-full" />
-            </div>
-          </div>
+      {/* Dashboard Preview */}
+      <div
+        className="relative w-full max-w-5xl mx-auto px-6"
+        style={{ animation: "slideUp 0.8s ease-out 0.4s both" }}
+      >
+        {/* Green glow behind */}
+        <div
+          className="absolute -top-[23%] left-1/2 -translate-x-1/2 w-[98%] pointer-events-none"
+          style={{
+            height: "50%",
+            background: "radial-gradient(ellipse at center, rgba(7,193,96,0.15) 0%, transparent 70%)",
+            filter: "blur(60px)",
+          }}
+        />
+
+        <div className="relative z-10">
+          <img
+            src={dashboardPreview}
+            alt="Dashboard preview - painel de controle DG Contingência"
+            className="w-full h-auto rounded-lg shadow-2xl border border-white/[0.08]"
+            loading="eager"
+          />
         </div>
       </div>
+
+      {/* Inline keyframes */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </section>
   );
 };
