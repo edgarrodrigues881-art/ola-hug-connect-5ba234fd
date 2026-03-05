@@ -158,7 +158,7 @@ const HeroSection = () => {
 
               {/* === PhoneLayer (z-10) — straight, larger === */}
               <div className="relative z-10 flex-shrink-0">
-                <div className="relative w-[270px] sm:w-[290px] md:w-[310px] lg:w-[340px] xl:w-[380px]">
+                <div className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[320px] xl:w-[350px]">
                 {/* Neon border — subtle */}
                 <div
                   className="absolute -inset-[3px] rounded-[2.7rem] z-0"
