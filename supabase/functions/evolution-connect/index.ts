@@ -242,13 +242,19 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // First check if device already has a valid instance we can reuse
-      const existingStatus = instanceToken ? await checkInstanceStatus() : null;
+      // Device MUST have a valid token assigned from the admin pool
+      if (!instanceToken) {
+        return json({ error: "Esta instância não possui token configurado. Solicite ao administrador a atribuição de um token.", code: "NO_TOKEN" }, 400);
+      }
+
+      // Check if existing token is valid
+      const existingStatus = await checkInstanceStatus();
       
-      if (existingStatus?.valid && existingStatus.status !== "connected") {
-        // Instance exists and is valid but not connected — reuse it
-        console.log("Reusing existing valid instance, skipping creation.");
-      } else if (existingStatus?.status === "connected") {
+      if (!existingStatus.valid) {
+        return json({ error: "O token desta instância é inválido (401). Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
+      }
+
+      if (existingStatus.status === "connected") {
         // Already connected
         const phone = existingStatus.owner || "";
         let formatted = "";
@@ -263,31 +269,17 @@ Deno.serve(async (req) => {
           return json({ success: false, error: `Este número já está conectado na instância "${dupCheck.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
         }
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
-      } else {
-        // No valid instance — create a fresh one
-        console.log("Creating fresh instance for new connection...");
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Falha ao preparar instância." }, 500);
       }
 
       // Set proxy if provided
       if (body.proxyConfig?.host) {
-        // Fire and forget - don't wait for proxy setup
         setProxy(instanceUrl, instanceToken, body.proxyConfig).catch(() => {});
       }
 
-      // Immediately call connect on the fresh instance (skip status check - it's brand new)
+      // Request QR code using the existing assigned token
       const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
       if (connectRes.status === 401) {
-        const retryCreated = await ensureValidInstance();
-        if (!retryCreated) return json({ error: "Token inválido mesmo após recriação.", code: "TOKEN_INVALID" }, 401);
-        const retryConnect = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
-        const retryInst = retryConnect.data?.instance || retryConnect.data || {};
-        const retryQr = retryInst.qrcode || retryConnect.data?.qrcode;
-        if (retryQr) {
-          return json({ success: true, base64: retryQr, qr: retryQr, status: "connecting", instanceToken });
-        }
-        return json({ error: "Não foi possível gerar QR Code." }, 500);
+        return json({ error: "Token inválido ao gerar QR. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       const connInst = connectRes.data?.instance || connectRes.data || {};
