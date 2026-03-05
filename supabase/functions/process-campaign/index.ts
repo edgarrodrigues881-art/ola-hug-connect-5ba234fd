@@ -521,7 +521,9 @@ Deno.serve(async (req) => {
 
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const chosenMessage = messageVariants[shuffleBag.next()];
+            const msgIndex = sequentialMode ? sequentialIndex : shuffleBag.next();
+            const chosenMessage = messageVariants[msgIndex % messageVariants.length];
+            if (sequentialMode) sequentialIndex = (sequentialIndex + 1) % messageVariants.length;
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
