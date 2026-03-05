@@ -241,57 +241,20 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // ALWAYS create a fresh instance with a new API key for each connect attempt
+      // Create a fresh instance with a new API key
       console.log("Creating fresh instance for new connection...");
       const created = await ensureValidInstance();
       if (!created) return json({ error: "Falha ao preparar instância." }, 500);
 
-      // Step 2: Set proxy if provided (only on first connect, not on QR refresh)
+      // Set proxy if provided
       if (body.proxyConfig?.host) {
-        await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+        // Fire and forget - don't wait for proxy setup
+        setProxy(instanceUrl, instanceToken, body.proxyConfig).catch(() => {});
       }
 
-      // Step 3: Re-check status with (possibly new) token
-      const statusCheck = await checkInstanceStatus();
-      const currentStatus = statusCheck.status;
-
-      // Already connected
-      if (currentStatus === "connected") {
-        const phone = statusCheck.owner || "";
-        let formatted = "";
-        if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
-        }
-        // Check for duplicate phone
-        const dup = await checkDuplicatePhone(phone);
-        if (dup.isDuplicate) {
-          // Disconnect this instance since the number is already in use
-          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          return json({ error: `Este número já está conectado na instância "${dup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
-        }
-        await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
-        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
-      }
-
-      // If "connecting" and we have a QR, return it without calling connect again
-      if (currentStatus === "connecting" && statusCheck.qrcode) {
-        console.log("Already connecting, returning existing QR");
-        return json({ success: true, base64: statusCheck.qrcode, qr: statusCheck.qrcode, status: "connecting" });
-      }
-
-      // Disconnect if in a bad state (not disconnected/connecting)
-      if (currentStatus && currentStatus !== "disconnected" && currentStatus !== "connecting") {
-        await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-        await new Promise(r => setTimeout(r, 500));
-      }
-
-      // Step 4: Call connect to generate QR
+      // Immediately call connect on the fresh instance (skip status check - it's brand new)
       const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
       if (connectRes.status === 401) {
-        // Token became invalid after creation - try one more time
         const retryCreated = await ensureValidInstance();
         if (!retryCreated) return json({ error: "Token inválido mesmo após recriação.", code: "TOKEN_INVALID" }, 401);
         const retryConnect = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
@@ -306,10 +269,30 @@ Deno.serve(async (req) => {
       const connInst = connectRes.data?.instance || connectRes.data || {};
       let qr = connInst.qrcode || connectRes.data?.qrcode;
 
-      // Poll for QR if not in response
+      // Check if already connected (edge case)
+      const connStatus = connInst.status || connectRes.data?.status;
+      if (connStatus === "connected") {
+        const phone = connInst.owner || connInst.phone || "";
+        let formatted = "";
+        if (phone) {
+          const raw = String(phone).replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12)
+            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          else if (raw) formatted = `+${raw}`;
+        }
+        const dup = await checkDuplicatePhone(phone);
+        if (dup.isDuplicate) {
+          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+          return json({ error: `Este número já está conectado na instância "${dup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+        }
+        await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
+        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
+      }
+
+      // Quick poll for QR if not in response (reduced: 4 attempts, 600ms each = max 2.4s)
       if (!qr) {
-        for (let i = 0; i < 8; i++) {
-          await new Promise(r => setTimeout(r, 1200));
+        for (let i = 0; i < 4; i++) {
+          await new Promise(r => setTimeout(r, 600));
           const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
           const pi = poll.data?.instance || poll.data || {};
           qr = pi.qrcode || poll.data?.qrcode;
@@ -324,7 +307,6 @@ Deno.serve(async (req) => {
               if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
               else if (raw) fmt = `+${raw}`;
             }
-            // Check for duplicate phone
             const pollDup = await checkDuplicatePhone(phone);
             if (pollDup.isDuplicate) {
               await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
