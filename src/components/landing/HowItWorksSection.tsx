@@ -16,6 +16,21 @@ const notFor = [
 
 const HowItWorksSection = () => (
   <section id="para-quem" className="py-28 lg:py-36 bg-transparent">
+    {/* Mobile scroll-reveal: Aquecimento card */}
+    <div className="lg:hidden flex justify-center mb-10">
+      <AnimateOnView animation="slide-up">
+        <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 max-w-[340px]"
+          style={{ background: "linear-gradient(145deg, rgba(17,24,39,0.98), rgba(10,15,25,0.96))", boxShadow: "0 0 0 1px rgba(7,193,96,0.12)" }}>
+          <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
+            <span className="text-[9px] font-bold text-[#07C160]">89%</span>
+          </div>
+          <div>
+            <span className="text-[11px] text-white/70 font-medium block">Aquecimento</span>
+            <span className="text-[8px] text-[#07C160]/60">Dia 12 de 14</span>
+          </div>
+        </div>
+      </AnimateOnView>
+    </div>
     <div className="container">
       <AnimateOnView animation="slide-up" className="text-center mb-20">
         <span className="inline-block text-sm font-semibold text-[#07C160] tracking-widest uppercase mb-4">
