@@ -164,6 +164,7 @@ const AutoSave = () => {
       for (const c of contacts) {
         await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
       }
+      const qc = useQueryClient();
       qc.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
       toast({ title: `${contacts.length} contatos apagados` });
     } catch {
