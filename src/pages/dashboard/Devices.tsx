@@ -1755,7 +1755,7 @@ const Devices = () => {
                             connectingDevice.uazapi_base_url = createResult.baseUrl;
                             queryClient.invalidateQueries({ queryKey: ["devices"] });
                           }
-                          const result = await callApi({ action: "connect", deviceId: connectingDevice.id });
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
@@ -1763,6 +1763,7 @@ const Devices = () => {
                           }
                           const code = result.pairingCode || result.code || result.pairing_code;
                           if (code) setPairingCode(code);
+                          else setConnectError("Código não retornado. Tente via QR Code.");
                           startPolling(connectingDevice.id, null);
                         } catch (err: any) {
                           setConnectError(err?.message || "Erro ao gerar código");
