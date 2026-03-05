@@ -1726,12 +1726,25 @@ const Devices = () => {
                             toast({ title: "Já conectado!" });
                             return;
                           }
+                          if (result.suggestQr) {
+                            toast({ title: "Código não suportado", description: "Use o QR Code para conectar.", variant: "destructive" });
+                            setConnectStep("qr");
+                            if (result.qrCode) setQrCodeBase64(result.qrCode);
+                            startPolling(connectingDevice.id, null);
+                            return;
+                          }
                           const code = result.pairingCode || result.code || result.pairing_code;
                           if (code) setPairingCode(code);
-                          else setConnectError("Código não retornado. Tente via QR Code.");
+                          else {
+                            toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                            setConnectStep("qr");
+                            startPolling(connectingDevice.id, null);
+                          }
                           startPolling(connectingDevice.id, null);
                         } catch (err: any) {
-                          setConnectError(err?.message || "Erro ao gerar código");
+                          toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                          setConnectStep("qr");
+                          if (connectingDevice) startPolling(connectingDevice.id, null);
                         }
                       })();
                     }}}
@@ -1764,12 +1777,25 @@ const Devices = () => {
                             toast({ title: "Já conectado!" });
                             return;
                           }
+                          if (result.suggestQr) {
+                            toast({ title: "Código não suportado", description: "Use o QR Code para conectar.", variant: "destructive" });
+                            setConnectStep("qr");
+                            if (result.qrCode) setQrCodeBase64(result.qrCode);
+                            startPolling(connectingDevice.id, null);
+                            return;
+                          }
                           const code = result.pairingCode || result.code || result.pairing_code;
                           if (code) setPairingCode(code);
-                          else setConnectError("Código não retornado. Tente via QR Code.");
+                          else {
+                            toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                            setConnectStep("qr");
+                            startPolling(connectingDevice.id, null);
+                          }
                           startPolling(connectingDevice.id, null);
                         } catch (err: any) {
-                          setConnectError(err?.message || "Erro ao gerar código");
+                          toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                          setConnectStep("qr");
+                          if (connectingDevice) startPolling(connectingDevice.id, null);
                         }
                       })();
                     }}
