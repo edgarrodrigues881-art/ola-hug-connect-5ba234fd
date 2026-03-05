@@ -154,11 +154,6 @@ export function AppSidebar() {
       <SidebarContent className="py-2">
         {menuGroups.map((group, gi) => (
           <SidebarGroup key={gi} className={`py-0 ${gi > 0 ? 'mt-1' : ''}`}>
-            {!collapsed && group.label && (
-              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] px-5 mb-1 mt-2 select-none text-muted-foreground/50">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
             {collapsed && gi > 0 && group.label && (
               <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
             )}
