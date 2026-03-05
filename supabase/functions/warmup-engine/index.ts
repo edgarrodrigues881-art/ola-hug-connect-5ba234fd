@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Default messages for autosave interactions ──
+const defaultAutosaveMessages = [
+  "Bom dia! 😊", "Boa tarde!", "Boa noite! 🌙",
+  "Oi, tudo bem?", "E aí, como vai?", "Beleza? 👋",
+  "Tudo certo por aí?", "Opa, tudo bem?",
+  "Fala, tranquilo?", "Olá! Como está?",
+  "Oi, sumido(a)! 😄", "E aí, novidades?",
+  "Bom dia, tudo bem com você?", "Boa tarde! Como foi o dia?",
+  "Boa noite, descanse bem! 😴",
+  "Valeu! 👍", "Show! 🔥", "Top demais! 🚀",
+  "Que legal!", "Massa!", "Boa! 💯",
+  "Concordo!", "Verdade!", "Com certeza!",
+  "Obrigado!", "Muito bom!",
+];
+
 // ── Helpers ──
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -18,9 +33,74 @@ function shuffleAndPick<T>(arr: T[], n: number): T[] {
   }
   return copy.slice(0, n);
 }
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function backoffMinutes(attempt: number): number {
   return [5, 15, 60, 180, 360][Math.min(attempt, 4)];
+}
+
+// ── uazapi request helper ──
+async function uazapiRequest(
+  baseUrl: string, token: string, endpoint: string, payload: any
+) {
+  const url = `${baseUrl}${endpoint}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+// ── Schedule autosave interaction jobs for the day ──
+async function scheduleAutosaveInteractions(
+  db: any, userId: string, deviceId: string, cycleId: string, budgetTarget: number, budgetUsed: number
+) {
+  const remaining = budgetTarget - budgetUsed;
+  if (remaining <= 0) return 0;
+
+  // Distribute interactions between 08:00-21:00 BRT (11:00-00:00 UTC)
+  const now = new Date();
+  const todayBase = new Date(now);
+  todayBase.setUTCHours(11, 0, 0, 0); // 08:00 BRT
+  const todayEnd = new Date(now);
+  todayEnd.setUTCHours(24, 0, 0, 0);  // 21:00 BRT
+
+  const windowStart = Math.max(now.getTime(), todayBase.getTime());
+  const windowEnd = todayEnd.getTime();
+  if (windowStart >= windowEnd) return 0;
+
+  const windowMs = windowEnd - windowStart;
+  const interactionCount = Math.min(remaining, 15); // Max 15 autosave interactions/day
+  const jobs: any[] = [];
+
+  for (let i = 0; i < interactionCount; i++) {
+    // Spread evenly with jitter
+    const baseOffset = (windowMs / interactionCount) * i;
+    const jitter = randInt(0, Math.floor(windowMs / interactionCount * 0.4));
+    const runAt = new Date(windowStart + baseOffset + jitter);
+
+    jobs.push({
+      user_id: userId,
+      device_id: deviceId,
+      cycle_id: cycleId,
+      job_type: "autosave_interaction",
+      payload: {},
+      run_at: runAt.toISOString(),
+      status: "pending",
+    });
+  }
+
+  if (jobs.length > 0) {
+    await db.from("warmup_jobs").insert(jobs);
+  }
+  return jobs.length;
 }
 
 Deno.serve(async (req) => {
@@ -401,11 +481,18 @@ Deno.serve(async (req) => {
 
             if (count && count > 0) {
               await db.from("warmup_cycles").update({ phase: "autosave_enabled" }).eq("id", cycle.id);
+              
+              // Schedule autosave interaction jobs for today
+              const scheduled = await scheduleAutosaveInteractions(
+                db, job.user_id, job.device_id, job.cycle_id,
+                cycle.daily_interaction_budget_target, cycle.daily_interaction_budget_used
+              );
+
               await db.from("warmup_audit_logs").insert({
                 user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
                 level: "info", event_type: "phase_changed",
-                message: `Auto Save habilitado (${count} contatos ativos)`,
-                meta: { active_contacts: count },
+                message: `Auto Save habilitado (${count} contatos ativos, ${scheduled} interações agendadas)`,
+                meta: { active_contacts: count, interactions_scheduled: scheduled },
               });
             } else {
               await db.from("warmup_audit_logs").insert({
@@ -420,6 +507,108 @@ Deno.serve(async (req) => {
                 run_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), status: "pending",
               });
             }
+            break;
+          }
+
+          case "autosave_interaction": {
+            // Check budget
+            if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target) {
+              await db.from("warmup_audit_logs").insert({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "info", event_type: "autosave_budget_exhausted",
+                message: `Orçamento diário esgotado (${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target})`,
+              });
+              break;
+            }
+
+            // Check unique recipients cap
+            if (cycle.daily_unique_recipients_used >= cycle.daily_unique_recipients_cap) {
+              break;
+            }
+
+            // Get active autosave contacts
+            const { data: asContacts } = await db
+              .from("warmup_autosave_contacts")
+              .select("phone_e164")
+              .eq("user_id", job.user_id)
+              .eq("is_active", true);
+
+            if (!asContacts || asContacts.length === 0) {
+              await db.from("warmup_audit_logs").insert({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "warn", event_type: "autosave_no_contacts",
+                message: "Sem contatos Auto Save ativos para interação",
+              });
+              break;
+            }
+
+            // Pick a random contact
+            const contact = pickRandom(asContacts);
+            const recipientPhone = contact.phone_e164;
+
+            // Get device credentials
+            const { data: asDevice } = await db
+              .from("devices")
+              .select("uazapi_token, uazapi_base_url, status")
+              .eq("id", job.device_id)
+              .single();
+
+            const asToken = asDevice?.uazapi_token;
+            const asBaseUrl = (asDevice?.uazapi_base_url || "").replace(/\/+$/, "");
+
+            if (!asToken || !asBaseUrl) {
+              throw new Error("Dispositivo sem credenciais API configuradas");
+            }
+
+            // Check device online
+            const onlineStatuses = ["Connected", "Ready", "authenticated", "ready"];
+            if (asDevice?.status && !onlineStatuses.includes(asDevice.status)) {
+              throw new Error(`Dispositivo offline: ${asDevice.status}`);
+            }
+
+            // Get user custom messages or use defaults
+            const { data: userMsgs } = await db
+              .from("warmup_messages")
+              .select("content")
+              .eq("user_id", job.user_id);
+
+            const msgPool = userMsgs && userMsgs.length > 0
+              ? userMsgs.map((m: any) => m.content)
+              : defaultAutosaveMessages;
+
+            const message = pickRandom(msgPool);
+
+            // Format phone for WhatsApp (E.164 without +)
+            const waNumber = recipientPhone.replace(/^\+/, "") + "@s.whatsapp.net";
+
+            // Send message via uazapi
+            await uazapiRequest(asBaseUrl, asToken, "/send/text", {
+              number: waNumber,
+              text: message,
+            });
+
+            // Track unique recipient
+            const todayDate = new Date().toISOString().split("T")[0];
+            await db.from("warmup_unique_recipients").insert({
+              user_id: job.user_id,
+              cycle_id: job.cycle_id,
+              recipient_phone_e164: recipientPhone,
+              day_date: todayDate,
+            }).catch(() => {}); // ignore duplicates
+
+            // Update budget counters
+            await db.from("warmup_cycles").update({
+              daily_interaction_budget_used: cycle.daily_interaction_budget_used + 1,
+              daily_unique_recipients_used: cycle.daily_unique_recipients_used + 1,
+            }).eq("id", cycle.id);
+
+            // Audit log
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "autosave_sent",
+              message: `Auto Save: mensagem enviada para ${recipientPhone}`,
+              meta: { phone: recipientPhone, message_preview: message.slice(0, 50) },
+            });
             break;
           }
 
@@ -502,6 +691,21 @@ Deno.serve(async (req) => {
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
             });
+
+            // If phase includes autosave, schedule interaction jobs for the new day
+            if (["autosave_enabled", "community_enabled"].includes(cycle.phase)) {
+              const scheduled = await scheduleAutosaveInteractions(
+                db, job.user_id, job.device_id, job.cycle_id, newTarget, 0
+              );
+              if (scheduled > 0) {
+                await db.from("warmup_audit_logs").insert({
+                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                  level: "info", event_type: "autosave_scheduled",
+                  message: `${scheduled} interações Auto Save agendadas para o dia ${newDay}`,
+                  meta: { count: scheduled, day: newDay },
+                });
+              }
+            }
             break;
           }
 
