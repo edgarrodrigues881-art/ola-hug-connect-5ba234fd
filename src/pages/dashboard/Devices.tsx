@@ -1190,14 +1190,14 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="border-border/30 bg-card shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                {/* Row 1: Avatar + Name + Status badge */}
-                <div className="flex items-start gap-3 mb-3">
+            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+              <CardContent className="p-5 space-y-4">
+                {/* Header: Avatar + Name + Badge */}
+                <div className="flex items-center gap-3">
                   {d.profile_picture ? (
-                    <img src={d.profile_picture} alt={d.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 shrink-0" />
+                    <img src={d.profile_picture} alt={d.name} className="w-14 h-14 rounded-full object-cover ring-[3px] ring-emerald-500/30 shrink-0" />
                   ) : (
-                    <div className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-lg font-bold ring-2 ${smartStatus === 'online' ? 'bg-emerald-500/15 text-emerald-500 ring-emerald-500/30' : 'bg-muted text-muted-foreground ring-border'}`}>
+                    <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold bg-emerald-500 text-white">
                       {d.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -1212,64 +1212,64 @@ const Devices = () => {
                           if (e.key === "Enter") commitInlineEdit();
                           if (e.key === "Escape") setInlineEditId(null);
                         }}
-                        className="text-sm font-bold text-foreground bg-transparent border-b border-primary outline-none w-full"
+                        className="text-base font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
                       />
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-foreground truncate cursor-pointer hover:text-primary" onClick={() => startInlineEdit(d)} title={d.name}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-bold text-foreground cursor-pointer hover:text-primary truncate" onClick={() => startInlineEdit(d)} title={d.name}>
                           {d.name}
                         </p>
-                        {d.status === "Ready" && (
-                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0 h-5 shrink-0">
-                            <CheckCircle2 className="w-3 h-3 mr-0.5" /> Online
+                        {devices.indexOf(d) === 0 && (
+                          <Badge className="bg-emerald-500 text-white border-0 text-[11px] px-2 py-0.5 h-auto font-semibold gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Padrão
                           </Badge>
                         )}
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground/50 mt-0.5">ID: {devices.indexOf(d) + 1}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">ID: {devices.indexOf(d) + 1}</p>
                   </div>
                 </div>
 
-                {/* Row 2: Status + Phone */}
-                <div className="space-y-1.5 mb-4">
-                  <div className="flex items-center gap-2 text-xs">
-                    <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-emerald-500' : 'text-red-400'}`} />
-                    <span className={`font-medium ${smartStatus === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                {/* Status + Phone */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-emerald-500' : 'text-red-500'}`} />
+                    <span className={`text-sm font-semibold ${smartStatus === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {ss.label}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Smartphone className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Smartphone className="w-4 h-4 shrink-0" />
                     <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
                   </div>
                 </div>
 
-                {/* Row 3: Action buttons */}
-                <div className="flex flex-wrap gap-2 mb-3">
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
                   {d.status === "Ready" ? (
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={() => openLogout(d)}>
-                      <Power className="w-3.5 h-3.5" /> Desconectar
+                    <Button variant="outline" size="sm" className="h-9 gap-2 text-sm rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive font-medium" onClick={() => openLogout(d)}>
+                      <Power className="w-4 h-4" /> Desconectar
                     </Button>
                   ) : hadPreviousConnection ? (
                     <>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
-                        <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+                      <Button variant="outline" size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium" onClick={() => openConnect(d)}>
+                        <RefreshCw className="w-4 h-4" /> Tentar novamente
                       </Button>
-                      <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
-                        <QrCode className="w-3.5 h-3.5" /> Novo QR Code
+                      <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => openConnect(d)}>
+                        <QrCode className="w-4 h-4" /> Novo QR Code
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openConnect(d)}>
-                      <QrCode className="w-3.5 h-3.5" /> Novo QR Code
+                    <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => openConnect(d)}>
+                      <QrCode className="w-4 h-4" /> Novo QR Code
                     </Button>
                   )}
                 </div>
 
-                {/* Row 4: Edit + Delete links */}
-                <div className="flex items-center gap-4 border-t border-border/20 pt-3">
+                {/* Edit + Delete */}
+                <div className="flex items-center gap-5 pt-1">
                   <button
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors font-medium"
                     onClick={() => {
                       setEditingDevice(d);
                       setEditName(d.name);
@@ -1283,15 +1283,15 @@ const Devices = () => {
                       setEditOpen(true);
                     }}
                   >
-                    <Pencil className="w-3.5 h-3.5" /> Editar
+                    <Pencil className="w-4 h-4" /> Editar
                   </button>
                   <button
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors font-medium"
                     onClick={() => {
                       if (d.status === "Ready") { setDeleteSingleDevice(d); setDeleteSingleOpen(true); } else { handleDelete(d.id); }
                     }}
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Excluir
+                    <Trash2 className="w-4 h-4" /> Excluir
                   </button>
                 </div>
               </CardContent>
