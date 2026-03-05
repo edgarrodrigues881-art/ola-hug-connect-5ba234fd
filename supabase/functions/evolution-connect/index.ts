@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
             const pollDup = await checkDuplicatePhone(phone);
             if (pollDup.isDuplicate) {
               await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-              return json({ error: `Este número já está conectado na instância "${pollDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+              return json({ success: false, error: `Este número já está conectado na instância "${pollDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
             }
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
         const refreshDup = await checkDuplicatePhone(phone);
         if (refreshDup.isDuplicate) {
           await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          return json({ error: `Este número já está conectado na instância "${refreshDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+          return json({ success: false, error: `Este número já está conectado na instância "${refreshDup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
         }
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
@@ -529,7 +529,7 @@ Deno.serve(async (req) => {
         if (statusDup.isDuplicate) {
           await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
           await svc.from("devices").update({ status: "Disconnected", number: null }).eq("id", deviceId);
-          return json({ error: `Este número já está conectado na instância "${statusDup.existingDeviceName}".`, code: "DUPLICATE_PHONE" }, 409);
+          return json({ success: false, error: `Este número já está conectado na instância "${statusDup.existingDeviceName}".`, code: "DUPLICATE_PHONE" });
         }
         await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
       }
