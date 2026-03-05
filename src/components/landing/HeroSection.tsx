@@ -81,12 +81,17 @@ const HeroSection = () => {
           }}
         />
 
-        <div className="relative z-10">
+        <div className="relative z-10" style={{ perspective: "1200px" }}>
           <img
             src={dashboardPreview}
             alt="Dashboard preview - painel de controle DG Contingência"
             className="w-full h-auto rounded-lg shadow-2xl border border-white/[0.08]"
             loading="eager"
+            style={{
+              transform: "rotateX(8deg) rotateY(-2deg) scale(0.97)",
+              transformOrigin: "center bottom",
+              transition: "transform 0.4s ease-out",
+            }}
           />
         </div>
       </div>
