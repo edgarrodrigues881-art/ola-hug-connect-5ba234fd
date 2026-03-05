@@ -197,26 +197,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    // ── Helper: auto-create or recreate instance ──
-    const ensureValidInstance = async (): Promise<boolean> => {
-      if (!BASE_URL || !ADMIN_TOKEN) return false;
-      const slug = deviceName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      const rand = crypto.randomUUID().slice(0, 6);
-      const uniqueName = `${slug}-${deviceId.slice(0, 8)}-${rand}`;
-      console.log("Creating/recreating instance:", uniqueName);
-      const result = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, uniqueName);
-      if (!result.ok || !result.token) {
-        console.log("Instance creation failed:", result.error);
-        return false;
-      }
-      instanceToken = result.token;
-      instanceUrl = BASE_URL;
-      await svc.from("devices").update({
-        uazapi_token: instanceToken,
-        uazapi_base_url: BASE_URL,
-      }).eq("id", deviceId);
-      return true;
-    };
+    // (auto-creation removed — tokens are now assigned manually by admin via pool)
 
     // ── Helper: check if phone number is already used by another device ──
     const checkDuplicatePhone = async (phone: string): Promise<{ isDuplicate: boolean; existingDeviceName?: string }> => {
@@ -242,13 +223,19 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // First check if device already has a valid instance we can reuse
-      const existingStatus = instanceToken ? await checkInstanceStatus() : null;
+      // Device MUST have a valid token assigned from the admin pool
+      if (!instanceToken) {
+        return json({ error: "Esta instância não possui token configurado. Solicite ao administrador a atribuição de um token.", code: "NO_TOKEN" }, 400);
+      }
+
+      // Check if existing token is valid
+      const existingStatus = await checkInstanceStatus();
       
-      if (existingStatus?.valid && existingStatus.status !== "connected") {
-        // Instance exists and is valid but not connected — reuse it
-        console.log("Reusing existing valid instance, skipping creation.");
-      } else if (existingStatus?.status === "connected") {
+      if (!existingStatus.valid) {
+        return json({ error: "O token desta instância é inválido (401). Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
+      }
+
+      if (existingStatus.status === "connected") {
         // Already connected
         const phone = existingStatus.owner || "";
         let formatted = "";
@@ -263,31 +250,17 @@ Deno.serve(async (req) => {
           return json({ success: false, error: `Este número já está conectado na instância "${dupCheck.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
         }
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
-      } else {
-        // No valid instance — create a fresh one
-        console.log("Creating fresh instance for new connection...");
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Falha ao preparar instância." }, 500);
       }
 
       // Set proxy if provided
       if (body.proxyConfig?.host) {
-        // Fire and forget - don't wait for proxy setup
         setProxy(instanceUrl, instanceToken, body.proxyConfig).catch(() => {});
       }
 
-      // Immediately call connect on the fresh instance (skip status check - it's brand new)
+      // Request QR code using the existing assigned token
       const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
       if (connectRes.status === 401) {
-        const retryCreated = await ensureValidInstance();
-        if (!retryCreated) return json({ error: "Token inválido mesmo após recriação.", code: "TOKEN_INVALID" }, 401);
-        const retryConnect = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
-        const retryInst = retryConnect.data?.instance || retryConnect.data || {};
-        const retryQr = retryInst.qrcode || retryConnect.data?.qrcode;
-        if (retryQr) {
-          return json({ success: true, base64: retryQr, qr: retryQr, status: "connecting", instanceToken });
-        }
-        return json({ error: "Não foi possível gerar QR Code." }, 500);
+        return json({ error: "Token inválido ao gerar QR. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       const connInst = connectRes.data?.instance || connectRes.data || {};
@@ -359,11 +332,10 @@ Deno.serve(async (req) => {
         return json({ error: "Número de telefone inválido." }, 400);
       }
 
-      // Ensure instance exists
+      // Validate token
       const currentCheck = await checkInstanceStatus();
       if (!currentCheck.valid) {
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Falha ao criar instância." }, 500);
+        return json({ error: "Token inválido. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       // Set proxy if provided
@@ -481,10 +453,9 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // If token is invalid, need to recreate
+      // If token is invalid, return error
       if (!statusCheck.valid) {
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Token expirado, falha ao recriar." }, 500);
+        return json({ error: "Token expirado. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       // If connecting and has QR, return it
@@ -571,61 +542,19 @@ Deno.serve(async (req) => {
 
     // ── logout ──
     if (action === "logout") {
-      // Disconnect from WhatsApp
+      // Disconnect from WhatsApp session only — keep the token assigned
       await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+      console.log("Logout: disconnected instance (token preserved for reuse).");
       
-      // Delete the instance from UaZapi server to free the slot
-      console.log("Logout: deleting instance from server...");
-      let deleted = false;
-      // Try with instance token (POST + DELETE)
-      for (const ep of ["/instance/delete", "/instance/remove"]) {
-        for (const m of ["DELETE" as const, "POST" as const]) {
-          try {
-            const r = await uazapi(instanceUrl, ep, instanceToken, m);
-            console.log(`Logout delete ${m} ${ep}: ${r.status}`);
-            if (r.ok) { deleted = true; break; }
-          } catch {}
-        }
-        if (deleted) break;
-      }
-      // Try with admin token (DELETE + POST)
-      if (!deleted && BASE_URL && ADMIN_TOKEN) {
-        const headerVariants = [
-          { admintoken: ADMIN_TOKEN },
-          { token: ADMIN_TOKEN },
-          { Authorization: `Bearer ${ADMIN_TOKEN}` },
-        ];
-        logoutOuter:
-        for (const ep of ["/instance/delete", "/instance/remove"]) {
-          for (const method of ["DELETE", "POST"] as const) {
-            for (const authHeaders of headerVariants) {
-              try {
-                const res = await fetch(`${BASE_URL}${ep}`, {
-                  method,
-                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-                  body: JSON.stringify({ token: instanceToken }),
-                });
-                const text = await res.text();
-                console.log(`Logout admin ${method} ${ep} h=${Object.keys(authHeaders)[0]}: ${res.status}`);
-                if (res.ok) { deleted = true; break logoutOuter; }
-                if (res.status === 401) continue;
-                if (res.status === 405) break;
-              } catch {}
-            }
-          }
-        }
-      }
-      console.log("Logout instance deletion:", deleted ? "success" : "failed (non-blocking)");
-      
-      // Clear token from device so a new one is created on reconnect
+      // Clear session data but KEEP uazapi_token and uazapi_base_url
       await svc.from("devices").update({ 
-        uazapi_token: null, 
-        uazapi_base_url: null,
         status: "Disconnected",
         number: null,
+        profile_picture: null,
+        profile_name: null,
       }).eq("id", deviceId);
       
-      return json({ success: true, deleted });
+      return json({ success: true });
     }
 
     // ── sendText ──
