@@ -513,46 +513,39 @@ const GroupCapture = () => {
                   </div>
                 </div>
 
-                {/* Delay — always visible */}
+                {/* Delay min/max — same style as campaigns */}
                 <div className="p-3 rounded-lg border border-border/20 bg-muted/5 space-y-2">
                   <div className="flex items-center gap-2">
                     <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-[13px] font-medium text-foreground">Delay entre entradas</span>
-                    <div className="ml-auto flex items-center gap-1.5">
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
                       <Input
                         type="number"
+                        value={minDelay}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMinDelay(v); }}
+                        onBlur={() => { const v = Math.max(minDelay, 1); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }}
+                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
                         min={1}
-                        max={600}
-                        value={delaySeconds}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value);
-                          if (!isNaN(v) && v >= 1 && v <= 600) setDelaySeconds(v);
-                        }}
-                        className="w-16 h-7 text-xs font-mono text-center px-1"
                       />
-                      <span className="text-xs text-muted-foreground">segundos</span>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
+                      <Input
+                        type="number"
+                        value={maxDelay}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMaxDelay(v); }}
+                        onBlur={() => { const v = Math.max(maxDelay, 1); setMaxDelay(v < minDelay ? minDelay : v); }}
+                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
+                        min={1}
+                      />
                     </div>
                   </div>
+                  <p className="text-[10px] text-muted-foreground/40 tabular-nums">{minDelay}s – {maxDelay}s a cada entrada</p>
 
-                  {/* Quick presets */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {[5, 10, 15, 20, 30, 45, 60, 90, 120].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setDelaySeconds(v)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors border ${
-                          delaySeconds === v
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/40"
-                        }`}
-                      >
-                        {v}s
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Speed warning */}
-                  {delaySeconds < 8 && (
+                  {minDelay < 8 && (
                     <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-amber-500/5 border border-amber-500/15">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       <p className="text-[11px] text-amber-400/80">
