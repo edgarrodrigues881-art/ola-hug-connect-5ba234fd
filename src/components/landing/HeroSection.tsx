@@ -107,7 +107,7 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="container relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20">
-        <div className="grid lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(340px,420px)] gap-8 lg:gap-8 xl:gap-16 items-center">
           {/* Left — Copy */}
           <div className="max-w-xl animate-fade-in">
             <h1
@@ -342,14 +342,6 @@ const HeroSection = () => {
             </div>
             {/* End HeroPhoneStage */}
 
-            {/* Mobile/Tablet: stacked cards below phone — hidden on mobile, visible md to lg */}
-            <div className="hidden md:flex lg:hidden flex-col gap-2 mt-3 w-full max-w-[340px] mx-auto">
-              <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
-                <div className="w-2 h-2 rounded-full bg-[#07C160]" />
-                <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
-                <span className="text-[9px] text-white/25 ml-auto">342 msgs hoje</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
