@@ -252,18 +252,6 @@ Deno.serve(async (req) => {
             formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
           else if (raw) formatted = `+${raw}`;
         }
-        // Check for duplicate phone number
-        const dupName = await checkDuplicatePhone(phone, deviceId);
-        if (dupName) {
-          // Disconnect since it's a duplicate
-          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
-          return json({ 
-            error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`,
-            code: "DUPLICATE_PHONE",
-            duplicateInstance: dupName,
-          }, 409);
-        }
         await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
@@ -315,13 +303,6 @@ Deno.serve(async (req) => {
               const raw = String(phone).replace(/\D/g, "");
               if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
               else if (raw) fmt = `+${raw}`;
-            }
-            // Check for duplicate phone
-            const dupName = await checkDuplicatePhone(phone, deviceId);
-            if (dupName) {
-              await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-              await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
-              return json({ error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`, code: "DUPLICATE_PHONE", duplicateInstance: dupName }, 409);
             }
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
@@ -416,20 +397,7 @@ Deno.serve(async (req) => {
 
       const isConnected = check.status === "connected";
 
-      // On first authenticated detection via polling, check for duplicate phone
       if (isConnected && check.owner) {
-        const dupName = await checkDuplicatePhone(check.owner, deviceId);
-        if (dupName) {
-          // Disconnect and reject
-          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          await svc.from("devices").update({ status: "Disconnected", number: "" }).eq("id", deviceId);
-          return json({ 
-            error: `Este número já está conectado na instância "${dupName}". Use um número diferente.`,
-            code: "DUPLICATE_PHONE",
-            duplicateInstance: dupName,
-            status: "duplicate_phone",
-          }, 409);
-        }
         // Save phone and mark Ready
         const raw = String(check.owner).replace(/\D/g, "");
         let fmt = "";
