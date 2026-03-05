@@ -6,13 +6,14 @@ import { useAuth } from "@/lib/auth";
 import {
   useDeviceCycle,
   useInstanceGroups, useAutosaveContacts, useCommunityMembership,
-  useWarmupAuditLogs, useWarmupPlans,
+  useWarmupAuditLogs, useWarmupPlans, useToggleCommunity,
   type WarmupCycle,
 } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +66,7 @@ const WarmupInstanceDetail = () => {
   // Cycle
   const { data: cycle, isLoading: cycleLoading } = useDeviceCycle(deviceId!);
   const engine = useWarmupEngine();
+  const toggleCommunity = useToggleCommunity();
 
   // Related data
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
@@ -427,19 +429,38 @@ const WarmupInstanceDetail = () => {
                 <div>
                   <p className="text-sm font-medium text-foreground">Comunidade</p>
                   <p className="text-[11px] text-muted-foreground">
-                    Rede entre contas do sistema para interação mútua
+                    {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase)
+                      ? "Rede entre contas do sistema para interação mútua"
+                      : "Bloqueado até fase Auto Save"}
                   </p>
                 </div>
               </div>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[10px]",
-                  cycle.phase === "community_enabled" ? "text-purple-400 border-purple-400/20" : "text-muted-foreground"
-                )}
-              >
-                {cycle.phase === "community_enabled" ? "Habilitada" : "Bloqueada pela fase"}
-              </Badge>
+              {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase) ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground">
+                    {community?.is_enabled ? "Habilitada" : "Desabilitada"}
+                  </span>
+                  <Switch
+                    checked={community?.is_enabled ?? false}
+                    disabled={toggleCommunity.isPending}
+                    onCheckedChange={(checked) => {
+                      if (!deviceId) return;
+                      toggleCommunity.mutate(
+                        { deviceId, cycleId: cycle.id, enable: checked },
+                        {
+                          onSuccess: () => toast({
+                            title: checked ? "Comunidade habilitada" : "Comunidade desabilitada",
+                          }),
+                        }
+                      );
+                    }}
+                  />
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                  🔒 Bloqueado
+                </Badge>
+              )}
             </CardContent>
           </Card>
 

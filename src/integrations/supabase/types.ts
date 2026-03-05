@@ -338,6 +338,58 @@ export type Database = {
         }
         Relationships: []
       }
+      community_pairs: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          cycle_id: string
+          id: string
+          instance_id_a: string
+          instance_id_b: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          cycle_id: string
+          id?: string
+          instance_id_a: string
+          instance_id_b: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          id?: string
+          instance_id_a?: string
+          instance_id_b?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_pairs_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "warmup_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_pairs_instance_id_a_fkey"
+            columns: ["instance_id_a"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_pairs_instance_id_b_fkey"
+            columns: ["instance_id_b"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           created_at: string
