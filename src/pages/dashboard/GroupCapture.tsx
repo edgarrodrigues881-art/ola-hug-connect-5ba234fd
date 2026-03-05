@@ -189,7 +189,7 @@ const GroupCapture = () => {
     cancelledRef.current = false;
     setJoinStatus("running");
 
-    let dynamicDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    
 
     for (let i = startFrom; i < items.length; i++) {
       if (cancelledRef.current) break;
