@@ -163,10 +163,11 @@ const Campaigns = () => {
       return copy;
     });
   };
-  const [rotateMessages, setRotateMessages] = useState(true);
+  const [rotationMode, setRotationMode] = useState<"random" | "sequential" | "all">("random");
+  const rotateMessages = rotationMode !== "all"; // backward compat
   const allMessages = messages.filter(m => m.trim());
   const combinedMessage = allMessages.length > 1 
-    ? (rotateMessages ? allMessages.join("|||") : allMessages.join("|&&|"))
+    ? (rotationMode === "random" ? allMessages.join("|||") : rotationMode === "sequential" ? allMessages.join("|>>|") : allMessages.join("|&&|"))
     : allMessages[0] || "";
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
@@ -276,7 +277,8 @@ const Campaigns = () => {
           if (draft.campaignName) setCampaignName(draft.campaignName);
           if (draft.messages) setMessages(draft.messages);
           else if (draft.message) setMessages(prev => { const c = [...prev]; c[0] = draft.message; return c; });
-          if (draft.rotateMessages !== undefined) setRotateMessages(draft.rotateMessages);
+          if (draft.rotationMode) setRotationMode(draft.rotationMode);
+          else if (draft.rotateMessages !== undefined) setRotationMode(draft.rotateMessages ? "random" : "all");
           if (draft.messageType) setMessageType(draft.messageType);
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
@@ -333,16 +335,16 @@ const Campaigns = () => {
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
-      campaignName, messages, rotateMessages, messageType, mediaUrl, contacts,
+      campaignName, messages, rotationMode, messageType, mediaUrl, contacts,
       buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, messages, rotateMessages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, messages, rotationMode, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
-    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotateMessages(true); setMediaUrl(""); setMediaFileName("");
+    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotationMode("random"); setMediaUrl(""); setMediaFileName("");
     setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
     setSelectedTemplate("nova");
     toast({ title: "Mensagem limpa" });
