@@ -361,6 +361,7 @@ Deno.serve(async (req) => {
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
       const shuffleBag = new ShuffleBag(messageVariants.length);
+      let sequentialIndex = 0; // For sequential (|>>|) mode
       let needsContinue = false;
 
       // ─── PARALLEL MODE ───
