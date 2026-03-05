@@ -457,28 +457,91 @@ const AutoSave = () => {
       </Dialog>
 
       {/* ── Import Modal ── */}
-      <Dialog open={importOpen} onOpenChange={v => { setImportOpen(v); if (!v) { setImportText(""); setImportPreview(null); } }}>
+      <Dialog open={importOpen} onOpenChange={v => { if (!v) resetImport(); else setImportOpen(true); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Importar Contatos</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Cole os números (um por linha)</Label>
-              <Textarea
-                value={importText}
-                onChange={e => { setImportText(e.target.value); setImportPreview(null); }}
-                placeholder={"62994192500\n11987654321\n+5521999887766"}
-                className="mt-1 font-mono text-xs min-h-[120px]"
-              />
-            </div>
+            {/* Mode tabs */}
+            <Tabs value={importMode} onValueChange={v => { setImportMode(v as any); setImportPreview(null); }}>
+              <TabsList className="h-8 w-full">
+                <TabsTrigger value="text" className="text-xs h-6 flex-1">Colar números</TabsTrigger>
+                <TabsTrigger value="file" className="text-xs h-6 flex-1 gap-1">
+                  <FileSpreadsheet className="w-3 h-3" /> Arquivo (CSV/XLSX)
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {importMode === "text" ? (
+              <div>
+                <Label className="text-xs">Cole os números (um por linha)</Label>
+                <Textarea
+                  value={importText}
+                  onChange={e => { setImportText(e.target.value); setImportPreview(null); }}
+                  placeholder={"62994192500\n11987654321\n+5521999887766"}
+                  className="mt-1 font-mono text-xs min-h-[120px]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 h-16 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+                  <div className="text-left">
+                    <p className="text-xs font-medium">{fileName || "Selecionar arquivo"}</p>
+                    <p className="text-[10px] text-muted-foreground">CSV, XLSX ou XLS</p>
+                  </div>
+                </Button>
+
+                {fileColumns.length > 0 && (
+                  <div className="space-y-2 p-3 rounded-lg border border-border/20 bg-muted/5">
+                    <p className="text-[11px] font-medium text-foreground">Mapear colunas</p>
+                    <p className="text-[10px] text-muted-foreground">{fileRows.length} linhas encontradas</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Coluna do Número *</Label>
+                        <select
+                          value={phoneCol}
+                          onChange={e => { setPhoneCol(e.target.value); setImportPreview(null); }}
+                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
+                        >
+                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Coluna do Nome</Label>
+                        <select
+                          value={nameCol}
+                          onChange={e => { setNameCol(e.target.value); setImportPreview(null); }}
+                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
+                        >
+                          <option value="">— nenhuma —</option>
+                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {!importPreview ? (
               <Button
                 variant="outline"
                 className="w-full gap-1.5"
-                onClick={handleValidateImport}
-                disabled={!importText.trim()}
+                onClick={() => importMode === "text" ? handleValidateImport() : handleValidateFile()}
+                disabled={importMode === "text" ? !importText.trim() : fileRows.length === 0}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> Validar
               </Button>
