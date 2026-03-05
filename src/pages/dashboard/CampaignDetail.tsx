@@ -111,7 +111,7 @@ const CampaignDetail = () => {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("devices").select("id, name, number, status").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("devices").select("id, name, number, status").eq("user_id", user!.id).neq("login_type", "report_wa");
       if (error) throw error;
       return data || [];
     },

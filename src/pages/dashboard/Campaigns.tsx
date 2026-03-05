@@ -121,6 +121,7 @@ const Campaigns = () => {
       const { data, error } = await supabase
         .from("devices")
         .select("*")
+        .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
       return data || [];
