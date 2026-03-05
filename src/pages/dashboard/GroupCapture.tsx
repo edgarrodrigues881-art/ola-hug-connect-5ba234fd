@@ -89,7 +89,7 @@ const GroupCapture = () => {
       const { data, error } = await supabase
         .from("warmup_groups" as any)
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("name", { ascending: true });
       if (error) throw error;
       return data as any[];
     },
