@@ -258,9 +258,9 @@ const WarmupInstanceDetail = () => {
             <Button
               className="w-full gap-2"
               onClick={handleStartWarmup}
-              disabled={!isConnected || createCycle.isPending}
+              disabled={!isConnected || engine.isPending}
             >
-              {createCycle.isPending ? (
+              {engine.isPending ? (
                 <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Flame className="w-4 h-4" />
