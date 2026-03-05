@@ -966,7 +966,7 @@ const Devices = () => {
   // Connect
   const openConnect = async (device: Device) => {
     setConnectingDevice(device);
-    setConnectStep("choose");
+    setConnectStep("proxy");
     setQrCodeBase64("");
     setPairingCode("");
     setConnectError("");
