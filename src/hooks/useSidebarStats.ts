@@ -17,7 +17,7 @@ export function useSidebarStats() {
     queryKey: ["sidebar-stats", user?.id],
     queryFn: async (): Promise<SidebarStats> => {
       const [devicesRes, warmupsRes, campaignsRes, notificationsRes] = await Promise.all([
-        supabase.from("devices").select("status"),
+        supabase.from("devices").select("status").neq("login_type", "report_wa"),
         supabase.from("warmup_sessions").select("status"),
         supabase.from("campaigns").select("status").in("status", ["processing", "pending", "scheduled"]),
         supabase.from("notifications").select("id").eq("read", false),
