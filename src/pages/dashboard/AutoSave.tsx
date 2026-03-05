@@ -281,22 +281,43 @@ const AutoSave = () => {
     handleValidateImport(phones, nameMap);
   };
 
+  const [importProgress, setImportProgress] = useState(0);
+
   const handleImport = async () => {
     if (!importPreview || importPreview.valid.length === 0) return;
     setImporting(true);
+    setImportProgress(0);
+
+    // Simulate perceived processing with progress
+    const totalSteps = 100;
+    const progressInterval = setInterval(() => {
+      setImportProgress(prev => {
+        if (prev >= 90) { clearInterval(progressInterval); return 90; }
+        return prev + Math.random() * 8 + 2;
+      });
+    }, 80);
+
     try {
       await bulkCreate.mutateAsync(
         importPreview.valid.map(v => ({ contact_name: v.name || "", phone_e164: v.phone, tags: "importado" }))
       );
+      clearInterval(progressInterval);
+      setImportProgress(100);
+
+      // Small delay to show 100%
+      await new Promise(r => setTimeout(r, 600));
+
       toast({
         title: "Importação concluída",
         description: `${importPreview.valid.length} contatos importados`,
       });
       resetImport();
     } catch (err: any) {
+      clearInterval(progressInterval);
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally {
       setImporting(false);
+      setImportProgress(0);
     }
   };
 
