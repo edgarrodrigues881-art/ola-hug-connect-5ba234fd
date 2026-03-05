@@ -73,7 +73,7 @@ const menuGroups = [
     items: [
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
-      { title: "Central de Alertas", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
+      { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
