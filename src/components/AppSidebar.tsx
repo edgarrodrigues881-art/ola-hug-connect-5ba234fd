@@ -78,7 +78,6 @@ const menuGroups = [
   {
     label: "Conta",
     items: [
-      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
       { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
     ],
