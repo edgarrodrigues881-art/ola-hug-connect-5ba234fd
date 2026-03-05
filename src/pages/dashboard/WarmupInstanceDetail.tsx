@@ -401,6 +401,24 @@ const WarmupInstanceDetail = () => {
             </Card>
           </div>
 
+          {/* Auto Save alert when 0 contacts */}
+          {activeContacts === 0 && (
+            <Card className="border-amber-500/20 bg-amber-500/5">
+              <CardContent className="p-3 flex items-center gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-foreground">Sem contatos Auto Save</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Adicione contatos para habilitar essa camada quando chegar a fase.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="text-xs shrink-0" onClick={() => navigate("/dashboard/autosave")}>
+                  Adicionar
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Community status */}
           <Card>
             <CardContent className="p-3 flex items-center justify-between">
