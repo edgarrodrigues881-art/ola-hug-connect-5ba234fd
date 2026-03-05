@@ -143,20 +143,25 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Right — Phone */}
-          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms" }}>
-            {/* Ambient glow — radial gradient, no blur/filter */}
+          {/* Right — HeroPhoneStage */}
+          <div className="relative flex items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
+            {/* Ambient glow */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
               style={{
                 background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(7,193,96,0.12) 0%, transparent 70%)",
               }}
             />
-            <div className="relative">
-              <div
-                className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
-                style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
-              >
+
+            {/* HeroPhoneStage — relative container, overflow visible */}
+            <div className="relative" style={{ overflow: "visible" }}>
+
+              {/* === PhoneLayer (z-10) === */}
+              <div className="relative z-10">
+                <div
+                  className="relative w-[260px] sm:w-[280px] lg:w-[280px] xl:w-[310px]"
+                  style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
+                >
                 {/* Border */}
                 <div
                   className="absolute -inset-[2px] rounded-[2.6rem] z-0"
