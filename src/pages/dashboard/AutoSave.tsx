@@ -67,11 +67,18 @@ const AutoSave = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<{
-    valid: { phone: string; original: string }[];
+    valid: { phone: string; original: string; name?: string }[];
     invalid: string[];
     duplicates: string[];
   } | null>(null);
   const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<"text" | "file">("text");
+  const [fileName, setFileName] = useState("");
+  const [fileColumns, setFileColumns] = useState<string[]>([]);
+  const [fileRows, setFileRows] = useState<Record<string, string>[]>([]);
+  const [phoneCol, setPhoneCol] = useState("");
+  const [nameCol, setNameCol] = useState("");
 
   // All unique tags
   const allTags = useMemo(() => {
