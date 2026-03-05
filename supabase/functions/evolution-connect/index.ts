@@ -218,7 +218,26 @@ Deno.serve(async (req) => {
       return true;
     };
 
-    // No duplicate phone validation - users can connect same number to multiple instances
+    // ── Helper: check if phone number is already used by another device ──
+    const checkDuplicatePhone = async (phone: string): Promise<{ isDuplicate: boolean; existingDeviceName?: string }> => {
+      if (!phone) return { isDuplicate: false };
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length < 10) return { isDuplicate: false };
+      // Search for any other device with a matching number (by digits)
+      const { data: existing } = await svc
+        .from("devices")
+        .select("id, name, number")
+        .eq("user_id", user.id)
+        .neq("id", deviceId)
+        .not("number", "is", null);
+      if (!existing || existing.length === 0) return { isDuplicate: false };
+      const match = existing.find((d: any) => {
+        const dDigits = (d.number || "").replace(/\D/g, "");
+        return dDigits.length >= 10 && dDigits === digits;
+      });
+      if (match) return { isDuplicate: true, existingDeviceName: match.name };
+      return { isDuplicate: false };
+    };
 
     // ── connect ──
     if (action === "connect") {
