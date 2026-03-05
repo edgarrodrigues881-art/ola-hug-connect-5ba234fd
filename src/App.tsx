@@ -30,6 +30,8 @@ const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
 const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
 const CampaignDetail = lazy(() => import("./pages/dashboard/CampaignDetail"));
 const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
+const WarmupInstances = lazy(() => import("./pages/dashboard/WarmupInstances"));
+const WarmupInstanceDetail = lazy(() => import("./pages/dashboard/WarmupInstanceDetail"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
@@ -92,6 +94,8 @@ const App = () => (
                           <Route path="notifications" element={<Notifications />} />
                           <Route path="settings" element={<SettingsPage />} />
                           <Route path="my-plan" element={<MyPlan />} />
+                          <Route path="warmup-v2" element={<WarmupInstances />} />
+                          <Route path="warmup-v2/:deviceId" element={<WarmupInstanceDetail />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
