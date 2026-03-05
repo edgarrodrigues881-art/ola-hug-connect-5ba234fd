@@ -1584,10 +1584,42 @@ const Devices = () => {
             {connectStep === "qr" && (
               <div className="flex flex-col items-center gap-5">
                 {/* QR Code display */}
-                <div className="relative">
-                  {qrCodeBase64 ? (
+                <div className="relative w-[272px] h-[272px]">
+                  {/* Loading state */}
+                  <div
+                    className={`absolute inset-0 w-64 h-64 m-auto rounded-2xl flex flex-col items-center justify-center border border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent overflow-hidden transition-all duration-500 ease-out ${
+                      !qrCodeBase64 && !connectError ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    }`}
+                  >
+                    <div
+                      className="absolute left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"
+                      style={{ animation: "scanLine 2.5s ease-in-out infinite" }}
+                    />
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4" style={{ animation: "qrPulse 2s ease-in-out infinite" }}>
+                      <QrCode className="w-8 h-8 text-primary" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Gerando QR Code...</p>
+                    <p className="text-xs text-muted-foreground/50 mt-1">Aguarde alguns segundos</p>
+                  </div>
+
+                  {/* Error state */}
+                  <div
+                    className={`absolute inset-0 w-64 h-64 m-auto bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-6 transition-all duration-500 ease-out ${
+                      connectError ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    }`}
+                  >
+                    <XCircle className="w-10 h-10 text-destructive mb-3" />
+                    <p className="text-sm text-destructive text-center leading-relaxed">{connectError}</p>
+                  </div>
+
+                  {/* QR Code */}
+                  <div
+                    className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-out ${
+                      qrCodeBase64 ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    }`}
+                  >
                     <div className="relative p-4 rounded-2xl bg-white dark:bg-white shadow-lg">
-                      <img src={qrCodeBase64} alt="QR Code" className="w-64 h-64 rounded-lg" />
+                      <img src={qrCodeBase64} alt="QR Code" className="w-64 h-64 rounded-lg transition-opacity duration-300" />
                       {/* Countdown overlay */}
                       <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border border-border/30 rounded-full px-3 py-1 shadow-sm">
                         <svg className="w-4 h-4 -rotate-90" viewBox="0 0 24 24">
@@ -1601,27 +1633,7 @@ const Devices = () => {
                         <span className="text-[11px] text-muted-foreground font-medium tabular-nums">{qrCountdown}s</span>
                       </div>
                     </div>
-                  ) : connectError ? (
-                    <div className="w-64 h-64 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-6">
-                      <XCircle className="w-10 h-10 text-destructive mb-3" />
-                      <p className="text-sm text-destructive text-center leading-relaxed">{connectError}</p>
-                    </div>
-                  ) : (
-                    <div className="w-64 h-64 rounded-2xl flex flex-col items-center justify-center border border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent relative overflow-hidden">
-                      {/* Scan line animation */}
-                      <div
-                        className="absolute left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"
-                        style={{
-                          animation: "scanLine 2.5s ease-in-out infinite",
-                        }}
-                      />
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4" style={{ animation: "qrPulse 2s ease-in-out infinite" }}>
-                        <QrCode className="w-8 h-8 text-primary" />
-                      </div>
-                      <p className="text-sm font-semibold text-foreground">Gerando QR Code...</p>
-                      <p className="text-xs text-muted-foreground/50 mt-1">Aguarde alguns segundos</p>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Instructions */}
