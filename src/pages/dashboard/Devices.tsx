@@ -1231,18 +1231,19 @@ const Devices = () => {
                         alt={d.name} 
                         className="w-16 h-16 rounded-full object-cover ring-[3px] ring-emerald-500/40 shadow-md" 
                         onError={(e) => {
-                          // WhatsApp profile picture URLs expire - hide broken image
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                          const img = e.target as HTMLImageElement;
+                          img.style.display = 'none';
+                          const fallback = img.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
                         }}
                       />
                     ) : null}
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${!d.profile_picture ? '' : 'hidden'} ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}>
-                    ) : (
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}>
-                        {d.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <div 
+                      className={`w-16 h-16 rounded-full items-center justify-center text-2xl font-bold shadow-md ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}
+                      style={{ display: d.profile_picture ? 'none' : 'flex' }}
+                    >
+                      {d.name.charAt(0).toUpperCase()}
+                    </div>
                     {/* Online indicator dot */}
                     {smartStatus === 'online' && (
                       <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-[3px] border-card" />
