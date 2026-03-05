@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
         const dup = await checkDuplicatePhone(phone);
         if (dup.isDuplicate) {
           await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          return json({ error: `Este número já está conectado na instância "${dup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" }, 409);
+          return json({ success: false, error: `Este número já está conectado na instância "${dup.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
         }
         await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
