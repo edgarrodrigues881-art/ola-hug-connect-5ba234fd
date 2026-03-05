@@ -145,29 +145,26 @@ const HeroSection = () => {
 
           {/* Right — HeroPhoneStage */}
           <div className="relative flex flex-col items-center justify-center animate-fade-in hero-phone-float" style={{ animationDelay: "80ms", overflow: "visible" }}>
-            {/* Ambient glow — behind phone */}
+            {/* Ambient glow — subtle */}
             <div
               className="absolute inset-0 pointer-events-none z-0"
               style={{
-                background: "radial-gradient(circle at 50% 50%, rgba(7,193,96,0.15) 0%, rgba(7,193,96,0.06) 35%, transparent 65%)",
+                background: "radial-gradient(circle at 50% 50%, rgba(7,193,96,0.08) 0%, transparent 55%)",
               }}
             />
 
             {/* HeroPhoneStage */}
             <div className="relative flex items-center justify-center" style={{ overflow: "visible" }}>
 
-              {/* === PhoneLayer (z-10) === */}
+              {/* === PhoneLayer (z-10) — straight, larger === */}
               <div className="relative z-10 flex-shrink-0">
-                <div
-                  className="relative w-[240px] sm:w-[260px] md:w-[270px] lg:w-[290px] xl:w-[320px]"
-                  style={{ transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)" }}
-                >
-                {/* Neon border glow */}
+                <div className="relative w-[270px] sm:w-[290px] md:w-[310px] lg:w-[340px] xl:w-[380px]">
+                {/* Neon border — subtle */}
                 <div
                   className="absolute -inset-[3px] rounded-[2.7rem] z-0"
                   style={{
-                    background: "linear-gradient(135deg, #07C160, #0AD47C, rgba(7,193,96,0.35), transparent 60%, #07C160)",
-                    boxShadow: "0 0 24px rgba(7,193,96,0.3), 0 0 60px rgba(7,193,96,0.08)",
+                    background: "linear-gradient(160deg, rgba(7,193,96,0.5), rgba(7,193,96,0.15) 40%, transparent 60%, rgba(7,193,96,0.3))",
+                    boxShadow: "0 0 40px rgba(16,185,129,0.25)",
                   }}
                 />
 
@@ -175,7 +172,7 @@ const HeroSection = () => {
                 <div className="relative rounded-[2.4rem] p-[6px] z-10"
                   style={{
                     background: "linear-gradient(145deg, #333338, #1E1E22, #2A2A2E, #1A1A1E)",
-                    boxShadow: "0 40px 120px rgba(0,0,0,0.6), 0 15px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+                    boxShadow: "0 40px 120px rgba(0,0,0,0.6), 0 10px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
                   }}
                 >
                   <div className="relative rounded-[2rem] overflow-hidden bg-[#0A0A0A]">
@@ -183,8 +180,8 @@ const HeroSection = () => {
                     <div
                       className="absolute inset-0 z-50 pointer-events-none rounded-[2rem]"
                       style={{
-                        background: "linear-gradient(120deg, rgba(255,255,255,0.06) 0%, transparent 40%)",
-                        opacity: 0.07,
+                        background: "linear-gradient(120deg, rgba(255,255,255,0.05) 0%, transparent 35%)",
+                        opacity: 0.08,
                       }}
                     />
                     {/* Status bar */}
@@ -262,14 +259,14 @@ const HeroSection = () => {
               </div>
               {/* End phone sizing div */}
 
-              {/* === OverlayLayer (z-20) — desktop only === */}
+              {/* === OverlayLayer (z-20) — desktop only, triangle layout === */}
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
-                {/* Card 1 — AO VIVO (top-right) */}
+                {/* Card 1 — AO VIVO (top-right, 30px from edge) */}
                 <div className="absolute w-[170px] xl:w-[185px]"
-                  style={{ top: "5%", right: "-8px", transform: "translateX(50%)" }}>
-                  <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
-                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
+                  style={{ top: "-20px", right: "-30px", transform: "translateX(55%)" }}>
+                  <div className="relative rounded-xl p-3.5 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
+                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="flex items-center gap-2 mb-2.5">
                       <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                       <span className="text-[10px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
@@ -305,11 +302,11 @@ const HeroSection = () => {
                   </div>
                 </div>
 
-                {/* Card 2 — Aquecimento 89% (left) */}
+                {/* Card 2 — Aquecimento 89% (mid-left, vertically centered) */}
                 <div className="absolute"
-                  style={{ top: "22%", left: "0px", transform: "translateX(-105%)" }}>
-                  <div className="relative rounded-2xl p-3.5" style={{ background: cardBg, boxShadow: cardShadow }}>
-                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
+                  style={{ top: "50%", left: "-30px", transform: "translate(-100%, -50%)" }}>
+                  <div className="relative rounded-xl p-3.5 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
+                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="flex items-center gap-2.5">
                       <div className="relative w-10 h-10">
                         <svg className="w-10 h-10 -rotate-90" viewBox="0 0 48 48">
@@ -331,8 +328,8 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "0px", transform: "translateX(-105%)" }}>
-                  <div className="relative rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: cardBg, boxShadow: cardShadow }}>
+                  style={{ bottom: "5%", left: "-30px", transform: "translateX(-100%)" }}>
+                  <div className="relative rounded-xl px-3 py-2.5 flex items-center gap-2 border border-white/[0.06]" style={{ background: cardBg, boxShadow: "0 20px 50px rgba(0,0,0,0.4)" }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-6 h-6 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
                       <svg className="w-3 h-3 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
