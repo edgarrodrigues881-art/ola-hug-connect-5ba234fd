@@ -1602,7 +1602,7 @@ const Devices = () => {
                   </SelectContent>
                 </Select>
                 <div className="flex items-center gap-3 pt-1">
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { setConnectingDevice(null); setConnectStep("choose"); }}>Cancelar</Button>
+                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { stopPolling(); setConnectOpen(false); }}>Cancelar</Button>
                   <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleConfirmProxy}>Conectar</Button>
                 </div>
               </div>
