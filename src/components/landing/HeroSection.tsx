@@ -343,7 +343,7 @@ const HeroSection = () => {
             {/* End HeroPhoneStage */}
 
             {/* Mobile/Tablet: stacked cards below phone (lg:hidden) */}
-            <div className="flex flex-col gap-2 mt-3 lg:hidden w-full max-w-[340px] mx-auto">
+            <div className="flex flex-col gap-2 mt-3 pb-20 md:pb-0 lg:hidden w-full max-w-[340px] mx-auto">
               <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                 <div className="w-2 h-2 rounded-full bg-[#07C160]" />
                 <span className="text-[11px] text-[#07C160] font-bold tracking-[0.12em] uppercase">Ao vivo</span>
