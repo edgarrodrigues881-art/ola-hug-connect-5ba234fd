@@ -318,18 +318,10 @@ const AutoSave = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 max-w-[200px]">
         <Card><CardContent className="p-3 text-center">
           <p className="text-2xl font-bold tabular-nums text-foreground">{contacts.length}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-emerald-400">{activeCount}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Ativos</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-muted-foreground">{contacts.length - activeCount}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Inativos</p>
         </CardContent></Card>
       </div>
 
