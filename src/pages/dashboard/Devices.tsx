@@ -1226,7 +1226,18 @@ const Devices = () => {
                 <div className="flex items-center gap-4">
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
-                      <img src={d.profile_picture} alt={d.name} className="w-16 h-16 rounded-full object-cover ring-[3px] ring-emerald-500/40 shadow-md" />
+                      <img 
+                        src={d.profile_picture} 
+                        alt={d.name} 
+                        className="w-16 h-16 rounded-full object-cover ring-[3px] ring-emerald-500/40 shadow-md" 
+                        onError={(e) => {
+                          // WhatsApp profile picture URLs expire - hide broken image
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${!d.profile_picture ? '' : 'hidden'} ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}>
                     ) : (
                       <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}>
                         {d.name.charAt(0).toUpperCase()}
