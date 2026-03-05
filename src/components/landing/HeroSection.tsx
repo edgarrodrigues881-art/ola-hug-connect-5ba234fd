@@ -107,7 +107,7 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20 mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(380px,480px)] gap-8 md:gap-10 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(420px,560px)] gap-8 md:gap-10 lg:gap-6 items-center">
           {/* Left — Copy */}
           <div className="max-w-2xl animate-fade-in">
             <h1
@@ -153,10 +153,10 @@ const HeroSection = () => {
               }}
             />
 
-            {/* HeroPhoneStage — takes full width so overlays have room */}
-            <div className="relative w-full flex items-center justify-center" style={{ overflow: "visible" }}>
+            {/* HeroPhoneStage */}
+            <div className="relative flex items-center justify-center" style={{ overflow: "visible" }}>
 
-              {/* === PhoneLayer (z-10) === */}
+              {/* === PhoneLayer (z-10) — overlays are relative to this === */}
               <div className="relative z-10 flex-shrink-0">
                 <div
                   className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[340px] xl:w-[380px]"
@@ -249,15 +249,14 @@ const HeroSection = () => {
                   </div>
                 </div>
               </div>
-               {/* End PhoneLayer */}
-               </div>
+              {/* End phone sizing div */}
 
-              {/* === OverlayLayer (z-20) — desktop only, positioned relative to stage === */}
+              {/* === OverlayLayer (z-20) — desktop only, positioned relative to PhoneLayer === */}
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
-                <div className="absolute w-[200px] xl:w-[230px]"
-                  style={{ top: "5%", right: "-6px", transform: "translateX(100%)" }}>
+                <div className="absolute w-[190px] xl:w-[210px]"
+                  style={{ top: "5%", right: "-8px", transform: "translateX(80%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-3">
@@ -297,7 +296,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left, outside phone) */}
                 <div className="absolute"
-                  style={{ top: "30%", left: "-6px", transform: "translateX(-100%)" }}>
+                  style={{ top: "35%", left: "0px", transform: "translateX(-90%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-3">
@@ -321,7 +320,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "-6px", transform: "translateX(-100%)" }}>
+                  style={{ bottom: "15%", left: "0px", transform: "translateX(-90%)" }}>
                   <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
@@ -338,6 +337,9 @@ const HeroSection = () => {
 
               </div>
               {/* End OverlayLayer */}
+
+              </div>
+              {/* End PhoneLayer */}
 
             </div>
             {/* End HeroPhoneStage */}
