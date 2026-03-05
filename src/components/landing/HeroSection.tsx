@@ -296,7 +296,7 @@ const HeroSection = () => {
 
                 {/* Card 2 — Aquecimento 89% (left, outside phone) */}
                 <div className="absolute"
-                  style={{ top: "30%", left: "-6px", transform: "translateX(-100%)" }}>
+                  style={{ top: "35%", left: "0px", transform: "translateX(-90%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/25 to-transparent" />
                     <div className="flex items-center gap-3">
