@@ -951,23 +951,7 @@ const Devices = () => {
           }
         }
       } catch (err: any) {
-        // Check if it's a duplicate phone error (409)
-        const errorBody = err?.context?.body ? JSON.parse(err.context.body) : null;
-        const errorMsg = errorBody?.error || err?.message || "";
-        if (errorBody?.code === "DUPLICATE_PHONE" || errorMsg.includes("já está conectado")) {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setConnectError(errorMsg);
-          setConnectStep("qr"); // Go back to show error
-          queryClient.invalidateQueries({ queryKey: ["devices"] });
-          toast({ 
-            title: "Número duplicado", 
-            description: errorMsg,
-            variant: "destructive",
-          });
-        } else {
-          console.error("Polling error:", err);
-        }
+        console.error("Polling error:", err);
       }
     }, 3000);
     setPollingInterval(interval);
