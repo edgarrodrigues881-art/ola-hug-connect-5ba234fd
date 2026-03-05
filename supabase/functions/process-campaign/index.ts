@@ -485,14 +485,14 @@ Deno.serve(async (req) => {
 
         for (const contact of contacts) {
           // Optimistic lock: mark as processing to prevent duplicate sends
-          const { count: lockCount } = await serviceClient
+          const { data: locked } = await serviceClient
             .from("campaign_contacts")
             .update({ status: "processing" })
             .eq("id", contact.id)
             .eq("status", "pending")
-            .select("id", { count: "exact", head: true });
+            .select("id");
           
-          if (!lockCount || lockCount === 0) {
+          if (!locked || locked.length === 0) {
             // Already picked up by another invocation, skip
             continue;
           }
