@@ -163,10 +163,11 @@ const Campaigns = () => {
       return copy;
     });
   };
-  const [rotateMessages, setRotateMessages] = useState(true);
+  const [rotationMode, setRotationMode] = useState<"random" | "sequential" | "all">("random");
+  const rotateMessages = rotationMode !== "all"; // backward compat
   const allMessages = messages.filter(m => m.trim());
   const combinedMessage = allMessages.length > 1 
-    ? (rotateMessages ? allMessages.join("|||") : allMessages.join("|&&|"))
+    ? (rotationMode === "random" ? allMessages.join("|||") : rotationMode === "sequential" ? allMessages.join("|>>|") : allMessages.join("|&&|"))
     : allMessages[0] || "";
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [buttons, setButtons] = useState<UnifiedButton[]>([{ id: Date.now(), type: "reply", text: "", value: "" }]);
@@ -276,7 +277,8 @@ const Campaigns = () => {
           if (draft.campaignName) setCampaignName(draft.campaignName);
           if (draft.messages) setMessages(draft.messages);
           else if (draft.message) setMessages(prev => { const c = [...prev]; c[0] = draft.message; return c; });
-          if (draft.rotateMessages !== undefined) setRotateMessages(draft.rotateMessages);
+          if (draft.rotationMode) setRotationMode(draft.rotationMode);
+          else if (draft.rotateMessages !== undefined) setRotationMode(draft.rotateMessages ? "random" : "all");
           if (draft.messageType) setMessageType(draft.messageType);
           if (draft.mediaUrl) setMediaUrl(draft.mediaUrl);
           if (draft.contacts?.length) { setContacts(draft.contacts); setShowContactTable(true); }
@@ -333,16 +335,16 @@ const Campaigns = () => {
   useEffect(() => {
     if (!draftLoaded) return;
     const draft = {
-      campaignName, messages, rotateMessages, messageType, mediaUrl, contacts,
+      campaignName, messages, rotationMode, messageType, mediaUrl, contacts,
       buttons, selectedDevices, messagesPerInstance, sendMode,
       minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax,
       scheduleEnabled, scheduleDate,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, campaignName, messages, rotateMessages, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
+  }, [draftLoaded, campaignName, messages, rotationMode, messageType, mediaUrl, contacts, buttons, selectedDevices, messagesPerInstance, sendMode, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, scheduleEnabled, scheduleDate]);
 
   const clearStep1 = () => {
-    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotateMessages(true); setMediaUrl(""); setMediaFileName("");
+    setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotationMode("random"); setMediaUrl(""); setMediaFileName("");
     setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
     setSelectedTemplate("nova");
     toast({ title: "Mensagem limpa" });
@@ -959,22 +961,28 @@ const Campaigns = () => {
 
                   {/* Rotation toggle - only show when multiple messages */}
                   {allMessages.length > 1 && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/10 border border-border/10">
-                      <Switch checked={rotateMessages} onCheckedChange={setRotateMessages} />
-                      <div className="flex-1">
-                        <p className="text-[12px] font-medium text-foreground/80">
-                          {rotateMessages ? "Rotacionar mensagens" : "Enviar todas as mensagens"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-                          {rotateMessages 
-                            ? "Uma mensagem aleatória será escolhida para cada contato" 
-                            : "Todas as mensagens serão enviadas para cada contato em sequência"}
-                        </p>
+                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-muted/10 border border-border/10">
+                      <p className="text-[11px] font-medium text-foreground/70">Modo de envio das mensagens</p>
+                      <div className="flex gap-2">
+                        {([
+                          { value: "random" as const, label: "Aleatório", icon: <Sparkles className="w-3 h-3 mr-1" />, desc: "Uma mensagem aleatória para cada contato" },
+                          { value: "sequential" as const, label: "Sequencial", icon: <ArrowDown className="w-3 h-3 mr-1" />, desc: "Msg 1→contato 1, Msg 2→contato 2, etc." },
+                          { value: "all" as const, label: "Todas", icon: <ArrowDown className="w-3 h-3 mr-1" />, desc: "Todas as mensagens para cada contato" },
+                        ]).map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setRotationMode(opt.value)}
+                            className={`flex-1 text-center p-2 rounded-lg border text-[10px] transition-all ${
+                              rotationMode === opt.value
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border/20 text-muted-foreground hover:border-border/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-center">{opt.icon}{opt.label}</div>
+                            <p className="text-[9px] text-muted-foreground/50 mt-1">{opt.desc}</p>
+                          </button>
+                        ))}
                       </div>
-                      <Badge variant="outline" className="text-[9px] border-border/20">
-                        {rotateMessages ? <Sparkles className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
-                        {rotateMessages ? "Aleatório" : "Sequencial"}
-                      </Badge>
                     </div>
                   )}
                   

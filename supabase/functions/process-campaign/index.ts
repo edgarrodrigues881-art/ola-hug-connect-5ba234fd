@@ -346,18 +346,22 @@ Deno.serve(async (req) => {
       let failedCount = campaign.failed_count || 0;
       const messageContent = campaign.message_content || "";
       const sendAllMode = messageContent.includes("|&&|");
+      const sequentialMode = messageContent.includes("|>>|");
       const messageVariants = sendAllMode 
         ? messageContent.split("|&&|").filter((m: string) => m.trim())
-        : messageContent.includes("|||") 
-          ? messageContent.split("|||").filter((m: string) => m.trim()) 
-          : [messageContent];
-      console.log(`Message mode: ${sendAllMode ? 'SEQUENTIAL (|&&|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}, content preview: ${messageContent.substring(0, 100)}`);
+        : sequentialMode
+          ? messageContent.split("|>>|").filter((m: string) => m.trim())
+          : messageContent.includes("|||") 
+            ? messageContent.split("|||").filter((m: string) => m.trim()) 
+            : [messageContent];
+      console.log(`Message mode: ${sendAllMode ? 'ALL (|&&|)' : sequentialMode ? 'SEQUENTIAL (|>>|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}`);
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
       const shuffleBag = new ShuffleBag(messageVariants.length);
+      let sequentialIndex = 0; // For sequential (|>>|) mode
       let needsContinue = false;
 
       // ─── PARALLEL MODE ───
@@ -517,7 +521,9 @@ Deno.serve(async (req) => {
 
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const chosenMessage = messageVariants[shuffleBag.next()];
+            const msgIndex = sequentialMode ? sequentialIndex : shuffleBag.next();
+            const chosenMessage = messageVariants[msgIndex % messageVariants.length];
+            if (sequentialMode) sequentialIndex = (sequentialIndex + 1) % messageVariants.length;
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
@@ -562,8 +568,8 @@ Deno.serve(async (req) => {
                 }
               }
             } else {
-              const pickedIndex = messageVariants.indexOf(chosenMessage);
-              console.log(`RANDOM: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}: "${personalizedMessage.substring(0, 50)}..."`);
+              const pickedIndex = msgIndex % messageVariants.length;
+              console.log(`${sequentialMode ? 'SEQ' : 'RANDOM'}: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}: "${personalizedMessage.substring(0, 50)}..."`);
               await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
             }
             await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
