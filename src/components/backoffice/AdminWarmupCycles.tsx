@@ -46,13 +46,11 @@ const AdminWarmupCycles = () => {
   const { data: cycles = [], isLoading } = useQuery({
     queryKey: ["admin-warmup-cycles"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("warmup_cycles")
-        .select("*, devices(name, number), profiles:user_id(full_name)")
+        .select("*, devices(name, number)")
         .order("created_at", { ascending: false })
         .limit(200);
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as CycleRow[];
     },

@@ -28,7 +28,7 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_cycles")
-        .select("*, devices(name, number), profiles:user_id(full_name)")
+        .select("*, devices(name, number)")
         .eq("id", cycleId)
         .single();
       if (error) throw error;
