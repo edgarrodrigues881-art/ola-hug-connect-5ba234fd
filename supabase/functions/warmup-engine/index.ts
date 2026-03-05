@@ -481,11 +481,18 @@ Deno.serve(async (req) => {
 
             if (count && count > 0) {
               await db.from("warmup_cycles").update({ phase: "autosave_enabled" }).eq("id", cycle.id);
+              
+              // Schedule autosave interaction jobs for today
+              const scheduled = await scheduleAutosaveInteractions(
+                db, job.user_id, job.device_id, job.cycle_id,
+                cycle.daily_interaction_budget_target, cycle.daily_interaction_budget_used
+              );
+
               await db.from("warmup_audit_logs").insert({
                 user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
                 level: "info", event_type: "phase_changed",
-                message: `Auto Save habilitado (${count} contatos ativos)`,
-                meta: { active_contacts: count },
+                message: `Auto Save habilitado (${count} contatos ativos, ${scheduled} interações agendadas)`,
+                meta: { active_contacts: count, interactions_scheduled: scheduled },
               });
             } else {
               await db.from("warmup_audit_logs").insert({
