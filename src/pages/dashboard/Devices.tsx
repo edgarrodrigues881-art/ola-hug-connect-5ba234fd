@@ -1193,14 +1193,20 @@ const Devices = () => {
             <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow overflow-hidden">
               <CardContent className="p-5 space-y-4">
                 {/* Header: Avatar + Name + Badge */}
-                <div className="flex items-center gap-3">
-                  {d.profile_picture ? (
-                    <img src={d.profile_picture} alt={d.name} className="w-14 h-14 rounded-full object-cover ring-[3px] ring-emerald-500/30 shrink-0" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold bg-emerald-500 text-white">
-                      {d.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
+                    {d.profile_picture ? (
+                      <img src={d.profile_picture} alt={d.name} className="w-16 h-16 rounded-full object-cover ring-[3px] ring-emerald-500/40 shadow-md" />
+                    ) : (
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-[3px] ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-[3px] ring-border'}`}>
+                        {d.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Online indicator dot */}
+                    {smartStatus === 'online' && (
+                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-[3px] border-card" />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     {isEditing ? (
                       <input
