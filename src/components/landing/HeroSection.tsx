@@ -158,13 +158,13 @@ const HeroSection = () => {
 
               {/* === PhoneLayer (z-10) — straight, larger === */}
               <div className="relative z-10 flex-shrink-0">
-                <div className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[320px] xl:w-[350px]">
+                <div className="relative w-[240px] sm:w-[260px] md:w-[270px] lg:w-[290px] xl:w-[310px]">
                 {/* Neon border — subtle */}
                 <div
                   className="absolute -inset-[3px] rounded-[2.7rem] z-0"
                   style={{
-                    background: "linear-gradient(160deg, rgba(7,193,96,0.5), rgba(7,193,96,0.15) 40%, transparent 60%, rgba(7,193,96,0.3))",
-                    boxShadow: "0 0 40px rgba(16,185,129,0.25)",
+                    background: "linear-gradient(160deg, rgba(7,193,96,0.4), rgba(7,193,96,0.12) 40%, transparent 60%, rgba(7,193,96,0.25))",
+                    boxShadow: "0 0 35px rgba(16,185,129,0.2)",
                   }}
                 />
 
