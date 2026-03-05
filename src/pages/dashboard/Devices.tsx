@@ -1231,11 +1231,6 @@ const Devices = () => {
                         <p className="text-base font-bold text-foreground cursor-pointer hover:text-primary truncate" onClick={() => startInlineEdit(d)} title={d.name}>
                           {d.name}
                         </p>
-                        {devices.indexOf(d) === 0 && (
-                          <Badge className="bg-emerald-500 text-white border-0 text-[11px] px-2 py-0.5 h-auto font-semibold gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Padrão
-                          </Badge>
-                        )}
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground mt-0.5">ID: {devices.indexOf(d) + 1}</p>
