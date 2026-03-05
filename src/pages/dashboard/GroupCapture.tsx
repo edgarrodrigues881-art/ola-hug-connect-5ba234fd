@@ -66,7 +66,8 @@ const GroupCapture = () => {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [delaySeconds, setDelaySeconds] = useState(10);
+  const [minDelay, setMinDelay] = useState(8);
+  const [maxDelay, setMaxDelay] = useState(25);
   const [activeTab, setActiveTab] = useState("groups");
 
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
