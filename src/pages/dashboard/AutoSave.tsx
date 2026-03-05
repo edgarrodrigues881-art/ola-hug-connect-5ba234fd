@@ -160,8 +160,6 @@ const AutoSave = () => {
   const queryClient = useQueryClient();
   const handleDeleteAll = async () => {
     if (!contacts.length) return;
-    const confirmed = window.confirm(`Tem certeza que deseja apagar todos os ${contacts.length} contatos?`);
-    if (!confirmed) return;
     try {
       for (const c of contacts) {
         await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
@@ -171,6 +169,7 @@ const AutoSave = () => {
     } catch {
       toast({ title: "Erro ao apagar contatos", variant: "destructive" });
     }
+    setDeleteAllOpen(false);
   };
 
   // ── Import ──
