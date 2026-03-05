@@ -141,7 +141,7 @@ const AdminWarmupCycles = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map(c => {
-                  const userName = (c.profiles as any)?.full_name || c.user_id.slice(0, 8);
+                  const userName = c.user_id.slice(0, 8);
                   const deviceName = (c.devices as any)?.name || "—";
                   const deviceNumber = (c.devices as any)?.number || "";
                   const isActive = c.is_running && c.phase !== "completed" && c.phase !== "paused";

@@ -118,7 +118,7 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     return <div className="text-center py-12 text-muted-foreground">Ciclo não encontrado</div>;
   }
 
-  const userName = (cycle as any).profiles?.full_name || cycle.user_id.slice(0, 8);
+  const userName = cycle.user_id.slice(0, 8);
   const deviceName = (cycle as any).devices?.name || "—";
   const pendingJobs = jobs.filter(j => j.status === "pending").length;
   const failedJobs = jobs.filter(j => j.status === "failed").length;
