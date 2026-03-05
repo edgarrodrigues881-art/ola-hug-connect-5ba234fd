@@ -530,11 +530,30 @@ Deno.serve(async (req) => {
       const { profileName } = body;
       if (!profileName) return json({ error: "profileName obrigatório" }, 400);
 
-      const r = await uazapi(instanceUrl, "/profile/name", instanceToken, "POST", { name: profileName });
+      const nameEndpoints = [
+        { path: "/profile/name", payload: { name: profileName } },
+        { path: "/profile/update-name", payload: { name: profileName } },
+        { path: "/instance/profile/name", payload: { name: profileName } },
+        { path: "/profile-name", payload: { value: profileName } },
+      ];
+
+      let lastResult: any = null;
+      for (const ep of nameEndpoints) {
+        const r = await uazapi(instanceUrl, ep.path, instanceToken, "POST", ep.payload);
+        console.log(`updateProfileName ${ep.path}: ${r.status}`, JSON.stringify(r.data).substring(0, 200));
+        if (r.ok) {
+          if (deviceId) {
+            await svc.from("devices").update({ profile_name: profileName }).eq("id", deviceId);
+          }
+          return json({ success: true, endpoint: ep.path, ...r.data });
+        }
+        lastResult = r;
+      }
+      // Even if API fails, update local DB
       if (deviceId) {
         await svc.from("devices").update({ profile_name: profileName }).eq("id", deviceId);
       }
-      return json({ success: r.ok, ...r.data });
+      return json({ success: false, error: "Nenhum endpoint de nome funcionou", lastStatus: lastResult?.status, lastData: lastResult?.data });
     }
 
     // ── updateProfilePicture ──
@@ -543,18 +562,40 @@ Deno.serve(async (req) => {
       if (!profilePictureData) return json({ error: "profilePictureData obrigatório" }, 400);
 
       if (profilePictureData === "remove") {
-        const r = await uazapi(instanceUrl, "/profile/picture/remove", instanceToken, "POST");
+        const removeEndpoints = ["/profile/picture/remove", "/profile/remove-picture", "/instance/profile/picture/remove"];
+        for (const ep of removeEndpoints) {
+          const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
+          console.log(`removePicture ${ep}: ${r.status}`);
+          if (r.ok) {
+            if (deviceId) await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
+            return json({ success: true, endpoint: ep, ...r.data });
+          }
+        }
         if (deviceId) await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
-        return json({ success: r.ok, ...r.data });
+        return json({ success: true, note: "Foto removida localmente" });
       }
 
-      const r = await uazapi(instanceUrl, "/profile/picture", instanceToken, "POST", {
-        picture: profilePictureData,
-      });
-      if (deviceId) {
-        await svc.from("devices").update({ profile_picture: profilePictureData.substring(0, 500) }).eq("id", deviceId);
+      const picEndpoints = [
+        { path: "/profile/picture", payload: { picture: profilePictureData } },
+        { path: "/profile/picture", payload: { url: profilePictureData } },
+        { path: "/profile/update-picture", payload: { picture: profilePictureData } },
+        { path: "/instance/profile/picture", payload: { picture: profilePictureData } },
+        { path: "/profile-picture", payload: { value: profilePictureData } },
+      ];
+
+      let lastPicResult: any = null;
+      for (const ep of picEndpoints) {
+        const r = await uazapi(instanceUrl, ep.path, instanceToken, "POST", ep.payload);
+        console.log(`updatePicture ${ep.path}: ${r.status}`, JSON.stringify(r.data).substring(0, 200));
+        if (r.ok) {
+          if (deviceId) {
+            await svc.from("devices").update({ profile_picture: profilePictureData.substring(0, 500) }).eq("id", deviceId);
+          }
+          return json({ success: true, endpoint: ep.path, ...r.data });
+        }
+        lastPicResult = r;
       }
-      return json({ success: r.ok, ...r.data });
+      return json({ success: false, error: "Nenhum endpoint de foto funcionou", lastStatus: lastPicResult?.status, lastData: lastPicResult?.data });
     }
 
     // ── updateProfileStatus (about/recado) ──
