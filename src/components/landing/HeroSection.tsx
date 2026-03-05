@@ -153,10 +153,10 @@ const HeroSection = () => {
               }}
             />
 
-            {/* HeroPhoneStage — takes full width so overlays have room */}
-            <div className="relative w-full flex items-center justify-center" style={{ overflow: "visible" }}>
+            {/* HeroPhoneStage */}
+            <div className="relative flex items-center justify-center" style={{ overflow: "visible" }}>
 
-              {/* === PhoneLayer (z-10) === */}
+              {/* === PhoneLayer (z-10) — overlays are relative to this === */}
               <div className="relative z-10 flex-shrink-0">
                 <div
                   className="relative w-[260px] sm:w-[280px] md:w-[300px] lg:w-[340px] xl:w-[380px]"
