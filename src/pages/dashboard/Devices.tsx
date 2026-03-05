@@ -1353,17 +1353,23 @@ const Devices = () => {
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          {/* Header com avatar do device */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Pencil className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-bold">Editar instância</DialogTitle>
+              {editingDevice?.profile_picture ? (
+                <img src={editingDevice.profile_picture} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-emerald-500/20 shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <Pencil className="w-5 h-5 text-emerald-400" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <DialogTitle className="text-lg font-bold truncate">Editar instância</DialogTitle>
                 {editingDevice && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {editingDevice.number ? formatPhone(editingDevice.number) : "Sem número vinculado"}
+                  <p className="text-[13px] text-muted-foreground mt-0.5 truncate">
+                    {editingDevice.profile_name || editingDevice.name}
+                    {editingDevice.number ? ` · ${formatPhone(editingDevice.number)}` : ""}
                   </p>
                 )}
               </div>
@@ -1378,7 +1384,7 @@ const Devices = () => {
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-11 text-sm rounded-xl"
+                className="h-11 text-sm rounded-xl bg-muted/20 border-border/30 focus:border-emerald-500/40 transition-colors"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
@@ -1389,60 +1395,59 @@ const Devices = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground/40">{editName.length}/30</span>
+                <span className="text-[11px] text-muted-foreground/40 tabular-nums">{editName.length}/30</span>
               </div>
             </div>
 
             {editingDevice?.status === "Ready" && (
-              <>
-                <div className="border-t border-border/15" />
-                <p className="text-[11px] text-muted-foreground/60 uppercase tracking-wider font-semibold">Perfil do WhatsApp</p>
+              <div className="space-y-4 rounded-xl border border-border/15 bg-muted/[0.04] p-4">
+                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
 
                 {/* Nome do WhatsApp */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5" /> Nome exibido
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-400/60" /> Nome exibido
                   </Label>
                   <Input
                     value={wpName}
                     onChange={e => setWpName(e.target.value)}
                     placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
-                    className="h-11 text-sm rounded-xl"
+                    className="h-11 text-sm rounded-xl bg-background/50 border-border/30 focus:border-emerald-500/40 transition-colors"
                     maxLength={25}
                   />
-                  <p className="text-[11px] text-muted-foreground/40">{wpName.length}/25 caracteres</p>
+                  <p className="text-[11px] text-muted-foreground/40 tabular-nums">{wpName.length}/25 caracteres</p>
                 </div>
 
                 {/* Foto do WhatsApp */}
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5" /> Foto do perfil
+                    <Camera className="w-3.5 h-3.5 text-emerald-400/60" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
-                  <div className="flex justify-center">
+                  <div className="flex justify-center py-1">
                     <div
                       className="relative group cursor-pointer"
                       onClick={() => { if (!wpPhotoUrl && !wpRemovePhoto) wpFileRef.current?.click(); }}
                     >
                       {wpPhotoUrl && !wpRemovePhoto ? (
                         <>
-                          <img src={wpPhotoUrl} alt="Foto" className="w-24 h-24 rounded-full object-cover ring-[3px] ring-primary/20 shadow-md" />
-                          <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
-                              <Camera className="w-4 h-4" />
+                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-emerald-500/20 shadow-lg" />
+                          <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
+                              <Camera className="w-3.5 h-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
-                              <XCircle className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
+                              <XCircle className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </>
                       ) : (
                         <div
-                          className="w-24 h-24 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/40 transition-colors"
+                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/30 flex flex-col items-center justify-center hover:border-emerald-500/30 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
-                          <Camera className="w-6 h-6 text-muted-foreground/40 mb-1" />
-                          <span className="text-[10px] text-muted-foreground/40">
+                          <Camera className="w-5 h-5 text-muted-foreground/30 mb-0.5" />
+                          <span className="text-[9px] text-muted-foreground/30">
                             {wpRemovePhoto ? "Removida" : "Escolher"}
                           </span>
                         </div>
@@ -1450,12 +1455,12 @@ const Devices = () => {
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
-            <div className="flex items-center gap-3 pt-2">
-              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setEditOpen(false)}>Cancelar</Button>
-              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
+            <div className="flex items-center gap-3 pt-1">
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/30" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
         </DialogContent>
