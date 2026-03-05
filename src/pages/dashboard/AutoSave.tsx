@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   useAutosaveContacts, type WarmupAutosaveContact,
@@ -152,6 +154,22 @@ const AutoSave = () => {
 
   const handleDelete = (id: string) => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
+  };
+
+  const queryClient = useQueryClient();
+  const handleDeleteAll = async () => {
+    if (!contacts.length) return;
+    const confirmed = window.confirm(`Tem certeza que deseja apagar todos os ${contacts.length} contatos?`);
+    if (!confirmed) return;
+    try {
+      for (const c of contacts) {
+        await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
+      toast({ title: `${contacts.length} contatos apagados` });
+    } catch {
+      toast({ title: "Erro ao apagar contatos", variant: "destructive" });
+    }
   };
 
   // ── Import ──
@@ -311,6 +329,11 @@ const AutoSave = () => {
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
+          {contacts.length > 0 && (
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:bg-destructive/10" onClick={handleDeleteAll}>
+              <Trash2 className="w-3.5 h-3.5" /> Apagar todos
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
