@@ -87,7 +87,7 @@ async function tryJoin(
     }
   }
 
-  return { ok: false, status: 405, body: { message: "Nenhum método HTTP aceito pelo servidor" }, raw: "", endpoint: "all failed" };
+  return { ok: false, status: 500, body: { message: "Falha ao entrar no grupo — o convite pode estar expirado ou inválido" }, raw: "", endpoint: "all failed" };
 }
 
 function interpretResult(status: number, body: any): { joinStatus: JoinResult["status"]; error?: string } {
