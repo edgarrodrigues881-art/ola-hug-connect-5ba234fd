@@ -616,7 +616,7 @@ const GroupCapture = () => {
                   <Timer className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Próximo em</span>
                   <span className="font-mono text-foreground font-medium">{countdown}s</span>
-                  <span className="text-muted-foreground/30 ml-auto">delay: {delaySeconds}s</span>
+                  <span className="text-muted-foreground/30 ml-auto">delay: {minDelay}–{maxDelay}s</span>
                 </div>
               )}
 
