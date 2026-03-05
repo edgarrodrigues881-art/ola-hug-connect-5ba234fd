@@ -156,6 +156,7 @@ const AutoSave = () => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
   };
 
+  const queryClient = useQueryClient();
   const handleDeleteAll = async () => {
     if (!contacts.length) return;
     const confirmed = window.confirm(`Tem certeza que deseja apagar todos os ${contacts.length} contatos?`);
@@ -164,8 +165,7 @@ const AutoSave = () => {
       for (const c of contacts) {
         await supabase.from("warmup_autosave_contacts" as any).delete().eq("id", c.id);
       }
-      const qc = useQueryClient();
-      qc.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["warmup_autosave_contacts"] });
       toast({ title: `${contacts.length} contatos apagados` });
     } catch {
       toast({ title: "Erro ao apagar contatos", variant: "destructive" });
