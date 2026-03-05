@@ -17,7 +17,7 @@ async function uazapi(
   baseUrl: string,
   endpoint: string,
   token: string,
-  method: "GET" | "POST" = "POST",
+  method: "GET" | "POST" | "DELETE" = "POST",
   body?: any,
 ): Promise<{ ok: boolean; status: number; data: any }> {
   const headers: Record<string, string> = {
@@ -576,28 +576,43 @@ Deno.serve(async (req) => {
       
       // Delete the instance from UaZapi server to free the slot
       console.log("Logout: deleting instance from server...");
-      const deleteEndpoints = ["/instance/delete", "/instance/remove"];
       let deleted = false;
-      // Try with instance token
-      for (const ep of deleteEndpoints) {
-        try {
-          const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
-          console.log(`Logout delete ${ep}: ${r.status}`);
-          if (r.ok) { deleted = true; break; }
-        } catch {}
-      }
-      // Try with admin token
-      if (!deleted && BASE_URL && ADMIN_TOKEN) {
-        for (const ep of deleteEndpoints) {
+      // Try with instance token (POST + DELETE)
+      for (const ep of ["/instance/delete", "/instance/remove"]) {
+        for (const m of ["DELETE" as const, "POST" as const]) {
           try {
-            const res = await fetch(`${BASE_URL}${ep}`, {
-              method: "POST",
-              headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
-              body: JSON.stringify({ token: instanceToken }),
-            });
-            console.log(`Logout admin delete ${ep}: ${res.status}`);
-            if (res.ok) { deleted = true; break; }
+            const r = await uazapi(instanceUrl, ep, instanceToken, m);
+            console.log(`Logout delete ${m} ${ep}: ${r.status}`);
+            if (r.ok) { deleted = true; break; }
           } catch {}
+        }
+        if (deleted) break;
+      }
+      // Try with admin token (DELETE + POST)
+      if (!deleted && BASE_URL && ADMIN_TOKEN) {
+        const headerVariants = [
+          { admintoken: ADMIN_TOKEN },
+          { token: ADMIN_TOKEN },
+          { Authorization: `Bearer ${ADMIN_TOKEN}` },
+        ];
+        logoutOuter:
+        for (const ep of ["/instance/delete", "/instance/remove"]) {
+          for (const method of ["DELETE", "POST"] as const) {
+            for (const authHeaders of headerVariants) {
+              try {
+                const res = await fetch(`${BASE_URL}${ep}`, {
+                  method,
+                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+                  body: JSON.stringify({ token: instanceToken }),
+                });
+                const text = await res.text();
+                console.log(`Logout admin ${method} ${ep} h=${Object.keys(authHeaders)[0]}: ${res.status}`);
+                if (res.ok) { deleted = true; break logoutOuter; }
+                if (res.status === 401) continue;
+                if (res.status === 405) break;
+              } catch {}
+            }
+          }
         }
       }
       console.log("Logout instance deletion:", deleted ? "success" : "failed (non-blocking)");
@@ -748,16 +763,19 @@ Deno.serve(async (req) => {
       console.log("Deleting instance from UaZapi server. Token:", !!instanceToken, "AdminToken:", !!ADMIN_TOKEN);
       let deleted = false;
 
-      // Method 1: Disconnect + delete with instance token
+      // Method 1: Disconnect + delete with instance token (try POST and DELETE)
       if (instanceToken) {
         try { await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST"); } catch {}
         
         for (const ep of ["/instance/delete", "/instance/remove"]) {
-          try {
-            const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
-            console.log(`Delete (inst) ${ep}: ${r.status}`);
-            if (r.ok) { deleted = true; break; }
-          } catch {}
+          for (const m of ["DELETE" as const, "POST" as const]) {
+            try {
+              const r = await uazapi(instanceUrl, ep, instanceToken, m);
+              console.log(`Delete (inst) ${m} ${ep}: ${r.status}`);
+              if (r.ok) { deleted = true; break; }
+            } catch {}
+          }
+          if (deleted) break;
         }
       }
 
@@ -771,19 +789,21 @@ Deno.serve(async (req) => {
         
         outer:
         for (const ep of ["/instance/delete", "/instance/remove"]) {
-          for (const authHeaders of headerVariants) {
-            try {
-              const res = await fetch(`${BASE_URL}${ep}`, {
-                method: "POST",
-                headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-                body: JSON.stringify({ token: instanceToken }),
-              });
-              const text = await res.text();
-              console.log(`Delete (admin) ${ep} h=${Object.keys(authHeaders)[0]}: ${res.status}`, text.substring(0, 200));
-              if (res.ok) { deleted = true; break outer; }
-              if (res.status === 401) continue;
-              break;
-            } catch {}
+          for (const method of ["DELETE", "POST"] as const) {
+            for (const authHeaders of headerVariants) {
+              try {
+                const res = await fetch(`${BASE_URL}${ep}`, {
+                  method,
+                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+                  body: JSON.stringify({ token: instanceToken }),
+                });
+                const text = await res.text();
+                console.log(`Delete (admin) ${method} ${ep} h=${Object.keys(authHeaders)[0]}: ${res.status}`, text.substring(0, 200));
+                if (res.ok) { deleted = true; break outer; }
+                if (res.status === 401) continue;
+                if (res.status === 405) break; // wrong method, try next
+              } catch {}
+            }
           }
         }
       }
