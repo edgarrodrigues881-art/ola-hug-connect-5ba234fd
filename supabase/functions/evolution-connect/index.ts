@@ -172,8 +172,8 @@ Deno.serve(async (req) => {
     let instanceToken = device?.uazapi_token || "";
     const deviceName = device?.name || "instance";
 
-    // If no token, cannot proceed (except for connect which will auto-create)
-    if (!instanceToken && action !== "connect") {
+    // If no token, cannot proceed (except for connect and deleteInstance)
+    if (!instanceToken && action !== "connect" && action !== "deleteInstance") {
       return json({ error: "Instância sem token. Conecte primeiro." }, 400);
     }
 
