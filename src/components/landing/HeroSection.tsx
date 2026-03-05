@@ -249,10 +249,10 @@ const HeroSection = () => {
                   </div>
                 </div>
               </div>
-               {/* End PhoneLayer */}
+               {/* End phone chassis */}
                </div>
 
-              {/* === OverlayLayer (z-20) — desktop only, positioned relative to stage === */}
+              {/* === OverlayLayer (z-20) — desktop only, positioned relative to phone === */}
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
