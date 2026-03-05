@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Default messages for autosave interactions ──
+const defaultAutosaveMessages = [
+  "Bom dia! 😊", "Boa tarde!", "Boa noite! 🌙",
+  "Oi, tudo bem?", "E aí, como vai?", "Beleza? 👋",
+  "Tudo certo por aí?", "Opa, tudo bem?",
+  "Fala, tranquilo?", "Olá! Como está?",
+  "Oi, sumido(a)! 😄", "E aí, novidades?",
+  "Bom dia, tudo bem com você?", "Boa tarde! Como foi o dia?",
+  "Boa noite, descanse bem! 😴",
+  "Valeu! 👍", "Show! 🔥", "Top demais! 🚀",
+  "Que legal!", "Massa!", "Boa! 💯",
+  "Concordo!", "Verdade!", "Com certeza!",
+  "Obrigado!", "Muito bom!",
+];
+
 // ── Helpers ──
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -18,9 +33,74 @@ function shuffleAndPick<T>(arr: T[], n: number): T[] {
   }
   return copy.slice(0, n);
 }
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function backoffMinutes(attempt: number): number {
   return [5, 15, 60, 180, 360][Math.min(attempt, 4)];
+}
+
+// ── uazapi request helper ──
+async function uazapiRequest(
+  baseUrl: string, token: string, endpoint: string, payload: any
+) {
+  const url = `${baseUrl}${endpoint}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+// ── Schedule autosave interaction jobs for the day ──
+async function scheduleAutosaveInteractions(
+  db: any, userId: string, deviceId: string, cycleId: string, budgetTarget: number, budgetUsed: number
+) {
+  const remaining = budgetTarget - budgetUsed;
+  if (remaining <= 0) return 0;
+
+  // Distribute interactions between 08:00-21:00 BRT (11:00-00:00 UTC)
+  const now = new Date();
+  const todayBase = new Date(now);
+  todayBase.setUTCHours(11, 0, 0, 0); // 08:00 BRT
+  const todayEnd = new Date(now);
+  todayEnd.setUTCHours(24, 0, 0, 0);  // 21:00 BRT
+
+  const windowStart = Math.max(now.getTime(), todayBase.getTime());
+  const windowEnd = todayEnd.getTime();
+  if (windowStart >= windowEnd) return 0;
+
+  const windowMs = windowEnd - windowStart;
+  const interactionCount = Math.min(remaining, 15); // Max 15 autosave interactions/day
+  const jobs: any[] = [];
+
+  for (let i = 0; i < interactionCount; i++) {
+    // Spread evenly with jitter
+    const baseOffset = (windowMs / interactionCount) * i;
+    const jitter = randInt(0, Math.floor(windowMs / interactionCount * 0.4));
+    const runAt = new Date(windowStart + baseOffset + jitter);
+
+    jobs.push({
+      user_id: userId,
+      device_id: deviceId,
+      cycle_id: cycleId,
+      job_type: "autosave_interaction",
+      payload: {},
+      run_at: runAt.toISOString(),
+      status: "pending",
+    });
+  }
+
+  if (jobs.length > 0) {
+    await db.from("warmup_jobs").insert(jobs);
+  }
+  return jobs.length;
 }
 
 Deno.serve(async (req) => {
