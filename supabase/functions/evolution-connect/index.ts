@@ -241,10 +241,33 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Create a fresh instance with a new API key
-      console.log("Creating fresh instance for new connection...");
-      const created = await ensureValidInstance();
-      if (!created) return json({ error: "Falha ao preparar instância." }, 500);
+      // First check if device already has a valid instance we can reuse
+      const existingStatus = instanceToken ? await checkInstanceStatus() : null;
+      
+      if (existingStatus?.valid && existingStatus.status !== "connected") {
+        // Instance exists and is valid but not connected — reuse it
+        console.log("Reusing existing valid instance, skipping creation.");
+      } else if (existingStatus?.status === "connected") {
+        // Already connected
+        const phone = existingStatus.owner || "";
+        let formatted = "";
+        if (phone) {
+          const raw = String(phone).replace(/\D/g, "");
+          if (raw.startsWith("55") && raw.length >= 12)
+            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          else if (raw) formatted = `+${raw}`;
+        }
+        const dupCheck = await checkDuplicatePhone(phone);
+        if (dupCheck.isDuplicate) {
+          return json({ success: false, error: `Este número já está conectado na instância "${dupCheck.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
+        }
+        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
+      } else {
+        // No valid instance — create a fresh one
+        console.log("Creating fresh instance for new connection...");
+        const created = await ensureValidInstance();
+        if (!created) return json({ error: "Falha ao preparar instância." }, 500);
+      }
 
       // Set proxy if provided
       if (body.proxyConfig?.host) {
