@@ -222,16 +222,10 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Step 1: Check current instance status FIRST before creating anything
-      const currentCheck = await checkInstanceStatus();
-      console.log("Current instance status:", JSON.stringify(currentCheck));
-
-      // If token is invalid or doesn't exist, create/recreate
-      if (!currentCheck.valid) {
-        console.log("Token invalid/missing, creating instance...");
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Falha ao criar instância na UaZapi." }, 500);
-      }
+      // ALWAYS create a fresh instance with a new API key for each connect attempt
+      console.log("Creating fresh instance for new connection...");
+      const created = await ensureValidInstance();
+      if (!created) return json({ error: "Falha ao preparar instância." }, 500);
 
       // Step 2: Set proxy if provided (only on first connect, not on QR refresh)
       if (body.proxyConfig?.host) {
