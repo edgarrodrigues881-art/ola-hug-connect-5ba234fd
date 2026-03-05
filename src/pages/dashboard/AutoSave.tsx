@@ -336,13 +336,6 @@ const AutoSave = () => {
             className="pl-8 h-8 text-xs"
           />
         </div>
-        <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
-          <TabsList className="h-8">
-            <TabsTrigger value="all" className="text-xs h-6 px-2">Todos</TabsTrigger>
-            <TabsTrigger value="active" className="text-xs h-6 px-2">Ativos</TabsTrigger>
-            <TabsTrigger value="inactive" className="text-xs h-6 px-2">Inativos</TabsTrigger>
-          </TabsList>
-        </Tabs>
         {allTags.length > 0 && (
           <div className="flex gap-1 flex-wrap">
             {tagFilter && (
