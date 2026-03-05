@@ -541,28 +541,15 @@ const AutoSave = () => {
                   <div className="space-y-2 p-3 rounded-lg border border-border/20 bg-muted/5">
                     <p className="text-[11px] font-medium text-foreground">Mapear colunas</p>
                     <p className="text-[10px] text-muted-foreground">{fileRows.length} linhas encontradas</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Coluna do Número *</Label>
-                        <select
-                          value={phoneCol}
-                          onChange={e => { setPhoneCol(e.target.value); setImportPreview(null); }}
-                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
-                        >
-                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Coluna do Nome</Label>
-                        <select
-                          value={nameCol}
-                          onChange={e => { setNameCol(e.target.value); setImportPreview(null); }}
-                          className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
-                        >
-                          <option value="">— nenhuma —</option>
-                          {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Coluna do Número *</Label>
+                      <select
+                        value={phoneCol}
+                        onChange={e => { setPhoneCol(e.target.value); setImportPreview(null); }}
+                        className="w-full h-8 rounded-md border border-border/30 bg-background px-2 text-xs"
+                      >
+                        {fileColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
                     </div>
                   </div>
                 )}
