@@ -318,18 +318,10 @@ const AutoSave = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 max-w-[200px]">
         <Card><CardContent className="p-3 text-center">
           <p className="text-2xl font-bold tabular-nums text-foreground">{contacts.length}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-emerald-400">{activeCount}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Ativos</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-muted-foreground">{contacts.length - activeCount}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Inativos</p>
         </CardContent></Card>
       </div>
 
@@ -344,13 +336,6 @@ const AutoSave = () => {
             className="pl-8 h-8 text-xs"
           />
         </div>
-        <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
-          <TabsList className="h-8">
-            <TabsTrigger value="all" className="text-xs h-6 px-2">Todos</TabsTrigger>
-            <TabsTrigger value="active" className="text-xs h-6 px-2">Ativos</TabsTrigger>
-            <TabsTrigger value="inactive" className="text-xs h-6 px-2">Inativos</TabsTrigger>
-          </TabsList>
-        </Tabs>
         {allTags.length > 0 && (
           <div className="flex gap-1 flex-wrap">
             {tagFilter && (
