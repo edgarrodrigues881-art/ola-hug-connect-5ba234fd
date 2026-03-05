@@ -547,8 +547,46 @@ Deno.serve(async (req) => {
 
     // ── logout ──
     if (action === "logout") {
-      const r = await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-      return json({ success: true, ...r.data });
+      // Disconnect from WhatsApp
+      await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+      
+      // Delete the instance from UaZapi server to free the slot
+      console.log("Logout: deleting instance from server...");
+      const deleteEndpoints = ["/instance/delete", "/instance/remove"];
+      let deleted = false;
+      // Try with instance token
+      for (const ep of deleteEndpoints) {
+        try {
+          const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
+          console.log(`Logout delete ${ep}: ${r.status}`);
+          if (r.ok) { deleted = true; break; }
+        } catch {}
+      }
+      // Try with admin token
+      if (!deleted && BASE_URL && ADMIN_TOKEN) {
+        for (const ep of deleteEndpoints) {
+          try {
+            const res = await fetch(`${BASE_URL}${ep}`, {
+              method: "POST",
+              headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
+              body: JSON.stringify({ token: instanceToken }),
+            });
+            console.log(`Logout admin delete ${ep}: ${res.status}`);
+            if (res.ok) { deleted = true; break; }
+          } catch {}
+        }
+      }
+      console.log("Logout instance deletion:", deleted ? "success" : "failed (non-blocking)");
+      
+      // Clear token from device so a new one is created on reconnect
+      await svc.from("devices").update({ 
+        uazapi_token: null, 
+        uazapi_base_url: null,
+        status: "Disconnected",
+        number: null,
+      }).eq("id", deviceId);
+      
+      return json({ success: true, deleted });
     }
 
     // ── sendText ──
