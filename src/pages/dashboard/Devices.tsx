@@ -1534,18 +1534,6 @@ const Devices = () => {
                       <span className="text-xs text-muted-foreground mt-1 block">Escaneie com o celular</span>
                     </div>
                   </button>
-                  <button
-                    onClick={() => handleConnect("code")}
-                    className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                      <Key className="w-7 h-7 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <span className="text-sm font-bold text-foreground block">Código</span>
-                      <span className="text-xs text-muted-foreground mt-1 block">Digite no WhatsApp</span>
-                    </div>
-                  </button>
                 </div>
               </div>
             )}
