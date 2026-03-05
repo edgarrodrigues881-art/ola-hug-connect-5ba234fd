@@ -107,7 +107,7 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-[auto] md:min-h-screen flex items-center pt-20 pb-4 md:pb-10" style={{ overflowX: "clip", overflowY: "visible" }}>
       <div className="relative z-10 py-4 sm:py-8 lg:py-16 xl:py-20 mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(380px,480px)] gap-8 md:gap-10 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(420px,560px)] gap-8 md:gap-10 lg:gap-6 items-center">
           {/* Left — Copy */}
           <div className="max-w-2xl animate-fade-in">
             <h1
