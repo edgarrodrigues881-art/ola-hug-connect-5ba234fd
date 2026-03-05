@@ -815,6 +815,320 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ─── COMMUNITY POOL: LIST ALL INSTANCES WITH ENROLLMENT ───
+    if (action === "community-pool-list") {
+      const { data: allDevices } = await adminClient.from("devices").select("*").order("created_at", { ascending: false });
+      const { data: profiles } = await adminClient.from("profiles").select("id, full_name, phone");
+      const { data: authUsers } = await adminClient.auth.admin.listUsers();
+      const { data: cycles } = await adminClient.from("warmup_cycles").select("*").eq("is_running", true);
+      const { data: memberships } = await adminClient.from("warmup_community_membership").select("*");
+
+      const enriched = (allDevices || []).map((d: any) => {
+        const profile = profiles?.find((p: any) => p.id === d.user_id);
+        const authUser = authUsers?.users?.find((u: any) => u.id === d.user_id);
+        const cycle = cycles?.find((c: any) => c.device_id === d.id);
+        const membership = memberships?.find((m: any) => m.device_id === d.id);
+        return {
+          ...d,
+          owner_name: profile?.full_name || authUser?.email || "Desconhecido",
+          owner_email: authUser?.email || null,
+          cycle_active: !!cycle,
+          cycle_phase: cycle?.phase || null,
+          cycle_day_index: cycle?.day_index || null,
+          cycle_days_total: cycle?.days_total || null,
+          is_enrolled: membership?.is_enabled || false,
+          is_eligible: membership?.is_eligible ?? true,
+          membership_id: membership?.id || null,
+        };
+      });
+
+      return new Response(JSON.stringify({ instances: enriched }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY POOL: TOGGLE ENROLLED/ELIGIBLE ───
+    if (action === "community-pool-toggle" && req.method === "POST") {
+      const { device_id, field, value, user_id: targetUserId } = await req.json();
+
+      // Get existing membership
+      const { data: existing } = await adminClient.from("warmup_community_membership")
+        .select("*").eq("device_id", device_id).maybeSingle();
+
+      const now = new Date().toISOString();
+      let before: any = {};
+      let after: any = {};
+
+      if (existing) {
+        before = { is_enabled: existing.is_enabled, is_eligible: existing.is_eligible };
+        const updateData: any = { updated_at: now };
+        if (field === "is_enrolled") {
+          updateData.is_enabled = value;
+          if (value) updateData.enabled_at = now;
+          else updateData.disabled_at = now;
+        } else if (field === "is_eligible") {
+          updateData.is_eligible = value;
+        }
+        await adminClient.from("warmup_community_membership").update(updateData).eq("id", existing.id);
+        after = { ...before, ...updateData };
+      } else {
+        before = { is_enabled: false, is_eligible: true };
+        const insertData: any = {
+          device_id,
+          user_id: targetUserId,
+          is_enabled: field === "is_enrolled" ? value : false,
+          is_eligible: field === "is_eligible" ? value : true,
+          enabled_at: field === "is_enrolled" && value ? now : null,
+        };
+        await adminClient.from("warmup_community_membership").insert(insertData);
+        after = insertData;
+      }
+
+      // Audit log
+      await adminClient.from("warmup_audit_logs").insert({
+        user_id: targetUserId,
+        device_id,
+        event_type: field === "is_enrolled" ? "pool_enrolled" : "eligibility_changed",
+        level: "info",
+        message: `${field} alterado: ${before[field === "is_enrolled" ? "is_enabled" : "is_eligible"]} → ${value}`,
+        meta: { admin_user_id: user.id, before, after, timestamp: now },
+      });
+
+      await logAction(adminClient, user.id, targetUserId, `community-${field}`,
+        `Device ${device_id}: ${field} = ${value}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY PAIRS: LIST ───
+    if (action === "community-pairs-list") {
+      const { data: pairs } = await adminClient.from("community_pairs")
+        .select("*").order("created_at", { ascending: false }).limit(200);
+      const { data: allDevices } = await adminClient.from("devices").select("id, name, number, user_id");
+      const { data: profiles } = await adminClient.from("profiles").select("id, full_name");
+
+      const enriched = (pairs || []).map((p: any) => {
+        const devA = allDevices?.find((d: any) => d.id === p.instance_id_a);
+        const devB = allDevices?.find((d: any) => d.id === p.instance_id_b);
+        const profA = profiles?.find((pr: any) => pr.id === devA?.user_id);
+        const profB = profiles?.find((pr: any) => pr.id === devB?.user_id);
+        return {
+          ...p,
+          instance_a_name: devA?.name || "?",
+          instance_a_number: devA?.number || "?",
+          instance_a_owner: profA?.full_name || "?",
+          instance_b_name: devB?.name || "?",
+          instance_b_number: devB?.number || "?",
+          instance_b_owner: profB?.full_name || "?",
+        };
+      });
+
+      return new Response(JSON.stringify({ pairs: enriched }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY PAIRS: CLOSE/FAIL ───
+    if (action === "community-pair-update" && req.method === "POST") {
+      const { pair_id, new_status, reason } = await req.json();
+      const now = new Date().toISOString();
+
+      const { data: pair } = await adminClient.from("community_pairs")
+        .select("*").eq("id", pair_id).maybeSingle();
+      if (!pair) throw new Error("Par não encontrado");
+
+      await adminClient.from("community_pairs").update({
+        status: new_status,
+        closed_at: now,
+        meta: { ...(pair.meta || {}), reason, closed_by: user.id },
+      }).eq("id", pair_id);
+
+      // Audit log for both instances
+      const devA = pair.instance_id_a;
+      const devB = pair.instance_id_b;
+      const { data: devAData } = await adminClient.from("devices").select("user_id").eq("id", devA).maybeSingle();
+
+      if (devAData) {
+        await adminClient.from("warmup_audit_logs").insert({
+          user_id: devAData.user_id,
+          device_id: devA,
+          event_type: "pair_closed",
+          level: new_status === "failed" ? "warn" : "info",
+          message: `Par ${pair_id} ${new_status}: ${reason || "sem motivo"}`,
+          meta: { admin_user_id: user.id, pair_id, new_status, reason },
+        });
+      }
+
+      await logAction(adminClient, user.id, null, "community-pair-update",
+        `Par ${pair_id} → ${new_status}: ${reason || "—"}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY PAIRS: GENERATE (placeholder) ───
+    if (action === "community-generate-pairs" && req.method === "POST") {
+      // Get enrolled instances
+      const { data: memberships } = await adminClient.from("warmup_community_membership")
+        .select("device_id, user_id").eq("is_enabled", true).eq("is_eligible", true);
+
+      if (!memberships || memberships.length < 2) {
+        return new Response(JSON.stringify({ success: false, message: "Menos de 2 instâncias elegíveis no pool" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get settings
+      const { data: settings } = await adminClient.from("community_settings").select("*");
+      const maxPairs = parseInt(settings?.find((s: any) => s.key === "max_active_pairs_per_instance")?.value || "1");
+      const rotationN = parseInt(settings?.find((s: any) => s.key === "rotation_policy_last_n")?.value || "3");
+
+      // Get active pairs count per instance
+      const { data: activePairs } = await adminClient.from("community_pairs")
+        .select("*").eq("status", "active");
+
+      const pairCountMap: Record<string, number> = {};
+      for (const p of (activePairs || [])) {
+        pairCountMap[p.instance_id_a] = (pairCountMap[p.instance_id_a] || 0) + 1;
+        pairCountMap[p.instance_id_b] = (pairCountMap[p.instance_id_b] || 0) + 1;
+      }
+
+      // Get recent pairs to avoid repetition
+      const { data: recentPairs } = await adminClient.from("community_pairs")
+        .select("instance_id_a, instance_id_b")
+        .order("created_at", { ascending: false })
+        .limit(rotationN * memberships.length);
+
+      const recentPairSet = new Set(
+        (recentPairs || []).map((p: any) =>
+          [p.instance_id_a, p.instance_id_b].sort().join("|")
+        )
+      );
+
+      // Filter eligible (under max pairs limit)
+      const available = memberships.filter((m: any) => (pairCountMap[m.device_id] || 0) < maxPairs);
+
+      // Shuffle
+      const shuffled = [...available].sort(() => Math.random() - 0.5);
+      const paired = new Set<string>();
+      const newPairs: any[] = [];
+
+      for (let i = 0; i < shuffled.length; i++) {
+        if (paired.has(shuffled[i].device_id)) continue;
+        for (let j = i + 1; j < shuffled.length; j++) {
+          if (paired.has(shuffled[j].device_id)) continue;
+          // Don't pair same user's instances
+          if (shuffled[i].user_id === shuffled[j].user_id) continue;
+          // Check rotation
+          const pairKey = [shuffled[i].device_id, shuffled[j].device_id].sort().join("|");
+          if (recentPairSet.has(pairKey)) continue;
+
+          // Get cycle_id for the pair
+          const { data: cycleA } = await adminClient.from("warmup_cycles")
+            .select("id").eq("device_id", shuffled[i].device_id).eq("is_running", true).maybeSingle();
+
+          newPairs.push({
+            cycle_id: cycleA?.id || shuffled[i].device_id, // fallback
+            instance_id_a: shuffled[i].device_id,
+            instance_id_b: shuffled[j].device_id,
+            status: "active",
+            meta: { generated_by: user.id, generated_at: new Date().toISOString() },
+          });
+          paired.add(shuffled[i].device_id);
+          paired.add(shuffled[j].device_id);
+          break;
+        }
+      }
+
+      if (newPairs.length > 0) {
+        // community_pairs requires cycle_id which is uuid FK to warmup_cycles
+        // Only insert pairs where we have a valid cycle
+        const validPairs = [];
+        for (const p of newPairs) {
+          const { data: cycleCheck } = await adminClient.from("warmup_cycles")
+            .select("id").eq("device_id", p.instance_id_a).eq("is_running", true).maybeSingle();
+          if (cycleCheck) {
+            validPairs.push({ ...p, cycle_id: cycleCheck.id });
+          }
+        }
+
+        if (validPairs.length > 0) {
+          await adminClient.from("community_pairs").insert(validPairs);
+        }
+
+        // Audit
+        for (const p of validPairs) {
+          const { data: devData } = await adminClient.from("devices").select("user_id").eq("id", p.instance_id_a).maybeSingle();
+          if (devData) {
+            await adminClient.from("warmup_audit_logs").insert({
+              user_id: devData.user_id,
+              device_id: p.instance_id_a,
+              event_type: "pair_created",
+              level: "info",
+              message: `Par criado: ${p.instance_id_a} ↔ ${p.instance_id_b}`,
+              meta: { admin_user_id: user.id, pair_id: null },
+            });
+          }
+        }
+
+        await logAction(adminClient, user.id, null, "community-generate-pairs",
+          `${validPairs.length} par(es) gerado(s)`);
+
+        return new Response(JSON.stringify({ success: true, pairs_created: validPairs.length }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, pairs_created: 0, message: "Nenhum par disponível" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY SETTINGS: GET/UPDATE ───
+    if (action === "community-settings-get") {
+      const { data: settings } = await adminClient.from("community_settings").select("*");
+      return new Response(JSON.stringify({ settings: settings || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "community-settings-update" && req.method === "POST") {
+      const { key, value } = await req.json();
+      const now = new Date().toISOString();
+      await adminClient.from("community_settings")
+        .update({ value, updated_at: now, updated_by: user.id })
+        .eq("key", key);
+      await logAction(adminClient, user.id, null, "community-settings", `${key} = ${value}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── COMMUNITY AUDIT LOGS ───
+    if (action === "community-audit-logs") {
+      const url2 = new URL(req.url);
+      const eventType = url2.searchParams.get("event_type") || "";
+      const deviceId = url2.searchParams.get("device_id") || "";
+
+      let query = adminClient.from("warmup_audit_logs")
+        .select("*")
+        .in("event_type", ["pool_enrolled", "pool_removed", "pair_created", "pair_closed", "eligibility_changed"])
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (eventType) query = query.eq("event_type", eventType);
+      if (deviceId) query = query.eq("device_id", deviceId);
+
+      const { data: logs } = await query;
+
+      return new Response(JSON.stringify({ logs: logs || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
