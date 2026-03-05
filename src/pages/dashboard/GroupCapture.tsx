@@ -189,7 +189,7 @@ const GroupCapture = () => {
     cancelledRef.current = false;
     setJoinStatus("running");
 
-    let dynamicDelay = delaySeconds;
+    let dynamicDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
     for (let i = startFrom; i < items.length; i++) {
       if (cancelledRef.current) break;
@@ -253,7 +253,7 @@ const GroupCapture = () => {
       description: `${successCount} sucesso, ${errorCount} erros de ${finalItems.length} tentativas`,
       variant: errorCount > 0 ? "destructive" : "default",
     });
-  }, [delaySeconds, waitForResume, startCountdown, toast]);
+  }, [minDelay, maxDelay, waitForResume, startCountdown, toast]);
 
   const startJoinProcess = useCallback(async () => {
     const uniqueGrps = [
@@ -352,7 +352,8 @@ const GroupCapture = () => {
   });
   const canStart = selectedGroups.length > 0 && selectedDevices.length > 0 && !hasOfflineDevices;
   const totalOps = selectedGroups.length * selectedDevices.length;
-  const estimatedTime = totalOps > 1 ? (totalOps - 1) * delaySeconds : 0;
+  const avgDelay = (minDelay + maxDelay) / 2;
+  const estimatedTime = totalOps > 1 ? (totalOps - 1) * avgDelay : 0;
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
