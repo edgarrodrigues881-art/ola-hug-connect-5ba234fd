@@ -72,13 +72,14 @@ const menuGroups = [
     label: "Monitoramento",
     items: [
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
-      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
     label: "Conta",
     items: [
+      { title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard },
+      { title: "Logs", url: "/dashboard/notifications", icon: ScrollText },
       { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
     ],
   },
