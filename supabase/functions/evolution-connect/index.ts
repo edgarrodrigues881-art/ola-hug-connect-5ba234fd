@@ -351,11 +351,10 @@ Deno.serve(async (req) => {
         return json({ error: "Número de telefone inválido." }, 400);
       }
 
-      // Ensure instance exists
+      // Validate token
       const currentCheck = await checkInstanceStatus();
       if (!currentCheck.valid) {
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Falha ao criar instância." }, 500);
+        return json({ error: "Token inválido. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       // Set proxy if provided
@@ -473,10 +472,9 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // If token is invalid, need to recreate
+      // If token is invalid, return error
       if (!statusCheck.valid) {
-        const created = await ensureValidInstance();
-        if (!created) return json({ error: "Token expirado, falha ao recriar." }, 500);
+        return json({ error: "Token expirado. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
       // If connecting and has QR, return it
