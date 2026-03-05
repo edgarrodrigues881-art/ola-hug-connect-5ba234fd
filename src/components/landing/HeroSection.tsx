@@ -339,6 +339,9 @@ const HeroSection = () => {
               </div>
               {/* End OverlayLayer */}
 
+              </div>
+              {/* End PhoneLayer */}
+
             </div>
             {/* End HeroPhoneStage */}
 
