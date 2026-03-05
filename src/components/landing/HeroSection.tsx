@@ -320,7 +320,7 @@ const HeroSection = () => {
 
                 {/* Card 3 — 43 instâncias (bottom-left, outside phone) */}
                 <div className="absolute"
-                  style={{ bottom: "15%", left: "-6px", transform: "translateX(-100%)" }}>
+                  style={{ bottom: "15%", left: "0px", transform: "translateX(-90%)" }}>
                   <div className="relative rounded-xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/20 to-transparent" />
                     <div className="w-7 h-7 rounded-lg bg-[#07C160]/[0.08] flex items-center justify-center border border-[#07C160]/10">
