@@ -683,32 +683,50 @@ Deno.serve(async (req) => {
 
     // ── deleteInstance - Delete instance from UaZapi server ──
     if (action === "deleteInstance") {
-      console.log("Deleting instance from UaZapi server...");
-      // Try multiple endpoint patterns for deletion
-      const deleteEndpoints = [
-        "/instance/delete",
-        "/instance/remove",
-        "/instance/destroy",
-      ];
+      console.log("Deleting instance from UaZapi server. Token:", !!instanceToken, "AdminToken:", !!ADMIN_TOKEN);
       let deleted = false;
-      for (const ep of deleteEndpoints) {
-        try {
-          const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
-          console.log(`Delete via ${ep}: ${r.status}`);
-          if (r.ok || r.status === 200 || r.status === 204) {
-            deleted = true;
-            break;
+
+      // Method 1: Try with instance token first
+      if (instanceToken) {
+        const instanceEndpoints = ["/instance/delete", "/instance/logout", "/instance/disconnect"];
+        for (const ep of instanceEndpoints) {
+          try {
+            const r = await uazapi(instanceUrl, ep, instanceToken, "POST");
+            console.log(`Delete (instance token) ${ep}: ${r.status}`, JSON.stringify(r.data).substring(0, 200));
+            if (r.ok) { deleted = true; break; }
+          } catch (e: any) {
+            console.log(`Delete ${ep} error:`, e.message);
           }
-        } catch {}
+        }
       }
-      // Also try with admin token if instance token didn't work
+
+      // Method 2: Try with admin token (admintoken header) - UaZapi admin endpoint
       if (!deleted && BASE_URL && ADMIN_TOKEN) {
-        try {
-          const r = await uazapi(BASE_URL, "/instance/delete", ADMIN_TOKEN, "POST", { token: instanceToken });
-          console.log(`Delete via admin token: ${r.status}`);
-          if (r.ok) deleted = true;
-        } catch {}
+        const adminEndpoints = [
+          { path: "/instance/delete", body: { token: instanceToken } },
+          { path: "/instance/remove", body: { token: instanceToken } },
+        ];
+        for (const ep of adminEndpoints) {
+          try {
+            // Use admintoken header
+            const res = await fetch(`${BASE_URL}${ep.path}`, {
+              method: "POST",
+              headers: {
+                admintoken: ADMIN_TOKEN,
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(ep.body),
+            });
+            const data = await res.json().catch(() => ({}));
+            console.log(`Delete (admin) ${ep.path}: ${res.status}`, JSON.stringify(data).substring(0, 200));
+            if (res.ok) { deleted = true; break; }
+          } catch (e: any) {
+            console.log(`Delete admin ${ep.path} error:`, e.message);
+          }
+        }
       }
+
       console.log("Instance deletion result:", deleted ? "success" : "failed (non-blocking)");
       return json({ success: true, deleted });
     }
