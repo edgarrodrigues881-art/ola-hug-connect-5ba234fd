@@ -71,19 +71,19 @@ const Proxy = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devices")
-        .select("id, name, number, proxy_id")
+        .select("id, name, number, proxy_id, profile_name, profile_picture")
         .neq("login_type", "report_wa");
       if (error) throw error;
-      return (data || []) as { id: string; name: string; number: string | null; proxy_id: string | null }[];
+      return (data || []) as { id: string; name: string; number: string | null; proxy_id: string | null; profile_name: string | null; profile_picture: string | null }[];
     },
     enabled: !!session,
     refetchInterval: 30000,
   });
 
   const deviceByProxy = useMemo(() => {
-    const map: Record<string, { name: string; number: string | null }> = {};
+    const map: Record<string, { name: string; number: string | null; profile_name: string | null; profile_picture: string | null }> = {};
     devices.forEach(d => {
-      if (d.proxy_id) map[d.proxy_id] = { name: d.name, number: d.number };
+      if (d.proxy_id) map[d.proxy_id] = { name: d.name, number: d.number, profile_name: d.profile_name, profile_picture: d.profile_picture };
     });
     return map;
   }, [devices]);
@@ -593,10 +593,17 @@ const Proxy = () => {
                         </TableCell>
                         <TableCell>
                           {linkedDevice ? (
-                            <div className="flex items-center gap-1.5">
-                              <Link2 className="w-3 h-3 text-amber-400/60" />
-                              <span className="text-[11px] text-foreground/70 truncate max-w-[100px]">
-                                {linkedDevice.number || linkedDevice.name}
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
+                                {linkedDevice.profile_picture ? (
+                                  <img src={linkedDevice.profile_picture} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Link2 className="w-2.5 h-2.5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <span className="text-[11px] text-foreground/70 truncate max-w-[120px]">
+                                {linkedDevice.profile_name || linkedDevice.name}
+                                {linkedDevice.number ? ` · ${linkedDevice.number}` : ""}
                               </span>
                             </div>
                           ) : (
