@@ -255,8 +255,8 @@ const HeroSection = () => {
               <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block" style={{ overflow: "visible" }}>
 
                 {/* Card 1 — AO VIVO (top-right, outside phone) */}
-                <div className="absolute w-[200px] xl:w-[230px]"
-                  style={{ top: "5%", right: "-6px", transform: "translateX(100%)" }}>
+                <div className="absolute w-[200px] xl:w-[220px]"
+                  style={{ top: "5%", right: "-10px", transform: "translateX(85%)" }}>
                   <div className="relative rounded-2xl p-4" style={{ background: cardBg, boxShadow: cardShadow }}>
                     <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#07C160]/30 to-transparent" />
                     <div className="flex items-center gap-2 mb-3">
