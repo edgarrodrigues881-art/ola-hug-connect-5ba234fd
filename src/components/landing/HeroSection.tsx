@@ -122,24 +122,23 @@ const HeroSection = () => {
               Conecte o QR Code e acompanhe em tempo real o processo de aquecimento do seu número.
             </p>
 
-            <div className="flex flex-col lg:flex-row items-start gap-4">
-              <Button
-                onClick={() => navigate("/auth")}
-                className="h-14 sm:h-16 px-10 sm:px-12 text-base sm:text-lg font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
-              >
-                Começar Agora
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <div className="flex items-center gap-3 px-5 py-4 sm:py-5 rounded-xl border border-white/[0.06] bg-white/[0.03]">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-snug">
-                  Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
-                </p>
+            <Button
+              onClick={() => navigate("/auth")}
+              className="h-14 sm:h-16 px-10 sm:px-12 text-base sm:text-lg font-medium rounded-xl bg-[#07C160] hover:bg-[#06a852] text-white btn-press"
+            >
+              Começar Agora
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+
+            <div className="mt-4 flex items-center gap-3 px-5 py-4 sm:py-5 rounded-xl border border-white/[0.06] bg-white/[0.03] max-w-md">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#07C160]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#07C160]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </div>
+              <p className="text-sm sm:text-base lg:text-lg text-white/40 leading-snug">
+                Com poucos cliques, seu aquecimento vira <span className="text-[#07C160] font-medium">100% automático.</span>
+              </p>
             </div>
           </div>
 
