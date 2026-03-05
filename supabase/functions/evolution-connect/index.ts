@@ -542,61 +542,19 @@ Deno.serve(async (req) => {
 
     // ── logout ──
     if (action === "logout") {
-      // Disconnect from WhatsApp
+      // Disconnect from WhatsApp session only — keep the token assigned
       await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+      console.log("Logout: disconnected instance (token preserved for reuse).");
       
-      // Delete the instance from UaZapi server to free the slot
-      console.log("Logout: deleting instance from server...");
-      let deleted = false;
-      // Try with instance token (POST + DELETE)
-      for (const ep of ["/instance/delete", "/instance/remove"]) {
-        for (const m of ["DELETE" as const, "POST" as const]) {
-          try {
-            const r = await uazapi(instanceUrl, ep, instanceToken, m);
-            console.log(`Logout delete ${m} ${ep}: ${r.status}`);
-            if (r.ok) { deleted = true; break; }
-          } catch {}
-        }
-        if (deleted) break;
-      }
-      // Try with admin token (DELETE + POST)
-      if (!deleted && BASE_URL && ADMIN_TOKEN) {
-        const headerVariants = [
-          { admintoken: ADMIN_TOKEN },
-          { token: ADMIN_TOKEN },
-          { Authorization: `Bearer ${ADMIN_TOKEN}` },
-        ];
-        logoutOuter:
-        for (const ep of ["/instance/delete", "/instance/remove"]) {
-          for (const method of ["DELETE", "POST"] as const) {
-            for (const authHeaders of headerVariants) {
-              try {
-                const res = await fetch(`${BASE_URL}${ep}`, {
-                  method,
-                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-                  body: JSON.stringify({ token: instanceToken }),
-                });
-                const text = await res.text();
-                console.log(`Logout admin ${method} ${ep} h=${Object.keys(authHeaders)[0]}: ${res.status}`);
-                if (res.ok) { deleted = true; break logoutOuter; }
-                if (res.status === 401) continue;
-                if (res.status === 405) break;
-              } catch {}
-            }
-          }
-        }
-      }
-      console.log("Logout instance deletion:", deleted ? "success" : "failed (non-blocking)");
-      
-      // Clear token from device so a new one is created on reconnect
+      // Clear session data but KEEP uazapi_token and uazapi_base_url
       await svc.from("devices").update({ 
-        uazapi_token: null, 
-        uazapi_base_url: null,
         status: "Disconnected",
         number: null,
+        profile_picture: null,
+        profile_name: null,
       }).eq("id", deviceId);
       
-      return json({ success: true, deleted });
+      return json({ success: true });
     }
 
     // ── sendText ──
