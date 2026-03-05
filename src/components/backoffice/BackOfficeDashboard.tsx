@@ -136,6 +136,9 @@ const BackOfficeDashboard = () => {
           <TabsTrigger value="warmup-jobs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <ListTodo size={16} /> Jobs
           </TabsTrigger>
+          <TabsTrigger value="infra" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+            <Server size={16} /> Infra
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">{data ? <AdminOverview data={data} /> : null}</TabsContent>
@@ -146,6 +149,7 @@ const BackOfficeDashboard = () => {
         <TabsContent value="groups-pool"><AdminGroupsPool /></TabsContent>
         <TabsContent value="warmup-cycles"><AdminWarmupCycles /></TabsContent>
         <TabsContent value="warmup-jobs"><AdminWarmupJobs /></TabsContent>
+        <TabsContent value="infra"><AdminInfra /></TabsContent>
       </Tabs>
     </div>
   );
