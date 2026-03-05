@@ -144,7 +144,7 @@ const Devices = () => {
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
-  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code_phone" | "code" | "connecting" | "done">("choose");
+  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code_phone" | "code" | "connecting" | "done">("proxy");
   const [codePhone, setCodePhone] = useState("");
   const [qrCodeBase64, setQrCodeBase64] = useState("");
   const [pairingCode, setPairingCode] = useState("");
