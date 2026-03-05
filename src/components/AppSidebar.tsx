@@ -163,14 +163,14 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild tooltip={item.title}>
-                        <NavLink
+                          <NavLink
                           to={item.url}
-                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
+                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[14px] relative
                             transition-all duration-150 ease-out
                             ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : 'gap-[11px] px-3.5 py-[11px]'}
                             ${active
                               ? 'bg-primary/[0.08] text-foreground font-semibold'
-                              : 'text-muted-foreground/70 hover:text-foreground hover:bg-sidebar-accent/30'
+                              : 'text-muted-foreground font-medium hover:text-foreground hover:bg-sidebar-accent/30'
                             }`}
                           activeClassName=""
                         >
