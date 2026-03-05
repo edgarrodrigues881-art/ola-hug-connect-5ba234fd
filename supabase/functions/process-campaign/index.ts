@@ -288,8 +288,9 @@ Deno.serve(async (req) => {
       if (deviceIds.length > 0) {
         const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
         // Keep only devices that have credentials, but preserve the order of deviceIds
+        const globalBaseUrl = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
         const devMap = new Map((devs || []).map(d => [d.id, d]));
-        allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!d.uazapi_base_url);
+        allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!(d.uazapi_base_url || globalBaseUrl));
       }
 
       if (allDevices.length === 0) {
