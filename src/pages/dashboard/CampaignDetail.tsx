@@ -69,7 +69,11 @@ const CampaignDetail = () => {
       return data;
     },
     enabled: !!id && !!user,
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status && ["running", "processing", "paused"].includes(status)) return 1000;
+      return 10000;
+    },
   });
 
   // Countdown for scheduled campaigns
@@ -104,7 +108,10 @@ const CampaignDetail = () => {
       return data || [];
     },
     enabled: !!id && !!user,
-    refetchInterval: 5000,
+    refetchInterval: () => {
+      if (campaign && ["running", "processing"].includes(campaign.status)) return 1000;
+      return 10000;
+    },
   });
 
   // Devices for resend

@@ -72,7 +72,11 @@ export function useCampaigns() {
       return data as Campaign[];
     },
     enabled: !!user,
-    refetchInterval: 10000,
+    refetchInterval: (query) => {
+      const campaigns = query.state.data;
+      const hasActive = campaigns?.some((c: Campaign) => ["running", "processing"].includes(c.status));
+      return hasActive ? 3000 : 10000;
+    },
   });
 }
 
