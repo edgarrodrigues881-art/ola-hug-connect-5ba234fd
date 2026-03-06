@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wifi, WifiOff, Flame, MessageSquare, BarChart3, Pause } from "lucide-react";
+import { Wifi, WifiOff, Flame, MessageSquare, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { PerformanceBlock } from "@/components/dashboard/DeliveryRateCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
-import { DeviceInstanceCards } from "@/components/dashboard/DeviceInstanceCards";
+
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
@@ -84,14 +84,6 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Instâncias */}
-      <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Pause className="w-4 h-4 text-muted-foreground" />
-          Instâncias
-        </h2>
-        <DeviceInstanceCards chips={chips} isLoading={isLoading} />
-      </div>
 
       {/* Gráfico + Desempenho */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
