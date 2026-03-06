@@ -631,49 +631,7 @@ const Devices = () => {
     setInlineEditId(null);
   };
 
-  // Quick token
-  const openQuickToken = (device: Device) => {
-    setTokenDevice(device);
-    setQuickToken(device.uazapi_token || "");
-    setTokenOpen(true);
-  };
-
-  const handleQuickToken = () => {
-    if (!tokenDevice) return;
-    updateMutation.mutate({
-      id: tokenDevice.id,
-      updates: { uazapi_token: quickToken || null },
-    });
-    toast({ title: "Token atualizado" });
-    setTokenOpen(false);
-    setTokenDevice(null);
-  };
-
-  const handleQuickTokenWithValidation = async () => {
-    if (!tokenDevice || !quickToken.trim() || quickToken.length < 8) return;
-    updateMutation.mutate({
-      id: tokenDevice.id,
-      updates: { uazapi_token: quickToken },
-    });
-    // Try to validate by calling status
-    try {
-      const result = await callApi({ action: "status", deviceId: tokenDevice.id });
-      if (result?.status === "authenticated" || result?.status) {
-        setTokenStatus("valid");
-      } else {
-        setTokenStatus("valid"); // saved but can't confirm remotely
-      }
-    } catch {
-      setTokenStatus("valid"); // saved successfully, remote check optional
-    }
-    toast({ title: "Token atualizado" });
-    setTimeout(() => {
-      setTokenOpen(false);
-      setTokenDevice(null);
-      setTokenVisible(false);
-      setTokenStatus(null);
-    }, 800);
-  };
+  // Token management is handled server-side only
 
   // Logout
   const openLogout = (device: Device) => {
