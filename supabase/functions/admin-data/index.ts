@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       
       // Try healthy tokens first
       const { data: healthyToken } = await adminClient.from("user_api_tokens")
-        .select("*")
+        .select("id, token, user_id, status, healthy, label")
         .eq("user_id", target_user_id)
         .eq("status", "available")
         .eq("healthy", true)
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
       } else {
         // Fallback to unchecked tokens (healthy IS NULL)
         const { data: uncheckedToken } = await adminClient.from("user_api_tokens")
-          .select("*")
+          .select("id, token, user_id, status, healthy, label")
           .eq("user_id", target_user_id)
           .eq("status", "available")
           .is("healthy", null)
@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
     // ─── LIST PAYMENTS ───
     if (action === "list-payments" && req.method === "POST") {
       const { target_user_id } = await req.json();
-      const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
+      const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at").eq("user_id", target_user_id).order("paid_at", { ascending: false });
       return new Response(JSON.stringify({ payments: payments || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -481,7 +481,7 @@ Deno.serve(async (req) => {
     // ─── LIST MESSAGES ───
     if (action === "list-messages" && req.method === "POST") {
       const { target_user_id } = await req.json();
-      const { data: messages } = await adminClient.from("client_messages").select("*").eq("user_id", target_user_id).order("sent_at", { ascending: false });
+      const { data: messages } = await adminClient.from("client_messages").select("id, user_id, admin_id, template_type, message_content, observation, sent_at, created_at").eq("user_id", target_user_id).order("sent_at", { ascending: false });
       return new Response(JSON.stringify({ messages: messages || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
 
       // Get most recent cycle
       const { data: cycles } = await adminClient.from("subscription_cycles")
-        .select("*").eq("user_id", target_user_id)
+        .select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at").eq("user_id", target_user_id)
         .order("cycle_start", { ascending: false }).limit(2);
 
       if (!cycles || cycles.length === 0) {
@@ -817,11 +817,11 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY POOL: LIST ALL INSTANCES WITH ENROLLMENT ───
     if (action === "community-pool-list") {
-      const { data: allDevices } = await adminClient.from("devices").select("*").order("created_at", { ascending: false });
+      const { data: allDevices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, created_at").order("created_at", { ascending: false });
       const { data: profiles } = await adminClient.from("profiles").select("id, full_name, phone");
       const { data: authUsers } = await adminClient.auth.admin.listUsers();
-      const { data: cycles } = await adminClient.from("warmup_cycles").select("*").eq("is_running", true);
-      const { data: memberships } = await adminClient.from("warmup_community_membership").select("*");
+      const { data: cycles } = await adminClient.from("warmup_cycles").select("id, device_id, user_id, phase, is_running, day_index").eq("is_running", true);
+      const { data: memberships } = await adminClient.from("warmup_community_membership").select("id, device_id, user_id, is_enabled, is_eligible, cycle_id, enabled_at, disabled_at, notes");
 
       const enriched = (allDevices || []).map((d: any) => {
         const profile = profiles?.find((p: any) => p.id === d.user_id);
@@ -853,7 +853,7 @@ Deno.serve(async (req) => {
 
       // Get existing membership
       const { data: existing } = await adminClient.from("warmup_community_membership")
-        .select("*").eq("device_id", device_id).maybeSingle();
+        .select("id, device_id, user_id, is_enabled, is_eligible, cycle_id, enabled_at, disabled_at").eq("device_id", device_id).maybeSingle();
 
       const now = new Date().toISOString();
       let before: any = {};
@@ -905,7 +905,7 @@ Deno.serve(async (req) => {
     // ─── COMMUNITY PAIRS: LIST ───
     if (action === "community-pairs-list") {
       const { data: pairs } = await adminClient.from("community_pairs")
-        .select("*").order("created_at", { ascending: false }).limit(200);
+        .select("id, cycle_id, instance_id_a, instance_id_b, status, meta, created_at, closed_at").order("created_at", { ascending: false }).limit(200);
       const { data: allDevices } = await adminClient.from("devices").select("id, name, number, user_id");
       const { data: profiles } = await adminClient.from("profiles").select("id, full_name");
 
@@ -936,7 +936,7 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString();
 
       const { data: pair } = await adminClient.from("community_pairs")
-        .select("*").eq("id", pair_id).maybeSingle();
+        .select("id, cycle_id, instance_id_a, instance_id_b, status, meta").eq("id", pair_id).maybeSingle();
       if (!pair) throw new Error("Par não encontrado");
 
       await adminClient.from("community_pairs").update({
@@ -982,13 +982,13 @@ Deno.serve(async (req) => {
       }
 
       // Get settings
-      const { data: settings } = await adminClient.from("community_settings").select("*");
+      const { data: settings } = await adminClient.from("community_settings").select("id, key, value");
       const maxPairs = parseInt(settings?.find((s: any) => s.key === "max_active_pairs_per_instance")?.value || "1");
       const rotationN = parseInt(settings?.find((s: any) => s.key === "rotation_policy_last_n")?.value || "3");
 
       // Get active pairs count per instance
       const { data: activePairs } = await adminClient.from("community_pairs")
-        .select("*").eq("status", "active");
+        .select("id, instance_id_a, instance_id_b").eq("status", "active");
 
       const pairCountMap: Record<string, number> = {};
       for (const p of (activePairs || [])) {
@@ -1089,7 +1089,7 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY SETTINGS: GET/UPDATE ───
     if (action === "community-settings-get") {
-      const { data: settings } = await adminClient.from("community_settings").select("*");
+      const { data: settings } = await adminClient.from("community_settings").select("id, key, value");
       return new Response(JSON.stringify({ settings: settings || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -1114,7 +1114,7 @@ Deno.serve(async (req) => {
       const deviceId = url2.searchParams.get("device_id") || "";
 
       let query = adminClient.from("warmup_audit_logs")
-        .select("*")
+        .select("id, user_id, device_id, cycle_id, event_type, level, message, meta, created_at")
         .in("event_type", ["pool_enrolled", "pool_removed", "pair_created", "pair_closed", "eligibility_changed"])
         .order("created_at", { ascending: false })
         .limit(200);
