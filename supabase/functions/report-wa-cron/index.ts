@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .single();
       if (!device) return null;
-      const baseUrl = (device.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-      const apiToken = device.uazapi_token || Deno.env.get("UAZAPI_TOKEN") || "";
+      const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
+      const apiToken = device.uazapi_token || "";
       if (!baseUrl || !apiToken) return null;
       return { baseUrl, token: apiToken, device };
     }

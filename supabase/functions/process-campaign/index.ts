@@ -398,9 +398,8 @@ Deno.serve(async (req) => {
       let allDevices: any[] = [];
       if (deviceIds.length > 0) {
         const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
-        const globalBaseUrl = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
         const devMap = new Map((devs || []).map(d => [d.id, d]));
-        allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!(d.uazapi_base_url || globalBaseUrl));
+        allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!d.uazapi_base_url);
       }
 
       if (allDevices.length === 0) {
@@ -504,8 +503,8 @@ Deno.serve(async (req) => {
 
         const results = await Promise.allSettled(allDevices.map(async (dev, devIdx) => {
           const chunk = chunks[devIdx];
-          const devToken = dev.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-          const devBaseUrl = (dev.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+          const devToken = dev.uazapi_token;
+          const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
           let devSent = 0, devFailed = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
@@ -687,8 +686,8 @@ Deno.serve(async (req) => {
             console.log(`Rotating to device ${allDevices[currentDeviceIndex].name}`);
           }
           const activeDevice = useRotation ? allDevices[currentDeviceIndex] : device;
-          const activeToken = activeDevice.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-          const activeBaseUrl = (activeDevice.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+          const activeToken = activeDevice.uazapi_token;
+          const activeBaseUrl = (activeDevice.uazapi_base_url || "").replace(/\/+$/, "");
 
           const phone = contact.phone.replace(/\D/g, "");
           if (phone.length < 10) {

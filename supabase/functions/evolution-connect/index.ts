@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       .eq("id", deviceId)
       .single();
 
-    let instanceUrl = (device?.uazapi_base_url || BASE_URL).replace(/\/+$/, "");
+    let instanceUrl = (device?.uazapi_base_url || "").replace(/\/+$/, "");
     let instanceToken = device?.uazapi_token || "";
     const deviceName = device?.name || "instance";
 

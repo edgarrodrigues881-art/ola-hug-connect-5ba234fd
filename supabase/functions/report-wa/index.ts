@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .single();
       if (!device) throw new Error("Dispositivo não encontrado");
-      const baseUrl = (device.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-      const token = device.uazapi_token || Deno.env.get("UAZAPI_TOKEN") || "";
+      const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
+      const token = device.uazapi_token || "";
       if (!baseUrl || !token) throw new Error("Credenciais do dispositivo não configuradas");
       return { baseUrl, token, device };
     }
