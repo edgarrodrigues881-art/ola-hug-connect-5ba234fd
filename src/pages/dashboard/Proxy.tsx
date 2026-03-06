@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-type StatusFilter = "NOVA" | "USANDO" | "USADA" | null;
+type StatusFilter = "NOVA" | "USANDO" | "USADA" | "INVALID" | null;
 
 const PROXY_DISCLAIMER_KEY = "proxy-disclaimer-accepted";
 
@@ -24,6 +24,7 @@ const statusConfig = {
   NOVA: { label: "Livre", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400" },
   USANDO: { label: "Em uso", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", dot: "bg-amber-400" },
   USADA: { label: "Usada", color: "text-muted-foreground", bg: "bg-muted/10", border: "border-border/30", dot: "bg-muted-foreground/40" },
+  INVALID: { label: "Inválida", color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20", dot: "bg-red-400" },
 };
 
 const Proxy = () => {
@@ -103,6 +104,7 @@ const Proxy = () => {
     NOVA: proxiesWithIndex.filter((p: any) => p.proxyStatus === "NOVA").length,
     USANDO: proxiesWithIndex.filter((p: any) => p.proxyStatus === "USANDO").length,
     USADA: proxiesWithIndex.filter((p: any) => p.proxyStatus === "USADA").length,
+    INVALID: proxiesWithIndex.filter((p: any) => p.proxyStatus === "INVALID").length,
   }), [proxiesWithIndex]);
 
   // Mutations
@@ -152,7 +154,7 @@ const Proxy = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "NOVA" | "USANDO" | "USADA" }) => {
+    mutationFn: async ({ id, status }: { id: string; status: "NOVA" | "USANDO" | "USADA" | "INVALID" }) => {
       const { error } = await supabase.from("proxies").update({ status } as any).eq("id", id);
       if (error) throw error;
     },
@@ -284,7 +286,7 @@ const Proxy = () => {
     );
   };
 
-  const handleExport = (status: "NOVA" | "USANDO" | "USADA" | "TODAS") => {
+  const handleExport = (status: "NOVA" | "USANDO" | "USADA" | "INVALID" | "TODAS") => {
     const toExport = status === "TODAS"
       ? proxiesWithIndex
       : proxiesWithIndex.filter((p: any) => p.proxyStatus === status);
@@ -411,6 +413,7 @@ const Proxy = () => {
             { key: "NOVA" as StatusFilter, label: "Livres" },
             { key: "USANDO" as StatusFilter, label: "Em uso" },
             { key: "USADA" as StatusFilter, label: "Usadas" },
+            { key: "INVALID" as StatusFilter, label: "Inválidas" },
           ]).map(f => (
             <button
               key={f.label}
@@ -588,6 +591,7 @@ const Proxy = () => {
                               <SelectItem value="NOVA" className="text-xs">Livre</SelectItem>
                               <SelectItem value="USANDO" className="text-xs">Em uso</SelectItem>
                               <SelectItem value="USADA" className="text-xs">Usada</SelectItem>
+                              <SelectItem value="INVALID" className="text-xs">Inválida</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
