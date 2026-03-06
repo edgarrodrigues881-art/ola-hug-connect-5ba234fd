@@ -265,6 +265,20 @@ async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
 
+// When disconnect is detected mid-campaign, PAUSE instead of FAIL
+// This preserves pending contacts so user can resume after reconnecting
+async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], failedCount: number) {
+  console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
+  // Revert any processing contacts back to pending
+  await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+  await serviceClient.from("campaigns").update({
+    status: "paused",
+    failed_count: failedCount,
+    updated_at: new Date().toISOString(),
+  }).eq("id", campaignId);
+  await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+}
+
 interface BatchState {
   batchSent?: number;
   currentDeviceIndex?: number;
@@ -428,6 +442,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      // ── PRE-FLIGHT: Check if ALL devices are connected before processing ──
+      const connectedStatuses = ["Ready", "Connected", "authenticated"];
+      const disconnectedDevices = allDevices.filter(d => !connectedStatuses.includes(d.status));
+      if (disconnectedDevices.length === allDevices.length) {
+        console.log(`⚠️ All devices disconnected for campaign ${campaignId}, pausing campaign`);
+        // Revert any processing contacts back to pending
+        await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+        await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
+        await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+        return new Response(JSON.stringify({ success: true, status: "paused", reason: "all_devices_disconnected" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Filter to only connected devices
+      if (disconnectedDevices.length > 0) {
+        console.log(`⚠️ ${disconnectedDevices.length} device(s) disconnected, using ${allDevices.length - disconnectedDevices.length} remaining`);
+        allDevices = allDevices.filter(d => connectedStatuses.includes(d.status));
+      }
+
       // Acquire/refresh device locks for this continue invocation
       const lockResult = await acquireDeviceLocks(serviceClient, deviceIds, campaignId, campaign.user_id);
       if (!lockResult.acquired) {
@@ -571,10 +602,10 @@ Deno.serve(async (req) => {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
+                  // Revert remaining contacts in chunk back to pending
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                   if (remainingIds.length > 0) {
-                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                    devFailed += remainingIds.length;
+                    await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                   }
                   break;
                 }
@@ -595,8 +626,7 @@ Deno.serve(async (req) => {
                     if (isDisconnectError(result.error || "")) {
                       const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                       if (remainingIds.length > 0) {
-                        await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                        devFailed += remainingIds.length;
+                        await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                       }
                     }
                     break;
@@ -619,8 +649,7 @@ Deno.serve(async (req) => {
                   if (isDisconnectError(result.error || "")) {
                     const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                     if (remainingIds.length > 0) {
-                      await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                      devFailed += remainingIds.length;
+                      await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                     }
                     break;
                   }
@@ -643,8 +672,7 @@ Deno.serve(async (req) => {
               if (isDisconnectError(err.message || "")) {
                 const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                 if (remainingIds.length > 0) {
-                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                  devFailed += remainingIds.length;
+                  await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                 }
                 break;
               }
@@ -660,6 +688,17 @@ Deno.serve(async (req) => {
           }
         }
         await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
+
+        // After parallel mode, check if disconnect occurred — pause campaign
+        const { count: stillPending } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+        if (stillPending && stillPending > 0) {
+          // Check if all devices are disconnected
+          const { data: devStatuses } = await serviceClient.from("devices").select("id, status").in("id", deviceIds);
+          const allDisconnected = devStatuses?.every(d => !["Ready", "Connected", "authenticated"].includes(d.status));
+          if (allDisconnected) {
+            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
+          }
+        }
 
       } else {
         // ─── SEQUENTIAL / ROTATION MODE ───
@@ -747,11 +786,10 @@ Deno.serve(async (req) => {
             // Check device status before sending
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
-              console.log(`Device ${activeDevice.name} is ${deviceStatus.status}, bulk-failing remaining contacts`);
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-              const { count: remainingCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-              failedCount += (remainingCount || 0);
-              await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+              console.log(`⚠️ Device ${activeDevice.name} is ${deviceStatus.status}, pausing campaign`);
+              // Revert this contact back to pending
+              await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
               break;
             }
@@ -762,11 +800,7 @@ Deno.serve(async (req) => {
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                const { count: remCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                failedCount += (remCount || 0);
-                await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-                await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
                 break;
               }
               console.log(`Number ${normalizedPhone} invalid, skipping without delay`);
@@ -787,13 +821,7 @@ Deno.serve(async (req) => {
                   failedCount++;
                   await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                   if (isDisconnectError(result.error || "")) {
-                    const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                    if (remaining && remaining.length > 0) {
-                      await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                      failedCount += remaining.length;
-                      await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-                    }
-                    await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                    await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
                   }
                   break;
                 }
@@ -817,13 +845,7 @@ Deno.serve(async (req) => {
                 failedCount++;
                 await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
-                  const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                  if (remaining && remaining.length > 0) {
-                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                    failedCount += remaining.length;
-                    await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-                  }
-                  await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                  await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
                   break;
                 }
                 continue;
@@ -873,13 +895,7 @@ Deno.serve(async (req) => {
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             if (isDisconnectError(err.message || "")) {
-              const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-              if (remaining && remaining.length > 0) {
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                failedCount += remaining.length;
-                await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-              }
-              await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+              await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
               break;
             }
           }
