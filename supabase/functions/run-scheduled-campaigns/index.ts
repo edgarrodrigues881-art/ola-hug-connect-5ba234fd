@@ -37,38 +37,98 @@ Deno.serve(async (req) => {
       console.log(`Cleaned up ${cleanedCount} stale device locks`);
     }
 
-    // ── Reset stuck campaigns (running but no progress for > 5 min) ──
+    // ── WATCHDOG: Detect and restart stuck campaigns ──
+    const staleThresholdMs = 60_000; // 60 seconds without activity
     const { data: stuckCampaigns } = await serviceClient
       .from("campaigns")
-      .select("id, device_id, device_ids, updated_at")
+      .select("id, user_id, device_id, device_ids, updated_at, sent_count, failed_count")
       .eq("status", "running")
-      .lt("updated_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+      .lt("updated_at", new Date(Date.now() - staleThresholdMs).toISOString());
+
+    const restarted: string[] = [];
 
     for (const stuck of stuckCampaigns || []) {
-      // Check if there are processing contacts stuck
-      const { count } = await serviceClient
+      // Check if there's an active lock with recent heartbeat (worker still alive)
+      const ids: string[] = Array.isArray(stuck.device_ids) && stuck.device_ids.length > 0
+        ? stuck.device_ids : stuck.device_id ? [stuck.device_id] : [];
+      
+      let workerAlive = false;
+      for (const deviceId of ids) {
+        const { data: lock } = await serviceClient
+          .from("campaign_device_locks")
+          .select("heartbeat_at")
+          .eq("device_id", deviceId)
+          .eq("campaign_id", stuck.id)
+          .single();
+        if (lock && new Date(lock.heartbeat_at).getTime() > Date.now() - staleThresholdMs) {
+          workerAlive = true;
+          break;
+        }
+      }
+
+      if (workerAlive) {
+        console.log(`Campaign ${stuck.id} has active worker, skipping restart`);
+        continue;
+      }
+
+      // Worker is dead — reset processing contacts back to pending
+      const { count: processingCount } = await serviceClient
         .from("campaign_contacts")
         .select("id", { count: "exact", head: true })
         .eq("campaign_id", stuck.id)
         .eq("status", "processing");
 
-      if (count && count > 0) {
-        // Revert processing contacts back to pending
+      if (processingCount && processingCount > 0) {
         await serviceClient
           .from("campaign_contacts")
           .update({ status: "pending" })
           .eq("campaign_id", stuck.id)
           .eq("status", "processing");
-        console.log(`Reset ${count} stuck processing contacts for campaign ${stuck.id}`);
+        console.log(`Reset ${processingCount} stuck processing contacts for campaign ${stuck.id}`);
       }
 
-      // Release any locks held by this stuck campaign
-      const ids: string[] = Array.isArray(stuck.device_ids) && stuck.device_ids.length > 0
-        ? stuck.device_ids : stuck.device_id ? [stuck.device_id] : [];
+      // Release stale locks for this campaign
       for (const deviceId of ids) {
         await serviceClient.rpc("release_device_lock", { _device_id: deviceId, _campaign_id: stuck.id });
       }
-      console.log(`Released locks for stuck campaign ${stuck.id}`);
+
+      // Check if there are still pending contacts to send
+      const { count: pendingCount } = await serviceClient
+        .from("campaign_contacts")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", stuck.id)
+        .eq("status", "pending");
+
+      if (!pendingCount || pendingCount === 0) {
+        // No more pending — mark as completed
+        await serviceClient.from("campaigns").update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        }).eq("id", stuck.id);
+        console.log(`Campaign ${stuck.id} had no pending contacts, marked as completed`);
+        continue;
+      }
+
+      // Restart the campaign by calling process-campaign with "continue"
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/process-campaign`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            action: "continue",
+            campaignId: stuck.id,
+            deviceId: stuck.device_id || undefined,
+          }),
+        });
+        const text = await res.text();
+        restarted.push(stuck.id);
+        console.log(`🔄 Watchdog restarted stuck campaign ${stuck.id} (${pendingCount} pending): ${res.status}`);
+      } catch (err: any) {
+        console.error(`Failed to restart campaign ${stuck.id}:`, err.message);
+      }
     }
 
     // ── Find and trigger scheduled campaigns ──
@@ -106,7 +166,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ triggered: results.length, results, staleLocksCleaned: cleanedCount || 0 }),
+      JSON.stringify({ triggered: results.length, results, staleLocksCleaned: cleanedCount || 0, watchdogRestarted: restarted }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
