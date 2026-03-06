@@ -1299,6 +1299,7 @@ export type Database = {
           next_run_at: string | null
           phase: Database["public"]["Enums"]["warmup_phase"]
           plan_id: string | null
+          previous_phase: string | null
           started_at: string
           updated_at: string
           user_id: string
@@ -1323,6 +1324,7 @@ export type Database = {
           next_run_at?: string | null
           phase?: Database["public"]["Enums"]["warmup_phase"]
           plan_id?: string | null
+          previous_phase?: string | null
           started_at?: string
           updated_at?: string
           user_id: string
@@ -1347,6 +1349,7 @@ export type Database = {
           next_run_at?: string | null
           phase?: Database["public"]["Enums"]["warmup_phase"]
           plan_id?: string | null
+          previous_phase?: string | null
           started_at?: string
           updated_at?: string
           user_id?: string
