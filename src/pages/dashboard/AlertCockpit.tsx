@@ -85,7 +85,7 @@ export default function AlertCockpit() {
       return (data || []) as Alert[];
     },
     enabled: !!user,
-    refetchInterval: 10000,
+    refetchInterval: 30000, // Alerts use realtime for urgent updates
   });
 
   // Get notification instance status

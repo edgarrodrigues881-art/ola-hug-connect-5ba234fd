@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Smartphone } from "lucide-react";
 
@@ -15,13 +16,13 @@ interface Props {
 }
 
 const statusConfig: Record<string, { dot: string; label: string }> = {
-  Ready: { dot: "bg-emerald-400 animate-pulse", label: "Online" },
-  Connected: { dot: "bg-emerald-400 animate-pulse", label: "Online" },
+  Ready: { dot: "bg-emerald-400", label: "Online" },
+  Connected: { dot: "bg-emerald-400", label: "Online" },
   Disconnected: { dot: "bg-destructive", label: "Offline" },
   Banned: { dot: "bg-yellow-500", label: "Banido" },
 };
 
-export function DeviceStatusList({ devices, loading }: Props) {
+export const DeviceStatusList = React.memo(function DeviceStatusList({ devices, loading }: Props) {
   return (
     <Card className="border-border/50 bg-card h-full">
       <CardHeader className="pb-3">
@@ -68,4 +69,4 @@ export function DeviceStatusList({ devices, loading }: Props) {
       </CardContent>
     </Card>
   );
-}
+});

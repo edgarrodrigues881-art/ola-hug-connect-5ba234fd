@@ -10,7 +10,7 @@ const HeroSection = () => {
     <section className="relative min-h-screen flex flex-col items-center justify-start pt-28 pb-12 overflow-hidden">
       {/* Announcement badge */}
       <aside
-        className="mb-8 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-emerald-500/20 bg-black/50 backdrop-blur-md max-w-full"
+        className="mb-8 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-emerald-500/20 bg-black/80 max-w-full"
         style={{ animation: "fadeIn 0.6s ease-out" }}
       >
         <span className="text-xs text-center whitespace-nowrap text-emerald-400 font-medium">
