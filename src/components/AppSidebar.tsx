@@ -13,7 +13,7 @@ import {
   Settings,
   ChevronUp,
   CreditCard,
-  Box,
+  HelpCircle,
   Activity,
   ScrollText,
 } from "lucide-react";
@@ -51,34 +51,44 @@ const menuGroups = [
     ],
   },
   {
-    label: "Operação",
+    label: "Conexões",
     items: [
-      { title: "Conexões", url: "/dashboard/devices", icon: Smartphone },
+      { title: "Instâncias", url: "/dashboard/devices", icon: Smartphone },
+    ],
+  },
+  {
+    label: "Campanhas",
+    items: [
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+    ],
+  },
+  {
+    label: "Aquecimento",
+    items: [
       { title: "Aquecimento", url: "/dashboard/warmup-v2", icon: Flame },
       { title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll },
       { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
     ],
   },
   {
-    label: "Admin",
+    label: "Ferramentas",
     items: [
       { title: "Modelos", url: "/dashboard/templates", icon: FileText },
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
   {
-    label: "Monitoramento",
+    label: "Relatórios",
     items: [
       { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: Radio, exact: true },
     ],
   },
   {
-    label: "Conta",
+    label: "Suporte",
     items: [
-      { title: "Ajuda", url: "/dashboard/custom-module", icon: Box },
+      { title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle },
     ],
   },
 ];
@@ -152,6 +162,11 @@ export function AppSidebar() {
       <SidebarContent className="py-2">
         {menuGroups.map((group, gi) => (
           <SidebarGroup key={gi} className={`py-0 ${gi > 0 ? 'mt-1' : ''}`}>
+            {group.label && !collapsed && (
+              <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
             {collapsed && gi > 0 && group.label && (
               <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
             )}
@@ -165,9 +180,9 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild tooltip={item.title}>
                           <NavLink
                           to={item.url}
-                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[14px] relative
+                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
                             transition-all duration-150 ease-out
-                            ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : 'gap-[11px] px-3.5 py-[11px]'}
+                            ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : 'gap-[11px] px-3.5 py-[10px]'}
                             ${active
                               ? 'bg-primary/[0.08] text-foreground font-semibold'
                               : 'text-muted-foreground font-medium hover:text-foreground hover:bg-sidebar-accent/30'
