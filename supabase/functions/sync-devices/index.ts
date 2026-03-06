@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,6 +110,8 @@ Deno.serve(async (req) => {
           if (device.proxy_id) {
             await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
           }
+
+          await oplog(serviceClient, userId, "uazapi_error", `Token inválido (401) para "${device.name}"`, device.id, { status: 401, proxy_released: !!device.proxy_id });
 
           results.push({
             id: device.id, name: device.name, found: false,
