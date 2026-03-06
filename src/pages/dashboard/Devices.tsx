@@ -143,14 +143,24 @@ const Devices = () => {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("devices")
-        .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type, uazapi_base_url")
-        .neq("login_type", "report_wa")
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true });
-      if (error) throw error;
-      return (data || []).map((d: any) => ({
+      const [devicesRes, tokensRes] = await Promise.all([
+        supabase
+          .from("devices")
+          .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
+          .neq("login_type", "report_wa")
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true }),
+        supabase
+          .from("user_api_tokens")
+          .select("device_id")
+          .not("device_id", "is", null)
+          .eq("status", "in_use"),
+      ]);
+      if (devicesRes.error) throw devicesRes.error;
+      const configuredDeviceIds = new Set(
+        (tokensRes.data || []).map((t: any) => t.device_id)
+      );
+      return (devicesRes.data || []).map((d: any) => ({
         id: d.id,
         name: d.name,
         number: d.number || "",
@@ -161,7 +171,7 @@ const Devices = () => {
         profile_name: d.profile_name || null,
         created_at: d.created_at,
         updated_at: d.updated_at,
-        has_api_config: !!d.uazapi_base_url,
+        has_api_config: configuredDeviceIds.has(d.id),
       })) as Device[];
     },
     enabled: !!session,
