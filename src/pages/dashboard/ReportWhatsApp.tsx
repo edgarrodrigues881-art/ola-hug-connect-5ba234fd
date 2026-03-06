@@ -35,7 +35,7 @@ export default function ReportWhatsApp() {
   const [qrCountdown, setQrCountdown] = useState(30);
   const [qrConnected, setQrConnected] = useState(false);
   const [connectError, setConnectError] = useState("");
-  const [connectStep, setConnectStep] = useState<"choose" | "qr" | "code_phone" | "code" | "done">("choose");
+  const [connectStep, setConnectStep] = useState<"qr" | "done">("qr");
   const [codePhone, setCodePhone] = useState("");
   const [pairingCode, setPairingCode] = useState("");
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,7 +104,6 @@ export default function ReportWhatsApp() {
     setDisconnecting(true);
     try {
       await callApi({ action: "logout", deviceId: reportDevice.id });
-      await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", reportDevice.id);
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       setGroups([]);
       toast.success("Instância desconectada");
@@ -128,12 +127,11 @@ export default function ReportWhatsApp() {
 
   const openConnectDialog = () => {
     setQrDialogOpen(true);
-    setConnectStep("choose");
     setQrCodeBase64("");
     setQrConnected(false);
     setConnectError("");
-    setPairingCode("");
-    setCodePhone("");
+    // Start QR flow immediately
+    handleConnectQR();
   };
 
   const handleConnectQR = async () => {
@@ -148,7 +146,6 @@ export default function ReportWhatsApp() {
       if (result?.alreadyConnected) {
         setQrConnected(true);
         setConnectStep("done");
-        await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
         queryClient.invalidateQueries({ queryKey: ["report-device"] });
         toast.success("Já conectado!");
         return;
@@ -165,26 +162,6 @@ export default function ReportWhatsApp() {
     }
   };
 
-  const handleConnectCode = async () => {
-    if (!reportDevice?.id) return;
-    setConnectStep("code");
-    setPairingCode("");
-    setConnectError("");
-    try {
-      // Token must be pre-assigned by admin — no auto-creation
-      const result = await callApi({ action: "connect", deviceId: reportDevice.id });
-      if (result?.alreadyConnected) {
-        setQrConnected(true);
-        setConnectStep("done");
-        toast.success("Já conectado!");
-        return;
-      }
-      const code = result?.pairingCode || result?.code || result?.pairing_code;
-      if (code) setPairingCode(code);
-    } catch (err: any) {
-      setConnectError(err?.message || "Erro ao gerar código");
-    }
-  };
 
   // QR auto-refresh every 30s
   useEffect(() => {
@@ -221,7 +198,7 @@ export default function ReportWhatsApp() {
 
   // Poll connection status while QR dialog open
   useEffect(() => {
-    if (!qrDialogOpen || !reportDevice?.id || qrConnected || connectStep === "choose" || connectStep === "code_phone") return;
+    if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
     pollRef.current = setInterval(async () => {
       try {
         const result = await callApi({ action: "status", deviceId: reportDevice.id });
@@ -229,7 +206,6 @@ export default function ReportWhatsApp() {
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           setQrConnected(true);
           setConnectStep("done");
-          await supabase.from("devices").update({ status: "Ready" } as any).eq("id", reportDevice.id);
           queryClient.invalidateQueries({ queryKey: ["report-device"] });
           toast.success("Instância conectada com sucesso!");
           setTimeout(() => setQrDialogOpen(false), 2000);
