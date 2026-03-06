@@ -382,10 +382,7 @@ const Devices = () => {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (device: { name: string; login_type: string }) => {
-      // Auto-assign token from pool if available
-      let assignedToken: string | null = null;
-      let tokenRecord: any = null;
-
+      // 1. Find an available token from the pool
       const { data: available } = await supabase
         .from("user_api_tokens")
         .select("*")
@@ -395,26 +392,51 @@ const Devices = () => {
         .limit(1)
         .maybeSingle();
 
-      if (available) {
-        assignedToken = available.token;
-        tokenRecord = available;
+      if (!available) {
+        throw new Error("Nenhum token disponível no pool. Solicite ao administrador.");
       }
-      
-      const { data: newDevice, error } = await supabase.from("devices").insert({
-        name: device.name,
-        login_type: device.login_type,
-        user_id: session?.user.id,
-        uazapi_token: assignedToken,
-      } as any).select().single();
-      if (error) throw error;
 
-      // Mark token as in_use
-      if (tokenRecord && newDevice) {
+      // 2. Reserve the token (available → reserved)
+      const { error: reserveError } = await supabase
+        .from("user_api_tokens")
+        .update({ status: "reserved" } as any)
+        .eq("id", available.id)
+        .eq("status", "available");
+      if (reserveError) throw new Error("Falha ao reservar token.");
+
+      try {
+        // 3. Create the device record
+        const { data: newDevice, error } = await supabase.from("devices").insert({
+          name: device.name,
+          login_type: device.login_type,
+          user_id: session?.user.id,
+          uazapi_token: available.token,
+        } as any).select().single();
+        if (error) throw error;
+
+        // 4. Create instance on UAZAPI server via edge function
+        try {
+          const slug = device.name.toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 20);
+          const instName = `${slug}-${(newDevice as any).id.substring(0, 8)}-${Math.random().toString(36).substring(2, 6)}`;
+          await supabase.functions.invoke("evolution-connect", {
+            body: { action: "createInstance", deviceId: (newDevice as any).id, instanceName: instName },
+          });
+        } catch (e) {
+          console.warn("UAZAPI instance creation failed (non-blocking):", e);
+        }
+
+        // 5. Mark token as in_use (reserved → in_use)
         await supabase.from("user_api_tokens").update({
           status: "in_use",
           device_id: (newDevice as any).id,
           assigned_at: new Date().toISOString(),
-        } as any).eq("id", tokenRecord.id);
+        } as any).eq("id", available.id);
+      } catch (err) {
+        // Rollback: release token back to available
+        await supabase.from("user_api_tokens").update({
+          status: "available", device_id: null, assigned_at: null,
+        } as any).eq("id", available.id);
+        throw err;
       }
     },
     onSuccess: () => {
@@ -513,28 +535,70 @@ const Devices = () => {
       return;
     }
     try {
+      // Fetch available tokens from pool
+      const { data: availableTokens } = await supabase
+        .from("user_api_tokens")
+        .select("*")
+        .eq("user_id", session?.user.id!)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(totalCount);
+
       const inserts: any[] = [];
       let idx = devices.length + 1;
+      let tokenIdx = 0;
+
       for (const proxyId of bulkSelectedProxies) {
+        const token = availableTokens?.[tokenIdx];
         inserts.push({
           name: `${bulkPrefix} ${idx}`,
           login_type: "qr",
           user_id: session?.user.id,
           proxy_id: proxyId,
+          uazapi_token: token?.token || null,
         });
+        if (token) tokenIdx++;
         idx++;
       }
       for (let i = 0; i < bulkNoProxyCount; i++) {
+        const token = availableTokens?.[tokenIdx];
         inserts.push({
           name: `${bulkPrefix} ${idx}`,
           login_type: "qr",
           user_id: session?.user.id,
           proxy_id: null,
+          uazapi_token: token?.token || null,
         });
+        if (token) tokenIdx++;
         idx++;
       }
-      const { error } = await supabase.from("devices").insert(inserts);
-      if (error) throw error;
+
+      // Reserve all tokens being used
+      const tokenIdsToReserve = (availableTokens || []).slice(0, tokenIdx).map(t => t.id);
+      if (tokenIdsToReserve.length > 0) {
+        await supabase.from("user_api_tokens").update({ status: "reserved" } as any).in("id", tokenIdsToReserve);
+      }
+
+      const { data: newDevices, error } = await supabase.from("devices").insert(inserts).select();
+      if (error) {
+        // Rollback reserved tokens
+        if (tokenIdsToReserve.length > 0) {
+          await supabase.from("user_api_tokens").update({ status: "available" } as any).in("id", tokenIdsToReserve);
+        }
+        throw error;
+      }
+
+      // Mark tokens as in_use with device_id
+      if (newDevices && availableTokens) {
+        for (let i = 0; i < Math.min(newDevices.length, availableTokens.length); i++) {
+          await supabase.from("user_api_tokens").update({
+            status: "in_use",
+            device_id: newDevices[i].id,
+            assigned_at: new Date().toISOString(),
+          } as any).eq("id", availableTokens[i].id);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
       setBulkOpen(false);
