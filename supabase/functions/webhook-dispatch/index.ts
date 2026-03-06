@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     let instance = null;
     let token = null;
     if (instance_id) {
-      const { data: device } = await adminClient.from("devices").select("*").eq("id", instance_id).maybeSingle();
+      const { data: device } = await adminClient.from("devices").select("id, name, instance_type, status, created_at, user_id").eq("id", instance_id).maybeSingle();
       if (device) {
         instance = {
           id: device.id,
