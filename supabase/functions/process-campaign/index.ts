@@ -407,6 +407,7 @@ Deno.serve(async (req) => {
       }
 
       await serviceClient.from("campaigns").update({ status: "running", started_at: campaign.started_at || new Date().toISOString() }).eq("id", campaignId);
+      await oplog(serviceClient, userId, "campaign_started", `Campanha "${campaign.name}" iniciada`, deviceId, { campaign_id: campaignId, total_contacts: campaign.total_contacts });
       selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -523,6 +524,7 @@ Deno.serve(async (req) => {
           completed_at: new Date().toISOString(),
         }).eq("id", campaignId);
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+        await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída (sem pendentes)`, null, { campaign_id: campaignId });
         console.log(`Campaign ${campaignId} completed! Locks released.`);
         return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -927,6 +929,7 @@ Deno.serve(async (req) => {
             completed_at: new Date().toISOString(),
           }).eq("id", campaignId);
           await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+          await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída`, null, { campaign_id: campaignId, sent: sentCount, failed: failedCount });
           console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}. Locks released.`);
         }
       } else if (finalCampaign && (finalCampaign.status === "paused" || finalCampaign.status === "canceled" || finalCampaign.status === "failed")) {
