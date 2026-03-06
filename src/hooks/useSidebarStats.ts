@@ -16,31 +16,47 @@ export function useSidebarStats() {
   return useQuery({
     queryKey: ["sidebar-stats", user?.id],
     queryFn: async (): Promise<SidebarStats> => {
-      const [devicesRes, warmupsRes, campaignsRes, notificationsRes] = await Promise.all([
-        supabase.from("devices").select("status").neq("login_type", "report_wa"),
-        supabase.from("warmup_sessions").select("status"),
-        supabase.from("campaigns").select("status").in("status", ["processing", "pending", "scheduled"]),
-        supabase.from("notifications").select("id").eq("read", false),
+      // Use count queries instead of fetching all rows
+      const [
+        onlineRes,
+        disconnectedRes,
+        warmupsRes,
+        campaignsRes,
+        notificationsRes,
+      ] = await Promise.all([
+        supabase
+          .from("devices")
+          .select("id", { count: "exact", head: true })
+          .neq("login_type", "report_wa")
+          .in("status", ["Ready", "Connected", "authenticated"]),
+        supabase
+          .from("devices")
+          .select("id", { count: "exact", head: true })
+          .neq("login_type", "report_wa")
+          .in("status", ["Disconnected", "disconnected"]),
+        supabase
+          .from("warmup_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "running"),
+        supabase
+          .from("campaigns")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["processing", "pending", "scheduled", "running"]),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("read", false),
       ]);
 
-      const devices = devicesRes.data || [];
-      const warmups = warmupsRes.data || [];
-      const campaigns = campaignsRes.data || [];
-      const notifications = notificationsRes.data || [];
-
-      const onlineInstances = devices.filter(d => d.status === "Ready" || d.status === "Connected" || d.status === "authenticated").length;
-      const disconnected = devices.filter(d => d.status === "Disconnected" || d.status === "disconnected").length;
-      const activeWarmupCycles = warmups.filter(w => w.status === "running").length;
-
       return {
-        onlineInstances,
-        activeWarmupCycles,
-        criticalAlerts: disconnected,
-        activeCampaigns: campaigns.length,
-        unreadNotifications: notifications.length,
+        onlineInstances: onlineRes.count || 0,
+        activeWarmupCycles: warmupsRes.count || 0,
+        criticalAlerts: disconnectedRes.count || 0,
+        activeCampaigns: campaignsRes.count || 0,
+        unreadNotifications: notificationsRes.count || 0,
       };
     },
     enabled: !!user,
-    refetchInterval: 15000,
+    refetchInterval: 30000, // 30s instead of 15s — sidebar stats are not critical
   });
 }
