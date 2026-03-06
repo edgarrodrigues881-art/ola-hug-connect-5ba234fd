@@ -27,22 +27,40 @@ function buildMenuChoice(button: CampaignButton, index: number): string | null {
   return `${text}|${replyId}`;
 }
 
+const API_TIMEOUT_MS = 30_000;
+
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
   let url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = { "token": token, "Accept": "application/json" };
   let fetchOptions: RequestInit;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   if (method === "GET") {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(payload)) {
       if (value !== undefined && value !== null) params.append(key, String(value));
     }
     url += `?${params.toString()}`;
-    fetchOptions = { method: "GET", headers };
+    fetchOptions = { method: "GET", headers, signal: controller.signal };
   } else {
     headers["Content-Type"] = "application/json";
-    fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
+    fetchOptions = { method: "POST", headers, body: JSON.stringify(payload), signal: controller.signal };
   }
-  const res = await fetch(url, fetchOptions);
+
+  let res: Response;
+  try {
+    res = await fetch(url, fetchOptions);
+  } catch (fetchErr: any) {
+    clearTimeout(timeoutId);
+    if (fetchErr?.name === "AbortError") {
+      throw new Error(`Timeout após ${API_TIMEOUT_MS / 1000}s aguardando resposta da API`);
+    }
+    throw fetchErr;
+  }
+  clearTimeout(timeoutId);
+
   const text = await res.text();
   if (res.status === 405 && method === "POST") {
     return uazapiRequest(baseUrl, token, endpoint, payload, "GET");
@@ -89,7 +107,8 @@ function isTemporaryError(msg: string): boolean {
     lower.includes("econnrefused") || lower.includes("network") || lower.includes("socket") ||
     lower.includes("fetch failed") || lower.includes("503") || lower.includes("502") ||
     lower.includes("429") || lower.includes("rate limit") || lower.includes("temporarily") ||
-    lower.includes("internal server error") || lower.includes("500");
+    lower.includes("internal server error") || lower.includes("500") ||
+    lower.includes("aguardando resposta") || lower.includes("aborterror");
 }
 
 function translateErrorMessage(msg: string): string {
@@ -506,6 +525,7 @@ Deno.serve(async (req) => {
           const devToken = dev.uazapi_token;
           const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
           let devSent = 0, devFailed = 0;
+          let devHeartbeat = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
           const devShuffleBag = new ShuffleBag(messageVariants.length);
@@ -513,8 +533,26 @@ Deno.serve(async (req) => {
           for (const contact of chunk) {
             if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
 
+            // Optimistic lock: mark as processing
+            const { data: locked } = await serviceClient
+              .from("campaign_contacts")
+              .update({ status: "processing" })
+              .eq("id", contact.id)
+              .eq("status", "pending")
+              .select("id");
+            if (!locked || locked.length === 0) continue;
+
+            // Heartbeat every 5 messages to keep lock alive
+            devHeartbeat++;
+            if (devHeartbeat % 5 === 0) {
+              await heartbeatLock(serviceClient, campaignId);
+            }
+
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
-            if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) break;
+            if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
+              await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              break;
+            }
 
             const phone = contact.phone.replace(/\D/g, "");
             if (phone.length < 10) {
