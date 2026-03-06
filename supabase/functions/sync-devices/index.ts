@@ -62,46 +62,67 @@ Deno.serve(async (req) => {
       let profilePicture = device.profile_picture || null;
 
       try {
-        const res = await fetch(`${deviceBaseUrl}/instance/status`, {
-          method: "GET",
-          headers: { "token": deviceToken, "Accept": "application/json" },
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        // If token is invalid (401), instance likely doesn't exist anymore on UAZAPI
+        let res: Response;
+        try {
+          res = await fetch(`${deviceBaseUrl}/instance/status`, {
+            method: "GET",
+            headers: { "token": deviceToken, "Accept": "application/json" },
+            signal: controller.signal,
+          });
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          const isTimeout = fetchErr?.name === "AbortError";
+          console.warn(`Device ${device.name}: ${isTimeout ? "timeout" : "network error"} — preserving current status`);
+          results.push({
+            id: device.id, name: device.name, found: false,
+            status: device.status, error: isTimeout ? "Timeout - will retry next sync" : `Network error: ${fetchErr?.message}`,
+          });
+          continue;
+        }
+        clearTimeout(timeoutId);
+
+        // 401: token invalid — mark invalid, release proxy, disconnect
         if (res.status === 401) {
+          await res.text(); // consume body
           console.log(`Device ${device.name}: token invalid (401), marking as disconnected and releasing token`);
           
-          // Mark device as disconnected
           await serviceClient.from("devices").update({
             status: "Disconnected",
             uazapi_token: null,
             uazapi_base_url: null,
+            proxy_id: null,
           }).eq("id", device.id);
 
-          // Release token back to pool
           await serviceClient.from("user_api_tokens").update({
             status: "invalid",
             device_id: null,
             assigned_at: null,
           }).eq("device_id", device.id);
 
+          // Release proxy back
+          if (device.proxy_id) {
+            await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+          }
+
           results.push({
-            id: device.id,
-            name: device.name,
-            found: false,
-            status: "Disconnected",
-            error: "Token invalid - released",
+            id: device.id, name: device.name, found: false,
+            status: "Disconnected", error: "Token invalid - released",
           });
           continue;
         }
 
-        // If 404 or instance not found, also release
+        // 404: instance gone — release token + proxy, disconnect
         if (res.status === 404) {
-          console.log(`Device ${device.name}: instance not found (404), releasing token`);
+          await res.text(); // consume body
+          console.log(`Device ${device.name}: instance not found (404), releasing token and proxy`);
           await serviceClient.from("devices").update({
             status: "Disconnected",
             uazapi_token: null,
             uazapi_base_url: null,
+            proxy_id: null,
           }).eq("id", device.id);
 
           await serviceClient.from("user_api_tokens").update({
@@ -110,12 +131,24 @@ Deno.serve(async (req) => {
             assigned_at: null,
           }).eq("device_id", device.id);
 
+          if (device.proxy_id) {
+            await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+          }
+
           results.push({
-            id: device.id,
-            name: device.name,
-            found: false,
-            status: "Disconnected",
-            error: "Instance not found - token released",
+            id: device.id, name: device.name, found: false,
+            status: "Disconnected", error: "Instance not found - token & proxy released",
+          });
+          continue;
+        }
+
+        // Other non-OK statuses
+        if (!res.ok) {
+          const body = await res.text();
+          console.warn(`Device ${device.name}: unexpected status ${res.status} — ${body.substring(0, 200)}`);
+          results.push({
+            id: device.id, name: device.name, found: false,
+            status: device.status, error: `API error ${res.status}`,
           });
           continue;
         }
