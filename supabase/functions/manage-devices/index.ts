@@ -6,8 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -142,6 +145,8 @@ Deno.serve(async (req) => {
           assigned_at: new Date().toISOString(),
         }).eq("id", available.id);
 
+        await oplog(admin, user.id, "instance_created", `Instância "${newDevice.name}" criada`, newDevice.id, { token_assigned: true });
+
         return new Response(
           JSON.stringify({ device: { ...newDevice, has_api_config: true } }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -270,6 +275,12 @@ Deno.serve(async (req) => {
         await admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds);
       }
 
+      // Log bulk creation
+      for (const d of (newDevices || [])) {
+        await oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk)`, d.id, { proxy_id: d.proxy_id, has_token: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token });
+        if (d.proxy_id) await oplog(admin, user.id, "proxy_assigned", `Proxy atribuída → USANDO`, d.id, { proxy_id: d.proxy_id });
+      }
+
       // Return devices without token fields
       const safeDevices = (newDevices || []).map((d: any) => ({
         ...d,
@@ -330,7 +341,10 @@ Deno.serve(async (req) => {
       // 4. Release proxy
       if (device.proxy_id) {
         await admin.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+        await oplog(admin, user.id, "proxy_released", `Proxy liberada → USADA`, deviceId, { proxy_id: device.proxy_id });
       }
+
+      await oplog(admin, user.id, "instance_deleted", `Instância deletada`, deviceId);
 
       // 5. Delete device record
       const { error: delErr } = await admin.from("devices").delete().eq("id", deviceId);
