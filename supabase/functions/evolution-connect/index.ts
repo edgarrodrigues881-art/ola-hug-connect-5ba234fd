@@ -737,13 +737,20 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Release token back to pool (server-side with service role for reliability)
+      await svc.from("user_api_tokens").update({
+        status: "available",
+        device_id: null,
+        assigned_at: null,
+      }).eq("device_id", deviceId);
+
       // Clear device credentials regardless
       await svc.from("devices").update({
         uazapi_token: null,
         uazapi_base_url: null,
       }).eq("id", deviceId);
 
-      console.log("Instance deletion result:", deleted ? "success" : "failed (non-blocking)");
+      console.log("Instance deletion result:", deleted ? "success" : "failed (non-blocking)", "Token released back to pool.");
       return json({ success: true, deleted });
     }
 
