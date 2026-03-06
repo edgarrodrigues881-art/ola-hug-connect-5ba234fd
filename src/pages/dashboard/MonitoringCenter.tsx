@@ -33,7 +33,8 @@ export default function MonitoringCenter() {
       return data as DeviceStatus[];
     },
     enabled: !!user,
-    refetchInterval: 30000,
+    // Devices already have realtime via useAutoSyncDevices; fallback polling only
+    refetchInterval: 60000,
   });
 
   const online = devices.filter((d) => d.status === "connected").length;

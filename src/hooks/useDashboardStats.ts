@@ -180,7 +180,7 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    enabled: !!user,
-    refetchInterval: 30000,
+    // Realtime handles instant updates; polling is just a safety net
+    refetchInterval: 60000,
   });
 }
