@@ -313,7 +313,7 @@ const Devices = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proxies")
-        .select("*")
+        .select("id, host, port, username, password, type, status, display_id, active")
         .eq("active", true)
         .order("display_id", { ascending: true });
       if (error) throw error;

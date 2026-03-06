@@ -29,7 +29,7 @@ async function dispatchWebhook(payload: Record<string, unknown>) {
 async function findAvailablePoolToken(adminClient: any, userId: string) {
   // Prefer healthy tokens first
   const { data: healthy } = await adminClient.from("user_api_tokens")
-    .select("*")
+    .select("id, token, user_id, admin_id, status, healthy, label")
     .eq("user_id", userId)
     .eq("status", "available")
     .eq("healthy", true)
@@ -40,7 +40,7 @@ async function findAvailablePoolToken(adminClient: any, userId: string) {
 
   // Fall back to unchecked tokens
   const { data: unchecked } = await adminClient.from("user_api_tokens")
-    .select("*")
+    .select("id, token, user_id, admin_id, status, healthy, label")
     .eq("user_id", userId)
     .eq("status", "available")
     .is("healthy", null)
@@ -138,14 +138,14 @@ Deno.serve(async (req) => {
     }
 
     // Validate client
-    const { data: profile } = await adminClient.from("profiles").select("*").eq("id", client_id).maybeSingle();
+    const { data: profile } = await adminClient.from("profiles").select("id, status, instance_override, full_name, client_type").eq("id", client_id).maybeSingle();
     if (!profile) return json({ ok: false, error: "CLIENT_NOT_FOUND" }, 404);
     if (profile.status === "suspended" || profile.status === "cancelled") {
       return json({ ok: false, error: "CLIENT_BLOCKED", message: `Client status: ${profile.status}` }, 403);
     }
 
     const { data: subscription } = await adminClient.from("subscriptions")
-      .select("*").eq("user_id", client_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      .select("id, plan_name, max_instances, expires_at, plan_price").eq("user_id", client_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const instanceType = type || "principal";
 

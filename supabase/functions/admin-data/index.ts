@@ -60,16 +60,16 @@ Deno.serve(async (req) => {
     // ─── DASHBOARD ───
     if (action === "dashboard") {
       const { data: authUsers } = await adminClient.auth.admin.listUsers();
-      const { data: profiles } = await adminClient.from("profiles").select("*");
-      const { data: roles } = await adminClient.from("user_roles").select("*");
-      const { data: devices } = await adminClient.from("devices").select("*");
-      const { data: campaigns } = await adminClient.from("campaigns").select("*");
-      const { data: contacts } = await adminClient.from("contacts").select("*");
-      const { data: subscriptions } = await adminClient.from("subscriptions").select("*");
-      const { data: cycles } = await adminClient.from("subscription_cycles").select("*");
-      const { data: payments } = await adminClient.from("payments").select("*");
-      const { data: adminLogs } = await adminClient.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(500);
-      const { data: costs } = await adminClient.from("admin_costs").select("*");
+      const { data: profiles } = await adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at");
+      const { data: roles } = await adminClient.from("user_roles").select("id, user_id, role");
+      const { data: devices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, created_at");
+      const { data: campaigns } = await adminClient.from("campaigns").select("id, user_id, name, status, total_contacts, sent_count, failed_count, created_at");
+      const { data: contacts } = await adminClient.from("contacts").select("id, user_id");
+      const { data: subscriptions } = await adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at");
+      const { data: cycles } = await adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at");
+      const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at");
+      const { data: adminLogs } = await adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").order("created_at", { ascending: false }).limit(500);
+      const { data: costs } = await adminClient.from("admin_costs").select("id, admin_id, category, amount, description, cost_date, created_at");
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);

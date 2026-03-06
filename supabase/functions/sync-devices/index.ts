@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: devices, error: devError } = await serviceClient
       .from("devices")
-      .select("*")
+      .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id")
       .eq("user_id", userId);
 
     if (devError) throw devError;
