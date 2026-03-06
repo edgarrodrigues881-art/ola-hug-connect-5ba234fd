@@ -103,6 +103,11 @@ async function setProxy(
   return false;
 }
 
+
+async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+}
+
 // ══════════════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
