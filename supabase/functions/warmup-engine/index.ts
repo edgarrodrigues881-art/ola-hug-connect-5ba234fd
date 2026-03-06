@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
       // Find active cycle
       const { data: cycle } = await db
         .from("warmup_cycles")
-        .select("id")
+        .select("id, phase")
         .eq("device_id", device_id)
         .eq("user_id", callerUserId)
         .eq("is_running", true)
@@ -291,8 +291,8 @@ Deno.serve(async (req) => {
 
       if (!cycle) throw new Error("No active cycle found");
 
-      // Pause cycle
-      await db.from("warmup_cycles").update({ is_running: false, phase: "paused" }).eq("id", cycle.id);
+      // Pause cycle — store previous phase for potential resume
+      await db.from("warmup_cycles").update({ is_running: false, phase: "paused", previous_phase: cycle.phase }).eq("id", cycle.id);
 
       // Cancel pending jobs
       await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
