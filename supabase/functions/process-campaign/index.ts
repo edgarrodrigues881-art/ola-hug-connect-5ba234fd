@@ -764,11 +764,10 @@ Deno.serve(async (req) => {
             // Check device status before sending
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
-              console.log(`Device ${activeDevice.name} is ${deviceStatus.status}, bulk-failing remaining contacts`);
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-              const { count: remainingCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-              failedCount += (remainingCount || 0);
-              await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+              console.log(`⚠️ Device ${activeDevice.name} is ${deviceStatus.status}, pausing campaign`);
+              // Revert this contact back to pending
+              await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
               break;
             }
