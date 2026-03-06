@@ -63,7 +63,7 @@ const Proxy = () => {
       return (data || []) as any[];
     },
     enabled: !!session,
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Proxies don't change often
   });
 
   // Fetch devices to map proxy_id → device name
@@ -78,7 +78,7 @@ const Proxy = () => {
       return (data || []) as { id: string; name: string; number: string | null; proxy_id: string | null; profile_name: string | null; profile_picture: string | null }[];
     },
     enabled: !!session,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   const deviceByProxy = useMemo(() => {

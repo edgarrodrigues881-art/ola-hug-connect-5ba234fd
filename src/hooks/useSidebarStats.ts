@@ -57,6 +57,6 @@ export function useSidebarStats() {
       };
     },
     enabled: !!user,
-    refetchInterval: 30000, // 30s instead of 15s — sidebar stats are not critical
+    refetchInterval: 60000, // Sidebar stats are non-critical — 60s fallback
   });
 }
