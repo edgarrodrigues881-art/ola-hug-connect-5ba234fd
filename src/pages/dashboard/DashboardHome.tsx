@@ -84,14 +84,6 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Instâncias */}
-      <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Pause className="w-4 h-4 text-muted-foreground" />
-          Instâncias
-        </h2>
-        <DeviceInstanceCards chips={chips} isLoading={isLoading} />
-      </div>
 
       {/* Gráfico + Desempenho */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
