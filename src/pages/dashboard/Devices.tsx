@@ -382,6 +382,36 @@ const Devices = () => {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (device: { name: string; login_type: string }) => {
+      // 0. Server-side plan limit check (re-validate in case frontend state is stale)
+      const { count: currentCount } = await supabase
+        .from("devices")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session?.user.id!)
+        .neq("login_type", "report_wa");
+
+      const { data: freshSub } = await supabase
+        .from("subscriptions")
+        .select("max_instances, expires_at")
+        .eq("user_id", session?.user.id!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: freshProfile } = await supabase
+        .from("profiles")
+        .select("instance_override")
+        .eq("id", session?.user.id!)
+        .maybeSingle();
+
+      if (!freshSub || new Date(freshSub.expires_at) < new Date()) {
+        throw new Error("Você não possui um plano ativo.");
+      }
+
+      const maxAllowed = (freshSub.max_instances ?? 0) + (freshProfile?.instance_override ?? 0);
+      if ((currentCount ?? 0) >= maxAllowed) {
+        throw new Error("Você atingiu o limite de instâncias do seu plano.");
+      }
+
       // 1. Find an available token from the pool
       const { data: available } = await supabase
         .from("user_api_tokens")
