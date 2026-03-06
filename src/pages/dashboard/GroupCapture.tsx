@@ -85,7 +85,7 @@ const GroupCapture = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_groups" as any)
-        .select("*")
+        .select("id, name, link, description, created_at")
         .order("name", { ascending: true });
       if (error) throw error;
       return data as any[];

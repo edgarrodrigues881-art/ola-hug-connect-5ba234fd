@@ -41,7 +41,7 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_audit_logs")
-        .select("*")
+        .select("id, device_id, cycle_id, level, event_type, message, meta, created_at")
         .eq("cycle_id", cycleId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -56,7 +56,7 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_jobs")
-        .select("*")
+        .select("id, cycle_id, device_id, job_type, status, run_at, attempts, max_attempts, last_error, payload, created_at")
         .eq("cycle_id", cycleId)
         .order("run_at", { ascending: false })
         .limit(100);

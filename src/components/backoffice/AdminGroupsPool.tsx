@@ -30,7 +30,7 @@ const AdminGroupsPool = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_groups_pool")
-        .select("*")
+        .select("id, name, external_group_ref, is_active, created_at, updated_at")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as PoolGroup[];

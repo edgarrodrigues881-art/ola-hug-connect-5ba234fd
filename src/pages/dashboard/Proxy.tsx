@@ -57,7 +57,7 @@ const Proxy = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proxies")
-        .select("*")
+        .select("id, display_id, host, port, username, type, status, active, created_at, updated_at")
         .order("display_id", { ascending: true });
       if (error) throw error;
       return (data || []) as any[];

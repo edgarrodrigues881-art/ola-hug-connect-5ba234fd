@@ -135,7 +135,7 @@ const Campaigns = () => {
   const { data: delayProfiles = [] } = useQuery({
     queryKey: ["delay_profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("delay_profiles").select("*").order("name");
+      const { data, error } = await supabase.from("delay_profiles").select("id, name, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max").order("name");
       if (error) throw error;
       return data || [];
     },

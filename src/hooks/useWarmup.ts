@@ -30,7 +30,7 @@ export function useWarmupSessions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_sessions" as any)
-        .select("*")
+        .select("id, user_id, device_id, status, messages_per_day, daily_increment, max_messages_per_day, current_day, total_days, messages_sent_today, messages_sent_total, min_delay_seconds, max_delay_seconds, start_time, end_time, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as WarmupSession[];
