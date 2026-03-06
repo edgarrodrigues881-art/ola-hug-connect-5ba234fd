@@ -27,6 +27,10 @@ function buildMenuChoice(button: CampaignButton, index: number): string | null {
   return `${text}|${replyId}`;
 }
 
+async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+}
+
 const API_TIMEOUT_MS = 30_000;
 
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
