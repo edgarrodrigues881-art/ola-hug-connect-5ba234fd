@@ -1,98 +1,105 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { BarChart3, Wifi, WifiOff, Activity } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wifi, WifiOff, Flame, MessageSquare, BarChart3, Pause } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { PerformanceBlock } from "@/components/dashboard/DeliveryRateCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import { DeviceInstanceCards } from "@/components/dashboard/DeviceInstanceCards";
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
 
+  const chips = stats?.chips || [];
+  const connectedCount = chips.filter((c) => c.connected).length;
+  const warmingCount = chips.filter((c) => c.warmupStatus === "running").length;
+  const disconnectedCount = chips.filter((c) => !c.connected).length;
+  const messagesToday = chips.reduce((a, c) => a + c.volumeToday, 0);
+
   const topCards = [
     {
-      label: "Chips Online",
-      value: stats?.chipsOnline ?? 0,
+      label: "Conectadas",
+      value: connectedCount,
       icon: Wifi,
-      iconClass: "text-emerald-500",
+      dotColor: "bg-emerald-400",
+      iconClass: "text-emerald-400",
       bgClass: "bg-emerald-500/10",
     },
     {
-      label: "Chips Ativos",
-      value: stats?.chipsActive ?? 0,
-      icon: Activity,
-      iconClass: "text-emerald-500",
-      bgClass: "bg-emerald-500/10",
+      label: "Aquecendo",
+      value: warmingCount,
+      icon: Flame,
+      dotColor: "bg-amber-400",
+      iconClass: "text-amber-400",
+      bgClass: "bg-amber-500/10",
     },
     {
-      label: "Chips Inativos",
-      value: stats?.chipsInactive ?? 0,
+      label: "Desconectadas",
+      value: disconnectedCount,
       icon: WifiOff,
-      iconClass: "text-muted-foreground",
-      bgClass: "bg-muted/20",
+      dotColor: "bg-red-400",
+      iconClass: "text-red-400",
+      bgClass: "bg-red-500/10",
     },
     {
-      label: "Média Diária/Chip",
-      value: stats?.avgMessagesPerDay ?? 0,
-      icon: BarChart3,
-      iconClass: "text-muted-foreground",
-      bgClass: "bg-muted/20",
-    },
-    {
-      label: "Taxa Média Entrega",
-      value: stats?.avgDeliveryRate ?? 100,
-      icon: Activity,
-      iconClass: "text-emerald-500",
-      bgClass: "bg-emerald-500/10",
-      suffix: "%",
+      label: "Mensagens Hoje",
+      value: messagesToday,
+      icon: MessageSquare,
+      dotColor: "bg-blue-400",
+      iconClass: "text-blue-400",
+      bgClass: "bg-blue-500/10",
     },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <GreetingHeader />
         <QuickActions />
       </div>
 
-      {/* Status Operacional */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Top Status Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {topCards.map((s) => (
-          <Card key={s.label} className="border-border/50 bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg ${s.bgClass} flex items-center justify-center shrink-0`}>
-                  <s.icon className={`w-4 h-4 ${s.iconClass}`} />
+          <Card key={s.label} className="border-border/50 bg-card hover:border-border/80 transition-colors">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${s.bgClass} flex items-center justify-center`}>
+                  <s.icon className={`w-5 h-5 ${s.iconClass}`} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
-                  <div className="text-xl font-bold text-foreground">
-                    {isLoading ? (
-                      <span className="inline-block w-6 h-5 bg-muted/50 rounded animate-pulse" />
-                    ) : (
-                      <>
-                        <AnimatedCounter value={s.value} />
-                        {s.suffix && <span className="text-xs text-muted-foreground font-normal">{s.suffix}</span>}
-                      </>
-                    )}
-                  </div>
-                </div>
+                <span className={`w-2.5 h-2.5 rounded-full ${s.dotColor}`} />
               </div>
+              <div className="text-2xl font-bold text-foreground">
+                {isLoading ? (
+                  <span className="inline-block w-8 h-6 bg-muted/50 rounded animate-pulse" />
+                ) : (
+                  <AnimatedCounter value={s.value} />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Desempenho + Gráfico */}
+      {/* Instâncias */}
+      <div>
+        <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Pause className="w-4 h-4 text-muted-foreground" />
+          Instâncias
+        </h2>
+        <DeviceInstanceCards chips={chips} isLoading={isLoading} />
+      </div>
+
+      {/* Gráfico + Desempenho */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <ActivityChart data={stats?.warmupEvolution || []} />
         </div>
         {stats?.performance && <PerformanceBlock performance={stats.performance} />}
       </div>
-
     </div>
   );
 };
