@@ -125,6 +125,7 @@ async function handleTick(db: any) {
           await db.from("warmup_cycles").update({
             is_running: false,
             phase: "paused",
+            previous_phase: cycle.phase,
             last_error: "Auto-pausado: instância desconectada",
           }).eq("id", cycle.id);
 
@@ -135,7 +136,7 @@ async function handleTick(db: any) {
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "auto_paused_disconnected",
-            message: `Aquecimento pausado automaticamente: instância desconectada (status: ${device?.status || "unknown"})`,
+            message: `Aquecimento pausado automaticamente: instância desconectada (status: ${device?.status || "unknown"}, fase anterior: ${cycle.phase})`,
           });
         }
 
