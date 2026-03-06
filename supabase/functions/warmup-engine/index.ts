@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
 
       const { data: cycle } = await db
         .from("warmup_cycles")
-        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at")
+        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at, previous_phase")
         .eq("device_id", device_id)
         .eq("user_id", callerUserId)
         .eq("phase", "paused")
@@ -324,15 +324,24 @@ Deno.serve(async (req) => {
 
       if (!cycle) throw new Error("No paused cycle found");
 
-      // Determine appropriate phase based on first_24h
+      // Restore previous phase, or determine from timeline
       const now = new Date();
       const first24hEnds = new Date(cycle.first_24h_ends_at);
-      let resumePhase = "groups_only";
+      let resumePhase = cycle.previous_phase || "groups_only";
       if (now < first24hEnds) resumePhase = "pre_24h";
+      if (["error", "completed", "paused"].includes(resumePhase)) resumePhase = "groups_only";
+
+      // Check device is online before resuming
+      const { data: deviceCheck } = await db.from("devices").select("status").eq("id", device_id).single();
+      if (!deviceCheck || deviceCheck.status !== "Ready") {
+        throw new Error("Instância offline. Conecte o dispositivo antes de retomar o aquecimento.");
+      }
 
       await db.from("warmup_cycles").update({
         is_running: true,
         phase: resumePhase,
+        previous_phase: null,
+        last_error: null,
         next_run_at: now.toISOString(),
       }).eq("id", cycle.id);
 
@@ -344,6 +353,30 @@ Deno.serve(async (req) => {
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
       });
+
+      // If resuming in autosave/community phase, re-schedule interaction jobs
+      if (["autosave_enabled", "community_enabled"].includes(resumePhase)) {
+        const remaining = (cycle.daily_interaction_budget_target || 25) - (cycle.daily_interaction_budget_used || 0);
+        if (remaining > 0) {
+          const windowStart = Math.max(now.getTime(), new Date(now).setUTCHours(11, 0, 0, 0));
+          const windowEnd = new Date(now).setUTCHours(24, 0, 0, 0);
+          if (windowStart < windowEnd) {
+            const interactionCount = Math.min(remaining, 15);
+            const windowMs = windowEnd - windowStart;
+            const asJobs: any[] = [];
+            for (let i = 0; i < interactionCount; i++) {
+              const baseOffset = (windowMs / interactionCount) * i;
+              const jitter = randInt(0, Math.floor(windowMs / interactionCount * 0.4));
+              asJobs.push({
+                user_id: callerUserId, device_id, cycle_id: cycle.id,
+                job_type: "autosave_interaction", payload: {},
+                run_at: new Date(windowStart + baseOffset + jitter).toISOString(), status: "pending",
+              });
+            }
+            if (asJobs.length > 0) await db.from("warmup_jobs").insert(asJobs);
+          }
+        }
+      }
 
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
