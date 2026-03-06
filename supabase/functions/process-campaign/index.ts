@@ -602,10 +602,10 @@ Deno.serve(async (req) => {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
+                  // Revert remaining contacts in chunk back to pending
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                   if (remainingIds.length > 0) {
-                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                    devFailed += remainingIds.length;
+                    await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                   }
                   break;
                 }
