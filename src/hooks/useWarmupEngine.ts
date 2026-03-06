@@ -6,7 +6,7 @@ export function useWarmupEngine() {
 
   return useMutation({
     mutationFn: async (params: {
-      action: "start" | "pause" | "resume" | "stop" | "tick";
+      action: "start" | "pause" | "resume" | "stop";
       device_id?: string;
       chip_state?: string;
       days_total?: number;

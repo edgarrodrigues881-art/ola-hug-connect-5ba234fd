@@ -6,21 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Default messages for autosave interactions ──
-const defaultAutosaveMessages = [
-  "Bom dia! 😊", "Boa tarde!", "Boa noite! 🌙",
-  "Oi, tudo bem?", "E aí, como vai?", "Beleza? 👋",
-  "Tudo certo por aí?", "Opa, tudo bem?",
-  "Fala, tranquilo?", "Olá! Como está?",
-  "Oi, sumido(a)! 😄", "E aí, novidades?",
-  "Bom dia, tudo bem com você?", "Boa tarde! Como foi o dia?",
-  "Boa noite, descanse bem! 😴",
-  "Valeu! 👍", "Show! 🔥", "Top demais! 🚀",
-  "Que legal!", "Massa!", "Boa! 💯",
-  "Concordo!", "Verdade!", "Com certeza!",
-  "Obrigado!", "Muito bom!",
-];
-
 // ── Helpers ──
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -32,75 +17,6 @@ function shuffleAndPick<T>(arr: T[], n: number): T[] {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy.slice(0, n);
-}
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function backoffMinutes(attempt: number): number {
-  return [5, 15, 60, 180, 360][Math.min(attempt, 4)];
-}
-
-// ── uazapi request helper ──
-async function uazapiRequest(
-  baseUrl: string, token: string, endpoint: string, payload: any
-) {
-  const url = `${baseUrl}${endpoint}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API ${res.status}: ${text.slice(0, 200)}`);
-  }
-  return res.json();
-}
-
-// ── Schedule autosave interaction jobs for the day ──
-async function scheduleAutosaveInteractions(
-  db: any, userId: string, deviceId: string, cycleId: string, budgetTarget: number, budgetUsed: number
-) {
-  const remaining = budgetTarget - budgetUsed;
-  if (remaining <= 0) return 0;
-
-  // Distribute interactions between 08:00-21:00 BRT (11:00-00:00 UTC)
-  const now = new Date();
-  const todayBase = new Date(now);
-  todayBase.setUTCHours(11, 0, 0, 0); // 08:00 BRT
-  const todayEnd = new Date(now);
-  todayEnd.setUTCHours(24, 0, 0, 0);  // 21:00 BRT
-
-  const windowStart = Math.max(now.getTime(), todayBase.getTime());
-  const windowEnd = todayEnd.getTime();
-  if (windowStart >= windowEnd) return 0;
-
-  const windowMs = windowEnd - windowStart;
-  const interactionCount = Math.min(remaining, 15); // Max 15 autosave interactions/day
-  const jobs: any[] = [];
-
-  for (let i = 0; i < interactionCount; i++) {
-    // Spread evenly with jitter
-    const baseOffset = (windowMs / interactionCount) * i;
-    const jitter = randInt(0, Math.floor(windowMs / interactionCount * 0.4));
-    const runAt = new Date(windowStart + baseOffset + jitter);
-
-    jobs.push({
-      user_id: userId,
-      device_id: deviceId,
-      cycle_id: cycleId,
-      job_type: "autosave_interaction",
-      payload: {},
-      run_at: runAt.toISOString(),
-      status: "pending",
-    });
-  }
-
-  if (jobs.length > 0) {
-    await db.from("warmup_jobs").insert(jobs);
-  }
-  return jobs.length;
 }
 
 Deno.serve(async (req) => {
@@ -282,7 +198,7 @@ Deno.serve(async (req) => {
       // Find active cycle
       const { data: cycle } = await db
         .from("warmup_cycles")
-        .select("id")
+        .select("id, phase")
         .eq("device_id", device_id)
         .eq("user_id", callerUserId)
         .eq("is_running", true)
@@ -291,8 +207,8 @@ Deno.serve(async (req) => {
 
       if (!cycle) throw new Error("No active cycle found");
 
-      // Pause cycle
-      await db.from("warmup_cycles").update({ is_running: false, phase: "paused" }).eq("id", cycle.id);
+      // Pause cycle — store previous phase for potential resume
+      await db.from("warmup_cycles").update({ is_running: false, phase: "paused", previous_phase: cycle.phase }).eq("id", cycle.id);
 
       // Cancel pending jobs
       await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
@@ -316,7 +232,7 @@ Deno.serve(async (req) => {
 
       const { data: cycle } = await db
         .from("warmup_cycles")
-        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at")
+        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at, previous_phase")
         .eq("device_id", device_id)
         .eq("user_id", callerUserId)
         .eq("phase", "paused")
@@ -324,15 +240,24 @@ Deno.serve(async (req) => {
 
       if (!cycle) throw new Error("No paused cycle found");
 
-      // Determine appropriate phase based on first_24h
+      // Restore previous phase, or determine from timeline
       const now = new Date();
       const first24hEnds = new Date(cycle.first_24h_ends_at);
-      let resumePhase = "groups_only";
+      let resumePhase = cycle.previous_phase || "groups_only";
       if (now < first24hEnds) resumePhase = "pre_24h";
+      if (["error", "completed", "paused"].includes(resumePhase)) resumePhase = "groups_only";
+
+      // Check device is online before resuming
+      const { data: deviceCheck } = await db.from("devices").select("status").eq("id", device_id).single();
+      if (!deviceCheck || deviceCheck.status !== "Ready") {
+        throw new Error("Instância offline. Conecte o dispositivo antes de retomar o aquecimento.");
+      }
 
       await db.from("warmup_cycles").update({
         is_running: true,
         phase: resumePhase,
+        previous_phase: null,
+        last_error: null,
         next_run_at: now.toISOString(),
       }).eq("id", cycle.id);
 
@@ -344,6 +269,30 @@ Deno.serve(async (req) => {
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
       });
+
+      // If resuming in autosave/community phase, re-schedule interaction jobs
+      if (["autosave_enabled", "community_enabled"].includes(resumePhase)) {
+        const remaining = (cycle.daily_interaction_budget_target || 25) - (cycle.daily_interaction_budget_used || 0);
+        if (remaining > 0) {
+          const windowStart = Math.max(now.getTime(), new Date(now).setUTCHours(11, 0, 0, 0));
+          const windowEnd = new Date(now).setUTCHours(24, 0, 0, 0);
+          if (windowStart < windowEnd) {
+            const interactionCount = Math.min(remaining, 15);
+            const windowMs = windowEnd - windowStart;
+            const asJobs: any[] = [];
+            for (let i = 0; i < interactionCount; i++) {
+              const baseOffset = (windowMs / interactionCount) * i;
+              const jitter = randInt(0, Math.floor(windowMs / interactionCount * 0.4));
+              asJobs.push({
+                user_id: callerUserId, device_id, cycle_id: cycle.id,
+                job_type: "autosave_interaction", payload: {},
+                run_at: new Date(windowStart + baseOffset + jitter).toISOString(), status: "pending",
+              });
+            }
+            if (asJobs.length > 0) await db.from("warmup_jobs").insert(asJobs);
+          }
+        }
+      }
 
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
@@ -388,414 +337,10 @@ Deno.serve(async (req) => {
     }
 
     // ════════════════════════════════════════
-    // ACTION: tick (process pending jobs)
+    // ACTION: tick — delegate to warmup-tick
     // ════════════════════════════════════════
-    const now = new Date().toISOString();
-
-    // Fetch pending jobs ready to run, limit 50
-    const { data: pendingJobs, error: fetchErr } = await db
-      .from("warmup_jobs")
-      .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
-      .eq("status", "pending")
-      .lte("run_at", now)
-      .order("run_at", { ascending: true })
-      .limit(50);
-
-    if (fetchErr) throw fetchErr;
-    if (!pendingJobs || pendingJobs.length === 0) {
-      return new Response(JSON.stringify({ ok: true, processed: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Mark as running (optimistic lock)
-    const jobIds = pendingJobs.map((j: any) => j.id);
-    await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds);
-
-    let processed = 0;
-    let failed = 0;
-
-    for (const job of pendingJobs) {
-      try {
-        // Get cycle
-        const { data: cycle } = await db
-          .from("warmup_cycles")
-          .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
-          .eq("id", job.cycle_id)
-          .single();
-
-        if (!cycle || !cycle.is_running) {
-          await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
-          continue;
-        }
-
-        // Check device connection status before processing
-        const { data: device } = await db
-          .from("devices")
-          .select("status")
-          .eq("id", job.device_id)
-          .single();
-
-        if (!device || device.status !== "Ready") {
-          // Device disconnected — auto-pause cycle and skip job
-          if (cycle.phase !== "paused") {
-            await db.from("warmup_cycles").update({
-              is_running: false,
-              phase: "paused",
-              last_error: "Auto-pausado: instância desconectada",
-            }).eq("id", cycle.id);
-
-            await db.from("warmup_jobs").update({ status: "cancelled" })
-              .eq("cycle_id", cycle.id).eq("status", "pending");
-
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "warn", event_type: "auto_paused_disconnected",
-              message: `Aquecimento pausado automaticamente: instância desconectada (status: ${device?.status || "unknown"})`,
-            });
-          }
-
-          await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
-          continue;
-        }
-
-        // ── Handler by job_type ──
-        switch (job.job_type) {
-          case "join_group": {
-            const groupId = job.payload?.group_id;
-            // Mock: mark group as joined
-            await db.from("warmup_instance_groups")
-              .update({ join_status: "joined", joined_at: new Date().toISOString() })
-              .eq("device_id", job.device_id)
-              .eq("group_id", groupId);
-
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "group_joined",
-              message: `Entrada no grupo: ${job.payload?.group_name || groupId}`,
-              meta: job.payload,
-            });
-            break;
-          }
-
-          case "phase_transition": {
-            const targetPhase = job.payload?.target_phase || "groups_only";
-            await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
-
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "phase_changed",
-              message: `Fase alterada para: ${targetPhase}`,
-              meta: { from: cycle.phase, to: targetPhase },
-            });
-
-            // If transitioning to groups_only, schedule enable_autosave after ~2h
-            if (targetPhase === "groups_only") {
-              const enableAt = new Date(Date.now() + randInt(90, 150) * 60 * 1000);
-              await db.from("warmup_jobs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                job_type: "enable_autosave", payload: {},
-                run_at: enableAt.toISOString(), status: "pending",
-              });
-            }
-            break;
-          }
-
-          case "enable_autosave": {
-            // Check if user has active autosave contacts
-            const { count } = await db
-              .from("warmup_autosave_contacts")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", job.user_id)
-              .eq("is_active", true);
-
-            if (count && count > 0) {
-              await db.from("warmup_cycles").update({ phase: "autosave_enabled" }).eq("id", cycle.id);
-              
-              // Schedule autosave interaction jobs for today
-              const scheduled = await scheduleAutosaveInteractions(
-                db, job.user_id, job.device_id, job.cycle_id,
-                cycle.daily_interaction_budget_target, cycle.daily_interaction_budget_used
-              );
-
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "info", event_type: "phase_changed",
-                message: `Auto Save habilitado (${count} contatos ativos, ${scheduled} interações agendadas)`,
-                meta: { active_contacts: count, interactions_scheduled: scheduled },
-              });
-            } else {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "autosave_missing",
-                message: "Auto Save não habilitado: nenhum contato ativo cadastrado",
-              });
-              // Re-check in 6h
-              await db.from("warmup_jobs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                job_type: "enable_autosave", payload: {},
-                run_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), status: "pending",
-              });
-            }
-            break;
-          }
-
-          case "autosave_interaction": {
-            // Check budget
-            if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target) {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "info", event_type: "autosave_budget_exhausted",
-                message: `Orçamento diário esgotado (${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target})`,
-              });
-              break;
-            }
-
-            // Check unique recipients cap
-            if (cycle.daily_unique_recipients_used >= cycle.daily_unique_recipients_cap) {
-              break;
-            }
-
-            // Get active autosave contacts
-            const { data: asContacts } = await db
-              .from("warmup_autosave_contacts")
-              .select("phone_e164")
-              .eq("user_id", job.user_id)
-              .eq("is_active", true);
-
-            if (!asContacts || asContacts.length === 0) {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "autosave_no_contacts",
-                message: "Sem contatos Auto Save ativos para interação",
-              });
-              break;
-            }
-
-            // Pick a random contact
-            const contact = pickRandom(asContacts);
-            const recipientPhone = contact.phone_e164;
-
-            // Get device credentials
-            const { data: asDevice } = await db
-              .from("devices")
-              .select("uazapi_token, uazapi_base_url, status")
-              .eq("id", job.device_id)
-              .single();
-
-            const asToken = asDevice?.uazapi_token;
-            const asBaseUrl = (asDevice?.uazapi_base_url || "").replace(/\/+$/, "");
-
-            if (!asToken || !asBaseUrl) {
-              throw new Error("Dispositivo sem credenciais API configuradas");
-            }
-
-            // Check device online
-            const onlineStatuses = ["Connected", "Ready", "authenticated", "ready"];
-            if (asDevice?.status && !onlineStatuses.includes(asDevice.status)) {
-              throw new Error(`Dispositivo offline: ${asDevice.status}`);
-            }
-
-            // Get user custom messages or use defaults
-            const { data: userMsgs } = await db
-              .from("warmup_messages")
-              .select("content")
-              .eq("user_id", job.user_id);
-
-            const msgPool = userMsgs && userMsgs.length > 0
-              ? userMsgs.map((m: any) => m.content)
-              : defaultAutosaveMessages;
-
-            const message = pickRandom(msgPool);
-
-            // Format phone for WhatsApp (E.164 without +)
-            const waNumber = recipientPhone.replace(/^\+/, "") + "@s.whatsapp.net";
-
-            // Send message via uazapi
-            await uazapiRequest(asBaseUrl, asToken, "/send/text", {
-              number: waNumber,
-              text: message,
-            });
-
-            // Track unique recipient
-            const todayDate = new Date().toISOString().split("T")[0];
-            await db.from("warmup_unique_recipients").insert({
-              user_id: job.user_id,
-              cycle_id: job.cycle_id,
-              recipient_phone_e164: recipientPhone,
-              day_date: todayDate,
-            }).catch(() => {}); // ignore duplicates
-
-            // Update budget counters
-            await db.from("warmup_cycles").update({
-              daily_interaction_budget_used: cycle.daily_interaction_budget_used + 1,
-              daily_unique_recipients_used: cycle.daily_unique_recipients_used + 1,
-            }).eq("id", cycle.id);
-
-            // Audit log
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "autosave_sent",
-              message: `Auto Save: mensagem enviada para ${recipientPhone}`,
-              meta: { phone: recipientPhone, message_preview: message.slice(0, 50) },
-            });
-            break;
-          }
-
-          case "enable_community": {
-            if (cycle.phase !== "autosave_enabled") {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "community_blocked",
-                message: "Comunidade não habilitada: fase Auto Save ainda não ativa",
-              });
-              break;
-            }
-
-            const { data: membership } = await db
-              .from("warmup_community_membership")
-              .select("is_enabled")
-              .eq("device_id", job.device_id)
-              .single();
-
-            if (membership?.is_enabled) {
-              await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "info", event_type: "phase_changed",
-                message: "Comunidade habilitada",
-              });
-            } else {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "community_not_enabled",
-                message: "Comunidade não habilitada: membership não ativa",
-              });
-            }
-            break;
-          }
-
-          case "daily_reset": {
-            const newTarget = randInt(
-              cycle.daily_interaction_budget_min,
-              cycle.daily_interaction_budget_max
-            );
-            const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
-
-            // Check if cycle should complete
-            if (newDay > cycle.days_total) {
-              await db.from("warmup_cycles").update({
-                is_running: false, phase: "completed",
-                daily_interaction_budget_used: 0,
-                daily_unique_recipients_used: 0,
-              }).eq("id", cycle.id);
-
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "info", event_type: "cycle_completed",
-                message: `Ciclo concluído após ${cycle.days_total} dias`,
-              });
-              break;
-            }
-
-            await db.from("warmup_cycles").update({
-              daily_interaction_budget_used: 0,
-              daily_unique_recipients_used: 0,
-              daily_interaction_budget_target: newTarget,
-              day_index: newDay,
-              last_daily_reset_at: new Date().toISOString(),
-            }).eq("id", cycle.id);
-
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "daily_reset",
-              message: `Reset diário: dia ${newDay}/${cycle.days_total}, budget target: ${newTarget}`,
-              meta: { day: newDay, budget_target: newTarget },
-            });
-
-            // Schedule next daily_reset for tomorrow
-            const nextReset = new Date();
-            nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-            nextReset.setUTCHours(3, 5, 0, 0);
-            await db.from("warmup_jobs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
-            });
-
-            // If phase includes autosave, schedule interaction jobs for the new day
-            if (["autosave_enabled", "community_enabled"].includes(cycle.phase)) {
-              const scheduled = await scheduleAutosaveInteractions(
-                db, job.user_id, job.device_id, job.cycle_id, newTarget, 0
-              );
-              if (scheduled > 0) {
-                await db.from("warmup_audit_logs").insert({
-                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                  level: "info", event_type: "autosave_scheduled",
-                  message: `${scheduled} interações Auto Save agendadas para o dia ${newDay}`,
-                  meta: { count: scheduled, day: newDay },
-                });
-              }
-            }
-            break;
-          }
-
-          case "health_check": {
-            // Placeholder
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "health_check", message: "Health check OK",
-            });
-            break;
-          }
-
-          default: {
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "warn", event_type: "unknown_job_type",
-              message: `Tipo de job desconhecido: ${job.job_type}`,
-            });
-          }
-        }
-
-        // Mark succeeded
-        await db.from("warmup_jobs").update({
-          status: "succeeded",
-          attempts: job.attempts + 1,
-        }).eq("id", job.id);
-        processed++;
-
-      } catch (jobErr: any) {
-        failed++;
-        const newAttempts = job.attempts + 1;
-
-        if (newAttempts < job.max_attempts) {
-          // Re-schedule with backoff
-          const retryAt = new Date(Date.now() + backoffMinutes(newAttempts) * 60 * 1000);
-          await db.from("warmup_jobs").update({
-            status: "pending",
-            attempts: newAttempts,
-            last_error: jobErr.message,
-            run_at: retryAt.toISOString(),
-          }).eq("id", job.id);
-        } else {
-          await db.from("warmup_jobs").update({
-            status: "failed",
-            attempts: newAttempts,
-            last_error: jobErr.message,
-          }).eq("id", job.id);
-        }
-
-        await db.from("warmup_audit_logs").insert({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "error", event_type: "job_failed",
-          message: `Job ${job.job_type} falhou: ${jobErr.message}`,
-          meta: { job_id: job.id, attempts: newAttempts, max: job.max_attempts },
-        }).catch(() => {});
-      }
-    }
-
-    return new Response(JSON.stringify({ ok: true, processed, failed, total: pendingJobs.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: "Use warmup-tick endpoint for tick processing" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err: any) {
