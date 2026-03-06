@@ -68,15 +68,55 @@ Deno.serve(async (req) => {
           headers: { "token": deviceToken, "Accept": "application/json" },
         });
 
-        // If token is invalid (401), DON'T change device status - just skip
+        // If token is invalid (401), instance likely doesn't exist anymore on UAZAPI
         if (res.status === 401) {
-          console.log(`Device ${device.name}: token invalid (401), preserving current status: ${device.status}`);
+          console.log(`Device ${device.name}: token invalid (401), marking as disconnected and releasing token`);
+          
+          // Mark device as disconnected
+          await serviceClient.from("devices").update({
+            status: "Disconnected",
+            uazapi_token: null,
+            uazapi_base_url: null,
+          }).eq("id", device.id);
+
+          // Release token back to pool
+          await serviceClient.from("user_api_tokens").update({
+            status: "invalid",
+            device_id: null,
+            assigned_at: null,
+          }).eq("device_id", device.id);
+
           results.push({
             id: device.id,
             name: device.name,
             found: false,
-            status: device.status,
-            error: "Token invalid",
+            status: "Disconnected",
+            error: "Token invalid - released",
+          });
+          continue;
+        }
+
+        // If 404 or instance not found, also release
+        if (res.status === 404) {
+          console.log(`Device ${device.name}: instance not found (404), releasing token`);
+          await serviceClient.from("devices").update({
+            status: "Disconnected",
+            uazapi_token: null,
+            uazapi_base_url: null,
+          }).eq("id", device.id);
+
+          await serviceClient.from("user_api_tokens").update({
+            status: "available",
+            device_id: null,
+            assigned_at: null,
+          }).eq("device_id", device.id);
+
+          results.push({
+            id: device.id,
+            name: device.name,
+            found: false,
+            status: "Disconnected",
+            error: "Instance not found - token released",
           });
           continue;
         }
