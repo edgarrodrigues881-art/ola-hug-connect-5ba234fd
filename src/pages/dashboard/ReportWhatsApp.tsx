@@ -79,17 +79,15 @@ export default function ReportWhatsApp() {
     if (!user) return;
     setCreatingInstance(true);
     try {
-      const { data, error } = await supabase.from("devices").insert({
-        user_id: user.id,
-        name: "Relatorio Via Whatsapp",
-        login_type: "report_wa",
-        status: "Disconnected",
-      } as any).select().single();
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("manage-devices", {
+        body: { action: "create-report" },
+      });
+      if (error) throw new Error(error.message || "Erro ao criar instância");
+      if (data?.error) throw new Error(data.error);
       
       // Link to config
-      if (data) {
-        await upsertConfig.mutateAsync({ device_id: data.id });
+      if (data?.device) {
+        await upsertConfig.mutateAsync({ device_id: data.device.id });
       }
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       toast.success("Instância de relatório criada");
