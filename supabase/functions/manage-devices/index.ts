@@ -10,7 +10,7 @@ async function oplog(client: any, userId: string, event: string, details: string
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
 }
 
-  if (req.method === "OPTIONS") {
+Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
