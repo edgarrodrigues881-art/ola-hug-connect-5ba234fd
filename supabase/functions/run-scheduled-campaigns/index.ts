@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ triggered: results.length, results, staleLocksCleaned: cleanedCount || 0 }),
+      JSON.stringify({ triggered: results.length, results, staleLocksCleaned: cleanedCount || 0, watchdogRestarted: restarted }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
