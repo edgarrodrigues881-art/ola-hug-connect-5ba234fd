@@ -387,35 +387,12 @@ const Devices = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const device = devices.find(d => d.id === id);
-
-      // 1. Delete instance from UaZapi server (disconnect + delete)
-      try {
-        await callApi({ action: "deleteInstance", deviceId: id });
-      } catch (e) {
-        console.warn("Failed to delete instance from server (non-blocking):", e);
-      }
-
-      // 2. Release token back to pool
-      await supabase.from("user_api_tokens").update({
-        status: "available", device_id: null, assigned_at: null,
-      } as any).eq("device_id", id);
-
-      // 3. Clean up warmup sessions and cycles linked to this device
-      await supabase.from("warmup_sessions").delete().eq("device_id", id);
-      await supabase.from("warmup_cycles").delete().eq("device_id", id);
-      await supabase.from("warmup_instance_groups").delete().eq("device_id", id);
-      await supabase.from("warmup_community_membership").delete().eq("device_id", id);
-
-      // 4. Release proxy (mark as USADA, unlink)
-      if (device?.proxy_id) {
-        await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
-        await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
-      }
-
-      // 5. Delete the device record (no orphans)
-      const { error } = await supabase.from("devices").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("manage-devices", {
+        body: { action: "delete", deviceId: id },
+      });
+      if (error) throw new Error(error.message || "Erro ao excluir instância");
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -1638,12 +1615,8 @@ const Devices = () => {
                         try {
                           if (!connectingDevice) return;
                           if (!connectingDevice.has_api_config) {
-                            await callApi({
-                              action: "createInstance",
-                              deviceId: connectingDevice.id,
-                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
+                            return;
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
                           if (result.alreadyConnected) {
@@ -1687,12 +1660,8 @@ const Devices = () => {
                         try {
                           if (!connectingDevice) return;
                           if (!connectingDevice.has_api_config) {
-                            await callApi({
-                              action: "createInstance",
-                              deviceId: connectingDevice.id,
-                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
+                            return;
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
                           if (result.alreadyConnected) {
