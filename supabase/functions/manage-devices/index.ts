@@ -310,11 +310,14 @@ Deno.serve(async (req) => {
         assigned_at: null,
       }).eq("device_id", deviceId);
 
-      // 3. Clean up warmup data
-      await admin.from("warmup_sessions").delete().eq("device_id", deviceId);
-      await admin.from("warmup_cycles").delete().eq("device_id", deviceId);
+      // 3. Clean up warmup data (jobs first due to FK on cycles)
+      await admin.from("warmup_jobs").delete().eq("device_id", deviceId);
+      await admin.from("warmup_audit_logs").delete().eq("device_id", deviceId);
+      await admin.from("warmup_logs").delete().eq("device_id", deviceId);
       await admin.from("warmup_instance_groups").delete().eq("device_id", deviceId);
       await admin.from("warmup_community_membership").delete().eq("device_id", deviceId);
+      await admin.from("warmup_sessions").delete().eq("device_id", deviceId);
+      await admin.from("warmup_cycles").delete().eq("device_id", deviceId);
 
       // 4. Release proxy
       if (device.proxy_id) {
