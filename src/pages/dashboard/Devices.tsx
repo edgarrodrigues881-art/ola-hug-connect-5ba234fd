@@ -1638,12 +1638,8 @@ const Devices = () => {
                         try {
                           if (!connectingDevice) return;
                           if (!connectingDevice.has_api_config) {
-                            await callApi({
-                              action: "createInstance",
-                              deviceId: connectingDevice.id,
-                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
+                            return;
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
                           if (result.alreadyConnected) {
@@ -1687,12 +1683,8 @@ const Devices = () => {
                         try {
                           if (!connectingDevice) return;
                           if (!connectingDevice.has_api_config) {
-                            await callApi({
-                              action: "createInstance",
-                              deviceId: connectingDevice.id,
-                              instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["devices"] });
+                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
+                            return;
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
                           if (result.alreadyConnected) {

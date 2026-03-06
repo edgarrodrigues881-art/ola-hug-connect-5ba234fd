@@ -145,15 +145,7 @@ export default function ReportWhatsApp() {
     setQrCodeBase64("");
     setConnectError("");
     try {
-      // Edge function handles instance creation internally if needed
-      try {
-        await callApi({
-          action: "createInstance",
-          deviceId: reportDevice.id,
-          instanceName: reportDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        });
-        queryClient.invalidateQueries({ queryKey: ["report-device"] });
-      } catch { /* edge function handles this */ }
+      // Token must be pre-assigned by admin — no auto-creation
       const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
       if (result?.alreadyConnected) {
         setQrConnected(true);
@@ -181,15 +173,7 @@ export default function ReportWhatsApp() {
     setPairingCode("");
     setConnectError("");
     try {
-      // Edge function handles instance creation internally if needed
-      try {
-        await callApi({
-          action: "createInstance",
-          deviceId: reportDevice.id,
-          instanceName: reportDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        });
-        queryClient.invalidateQueries({ queryKey: ["report-device"] });
-      } catch { /* edge function handles this */ }
+      // Token must be pre-assigned by admin — no auto-creation
       const result = await callApi({ action: "connect", deviceId: reportDevice.id });
       if (result?.alreadyConnected) {
         setQrConnected(true);
