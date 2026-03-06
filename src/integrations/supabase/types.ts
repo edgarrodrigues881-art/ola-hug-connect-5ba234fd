@@ -200,6 +200,41 @@ export type Database = {
           },
         ]
       }
+      campaign_device_locks: {
+        Row: {
+          acquired_at: string
+          campaign_id: string
+          device_id: string
+          heartbeat_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          campaign_id: string
+          device_id: string
+          heartbeat_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          campaign_id?: string
+          device_id?: string
+          heartbeat_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_device_locks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           buttons: Json | null
@@ -1696,6 +1731,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acquire_device_lock: {
+        Args: {
+          _campaign_id: string
+          _device_id: string
+          _stale_seconds?: number
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      cleanup_stale_locks: {
+        Args: { _stale_seconds?: number }
+        Returns: number
+      }
       get_profile_safe: {
         Args: { profile_row: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: {
@@ -1728,6 +1776,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      heartbeat_device_lock: {
+        Args: { _campaign_id: string }
+        Returns: undefined
+      }
+      release_device_lock: {
+        Args: { _campaign_id: string; _device_id: string }
+        Returns: undefined
       }
     }
     Enums: {
