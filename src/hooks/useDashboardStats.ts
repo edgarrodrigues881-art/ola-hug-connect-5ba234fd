@@ -67,7 +67,7 @@ export function useDashboardStats() {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
       const [devicesRes, warmupsRes, logsRes, proxiesRes] = await Promise.all([
-        supabase.from("devices").select("*").neq("login_type", "report_wa"),
+        supabase.from("devices").select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type").neq("login_type", "report_wa"),
         supabase.from("warmup_sessions").select("*"),
         supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo),
         supabase.from("proxies").select("id, host"),
