@@ -334,6 +334,41 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── CREATE REPORT_WA DEVICE ──────────────────────────────
+    if (action === "create-report") {
+      // Check if user already has a report_wa device
+      const { data: existing } = await admin
+        .from("devices")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("login_type", "report_wa")
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error("Já existe uma instância de relatório configurada.");
+      }
+
+      const { data: newDevice, error: insertErr } = await admin
+        .from("devices")
+        .insert({
+          name: "Relatorio Via Whatsapp",
+          login_type: "report_wa",
+          user_id: user.id,
+          status: "Disconnected",
+          instance_type: "notificacao",
+        })
+        .select("id, name, status, login_type, created_at")
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      return new Response(
+        JSON.stringify({ device: newDevice }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown action: ${action}` }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
