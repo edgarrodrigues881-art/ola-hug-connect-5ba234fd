@@ -1180,7 +1180,7 @@ const Devices = () => {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
