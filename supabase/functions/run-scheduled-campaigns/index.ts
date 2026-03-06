@@ -28,11 +28,50 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // Find campaigns that are scheduled and past their scheduled_at time
+    // ── Cleanup stale device locks (older than 120s without heartbeat) ──
+    const { data: cleanedCount } = await serviceClient.rpc("cleanup_stale_locks", { _stale_seconds: 120 });
+    if (cleanedCount && cleanedCount > 0) {
+      console.log(`Cleaned up ${cleanedCount} stale device locks`);
+    }
+
+    // ── Reset stuck campaigns (running but no progress for > 5 min) ──
+    const { data: stuckCampaigns } = await serviceClient
+      .from("campaigns")
+      .select("id, device_id, device_ids, updated_at")
+      .eq("status", "running")
+      .lt("updated_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+
+    for (const stuck of stuckCampaigns || []) {
+      // Check if there are processing contacts stuck
+      const { count } = await serviceClient
+        .from("campaign_contacts")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", stuck.id)
+        .eq("status", "processing");
+
+      if (count && count > 0) {
+        // Revert processing contacts back to pending
+        await serviceClient
+          .from("campaign_contacts")
+          .update({ status: "pending" })
+          .eq("campaign_id", stuck.id)
+          .eq("status", "processing");
+        console.log(`Reset ${count} stuck processing contacts for campaign ${stuck.id}`);
+      }
+
+      // Release any locks held by this stuck campaign
+      const ids: string[] = Array.isArray(stuck.device_ids) && stuck.device_ids.length > 0
+        ? stuck.device_ids : stuck.device_id ? [stuck.device_id] : [];
+      for (const deviceId of ids) {
+        await serviceClient.rpc("release_device_lock", { _device_id: deviceId, _campaign_id: stuck.id });
+      }
+      console.log(`Released locks for stuck campaign ${stuck.id}`);
+    }
+
+    // ── Find and trigger scheduled campaigns ──
     const { data: campaigns, error } = await serviceClient
       .from("campaigns")
       .select("id, user_id, device_id, scheduled_at")
@@ -45,7 +84,6 @@ Deno.serve(async (req) => {
 
     for (const campaign of campaigns || []) {
       try {
-        // Call process-campaign as the user
         const res = await fetch(`${supabaseUrl}/functions/v1/process-campaign`, {
           method: "POST",
           headers: {
@@ -68,7 +106,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ triggered: results.length, results }),
+      JSON.stringify({ triggered: results.length, results, staleLocksCleaned: cleanedCount || 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
