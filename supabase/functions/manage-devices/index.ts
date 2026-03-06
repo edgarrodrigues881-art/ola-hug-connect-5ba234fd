@@ -262,6 +262,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Mark assigned proxies as USANDO
+      const assignedProxyIds = (newDevices || [])
+        .map((d: any) => d.proxy_id)
+        .filter(Boolean);
+      if (assignedProxyIds.length > 0) {
+        await admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds);
+      }
+
       // Return devices without token fields
       const safeDevices = (newDevices || []).map((d: any) => ({
         ...d,
