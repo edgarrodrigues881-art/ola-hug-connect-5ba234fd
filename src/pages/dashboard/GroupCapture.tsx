@@ -106,7 +106,7 @@ const GroupCapture = () => {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 15000,
+    refetchInterval: 30000, // Device list doesn't change often
   });
 
   // Fetch join logs for per-device stats

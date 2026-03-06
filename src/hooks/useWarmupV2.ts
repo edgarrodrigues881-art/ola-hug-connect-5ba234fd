@@ -129,7 +129,7 @@ export function useDeviceCycle(deviceId: string) {
       return (data as unknown as WarmupCycle[])?.[0] || null;
     },
     enabled: !!user && !!deviceId,
-    refetchInterval: 15000,
+    refetchInterval: 30000, // Cycle state changes infrequently
   });
 }
 
