@@ -107,7 +107,8 @@ function isTemporaryError(msg: string): boolean {
     lower.includes("econnrefused") || lower.includes("network") || lower.includes("socket") ||
     lower.includes("fetch failed") || lower.includes("503") || lower.includes("502") ||
     lower.includes("429") || lower.includes("rate limit") || lower.includes("temporarily") ||
-    lower.includes("internal server error") || lower.includes("500");
+    lower.includes("internal server error") || lower.includes("500") ||
+    lower.includes("aguardando resposta") || lower.includes("aborterror");
 }
 
 function translateErrorMessage(msg: string): string {
@@ -524,6 +525,7 @@ Deno.serve(async (req) => {
           const devToken = dev.uazapi_token;
           const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
           let devSent = 0, devFailed = 0;
+          let devHeartbeat = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
           const devShuffleBag = new ShuffleBag(messageVariants.length);
@@ -531,8 +533,26 @@ Deno.serve(async (req) => {
           for (const contact of chunk) {
             if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
 
+            // Optimistic lock: mark as processing
+            const { data: locked } = await serviceClient
+              .from("campaign_contacts")
+              .update({ status: "processing" })
+              .eq("id", contact.id)
+              .eq("status", "pending")
+              .select("id");
+            if (!locked || locked.length === 0) continue;
+
+            // Heartbeat every 5 messages to keep lock alive
+            devHeartbeat++;
+            if (devHeartbeat % 5 === 0) {
+              await heartbeatLock(serviceClient, campaignId);
+            }
+
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
-            if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) break;
+            if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
+              await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              break;
+            }
 
             const phone = contact.phone.replace(/\D/g, "");
             if (phone.length < 10) {
