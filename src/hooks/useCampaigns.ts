@@ -173,6 +173,10 @@ export function useStartCampaign() {
         body: { action: "start", campaignId, deviceId },
       });
       if (error) throw error;
+      // Handle device lock conflict (409)
+      if (data?.error && data?.lockedBy) {
+        throw new Error(data.error);
+      }
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
