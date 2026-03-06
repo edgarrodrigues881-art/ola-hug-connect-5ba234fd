@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wifi, WifiOff, Flame, MessageSquare, BarChart3, Pause } from "lucide-react";
+import { Wifi, WifiOff, Flame, MessageSquare, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
