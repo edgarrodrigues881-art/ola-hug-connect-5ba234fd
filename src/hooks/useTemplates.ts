@@ -21,7 +21,7 @@ export function useTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("templates")
-        .select("*")
+        .select("id, name, content, type, media_url, buttons, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Template[];

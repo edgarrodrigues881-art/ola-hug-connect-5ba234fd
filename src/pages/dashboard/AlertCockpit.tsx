@@ -76,7 +76,7 @@ export default function AlertCockpit() {
       const since = new Date(Date.now() - (periodMs[filterPeriod] || 86400000)).toISOString();
       const { data, error } = await supabase
         .from("alerts")
-        .select("*")
+        .select("id, type, severity, message_rendered, instance_name, phone_number, campaign_name, resolved, resolved_at, whatsapp_sent, created_at")
         .eq("user_id", user!.id)
         .gte("created_at", since)
         .order("created_at", { ascending: false })

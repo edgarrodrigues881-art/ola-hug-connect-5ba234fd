@@ -33,7 +33,7 @@ export function CampaignDetailDialog({ open, onOpenChange, campaignId, campaignN
     queryFn: async () => {
       const { data, error } = await supabase
         .from("campaign_contacts")
-        .select("*")
+        .select("id, phone, name, status, sent_at, error_message, created_at")
         .eq("campaign_id", campaignId)
         .order("created_at", { ascending: true });
       if (error) throw error;

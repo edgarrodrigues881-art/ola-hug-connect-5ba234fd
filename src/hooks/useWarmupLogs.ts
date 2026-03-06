@@ -23,7 +23,7 @@ export function useWarmupLogs(sessionId?: string) {
     queryFn: async () => {
       let query = supabase
         .from("warmup_logs" as any)
-        .select("*")
+        .select("id, session_id, device_id, group_jid, group_name, message_content, status, error_message, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
 

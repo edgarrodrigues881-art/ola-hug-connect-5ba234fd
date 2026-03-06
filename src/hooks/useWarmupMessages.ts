@@ -17,7 +17,7 @@ export function useWarmupMessages() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_messages" as any)
-        .select("*")
+        .select("id, content, category, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as WarmupMessage[];

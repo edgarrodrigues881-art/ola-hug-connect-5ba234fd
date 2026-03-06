@@ -189,7 +189,7 @@ const Devices = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("plan_name, plan_price, max_instances, expires_at")
         .eq("user_id", session!.user.id)
         .order("created_at", { ascending: false })
         .limit(1)

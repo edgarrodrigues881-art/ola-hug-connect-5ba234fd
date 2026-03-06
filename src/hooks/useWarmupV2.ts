@@ -87,7 +87,7 @@ export function useWarmupPlans() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_plans" as any)
-        .select("*")
+        .select("id, name, days_total, is_active, created_at")
         .eq("is_active", true)
         .order("days_total", { ascending: true });
       if (error) throw error;
@@ -104,7 +104,7 @@ export function useWarmupCycles() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_cycles" as any)
-        .select("*")
+        .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as WarmupCycle[];
@@ -120,7 +120,7 @@ export function useDeviceCycle(deviceId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_cycles" as any)
-        .select("*")
+        .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
         .eq("device_id", deviceId)
         .in("phase", ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "paused"])
         .order("created_at", { ascending: false })
@@ -192,7 +192,7 @@ export function useInstanceGroups(deviceId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_instance_groups" as any)
-        .select("*")
+        .select("id, device_id, group_id, cycle_id, join_status, joined_at, last_error, created_at")
         .eq("device_id", deviceId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -210,7 +210,7 @@ export function useAutosaveContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_autosave_contacts" as any)
-        .select("*")
+        .select("id, contact_name, phone_e164, tags, is_active, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as WarmupAutosaveContact[];
@@ -227,7 +227,7 @@ export function useCommunityMembership(deviceId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_community_membership" as any)
-        .select("*")
+        .select("id, user_id, device_id, cycle_id, is_enabled, enabled_at, disabled_at")
         .eq("device_id", deviceId)
         .limit(1);
       if (error) throw error;
@@ -305,7 +305,7 @@ export function useWarmupAuditLogs(cycleId?: string, limit = 30) {
     queryFn: async () => {
       let query = supabase
         .from("warmup_audit_logs" as any)
-        .select("*")
+        .select("id, device_id, cycle_id, level, event_type, message, meta, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
       if (cycleId) query = query.eq("cycle_id", cycleId);

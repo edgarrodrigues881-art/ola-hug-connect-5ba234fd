@@ -49,7 +49,7 @@ export default function ReportWhatsApp() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("report_wa_configs")
-        .select("*")
+        .select("id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name, created_at, updated_at")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
