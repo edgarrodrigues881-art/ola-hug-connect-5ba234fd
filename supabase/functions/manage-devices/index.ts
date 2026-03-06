@@ -1,0 +1,288 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+
+  // Authenticate user
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const {
+    data: { user },
+    error: authError,
+  } = await userClient.auth.getUser();
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const admin = createClient(supabaseUrl, serviceKey);
+  const body = await req.json();
+  const { action } = body;
+
+  try {
+    // ─── CREATE SINGLE DEVICE ──────────────────────────────────
+    if (action === "create") {
+      const { name, login_type = "qr" } = body;
+      if (!name?.trim()) throw new Error("Nome é obrigatório.");
+
+      // 1. Check plan limits
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("max_instances, expires_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!sub || new Date(sub.expires_at) < new Date()) {
+        throw new Error("Você não possui um plano ativo.");
+      }
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("instance_override, status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile?.status === "suspended" || profile?.status === "cancelled") {
+        throw new Error("Conta suspensa/cancelada.");
+      }
+
+      const { count: currentCount } = await admin
+        .from("devices")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .neq("login_type", "report_wa");
+
+      const maxAllowed = (sub.max_instances ?? 0) + (profile?.instance_override ?? 0);
+      if ((currentCount ?? 0) >= maxAllowed) {
+        throw new Error(`Limite de instâncias atingido (${currentCount} de ${maxAllowed}).`);
+      }
+
+      // 2. Find available token
+      const { data: available } = await admin
+        .from("user_api_tokens")
+        .select("id, token")
+        .eq("user_id", user.id)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!available) {
+        throw new Error("Nenhum token disponível no pool. Solicite ao administrador.");
+      }
+
+      // 3. Reserve token
+      const { error: reserveErr } = await admin
+        .from("user_api_tokens")
+        .update({ status: "reserved" })
+        .eq("id", available.id)
+        .eq("status", "available");
+      if (reserveErr) throw new Error("Falha ao reservar token.");
+
+      try {
+        // 4. Create device record (with token — server-side only)
+        const { data: newDevice, error: insertErr } = await admin
+          .from("devices")
+          .insert({
+            name: name.trim(),
+            login_type,
+            user_id: user.id,
+            uazapi_token: available.token,
+          })
+          .select("id, name, status, login_type, number, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
+          .single();
+        if (insertErr) throw insertErr;
+
+        // 5. Create instance on provider (non-blocking)
+        try {
+          const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 20);
+          const instName = `${slug}-${newDevice.id.substring(0, 8)}-${Math.random().toString(36).substring(2, 6)}`;
+          const evolutionUrl = `${supabaseUrl}/functions/v1/evolution-connect`;
+          await fetch(evolutionUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: JSON.stringify({ action: "createInstance", deviceId: newDevice.id, instanceName: instName }),
+          });
+        } catch (e) {
+          console.warn("Instance creation failed (non-blocking):", e);
+        }
+
+        // 6. Mark token as in_use
+        await admin.from("user_api_tokens").update({
+          status: "in_use",
+          device_id: newDevice.id,
+          assigned_at: new Date().toISOString(),
+        }).eq("id", available.id);
+
+        return new Response(
+          JSON.stringify({ device: { ...newDevice, has_api_config: true } }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err) {
+        // Rollback token
+        await admin.from("user_api_tokens").update({
+          status: "available",
+          device_id: null,
+          assigned_at: null,
+        }).eq("id", available.id);
+        throw err;
+      }
+    }
+
+    // ─── BULK CREATE DEVICES ───────────────────────────────────
+    if (action === "bulk-create") {
+      const { prefix = "Instância", proxyIds = [], noProxyCount = 0, startIndex = 1 } = body;
+      const totalCount = (proxyIds?.length || 0) + (noProxyCount || 0);
+      if (totalCount === 0) throw new Error("Nenhuma instância para criar.");
+
+      // Check plan limits
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("max_instances, expires_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!sub || new Date(sub.expires_at) < new Date()) {
+        throw new Error("Sem plano ativo.");
+      }
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("instance_override")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const { count: currentCount } = await admin
+        .from("devices")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .neq("login_type", "report_wa");
+
+      const maxAllowed = (sub.max_instances ?? 0) + (profile?.instance_override ?? 0);
+      if ((currentCount ?? 0) + totalCount > maxAllowed) {
+        throw new Error(`Limite excedido. Disponível: ${maxAllowed - (currentCount ?? 0)}.`);
+      }
+
+      // Get available tokens
+      const { data: tokens } = await admin
+        .from("user_api_tokens")
+        .select("id, token")
+        .eq("user_id", user.id)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(totalCount);
+
+      // Build inserts
+      const inserts: any[] = [];
+      let tokenIdx = 0;
+      let idx = startIndex;
+
+      for (const proxyId of (proxyIds || [])) {
+        const token = tokens?.[tokenIdx];
+        inserts.push({
+          name: `${prefix} ${idx}`,
+          login_type: "qr",
+          user_id: user.id,
+          proxy_id: proxyId,
+          uazapi_token: token?.token || null,
+        });
+        if (token) tokenIdx++;
+        idx++;
+      }
+
+      for (let i = 0; i < noProxyCount; i++) {
+        const token = tokens?.[tokenIdx];
+        inserts.push({
+          name: `${prefix} ${idx}`,
+          login_type: "qr",
+          user_id: user.id,
+          proxy_id: null,
+          uazapi_token: token?.token || null,
+        });
+        if (token) tokenIdx++;
+        idx++;
+      }
+
+      // Reserve tokens
+      const usedTokenIds = (tokens || []).slice(0, tokenIdx).map((t: any) => t.id);
+      if (usedTokenIds.length > 0) {
+        await admin.from("user_api_tokens").update({ status: "reserved" }).in("id", usedTokenIds);
+      }
+
+      const { data: newDevices, error: bulkErr } = await admin
+        .from("devices")
+        .insert(inserts)
+        .select("id, name, status, login_type, number, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type");
+
+      if (bulkErr) {
+        if (usedTokenIds.length > 0) {
+          await admin.from("user_api_tokens").update({ status: "available" }).in("id", usedTokenIds);
+        }
+        throw bulkErr;
+      }
+
+      // Mark tokens as in_use
+      if (newDevices && tokens) {
+        for (let i = 0; i < Math.min(newDevices.length, tokens.length); i++) {
+          await admin.from("user_api_tokens").update({
+            status: "in_use",
+            device_id: newDevices[i].id,
+            assigned_at: new Date().toISOString(),
+          }).eq("id", tokens[i].id);
+        }
+      }
+
+      // Return devices without token fields
+      const safeDevices = (newDevices || []).map((d: any) => ({
+        ...d,
+        has_api_config: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token,
+      }));
+
+      return new Response(
+        JSON.stringify({ devices: safeDevices, count: safeDevices.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: `Unknown action: ${action}` }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err: any) {
+    console.error("manage-devices error:", err);
+    return new Response(
+      JSON.stringify({ error: err.message || "Erro interno" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

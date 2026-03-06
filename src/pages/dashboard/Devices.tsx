@@ -37,13 +37,10 @@ interface Device {
   status: "Ready" | "Disconnected" | "Loading";
   login_type: string;
   proxy_id: string | null;
-  whapi_token: string | null;
   profile_picture: string | null;
   profile_name: string | null;
   created_at: string;
   updated_at: string;
-  uazapi_token: string | null;
-  uazapi_base_url: string | null;
   has_api_config: boolean;
 }
 
@@ -100,17 +97,6 @@ const Devices = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editName, setEditName] = useState("");
-  const [editNumber, setEditNumber] = useState("");
-  const [editToken, setEditToken] = useState("");
-  const [editUazapiToken, setEditUazapiToken] = useState("");
-  const [editUazapiBaseUrl, setEditUazapiBaseUrl] = useState("");
-
-  // Quick token dialog
-  const [tokenOpen, setTokenOpen] = useState(false);
-  const [tokenDevice, setTokenDevice] = useState<Device | null>(null);
-  const [quickToken, setQuickToken] = useState("");
-  const [tokenVisible, setTokenVisible] = useState(false);
-  const [tokenStatus, setTokenStatus] = useState<"valid" | "invalid" | "auth_error" | null>(null);
 
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -159,7 +145,7 @@ const Devices = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devices")
-        .select("*")
+        .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type, uazapi_base_url")
         .neq("login_type", "report_wa")
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });
@@ -171,14 +157,11 @@ const Devices = () => {
         status: d.status as "Ready" | "Disconnected" | "Loading",
         login_type: d.login_type,
         proxy_id: d.proxy_id,
-        whapi_token: d.whapi_token || null,
         profile_picture: d.profile_picture || null,
         profile_name: d.profile_name || null,
         created_at: d.created_at,
         updated_at: d.updated_at,
-        uazapi_token: d.uazapi_token || null,
-        uazapi_base_url: d.uazapi_base_url || null,
-        has_api_config: !!(d.uazapi_token && d.uazapi_base_url),
+        has_api_config: !!d.uazapi_base_url,
       })) as Device[];
     },
     enabled: !!session,
@@ -286,8 +269,7 @@ const Devices = () => {
       let score = 100;
       // Penalty for status
       if (d.status === "Disconnected") score -= 20;
-      if (!d.uazapi_token) score -= 15;
-      if (!d.uazapi_base_url) score -= 15;
+      if (!d.has_api_config) score -= 30;
       if (!d.proxy_id) score -= 10;
       // Penalty for warmup log failures
       const deviceLogs = recentLogs.filter(l => l.device_id === d.id);
@@ -382,92 +364,12 @@ const Devices = () => {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (device: { name: string; login_type: string }) => {
-      // 0. Server-side plan limit check (re-validate in case frontend state is stale)
-      const { count: currentCount } = await supabase
-        .from("devices")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", session?.user.id!)
-        .neq("login_type", "report_wa");
-
-      const { data: freshSub } = await supabase
-        .from("subscriptions")
-        .select("max_instances, expires_at")
-        .eq("user_id", session?.user.id!)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const { data: freshProfile } = await supabase
-        .from("profiles")
-        .select("instance_override")
-        .eq("id", session?.user.id!)
-        .maybeSingle();
-
-      if (!freshSub || new Date(freshSub.expires_at) < new Date()) {
-        throw new Error("Você não possui um plano ativo.");
-      }
-
-      const maxAllowed = (freshSub.max_instances ?? 0) + (freshProfile?.instance_override ?? 0);
-      if ((currentCount ?? 0) >= maxAllowed) {
-        throw new Error("Você atingiu o limite de instâncias do seu plano.");
-      }
-
-      // 1. Find an available token from the pool
-      const { data: available } = await supabase
-        .from("user_api_tokens")
-        .select("*")
-        .eq("user_id", session?.user.id!)
-        .eq("status", "available")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (!available) {
-        throw new Error("Nenhum token disponível no pool. Solicite ao administrador.");
-      }
-
-      // 2. Reserve the token (available → reserved)
-      const { error: reserveError } = await supabase
-        .from("user_api_tokens")
-        .update({ status: "reserved" } as any)
-        .eq("id", available.id)
-        .eq("status", "available");
-      if (reserveError) throw new Error("Falha ao reservar token.");
-
-      try {
-        // 3. Create the device record
-        const { data: newDevice, error } = await supabase.from("devices").insert({
-          name: device.name,
-          login_type: device.login_type,
-          user_id: session?.user.id,
-          uazapi_token: available.token,
-        } as any).select().single();
-        if (error) throw error;
-
-        // 4. Create instance on UAZAPI server via edge function
-        try {
-          const slug = device.name.toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 20);
-          const instName = `${slug}-${(newDevice as any).id.substring(0, 8)}-${Math.random().toString(36).substring(2, 6)}`;
-          await supabase.functions.invoke("evolution-connect", {
-            body: { action: "createInstance", deviceId: (newDevice as any).id, instanceName: instName },
-          });
-        } catch (e) {
-          console.warn("UAZAPI instance creation failed (non-blocking):", e);
-        }
-
-        // 5. Mark token as in_use (reserved → in_use)
-        await supabase.from("user_api_tokens").update({
-          status: "in_use",
-          device_id: (newDevice as any).id,
-          assigned_at: new Date().toISOString(),
-        } as any).eq("id", available.id);
-      } catch (err) {
-        // Rollback: release token back to available
-        await supabase.from("user_api_tokens").update({
-          status: "available", device_id: null, assigned_at: null,
-        } as any).eq("id", available.id);
-        throw err;
-      }
+      const { data, error } = await supabase.functions.invoke("manage-devices", {
+        body: { action: "create", name: device.name, login_type: device.login_type },
+      });
+      if (error) throw new Error(error.message || "Erro ao criar instância");
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -560,7 +462,6 @@ const Devices = () => {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
       return;
     }
-    // Check plan limits before attempting
     if (planState !== "active") {
       setPlanGateOpen(true);
       return;
@@ -577,69 +478,17 @@ const Devices = () => {
       return;
     }
     try {
-      // Fetch available tokens from pool
-      const { data: availableTokens } = await supabase
-        .from("user_api_tokens")
-        .select("*")
-        .eq("user_id", session?.user.id!)
-        .eq("status", "available")
-        .order("created_at", { ascending: true })
-        .limit(totalCount);
-
-      const inserts: any[] = [];
-      let idx = devices.length + 1;
-      let tokenIdx = 0;
-
-      for (const proxyId of bulkSelectedProxies) {
-        const token = availableTokens?.[tokenIdx];
-        inserts.push({
-          name: `${bulkPrefix} ${idx}`,
-          login_type: "qr",
-          user_id: session?.user.id,
-          proxy_id: proxyId,
-          uazapi_token: token?.token || null,
-        });
-        if (token) tokenIdx++;
-        idx++;
-      }
-      for (let i = 0; i < bulkNoProxyCount; i++) {
-        const token = availableTokens?.[tokenIdx];
-        inserts.push({
-          name: `${bulkPrefix} ${idx}`,
-          login_type: "qr",
-          user_id: session?.user.id,
-          proxy_id: null,
-          uazapi_token: token?.token || null,
-        });
-        if (token) tokenIdx++;
-        idx++;
-      }
-
-      // Reserve all tokens being used
-      const tokenIdsToReserve = (availableTokens || []).slice(0, tokenIdx).map(t => t.id);
-      if (tokenIdsToReserve.length > 0) {
-        await supabase.from("user_api_tokens").update({ status: "reserved" } as any).in("id", tokenIdsToReserve);
-      }
-
-      const { data: newDevices, error } = await supabase.from("devices").insert(inserts).select();
-      if (error) {
-        // Rollback reserved tokens
-        if (tokenIdsToReserve.length > 0) {
-          await supabase.from("user_api_tokens").update({ status: "available" } as any).in("id", tokenIdsToReserve);
-        }
-        throw error;
-      }
-
-      // Mark tokens as in_use with device_id
-      if (newDevices && availableTokens) {
-        for (let i = 0; i < Math.min(newDevices.length, availableTokens.length); i++) {
-          await supabase.from("user_api_tokens").update({
-            status: "in_use",
-            device_id: newDevices[i].id,
-            assigned_at: new Date().toISOString(),
-          } as any).eq("id", availableTokens[i].id);
-        }
-      }
+      const { data, error } = await supabase.functions.invoke("manage-devices", {
+        body: {
+          action: "bulk-create",
+          prefix: bulkPrefix,
+          proxyIds: bulkSelectedProxies,
+          noProxyCount: bulkNoProxyCount,
+          startIndex: devices.length + 1,
+        },
+      });
+      if (error) throw new Error(error.message || "Erro ao criar instâncias");
+      if (data?.error) throw new Error(data.error);
 
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
@@ -647,7 +496,7 @@ const Devices = () => {
     } catch (err: any) {
       const msg = err?.message || "";
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      if (msg.includes("device_limit") || msg.includes("Limite") || msg.includes("LIMIT")) {
+      if (msg.includes("Limite") || msg.includes("LIMIT")) {
         toast({ title: "Limite de instâncias atingido", description: msg, variant: "destructive" });
       } else {
         toast({ title: "Erro ao criar instâncias", description: msg, variant: "destructive" });
@@ -706,23 +555,17 @@ const Devices = () => {
   const openEdit = (device: Device) => {
     setEditingDevice(device);
     setEditName(device.name);
-    setEditToken(device.whapi_token || "");
-    setEditUazapiToken(device.uazapi_token || "");
-    setEditUazapiBaseUrl(device.uazapi_base_url || "");
     setEditProxyValue(device.proxy_id || "none");
     setEditOpen(true);
   };
 
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
-    // Save instance name to DB
     updateMutation.mutate({
       id: editingDevice.id,
       updates: {
         name: editName,
         proxy_id: editingDevice.proxy_id || null,
-        uazapi_token: editingDevice.uazapi_token || null,
-        uazapi_base_url: editingDevice.uazapi_base_url || null,
       },
     });
     // Save WP profile changes via API
@@ -788,49 +631,7 @@ const Devices = () => {
     setInlineEditId(null);
   };
 
-  // Quick token
-  const openQuickToken = (device: Device) => {
-    setTokenDevice(device);
-    setQuickToken(device.uazapi_token || "");
-    setTokenOpen(true);
-  };
-
-  const handleQuickToken = () => {
-    if (!tokenDevice) return;
-    updateMutation.mutate({
-      id: tokenDevice.id,
-      updates: { uazapi_token: quickToken || null },
-    });
-    toast({ title: "Token atualizado" });
-    setTokenOpen(false);
-    setTokenDevice(null);
-  };
-
-  const handleQuickTokenWithValidation = async () => {
-    if (!tokenDevice || !quickToken.trim() || quickToken.length < 8) return;
-    updateMutation.mutate({
-      id: tokenDevice.id,
-      updates: { uazapi_token: quickToken },
-    });
-    // Try to validate by calling status
-    try {
-      const result = await callApi({ action: "status", deviceId: tokenDevice.id });
-      if (result?.status === "authenticated" || result?.status) {
-        setTokenStatus("valid");
-      } else {
-        setTokenStatus("valid"); // saved but can't confirm remotely
-      }
-    } catch {
-      setTokenStatus("valid"); // saved successfully, remote check optional
-    }
-    toast({ title: "Token atualizado" });
-    setTimeout(() => {
-      setTokenOpen(false);
-      setTokenDevice(null);
-      setTokenVisible(false);
-      setTokenStatus(null);
-    }, 800);
-  };
+  // Token management is handled server-side only
 
   // Logout
   const openLogout = (device: Device) => {
@@ -1420,8 +1221,6 @@ const Devices = () => {
                     onClick={() => {
                       setEditingDevice(d);
                       setEditName(d.name);
-                      setEditUazapiToken(d.uazapi_token || "");
-                      setEditUazapiBaseUrl(d.uazapi_base_url || "");
                       setEditProxyValue(d.proxy_id || "none");
                       setWpName("");
                       setWpPhotoUrl("");
@@ -1838,14 +1637,12 @@ const Devices = () => {
                       (async () => {
                         try {
                           if (!connectingDevice) return;
-                          if (!connectingDevice.uazapi_token) {
-                            const createResult = await callApi({
+                          if (!connectingDevice.has_api_config) {
+                            await callApi({
                               action: "createInstance",
                               deviceId: connectingDevice.id,
                               instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
                             });
-                            connectingDevice.uazapi_token = createResult.instanceToken;
-                            connectingDevice.uazapi_base_url = createResult.baseUrl;
                             queryClient.invalidateQueries({ queryKey: ["devices"] });
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
@@ -1889,14 +1686,12 @@ const Devices = () => {
                       (async () => {
                         try {
                           if (!connectingDevice) return;
-                          if (!connectingDevice.uazapi_token) {
-                            const createResult = await callApi({
+                          if (!connectingDevice.has_api_config) {
+                            await callApi({
                               action: "createInstance",
                               deviceId: connectingDevice.id,
                               instanceName: connectingDevice.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
                             });
-                            connectingDevice.uazapi_token = createResult.instanceToken;
-                            connectingDevice.uazapi_base_url = createResult.baseUrl;
                             queryClient.invalidateQueries({ queryKey: ["devices"] });
                           }
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });

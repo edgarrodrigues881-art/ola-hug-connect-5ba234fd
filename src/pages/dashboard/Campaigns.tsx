@@ -120,7 +120,7 @@ const Campaigns = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devices")
-        .select("*")
+        .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
         .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
