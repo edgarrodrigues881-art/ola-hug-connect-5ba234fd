@@ -6,7 +6,7 @@ import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { PerformanceBlock } from "@/components/dashboard/DeliveryRateCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
-import { DeviceInstanceCards } from "@/components/dashboard/DeviceInstanceCards";
+
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
