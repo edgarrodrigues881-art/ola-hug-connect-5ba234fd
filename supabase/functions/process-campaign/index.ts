@@ -265,6 +265,20 @@ async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
 
+// When disconnect is detected mid-campaign, PAUSE instead of FAIL
+// This preserves pending contacts so user can resume after reconnecting
+async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], failedCount: number) {
+  console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
+  // Revert any processing contacts back to pending
+  await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+  await serviceClient.from("campaigns").update({
+    status: "paused",
+    failed_count: failedCount,
+    updated_at: new Date().toISOString(),
+  }).eq("id", campaignId);
+  await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+}
+
 interface BatchState {
   batchSent?: number;
   currentDeviceIndex?: number;
