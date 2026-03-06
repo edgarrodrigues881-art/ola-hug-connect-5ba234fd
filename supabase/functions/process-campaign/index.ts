@@ -689,6 +689,17 @@ Deno.serve(async (req) => {
         }
         await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
+        // After parallel mode, check if disconnect occurred — pause campaign
+        const { count: stillPending } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+        if (stillPending && stillPending > 0) {
+          // Check if all devices are disconnected
+          const { data: devStatuses } = await serviceClient.from("devices").select("id, status").in("id", deviceIds);
+          const allDisconnected = devStatuses?.every(d => !["Ready", "Connected", "authenticated"].includes(d.status));
+          if (allDisconnected) {
+            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
+          }
+        }
+
       } else {
         // ─── SEQUENTIAL / ROTATION MODE ───
 
