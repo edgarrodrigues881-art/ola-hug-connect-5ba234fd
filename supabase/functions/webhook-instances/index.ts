@@ -5,28 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
 };
 
-const PLAN_LIMITS: Record<string, number> = {
-  start: 10,
-  pro: 30,
-  scale: 50,
-  elite: 100,
-};
-
-function generateToken(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let token = "dg_";
-  for (let i = 0; i < 40; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
-}
-
 async function dispatchWebhook(payload: Record<string, unknown>) {
   const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
-  if (!makeUrl) {
-    console.log("[webhook-dispatch] MAKE_WEBHOOK_URL not set, skipping");
-    return;
-  }
+  if (!makeUrl) return;
   try {
     const res = await fetch(makeUrl, {
       method: "POST",
@@ -34,10 +15,50 @@ async function dispatchWebhook(payload: Record<string, unknown>) {
       body: JSON.stringify(payload),
     });
     console.log(`[webhook-dispatch] ${payload.event} -> ${res.status}`);
-    await res.text(); // consume body
+    await res.text();
   } catch (e) {
     console.error("[webhook-dispatch] Error:", e.message);
   }
+}
+
+/**
+ * Finds the first available pool token for a user.
+ * Pool tokens are pre-allocated by admins in user_api_tokens with status='available'.
+ * Returns null if none available.
+ */
+async function findAvailablePoolToken(adminClient: any, userId: string) {
+  // Prefer healthy tokens first
+  const { data: healthy } = await adminClient.from("user_api_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "available")
+    .eq("healthy", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (healthy) return healthy;
+
+  // Fall back to unchecked tokens
+  const { data: unchecked } = await adminClient.from("user_api_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "available")
+    .is("healthy", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return unchecked || null;
+}
+
+/**
+ * Reserves a pool token by marking it as in_use and linking to a device.
+ */
+async function reservePoolToken(adminClient: any, tokenId: string, deviceId: string) {
+  await adminClient.from("user_api_tokens").update({
+    status: "in_use",
+    device_id: deviceId,
+    assigned_at: new Date().toISOString(),
+  }).eq("id", tokenId);
 }
 
 Deno.serve(async (req) => {
@@ -56,122 +77,130 @@ Deno.serve(async (req) => {
     const secret = req.headers.get("x-webhook-secret") || "";
     const expectedSecret = Deno.env.get("WEBHOOK_SECRET") || "";
     if (!expectedSecret || secret !== expectedSecret) {
-      console.log("[webhook-instances] Invalid secret");
       return json({ ok: false, error: "UNAUTHORIZED" }, 401);
     }
 
     const body = await req.json();
-    const { event, client_id, plan, type, instance_name, phone_number, meta } = body;
-
+    const { event, client_id, instance_name, phone_number, type } = body;
     console.log("[webhook-instances] Event:", event, "client:", client_id, "type:", type);
-
-    if (event !== "instance.create") {
-      return json({ ok: false, error: "UNKNOWN_EVENT", message: `Event '${event}' not supported` }, 400);
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
+    const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
 
-    // Validate client exists and is active
-    const { data: profile } = await adminClient.from("profiles").select("*").eq("id", client_id).maybeSingle();
-    if (!profile) {
-      return json({ ok: false, error: "CLIENT_NOT_FOUND" }, 404);
+    // ─── DELETE INSTANCE ───
+    if (event === "instance.delete") {
+      const { instance_id } = body;
+      if (!instance_id) return json({ ok: false, error: "MISSING_INSTANCE_ID" }, 400);
+
+      const { data: device } = await adminClient.from("devices")
+        .select("id, name, user_id, proxy_id")
+        .eq("id", instance_id)
+        .maybeSingle();
+
+      if (!device) return json({ ok: false, error: "INSTANCE_NOT_FOUND" }, 404);
+
+      // Release pool token back to available
+      await adminClient.from("user_api_tokens").update({
+        status: "available",
+        device_id: null,
+        assigned_at: null,
+      }).eq("device_id", instance_id).eq("status", "in_use");
+
+      // Release proxy
+      if (device.proxy_id) {
+        await adminClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+      }
+
+      // Delete device
+      await adminClient.from("devices").delete().eq("id", instance_id);
+
+      await adminClient.from("admin_logs").insert({
+        admin_id: device.user_id,
+        target_user_id: device.user_id,
+        action: "webhook-delete-instance",
+        details: `Instância deletada via webhook: ${device.name}`,
+      });
+
+      await dispatchWebhook({
+        event: "instance.deleted",
+        client_id: device.user_id,
+        instance: { id: instance_id, name: device.name },
+      });
+
+      return json({ ok: true, deleted: true });
     }
+
+    // ─── CREATE INSTANCE ───
+    if (event !== "instance.create") {
+      return json({ ok: false, error: "UNKNOWN_EVENT", message: `Event '${event}' not supported` }, 400);
+    }
+
+    // Validate client
+    const { data: profile } = await adminClient.from("profiles").select("*").eq("id", client_id).maybeSingle();
+    if (!profile) return json({ ok: false, error: "CLIENT_NOT_FOUND" }, 404);
     if (profile.status === "suspended" || profile.status === "cancelled") {
       return json({ ok: false, error: "CLIENT_BLOCKED", message: `Client status: ${profile.status}` }, 403);
     }
 
-    // Get subscription
     const { data: subscription } = await adminClient.from("subscriptions")
       .select("*").eq("user_id", client_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const instanceType = type || "principal";
 
+    // ─── NOTIFICATION INSTANCE ───
     if (instanceType === "notificacao") {
-      // Check if notification instance already exists
       const { data: existingNotif } = await adminClient.from("devices")
         .select("id").eq("user_id", client_id).eq("instance_type", "notificacao");
-      
+
       if (existingNotif && existingNotif.length > 0) {
-        return json({ ok: false, error: "NOTIFICATION_EXISTS", message: "Client already has a notification instance" }, 409);
+        return json({ ok: false, error: "NOTIFICATION_EXISTS" }, 409);
       }
 
-      // Create notification instance (always pending approval)
-      const isApproved = profile.notificacao_liberada === true;
-      const status = isApproved ? "Disconnected" : "Disconnected";
-      const token = generateToken();
+      // Find available pool token
+      const poolToken = await findAvailablePoolToken(adminClient, client_id);
+      if (!poolToken) {
+        return json({ ok: false, error: "NO_TOKEN_AVAILABLE", message: "No pool token available for this client" }, 422);
+      }
 
       const { data: device, error: devError } = await adminClient.from("devices").insert({
         user_id: client_id,
         name: instance_name || "Notificação WhatsApp",
         login_type: "report_wa",
         instance_type: "notificacao",
-        status,
+        status: "Disconnected",
         number: phone_number || null,
+        uazapi_token: poolToken.token,
+        uazapi_base_url: ADMIN_BASE_URL || null,
       }).select().single();
-
       if (devError) throw devError;
 
-      // Create token
-      const { error: tokError } = await adminClient.from("user_api_tokens").insert({
-        user_id: client_id,
-        token,
-        admin_id: client_id,
-        status: "in_use",
-        device_id: device.id,
-        healthy: true,
-        assigned_at: new Date().toISOString(),
-        last_checked_at: new Date().toISOString(),
-      });
-      if (tokError) console.error("Token insert error:", tokError);
+      // Reserve pool token → in_use, linked to this device
+      await reservePoolToken(adminClient, poolToken.id, device.id);
 
-      // Audit log
       await adminClient.from("admin_logs").insert({
         admin_id: client_id,
         target_user_id: client_id,
         action: "webhook-create-instance",
-        details: `Instância notificação criada via webhook: ${device.name} (${isApproved ? "aprovada" : "pendente_aprovacao"})`,
+        details: `Instância notificação criada via webhook: ${device.name} (pool token: ${poolToken.id.substring(0, 8)}...)`,
       });
 
-      const responseStatus = isApproved ? "created" : "pending_approval";
-
-      // Dispatch to Make
       await dispatchWebhook({
         event: "instance.created",
         client_id,
         plan: subscription?.plan_name || null,
-        instance: {
-          id: device.id,
-          name: device.name,
-          type: "notificacao",
-          status: responseStatus,
-          created_at: device.created_at,
-        },
-        token: { value: token, status: "em_uso", health: "valido" },
+        instance: { id: device.id, name: device.name, type: "notificacao", status: "desconectada", created_at: device.created_at },
       });
 
-      return json({
-        ok: true,
-        instance_id: device.id,
-        token,
-        status: responseStatus,
-        reason: isApproved ? null : "Aguardando liberação pelo administrador",
-      });
+      return json({ ok: true, instance_id: device.id, status: "created" });
     }
 
-    // Principal instance
-    if (!subscription) {
-      return json({ ok: false, error: "NO_PLAN", message: "Client has no active plan" }, 403);
-    }
-
-    if (new Date(subscription.expires_at) < new Date()) {
-      return json({ ok: false, error: "PLAN_EXPIRED" }, 403);
-    }
+    // ─── PRINCIPAL INSTANCE ───
+    if (!subscription) return json({ ok: false, error: "NO_PLAN" }, 403);
+    if (new Date(subscription.expires_at) < new Date()) return json({ ok: false, error: "PLAN_EXPIRED" }, 403);
 
     const maxInstances = subscription.max_instances + (profile.instance_override || 0);
-
-    // Count current principal instances
     const { count: currentCount } = await adminClient.from("devices")
       .select("id", { count: "exact", head: true })
       .eq("user_id", client_id)
@@ -181,24 +210,12 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: "LIMIT_REACHED", max: maxInstances, current: currentCount }, 429);
     }
 
-    // Auto-assign token from pool
-    const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-    let availableToken: any = null;
-
-    const { data: healthyToken } = await adminClient.from("user_api_tokens")
-      .select("*").eq("user_id", client_id).eq("status", "available").eq("healthy", true)
-      .order("created_at", { ascending: true }).limit(1).maybeSingle();
-
-    if (healthyToken) {
-      availableToken = healthyToken;
-    } else {
-      const { data: uncheckedToken } = await adminClient.from("user_api_tokens")
-        .select("*").eq("user_id", client_id).eq("status", "available").is("healthy", null)
-        .order("created_at", { ascending: true }).limit(1).maybeSingle();
-      if (uncheckedToken) availableToken = uncheckedToken;
+    // Find available pool token — required, no auto-generation
+    const poolToken = await findAvailablePoolToken(adminClient, client_id);
+    if (!poolToken) {
+      return json({ ok: false, error: "NO_TOKEN_AVAILABLE", message: "No pool token available for this client" }, 422);
     }
 
-    // Create device
     const { data: device, error: devError } = await adminClient.from("devices").insert({
       user_id: client_id,
       name: instance_name || `Instância ${(currentCount || 0) + 1}`,
@@ -206,43 +223,21 @@ Deno.serve(async (req) => {
       instance_type: "principal",
       status: "Disconnected",
       number: phone_number || null,
-      uazapi_token: availableToken?.token || null,
-      uazapi_base_url: availableToken ? ADMIN_BASE_URL : null,
+      uazapi_token: poolToken.token,
+      uazapi_base_url: ADMIN_BASE_URL || null,
     }).select().single();
-
     if (devError) throw devError;
 
-    // Generate platform token
-    const platformToken = generateToken();
-    await adminClient.from("user_api_tokens").insert({
-      user_id: client_id,
-      token: platformToken,
-      admin_id: client_id,
-      status: "in_use",
-      device_id: device.id,
-      healthy: true,
-      assigned_at: new Date().toISOString(),
-      last_checked_at: new Date().toISOString(),
-    });
+    // Reserve pool token → in_use, linked to this device
+    await reservePoolToken(adminClient, poolToken.id, device.id);
 
-    // If pool token found, mark as in_use
-    if (availableToken) {
-      await adminClient.from("user_api_tokens").update({
-        status: "in_use",
-        device_id: device.id,
-        assigned_at: new Date().toISOString(),
-      }).eq("id", availableToken.id);
-    }
-
-    // Audit log
     await adminClient.from("admin_logs").insert({
       admin_id: client_id,
       target_user_id: client_id,
       action: "webhook-create-instance",
-      details: `Instância principal criada via webhook: ${device.name} (token: ${platformToken.substring(0, 8)}...)`,
+      details: `Instância principal criada via webhook: ${device.name} (pool token: ${poolToken.id.substring(0, 8)}...)`,
     });
 
-    // Get client email for webhook dispatch
     const { data: authUser } = await adminClient.auth.admin.getUserById(client_id);
 
     await dispatchWebhook({
@@ -250,23 +245,10 @@ Deno.serve(async (req) => {
       client_id,
       client_email: authUser?.user?.email || null,
       plan: subscription.plan_name,
-      instance: {
-        id: device.id,
-        name: device.name,
-        type: "principal",
-        status: "desconectada",
-        created_at: device.created_at,
-      },
-      token: { value: platformToken, status: "em_uso", health: "valido" },
+      instance: { id: device.id, name: device.name, type: "principal", status: "desconectada", created_at: device.created_at },
     });
 
-    return json({
-      ok: true,
-      instance_id: device.id,
-      token: platformToken,
-      status: "created",
-      reason: null,
-    });
+    return json({ ok: true, instance_id: device.id, status: "created" });
 
   } catch (error) {
     console.error("[webhook-instances] ERROR:", error.message, error.stack);
