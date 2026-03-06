@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
 
       const { data: cycle } = await db
         .from("warmup_cycles")
-        .select("*")
+        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at")
         .eq("device_id", device_id)
         .eq("user_id", callerUserId)
         .eq("phase", "paused")
@@ -395,7 +395,7 @@ Deno.serve(async (req) => {
     // Fetch pending jobs ready to run, limit 50
     const { data: pendingJobs, error: fetchErr } = await db
       .from("warmup_jobs")
-      .select("*")
+      .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
       .eq("status", "pending")
       .lte("run_at", now)
       .order("run_at", { ascending: true })
@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
         // Get cycle
         const { data: cycle } = await db
           .from("warmup_cycles")
-          .select("*")
+          .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
           .eq("id", job.cycle_id)
           .single();
 

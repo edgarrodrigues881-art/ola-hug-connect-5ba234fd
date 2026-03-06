@@ -458,7 +458,7 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("*")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
         .eq("user_id", userId)
         .single();
 
@@ -601,7 +601,7 @@ Deno.serve(async (req) => {
     if (action === "logs") {
       const { data: logs } = await serviceClient
         .from("report_wa_logs")
-        .select("*")
+        .select("id, user_id, level, message, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -613,7 +613,7 @@ Deno.serve(async (req) => {
     if (action === "check-events") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("*")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
         .eq("user_id", userId)
         .single();
 
