@@ -429,6 +429,36 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Check device connection status before processing
+        const { data: device } = await db
+          .from("devices")
+          .select("status")
+          .eq("id", job.device_id)
+          .single();
+
+        if (!device || device.status !== "Ready") {
+          // Device disconnected — auto-pause cycle and skip job
+          if (cycle.phase !== "paused") {
+            await db.from("warmup_cycles").update({
+              is_running: false,
+              phase: "paused",
+              last_error: "Auto-pausado: instância desconectada",
+            }).eq("id", cycle.id);
+
+            await db.from("warmup_jobs").update({ status: "cancelled" })
+              .eq("cycle_id", cycle.id).eq("status", "pending");
+
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "auto_paused_disconnected",
+              message: `Aquecimento pausado automaticamente: instância desconectada (status: ${device?.status || "unknown"})`,
+            });
+          }
+
+          await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+          continue;
+        }
+
         // ── Handler by job_type ──
         switch (job.job_type) {
           case "join_group": {
