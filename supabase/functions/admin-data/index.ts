@@ -127,14 +127,14 @@ Deno.serve(async (req) => {
       const { target_user_id } = await req.json();
       
       const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
-      const { data: profile } = await adminClient.from("profiles").select("*").eq("id", target_user_id).maybeSingle();
-      const { data: sub } = await adminClient.from("subscriptions").select("*").eq("user_id", target_user_id).maybeSingle();
-      const { data: devices } = await adminClient.from("devices").select("*").eq("user_id", target_user_id).order("created_at", { ascending: false });
+      const { data: profile } = await adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at").eq("id", target_user_id).maybeSingle();
+      const { data: sub } = await adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at").eq("user_id", target_user_id).maybeSingle();
+      const { data: devices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, uazapi_token, uazapi_base_url, created_at, updated_at").eq("user_id", target_user_id).order("created_at", { ascending: false });
       const { data: campaigns } = await adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20);
-      const { data: logs } = await adminClient.from("admin_logs").select("*").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
-      const { data: payments } = await adminClient.from("payments").select("*").eq("user_id", target_user_id).order("paid_at", { ascending: false });
-      const { data: cycles } = await adminClient.from("subscription_cycles").select("*").eq("user_id", target_user_id).order("cycle_start", { ascending: false });
-      const { data: apiTokens } = await adminClient.from("user_api_tokens").select("*").eq("user_id", target_user_id).order("created_at", { ascending: true });
+      const { data: logs } = await adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
+      const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at").eq("user_id", target_user_id).order("paid_at", { ascending: false });
+      const { data: cycles } = await adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at").eq("user_id", target_user_id).order("cycle_start", { ascending: false });
+      const { data: apiTokens } = await adminClient.from("user_api_tokens").select("id, user_id, device_id, token, status, healthy, label, assigned_at, last_checked_at, created_at").eq("user_id", target_user_id).order("created_at", { ascending: true });
 
       // Enrich tokens with device name
       const enrichedTokens = (apiTokens || []).map((t: any) => {
@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
     if (action === "admin-logs") {
       const { data: logs } = await adminClient
         .from("admin_logs")
-        .select("*")
+        .select("id, admin_id, action, details, target_user_id, created_at")
         .order("created_at", { ascending: false })
         .limit(100);
 
