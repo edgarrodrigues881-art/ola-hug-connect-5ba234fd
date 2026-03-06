@@ -941,7 +941,7 @@ Deno.serve(async (req) => {
 
     // ─── STATUS ───
     if (action === "status") {
-      const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", campaignId).single();
+      const { data: campaign } = await supabase.from("campaigns").select("id, name, status, message_type, total_contacts, sent_count, delivered_count, failed_count, started_at, completed_at, created_at, updated_at, device_id").eq("id", campaignId).single();
       const { data: contacts } = await supabase.from("campaign_contacts").select("id, phone, name, status, sent_at, error_message").eq("campaign_id", campaignId);
       return new Response(JSON.stringify({ campaign, contacts }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
