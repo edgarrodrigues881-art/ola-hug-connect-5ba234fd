@@ -837,13 +837,7 @@ Deno.serve(async (req) => {
                 failedCount++;
                 await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
-                  const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                  if (remaining && remaining.length > 0) {
-                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
-                    failedCount += remaining.length;
-                    await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
-                  }
-                  await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                  await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
                   break;
                 }
                 continue;
