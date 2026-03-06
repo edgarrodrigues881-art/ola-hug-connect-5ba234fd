@@ -64,7 +64,7 @@ export default function ReportWhatsApp() {
     queryFn: async () => {
       const { data } = await supabase
         .from("devices")
-        .select("id, name, number, status, uazapi_token, uazapi_base_url, login_type")
+        .select("id, name, number, status, login_type")
         .eq("user_id", user!.id)
         .eq("login_type", "report_wa")
         .maybeSingle();
