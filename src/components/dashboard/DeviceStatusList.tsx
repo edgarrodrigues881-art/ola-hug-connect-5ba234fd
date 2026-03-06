@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Smartphone } from "lucide-react";
 
@@ -21,7 +22,7 @@ const statusConfig: Record<string, { dot: string; label: string }> = {
   Banned: { dot: "bg-yellow-500", label: "Banido" },
 };
 
-export function DeviceStatusList({ devices, loading }: Props) {
+export const DeviceStatusList = React.memo(function DeviceStatusList({ devices, loading }: Props) {
   return (
     <Card className="border-border/50 bg-card h-full">
       <CardHeader className="pb-3">
@@ -68,4 +69,4 @@ export function DeviceStatusList({ devices, loading }: Props) {
       </CardContent>
     </Card>
   );
-}
+});

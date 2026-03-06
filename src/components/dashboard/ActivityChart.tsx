@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Area, Bar } from "recharts";
 import { BarChart3 } from "lucide-react";
@@ -13,7 +14,7 @@ interface Props {
   data: WarmupPoint[];
 }
 
-export function ActivityChart({ data }: Props) {
+export const ActivityChart = React.memo(function ActivityChart({ data }: Props) {
   return (
     <Card className="border-border/50 bg-card">
       <CardHeader className="pb-2">
@@ -88,4 +89,4 @@ export function ActivityChart({ data }: Props) {
       </CardContent>
     </Card>
   );
-}
+});
