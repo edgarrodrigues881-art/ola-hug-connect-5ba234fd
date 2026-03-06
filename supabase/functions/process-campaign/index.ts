@@ -27,22 +27,40 @@ function buildMenuChoice(button: CampaignButton, index: number): string | null {
   return `${text}|${replyId}`;
 }
 
+const API_TIMEOUT_MS = 30_000;
+
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
   let url = `${baseUrl}${endpoint}`;
   const headers: Record<string, string> = { "token": token, "Accept": "application/json" };
   let fetchOptions: RequestInit;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   if (method === "GET") {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(payload)) {
       if (value !== undefined && value !== null) params.append(key, String(value));
     }
     url += `?${params.toString()}`;
-    fetchOptions = { method: "GET", headers };
+    fetchOptions = { method: "GET", headers, signal: controller.signal };
   } else {
     headers["Content-Type"] = "application/json";
-    fetchOptions = { method: "POST", headers, body: JSON.stringify(payload) };
+    fetchOptions = { method: "POST", headers, body: JSON.stringify(payload), signal: controller.signal };
   }
-  const res = await fetch(url, fetchOptions);
+
+  let res: Response;
+  try {
+    res = await fetch(url, fetchOptions);
+  } catch (fetchErr: any) {
+    clearTimeout(timeoutId);
+    if (fetchErr?.name === "AbortError") {
+      throw new Error(`Timeout após ${API_TIMEOUT_MS / 1000}s aguardando resposta da API`);
+    }
+    throw fetchErr;
+  }
+  clearTimeout(timeoutId);
+
   const text = await res.text();
   if (res.status === 405 && method === "POST") {
     return uazapiRequest(baseUrl, token, endpoint, payload, "GET");
