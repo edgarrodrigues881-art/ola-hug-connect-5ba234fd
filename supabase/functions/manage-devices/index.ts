@@ -275,6 +275,12 @@ Deno.serve(async (req) => {
         await admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds);
       }
 
+      // Log bulk creation
+      for (const d of (newDevices || [])) {
+        await oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk)`, d.id, { proxy_id: d.proxy_id, has_token: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token });
+        if (d.proxy_id) await oplog(admin, user.id, "proxy_assigned", `Proxy atribuída → USANDO`, d.id, { proxy_id: d.proxy_id });
+      }
+
       // Return devices without token fields
       const safeDevices = (newDevices || []).map((d: any) => ({
         ...d,
@@ -335,7 +341,10 @@ Deno.serve(async (req) => {
       // 4. Release proxy
       if (device.proxy_id) {
         await admin.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+        await oplog(admin, user.id, "proxy_released", `Proxy liberada → USADA`, deviceId, { proxy_id: device.proxy_id });
       }
+
+      await oplog(admin, user.id, "instance_deleted", `Instância deletada`, deviceId);
 
       // 5. Delete device record
       const { error: delErr } = await admin.from("devices").delete().eq("id", deviceId);
