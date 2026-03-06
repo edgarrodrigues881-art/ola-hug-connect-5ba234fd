@@ -36,8 +36,7 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    const GLOBAL_UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
-    const GLOBAL_UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+    // Removed global UAZAPI fallbacks — each device must use its own token
 
     const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: devices, error: devError } = await serviceClient
@@ -50,8 +49,8 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const device of (devices || [])) {
-      const deviceToken = device.uazapi_token || GLOBAL_UAZAPI_TOKEN;
-      const deviceBaseUrl = (device.uazapi_base_url || GLOBAL_UAZAPI_BASE_URL || "").replace(/\/+$/, "");
+      const deviceToken = device.uazapi_token;
+      const deviceBaseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
 
       if (!deviceToken || !deviceBaseUrl) {
         results.push({ id: device.id, name: device.name, found: false, status: device.status, error: "No token configured" });

@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .single();
 
-    const apiToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-    const apiBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+    const apiToken = device?.uazapi_token;
+    const apiBaseUrl = (device?.uazapi_base_url || "").replace(/\/+$/, "");
 
     if (!apiToken || !apiBaseUrl) {
       return new Response(JSON.stringify({ error: "Dispositivo não configurado" }), {

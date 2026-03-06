@@ -162,8 +162,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const UAZAPI_BASE_URL = Deno.env.get("UAZAPI_BASE_URL");
-    const UAZAPI_TOKEN = Deno.env.get("UAZAPI_TOKEN");
+    // Removed global UAZAPI fallbacks — each device must use its own token
 
     // Fetch all unique device IDs
     const deviceIds = [...new Set(items.map((i) => i.deviceId))];
@@ -196,8 +195,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const deviceToken = device.uazapi_token || UAZAPI_TOKEN;
-      const deviceBaseUrl = (device.uazapi_base_url || UAZAPI_BASE_URL || "").replace(/\/+$/, "");
+      const deviceToken = device.uazapi_token;
+      const deviceBaseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
 
       if (!deviceToken || !deviceBaseUrl) {
         const r: JoinResult = {

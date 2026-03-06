@@ -241,8 +241,8 @@ Deno.serve(async (req) => {
           .eq("id", session.device_id)
           .single();
 
-        const deviceToken = device?.uazapi_token || Deno.env.get("UAZAPI_TOKEN");
-        const deviceBaseUrl = (device?.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+        const deviceToken = device?.uazapi_token;
+        const deviceBaseUrl = (device?.uazapi_base_url || "").replace(/\/+$/, "");
 
         if (!deviceToken || !deviceBaseUrl) {
           results.push({ session_id: session.id, status: "error", reason: "no_credentials" });
