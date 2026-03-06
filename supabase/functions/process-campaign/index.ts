@@ -738,18 +738,59 @@ Deno.serve(async (req) => {
 
             if (sendAllMode && messageVariants.length > 1) {
               console.log(`SEQUENTIAL: Sending ${messageVariants.length} msgs to ${normalizedPhone}`);
+              let allSendFailed = false;
               for (let mi = 0; mi < messageVariants.length; mi++) {
                 const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
-                await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                const result = await sendWithRetry(activeBaseUrl, activeToken, normalizedPhone, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                if (!result.success) {
+                  allSendFailed = true;
+                  const translated = translateErrorMessage(result.error || "Erro ao enviar");
+                  console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                  failedCount++;
+                  await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+                  if (isDisconnectError(result.error || "")) {
+                    const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
+                    if (remaining && remaining.length > 0) {
+                      await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
+                      failedCount += remaining.length;
+                      await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+                    }
+                    await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                  }
+                  break;
+                }
                 if (mi < messageVariants.length - 1) {
                   const seqDelay = randomBetween(minDelayMs, maxDelayMs);
                   await new Promise(r => setTimeout(r, seqDelay));
                 }
               }
+              if (allSendFailed) {
+                if (isDisconnectError("")) break;
+                continue;
+              }
             } else {
               const pickedIndex = msgIndex % messageVariants.length;
               console.log(`${sequentialMode ? 'SEQ' : 'RANDOM'}: Picked msg ${pickedIndex + 1}/${messageVariants.length} for ${normalizedPhone}`);
-              await sendUazapiMessage(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+              const result = await sendWithRetry(activeBaseUrl, activeToken, normalizedPhone, personalizedMessage, mediaUrl, campaignButtons, msgType);
+              if (!result.success) {
+                const translated = translateErrorMessage(result.error || "Erro ao enviar");
+                console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                failedCount++;
+                await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+                if (isDisconnectError(result.error || "")) {
+                  const { data: remaining } = await serviceClient.from("campaign_contacts").select("id").eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
+                  if (remaining && remaining.length > 0) {
+                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("status", ["pending", "processing"]);
+                    failedCount += remaining.length;
+                    await serviceClient.from("campaigns").update({ failed_count: failedCount, status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+                  }
+                  await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+                  break;
+                }
+                continue;
+              }
             }
             await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
             sentCount++;
@@ -790,7 +831,7 @@ Deno.serve(async (req) => {
             }
           } catch (err: any) {
             const translated = translateErrorMessage(err.message || "Erro ao enviar");
-            console.error(`Failed to send to ${phone} via ${activeDevice.name}:`, translated);
+            console.error(`Unexpected error for ${phone} via ${activeDevice.name}:`, translated);
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
