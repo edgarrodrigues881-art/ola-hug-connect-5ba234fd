@@ -145,6 +145,8 @@ Deno.serve(async (req) => {
           assigned_at: new Date().toISOString(),
         }).eq("id", available.id);
 
+        await oplog(admin, user.id, "instance_created", `Instância "${newDevice.name}" criada`, newDevice.id, { token_assigned: true });
+
         return new Response(
           JSON.stringify({ device: { ...newDevice, has_api_config: true } }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
