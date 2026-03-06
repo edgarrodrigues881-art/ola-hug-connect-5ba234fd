@@ -81,10 +81,48 @@ function isDisconnectError(msg: string): boolean {
     lower.includes("session") || lower.includes("not authenticated") || lower.includes("desconectado");
 }
 
+function isTemporaryError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  if (isDisconnectError(lower)) return false;
+  if (lower.includes("not on whats") || lower.includes("not registered") || lower.includes("not_exists") || lower.includes("número inválido")) return false;
+  return lower.includes("timeout") || lower.includes("timed out") || lower.includes("econnreset") ||
+    lower.includes("econnrefused") || lower.includes("network") || lower.includes("socket") ||
+    lower.includes("fetch failed") || lower.includes("503") || lower.includes("502") ||
+    lower.includes("429") || lower.includes("rate limit") || lower.includes("temporarily") ||
+    lower.includes("internal server error") || lower.includes("500");
+}
+
 function translateErrorMessage(msg: string): string {
   if (isDisconnectError(msg)) return "WhatsApp desconectado";
   if (msg.includes("not on Whats") || msg.includes("not registered") || msg.includes("not_exists") || msg.includes("não está no WhatsApp")) return "Número inválido";
   return msg;
+}
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MIN_MS = 20_000;
+const RETRY_DELAY_MAX_MS = 60_000;
+
+async function sendWithRetry(
+  baseUrl: string, token: string, to: string, body: string,
+  mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string
+): Promise<{ success: boolean; attempts: number; error?: string }> {
+  let lastError = "";
+  for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+    try {
+      await sendUazapiMessage(baseUrl, token, to, body, mediaUrl, buttons, messageType);
+      if (attempt > 1) console.log(`✅ Retry ${attempt - 1} succeeded for ${to}`);
+      return { success: true, attempts: attempt };
+    } catch (err: any) {
+      lastError = err.message || "Erro";
+      if (!isTemporaryError(lastError) || attempt > MAX_RETRIES) {
+        return { success: false, attempts: attempt, error: lastError };
+      }
+      const retryDelay = RETRY_DELAY_MIN_MS + Math.random() * (RETRY_DELAY_MAX_MS - RETRY_DELAY_MIN_MS);
+      console.log(`⚠️ Attempt ${attempt} failed for ${to}: ${lastError} | retrying in ${Math.round(retryDelay / 1000)}s`);
+      await new Promise(r => setTimeout(r, retryDelay));
+    }
+  }
+  return { success: false, attempts: MAX_RETRIES + 1, error: lastError };
 }
 
 async function checkNumberExists(baseUrl: string, token: string, phone: string): Promise<{ exists: boolean; error?: string }> {
