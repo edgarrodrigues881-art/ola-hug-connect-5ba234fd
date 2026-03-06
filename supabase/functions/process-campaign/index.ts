@@ -428,6 +428,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      // ── PRE-FLIGHT: Check if ALL devices are connected before processing ──
+      const connectedStatuses = ["Ready", "Connected", "authenticated"];
+      const disconnectedDevices = allDevices.filter(d => !connectedStatuses.includes(d.status));
+      if (disconnectedDevices.length === allDevices.length) {
+        console.log(`⚠️ All devices disconnected for campaign ${campaignId}, pausing campaign`);
+        // Revert any processing contacts back to pending
+        await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+        await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
+        await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+        return new Response(JSON.stringify({ success: true, status: "paused", reason: "all_devices_disconnected" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Filter to only connected devices
+      if (disconnectedDevices.length > 0) {
+        console.log(`⚠️ ${disconnectedDevices.length} device(s) disconnected, using ${allDevices.length - disconnectedDevices.length} remaining`);
+        allDevices = allDevices.filter(d => connectedStatuses.includes(d.status));
+      }
+
       // Acquire/refresh device locks for this continue invocation
       const lockResult = await acquireDeviceLocks(serviceClient, deviceIds, campaignId, campaign.user_id);
       if (!lockResult.acquired) {
