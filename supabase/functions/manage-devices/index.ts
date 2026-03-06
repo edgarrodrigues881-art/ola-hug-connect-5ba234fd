@@ -274,6 +274,63 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── DELETE DEVICE ──────────────────────────────────────────
+    if (action === "delete") {
+      const { deviceId } = body;
+      if (!deviceId) throw new Error("deviceId obrigatório.");
+
+      // Verify ownership
+      const { data: device } = await admin
+        .from("devices")
+        .select("id, proxy_id, user_id")
+        .eq("id", deviceId)
+        .eq("user_id", user.id)
+        .single();
+      if (!device) throw new Error("Instância não encontrada.");
+
+      // 1. Delete instance from UaZapi server (non-blocking)
+      try {
+        const evolutionUrl = `${supabaseUrl}/functions/v1/evolution-connect`;
+        await fetch(evolutionUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({ action: "deleteInstance", deviceId }),
+        });
+      } catch (e) {
+        console.warn("Failed to delete instance from provider (non-blocking):", e);
+      }
+
+      // 2. Release token back to pool
+      await admin.from("user_api_tokens").update({
+        status: "available",
+        device_id: null,
+        assigned_at: null,
+      }).eq("device_id", deviceId);
+
+      // 3. Clean up warmup data
+      await admin.from("warmup_sessions").delete().eq("device_id", deviceId);
+      await admin.from("warmup_cycles").delete().eq("device_id", deviceId);
+      await admin.from("warmup_instance_groups").delete().eq("device_id", deviceId);
+      await admin.from("warmup_community_membership").delete().eq("device_id", deviceId);
+
+      // 4. Release proxy
+      if (device.proxy_id) {
+        await admin.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
+      }
+
+      // 5. Delete device record
+      const { error: delErr } = await admin.from("devices").delete().eq("id", deviceId);
+      if (delErr) throw delErr;
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown action: ${action}` }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
