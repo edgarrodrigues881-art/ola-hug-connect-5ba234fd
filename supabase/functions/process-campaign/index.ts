@@ -545,15 +545,50 @@ Deno.serve(async (req) => {
                 continue;
               }
               if (sendAllMode && messageVariants.length > 1) {
+                let allSendFailed = false;
                 for (let mi = 0; mi < messageVariants.length; mi++) {
                   const allMsg = replaceVariables(messageVariants[mi], contact, rand4, rand3);
-                  await sendUazapiMessage(devBaseUrl, devToken, normalized, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                  const result = await sendWithRetry(devBaseUrl, devToken, normalized, allMsg, mi === 0 ? mediaUrl : null, mi === 0 ? campaignButtons : [], msgType);
+                  if (!result.success) {
+                    allSendFailed = true;
+                    const translated = translateErrorMessage(result.error || "Erro");
+                    console.error(`[P-${devIdx}] Failed ${normalized} after ${result.attempts} attempts: ${translated}`);
+                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                    devFailed++;
+                    if (isDisconnectError(result.error || "")) {
+                      const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
+                      if (remainingIds.length > 0) {
+                        await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
+                        devFailed += remainingIds.length;
+                      }
+                    }
+                    break;
+                  }
                   if (mi < messageVariants.length - 1) {
                     await new Promise(r => setTimeout(r, randomBetween(minDelayMs, maxDelayMs)));
                   }
                 }
+                if (allSendFailed) {
+                  if (isDisconnectError("")) break; // already handled above
+                  continue;
+                }
               } else {
-                await sendUazapiMessage(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
+                const result = await sendWithRetry(devBaseUrl, devToken, normalized, msg, mediaUrl, campaignButtons, msgType);
+                if (!result.success) {
+                  const translated = translateErrorMessage(result.error || "Erro");
+                  console.error(`[P-${devIdx}] Failed ${normalized} after ${result.attempts} attempts: ${translated}`);
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                  devFailed++;
+                  if (isDisconnectError(result.error || "")) {
+                    const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
+                    if (remainingIds.length > 0) {
+                      await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
+                      devFailed += remainingIds.length;
+                    }
+                    break;
+                  }
+                  continue;
+                }
               }
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
