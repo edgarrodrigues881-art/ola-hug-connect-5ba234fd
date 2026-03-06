@@ -259,12 +259,14 @@ Deno.serve(async (req) => {
 
       // Set proxy if provided
       if (body.proxyConfig?.host) {
-        setProxy(instanceUrl, instanceToken, body.proxyConfig).catch(() => {});
+        const proxyOk = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+        await oplog(svc, user.id, "proxy_configured", `Proxy ${proxyOk ? "configurada" : "falha"} para "${deviceName}"`, deviceId, { host: body.proxyConfig.host, success: proxyOk });
       }
 
       // Request QR code using the existing assigned token
       const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
       if (connectRes.status === 401) {
+        await oplog(svc, user.id, "uazapi_error", `Token inválido ao gerar QR para "${deviceName}"`, deviceId, { status: 401 });
         return json({ error: "Token inválido ao gerar QR. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
