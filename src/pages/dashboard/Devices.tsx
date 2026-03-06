@@ -486,20 +486,32 @@ const Devices = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const device = devices.find(d => d.id === id);
-      // Always try to delete instance from UaZapi server (non-blocking)
+
+      // 1. Delete instance from UaZapi server (disconnect + delete)
       try {
         await callApi({ action: "deleteInstance", deviceId: id });
       } catch (e) {
         console.warn("Failed to delete instance from server (non-blocking):", e);
       }
-      // Release token back to pool
+
+      // 2. Release token back to pool
       await supabase.from("user_api_tokens").update({
         status: "available", device_id: null, assigned_at: null,
       } as any).eq("device_id", id);
+
+      // 3. Clean up warmup sessions and cycles linked to this device
+      await supabase.from("warmup_sessions").delete().eq("device_id", id);
+      await supabase.from("warmup_cycles").delete().eq("device_id", id);
+      await supabase.from("warmup_instance_groups").delete().eq("device_id", id);
+      await supabase.from("warmup_community_membership").delete().eq("device_id", id);
+
+      // 4. Release proxy (mark as USADA, unlink)
       if (device?.proxy_id) {
         await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
         await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
       }
+
+      // 5. Delete the device record (no orphans)
       const { error } = await supabase.from("devices").delete().eq("id", id);
       if (error) throw error;
     },
