@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
  * Pauses when the browser tab is hidden.
  * @param intervalMs - sync interval in milliseconds (default 30s)
  */
-export function useAutoSyncDevices(intervalMs = 30000) {
+export function useAutoSyncDevices(intervalMs = 60000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
