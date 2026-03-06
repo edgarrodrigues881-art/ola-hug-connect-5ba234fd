@@ -441,13 +441,11 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
               devSent++;
 
-              // Skip delay if last contact in chunk
               const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
               if (!isLastInChunk) {
-                const apiTime = Date.now() - msgStart;
-                const targetDelay = randomBetween(minDelayMs, maxDelayMs);
-                const actualDelay = Math.max(targetDelay - apiTime, 500);
-                await new Promise(r => setTimeout(r, actualDelay));
+                const delayMs = randomBetween(minDelayMs, maxDelayMs);
+                console.log(`✅ [P-${devIdx}] Sent to ${normalized} | delay=${Math.round(delayMs / 1000)}s (range ${campaign.min_delay_seconds}-${campaign.max_delay_seconds}s)`);
+                await new Promise(r => setTimeout(r, delayMs));
               }
             } catch (err: any) {
               const translated = translateErrorMessage(err.message || "Erro");
