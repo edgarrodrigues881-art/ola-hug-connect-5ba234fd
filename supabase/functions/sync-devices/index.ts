@@ -197,6 +197,9 @@ Deno.serve(async (req) => {
             .eq("id", device.id);
 
           if (statusChanged) {
+            const eventName = newStatus === "Disconnected" ? "instance_disconnected" : "instance_connected";
+            await oplog(serviceClient, userId, eventName, `"${device.name}" → ${newStatus}`, device.id, { previous: device.status, phone: formattedPhone });
+
             // ── Auto-pause warmup when device disconnects ──
             if (newStatus === "Disconnected") {
               const { data: activeCycles } = await serviceClient
