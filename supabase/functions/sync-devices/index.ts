@@ -159,6 +159,75 @@ Deno.serve(async (req) => {
             .eq("id", device.id);
 
           if (statusChanged) {
+            // ── Auto-pause warmup when device disconnects ──
+            if (newStatus === "Disconnected") {
+              const { data: activeCycles } = await serviceClient
+                .from("warmup_cycles")
+                .select("id")
+                .eq("device_id", device.id)
+                .eq("is_running", true)
+                .neq("phase", "completed")
+                .neq("phase", "paused");
+
+              for (const cycle of (activeCycles || [])) {
+                await serviceClient.from("warmup_cycles").update({
+                  is_running: false,
+                  phase: "paused",
+                  last_error: "Auto-pausado: instância desconectada",
+                }).eq("id", cycle.id);
+
+                await serviceClient.from("warmup_jobs").update({ status: "cancelled" })
+                  .eq("cycle_id", cycle.id).eq("status", "pending");
+
+                await serviceClient.from("warmup_audit_logs").insert({
+                  user_id: userId, device_id: device.id, cycle_id: cycle.id,
+                  level: "warn", event_type: "auto_paused_disconnected",
+                  message: "Aquecimento pausado automaticamente: instância desconectada",
+                });
+                console.log(`Auto-paused warmup cycle ${cycle.id} for device ${device.name}`);
+              }
+            }
+
+            // ── Auto-resume warmup when device reconnects ──
+            if (newStatus === "Ready") {
+              const { data: pausedCycles } = await serviceClient
+                .from("warmup_cycles")
+                .select("id, first_24h_ends_at, day_index, days_total, user_id")
+                .eq("device_id", device.id)
+                .eq("phase", "paused")
+                .eq("is_running", false);
+
+              for (const cycle of (pausedCycles || [])) {
+                // Only auto-resume if it was auto-paused (has the specific error message)
+                const nowDate = new Date();
+                const first24hEnds = new Date(cycle.first_24h_ends_at);
+                const resumePhase = nowDate < first24hEnds ? "pre_24h" : "groups_only";
+
+                await serviceClient.from("warmup_cycles").update({
+                  is_running: true,
+                  phase: resumePhase,
+                  last_error: null,
+                  next_run_at: nowDate.toISOString(),
+                }).eq("id", cycle.id);
+
+                // Re-schedule daily_reset
+                const tomorrow = new Date(nowDate);
+                tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+                tomorrow.setUTCHours(3, 5, 0, 0);
+                await serviceClient.from("warmup_jobs").insert({
+                  user_id: cycle.user_id, device_id: device.id, cycle_id: cycle.id,
+                  job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
+                });
+
+                await serviceClient.from("warmup_audit_logs").insert({
+                  user_id: userId, device_id: device.id, cycle_id: cycle.id,
+                  level: "info", event_type: "auto_resumed_connected",
+                  message: `Aquecimento retomado automaticamente: instância reconectada (fase: ${resumePhase})`,
+                });
+                console.log(`Auto-resumed warmup cycle ${cycle.id} for device ${device.name}`);
+              }
+            }
+
             const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
             if (makeUrl) {
               try {
