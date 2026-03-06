@@ -626,8 +626,7 @@ Deno.serve(async (req) => {
                     if (isDisconnectError(result.error || "")) {
                       const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                       if (remainingIds.length > 0) {
-                        await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "WhatsApp desconectado" }).eq("campaign_id", campaignId).in("id", remainingIds);
-                        devFailed += remainingIds.length;
+                        await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
                       }
                     }
                     break;
