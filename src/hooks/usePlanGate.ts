@@ -5,6 +5,12 @@ import { useAuth } from "@/lib/auth";
 
 export type PlanState = "noPlan" | "active" | "expired" | "suspended";
 
+// Plans that include WhatsApp reports natively
+const PLANS_WITH_REPORTS: Record<string, boolean> = {
+  Scale: true,
+  Elite: true,
+};
+
 export function usePlanGate() {
   const { session } = useAuth();
 
@@ -70,15 +76,24 @@ export function usePlanGate() {
 
   const isBlocked = planState !== "active";
 
-  // Notification addon active check
+  // Plan natively includes reports (Scale, Elite)
+  const planIncludesReports = useMemo(() => {
+    if (planState !== "active" || !subscription) return false;
+    return !!PLANS_WITH_REPORTS[subscription.plan_name];
+  }, [planState, subscription]);
+
+  // Notification addon active (separate subscription or admin override)
   const notificationAddonActive = useMemo(() => {
     if (profile?.notificacao_liberada) return true;
     if (!notificationSub) return false;
     return new Date(notificationSub.expires_at) >= new Date();
   }, [notificationSub, profile]);
 
-  // Max notification instances (1 when addon active)
-  const maxNotificationInstances = notificationAddonActive ? 1 : 0;
+  // Can use WhatsApp reports: plan includes it, addon active, or admin override
+  const canUseReports = planIncludesReports || notificationAddonActive;
+
+  // Max notification instances (always 1 when allowed)
+  const maxNotificationInstances = canUseReports ? 1 : 0;
 
   const blockReason = useMemo(() => {
     switch (planState) {
@@ -104,8 +119,10 @@ export function usePlanGate() {
     subscription,
     profile,
     maxInstances: (subscription?.max_instances ?? 0) + (profile?.instance_override ?? 0),
+    planIncludesReports,
     notificationAddonActive,
     notificationSub,
+    canUseReports,
     maxNotificationInstances,
   };
 }

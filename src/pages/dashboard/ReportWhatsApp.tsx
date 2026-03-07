@@ -26,7 +26,7 @@ interface WhatsAppGroup {
 export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { isBlocked, planState, profile, notificationAddonActive } = usePlanGate();
+  const { isBlocked, planState, profile, canUseReports } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
@@ -44,9 +44,8 @@ export default function ReportWhatsApp() {
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Check if notification feature is enabled (addon subscription OR admin toggle OR main plan active)
-  const notificacaoLiberada = profile?.notificacao_liberada ?? false;
-  const canUseReport = !isBlocked || notificacaoLiberada || notificationAddonActive;
+  // Access allowed when plan includes reports (Scale/Elite), addon active, or admin override
+  const canUseReport = canUseReports;
 
 
 
@@ -710,7 +709,7 @@ export default function ReportWhatsApp() {
           </div>
         </DialogContent>
       </Dialog>
-      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
+      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} context="notifications" />
     </div>
   );
 }
