@@ -142,7 +142,7 @@ export function useCreateCampaign() {
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",
         })
-        .select()
+        .select("id, name, status, user_id, device_id, device_ids, total_contacts, scheduled_at, created_at")
         .single();
       if (campError) throw campError;
 

@@ -39,7 +39,7 @@ export function useCreateContact() {
       const { data, error } = await supabase
         .from("contacts")
         .insert({ ...contact, user_id: user!.id, tags: contact.tags || [] })
-        .select()
+        .select("id, name, phone, email, tags, notes, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
@@ -55,7 +55,7 @@ export function useCreateContacts() {
   return useMutation({
     mutationFn: async (contacts: { name: string; phone: string; tags?: string[] }[]) => {
       const rows = contacts.map(c => ({ ...c, user_id: user!.id, tags: c.tags || [] }));
-      const { data, error } = await supabase.from("contacts").insert(rows).select();
+      const { data, error } = await supabase.from("contacts").insert(rows).select("id, name, phone, email, tags, notes, created_at");
       if (error) throw error;
       return data;
     },
@@ -72,7 +72,7 @@ export function useUpdateContact() {
         .from("contacts")
         .update(updates)
         .eq("id", id)
-        .select()
+        .select("id, name, phone, email, tags, notes, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
