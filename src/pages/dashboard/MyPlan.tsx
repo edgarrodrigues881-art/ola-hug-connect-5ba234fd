@@ -1,5 +1,4 @@
 import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
@@ -70,63 +69,67 @@ const comparisonRows = [
 
 const MyPlan = () => {
   return (
-    <div className="space-y-16 pb-12">
+    <div className="space-y-20 pb-16 max-w-6xl mx-auto px-4">
       {/* Hero */}
-      <div className="text-center max-w-2xl mx-auto pt-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
+      <div className="text-center max-w-2xl mx-auto pt-6">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 text-primary text-xs font-medium mb-5 border border-primary/10">
           <Sparkles className="w-3.5 h-3.5" />
           Planos flexíveis para qualquer escala
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight leading-tight">
+        <h1 className="text-3xl md:text-[2.5rem] font-bold text-foreground tracking-tight leading-[1.15]">
           Escalone sua operação de WhatsApp com segurança
         </h1>
-        <p className="text-base text-muted-foreground mt-3 leading-relaxed">
+        <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-lg mx-auto">
           Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
         </p>
       </div>
 
       {/* Plans Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-4 items-stretch max-w-5xl mx-auto">
         {plans.map((plan) => (
-          <Card
+          <div
             key={plan.name}
-            className={`relative transition-all duration-300 ${
+            className={`relative group rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] ${
               plan.popular
-                ? "border-primary ring-2 ring-primary/15 shadow-2xl shadow-primary/5 lg:scale-105 z-10"
-                : "border-border/40 hover:border-border hover:shadow-lg"
+                ? "border-2 border-primary shadow-[0_8px_40px_-12px] shadow-primary/15 bg-card lg:scale-[1.03] z-10"
+                : "border border-border/50 shadow-[0_2px_12px_-4px] shadow-foreground/[0.04] bg-card hover:shadow-[0_8px_30px_-8px] hover:shadow-foreground/[0.08] hover:border-border"
             }`}
           >
+            {/* Top accent bar */}
             {plan.popular && (
-              <div className="absolute top-0 inset-x-0 h-[3px] bg-primary rounded-t-xl" />
+              <div className="absolute top-0 inset-x-0 h-[3px] bg-primary rounded-t-2xl" />
             )}
+
+            {/* Badge */}
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 shadow-lg shadow-primary/20">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.08em] px-4 py-1 shadow-lg shadow-primary/25 rounded-full">
                   Mais utilizado
                 </Badge>
               </div>
             )}
-            <CardContent className="p-6 pt-8 flex flex-col h-full">
-              {/* Plan name */}
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{plan.name}</h3>
 
-              {/* Instances highlight */}
-              <p className="text-foreground font-bold text-lg mt-1">
+            <div className="p-7 pt-9 flex flex-col h-full">
+              {/* Plan name */}
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.12em]">{plan.name}</h3>
+
+              {/* Instances */}
+              <p className="text-foreground font-semibold text-base mt-1.5">
                 {plan.instances} instâncias
               </p>
 
               {/* Price */}
-              <div className="mt-4 mb-1">
-                <div className="flex items-baseline">
-                  <span className="text-xs text-muted-foreground mr-1">R$</span>
-                  <span className="text-4xl font-extrabold text-foreground tracking-tight">{plan.price.split(",")[0]}</span>
-                  <span className="text-lg font-bold text-foreground">,{plan.price.split(",")[1]}</span>
+              <div className="mt-5 mb-1.5">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm text-muted-foreground font-medium">R$</span>
+                  <span className="text-[2.75rem] font-extrabold text-foreground tracking-tighter leading-none">{plan.price.split(",")[0]}</span>
+                  <span className="text-xl font-bold text-foreground/70">,{plan.price.split(",")[1]}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">por mês</span>
+                <span className="text-[13px] text-muted-foreground/60">por mês</span>
               </div>
 
               {/* Description */}
-              <p className="text-xs text-muted-foreground/70 leading-relaxed mt-2 mb-5 min-h-[36px]">
+              <p className="text-[13px] text-muted-foreground/70 leading-relaxed mt-2 mb-6 min-h-[40px]">
                 {plan.description}
               </p>
 
@@ -135,38 +138,38 @@ const MyPlan = () => {
                 href={buildWhatsappUrl(plan)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 mb-6 ${
+                className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 mb-7 ${
                   plan.popular
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20"
-                    : "bg-foreground/5 text-foreground hover:bg-foreground/10 border border-border/60"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/25"
+                    : "bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.08] border border-border/60 hover:border-border"
                 }`}
               >
                 {plan.cta}
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </a>
 
               {/* Divider */}
-              <div className="h-px bg-border/30 mb-5" />
+              <div className="h-px bg-border/25 mb-6" />
 
               {/* Features */}
-              <div className="space-y-3 flex-1">
+              <div className="space-y-3.5 flex-1">
                 {FEATURES.map((feature, i) => {
                   const isReport = feature === "Relatórios via WhatsApp";
                   const included = isReport ? plan.reportsIncluded : true;
                   return (
-                    <div key={i} className={`flex items-start gap-2.5 text-[13px] ${
-                      included ? "text-foreground/80" : "text-muted-foreground/35"
+                    <div key={i} className={`flex items-center gap-3 text-[13px] ${
+                      included ? "text-foreground/75" : "text-muted-foreground/30"
                     }`}>
                       {included ? (
-                        <div className="w-4.5 h-4.5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-primary" />
+                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
                         </div>
                       ) : (
-                        <div className="w-4.5 h-4.5 rounded-full bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
-                          <X className="w-3 h-3 text-muted-foreground/30" />
+                        <div className="w-5 h-5 rounded-full bg-muted/40 flex items-center justify-center shrink-0">
+                          <X className="w-3 h-3 text-muted-foreground/25" strokeWidth={2.5} />
                         </div>
                       )}
-                      <span className={!included ? "line-through" : ""}>
+                      <span className={!included ? "line-through decoration-muted-foreground/20" : ""}>
                         {feature}
                       </span>
                     </div>
@@ -174,52 +177,52 @@ const MyPlan = () => {
                 })}
               </div>
 
-              {/* Report highlight for Scale/Elite */}
+              {/* Report highlight */}
               {plan.reportsIncluded && (
-                <div className="mt-5 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                <div className="mt-6 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold text-primary">
                     <Bell className="w-3.5 h-3.5" />
                     Relatórios WhatsApp incluídos
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
       {/* Comparison Table */}
       <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
             <BarChart3 className="w-5 h-5 text-primary" />
             Comparação rápida
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">Veja o que cada plano oferece lado a lado.</p>
+          <p className="text-sm text-muted-foreground mt-1.5">Veja o que cada plano oferece lado a lado.</p>
         </div>
-        <div className="border border-border/40 rounded-xl overflow-hidden">
+        <div className="border border-border/40 rounded-2xl overflow-hidden shadow-[0_2px_12px_-4px] shadow-foreground/[0.03]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/30">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[200px]">Recurso</th>
+              <tr className="bg-muted/20">
+                <th className="text-left px-5 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[200px]">Recurso</th>
                 {plans.map(p => (
-                  <th key={p.name} className={`text-center px-3 py-3 text-xs font-bold uppercase tracking-wider ${
-                    p.popular ? "text-primary" : "text-foreground"
+                  <th key={p.name} className={`text-center px-3 py-4 text-xs font-bold uppercase tracking-wider ${
+                    p.popular ? "text-primary" : "text-foreground/70"
                   }`}>{p.name}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/30">
+            <tbody className="divide-y divide-border/20">
               {comparisonRows.map((row, ri) => (
-                <tr key={ri} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-3 text-foreground/80 text-[13px] font-medium">{row.label}</td>
+                <tr key={ri} className="hover:bg-muted/5 transition-colors">
+                  <td className="px-5 py-3.5 text-foreground/75 text-[13px] font-medium">{row.label}</td>
                   {row.values.map((val, vi) => (
-                    <td key={vi} className="text-center px-3 py-3">
+                    <td key={vi} className="text-center px-3 py-3.5">
                       {typeof val === "boolean" ? (
                         val ? (
-                          <Check className="w-4 h-4 text-primary mx-auto" />
+                          <Check className="w-4 h-4 text-primary mx-auto" strokeWidth={2.5} />
                         ) : (
-                          <X className="w-4 h-4 text-muted-foreground/25 mx-auto" />
+                          <X className="w-4 h-4 text-muted-foreground/20 mx-auto" strokeWidth={2.5} />
                         )
                       ) : (
                         <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground"}`}>{val}</span>
@@ -235,7 +238,7 @@ const MyPlan = () => {
 
       {/* Relatórios via WhatsApp */}
       <div className="max-w-xl mx-auto">
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
             <Bell className="w-5 h-5 text-primary" />
             Relatórios via WhatsApp
@@ -244,65 +247,63 @@ const MyPlan = () => {
             Receba alertas automáticos da sua operação diretamente no WhatsApp.
           </p>
         </div>
-        <Card className="border-border/40 hover:shadow-xl transition-all">
-          <CardContent className="p-7">
-            <div className="flex items-start justify-between gap-5 mb-6">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <Bell className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Relatórios via WhatsApp</h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Acompanhe sua operação sem precisar abrir o painel.
-                  </p>
-                </div>
+        <div className="rounded-2xl border border-border/40 bg-card shadow-[0_2px_16px_-4px] shadow-foreground/[0.04] hover:shadow-[0_8px_30px_-8px] hover:shadow-foreground/[0.08] transition-all duration-300 p-8">
+          <div className="flex items-start justify-between gap-5 mb-7">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/8 border border-primary/10 flex items-center justify-center shrink-0">
+                <Bell className="w-5.5 h-5.5 text-primary" />
               </div>
-              <div className="text-right shrink-0">
-                <div className="flex items-baseline">
-                  <span className="text-xs text-muted-foreground mr-1">R$</span>
-                  <span className="text-3xl font-extrabold text-foreground">18</span>
-                  <span className="text-lg font-bold text-foreground">,90</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">por mês</p>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Relatórios via WhatsApp</h3>
+                <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">
+                  Acompanhe sua operação sem precisar abrir o painel.
+                </p>
               </div>
             </div>
-
-            <div className="space-y-3 mb-6">
-              {[
-                "Relatórios automáticos de aquecimento",
-                "Notificação quando campanhas iniciam ou finalizam",
-                "Alertas de conexão e desconexão das instâncias",
-                "1 número dedicado apenas para notificações",
-              ].map((feat, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-[13px] text-foreground/80">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  {feat}
-                </div>
-              ))}
+            <div className="text-right shrink-0">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-sm text-muted-foreground font-medium">R$</span>
+                <span className="text-[2rem] font-extrabold text-foreground tracking-tighter leading-none">18</span>
+                <span className="text-lg font-bold text-foreground/70">,90</span>
+              </div>
+              <p className="text-[12px] text-muted-foreground/60 mt-0.5">por mês</p>
             </div>
+          </div>
 
-            <p className="text-[11px] text-muted-foreground/50 mb-5">
-              Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
-            </p>
+          <div className="space-y-3.5 mb-7">
+            {[
+              "Relatórios automáticos de aquecimento",
+              "Notificação quando campanhas iniciam ou finalizam",
+              "Alertas de conexão e desconexão das instâncias",
+              "1 número dedicado apenas para notificações",
+            ].map((feat, i) => (
+              <div key={i} className="flex items-center gap-3 text-[13px] text-foreground/75">
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
+                </div>
+                {feat}
+              </div>
+            ))}
+          </div>
 
-            <a
-              href={buildAddonWhatsappUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-foreground/5 text-foreground hover:bg-foreground/10 border border-border/60"
-            >
-              Ativar plano
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
-          </CardContent>
-        </Card>
+          <p className="text-[11px] text-muted-foreground/45 mb-6">
+            Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
+          </p>
+
+          <a
+            href={buildAddonWhatsappUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.08] border border-border/60 hover:border-border"
+          >
+            Ativar plano
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
       </div>
 
       {/* Trust */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-muted-foreground/40">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs text-muted-foreground/35">
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4" />
           Sem fidelidade
