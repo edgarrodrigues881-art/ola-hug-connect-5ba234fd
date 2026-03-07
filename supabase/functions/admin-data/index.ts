@@ -708,6 +708,98 @@ Deno.serve(async (req) => {
     }
 
 
+    // ─── AUTO-PROVISION TOKENS (create UAZAPI instances) ───
+    if (action === "auto-provision-tokens" && req.method === "POST") {
+      const { target_user_id, quantity, client_name } = await req.json();
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+      if (!ADMIN_BASE_URL || !ADMIN_TOKEN) {
+        return new Response(JSON.stringify({ error: "UAZAPI_BASE_URL ou UAZAPI_TOKEN não configurados" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check how many tokens already exist for this user
+      const { data: existingTokens } = await adminClient.from("user_api_tokens")
+        .select("id")
+        .eq("user_id", target_user_id);
+      const existingCount = existingTokens?.length || 0;
+      const toCreate = Math.max(0, quantity - existingCount);
+
+      if (toCreate === 0) {
+        return new Response(JSON.stringify({ 
+          success: true, created: 0, existing: existingCount,
+          message: `Cliente já possui ${existingCount} token(s) — nenhum novo criado.`
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const sanitizedName = (client_name || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+      const created: string[] = [];
+      const errors: string[] = [];
+
+      for (let i = 0; i < toCreate; i++) {
+        const instanceName = `${sanitizedName}_${existingCount + i + 1}`;
+        try {
+          const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+            method: "POST",
+            headers: {
+              "admintoken": ADMIN_TOKEN,
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: JSON.stringify({ name: instanceName }),
+          });
+
+          const body = await res.json();
+          console.log(`[auto-provision] instance ${instanceName}: status=${res.status}`, JSON.stringify(body));
+
+          if (!res.ok) {
+            errors.push(`${instanceName}: ${body?.message || body?.error || res.statusText}`);
+            continue;
+          }
+
+          // The API returns the token in body.token or body.data.token
+          const token = body?.token || body?.data?.token || body?.instance?.token;
+          if (!token) {
+            errors.push(`${instanceName}: Resposta sem token`);
+            continue;
+          }
+
+          // Insert token into pool
+          await adminClient.from("user_api_tokens").insert({
+            user_id: target_user_id,
+            token,
+            admin_id: user.id,
+            status: "available",
+            healthy: true,
+            label: instanceName,
+            last_checked_at: new Date().toISOString(),
+          });
+
+          created.push(instanceName);
+        } catch (e) {
+          errors.push(`${instanceName}: ${e.message}`);
+        }
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "auto-provision-tokens",
+        `Provisionamento automático: ${created.length} criados, ${errors.length} erros (de ${toCreate} solicitados)`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        created: created.length,
+        errors: errors.length,
+        error_details: errors,
+        existing: existingCount,
+        total: existingCount + created.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── DELETE TOKEN ───
     if (action === "delete-token" && req.method === "POST") {
       const { token_id, target_user_id } = await req.json();

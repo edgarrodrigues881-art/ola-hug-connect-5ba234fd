@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -54,10 +54,36 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isExpired = daysLeft !== null && daysLeft <= 0;
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
 
+  const [provisioning, setProvisioning] = useState(false);
+
+  // Auto-provision tokens via UAZAPI API
+  const handleAutoProvision = (quantity: number) => {
+    setProvisioning(true);
+    const clientName = client.full_name || client.email || "cliente";
+    mutate({
+      action: "auto-provision-tokens",
+      body: { target_user_id: client.id, quantity, client_name: clientName },
+    }, {
+      onSuccess: (data: any) => {
+        setProvisioning(false);
+        if (data.created > 0) {
+          toast({ title: `${data.created} token(s) criado(s) automaticamente via UAZAPI`, description: data.errors > 0 ? `${data.errors} erro(s): ${data.error_details?.join(", ")}` : undefined });
+        } else if (data.existing >= quantity) {
+          toast({ title: `Cliente já possui ${data.existing} token(s) — nenhum novo necessário` });
+        } else {
+          toast({ title: "Nenhum token criado", description: data.error_details?.join(", "), variant: "destructive" });
+        }
+      },
+      onError: (e) => {
+        setProvisioning(false);
+        toast({ title: "Erro ao provisionar", description: e.message, variant: "destructive" });
+      },
+    });
+  };
+
   // Save plan (also creates initial cycle)
   const handleSave = () => {
     if (isNoPlan) {
-      // Remove subscription
       mutate({
         action: "remove-subscription",
         body: { target_user_id: client.id },
@@ -93,7 +119,11 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             cycle_end: cycleEnd,
           },
         }, {
-          onSuccess: () => toast({ title: "Plano atualizado e ciclo criado" }),
+          onSuccess: () => {
+            toast({ title: "Plano atualizado e ciclo criado" });
+            // Auto-provision tokens for the plan
+            handleAutoProvision(planConfig.max_instances);
+          },
           onError: (e) => toast({ title: "Plano salvo, mas ciclo falhou", description: e.message, variant: "destructive" }),
         });
       },
@@ -217,10 +247,16 @@ const ClientPlanTab = ({ client, detail }: Props) => {
 
         {/* Action buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button onClick={handleSave} disabled={isPending || provisioning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo"}
+            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo + Tokens"}
           </Button>
+          {sub && !isNoPlan && (
+            <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={isPending || provisioning} variant="outline" className="border-primary/30 text-primary hover:text-primary/80">
+              {provisioning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap size={14} className="mr-2" />}
+              Provisionar Tokens
+            </Button>
+          )}
           {sub && (
             <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
               <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
