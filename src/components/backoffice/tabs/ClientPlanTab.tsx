@@ -45,10 +45,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [startedAt, setStartedAt] = useState<string>(
     sub?.started_at ? sub.started_at.split("T")[0] : new Date().toISOString().split("T")[0]
   );
+  const [trialDays, setTrialDays] = useState<number>(7);
 
   const planConfig = PLANS[planName] || PLANS.Start;
+  const isTrial = planName === "Trial";
+  const isFree = planName === "Free";
   const isNoPlan = planName === "Sem plano";
-  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, 30), [startedAt, isNoPlan]);
+  const cycleDays = isTrial ? trialDays : isFree ? (planConfig.defaultDays || 3) : 30;
+  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
