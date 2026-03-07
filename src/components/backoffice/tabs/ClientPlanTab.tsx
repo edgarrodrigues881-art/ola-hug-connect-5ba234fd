@@ -387,43 +387,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             </AlertDialog>
           )}
         </div>
-
-        {/* Notification WhatsApp addon */}
-        <div className="border-t border-border pt-4">
-          <div className="rounded-xl border border-border bg-gradient-to-r from-muted/30 to-muted/10 p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                  <Radio size={20} className="text-emerald-500" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground">Notificação via WhatsApp</p>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
-                      R$ {NOTIFICATION_PRICE.toFixed(2)}/mês
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Libera a instância de relatório via WhatsApp mesmo sem plano ativo. Alertas de desconexão, campanhas e aquecimento.</p>
-                </div>
-              </div>
-              <Switch
-                checked={detail?.profile?.notificacao_liberada ?? false}
-                onCheckedChange={(checked) => {
-                  setIncludeNotification(checked);
-                  mutate({
-                    action: "toggle-notification",
-                    body: { target_user_id: client.id, enabled: checked },
-                  }, {
-                    onSuccess: () => toast({ title: checked ? "Notificação via WhatsApp liberada" : "Notificação via WhatsApp desativada" }),
-                    onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-                  });
-                }}
-                disabled={isPending}
-              />
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* Cycle history */}
