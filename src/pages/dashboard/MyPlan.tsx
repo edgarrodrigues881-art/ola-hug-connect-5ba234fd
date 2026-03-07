@@ -182,8 +182,8 @@ const MyPlan = () => {
                         {included ? (
                           <GradientCheck />
                         ) : (
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted/50">
-                            <X className="w-3 h-3 text-muted-foreground/25" strokeWidth={2.5} />
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-destructive/10">
+                            <X className="w-3 h-3 text-destructive/70" strokeWidth={2.5} />
                           </div>
                         )}
                         <span className={!included ? "line-through decoration-muted-foreground/20" : ""}>
