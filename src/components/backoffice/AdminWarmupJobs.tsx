@@ -88,8 +88,8 @@ const AdminWarmupJobs = () => {
           <p className="text-2xl font-black text-yellow-400">{statusCounts.pending}</p>
           <p className="text-[10px] text-muted-foreground uppercase">Pendentes</p>
         </div>
-        <div className="bg-card border border-blue-500/20 rounded-lg p-3 text-center">
-          <p className="text-2xl font-black text-blue-400">{statusCounts.running}</p>
+        <div className="bg-card border border-teal-500/20 rounded-lg p-3 text-center">
+          <p className="text-2xl font-black text-teal-400">{statusCounts.running}</p>
           <p className="text-[10px] text-muted-foreground uppercase">Rodando</p>
         </div>
         <div className="bg-card border border-destructive/20 rounded-lg p-3 text-center">
