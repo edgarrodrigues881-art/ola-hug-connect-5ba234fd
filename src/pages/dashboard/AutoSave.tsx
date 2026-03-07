@@ -336,40 +336,40 @@ const AutoSave = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary shrink-0" />
             Auto Save
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Gerencie os contatos que serão usados na camada de interação Auto Save
+          <p className="text-xs text-muted-foreground mt-0.5 max-w-[280px] sm:max-w-none">
+            Gerencie os contatos da camada Auto Save
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
+
+        {/* Action buttons - grid on mobile */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           {contacts.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 text-destructive hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
               <Trash2 className="w-3.5 h-3.5" /> Apagar todos
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1.5 text-xs h-9 col-span-2 sm:col-span-1" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 max-w-[200px]">
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-foreground">{contacts.length}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
-        </CardContent></Card>
-      </div>
+      <Card className="max-w-[160px]"><CardContent className="p-3 text-center">
+        <p className="text-xl font-bold tabular-nums text-foreground">{contacts.length}</p>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
+      </CardContent></Card>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
