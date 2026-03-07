@@ -191,8 +191,9 @@ Deno.serve(async (req) => {
     if (action === "update-subscription" && req.method === "POST") {
       const { target_user_id, plan_name, plan_price, max_instances, expires_at, started_at } = await req.json();
       
-      // Upsert subscription
-      const { data: existing } = await adminClient.from("subscriptions").select("id").eq("user_id", target_user_id).maybeSingle();
+      // Get old subscription for comparison
+      const { data: existing } = await adminClient.from("subscriptions").select("id, max_instances, plan_name").eq("user_id", target_user_id).maybeSingle();
+      const oldMaxInstances = existing?.max_instances || 0;
       
       if (existing) {
         await adminClient.from("subscriptions").update({
@@ -207,7 +208,106 @@ Deno.serve(async (req) => {
 
       await logAction(adminClient, user.id, target_user_id, "update-subscription", `Plano: ${plan_name}, Instâncias: ${max_instances}`);
 
-      return new Response(JSON.stringify({ success: true }), {
+      // ─── AUTO-PROVISION / ADJUST TOKENS ───
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+      // Get all tokens for this user
+      const { data: allTokens } = await adminClient.from("user_api_tokens")
+        .select("id, status, label")
+        .eq("user_id", target_user_id)
+        .order("created_at", { ascending: true });
+      const totalTokens = allTokens?.length || 0;
+
+      let provisionResult = { created: 0, blocked: 0, unblocked: 0, errors: [] as string[] };
+
+      // DOWNGRADE: block excess tokens (only available ones, don't touch in_use)
+      if (max_instances < totalTokens) {
+        const availableTokens = (allTokens || []).filter((t: any) => t.status === "available");
+        const excessCount = totalTokens - max_instances;
+        const toBlock = availableTokens.slice(-excessCount); // block last ones
+        for (const t of toBlock) {
+          await adminClient.from("user_api_tokens").update({ status: "blocked" }).eq("id", t.id);
+          provisionResult.blocked++;
+        }
+        await logAction(adminClient, user.id, target_user_id, "tokens-blocked",
+          `${provisionResult.blocked} token(s) bloqueado(s) por downgrade (limite: ${max_instances})`);
+      }
+
+      // UPGRADE or SAME: unblock previously blocked tokens up to limit, then create missing
+      if (max_instances >= totalTokens) {
+        // First unblock any blocked tokens
+        const { data: blockedTokens } = await adminClient.from("user_api_tokens")
+          .select("id").eq("user_id", target_user_id).eq("status", "blocked");
+        for (const t of (blockedTokens || [])) {
+          await adminClient.from("user_api_tokens").update({ status: "available" }).eq("id", t.id);
+          provisionResult.unblocked++;
+        }
+      }
+
+      // Calculate how many new tokens needed after unblocking
+      const { data: currentTokens } = await adminClient.from("user_api_tokens")
+        .select("id").eq("user_id", target_user_id).neq("status", "blocked");
+      const activeTokenCount = currentTokens?.length || 0;
+      const toCreate = Math.max(0, max_instances - activeTokenCount);
+
+      if (toCreate > 0 && ADMIN_BASE_URL && ADMIN_TOKEN) {
+        // Get client name for instance labels
+        const { data: profile } = await adminClient.from("profiles")
+          .select("full_name").eq("id", target_user_id).maybeSingle();
+        const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
+        const clientName = profile?.full_name || authUser?.user?.email || "cliente";
+        const sanitizedName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+
+        for (let i = 0; i < toCreate; i++) {
+          const instanceName = `${sanitizedName}_${activeTokenCount + i + 1}`;
+          try {
+            const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+              method: "POST",
+              headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({ name: instanceName }),
+            });
+            const body = await res.json();
+            console.log(`[auto-provision] ${instanceName}: status=${res.status}`, JSON.stringify(body));
+
+            if (!res.ok) {
+              provisionResult.errors.push(`${instanceName}: ${body?.message || res.statusText}`);
+              continue;
+            }
+
+            const token = body?.token || body?.data?.token || body?.instance?.token;
+            if (!token) {
+              provisionResult.errors.push(`${instanceName}: Sem token na resposta`);
+              continue;
+            }
+
+            // Idempotency: check if token already exists
+            const { data: dup } = await adminClient.from("user_api_tokens")
+              .select("id").eq("token", token).maybeSingle();
+            if (dup) {
+              console.log(`[auto-provision] Token duplicado, pulando: ${instanceName}`);
+              continue;
+            }
+
+            await adminClient.from("user_api_tokens").insert({
+              user_id: target_user_id, token, admin_id: user.id,
+              status: "available", healthy: true, label: instanceName,
+              last_checked_at: new Date().toISOString(),
+            });
+            provisionResult.created++;
+          } catch (e) {
+            provisionResult.errors.push(`${instanceName}: ${e.message}`);
+          }
+        }
+
+        await logAction(adminClient, user.id, target_user_id, "auto-provision-tokens",
+          `Provisionamento automático: ${provisionResult.created} criados, ${provisionResult.errors.length} erros (de ${toCreate} solicitados)`);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        provision: provisionResult,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
