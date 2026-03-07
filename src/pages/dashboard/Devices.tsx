@@ -926,6 +926,7 @@ const Devices = () => {
         action: "connect",
         deviceId: connectingDevice.id,
         proxyConfig: proxyPayload,
+        proxyId: proxyId || connectingDevice.proxy_id || undefined,
       });
 
       // Check for proxy or duplicate phone errors
@@ -1635,7 +1636,14 @@ const Devices = () => {
                           }
                           const pairingProxyData = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
                           const pairingProxyPayload = pairingProxyData ? { host: pairingProxyData.host, port: pairingProxyData.port, username: pairingProxyData.username, password: pairingProxyData.password, type: pairingProxyData.type } : undefined;
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload });
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload, proxyId: connectingDevice.proxy_id || undefined });
+                          if (result?.error && result?.code === "PROXY_FAILED") {
+                            setConnectError(result.error);
+                            setConnectStep("proxy");
+                            queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                            toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
+                            return;
+                          }
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
@@ -1682,7 +1690,14 @@ const Devices = () => {
                           }
                           const pairingProxyData2 = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
                           const pairingProxyPayload2 = pairingProxyData2 ? { host: pairingProxyData2.host, port: pairingProxyData2.port, username: pairingProxyData2.username, password: pairingProxyData2.password, type: pairingProxyData2.type } : undefined;
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload2 });
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload2, proxyId: connectingDevice.proxy_id || undefined });
+                          if (result?.error && result?.code === "PROXY_FAILED") {
+                            setConnectError(result.error);
+                            setConnectStep("proxy");
+                            queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                            toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
+                            return;
+                          }
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
