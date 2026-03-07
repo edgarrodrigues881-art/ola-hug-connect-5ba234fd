@@ -135,8 +135,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           },
         }, {
           onSuccess: () => {
+            // Also toggle notification
+            mutate({
+              action: "toggle-notification",
+              body: { target_user_id: client.id, enabled: includeNotification },
+            }, { onSuccess: () => {}, onError: () => {} });
             setProvisioning(false);
             let desc = "Ciclo criado.";
+            if (includeNotification) desc += " Relatório via WhatsApp ativado.";
             if (prov?.created > 0) desc += ` ${prov.created} token(s) provisionados.`;
             if (prov?.blocked > 0) desc += ` ${prov.blocked} token(s) bloqueados por downgrade.`;
             if (prov?.unblocked > 0) desc += ` ${prov.unblocked} token(s) desbloqueados.`;
