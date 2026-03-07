@@ -1,9 +1,14 @@
-import { Check, ArrowRight, Lock, Activity, TrendingUp, Crown } from "lucide-react";
+import { Check, ArrowRight, Lock, Activity, TrendingUp, Crown, Bell } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
   const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência Pro – ${plan.instances} Instâncias no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
+  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+};
+
+const buildAddonWhatsappUrl = () => {
+  const msg = `Olá, tudo bem?\nTenho interesse em contratar o addon Relatórios via WhatsApp no valor de R$ 18,90/mês.\nPode me enviar os dados para ativação?`;
   return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
 };
 
@@ -15,6 +20,7 @@ const plans = [
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null,
     popular: false,
+    reportsIncluded: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -30,6 +36,7 @@ const plans = [
     subtitle: "Estrutura ideal para operadores ativos.",
     extraCopy: "Plano mais escolhido por operadores ativos.",
     popular: true,
+    reportsIncluded: false,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
@@ -45,9 +52,11 @@ const plans = [
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
     extraCopy: null,
     popular: false,
+    reportsIncluded: true,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
+      "Relatórios via WhatsApp incluso",
       "Gestão avançada",
       "Monitoramento em tempo real",
       "Suporte prioritário",
@@ -60,9 +69,11 @@ const plans = [
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
     popular: false,
+    reportsIncluded: true,
     features: [
       "Aquecimento automatizado incluso",
       "Disparador interativo incluso",
+      "Relatórios via WhatsApp incluso",
       "Gestão completa de instâncias",
       "Monitoramento avançado",
       "Atendimento prioritário dedicado",
@@ -104,6 +115,12 @@ const MyPlan = () => {
             <CardContent className="p-5 pt-7 flex flex-col h-full">
               <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
               <p className="text-xs text-muted-foreground mb-1">{plan.instances} instâncias</p>
+              {plan.reportsIncluded && (
+                <Badge variant="outline" className="w-fit text-[10px] mb-1 border-emerald-500/30 text-emerald-500">
+                  <Bell className="w-3 h-3 mr-1" />
+                  Relatórios WhatsApp incluso
+                </Badge>
+              )}
               <p className="text-[11px] text-muted-foreground/70 mb-1 leading-relaxed">{plan.subtitle}</p>
               {plan.extraCopy && (
                 <p className="text-[11px] text-primary/70 mb-3 leading-relaxed">{plan.extraCopy}</p>
@@ -142,6 +159,63 @@ const MyPlan = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Addon section */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Bell className="w-5 h-5 text-emerald-500" />
+          Addon disponível
+        </h2>
+        <Card className="border-border/50 hover:shadow-md transition-shadow max-w-md">
+          <CardContent className="p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Relatórios via WhatsApp</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Receba alertas de desconexão, campanhas e aquecimento direto no WhatsApp.
+                </p>
+              </div>
+              <div className="text-right shrink-0 ml-4">
+                <span className="text-xl font-bold text-foreground">R$ 18,90</span>
+                <span className="text-muted-foreground text-xs"> / mês</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-emerald-500/60 shrink-0" />
+                1 instância dedicada para notificações
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-emerald-500/60 shrink-0" />
+                Relatório de aquecimento automático
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-emerald-500/60 shrink-0" />
+                Relatório de campanhas
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-emerald-500/60 shrink-0" />
+                Alertas de conexão/desconexão
+              </div>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground/60">
+              Já incluso nos planos Scale e Elite. Para Start e Pro, contrate como addon separado.
+            </p>
+
+            <a
+              href={buildAddonWhatsappUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 bg-muted/50 text-foreground hover:bg-muted border border-border/50"
+            >
+              Contratar addon
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Trust badges */}
