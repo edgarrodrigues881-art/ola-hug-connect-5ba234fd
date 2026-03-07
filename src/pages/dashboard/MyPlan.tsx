@@ -249,7 +249,7 @@ const MyPlan = () => {
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-primary" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-muted-foreground/20" strokeWidth={2.5} />
+                            <X className="w-4 h-4 mx-auto text-destructive/70" strokeWidth={2.5} />
                           )
                         ) : (
                           <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground"}`}>
