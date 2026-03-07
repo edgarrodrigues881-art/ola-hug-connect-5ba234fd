@@ -549,7 +549,7 @@ const CampaignDetail = () => {
 
         {/* Logs table */}
         <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30">
