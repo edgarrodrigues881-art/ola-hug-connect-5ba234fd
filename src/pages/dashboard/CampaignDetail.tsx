@@ -361,7 +361,7 @@ const CampaignDetail = () => {
           <div className="flex items-center gap-2">
             {isScheduled && (
               <>
-                <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("start")}>
+                <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => handleAction("start")}>
                   <Play className="w-3.5 h-3.5" /> Iniciar agora
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleAction("cancel")}>
@@ -381,7 +381,7 @@ const CampaignDetail = () => {
             )}
             {isPaused && (
               <>
-                <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("resume")}>
+                <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => handleAction("resume")}>
                   <Play className="w-3.5 h-3.5" /> Retomar
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleAction("cancel")}>

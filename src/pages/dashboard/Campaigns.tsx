@@ -1625,11 +1625,11 @@ const Campaigns = () => {
                             className={cn(
                               "flex items-center gap-3 p-3 rounded-xl border transition-all duration-150 text-left w-full",
                               isSelected
-                                ? "border-emerald-500/30 bg-emerald-500/5 shadow-sm shadow-emerald-500/10"
-                                : "border-border/20 hover:border-emerald-500/20 bg-card hover:shadow-sm"
+                                ? "border-primary/30 bg-primary/5 shadow-sm shadow-primary/10"
+                                : "border-border/20 hover:border-primary/20 bg-card hover:shadow-sm"
                             )}
                           >
-                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isSelected ? "bg-emerald-500/15" : "bg-muted/20")}>
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", isSelected ? "bg-primary/15" : "bg-muted/20")}>
                               {d.profile_picture ? (
                                 <img src={d.profile_picture} alt="" className="w-9 h-9 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                               ) : (
@@ -1922,7 +1922,7 @@ const Campaigns = () => {
               <Button 
                 onClick={handleSendCampaign} 
                 disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-                className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
