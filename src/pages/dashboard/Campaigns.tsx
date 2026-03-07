@@ -924,7 +924,7 @@ const Campaigns = () => {
 
       {/* ═══ Stepper (Top) ═══ */}
       <div className="mb-8">
-        <SurfaceCard className="p-2">
+        <SurfaceCard className="p-3">
           <div className="flex items-stretch relative">
             {steps.map((s, i) => {
               const isActive = step === s.num;
@@ -937,17 +937,17 @@ const Campaigns = () => {
                   key={s.num}
                   onClick={() => setStep(s.num)}
                   className={cn(
-                    "flex-1 flex items-center gap-3 px-4 py-4 rounded-xl relative group transition-all duration-150",
-                    isActive && "bg-primary/8 dark:bg-primary/10",
-                    !isActive && "hover:bg-muted/40 dark:hover:bg-muted/15",
+                    "flex-1 flex items-center gap-3.5 px-5 py-4 rounded-[14px] relative group transition-all duration-150",
+                    isActive && "bg-primary/10 dark:bg-primary/12 ring-1 ring-primary/20",
+                    !isActive && "hover:bg-muted/50 dark:hover:bg-muted/20",
                   )}
                 >
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 transition-all duration-150",
-                      isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/40",
-                      isDone && "bg-emerald-500/15 text-emerald-400",
-                      !isActive && !isDone && "bg-muted/40 dark:bg-muted/20 text-muted-foreground/40",
+                      "w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all duration-150",
+                      isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/30",
+                      isDone && "bg-primary/15 text-primary",
+                      !isActive && !isDone && "bg-muted/30 dark:bg-muted/15 text-muted-foreground/35 group-hover:bg-muted/50 group-hover:text-muted-foreground/60",
                     )}
                   >
                     {isDone ? <Check className="w-4.5 h-4.5" strokeWidth={3} /> : <Icon className="w-4.5 h-4.5" />}
@@ -955,29 +955,34 @@ const Campaigns = () => {
                   <div className="text-left min-w-0 hidden sm:block">
                     <p className={cn(
                       "text-[13px] font-semibold leading-tight transition-colors",
-                      isActive ? "text-foreground" : isDone ? "text-foreground/60" : "text-muted-foreground/40"
+                      isActive ? "text-foreground" : isDone ? "text-foreground/70" : "text-muted-foreground/40 group-hover:text-muted-foreground/70"
                     )}>{s.label}</p>
                     <p className={cn(
                       "text-[11px] leading-tight mt-0.5 transition-colors",
-                      isActive ? "text-muted-foreground/70" : "text-muted-foreground/30"
+                      isActive ? "text-muted-foreground" : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
                     )}>{s.desc}</p>
                     <p className={cn("text-[9px] font-semibold uppercase tracking-wider mt-1", statusInfo.color)}>
                       {statusInfo.text}
                     </p>
                   </div>
+                  {/* Connector line between steps */}
                   {i < steps.length - 1 && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-8 bg-border/20 dark:bg-border/10" />
+                    <div className={cn(
+                      "absolute right-0 top-1/2 -translate-y-1/2 w-px h-10 transition-colors",
+                      isDone ? "bg-primary/20" : "bg-border/15 dark:bg-border/10"
+                    )} />
                   )}
                 </button>
               );
             })}
           </div>
-          <div className="mx-3 mt-1.5 mb-2.5">
-            <div className="h-[3px] rounded-full bg-muted/20 dark:bg-muted/10 overflow-hidden">
+          {/* Progress bar */}
+          <div className="mx-4 mt-2 mb-2">
+            <div className="h-[3px] rounded-full bg-muted/15 dark:bg-muted/8 overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-300"
+                className="h-full rounded-full transition-all duration-500 ease-out"
                 style={{
-                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.6))",
                   width: `${((step - 1) / (steps.length - 1)) * 100}%`,
                 }}
               />
