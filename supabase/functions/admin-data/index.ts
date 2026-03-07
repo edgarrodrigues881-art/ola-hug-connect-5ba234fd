@@ -820,17 +820,30 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Check how many tokens already exist for this user
+      // Check how many non-blocked tokens already exist for this user
       const { data: existingTokens } = await adminClient.from("user_api_tokens")
-        .select("id")
-        .eq("user_id", target_user_id);
+        .select("id, status")
+        .eq("user_id", target_user_id)
+        .neq("status", "blocked");
       const existingCount = existingTokens?.length || 0;
-      const toCreate = Math.max(0, quantity - existingCount);
+
+      // Also unblock any blocked tokens first (up to quantity)
+      const { data: blockedTokens } = await adminClient.from("user_api_tokens")
+        .select("id").eq("user_id", target_user_id).eq("status", "blocked");
+      let unblockedCount = 0;
+      for (const bt of (blockedTokens || [])) {
+        if (existingCount + unblockedCount >= quantity) break;
+        await adminClient.from("user_api_tokens").update({ status: "available" }).eq("id", bt.id);
+        unblockedCount++;
+      }
+
+      const totalActive = existingCount + unblockedCount;
+      const toCreate = Math.max(0, quantity - totalActive);
 
       if (toCreate === 0) {
         return new Response(JSON.stringify({ 
-          success: true, created: 0, existing: existingCount,
-          message: `Cliente já possui ${existingCount} token(s) — nenhum novo criado.`
+          success: true, created: 0, existing: totalActive, unblocked: unblockedCount,
+          message: `Cliente já possui ${totalActive} token(s) — nenhum novo criado.`
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -841,15 +854,11 @@ Deno.serve(async (req) => {
       const errors: string[] = [];
 
       for (let i = 0; i < toCreate; i++) {
-        const instanceName = `${sanitizedName}_${existingCount + i + 1}`;
+        const instanceName = `${sanitizedName}_${totalActive + i + 1}`;
         try {
           const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
             method: "POST",
-            headers: {
-              "admintoken": ADMIN_TOKEN,
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-            },
+            headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({ name: instanceName }),
           });
 
@@ -861,21 +870,23 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // The API returns the token in body.token or body.data.token
           const token = body?.token || body?.data?.token || body?.instance?.token;
           if (!token) {
             errors.push(`${instanceName}: Resposta sem token`);
             continue;
           }
 
-          // Insert token into pool
+          // Idempotency: check if token already exists
+          const { data: dup } = await adminClient.from("user_api_tokens")
+            .select("id").eq("token", token).maybeSingle();
+          if (dup) {
+            console.log(`[auto-provision] Token duplicado: ${instanceName}`);
+            continue;
+          }
+
           await adminClient.from("user_api_tokens").insert({
-            user_id: target_user_id,
-            token,
-            admin_id: user.id,
-            status: "available",
-            healthy: true,
-            label: instanceName,
+            user_id: target_user_id, token, admin_id: user.id,
+            status: "available", healthy: true, label: instanceName,
             last_checked_at: new Date().toISOString(),
           });
 
@@ -886,15 +897,16 @@ Deno.serve(async (req) => {
       }
 
       await logAction(adminClient, user.id, target_user_id, "auto-provision-tokens",
-        `Provisionamento automático: ${created.length} criados, ${errors.length} erros (de ${toCreate} solicitados)`);
+        `Provisionamento: ${created.length} criados, ${unblockedCount} desbloqueados, ${errors.length} erros (de ${toCreate} solicitados)`);
 
       return new Response(JSON.stringify({
         success: true,
         created: created.length,
+        unblocked: unblockedCount,
         errors: errors.length,
         error_details: errors,
         existing: existingCount,
-        total: existingCount + created.length,
+        total: totalActive + created.length,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
