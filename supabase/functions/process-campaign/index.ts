@@ -200,32 +200,21 @@ function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-// Shuffle bag: cycles through all variants before repeating, never picks same consecutively
-class ShuffleBag {
-  private bag: number[] = [];
+// True random picker: picks a random variant each time, avoiding consecutive repeats
+class RandomPicker {
   private lastPicked: number = -1;
   private total: number;
 
   constructor(totalVariants: number) {
     this.total = totalVariants;
-    this.refill();
-  }
-
-  private refill() {
-    this.bag = Array.from({ length: this.total }, (_, i) => i);
-    for (let i = this.bag.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
-    }
-    if (this.bag.length > 1 && this.bag[0] === this.lastPicked) {
-      const swapIdx = 1 + Math.floor(Math.random() * (this.bag.length - 1));
-      [this.bag[0], this.bag[swapIdx]] = [this.bag[swapIdx], this.bag[0]];
-    }
   }
 
   next(): number {
-    if (this.bag.length === 0) this.refill();
-    const picked = this.bag.shift()!;
+    if (this.total <= 1) return 0;
+    let picked: number;
+    do {
+      picked = Math.floor(Math.random() * this.total);
+    } while (picked === this.lastPicked && this.total > 1);
     this.lastPicked = picked;
     return picked;
   }
