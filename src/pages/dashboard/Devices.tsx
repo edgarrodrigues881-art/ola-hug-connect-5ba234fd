@@ -1678,7 +1678,9 @@ const Devices = () => {
                             toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
                             return;
                           }
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
+                          const pairingProxyData2 = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
+                          const pairingProxyPayload2 = pairingProxyData2 ? { host: pairingProxyData2.host, port: pairingProxyData2.port, username: pairingProxyData2.username, password: pairingProxyData2.password, type: pairingProxyData2.type } : undefined;
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload2 });
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
