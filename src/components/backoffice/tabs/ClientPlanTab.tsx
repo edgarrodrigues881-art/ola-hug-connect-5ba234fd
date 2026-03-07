@@ -56,7 +56,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isTrial = planName === "Trial";
   const isNoPlan = planName === "Sem plano";
   const cycleDays = isTrial ? trialDays : 30;
-  const cycleDaysCalc = isTrial ? trialDays : 30;
+  
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const expiresAt = manualExpires || autoExpiresAt;
   const { mutate, isPending } = useAdminAction();
@@ -254,7 +254,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                 const newPlan = e.target.value;
                 setPlanName(newPlan); 
                 setStartedAt(new Date().toISOString().split("T")[0]);
-                if (newPlan !== "Sem plano") setShowNotificationPrompt(true);
               }}
                 className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors cursor-pointer">
                 <option value="" disabled>Selecione um plano</option>
@@ -298,9 +297,36 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                     Auto
                   </Button>
                 )}
+            </div>
+            {/* Relatório via WhatsApp addon inline */}
+            <div className="md:col-span-2">
+              <div 
+                onClick={() => setIncludeNotification(!includeNotification)}
+                className={`mt-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                  includeNotification 
+                    ? "border-emerald-500/50 bg-emerald-500/5" 
+                    : "border-border bg-muted/20 hover:border-muted-foreground/30"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${includeNotification ? "bg-emerald-500/15" : "bg-muted/50"}`}>
+                    <Radio size={16} className={includeNotification ? "text-emerald-500" : "text-muted-foreground"} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Relatório via WhatsApp</p>
+                    <p className="text-[11px] text-muted-foreground">Alertas de desconexão, campanhas e aquecimento</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold ${includeNotification ? "text-emerald-500" : "text-muted-foreground"}`}>
+                    + R$ {NOTIFICATION_PRICE.toFixed(2)}/mês
+                  </span>
+                  <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
+                </div>
               </div>
             </div>
           </div>
+        </div>
         </div>
 
         {/* Action buttons */}
@@ -398,38 +424,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           </div>
         </div>
 
-        {/* Notification prompt when selecting plan */}
-        <AlertDialog open={showNotificationPrompt} onOpenChange={setShowNotificationPrompt}>
-          <AlertDialogContent className="bg-card border-border">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <Radio size={18} className="text-emerald-500" /> Adicionar Relatório via WhatsApp?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground">
-                Deseja incluir o plano de notificação via WhatsApp por <span className="text-foreground font-semibold">R$ {NOTIFICATION_PRICE.toFixed(2)}/mês</span>?
-                O cliente receberá alertas de desconexão, campanhas e aquecimento diretamente no WhatsApp.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="border-border" onClick={() => setIncludeNotification(false)}>Não, obrigado</AlertDialogCancel>
-              <AlertDialogAction 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white" 
-                onClick={() => {
-                  setIncludeNotification(true);
-                  mutate({
-                    action: "toggle-notification",
-                    body: { target_user_id: client.id, enabled: true },
-                  }, {
-                    onSuccess: () => toast({ title: "Notificação via WhatsApp incluída no plano" }),
-                    onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-                  });
-                }}
-              >
-                Sim, incluir (+R$ {NOTIFICATION_PRICE.toFixed(2)})
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
 
       {/* Cycle history */}
