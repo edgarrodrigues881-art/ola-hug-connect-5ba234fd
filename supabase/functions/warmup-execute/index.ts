@@ -197,6 +197,24 @@ Deno.serve(async (req) => {
   } catch {}
 
   try {
+    // ─── PLAN CHECK ───
+    const { data: activeSub } = await supabase
+      .from("subscriptions")
+      .select("expires_at")
+      .eq("user_id", targetUserId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { data: userProfile } = await supabase.from("profiles").select("status").eq("id", targetUserId).maybeSingle();
+    const planInactive = !activeSub || new Date(activeSub.expires_at) < new Date();
+    const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
+    if (planInactive || accountBlocked) {
+      return new Response(JSON.stringify({ error: "Seu plano está inativo. Ative um plano para continuar." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let query = supabase
       .from("warmup_sessions")
       .select("id, user_id, device_id, status, messages_per_day, daily_increment, max_messages_per_day, current_day, total_days, messages_sent_today, messages_sent_total, min_delay_seconds, max_delay_seconds, start_time, end_time, quality_profile, safety_state")
