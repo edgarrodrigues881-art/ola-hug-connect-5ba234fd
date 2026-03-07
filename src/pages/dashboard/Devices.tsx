@@ -777,13 +777,11 @@ const Devices = () => {
       if (!device) return;
 
       if (action === "restart") {
-        // Logout then reconnect
+        // Disconnect WhatsApp session (keeps token/instance intact)
         await callApi({ action: "logout", deviceId });
-        await new Promise(r => setTimeout(r, 1000));
-        await callApi({ action: "connect", deviceId, method: "qr" });
         await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", deviceId);
         queryClient.invalidateQueries({ queryKey: ["devices"] });
-        toast({ title: "Instância reiniciada", description: "Reconecte via QR Code." });
+        toast({ title: "Instância desconectada", description: "Reconecte via QR Code para reutilizar a mesma instância." });
       } else if (action === "testApi") {
         const result = await callApi({ action: "status", deviceId });
         const status = result?.status;
