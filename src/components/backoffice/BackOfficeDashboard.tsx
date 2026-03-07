@@ -109,9 +109,10 @@ const BackOfficeDashboard = () => {
   }).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-7xl mx-auto px-4 py-4 min-w-0">
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-card border border-border">
+        <div className="overflow-x-auto -mx-4 px-4">
+        <TabsList className="bg-card border border-border w-max">
           <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
             <LayoutDashboard size={16} /> Visão Geral
           </TabsTrigger>
@@ -144,6 +145,7 @@ const BackOfficeDashboard = () => {
             <Heart size={16} /> Comunidade
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="overview">{data ? <AdminOverview data={data} /> : null}</TabsContent>
         <TabsContent value="clients"><AdminClientsTable users={data?.users || []} cycles={data?.cycles || []} adminLogs={data?.admin_logs || []} onSelectClient={setSelectedClient} /></TabsContent>
