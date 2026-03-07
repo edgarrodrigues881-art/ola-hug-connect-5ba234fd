@@ -20,13 +20,14 @@ interface Props {
 
 const METHODS = ["PIX", "Cartão"];
 
-const SYSTEM_PLANS = [
+const INSTANCE_PLANS = [
   { name: "Start — 10 instâncias", price: 149.90 },
   { name: "Pro — 30 instâncias", price: 349.90 },
   { name: "Scale — 50 instâncias", price: 549.90 },
   { name: "Elite — 100 instâncias", price: 899.90 },
-  { name: "Relatório via WhatsApp", price: 18.90 },
 ];
+
+const NOTIFICATION_PRICE = 18.90;
 
 // Format number to BRL display: 10000 → "10.000,00"
 function fmtBRL(v: number): string {
@@ -76,6 +77,8 @@ const emptyForm = (planPrice = 0) => ({
   discount: "",
   fee: "",
   plan_value: planPrice > 0 ? fmtBRL(planPrice) : "",
+  selected_plan_price: 0,
+  include_notification: false,
 });
 
 const ClientPaymentsTab = ({ client }: Props) => {
@@ -110,6 +113,8 @@ const ClientPaymentsTab = ({ client }: Props) => {
       discount: Number(p.discount) > 0 ? fmtBRL(Number(p.discount)) : "",
       fee: Number(p.fee) > 0 ? fmtBRL(Number(p.fee)) : "",
       plan_value: client.plan_price > 0 ? fmtBRL(client.plan_price) : "",
+      selected_plan_price: 0,
+      include_notification: false,
     });
     setEditPayment(p);
   };
@@ -195,30 +200,67 @@ const ClientPaymentsTab = ({ client }: Props) => {
 
   const formFields = (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div>
-          <Label className="text-muted-foreground text-xs">Plano</Label>
+          <Label className="text-muted-foreground text-xs">Plano de Instâncias</Label>
           <select
-            value={(() => {
-              const pv = parseBRL(form.plan_value);
-              const match = SYSTEM_PLANS.find(p => p.price === pv);
-              return match ? String(match.price) : "";
-            })()}
+            value={String(form.selected_plan_price || "")}
             onChange={e => {
+              const price = Number(e.target.value) || 0;
+              const total = price + (form.include_notification ? NOTIFICATION_PRICE : 0);
               setForm(f => ({
                 ...f,
-                plan_value: e.target.value ? fmtBRL(Number(e.target.value)) : "",
+                selected_plan_price: price,
+                plan_value: total > 0 ? fmtBRL(total) : "",
               }));
             }}
             className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm"
           >
             <option value="" className="bg-card text-foreground">Selecione um plano</option>
-            {SYSTEM_PLANS.map(p => (
+            {INSTANCE_PLANS.map(p => (
               <option key={p.name} value={String(p.price)} className="bg-card text-foreground">
                 {p.name} — R$ {fmtBRL(p.price)}
               </option>
             ))}
           </select>
+        </div>
+        <div
+          onClick={() => {
+            const newVal = !form.include_notification;
+            const total = (form.selected_plan_price || 0) + (newVal ? NOTIFICATION_PRICE : 0);
+            setForm(f => ({
+              ...f,
+              include_notification: newVal,
+              plan_value: total > 0 ? fmtBRL(total) : "",
+            }));
+          }}
+          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+            form.include_notification
+              ? "border-emerald-500/50 bg-emerald-500/5"
+              : "border-border bg-muted/20 hover:border-muted-foreground/30"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <input type="checkbox" checked={form.include_notification} readOnly
+              className="w-4 h-4 rounded border-border accent-emerald-500" />
+            <span className="text-sm text-foreground">Relatório via WhatsApp</span>
+          </div>
+          <span className={`text-xs font-semibold ${form.include_notification ? "text-emerald-500" : "text-muted-foreground"}`}>
+            + R$ {fmtBRL(NOTIFICATION_PRICE)}/mês
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
+            <Input type="text" readOnly value={form.plan_value || "0,00"}
+              className="bg-muted border-border text-foreground font-medium mt-1 cursor-default" />
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
+            <CurrencyInput value={form.amount}
+              onChange={v => setForm(f => ({ ...f, amount: v }))}
+              className="bg-card border-border text-foreground mt-1" />
+          </div>
         </div>
         <div>
           <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
