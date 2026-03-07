@@ -247,10 +247,16 @@ const ClientPlanTab = ({ client, detail }: Props) => {
 
         {/* Action buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleSave} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button onClick={handleSave} disabled={isPending || provisioning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo"}
+            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo + Tokens"}
           </Button>
+          {sub && !isNoPlan && (
+            <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={isPending || provisioning} variant="outline" className="border-primary/30 text-primary hover:text-primary/80">
+              {provisioning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap size={14} className="mr-2" />}
+              Provisionar Tokens
+            </Button>
+          )}
           {sub && (
             <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
               <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
