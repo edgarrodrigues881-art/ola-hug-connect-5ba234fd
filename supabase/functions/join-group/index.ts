@@ -144,6 +144,23 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
+    // ── PLAN CHECK ──
+    const { data: activeSub } = await supabase
+      .from("subscriptions")
+      .select("expires_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { data: userProfile } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
+    const planExpired = !activeSub || new Date(activeSub.expires_at) < new Date();
+    const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
+    if (planExpired || accountBlocked) {
+      return new Response(JSON.stringify({ error: "Seu plano está inativo. Ative um plano para continuar.", code: "NO_ACTIVE_PLAN" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Support both old format and new format
     const items: JoinRequest[] = body.items || [];
     if (!items.length && body.groupLinks?.length && body.deviceIds?.length) {
