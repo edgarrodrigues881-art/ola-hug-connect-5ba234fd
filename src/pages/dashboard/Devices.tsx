@@ -926,6 +926,7 @@ const Devices = () => {
         action: "connect",
         deviceId: connectingDevice.id,
         proxyConfig: proxyPayload,
+        proxyId: proxyId || connectingDevice.proxy_id || undefined,
       });
 
       // Check for proxy or duplicate phone errors
