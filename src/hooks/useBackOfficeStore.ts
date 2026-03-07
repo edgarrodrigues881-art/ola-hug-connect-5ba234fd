@@ -83,7 +83,7 @@ export function useBackOfficeStore() {
   }, []);
 
   const addPlan = useCallback((plan: Omit<Plan, "id">) => {
-    setPlans((prev) => [...prev, { ...plan, id: crypto.randomUUID() }]);
+    setPlans((prev) => [...prev, { ...plan, id: safeUUID() }]);
   }, [setPlans]);
 
   const updatePlan = useCallback((id: string, data: Partial<Plan>) => {
@@ -100,9 +100,9 @@ export function useBackOfficeStore() {
     const now = new Date();
     const expires = new Date(now);
     expires.setDate(expires.getDate() + plan.days);
-    const clientId = crypto.randomUUID();
+    const clientId = safeUUID();
     const instances: Instance[] = Array.from({ length: plan.instances }, (_, i) => ({
-      id: crypto.randomUUID(),
+      id: safeUUID(),
       name: `${client.name}-${i + 1}`,
       status: "PAUSADA",
       qrCodeUrl: "",
