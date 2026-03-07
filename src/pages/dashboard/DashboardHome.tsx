@@ -66,7 +66,7 @@ const DashboardHome = () => {
           <Card key={s.label} className="border-border/50 bg-card hover:border-border/80 transition-colors">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl ${s.bgClass} flex items-center justify-center`}>
+                <div className={`w-10 h-10 rounded-full ${s.bgClass} flex items-center justify-center`}>
                   <s.icon className={`w-5 h-5 ${s.iconClass}`} />
                 </div>
                 <span className={`w-2.5 h-2.5 rounded-full ${s.dotColor}`} />
