@@ -95,7 +95,6 @@ const MyPlan = () => {
             style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
             Escalone sua operação de WhatsApp com segurança
           </h1>
-          </h1>
           <p className="text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto text-muted-foreground">
             Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
           </p>
