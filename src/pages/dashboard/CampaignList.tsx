@@ -136,6 +136,7 @@ const CampaignList = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="queued">Na fila</SelectItem>
             <SelectItem value="running">Enviando</SelectItem>
             <SelectItem value="paused">Pausada</SelectItem>
             <SelectItem value="completed">Concluída</SelectItem>

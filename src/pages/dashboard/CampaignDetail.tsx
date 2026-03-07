@@ -71,7 +71,7 @@ const CampaignDetail = () => {
     enabled: !!id && !!user,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status && ["running", "processing", "paused"].includes(status)) return 1000;
+      if (status && ["running", "processing", "paused", "queued"].includes(status)) return 1000;
       return 10000;
     },
   });
