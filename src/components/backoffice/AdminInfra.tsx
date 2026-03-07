@@ -57,7 +57,7 @@ const AdminInfra = () => {
           {/* Tick */}
           <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
             <div className="flex items-center gap-2 mb-2">
-              <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px]">POST</Badge>
+              <Badge className="bg-teal-500/15 text-teal-400 border-teal-500/30 text-[10px]">POST</Badge>
               <span className="text-sm font-mono text-foreground">/functions/v1/warmup-tick</span>
             </div>
             <p className="text-xs text-muted-foreground mb-3">

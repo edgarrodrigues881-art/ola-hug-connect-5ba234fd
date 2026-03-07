@@ -186,7 +186,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
         </div>
         <div className="bg-card border border-border/40 rounded-md px-3 py-3">
           <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Contratada</p>
-          <p className="text-xl font-black text-blue-400 mt-1 leading-none">{fmt(revenueBrute)}</p>
+          <p className="text-xl font-black text-teal-400 mt-1 leading-none">{fmt(revenueBrute)}</p>
           <p className="text-[9px] text-muted-foreground/20 mt-1.5">{activePlans} planos</p>
         </div>
         <div className="bg-card border border-border/40 rounded-md px-3 py-3">

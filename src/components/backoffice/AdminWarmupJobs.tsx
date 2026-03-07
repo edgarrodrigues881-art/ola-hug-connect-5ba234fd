@@ -9,7 +9,7 @@ import { RefreshCw, RotateCcw, XCircle, Loader2 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  running: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  running: "bg-teal-500/15 text-teal-400 border-teal-500/30",
   succeeded: "bg-green-500/15 text-green-400 border-green-500/30",
   failed: "bg-destructive/15 text-destructive border-destructive/30",
   cancelled: "bg-muted text-muted-foreground border-border",

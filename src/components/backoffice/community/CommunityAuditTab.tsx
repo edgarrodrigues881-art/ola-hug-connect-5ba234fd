@@ -33,7 +33,7 @@ const CommunityAuditTab = () => {
   const levelColor = (l: string) => {
     if (l === "error") return "bg-red-500/15 text-red-400 border-red-500/30";
     if (l === "warn") return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
-    return "bg-blue-500/15 text-blue-400 border-blue-500/30";
+    return "bg-teal-500/15 text-teal-400 border-teal-500/30";
   };
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;

@@ -694,7 +694,7 @@ export default function ReportWhatsApp() {
 // ─── Alert Card ───
 interface AlertCardProps {
   icon: React.ReactNode;
-  iconColor: "orange" | "blue" | "emerald";
+  iconColor: "orange" | "teal" | "emerald";
   title: string;
   description: string;
   
@@ -724,7 +724,7 @@ function AlertCard({
 
   const iconGlow = {
     orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
-    blue: "bg-blue-500/10 shadow-[0_0_14px_rgba(59,130,246,0.15)] border-blue-500/20",
+    teal: "bg-teal-500/10 shadow-[0_0_14px_rgba(20,184,166,0.15)] border-teal-500/20",
     emerald: "bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.15)] border-emerald-500/20",
   }[iconColor];
 

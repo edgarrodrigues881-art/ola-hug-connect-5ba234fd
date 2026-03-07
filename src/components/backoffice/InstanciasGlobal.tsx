@@ -193,7 +193,7 @@ const InstanciasGlobal: React.FC<Props> = React.memo(({ clients, plans, updateIn
           </div>
         </div>
         <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-600/20 text-blue-400"><Server size={20} /></div>
+          <div className="p-2 rounded-lg bg-teal-600/20 text-teal-400"><Server size={20} /></div>
           <div>
             <p className="text-xs text-zinc-400 uppercase tracking-wide">Slots Livres</p>
             <p className="text-2xl font-bold">{slotsLivres}</p>
