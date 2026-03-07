@@ -1,4 +1,4 @@
-import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3 } from "lucide-react";
+import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
@@ -67,254 +67,416 @@ const comparisonRows = [
   { label: "Relatórios via WhatsApp", values: [false, false, true, true] },
 ];
 
+const GradientCheck = ({ className = "" }: { className?: string }) => (
+  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${className}`}
+    style={{ background: "linear-gradient(135deg, rgba(0,255,163,0.15), rgba(0,194,255,0.15))" }}>
+    <Check className="w-3 h-3" strokeWidth={2.5}
+      style={{ color: "#00deb3" }} />
+  </div>
+);
+
 const MyPlan = () => {
   return (
-    <div className="space-y-20 pb-16 max-w-6xl mx-auto px-4">
-      {/* Hero */}
-      <div className="text-center max-w-2xl mx-auto pt-6">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 text-primary text-xs font-medium mb-5 border border-primary/10">
-          <Sparkles className="w-3.5 h-3.5" />
-          Planos flexíveis para qualquer escala
+    <div className="min-h-screen pb-20" style={{ background: "#0B0F13" }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-20">
+
+        {/* Hero */}
+        <div className="text-center max-w-2xl mx-auto pt-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border"
+            style={{
+              background: "linear-gradient(135deg, rgba(0,255,163,0.08), rgba(0,194,255,0.08))",
+              borderColor: "rgba(0,255,163,0.15)",
+              color: "#00deb3"
+            }}>
+            <Sparkles className="w-3.5 h-3.5" />
+            Planos flexíveis para qualquer escala
+          </div>
+          <h1 className="text-4xl md:text-[3rem] font-extrabold tracking-tight leading-[1.1]"
+            style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+            Escalone sua operação de WhatsApp com segurança
+          </h1>
+          <p className="text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto"
+            style={{ color: "rgba(148,163,184,0.8)" }}>
+            Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
+          </p>
+          <p className="mt-4 text-sm font-medium" style={{ color: "rgba(148,163,184,0.5)" }}>
+            Mais de 1.200 operadores já usam nossa plataforma
+          </p>
         </div>
-        <h1 className="text-3xl md:text-[2.5rem] font-bold text-foreground tracking-tight leading-[1.15]">
-          Escalone sua operação de WhatsApp com segurança
-        </h1>
-        <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-lg mx-auto">
-          Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
-        </p>
-      </div>
 
-      {/* Plans Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-4 items-stretch max-w-5xl mx-auto">
-        {plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative group rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] ${
-              plan.popular
-                ? "border-2 border-primary shadow-[0_8px_40px_-12px] shadow-primary/15 bg-card lg:scale-[1.03] z-10"
-                : "border border-border/50 shadow-[0_2px_12px_-4px] shadow-foreground/[0.04] bg-card hover:shadow-[0_8px_30px_-8px] hover:shadow-foreground/[0.08] hover:border-border"
-            }`}
-          >
-            {/* Top accent bar */}
-            {plan.popular && (
-              <div className="absolute top-0 inset-x-0 h-[3px] bg-primary rounded-t-2xl" />
-            )}
+        {/* Plans Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-5 items-stretch max-w-[1080px] mx-auto lg:overflow-visible overflow-x-auto">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className="relative group transition-all duration-200 ease-out"
+              style={{
+                borderRadius: "16px",
+                background: plan.popular ? "#141b24" : "#11161C",
+                border: plan.popular ? "none" : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: plan.popular
+                  ? "0 10px 40px rgba(0,0,0,0.45), 0 0 0 1.5px rgba(0,255,163,0.25)"
+                  : "0 10px 30px rgba(0,0,0,0.35)",
+                transform: plan.popular ? "scale(1.05)" : "scale(1)",
+                zIndex: plan.popular ? 10 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!plan.popular) {
+                  e.currentTarget.style.transform = "scale(1.02) translateY(-4px)";
+                  e.currentTarget.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
+                } else {
+                  e.currentTarget.style.transform = "scale(1.07) translateY(-4px)";
+                  e.currentTarget.style.boxShadow = "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,163,0.12), 0 0 0 1.5px rgba(0,255,163,0.35)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!plan.popular) {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.35)";
+                } else {
+                  e.currentTarget.style.transform = "scale(1.05)";
+                  e.currentTarget.style.boxShadow = "0 10px 40px rgba(0,0,0,0.45), 0 0 0 1.5px rgba(0,255,163,0.25)";
+                }
+              }}
+            >
+              {/* Gradient border for popular */}
+              {plan.popular && (
+                <div className="absolute inset-0 rounded-[16px] pointer-events-none"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(0,255,163,0.2), rgba(0,194,255,0.1), transparent)",
+                    mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                    padding: "1.5px",
+                  }} />
+              )}
 
-            {/* Badge */}
-            {plan.popular && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-[0.08em] px-4 py-1 shadow-lg shadow-primary/25 rounded-full">
-                  Mais utilizado
-                </Badge>
-              </div>
-            )}
-
-            <div className="p-7 pt-9 flex flex-col h-full">
-              {/* Plan name */}
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.12em]">{plan.name}</h3>
-
-              {/* Instances */}
-              <p className="text-foreground font-semibold text-base mt-1.5">
-                {plan.instances} instâncias
-              </p>
-
-              {/* Price */}
-              <div className="mt-5 mb-1.5">
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm text-muted-foreground font-medium">R$</span>
-                  <span className="text-[2.75rem] font-extrabold text-foreground tracking-tighter leading-none">{plan.price.split(",")[0]}</span>
-                  <span className="text-xl font-bold text-foreground/70">,{plan.price.split(",")[1]}</span>
-                </div>
-                <span className="text-[13px] text-muted-foreground/60">por mês</span>
-              </div>
-
-              {/* Description */}
-              <p className="text-[13px] text-muted-foreground/70 leading-relaxed mt-2 mb-6 min-h-[40px]">
-                {plan.description}
-              </p>
-
-              {/* CTA */}
-              <a
-                href={buildWhatsappUrl(plan)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 mb-7 ${
-                  plan.popular
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/25"
-                    : "bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.08] border border-border/60 hover:border-border"
-                }`}
-              >
-                {plan.cta}
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-              </a>
-
-              {/* Divider */}
-              <div className="h-px bg-border/25 mb-6" />
-
-              {/* Features */}
-              <div className="space-y-3.5 flex-1">
-                {FEATURES.map((feature, i) => {
-                  const isReport = feature === "Relatórios via WhatsApp";
-                  const included = isReport ? plan.reportsIncluded : true;
-                  return (
-                    <div key={i} className={`flex items-center gap-3 text-[13px] ${
-                      included ? "text-foreground/75" : "text-muted-foreground/30"
-                    }`}>
-                      {included ? (
-                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-muted/40 flex items-center justify-center shrink-0">
-                          <X className="w-3 h-3 text-muted-foreground/25" strokeWidth={2.5} />
-                        </div>
-                      )}
-                      <span className={!included ? "line-through decoration-muted-foreground/20" : ""}>
-                        {feature}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Report highlight */}
-              {plan.reportsIncluded && (
-                <div className="mt-6 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
-                  <div className="flex items-center gap-2 text-[11px] font-semibold text-primary">
-                    <Bell className="w-3.5 h-3.5" />
-                    Relatórios WhatsApp incluídos
-                  </div>
+              {/* Badge */}
+              {plan.popular && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full"
+                    style={{
+                      background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
+                      color: "#0B0F13",
+                      boxShadow: "0 4px 20px rgba(0,255,163,0.3)",
+                    }}>
+                    <Star className="w-3 h-3" fill="currentColor" />
+                    Mais escolhido
+                  </span>
                 </div>
               )}
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Comparison Table */}
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            Comparação rápida
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1.5">Veja o que cada plano oferece lado a lado.</p>
-        </div>
-        <div className="border border-border/40 rounded-2xl overflow-hidden shadow-[0_2px_12px_-4px] shadow-foreground/[0.03]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/20">
-                <th className="text-left px-5 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[200px]">Recurso</th>
-                {plans.map(p => (
-                  <th key={p.name} className={`text-center px-3 py-4 text-xs font-bold uppercase tracking-wider ${
-                    p.popular ? "text-primary" : "text-foreground/70"
-                  }`}>{p.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20">
-              {comparisonRows.map((row, ri) => (
-                <tr key={ri} className="hover:bg-muted/5 transition-colors">
-                  <td className="px-5 py-3.5 text-foreground/75 text-[13px] font-medium">{row.label}</td>
-                  {row.values.map((val, vi) => (
-                    <td key={vi} className="text-center px-3 py-3.5">
-                      {typeof val === "boolean" ? (
-                        val ? (
-                          <Check className="w-4 h-4 text-primary mx-auto" strokeWidth={2.5} />
+              <div className="p-7 pt-9 flex flex-col h-full">
+                {/* Plan name */}
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.14em]"
+                  style={{ color: plan.popular ? "#00deb3" : "rgba(148,163,184,0.6)" }}>
+                  {plan.name}
+                </h3>
+
+                {/* Instances */}
+                <p className="font-semibold text-base mt-1.5" style={{ color: "#E2E8F0" }}>
+                  {plan.instances} instâncias
+                </p>
+
+                {/* Price */}
+                <div className="mt-6 mb-1">
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-sm font-medium" style={{ color: "rgba(148,163,184,0.6)" }}>R$</span>
+                    <span className="text-[2.75rem] font-extrabold tracking-tighter leading-none"
+                      style={{
+                        fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif",
+                        color: "#F1F5F9",
+                      }}>
+                      {plan.price.split(",")[0]}
+                    </span>
+                    <span className="text-xl font-bold" style={{ color: "rgba(241,245,249,0.5)" }}>
+                      ,{plan.price.split(",")[1]}
+                    </span>
+                  </div>
+                  <span className="text-[13px]" style={{ color: "rgba(148,163,184,0.45)" }}>por mês</span>
+                </div>
+                <p className="text-[11px] mt-0.5" style={{ color: "rgba(148,163,184,0.35)" }}>
+                  Cancele quando quiser
+                </p>
+
+                {/* Description */}
+                <p className="text-[13px] leading-relaxed mt-4 mb-7 min-h-[40px]"
+                  style={{ color: "rgba(148,163,184,0.55)" }}>
+                  {plan.description}
+                </p>
+
+                {/* CTA */}
+                <a
+                  href={buildWhatsappUrl(plan)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 mb-7 transition-all duration-150"
+                  style={{
+                    borderRadius: "12px",
+                    ...(plan.popular
+                      ? {
+                          background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
+                          color: "#0B0F13",
+                          boxShadow: "0 4px 20px rgba(0,255,163,0.2)",
+                        }
+                      : {
+                          background: "rgba(255,255,255,0.05)",
+                          color: "#E2E8F0",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (plan.popular) {
+                      e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,255,163,0.35)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    } else {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (plan.popular) {
+                      e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,255,163,0.2)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    } else {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                    }
+                  }}
+                >
+                  {plan.cta}
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                </a>
+
+                {/* Divider */}
+                <div className="h-px mb-6" style={{ background: "rgba(255,255,255,0.06)" }} />
+
+                {/* Features */}
+                <div className="space-y-4 flex-1">
+                  {FEATURES.map((feature, i) => {
+                    const isReport = feature === "Relatórios via WhatsApp";
+                    const included = isReport ? plan.reportsIncluded : true;
+                    return (
+                      <div key={i} className="flex items-center gap-3 text-[13px]"
+                        style={{ color: included ? "rgba(226,232,240,0.7)" : "rgba(148,163,184,0.2)" }}>
+                        {included ? (
+                          <GradientCheck />
                         ) : (
-                          <X className="w-4 h-4 text-muted-foreground/20 mx-auto" strokeWidth={2.5} />
-                        )
-                      ) : (
-                        <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground"}`}>{val}</span>
-                      )}
-                    </td>
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                            style={{ background: "rgba(255,255,255,0.04)" }}>
+                            <X className="w-3 h-3" strokeWidth={2.5} style={{ color: "rgba(148,163,184,0.2)" }} />
+                          </div>
+                        )}
+                        <span className={!included ? "line-through" : ""} style={!included ? { textDecorationColor: "rgba(148,163,184,0.15)" } : {}}>
+                          {feature}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Report highlight */}
+                {plan.reportsIncluded && (
+                  <div className="mt-6 px-4 py-2.5 rounded-xl"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(0,255,163,0.06), rgba(0,194,255,0.04))",
+                      border: "1px solid rgba(0,255,163,0.1)",
+                    }}>
+                    <div className="flex items-center gap-2 text-[11px] font-semibold"
+                      style={{ color: "#00deb3" }}>
+                      <Bell className="w-3.5 h-3.5" />
+                      Relatórios WhatsApp incluídos
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Comparison Table */}
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-xl font-bold flex items-center justify-center gap-2"
+              style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+              <BarChart3 className="w-5 h-5" style={{ color: "#00deb3" }} />
+              Comparação rápida
+            </h2>
+            <p className="text-sm mt-1.5" style={{ color: "rgba(148,163,184,0.6)" }}>
+              Veja o que cada plano oferece lado a lado.
+            </p>
+          </div>
+          <div className="overflow-hidden"
+            style={{
+              borderRadius: "16px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "#11161C",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+            }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+                  <th className="text-left px-5 py-4 text-xs font-semibold uppercase tracking-wider w-[200px]"
+                    style={{ color: "rgba(148,163,184,0.5)" }}>Recurso</th>
+                  {plans.map(p => (
+                    <th key={p.name} className="text-center px-3 py-4 text-xs font-bold uppercase tracking-wider"
+                      style={{ color: p.popular ? "#00deb3" : "rgba(226,232,240,0.6)" }}>
+                      {p.name}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Relatórios via WhatsApp */}
-      <div className="max-w-xl mx-auto">
-        <div className="text-center mb-8">
-          <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-            <Bell className="w-5 h-5 text-primary" />
-            Relatórios via WhatsApp
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-md mx-auto">
-            Receba alertas automáticos da sua operação diretamente no WhatsApp.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border/40 bg-card shadow-[0_2px_16px_-4px] shadow-foreground/[0.04] hover:shadow-[0_8px_30px_-8px] hover:shadow-foreground/[0.08] transition-all duration-300 p-8">
-          <div className="flex items-start justify-between gap-5 mb-7">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/8 border border-primary/10 flex items-center justify-center shrink-0">
-                <Bell className="w-5.5 h-5.5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-foreground">Relatórios via WhatsApp</h3>
-                <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">
-                  Acompanhe sua operação sem precisar abrir o painel.
-                </p>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-sm text-muted-foreground font-medium">R$</span>
-                <span className="text-[2rem] font-extrabold text-foreground tracking-tighter leading-none">18</span>
-                <span className="text-lg font-bold text-foreground/70">,90</span>
-              </div>
-              <p className="text-[12px] text-muted-foreground/60 mt-0.5">por mês</p>
-            </div>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, ri) => (
+                  <tr key={ri}
+                    className="transition-colors duration-150"
+                    style={{
+                      borderTop: "1px solid rgba(255,255,255,0.04)",
+                      background: ri % 2 === 1 ? "rgba(255,255,255,0.015)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = ri % 2 === 1 ? "rgba(255,255,255,0.015)" : "transparent"; }}
+                  >
+                    <td className="px-5 py-3.5 text-[13px] font-medium" style={{ color: "rgba(226,232,240,0.65)" }}>
+                      {row.label}
+                    </td>
+                    {row.values.map((val, vi) => (
+                      <td key={vi} className="text-center px-3 py-3.5">
+                        {typeof val === "boolean" ? (
+                          val ? (
+                            <Check className="w-4 h-4 mx-auto" strokeWidth={2.5} style={{ color: "#00deb3" }} />
+                          ) : (
+                            <X className="w-4 h-4 mx-auto" strokeWidth={2.5} style={{ color: "rgba(148,163,184,0.15)" }} />
+                          )
+                        ) : (
+                          <span className="text-sm font-bold"
+                            style={{ color: plans[vi].popular ? "#00deb3" : "#E2E8F0" }}>
+                            {val}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
 
-          <div className="space-y-3.5 mb-7">
-            {[
-              "Relatórios automáticos de aquecimento",
-              "Notificação quando campanhas iniciam ou finalizam",
-              "Alertas de conexão e desconexão das instâncias",
-              "1 número dedicado apenas para notificações",
-            ].map((feat, i) => (
-              <div key={i} className="flex items-center gap-3 text-[13px] text-foreground/75">
-                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
+        {/* Addon — Relatórios via WhatsApp */}
+        <div className="max-w-md mx-auto">
+          <div className="relative overflow-hidden"
+            style={{
+              borderRadius: "16px",
+              background: "#11161C",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+            }}>
+            {/* Addon tag */}
+            <div className="absolute top-4 right-4">
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full"
+                style={{
+                  background: "rgba(0,255,163,0.08)",
+                  color: "#00deb3",
+                  border: "1px solid rgba(0,255,163,0.15)",
+                }}>
+                Addon
+              </span>
+            </div>
+
+            <div className="p-8">
+              <div className="flex items-start gap-4 mb-7">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(0,255,163,0.1), rgba(0,194,255,0.08))",
+                    border: "1px solid rgba(0,255,163,0.12)",
+                  }}>
+                  <Bell className="w-5 h-5" style={{ color: "#00deb3" }} />
                 </div>
-                {feat}
+                <div>
+                  <h3 className="text-lg font-bold" style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+                    Relatórios via WhatsApp
+                  </h3>
+                  <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "rgba(148,163,184,0.6)" }}>
+                    Acompanhe sua operação sem precisar abrir o painel.
+                  </p>
+                </div>
               </div>
-            ))}
+
+              {/* Price */}
+              <div className="mb-7">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm font-medium" style={{ color: "rgba(148,163,184,0.6)" }}>R$</span>
+                  <span className="text-[2rem] font-extrabold tracking-tighter leading-none"
+                    style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+                    18
+                  </span>
+                  <span className="text-lg font-bold" style={{ color: "rgba(241,245,249,0.5)" }}>,90</span>
+                </div>
+                <p className="text-[12px] mt-0.5" style={{ color: "rgba(148,163,184,0.4)" }}>por mês</p>
+              </div>
+
+              <div className="space-y-4 mb-7">
+                {[
+                  "Relatórios automáticos de aquecimento",
+                  "Notificação quando campanhas iniciam ou finalizam",
+                  "Alertas de conexão e desconexão das instâncias",
+                  "1 número dedicado apenas para notificações",
+                ].map((feat, i) => (
+                  <div key={i} className="flex items-center gap-3 text-[13px]" style={{ color: "rgba(226,232,240,0.7)" }}>
+                    <GradientCheck />
+                    {feat}
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11px] mb-6" style={{ color: "rgba(148,163,184,0.35)" }}>
+                Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
+              </p>
+
+              <a
+                href={buildAddonWhatsappUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-150"
+                style={{
+                  borderRadius: "12px",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "#E2E8F0",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                }}
+              >
+                Ativar notificações
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
-
-          <p className="text-[11px] text-muted-foreground/45 mb-6">
-            Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
-          </p>
-
-          <a
-            href={buildAddonWhatsappUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.08] border border-border/60 hover:border-border"
-          >
-            Ativar plano
-            <ArrowRight className="w-3.5 h-3.5" />
-          </a>
         </div>
-      </div>
 
-      {/* Trust */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs text-muted-foreground/35">
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4" />
-          Sem fidelidade
-        </div>
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4" />
-          Upgrade imediato
-        </div>
-        <div className="flex items-center gap-2">
-          <Crown className="w-4 h-4" />
-          Garantia de 7 dias
+        {/* Trust */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs"
+          style={{ color: "rgba(148,163,184,0.3)" }}>
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Sem fidelidade
+          </div>
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Upgrade imediato
+          </div>
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4" />
+            Garantia de 7 dias
+          </div>
         </div>
       </div>
     </div>
