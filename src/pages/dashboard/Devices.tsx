@@ -1335,42 +1335,6 @@ const Devices = () => {
               </div>
             </div>
 
-            {/* Proxy */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-400/60" /> Proxy
-              </Label>
-              <Select value={editProxyValue} onValueChange={setEditProxyValue}>
-                <SelectTrigger className="h-11 text-sm rounded-xl bg-muted/20 border-border/30 focus:border-emerald-500/40 transition-colors">
-                  <SelectValue placeholder="Selecione a proxy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    <span className="text-sm text-muted-foreground">Sem proxy</span>
-                  </SelectItem>
-                  {availableProxies.map(p => {
-                    const cls = p.status === "USANDO" ? "text-amber-500" : p.status === "INVALID" ? "text-red-400" : "text-emerald-500";
-                    return (
-                      <SelectItem key={p.id} value={p.id}>
-                        <span className={`text-sm ${cls}`}>{p.label}</span>
-                        <span className="text-[10px] text-muted-foreground ml-2">({p.status})</span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {editProxyValue !== "none" && editProxyValue !== (editingDevice?.proxy_id || "none") && (
-                <p className="text-[11px] text-amber-500 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Proxy será alterada ao salvar
-                </p>
-              )}
-              {editProxyValue === "none" && editingDevice?.proxy_id && (
-                <p className="text-[11px] text-amber-500 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Proxy será removida ao salvar
-                </p>
-              )}
-            </div>
-
             {editingDevice?.status === "Ready" && (
               <div className="space-y-4 rounded-xl border border-border/15 bg-muted/[0.04] p-4">
                 <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
