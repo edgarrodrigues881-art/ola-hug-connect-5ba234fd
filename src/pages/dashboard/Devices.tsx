@@ -384,7 +384,11 @@ const Devices = () => {
       const { data, error } = await supabase.functions.invoke("manage-devices", {
         body: { action: "create", name: device.name, login_type: device.login_type },
       });
-      if (error) throw new Error(error.message || "Erro ao criar instância");
+      // Extract real error from data when edge function returns non-2xx
+      if (error) {
+        const realMsg = data?.error || error.message || "Erro ao criar instância";
+        throw new Error(realMsg);
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -397,7 +401,7 @@ const Devices = () => {
       if (msg.includes("device_limit") || msg.includes("Limite")) {
         toast({ title: `Seu plano permite apenas ${maxInstancesAllowed} instâncias`, variant: "destructive" });
       } else {
-        toast({ title: "Erro ao criar instância", variant: "destructive" });
+        toast({ title: "Erro ao criar instância", description: msg, variant: "destructive" });
       }
     },
   });
