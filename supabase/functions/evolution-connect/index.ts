@@ -257,10 +257,13 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // Set proxy if provided
+      // Set proxy if provided — BLOCKING: if proxy fails, do NOT generate QR
       if (body.proxyConfig?.host) {
         const proxyOk = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
         await oplog(svc, user.id, "proxy_configured", `Proxy ${proxyOk ? "configurada" : "falha"} para "${deviceName}"`, deviceId, { host: body.proxyConfig.host, success: proxyOk });
+        if (!proxyOk) {
+          return json({ error: "Falha ao configurar proxy. Verifique se a proxy está ativa e funcional antes de conectar.", code: "PROXY_FAILED" }, 400);
+        }
       }
 
       // Request QR code using the existing assigned token
