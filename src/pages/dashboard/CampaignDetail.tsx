@@ -279,6 +279,7 @@ const CampaignDetail = () => {
 
   const isActive = campaign && ["running", "processing"].includes(campaign.status);
   const isPaused = campaign?.status === "paused";
+  const isQueued = campaign?.status === "queued";
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
