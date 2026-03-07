@@ -233,54 +233,59 @@ const MyPlan = () => {
         </div>
       </div>
 
-      {/* Addon */}
+      {/* Relatórios via WhatsApp */}
       <div className="max-w-xl mx-auto">
-        <div className="text-center mb-5">
-          <h2 className="text-xl font-bold text-foreground">Addon disponível</h2>
-          <p className="text-sm text-muted-foreground mt-1">Amplie as capacidades do seu plano.</p>
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+            <Bell className="w-5 h-5 text-primary" />
+            Relatórios via WhatsApp
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-md mx-auto">
+            Receba alertas automáticos da sua operação diretamente no WhatsApp.
+          </p>
         </div>
-        <Card className="border-border/40 hover:shadow-lg transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between gap-4 mb-5">
+        <Card className="border-border/40 hover:shadow-xl transition-all">
+          <CardContent className="p-7">
+            <div className="flex items-start justify-between gap-5 mb-6">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <Bell className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-foreground">Relatórios via WhatsApp</h3>
+                  <h3 className="text-lg font-bold text-foreground">Relatórios via WhatsApp</h3>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Receba alertas automáticos diretamente no WhatsApp.
+                    Acompanhe sua operação sem precisar abrir o painel.
                   </p>
                 </div>
               </div>
               <div className="text-right shrink-0">
                 <div className="flex items-baseline">
                   <span className="text-xs text-muted-foreground mr-1">R$</span>
-                  <span className="text-2xl font-extrabold text-foreground">18</span>
-                  <span className="text-base font-bold text-foreground">,90</span>
+                  <span className="text-3xl font-extrabold text-foreground">18</span>
+                  <span className="text-lg font-bold text-foreground">,90</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">por mês</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="space-y-3 mb-6">
               {[
-                "Relatórios de aquecimento",
-                "Relatórios de campanhas",
-                "Alertas de conexão",
-                "1 instância dedicada",
+                "Relatórios automáticos de aquecimento",
+                "Notificação quando campanhas iniciam ou finalizam",
+                "Alertas de conexão e desconexão das instâncias",
+                "1 número dedicado apenas para notificações",
               ].map((feat, i) => (
-                <div key={i} className="flex items-center gap-2 text-[13px] text-foreground/80">
-                  <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5 text-primary" />
+                <div key={i} className="flex items-center gap-2.5 text-[13px] text-foreground/80">
+                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Check className="w-3 h-3 text-primary" />
                   </div>
                   {feat}
                 </div>
               ))}
             </div>
 
-            <p className="text-[11px] text-muted-foreground/50 mb-4">
-              Já incluso nos planos Scale e Elite. Para Start e Pro, contrate separadamente.
+            <p className="text-[11px] text-muted-foreground/50 mb-5">
+              Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
             </p>
 
             <a
@@ -289,7 +294,7 @@ const MyPlan = () => {
               rel="noopener noreferrer"
               className="w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-foreground/5 text-foreground hover:bg-foreground/10 border border-border/60"
             >
-              Ativar addon
+              Ativar plano
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </CardContent>
