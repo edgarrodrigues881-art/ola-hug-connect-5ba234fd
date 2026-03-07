@@ -12,17 +12,18 @@ export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5 sm:gap-2">
       {actions.map((a) => (
         <Button
           key={a.label}
           variant="outline"
           size="sm"
           onClick={() => navigate(a.path)}
-          className="border-border/50 bg-card/50 hover:bg-muted/50 gap-2"
+          className="border-border/50 bg-card/50 hover:bg-muted/50 gap-1.5 sm:gap-2 text-[11px] sm:text-sm h-8 sm:h-9 px-2.5 sm:px-3"
         >
-          <a.icon className={`w-4 h-4 ${a.color}`} />
-          {a.label}
+          <a.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${a.color}`} />
+          <span className="hidden xs:inline">{a.label}</span>
+          <span className="xs:hidden">{a.label.split(" ").pop()}</span>
         </Button>
       ))}
     </div>

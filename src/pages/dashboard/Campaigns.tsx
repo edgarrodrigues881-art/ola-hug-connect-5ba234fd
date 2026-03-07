@@ -913,18 +913,18 @@ const Campaigns = () => {
   return (
     <div className="w-full pb-16 max-w-6xl mx-auto">
       {/* ═══ Header ═══ */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
+          <h1 className="text-lg sm:text-2xl font-bold text-foreground tracking-tight leading-tight">
             Configuração de Campanha
           </h1>
-          <p className="text-sm text-muted-foreground/60 mt-1.5">Controle total sobre sua entrega e performance.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground/60 mt-1 sm:mt-1.5">Controle total sobre sua entrega e performance.</p>
         </div>
       </div>
 
       {/* ═══ Stepper (Top) ═══ */}
-      <div className="mb-8">
-        <SurfaceCard className="p-4 sm:p-5">
+      <div className="mb-5 sm:mb-8">
+        <SurfaceCard className="p-3 sm:p-5">
           <div className="flex items-center">
             {steps.map((s, i) => {
               const isActive = step === s.num;
@@ -935,26 +935,26 @@ const Campaigns = () => {
                   {/* Step circle + label */}
                   <button
                     onClick={() => setStep(s.num)}
-                    className="flex flex-col items-center gap-2 group transition-all duration-150 cursor-pointer"
+                    className="flex flex-col items-center gap-1 sm:gap-2 group transition-all duration-150 cursor-pointer"
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-200",
+                        "w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-200",
                         isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110",
                         isDone && "bg-primary/15 text-primary",
                         !isActive && !isDone && "bg-muted/20 dark:bg-muted/10 text-muted-foreground/30 group-hover:bg-muted/40 group-hover:text-muted-foreground/60",
                       )}
                     >
-                      {isDone ? <Check className="w-5 h-5" strokeWidth={2.5} /> : <Icon className="w-5 h-5" />}
+                      {isDone ? <Check className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </div>
                     <span className={cn(
-                      "text-[11px] font-medium hidden sm:block transition-colors",
+                      "text-[10px] sm:text-[11px] font-medium transition-colors",
                       isActive ? "text-foreground" : isDone ? "text-foreground/60" : "text-muted-foreground/30 group-hover:text-muted-foreground/60"
                     )}>{s.label}</span>
                   </button>
                   {/* Connector line */}
                   {i < steps.length - 1 && (
-                    <div className="flex-1 mx-2 sm:mx-3">
+                    <div className="flex-1 mx-1.5 sm:mx-3">
                       <div className={cn(
                         "h-[2px] rounded-full transition-colors duration-300",
                         isDone ? "bg-primary/40" : "bg-muted/15 dark:bg-muted/10"
@@ -972,13 +972,13 @@ const Campaigns = () => {
       <div key={step} className="animate-fade-in">
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
-          <div className="space-y-12">
+          <div className="space-y-6 sm:space-y-12">
             {/* Editor + Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8">
               {/* Editor column */}
-              <div className="lg:col-span-3 space-y-8">
+              <div className="lg:col-span-3 space-y-4 sm:space-y-8">
                 {/* Message editor */}
-                <SurfaceCard className="p-6 space-y-5">
+                <SurfaceCard className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                   <SectionLabel>Mensagem</SectionLabel>
                   
                   {/* Message Tabs */}
