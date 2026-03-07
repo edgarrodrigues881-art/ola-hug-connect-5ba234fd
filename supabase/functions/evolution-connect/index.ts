@@ -348,9 +348,13 @@ Deno.serve(async (req) => {
         return json({ error: "Token inválido. Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
       }
 
-      // Set proxy if provided
+      // Set proxy if provided — BLOCKING: if proxy fails, do NOT proceed
       if (body.proxyConfig?.host) {
-        await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+        const proxyOk = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+        await oplog(svc, user.id, "proxy_configured", `Proxy ${proxyOk ? "configurada" : "falha"} (pairing) para "${deviceName}"`, deviceId, { host: body.proxyConfig.host, success: proxyOk });
+        if (!proxyOk) {
+          return json({ error: "Falha ao configurar proxy. Verifique se a proxy está ativa e funcional antes de conectar.", code: "PROXY_FAILED" }, 400);
+        }
       }
 
       // Check if already connected
