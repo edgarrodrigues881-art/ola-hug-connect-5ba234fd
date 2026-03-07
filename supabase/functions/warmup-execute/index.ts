@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
   try {
     let query = supabase
       .from("warmup_sessions")
-      .select("*")
+      .select("id, user_id, device_id, status, messages_per_day, daily_increment, max_messages_per_day, current_day, total_days, messages_sent_today, messages_sent_total, min_delay_seconds, max_delay_seconds, start_time, end_time, quality_profile, safety_state")
       .eq("status", "running")
       .eq("user_id", targetUserId);
 
