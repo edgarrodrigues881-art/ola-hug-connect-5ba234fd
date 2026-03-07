@@ -141,11 +141,33 @@ Deno.serve(async (req) => {
             status: "available",
             device_id: null,
             assigned_at: null,
+            healthy: false,
           }).eq("device_id", device.id);
 
           if (device.proxy_id) {
             await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
           }
+
+          // Cancel active warmup cycles for this device
+          const { data: activeCycles404 } = await serviceClient
+            .from("warmup_cycles")
+            .select("id, phase")
+            .eq("device_id", device.id)
+            .eq("is_running", true)
+            .neq("phase", "completed");
+
+          for (const cycle of (activeCycles404 || [])) {
+            await serviceClient.from("warmup_cycles").update({
+              is_running: false, phase: "paused", previous_phase: cycle.phase,
+              last_error: "Auto-pausado: instância inexistente (404)",
+            }).eq("id", cycle.id);
+            await serviceClient.from("warmup_jobs").update({ status: "cancelled" })
+              .eq("cycle_id", cycle.id).eq("status", "pending");
+          }
+
+          await oplog(serviceClient, userId, "instance_not_found",
+            `Instância "${device.name}" não encontrada (404) — token e proxy liberados`,
+            device.id, { status: 404, proxy_released: !!device.proxy_id, warmup_paused: (activeCycles404 || []).length });
 
           results.push({
             id: device.id, name: device.name, found: false,
