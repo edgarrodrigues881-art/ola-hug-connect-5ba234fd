@@ -907,8 +907,11 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Build proxy config if selected
-      const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      // Build proxy config: use newly selected proxy OR fallback to device's existing proxy
+      let selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      if (!selectedProxyData && connectingDevice.proxy_id) {
+        selectedProxyData = availableProxies.find(p => p.id === connectingDevice.proxy_id) || null;
+      }
       const proxyPayload = selectedProxyData ? {
         host: selectedProxyData.host,
         port: selectedProxyData.port,
