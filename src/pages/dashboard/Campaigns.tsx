@@ -1432,8 +1432,8 @@ const Campaigns = () => {
               {/* Delay */}
               <SurfaceCard className="p-6 space-y-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <Clock className="w-4.5 h-4.5 text-blue-400" />
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
+                    <Clock className="w-4.5 h-4.5 text-teal-400" />
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-foreground">Intervalo</p>

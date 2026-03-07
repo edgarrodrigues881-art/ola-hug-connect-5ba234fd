@@ -18,14 +18,14 @@ const typeColors = {
   success: "text-emerald-400",
   warning: "text-yellow-400",
   error: "text-destructive",
-  info: "text-blue-400",
+  info: "text-teal-400",
 };
 
 const typeBg = {
   success: "bg-emerald-500/10",
   warning: "bg-yellow-500/10",
   error: "bg-destructive/10",
-  info: "bg-blue-500/10",
+  info: "bg-teal-500/10",
 };
 
 const Notifications = () => {

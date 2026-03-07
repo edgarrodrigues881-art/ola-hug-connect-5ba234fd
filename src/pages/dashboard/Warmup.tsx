@@ -27,7 +27,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
 
 const profileBadge: Record<string, { label: string; class: string }> = {
-  novo: { label: "Novo", class: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  novo: { label: "Novo", class: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
   estavel: { label: "Estável", class: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   recuperacao: { label: "Recuperação", class: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
 };

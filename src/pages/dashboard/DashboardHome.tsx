@@ -46,9 +46,9 @@ const DashboardHome = () => {
       label: "Mensagens Hoje",
       value: messagesToday,
       icon: MessageSquare,
-      dotColor: "bg-blue-400",
-      iconClass: "text-blue-400",
-      bgClass: "bg-blue-500/10",
+      dotColor: "bg-teal-400",
+      iconClass: "text-teal-400",
+      bgClass: "bg-teal-500/10",
     },
   ];
 

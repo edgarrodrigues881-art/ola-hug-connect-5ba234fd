@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const actions = [
   { label: "Nova Campanha", icon: Plus, path: "/dashboard/campaigns", color: "text-emerald-400" },
   { label: "Adicionar Contato", icon: UserPlus, path: "/dashboard/contacts", color: "text-violet-400" },
-  { label: "Conectar Chip", icon: Smartphone, path: "/dashboard/devices", color: "text-blue-400" },
+  { label: "Conectar Chip", icon: Smartphone, path: "/dashboard/devices", color: "text-teal-400" },
 ];
 
 export function QuickActions() {
