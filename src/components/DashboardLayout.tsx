@@ -49,9 +49,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 flex flex-col min-h-screen min-w-0">
           <header className="h-14 border-b border-border/50 bg-card flex items-center px-4 shrink-0 gap-3">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <img src={logo} alt="DG Contingência Pro" className="w-7 h-7 rounded-md sm:hidden" />
@@ -159,7 +159,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 overflow-auto p-5 md:p-8">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5 md:p-8">
             {children}
           </main>
         </div>
