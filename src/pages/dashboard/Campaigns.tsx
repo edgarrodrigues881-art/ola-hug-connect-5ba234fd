@@ -913,13 +913,77 @@ const Campaigns = () => {
   return (
     <div className="w-full pb-16 max-w-6xl mx-auto">
       {/* ═══ Header ═══ */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
             Configuração de Campanha
           </h1>
           <p className="text-sm text-muted-foreground/60 mt-1.5">Controle total sobre sua entrega e performance.</p>
         </div>
+      </div>
+
+      {/* ═══ Stepper (Top) ═══ */}
+      <div className="mb-8">
+        <SurfaceCard className="p-2">
+          <div className="flex items-stretch relative">
+            {steps.map((s, i) => {
+              const isActive = step === s.num;
+              const isDone = step > s.num;
+              const Icon = s.icon;
+              const status = getStepStatus(s.num);
+              const statusInfo = statusLabels[status];
+              return (
+                <button
+                  key={s.num}
+                  onClick={() => setStep(s.num)}
+                  className={cn(
+                    "flex-1 flex items-center gap-3 px-4 py-4 rounded-xl relative group transition-all duration-150",
+                    isActive && "bg-primary/8 dark:bg-primary/10",
+                    !isActive && "hover:bg-muted/40 dark:hover:bg-muted/15",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 transition-all duration-150",
+                      isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/40",
+                      isDone && "bg-emerald-500/15 text-emerald-400",
+                      !isActive && !isDone && "bg-muted/40 dark:bg-muted/20 text-muted-foreground/40",
+                    )}
+                  >
+                    {isDone ? <Check className="w-4.5 h-4.5" strokeWidth={3} /> : <Icon className="w-4.5 h-4.5" />}
+                  </div>
+                  <div className="text-left min-w-0 hidden sm:block">
+                    <p className={cn(
+                      "text-[13px] font-semibold leading-tight transition-colors",
+                      isActive ? "text-foreground" : isDone ? "text-foreground/60" : "text-muted-foreground/40"
+                    )}>{s.label}</p>
+                    <p className={cn(
+                      "text-[11px] leading-tight mt-0.5 transition-colors",
+                      isActive ? "text-muted-foreground/70" : "text-muted-foreground/30"
+                    )}>{s.desc}</p>
+                    <p className={cn("text-[9px] font-semibold uppercase tracking-wider mt-1", statusInfo.color)}>
+                      {statusInfo.text}
+                    </p>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-8 bg-border/20 dark:bg-border/10" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mx-3 mt-1.5 mb-2.5">
+            <div className="h-[3px] rounded-full bg-muted/20 dark:bg-muted/10 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                  width: `${((step - 1) / (steps.length - 1)) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        </SurfaceCard>
       </div>
 
       {/* ═══ Step Content ═══ */}
@@ -1837,69 +1901,9 @@ const Campaigns = () => {
         )}
       </div>
 
-      {/* ═══ Stepper ═══ */}
-      <div className="mt-10 mb-6">
-        <SurfaceCard className="p-2">
-          <div className="flex items-stretch relative">
-            {steps.map((s, i) => {
-              const isActive = step === s.num;
-              const isDone = step > s.num;
-              const Icon = s.icon;
-              const status = getStepStatus(s.num);
-              const statusInfo = statusLabels[status];
-              return (
-                <button
-                  key={s.num}
-                  onClick={() => setStep(s.num)}
-                  className={cn(
-                    "flex-1 flex items-center gap-3 px-4 py-4 rounded-xl relative group",
-                    isActive && "bg-primary/8 dark:bg-primary/10",
-                    !isActive && "hover:bg-muted/40 dark:hover:bg-muted/15",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0",
-                      isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/40",
-                      isDone && "bg-emerald-500/15 text-emerald-400",
-                      !isActive && !isDone && "bg-muted/40 dark:bg-muted/20 text-muted-foreground/40",
-                    )}
-                  >
-                    {isDone ? <Check className="w-4.5 h-4.5" strokeWidth={3} /> : <Icon className="w-4.5 h-4.5" />}
-                  </div>
-                  <div className="text-left min-w-0 hidden sm:block">
-                    <p className={cn(
-                      "text-[13px] font-semibold leading-tight transition-colors",
-                      isActive ? "text-foreground" : isDone ? "text-foreground/60" : "text-muted-foreground/40"
-                    )}>{s.label}</p>
-                    <p className={cn(
-                      "text-[11px] leading-tight mt-0.5 transition-colors",
-                      isActive ? "text-muted-foreground/70" : "text-muted-foreground/30"
-                    )}>{s.desc}</p>
-                    <p className={cn("text-[9px] font-semibold uppercase tracking-wider mt-1", statusInfo.color)}>
-                      {statusInfo.text}
-                    </p>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-8 bg-border/20 dark:bg-border/10" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mx-3 mt-1.5 mb-2.5">
-            <div className="h-[3px] rounded-full bg-muted/20 dark:bg-muted/10 overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
-                  width: `${((step - 1) / (steps.length - 1)) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        </SurfaceCard>
-        <div className="flex items-center justify-between mt-3">
+      {/* ═══ Bottom Navigation ═══ */}
+      <div className="mt-8 mb-6">
+        <div className="flex items-center justify-between">
           <Button 
             variant="outline" 
             size="sm" 
