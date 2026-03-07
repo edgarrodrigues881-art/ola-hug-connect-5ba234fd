@@ -11,6 +11,7 @@ async function oplog(client: any, userId: string, event: string, details: string
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
