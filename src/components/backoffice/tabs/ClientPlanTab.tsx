@@ -46,13 +46,15 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     sub?.started_at ? sub.started_at.split("T")[0] : new Date().toISOString().split("T")[0]
   );
   const [trialDays, setTrialDays] = useState<number>(7);
+  const [manualExpires, setManualExpires] = useState<string>("");
 
   const planConfig = PLANS[planName] || PLANS.Start;
   const isTrial = planName === "Trial";
   const isFree = planName === "Free";
   const isNoPlan = planName === "Sem plano";
   const cycleDays = isTrial ? trialDays : isFree ? (planConfig.defaultDays || 3) : 30;
-  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
+  const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
+  const expiresAt = manualExpires || autoExpiresAt;
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
@@ -264,8 +266,20 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               </div>
             )}
             <div>
-              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + {cycleDays} dias)</Label>
-              <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
+              <Label className="text-muted-foreground text-xs">Data de Vencimento {manualExpires ? "(manual)" : `(início + ${cycleDays} dias)`}</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input 
+                  type="date" 
+                  value={manualExpires || expiresAt} 
+                  onChange={e => setManualExpires(e.target.value)} 
+                  className="bg-card border-border text-foreground h-9 flex-1" 
+                />
+                {manualExpires && (
+                  <Button size="sm" variant="ghost" onClick={() => setManualExpires("")} className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0">
+                    Auto
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
