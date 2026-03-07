@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, LogOut, X } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, LogOut, X, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { PlanGateDialog } from "@/components/PlanGateDialog";
 
 
 interface WhatsAppGroup {
@@ -24,6 +26,8 @@ interface WhatsAppGroup {
 export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isBlocked, planState, profile } = usePlanGate();
+  const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
@@ -39,6 +43,10 @@ export default function ReportWhatsApp() {
   
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Check if notification feature is enabled for this user (admin toggle)
+  const notificacaoLiberada = profile?.notificacao_liberada ?? false;
+  const canUseReport = !isBlocked || notificacaoLiberada;
 
 
 
