@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { PlanGateDialog } from "@/components/PlanGateDialog";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
@@ -41,6 +43,8 @@ const safetyBadge: Record<string, { label: string; class: string }> = {
 const Warmup = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isBlocked, planState } = usePlanGate();
+  const [planGateOpen, setPlanGateOpen] = useState(false);
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
@@ -76,6 +80,7 @@ const Warmup = () => {
   const planSummary = getPlanSummary(formDuration, formProfile);
 
   const handleCreate = () => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     if (!formDeviceId) {
       toast({ title: "Selecione um dispositivo", variant: "destructive" });
       return;
@@ -98,6 +103,7 @@ const Warmup = () => {
   };
 
   const toggleStatus = (id: string, currentStatus: string) => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     const newStatus = currentStatus === "running" ? "paused" : "running";
     updateWarmup.mutate({ id, status: newStatus } as any, {
       onSuccess: () => toast({ title: newStatus === "paused" ? "Sessão pausada" : "Sessão retomada" }),
@@ -111,6 +117,7 @@ const Warmup = () => {
   };
 
   const executeNow = async (sessionId: string) => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     setExecutingId(sessionId);
     try {
       const { data, error } = await supabase.functions.invoke("warmup-execute", {
@@ -772,6 +779,7 @@ const Warmup = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
     </div>
   );
 };

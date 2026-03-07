@@ -32,6 +32,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { PlanGateDialog } from "@/components/PlanGateDialog";
 
 
 
@@ -100,6 +102,8 @@ const Campaigns = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { isBlocked, planState } = usePlanGate();
+  const [planGateOpen, setPlanGateOpen] = useState(false);
   // Removed: useAutoSyncDevices already runs in DashboardLayout — no duplicate needed
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
@@ -438,6 +442,7 @@ const Campaigns = () => {
 
   // Handlers
   const handleSendCampaign = () => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
     if (selectedDevices.length === 0) { toast({ title: "Instância obrigatória", description: "Selecione pelo menos uma instância.", variant: "destructive" }); return; }
     // Validate selected devices still exist
@@ -2125,6 +2130,7 @@ const Campaigns = () => {
           )}
         </DialogContent>
       </Dialog>
+      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
     </div>
   );
 };
