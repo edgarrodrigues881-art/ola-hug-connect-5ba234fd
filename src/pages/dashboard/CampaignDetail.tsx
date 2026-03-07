@@ -71,7 +71,7 @@ const CampaignDetail = () => {
     enabled: !!id && !!user,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status && ["running", "processing", "paused"].includes(status)) return 1000;
+      if (status && ["running", "processing", "paused", "queued"].includes(status)) return 1000;
       return 10000;
     },
   });
@@ -279,6 +279,7 @@ const CampaignDetail = () => {
 
   const isActive = campaign && ["running", "processing"].includes(campaign.status);
   const isPaused = campaign?.status === "paused";
+  const isQueued = campaign?.status === "queued";
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 

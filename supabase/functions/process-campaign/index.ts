@@ -262,6 +262,48 @@ async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campa
   }
 }
 
+// After releasing locks, auto-start next queued campaign for any of these devices
+async function startNextQueuedCampaigns(serviceClient: any, deviceIds: string[], supabaseUrl: string, serviceRoleKey: string) {
+  try {
+    for (const deviceId of deviceIds) {
+      // Find oldest queued campaign that uses this device
+      const { data: queued } = await serviceClient
+        .from("campaigns")
+        .select("id, user_id, device_id, device_ids")
+        .eq("status", "queued")
+        .order("created_at", { ascending: true });
+
+      if (!queued || queued.length === 0) continue;
+
+      // Find first queued campaign that uses this specific device
+      const match = queued.find((c: any) => {
+        const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
+          ? c.device_ids : c.device_id ? [c.device_id] : [];
+        return ids.includes(deviceId);
+      });
+
+      if (match) {
+        console.log(`🚀 Auto-starting queued campaign ${match.id} for device ${deviceId}`);
+        await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
+
+        // Try to acquire lock
+        const lockResult = await acquireDeviceLocks(serviceClient, [deviceId], match.id, match.user_id);
+        if (lockResult.acquired) {
+          await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
+          // Fire and forget
+          selfContinue(supabaseUrl, serviceRoleKey, match.id, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
+        } else {
+          // Another campaign grabbed the lock first, revert to queued
+          await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
+        }
+        break; // Only start one at a time per release
+      }
+    }
+  } catch (err: any) {
+    console.error(`Error starting next queued campaign: ${err.message}`);
+  }
+}
+
 async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
@@ -368,6 +410,7 @@ Deno.serve(async (req) => {
           ? camp.device_ids : camp.device_id ? [camp.device_id] : [];
         await releaseDeviceLocks(serviceClient, ids, campaignId);
         console.log(`Released device locks for canceled campaign ${campaignId}`);
+        startNextQueuedCampaigns(serviceClient, ids, supabaseUrl, serviceRoleKey);
       }
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -394,11 +437,15 @@ Deno.serve(async (req) => {
       if (campaignDeviceIds.length > 0) {
         const lockResult = await acquireDeviceLocks(serviceClient, campaignDeviceIds, campaignId, campaign.user_id);
         if (!lockResult.acquired) {
-          console.log(`Campaign ${campaignId} cannot start: device locked by campaign ${lockResult.lockedBy}`);
+          console.log(`Campaign ${campaignId} queued: device locked by campaign ${lockResult.lockedBy}`);
+          await serviceClient.from("campaigns").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", campaignId);
+          await oplog(serviceClient, userId, "campaign_queued", `Campanha enfileirada — instância em uso por outra campanha`, null, { campaign_id: campaignId, locked_by: lockResult.lockedBy });
           return new Response(JSON.stringify({
-            error: "Dispositivo em uso por outra campanha. Aguarde a campanha atual finalizar ou pause-a antes de iniciar uma nova.",
+            success: true,
+            status: "queued",
+            message: "Instância em uso. A campanha iniciará automaticamente quando a instância for liberada.",
             lockedBy: lockResult.lockedBy,
-          }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         console.log(`Device locks acquired for campaign ${campaignId}`);
       }
@@ -441,6 +488,7 @@ Deno.serve(async (req) => {
         console.error(`No valid devices found for campaign ${campaignId}.`);
         await serviceClient.from("campaigns").update({ status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -523,6 +571,7 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída (sem pendentes)`, null, { campaign_id: campaignId });
         console.log(`Campaign ${campaignId} completed! Locks released.`);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -929,11 +978,13 @@ Deno.serve(async (req) => {
           await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
           await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída`, null, { campaign_id: campaignId, sent: sentCount, failed: failedCount });
           console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}. Locks released.`);
+          startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         }
       } else if (finalCampaign && (finalCampaign.status === "paused" || finalCampaign.status === "canceled" || finalCampaign.status === "failed")) {
         // Release locks on terminal/paused states
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         console.log(`Campaign ${campaignId} is ${finalCampaign.status}, locks released.`);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
       }
 
       return new Response(JSON.stringify({

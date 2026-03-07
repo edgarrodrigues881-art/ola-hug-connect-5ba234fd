@@ -485,7 +485,10 @@ const Campaigns = () => {
             action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
           });
           startCampaign.mutate({ campaignId: newCampaign.id, deviceId: selectedDevices[0] }, {
-            onSuccess: () => {
+            onSuccess: (data) => {
+              if (data?.status === "queued") {
+                toast({ title: "Campanha na fila", description: data.message || "A instância está em uso. A campanha iniciará automaticamente." });
+              }
               navigate(`/dashboard/campaign/${newCampaign.id}`);
             },
             onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
