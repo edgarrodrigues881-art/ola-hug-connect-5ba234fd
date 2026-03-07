@@ -83,6 +83,7 @@ export default function ReportWhatsApp() {
   const isConnected = reportDevice?.status === "Ready";
 
   const handleCreateReportInstance = async () => {
+    if (!canUseReport) { setPlanGateOpen(true); return; }
     if (!user) return;
     setCreatingInstance(true);
     try {
@@ -133,6 +134,7 @@ export default function ReportWhatsApp() {
   };
 
   const openConnectDialog = () => {
+    if (!canUseReport) { setPlanGateOpen(true); return; }
     setQrDialogOpen(true);
     setQrCodeBase64("");
     setQrConnected(false);
