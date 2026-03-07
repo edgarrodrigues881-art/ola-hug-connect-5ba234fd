@@ -23,11 +23,11 @@ import { cn } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
-  scheduled: { label: "Agendada", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  scheduled: { label: "Agendada", color: "bg-teal-500/15 text-teal-400 border-teal-500/30" },
   running: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
   processing: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
   paused: { label: "Pausada", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
-  completed: { label: "Concluída", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  completed: { label: "Concluída", color: "bg-teal-500/15 text-teal-400 border-teal-500/30" },
   canceled: { label: "Cancelada", color: "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30" },
   failed: { label: "Falhou", color: "bg-destructive/15 text-destructive border-destructive/30" },
 };

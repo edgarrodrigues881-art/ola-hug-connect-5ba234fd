@@ -498,8 +498,8 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-7 h-7 text-blue-500" />}
-          iconColor="blue"
+          icon={<Megaphone className="w-7 h-7 text-teal-500" />}
+          iconColor="teal"
           title="Relatórios de Campanhas"
           description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
           
