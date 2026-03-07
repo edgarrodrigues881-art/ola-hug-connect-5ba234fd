@@ -79,7 +79,7 @@ function detectMessageType(mediaUrl: string, hasButtons: boolean): string {
 const SurfaceCard = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "rounded-2xl border border-border/50 bg-card shadow-sm",
+      "rounded-xl sm:rounded-2xl border border-border/50 bg-card shadow-sm",
       "dark:border-[hsl(220_10%_16%)] dark:bg-[hsl(220_13%_9%)] dark:shadow-lg dark:shadow-black/30",
       className
     )}
