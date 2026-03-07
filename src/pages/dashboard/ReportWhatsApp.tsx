@@ -709,7 +709,7 @@ export default function ReportWhatsApp() {
           </div>
         </DialogContent>
       </Dialog>
-      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
+      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} context="notifications" />
     </div>
   );
 }
