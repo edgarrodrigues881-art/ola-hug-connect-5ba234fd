@@ -1,0 +1,77 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+
+export type PlanState = "noPlan" | "active" | "expired" | "suspended";
+
+export function usePlanGate() {
+  const { session } = useAuth();
+
+  const { data: subscription } = useQuery({
+    queryKey: ["my_subscription"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("plan_name, plan_price, max_instances, expires_at")
+        .eq("user_id", session!.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+    staleTime: 60_000,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["my_profile"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("status, instance_override")
+        .eq("id", session!.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+    staleTime: 60_000,
+  });
+
+  const planState: PlanState = useMemo(() => {
+    if (profile?.status === "suspended" || profile?.status === "cancelled") return "suspended";
+    if (!subscription) return "noPlan";
+    if (new Date(subscription.expires_at) < new Date()) return "expired";
+    return "active";
+  }, [subscription, profile]);
+
+  const isBlocked = planState !== "active";
+
+  const blockReason = useMemo(() => {
+    switch (planState) {
+      case "noPlan": return "Você não possui um plano ativo. Contrate um plano para usar esta funcionalidade.";
+      case "expired": return "Seu plano expirou. Renove para continuar usando.";
+      case "suspended": return "Sua conta está suspensa. Entre em contato com o suporte.";
+      default: return "";
+    }
+  }, [planState]);
+
+  const planBadgeText = useMemo(() => {
+    if (planState === "noPlan") return "Sem plano";
+    if (planState === "expired") return "Plano vencido";
+    if (planState === "suspended") return "Conta suspensa";
+    return null;
+  }, [planState]);
+
+  return {
+    planState,
+    isBlocked,
+    blockReason,
+    planBadgeText,
+    subscription,
+    profile,
+    maxInstances: (subscription?.max_instances ?? 0) + (profile?.instance_override ?? 0),
+  };
+}
