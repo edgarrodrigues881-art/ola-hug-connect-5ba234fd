@@ -1215,7 +1215,7 @@ const Devices = () => {
                 {/* Edit + Delete */}
                 <div className="flex items-center gap-5 pt-1">
                   <button
-                    className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-sm text-primary dark:text-primary hover:text-primary/80 dark:hover:text-primary/80 transition-colors font-medium"
                     onClick={() => {
                       setEditingDevice(d);
                       setEditName(d.name);

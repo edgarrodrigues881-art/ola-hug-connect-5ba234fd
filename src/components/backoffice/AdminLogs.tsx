@@ -16,7 +16,7 @@ const actionLabels: Record<string, string> = {
 };
 
 const actionColors: Record<string, string> = {
-  "update-client": "bg-blue-600/50 text-blue-200",
+  "update-client": "bg-teal-600/50 text-teal-200",
   "update-subscription": "bg-purple-600/50 text-purple-200",
   "reset-password": "bg-yellow-600/50 text-yellow-200",
   "force-logout": "bg-red-600/50 text-red-200",

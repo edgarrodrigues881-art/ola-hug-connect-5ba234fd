@@ -18,7 +18,7 @@ interface Props {
   onBack: () => void;
 }
 
-const planColors: Record<string, string> = { Start: "text-zinc-400", Pro: "text-blue-400", Scale: "text-purple-400", Elite: "text-amber-500" };
+const planColors: Record<string, string> = { Start: "text-zinc-400", Pro: "text-teal-400", Scale: "text-purple-400", Elite: "text-amber-500" };
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
 const statusColors: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 

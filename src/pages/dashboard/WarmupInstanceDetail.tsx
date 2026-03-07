@@ -28,7 +28,7 @@ import { ptBR } from "date-fns/locale";
 
 const phaseConfig: Record<string, { label: string; color: string; icon: typeof Clock; step: number }> = {
   pre_24h: { label: "Primeiras 24h", color: "text-amber-400", icon: Timer, step: 1 },
-  groups_only: { label: "Grupos", color: "text-blue-400", icon: Users, step: 2 },
+  groups_only: { label: "Grupos", color: "text-teal-400", icon: Users, step: 2 },
   autosave_enabled: { label: "Auto Save", color: "text-emerald-400", icon: MessageSquare, step: 3 },
   community_enabled: { label: "Comunidade", color: "text-purple-400", icon: Globe, step: 4 },
   completed: { label: "Concluído", color: "text-muted-foreground", icon: CheckCircle2, step: 5 },
@@ -37,7 +37,7 @@ const phaseConfig: Record<string, { label: string; color: string; icon: typeof C
 };
 
 const logLevelColors: Record<string, string> = {
-  info: "text-blue-400",
+  info: "text-teal-400",
   warn: "text-amber-400",
   error: "text-destructive",
 };
@@ -372,7 +372,7 @@ const WarmupInstanceDetail = () => {
             <Card>
               <CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Users className="w-3 h-3 text-blue-400" />
+                  <Users className="w-3 h-3 text-teal-400" />
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Grupos</span>
                 </div>
                 <p className="text-lg font-bold tabular-nums text-foreground">
@@ -506,7 +506,7 @@ const WarmupInstanceDetail = () => {
                   {auditLogs.map(log => (
                     <div key={log.id} className="px-4 py-2.5 flex items-start gap-2">
                       <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
-                        log.level === "error" ? "bg-destructive" : log.level === "warn" ? "bg-amber-400" : "bg-blue-400"
+                        log.level === "error" ? "bg-destructive" : log.level === "warn" ? "bg-amber-400" : "bg-teal-400"
                       )} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

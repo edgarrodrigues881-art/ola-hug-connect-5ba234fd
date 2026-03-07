@@ -16,7 +16,7 @@ interface Props {
 }
 
 const iconMap = {
-  campaign: { icon: Megaphone, color: "text-blue-400 bg-blue-500/15" },
+  campaign: { icon: Megaphone, color: "text-teal-400 bg-teal-500/15" },
   device: { icon: Smartphone, color: "text-emerald-400 bg-emerald-500/15" },
   message: { icon: Send, color: "text-violet-400 bg-violet-500/15" },
 };
@@ -26,7 +26,7 @@ export function ActivityTimeline({ events }: Props) {
     <Card className="border-border/50 bg-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-          <Clock className="w-4 h-4 text-blue-400" />
+          <Clock className="w-4 h-4 text-teal-400" />
           Atividades Recentes
         </CardTitle>
       </CardHeader>

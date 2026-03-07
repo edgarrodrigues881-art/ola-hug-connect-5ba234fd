@@ -41,7 +41,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; label: string; category
   INSTANCE_CONNECTED: { icon: <Plug className="w-4 h-4 text-emerald-500" />, label: "Instância conectada", category: "Conexões" },
   INSTANCE_DISCONNECTED: { icon: <Plug className="w-4 h-4 text-destructive" />, label: "Instância desconectada", category: "Conexões" },
   QRCODE_GENERATED: { icon: <Plug className="w-4 h-4 text-yellow-500" />, label: "QR Code gerado", category: "Conexões" },
-  CAMPAIGN_STARTED: { icon: <Megaphone className="w-4 h-4 text-blue-500" />, label: "Campanha iniciada", category: "Campanhas" },
+  CAMPAIGN_STARTED: { icon: <Megaphone className="w-4 h-4 text-teal-500" />, label: "Campanha iniciada", category: "Campanhas" },
   CAMPAIGN_PAUSED: { icon: <Megaphone className="w-4 h-4 text-yellow-500" />, label: "Campanha pausada", category: "Campanhas" },
   CAMPAIGN_FINISHED: { icon: <Megaphone className="w-4 h-4 text-emerald-500" />, label: "Campanha finalizada", category: "Campanhas" },
   CAMPAIGN_ERROR: { icon: <AlertTriangle className="w-4 h-4 text-destructive" />, label: "Erro na campanha", category: "Campanhas" },
@@ -51,7 +51,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; label: string; category
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  INFO: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  INFO: "bg-teal-500/10 text-teal-500 border-teal-500/20",
   WARNING: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   CRITICAL: "bg-destructive/10 text-destructive border-destructive/20",
 };
@@ -219,8 +219,8 @@ export default function AlertCockpit() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Megaphone className="w-4 h-4 text-blue-500" />
+            <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
+              <Megaphone className="w-4 h-4 text-teal-500" />
             </div>
             <div>
               <p className="text-2xl font-bold">

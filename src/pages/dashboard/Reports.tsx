@@ -112,7 +112,7 @@ const filterOptions: { key: FilterKey; label: string; color: string; activeColor
   { key: "todos", label: "Todos", color: "text-muted-foreground", activeColor: "bg-muted/20 text-foreground border-border/40" },
   { key: "risco", label: "Em risco", color: "text-muted-foreground", activeColor: "bg-red-500/10 text-red-400 border-red-500/20" },
   { key: "atencao", label: "Atenção", color: "text-muted-foreground", activeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  { key: "recuperacao", label: "Recuperação", color: "text-muted-foreground", activeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  { key: "recuperacao", label: "Recuperação", color: "text-muted-foreground", activeColor: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
   { key: "seguro", label: "Estáveis", color: "text-muted-foreground", activeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
 ];
 

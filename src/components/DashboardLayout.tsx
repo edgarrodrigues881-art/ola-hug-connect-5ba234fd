@@ -35,7 +35,7 @@ const typeColors = {
   success: "text-emerald-400",
   warning: "text-yellow-400",
   error: "text-destructive",
-  info: "text-blue-400",
+  info: "text-teal-400",
 };
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {

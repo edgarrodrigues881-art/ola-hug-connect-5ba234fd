@@ -14,7 +14,7 @@ interface Props {
 
 const planColors: Record<string, string> = {
   Start: "text-zinc-400",
-  Pro: "text-blue-400",
+  Pro: "text-teal-400",
   Scale: "text-purple-400",
   Elite: "text-amber-500",
 };

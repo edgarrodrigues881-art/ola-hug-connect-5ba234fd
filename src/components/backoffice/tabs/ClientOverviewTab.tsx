@@ -10,7 +10,7 @@ import {
 
 interface Props { client: AdminUser; detail: any; }
 
-const planColors: Record<string, string> = { Start: "text-zinc-400", Pro: "text-blue-400", Scale: "text-purple-400", Elite: "text-amber-500" };
+const planColors: Record<string, string> = { Start: "text-zinc-400", Pro: "text-teal-400", Scale: "text-purple-400", Elite: "text-amber-500" };
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -71,7 +71,7 @@ const ClientOverviewTab = ({ client, detail }: Props) => {
           <p className="text-xs text-muted-foreground">Último login: {client.last_sign_in_at ? new Date(client.last_sign_in_at).toLocaleString("pt-BR") : "Nunca"}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2"><CreditCard size={14} className="text-blue-500" /><span className="text-[11px] text-muted-foreground uppercase font-medium">Plano</span></div>
+          <div className="flex items-center gap-2 mb-2"><CreditCard size={14} className="text-teal-500" /><span className="text-[11px] text-muted-foreground uppercase font-medium">Plano</span></div>
           <p className={`font-medium text-sm ${planColors[sub?.plan_name] || "text-foreground"}`}>{sub?.plan_name || "Sem plano"}</p>
           <p className="text-xs text-muted-foreground mt-1">R$ {sub ? Number(sub.plan_price).toFixed(2) : "0.00"}/mês</p>
           <p className="text-xs text-muted-foreground">Máx: {maxInst} instâncias</p>

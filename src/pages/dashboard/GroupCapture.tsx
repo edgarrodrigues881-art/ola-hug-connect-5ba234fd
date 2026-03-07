@@ -53,7 +53,7 @@ const statusConfig: Record<ItemStatus, { icon: typeof Check; label: string; colo
   running: { icon: Loader2, label: "Em andamento", color: "text-primary" },
   success: { icon: CheckCircle2, label: "Sucesso", color: "text-emerald-500" },
   error: { icon: XCircle, label: "Falha", color: "text-destructive" },
-  already_member: { icon: CheckCircle2, label: "Já participa", color: "text-blue-500" },
+  already_member: { icon: CheckCircle2, label: "Já participa", color: "text-teal-500" },
   pending_approval: { icon: AlertTriangle, label: "Aguardando aprovação", color: "text-amber-500" },
 };
 
