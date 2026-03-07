@@ -103,6 +103,7 @@ const Warmup = () => {
   };
 
   const toggleStatus = (id: string, currentStatus: string) => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     const newStatus = currentStatus === "running" ? "paused" : "running";
     updateWarmup.mutate({ id, status: newStatus } as any, {
       onSuccess: () => toast({ title: newStatus === "paused" ? "Sessão pausada" : "Sessão retomada" }),
@@ -116,6 +117,7 @@ const Warmup = () => {
   };
 
   const executeNow = async (sessionId: string) => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     setExecutingId(sessionId);
     try {
       const { data, error } = await supabase.functions.invoke("warmup-execute", {
