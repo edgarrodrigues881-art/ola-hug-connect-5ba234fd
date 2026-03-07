@@ -75,7 +75,7 @@ export function useCampaigns() {
     refetchInterval: (query) => {
       const campaigns = query.state.data;
       const hasActive = campaigns?.some((c: Campaign) => ["running", "processing"].includes(c.status));
-      return hasActive ? 3000 : 30000; // Fast when active, slow when idle
+      return hasActive ? 5000 : false; // Only poll when active campaigns exist; realtime handles the rest
     },
   });
 }

@@ -100,7 +100,7 @@ const Campaigns = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
-  useAutoSyncDevices(5000);
+  // Removed: useAutoSyncDevices already runs in DashboardLayout — no duplicate needed
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
   const { data: savedTemplates = [] } = useTemplates();
