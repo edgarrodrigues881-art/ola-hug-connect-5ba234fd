@@ -85,47 +85,47 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 217 32% 17%;
-    --card-foreground: 210 40% 98%;
-    --popover: 215 24% 26%;
-    --popover-foreground: 210 40% 98%;
+    --background: 220 16% 8%;
+    --foreground: 210 40% 96%;
+    --card: 220 14% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 220 14% 12%;
+    --popover-foreground: 210 40% 96%;
     --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
     --secondary: 212 26% 83%;
     --secondary-foreground: 228 84% 4%;
-    --muted: 215 16% 46%;
-    --muted-foreground: 210 40% 98%;
-    --accent: 228 84% 4%;
-    --accent-foreground: 215 20% 65%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 220 12% 13%;
+    --accent-foreground: 220 10% 80%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
-    --border: 215 19% 34%;
-    --input: 215 19% 34%;
+    --border: 220 10% 16%;
+    --input: 220 10% 16%;
     --ring: 160 84% 39%;
     --chart-1: 199 95% 73%;
     --chart-2: 211 96% 78%;
     --chart-3: 215 20% 65%;
     --chart-4: 215 16% 46%;
     --chart-5: 215 19% 34%;
-    --sidebar: 217 32% 17%;
-    --sidebar-background: 222 18% 7%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar: 220 16% 7%;
+    --sidebar-background: 220 18% 6%;
+    --sidebar-foreground: 210 40% 96%;
     --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 65%;
-    --sidebar-accent-foreground: 228 84% 4%;
-    --sidebar-border: 215 19% 34%;
+    --sidebar-accent: 220 10% 14%;
+    --sidebar-accent-foreground: 220 10% 80%;
+    --sidebar-border: 220 10% 14%;
     --sidebar-ring: 160 84% 39%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.2);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow: 0 2px 4px 0px hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 2px 6px 0px hsl(0 0% 0% / 0.35), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 4px 8px 0px hsl(0 0% 0% / 0.35), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 6px 12px 0px hsl(0 0% 0% / 0.4), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
+    --shadow-2xl: 0 8px 16px 0px hsl(0 0% 0% / 0.5);
   }
 
   /* Landing page dark scope */
