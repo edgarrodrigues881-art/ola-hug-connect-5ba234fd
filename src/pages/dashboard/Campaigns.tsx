@@ -32,7 +32,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import * as XLSX from "xlsx";
-import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
+
 
 
 interface Contact {
