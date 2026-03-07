@@ -907,8 +907,11 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Build proxy config if selected
-      const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      // Build proxy config: use newly selected proxy OR fallback to device's existing proxy
+      let selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      if (!selectedProxyData && connectingDevice.proxy_id) {
+        selectedProxyData = availableProxies.find(p => p.id === connectingDevice.proxy_id) || null;
+      }
       const proxyPayload = selectedProxyData ? {
         host: selectedProxyData.host,
         port: selectedProxyData.port,
@@ -925,10 +928,12 @@ const Devices = () => {
         proxyConfig: proxyPayload,
       });
 
-      // Check for duplicate phone error
-      if (connectResult?.error && connectResult?.code === "DUPLICATE_PHONE") {
+      // Check for proxy or duplicate phone errors
+      if (connectResult?.error && (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE")) {
         setConnectError(connectResult.error);
+        setConnectStep("proxy");
         queryClient.invalidateQueries({ queryKey: ["devices"] });
+        toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
       }
 
@@ -1628,7 +1633,9 @@ const Devices = () => {
                             toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
                             return;
                           }
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
+                          const pairingProxyData = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
+                          const pairingProxyPayload = pairingProxyData ? { host: pairingProxyData.host, port: pairingProxyData.port, username: pairingProxyData.username, password: pairingProxyData.password, type: pairingProxyData.type } : undefined;
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload });
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
@@ -1673,7 +1680,9 @@ const Devices = () => {
                             toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
                             return;
                           }
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, "") });
+                          const pairingProxyData2 = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
+                          const pairingProxyPayload2 = pairingProxyData2 ? { host: pairingProxyData2.host, port: pairingProxyData2.port, username: pairingProxyData2.username, password: pairingProxyData2.password, type: pairingProxyData2.type } : undefined;
+                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload2 });
                           if (result.alreadyConnected) {
                             setConnectStep("done");
                             toast({ title: "Já conectado!" });
