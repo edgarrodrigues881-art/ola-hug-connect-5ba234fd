@@ -30,7 +30,7 @@ export function usePlanGate() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("status, instance_override")
+        .select("status, instance_override, notificacao_liberada")
         .eq("id", session!.user.id)
         .maybeSingle();
       if (error) throw error;
