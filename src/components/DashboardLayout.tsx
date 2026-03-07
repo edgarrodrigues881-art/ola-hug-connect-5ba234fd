@@ -52,17 +52,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className="min-h-screen flex w-full overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-h-screen min-w-0">
-          <header className="h-14 border-b border-border/50 bg-card flex items-center px-4 shrink-0 gap-3">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-            <img src={logo} alt="DG Contingência Pro" className="w-7 h-7 rounded-md sm:hidden" />
+          <header className="h-11 sm:h-14 border-b border-border/50 bg-card flex items-center px-3 sm:px-4 shrink-0 gap-2 sm:gap-3">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground w-7 h-7 sm:w-8 sm:h-8" />
+            <img src={logo} alt="DG Contingência Pro" className="w-6 h-6 rounded-md sm:hidden" />
 
             {/* Search bar */}
             <div className="flex-1 flex justify-center">
               <div className={`relative ${searchOpen ? "w-full max-w-md" : "w-full max-w-xs"}`}>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Buscar..."
-                  className="pl-9 h-9 bg-muted/40 border-border/40 focus:bg-muted/60 text-sm rounded-lg"
+                  className="pl-8 sm:pl-9 h-8 sm:h-9 bg-muted/40 border-border/40 focus:bg-muted/60 text-xs sm:text-sm rounded-lg"
                   onFocus={() => setSearchOpen(true)}
                   onBlur={() => setSearchOpen(false)}
                 />
@@ -74,18 +74,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="text-muted-foreground hover:text-foreground shrink-0"
+              className="text-muted-foreground hover:text-foreground shrink-0 w-8 h-8 sm:w-9 sm:h-9"
             >
-              <Sun className="w-[18px] h-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute w-[18px] h-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <Sun className="w-4 h-4 sm:w-[18px] sm:h-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute w-4 h-4 sm:w-[18px] sm:h-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Alternar tema</span>
             </Button>
 
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground shrink-0">
-                  <Bell className="w-[18px] h-[18px]" />
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground shrink-0 w-8 h-8 sm:w-9 sm:h-9">
+                  <Bell className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-sidebar-primary text-sidebar-primary-foreground rounded-full flex items-center justify-center ring-2 ring-card">
                       {unreadCount > 9 ? "9+" : unreadCount}
@@ -159,7 +159,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-5 md:p-8">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-5 md:p-8">
             {children}
           </main>
         </div>
