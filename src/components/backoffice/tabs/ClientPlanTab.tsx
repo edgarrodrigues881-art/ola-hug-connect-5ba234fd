@@ -54,10 +54,36 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isExpired = daysLeft !== null && daysLeft <= 0;
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
 
+  const [provisioning, setProvisioning] = useState(false);
+
+  // Auto-provision tokens via UAZAPI API
+  const handleAutoProvision = (quantity: number) => {
+    setProvisioning(true);
+    const clientName = client.full_name || client.email || "cliente";
+    mutate({
+      action: "auto-provision-tokens",
+      body: { target_user_id: client.id, quantity, client_name: clientName },
+    }, {
+      onSuccess: (data: any) => {
+        setProvisioning(false);
+        if (data.created > 0) {
+          toast({ title: `${data.created} token(s) criado(s) automaticamente via UAZAPI`, description: data.errors > 0 ? `${data.errors} erro(s): ${data.error_details?.join(", ")}` : undefined });
+        } else if (data.existing >= quantity) {
+          toast({ title: `Cliente já possui ${data.existing} token(s) — nenhum novo necessário` });
+        } else {
+          toast({ title: "Nenhum token criado", description: data.error_details?.join(", "), variant: "destructive" });
+        }
+      },
+      onError: (e) => {
+        setProvisioning(false);
+        toast({ title: "Erro ao provisionar", description: e.message, variant: "destructive" });
+      },
+    });
+  };
+
   // Save plan (also creates initial cycle)
   const handleSave = () => {
     if (isNoPlan) {
-      // Remove subscription
       mutate({
         action: "remove-subscription",
         body: { target_user_id: client.id },
@@ -93,7 +119,11 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             cycle_end: cycleEnd,
           },
         }, {
-          onSuccess: () => toast({ title: "Plano atualizado e ciclo criado" }),
+          onSuccess: () => {
+            toast({ title: "Plano atualizado e ciclo criado" });
+            // Auto-provision tokens for the plan
+            handleAutoProvision(planConfig.max_instances);
+          },
           onError: (e) => toast({ title: "Plano salvo, mas ciclo falhou", description: e.message, variant: "destructive" }),
         });
       },
