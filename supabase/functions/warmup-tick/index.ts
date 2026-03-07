@@ -112,6 +112,29 @@ async function handleTick(db: any) {
         continue;
       }
 
+      // ── PLAN CHECK: skip jobs for users with inactive plans ──
+      const { data: userSub } = await db
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("user_id", cycle.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data: userProf } = await db.from("profiles").select("status").eq("id", cycle.user_id).maybeSingle();
+      const planInactive = !userSub || new Date(userSub.expires_at) < new Date();
+      const acctBlocked = userProf?.status === "suspended" || userProf?.status === "cancelled";
+      if (planInactive || acctBlocked) {
+        console.log(`[warmup-tick] Skipping job ${job.id}: user ${cycle.user_id} plan inactive`);
+        await db.from("warmup_cycles").update({
+          is_running: false,
+          phase: "paused",
+          previous_phase: cycle.phase,
+          last_error: "Auto-pausado: plano inativo",
+        }).eq("id", cycle.id);
+        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+        continue;
+      }
+
       // Check device connection status before processing
       const { data: device } = await db
         .from("devices")
