@@ -10,9 +10,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const PLANS: Record<string, { price: number; max_instances: number }> = {
+const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number }> = {
   "Sem plano": { price: 0, max_instances: 0 },
-  Free: { price: 0, max_instances: 3 },
+  Trial: { price: 0, max_instances: 3, defaultDays: 7 },
+  Free: { price: 0, max_instances: 3, defaultDays: 3 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50 },
@@ -44,10 +45,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [startedAt, setStartedAt] = useState<string>(
     sub?.started_at ? sub.started_at.split("T")[0] : new Date().toISOString().split("T")[0]
   );
+  const [trialDays, setTrialDays] = useState<number>(7);
 
   const planConfig = PLANS[planName] || PLANS.Start;
+  const isTrial = planName === "Trial";
+  const isFree = planName === "Free";
   const isNoPlan = planName === "Sem plano";
-  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, 30), [startedAt, isNoPlan]);
+  const cycleDays = isTrial ? trialDays : isFree ? (planConfig.defaultDays || 3) : 30;
+  const expiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
@@ -252,8 +257,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               <Label className="text-muted-foreground text-xs">Data de Início</Label>
               <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
             </div>
+            {isTrial && (
+              <div>
+                <Label className="text-muted-foreground text-xs">Dias de Trial</Label>
+                <Input type="number" min={1} max={90} value={trialDays} onChange={e => setTrialDays(Number(e.target.value) || 7)} className="bg-card border-border text-foreground mt-1 h-9" />
+              </div>
+            )}
             <div>
-              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + 30 dias)</Label>
+              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + {cycleDays} dias)</Label>
               <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
             </div>
           </div>
@@ -263,7 +274,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         <div className="flex gap-3 flex-wrap">
           <Button onClick={handleSave} disabled={isPending || provisioning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo + Tokens"}
+            {isNoPlan ? "Remover Plano" : isTrial ? `Ativar Trial (${trialDays} dias)` : "Salvar Plano + Criar Ciclo + Tokens"}
           </Button>
           {sub && !isNoPlan && (
             <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={isPending || provisioning} variant="outline" className="border-primary/30 text-primary hover:text-primary/80">
