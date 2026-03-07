@@ -360,8 +360,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               checked={detail?.profile?.notificacao_liberada ?? false}
               onCheckedChange={(checked) => {
                 mutate({
-                  action: "update-profile",
-                  body: { target_user_id: client.id, notificacao_liberada: checked },
+                  action: "toggle-notification",
+                  body: { target_user_id: client.id, enabled: checked },
                 }, {
                   onSuccess: () => toast({ title: checked ? "Notificação via WhatsApp liberada" : "Notificação via WhatsApp desativada" }),
                   onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
