@@ -12,6 +12,7 @@ import {
 
 const PLANS: Record<string, { price: number; max_instances: number }> = {
   "Sem plano": { price: 0, max_instances: 0 },
+  Free: { price: 0, max_instances: 3 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50 },
@@ -81,7 +82,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     });
   };
 
-  // Save plan (also creates initial cycle)
+  // Save plan — provisioning happens automatically in update-subscription
   const handleSave = () => {
     if (isNoPlan) {
       mutate({
@@ -97,6 +98,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     const cycleStart = new Date(startedAt).toISOString();
     const cycleEnd = new Date(expiresAt).toISOString();
 
+    setProvisioning(true);
     mutate({
       action: "update-subscription",
       body: {
@@ -108,7 +110,9 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         expires_at: cycleEnd,
       },
     }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
+        const prov = data?.provision;
+        // Create cycle
         mutate({
           action: "create-cycle",
           body: {
@@ -120,14 +124,24 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           },
         }, {
           onSuccess: () => {
-            toast({ title: "Plano atualizado e ciclo criado" });
-            // Auto-provision tokens for the plan
-            handleAutoProvision(planConfig.max_instances);
+            setProvisioning(false);
+            let desc = "Ciclo criado.";
+            if (prov?.created > 0) desc += ` ${prov.created} token(s) provisionados.`;
+            if (prov?.blocked > 0) desc += ` ${prov.blocked} token(s) bloqueados por downgrade.`;
+            if (prov?.unblocked > 0) desc += ` ${prov.unblocked} token(s) desbloqueados.`;
+            if (prov?.errors?.length > 0) desc += ` ${prov.errors.length} erro(s).`;
+            toast({ title: "Plano atualizado", description: desc });
           },
-          onError: (e) => toast({ title: "Plano salvo, mas ciclo falhou", description: e.message, variant: "destructive" }),
+          onError: (e) => {
+            setProvisioning(false);
+            toast({ title: "Plano salvo, mas ciclo falhou", description: e.message, variant: "destructive" });
+          },
         });
       },
-      onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      onError: (e) => {
+        setProvisioning(false);
+        toast({ title: "Erro", description: e.message, variant: "destructive" });
+      },
     });
   };
 
