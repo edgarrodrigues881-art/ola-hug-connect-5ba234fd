@@ -103,7 +103,8 @@ const CampaignDetail = () => {
         .from("campaign_contacts")
         .select("id, campaign_id, phone, name, status, sent_at, error_message, created_at")
         .eq("campaign_id", id!)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
