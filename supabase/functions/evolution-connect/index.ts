@@ -76,37 +76,89 @@ async function adminCreateInstance(
   return { ok: false, error: "All auth methods returned 401" };
 }
 
-// ── Proxy connectivity test ─────────────────────────────────────────────
+// ── Proxy connectivity test (real HTTP-through-proxy) ───────────────────
 async function testProxyConnectivity(
   proxy: { host: string; port: string; username?: string; password?: string; type?: string },
-): Promise<boolean> {
-  // Test if the proxy is reachable by attempting a connection
-  // We try to fetch a known endpoint through a simple TCP-level check
-  const proxyUrl = `http://${proxy.username || ""}${proxy.password ? ":" + proxy.password : ""}${(proxy.username || proxy.password) ? "@" : ""}${proxy.host}:${proxy.port}`;
-  
+): Promise<{ alive: boolean; error?: string }> {
+  // Opens a raw TCP connection to the proxy and sends an HTTP request
+  // THROUGH the proxy to httpbin.org — this validates the proxy actually works
+  const TEST_URL = "http://httpbin.org/ip";
+  const TIMEOUT_MS = 8000;
+
   try {
-    // Try connecting to the proxy host:port directly with a short timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
-    
-    // Attempt a simple HTTP request through proxy connectivity check
-    // We test if the proxy host:port is reachable
-    const testUrl = `http://${proxy.host}:${proxy.port}`;
-    const res = await fetch(testUrl, { 
-      method: "GET",
-      signal: controller.signal,
-      headers: proxy.username ? {
-        "Proxy-Authorization": "Basic " + btoa(`${proxy.username}:${proxy.password || ""}`)
-      } : {}
-    });
-    clearTimeout(timeout);
-    // Any response (even 407 proxy auth required) means the proxy is alive
-    console.log(`Proxy connectivity test: ${proxy.host}:${proxy.port} → status ${res.status}`);
-    await res.text(); // consume body
-    return true;
+    const conn = await Promise.race([
+      Deno.connect({ hostname: proxy.host, port: Number(proxy.port) }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("TCP connect timeout")), TIMEOUT_MS)
+      ),
+    ]);
+
+    // Build HTTP/1.1 request to send THROUGH the proxy
+    const authHeader = proxy.username
+      ? `Proxy-Authorization: Basic ${btoa(`${proxy.username}:${proxy.password || ""}`)}\r\n`
+      : "";
+    const httpReq =
+      `GET ${TEST_URL} HTTP/1.1\r\n` +
+      `Host: httpbin.org\r\n` +
+      `${authHeader}` +
+      `Connection: close\r\n\r\n`;
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    await conn.write(encoder.encode(httpReq));
+
+    // Read response (up to 4KB is enough to see status line)
+    const buf = new Uint8Array(4096);
+    const readPromise = conn.read(buf);
+    const n = await Promise.race([
+      readPromise,
+      new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("Read timeout")), TIMEOUT_MS)
+      ),
+    ]);
+
+    try { conn.close(); } catch {}
+
+    if (!n || n === 0) {
+      console.log(`Proxy test FAILED: ${proxy.host}:${proxy.port} → empty response`);
+      return { alive: false, error: "Proxy retornou resposta vazia" };
+    }
+
+    const response = decoder.decode(buf.subarray(0, n));
+    const statusLine = response.split("\r\n")[0] || "";
+    const statusCode = parseInt(statusLine.split(" ")[1] || "0", 10);
+
+    console.log(`Proxy test: ${proxy.host}:${proxy.port} → ${statusLine.substring(0, 80)}`);
+
+    // 200 = proxy working, 407 = auth failed, other 4xx/5xx = proxy issue
+    if (statusCode === 200) {
+      return { alive: true };
+    }
+    if (statusCode === 407) {
+      return { alive: false, error: "Proxy requer autenticação (credenciais inválidas)" };
+    }
+    if (statusCode >= 400) {
+      return { alive: false, error: `Proxy retornou status ${statusCode}` };
+    }
+    // Any other response means something answered — consider alive if 2xx/3xx
+    if (statusCode >= 200 && statusCode < 400) {
+      return { alive: true };
+    }
+    return { alive: false, error: `Resposta inesperada: ${statusLine.substring(0, 60)}` };
   } catch (e: any) {
-    console.log(`Proxy connectivity test FAILED: ${proxy.host}:${proxy.port} → ${e.message || e}`);
-    return false;
+    const msg = e?.message || String(e);
+    console.log(`Proxy test FAILED: ${proxy.host}:${proxy.port} → ${msg}`);
+    if (msg.includes("connect timeout") || msg.includes("TCP connect")) {
+      return { alive: false, error: "Proxy inacessível (timeout na conexão)" };
+    }
+    if (msg.includes("Read timeout")) {
+      return { alive: false, error: "Proxy não respondeu (timeout de leitura)" };
+    }
+    if (msg.includes("Connection refused")) {
+      return { alive: false, error: "Conexão recusada pela proxy" };
+    }
+    return { alive: false, error: `Erro: ${msg.substring(0, 100)}` };
   }
 }
 
