@@ -11,13 +11,15 @@ import SupportButton from "@/components/SupportButton";
 
 // Prefetch Auth and MyPlan chunks on idle
 const prefetchRoutes = () => {
-  requestIdleCallback?.(() => {
+  const load = () => {
     import("../pages/Auth");
     import("../pages/dashboard/MyPlan");
-  }) ?? setTimeout(() => {
-    import("../pages/Auth");
-    import("../pages/dashboard/MyPlan");
-  }, 2000);
+  };
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(load);
+  } else {
+    setTimeout(load, 2000);
+  }
 };
 
 const Landing = () => {
