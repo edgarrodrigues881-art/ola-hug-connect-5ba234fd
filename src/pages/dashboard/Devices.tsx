@@ -905,6 +905,12 @@ const Devices = () => {
       await supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id);
       await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    } else if (selectedProxy === "none" && connectingDevice.proxy_id) {
+      // User explicitly chose "sem proxy" — clear old proxy from device
+      await supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id);
+      // Release old proxy back to USADA
+      await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id);
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
     }
 
     setConnectError("");
@@ -915,11 +921,8 @@ const Devices = () => {
     setConnectStep(connectMethod);
 
     try {
-      // Build proxy config: use newly selected proxy OR fallback to device's existing proxy
-      let selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
-      if (!selectedProxyData && connectingDevice.proxy_id) {
-        selectedProxyData = availableProxies.find(p => p.id === connectingDevice.proxy_id) || null;
-      }
+      // Build proxy config: use newly selected proxy; do NOT fallback to old proxy when user chose "none"
+      const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
       const proxyPayload = selectedProxyData ? {
         host: selectedProxyData.host,
         port: selectedProxyData.port,
@@ -928,13 +931,12 @@ const Devices = () => {
         type: selectedProxyData.type,
       } : undefined;
 
-      // Single connect call — edge function handles everything:
-      // auto-create instance, validate token, recreate if invalid, set proxy, get QR
+      // Single connect call — edge function handles everything
       const connectResult = await callApi({
         action: "connect",
         deviceId: connectingDevice.id,
         proxyConfig: proxyPayload,
-        proxyId: proxyId || connectingDevice.proxy_id || undefined,
+        proxyId: proxyId || undefined,
       });
 
       // Check for proxy or duplicate phone errors
