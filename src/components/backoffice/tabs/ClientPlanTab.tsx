@@ -135,11 +135,28 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           },
         }, {
           onSuccess: () => {
-            // Also toggle notification
+            // Toggle notification flag
             mutate({
               action: "toggle-notification",
               body: { target_user_id: client.id, enabled: includeNotification },
             }, { onSuccess: () => {}, onError: () => {} });
+
+            // Create/update notification addon subscription
+            if (includeNotification) {
+              mutate({
+                action: "update-subscription",
+                body: {
+                  target_user_id: client.id,
+                  plan_name: "Relatórios WhatsApp",
+                  plan_price: NOTIFICATION_PRICE,
+                  max_instances: 0,
+                  started_at: cycleStart,
+                  expires_at: cycleEnd,
+                  is_addon: true,
+                },
+              }, { onSuccess: () => {}, onError: () => {} });
+            }
+
             setProvisioning(false);
             let desc = "Ciclo criado.";
             if (includeNotification) desc += " Relatório via WhatsApp ativado.";

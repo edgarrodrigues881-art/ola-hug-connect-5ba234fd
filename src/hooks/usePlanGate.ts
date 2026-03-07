@@ -8,6 +8,7 @@ export type PlanState = "noPlan" | "active" | "expired" | "suspended";
 export function usePlanGate() {
   const { session } = useAuth();
 
+  // Main instance subscription (excludes notification addon)
   const { data: subscription } = useQuery({
     queryKey: ["my_subscription"],
     queryFn: async () => {
@@ -15,6 +16,26 @@ export function usePlanGate() {
         .from("subscriptions")
         .select("plan_name, plan_price, max_instances, expires_at")
         .eq("user_id", session!.user.id)
+        .neq("plan_name", "Relatórios WhatsApp")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+    staleTime: 60_000,
+  });
+
+  // Notification addon subscription
+  const { data: notificationSub } = useQuery({
+    queryKey: ["my_notification_sub"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("plan_name, plan_price, max_instances, expires_at")
+        .eq("user_id", session!.user.id)
+        .eq("plan_name", "Relatórios WhatsApp")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -49,6 +70,16 @@ export function usePlanGate() {
 
   const isBlocked = planState !== "active";
 
+  // Notification addon active check
+  const notificationAddonActive = useMemo(() => {
+    if (profile?.notificacao_liberada) return true;
+    if (!notificationSub) return false;
+    return new Date(notificationSub.expires_at) >= new Date();
+  }, [notificationSub, profile]);
+
+  // Max notification instances (1 when addon active)
+  const maxNotificationInstances = notificationAddonActive ? 1 : 0;
+
   const blockReason = useMemo(() => {
     switch (planState) {
       case "noPlan": return "Você não possui um plano ativo. Contrate um plano para usar esta funcionalidade.";
@@ -73,5 +104,8 @@ export function usePlanGate() {
     subscription,
     profile,
     maxInstances: (subscription?.max_instances ?? 0) + (profile?.instance_override ?? 0),
+    notificationAddonActive,
+    notificationSub,
+    maxNotificationInstances,
   };
 }

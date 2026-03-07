@@ -262,12 +262,6 @@ const ClientPaymentsTab = ({ client }: Props) => {
               className="bg-card border-border text-foreground mt-1" />
           </div>
         </div>
-        <div>
-          <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
-          <CurrencyInput value={form.amount}
-            onChange={v => setForm(f => ({ ...f, amount: v }))}
-            className="bg-card border-border text-foreground mt-1" />
-        </div>
       </div>
       <div className="grid grid-cols-4 gap-3">
         <div>

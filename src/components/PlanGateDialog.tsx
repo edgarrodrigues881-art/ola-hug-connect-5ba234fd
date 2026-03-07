@@ -8,15 +8,20 @@ interface PlanGateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   planState: PlanState;
+  context?: "instances" | "campaigns" | "warmup" | "notifications";
 }
 
-export function PlanGateDialog({ open, onOpenChange, planState }: PlanGateDialogProps) {
+export function PlanGateDialog({ open, onOpenChange, planState, context }: PlanGateDialogProps) {
   const navigate = useNavigate();
 
   const statusText =
     planState === "noPlan" ? "sem plano ativo"
     : planState === "expired" ? "com plano vencido"
     : "suspensa/cancelada";
+
+  const contextText = context === "notifications"
+    ? "Para usar relatórios via WhatsApp, ative o addon de Relatórios WhatsApp ou um plano principal."
+    : "Ative ou renove seu plano para usar todas as funcionalidades (instâncias, campanhas, aquecimento, etc).";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,7 +31,7 @@ export function PlanGateDialog({ open, onOpenChange, planState }: PlanGateDialog
             <Ban size={18} className="text-destructive" /> Funcionalidade bloqueada
           </DialogTitle>
           <p className="text-sm text-muted-foreground pt-2">
-            Sua conta está {statusText}. Ative ou renove seu plano para usar todas as funcionalidades (instâncias, campanhas, aquecimento, etc).
+            Sua conta está {statusText}. {contextText}
           </p>
         </DialogHeader>
         <DialogFooter className="gap-2">
