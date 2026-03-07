@@ -91,15 +91,15 @@ const MyPlan = () => {
             <Sparkles className="w-3.5 h-3.5" />
             Planos flexíveis para qualquer escala
           </div>
-          <h1 className="text-4xl md:text-[3rem] font-extrabold tracking-tight leading-[1.1]"
-            style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+          <h1 className="text-4xl md:text-[3rem] font-extrabold tracking-tight leading-[1.1] text-foreground"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
             Escalone sua operação de WhatsApp com segurança
           </h1>
-          <p className="text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto"
-            style={{ color: "rgba(148,163,184,0.8)" }}>
+          </h1>
+          <p className="text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto text-muted-foreground">
             Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
           </p>
-          <p className="mt-4 text-sm font-medium" style={{ color: "rgba(148,163,184,0.5)" }}>
+          <p className="mt-4 text-sm font-medium text-muted-foreground/60">
             Mais de 1.200 operadores já usam nossa plataforma
           </p>
         </div>
@@ -298,12 +298,12 @@ const MyPlan = () => {
         {/* Comparison Table */}
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-xl font-bold flex items-center justify-center gap-2"
-              style={{ color: "#F1F5F9", fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+            <h2 className="text-xl font-bold flex items-center justify-center gap-2 text-foreground"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
               <BarChart3 className="w-5 h-5" style={{ color: "#00deb3" }} />
               Comparação rápida
             </h2>
-            <p className="text-sm mt-1.5" style={{ color: "rgba(148,163,184,0.6)" }}>
+            <p className="text-sm mt-1.5 text-muted-foreground">
               Veja o que cada plano oferece lado a lado.
             </p>
           </div>
@@ -463,8 +463,7 @@ const MyPlan = () => {
         </div>
 
         {/* Trust */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs"
-          style={{ color: "rgba(148,163,184,0.3)" }}>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs text-muted-foreground/50">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Sem fidelidade
