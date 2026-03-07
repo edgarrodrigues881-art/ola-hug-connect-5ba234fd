@@ -77,7 +77,7 @@ const GradientCheck = ({ className = "" }: { className?: string }) => (
 
 const MyPlan = () => {
   return (
-    <div className="min-h-screen pb-20 border border-black/[0.08] dark:border-white/[0.08]" style={{ background: "#0B0F13" }}>
+    <div className="min-h-screen pb-20 border border-black/[0.08] dark:border-white/[0.08] bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-20">
 
         {/* Hero */}
