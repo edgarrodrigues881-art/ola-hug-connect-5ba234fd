@@ -10,9 +10,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const PLANS: Record<string, { price: number; max_instances: number }> = {
+const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number }> = {
   "Sem plano": { price: 0, max_instances: 0 },
-  Free: { price: 0, max_instances: 3 },
+  Trial: { price: 0, max_instances: 3, defaultDays: 7 },
+  Free: { price: 0, max_instances: 3, defaultDays: 3 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50 },
