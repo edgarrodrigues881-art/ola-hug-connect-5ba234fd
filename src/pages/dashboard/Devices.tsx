@@ -749,7 +749,13 @@ const Devices = () => {
       body,
       headers: { Authorization: `Bearer ${s.access_token}` },
     });
-    if (response.error) throw response.error;
+    // When edge function returns non-2xx, supabase puts generic error in response.error
+    // but the real error message is in response.data
+    if (response.error) {
+      const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
+      const code = response.data?.code;
+      return { error: realError, code };
+    }
     return response.data;
   };
 
@@ -939,10 +945,12 @@ const Devices = () => {
         proxyId: proxyId || undefined,
       });
 
-      // Check for proxy or duplicate phone errors
-      if (connectResult?.error && (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE")) {
+      // Check for any error returned by the edge function
+      if (connectResult?.error) {
         setConnectError(connectResult.error);
-        setConnectStep("proxy");
+        if (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE") {
+          setConnectStep("proxy");
+        }
         queryClient.invalidateQueries({ queryKey: ["devices"] });
         toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
