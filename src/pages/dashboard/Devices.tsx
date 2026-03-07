@@ -898,6 +898,10 @@ const Devices = () => {
 
   // Connect
   const openConnect = async (device: Device) => {
+    if (planState !== "active") {
+      setPlanGateOpen(true);
+      return;
+    }
     setConnectingDevice(device);
     setConnectStep("proxy");
     setQrCodeBase64("");
