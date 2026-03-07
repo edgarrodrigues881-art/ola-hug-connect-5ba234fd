@@ -16,7 +16,6 @@ const NOTIFICATION_PRICE = 18.90;
 const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number }> = {
   "Sem plano": { price: 0, max_instances: 0 },
   Trial: { price: 0, max_instances: 3, defaultDays: 7 },
-  Free: { price: 0, max_instances: 3, defaultDays: 3 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50 },
@@ -51,14 +50,13 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [trialDays, setTrialDays] = useState<number>(7);
   const [manualExpires, setManualExpires] = useState<string>("");
   const [includeNotification, setIncludeNotification] = useState<boolean>(detail?.profile?.notificacao_liberada ?? false);
-  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   const planConfig = PLANS[planName] || PLANS.Start;
   const totalPrice = planConfig.price + (includeNotification ? NOTIFICATION_PRICE : 0);
   const isTrial = planName === "Trial";
-  const isFree = planName === "Free";
   const isNoPlan = planName === "Sem plano";
-  const cycleDays = isTrial ? trialDays : isFree ? (planConfig.defaultDays || 3) : 30;
+  const cycleDays = isTrial ? trialDays : 30;
+  const cycleDaysCalc = isTrial ? trialDays : 30;
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const expiresAt = manualExpires || autoExpiresAt;
   const { mutate, isPending } = useAdminAction();
