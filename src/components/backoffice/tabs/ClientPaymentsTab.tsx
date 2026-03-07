@@ -116,7 +116,6 @@ const ClientPaymentsTab = ({ client }: Props) => {
       selected_plan_price: 0,
       include_notification: false,
     });
-    });
     setEditPayment(p);
   };
 
