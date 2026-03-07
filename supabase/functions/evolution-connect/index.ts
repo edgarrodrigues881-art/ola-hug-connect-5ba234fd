@@ -353,10 +353,14 @@ Deno.serve(async (req) => {
 
       // Set proxy if provided — BLOCKING: if proxy fails, do NOT generate QR
       if (body.proxyConfig?.host) {
-        const proxyOk = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
-        await oplog(svc, user.id, "proxy_configured", `Proxy ${proxyOk ? "configurada" : "falha"} para "${deviceName}"`, deviceId, { host: body.proxyConfig.host, success: proxyOk });
-        if (!proxyOk) {
-          return json({ error: "Falha ao configurar proxy. Verifique se a proxy está ativa e funcional antes de conectar.", code: "PROXY_FAILED" }, 400);
+        const proxyResult = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
+        await oplog(svc, user.id, proxyResult.ok ? "proxy_configured" : "proxy_failed", `Proxy ${proxyResult.ok ? "configurada" : "FALHA"} para "${deviceName}": ${proxyResult.error || "OK"}`, deviceId, { host: body.proxyConfig.host, success: proxyResult.ok, error: proxyResult.error });
+        if (!proxyResult.ok) {
+          // Mark proxy as INVALID in database if we can find it
+          if (body.proxyId) {
+            await svc.from("proxies").update({ status: "INVALID" }).eq("id", body.proxyId);
+          }
+          return json({ error: proxyResult.error || "Proxy inválida ou inacessível. QR Code bloqueado.", code: "PROXY_FAILED" }, 400);
         }
       }
 
