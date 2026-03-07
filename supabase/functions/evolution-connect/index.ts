@@ -189,12 +189,12 @@ async function setProxy(
       const r = await uazapi(baseUrl, ep, token, "POST", payload);
       if (r.ok) {
         console.log("Proxy set via", ep);
-        return true;
+        return { ok: true };
       }
     } catch {}
   }
   console.log("Proxy set failed on all UaZapi endpoints");
-  return false;
+  return { ok: false, error: "Falha ao configurar proxy no provedor" };
 }
 
 
