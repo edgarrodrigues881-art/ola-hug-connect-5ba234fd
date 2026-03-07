@@ -271,6 +271,23 @@ Deno.serve(async (req) => {
     let instanceToken = device?.uazapi_token || "";
     const deviceName = device?.name || "instance";
 
+    // ── PLAN CHECK for all device operations (except deleteInstance and status) ──
+    if (action !== "deleteInstance" && action !== "status" && action !== "getBaseUrl") {
+      const { data: activeSub } = await svc
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data: userProfile } = await svc.from("profiles").select("status").eq("id", user.id).maybeSingle();
+      const planExpired = !activeSub || new Date(activeSub.expires_at) < new Date();
+      const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
+      if (planExpired || accountBlocked) {
+        return json({ error: "Seu plano está inativo. Ative um plano para continuar.", code: "NO_ACTIVE_PLAN" }, 403);
+      }
+    }
+
     // If no token, cannot proceed (except for connect and deleteInstance)
     if (!instanceToken && action !== "connect" && action !== "deleteInstance") {
       return json({ error: "Instância sem token. Conecte primeiro." }, 400);
