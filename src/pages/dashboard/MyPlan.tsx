@@ -105,7 +105,7 @@ const MyPlan = () => {
                 "relative group transition-all duration-200 ease-out rounded-2xl border shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]",
                 plan.popular
                   ? "bg-card border-primary/25 shadow-primary/10 scale-[1.05] z-10"
-                  : "bg-card border-border/50"
+                  : "bg-card border-border/10"
               )}
             >
               {/* Badge */}
