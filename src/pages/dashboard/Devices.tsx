@@ -1038,10 +1038,14 @@ const Devices = () => {
                 });
                 if (response.error) throw response.error;
                 const result = response.data;
+                const total = result.devices?.length || 0;
                 const found = result.devices?.filter((d: any) => d.found).length || 0;
                 queryClient.invalidateQueries({ queryKey: ["devices"] });
                 queryClient.invalidateQueries({ queryKey: ["proxies"] });
-                toast({ title: `Sincronizado. ${found} encontrada(s).` });
+                toast({ 
+                  title: "✅ Sincronização concluída", 
+                  description: `${found} de ${total} instância${total !== 1 ? "s" : ""} ${found !== 1 ? "encontradas" : "encontrada"} online.` 
+                });
               } catch (err: any) {
                 toast({ title: "Erro ao sincronizar", description: err?.message, variant: "destructive" });
               } finally {
