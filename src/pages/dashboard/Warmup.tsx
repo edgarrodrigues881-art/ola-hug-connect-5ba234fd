@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import { PlanGateDialog } from "@/components/PlanGateDialog";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
