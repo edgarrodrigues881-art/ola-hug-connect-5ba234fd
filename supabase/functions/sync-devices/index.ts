@@ -79,7 +79,13 @@ Deno.serve(async (req) => {
         } catch (fetchErr: any) {
           clearTimeout(timeoutId);
           const isTimeout = fetchErr?.name === "AbortError";
-          console.warn(`Device ${device.name}: ${isTimeout ? "timeout" : "network error"} — preserving current status`);
+          const errorType = isTimeout ? "timeout" : "network_error";
+          console.warn(`Device ${device.name}: ${errorType} — preserving current status`);
+          
+          await oplog(serviceClient, userId, `sync_${errorType}`, 
+            `Erro temporário ao sincronizar "${device.name}": ${isTimeout ? "timeout 10s" : fetchErr?.message}`, 
+            device.id, { error_type: errorType, will_retry: true });
+
           results.push({
             id: device.id, name: device.name, found: false,
             status: device.status, error: isTimeout ? "Timeout - will retry next sync" : `Network error: ${fetchErr?.message}`,
