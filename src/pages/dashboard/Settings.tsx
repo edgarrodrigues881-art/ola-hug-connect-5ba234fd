@@ -7,11 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone, Pencil, Check, X, Camera, DollarSign, CalendarClock } from "lucide-react";
+import { User, Shield, Crown, Building2, Phone, Mail, Lock, Eye, EyeOff, Smartphone, Pencil, Check, X, Camera, DollarSign, CalendarClock, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState({ name: "", company: "", phone: "", avatar_url: "" });
@@ -288,6 +290,36 @@ const Settings = () => {
               </div>
 
               {renderEditableField("phone", "Telefone", <Phone className="w-3 h-3" />, "+55 11 99999-9999", 20)}
+            </CardContent>
+          </Card>
+
+          {/* Appearance */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <Sun className="w-4 h-4 text-primary" />
+                Aparência
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                {([
+                  { value: "light", label: "Claro", icon: Sun },
+                  { value: "dark", label: "Escuro", icon: Moon },
+                  { value: "system", label: "Sistema", icon: Monitor },
+                ] as const).map(({ value, label, icon: Icon }) => (
+                  <Button
+                    key={value}
+                    variant={theme === value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTheme(value)}
+                    className="flex-1 gap-1.5"
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
