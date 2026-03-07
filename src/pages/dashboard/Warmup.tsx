@@ -396,9 +396,9 @@ const Warmup = () => {
           { label: "Erros", value: errorCount, color: errorCount > 0 ? "text-red-400" : "text-muted-foreground/50" },
         ].map(s => (
           <Card key={s.label} className="border-border/15">
-            <CardContent className="p-4">
-              <p className={cn("text-2xl font-bold tabular-nums leading-none", s.color)}>{s.value}</p>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1.5">{s.label}</p>
+            <CardContent className="p-3 sm:p-4">
+              <p className={cn("text-xl sm:text-2xl font-bold tabular-nums leading-none", s.color)}>{s.value}</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1 sm:mt-1.5">{s.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -406,22 +406,24 @@ const Warmup = () => {
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-transparent border-b border-border/20 rounded-none p-0 h-auto gap-0">
-          {[
-            { value: "sessions", label: "Sessões", icon: Flame },
-            { value: "chart", label: "Evolução", icon: BarChart3 },
-            { value: "logs", label: "Log", icon: ScrollText },
-            { value: "messages", label: "Mensagens", icon: MessageSquare },
-          ].map(tab => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="relative gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-muted-foreground data-[state=active]:text-foreground"
-            >
-              <tab.icon className="w-3.5 h-3.5" /> {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="bg-transparent border-b border-border/20 rounded-none p-0 h-auto gap-0 w-max sm:w-full">
+            {[
+              { value: "sessions", label: "Sessões", icon: Flame },
+              { value: "chart", label: "Evolução", icon: BarChart3 },
+              { value: "logs", label: "Log", icon: ScrollText },
+              { value: "messages", label: "Msgs", icon: MessageSquare },
+            ].map(tab => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="relative gap-1 sm:gap-1.5 text-[11px] sm:text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 sm:px-4 py-2 sm:py-2.5 text-muted-foreground data-[state=active]:text-foreground"
+              >
+                <tab.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="sessions" className="mt-4">
           {isLoading ? (

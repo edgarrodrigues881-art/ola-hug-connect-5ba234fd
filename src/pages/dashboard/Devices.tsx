@@ -978,11 +978,11 @@ const Devices = () => {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-foreground">Instâncias</h1>
-          <span className="text-xs text-muted-foreground">({devices.length}/{maxInstancesAllowed})</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-base sm:text-lg font-bold text-foreground truncate">Instâncias</h1>
+          <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">({devices.length}/{maxInstancesAllowed})</span>
           {planBadgeText && (
-            <Badge variant="destructive" className="text-[10px] h-5">{planBadgeText}</Badge>
+            <Badge variant="destructive" className="text-[9px] sm:text-[10px] h-4 sm:h-5 shrink-0">{planBadgeText}</Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
