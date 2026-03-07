@@ -542,7 +542,7 @@ const Proxy = () => {
               <p className="text-sm text-muted-foreground">Nenhuma proxy encontrada</p>
             </div>
           ) : (
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-border/30 bg-muted/5">
