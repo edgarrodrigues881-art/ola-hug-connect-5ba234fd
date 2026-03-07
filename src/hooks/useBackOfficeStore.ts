@@ -1,5 +1,15 @@
 import { useState, useCallback } from "react";
 
+// Safari < 15.4 fallback for crypto.randomUUID
+const safeUUID = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback using crypto.getRandomValues (supported since Safari 11)
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: string) =>
+    (Number(c) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(c) / 4)))).toString(16)
+  );
+};
 export interface Plan {
   id: string;
   name: string;
