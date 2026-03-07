@@ -105,7 +105,7 @@ const MyPlan = () => {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-5 items-stretch max-w-[1080px] mx-auto lg:overflow-visible overflow-x-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-5 items-stretch max-w-[1080px] mx-auto overflow-visible pt-5">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -154,12 +154,13 @@ const MyPlan = () => {
 
               {/* Badge */}
               {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full"
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20"
+                  style={{ animation: "badgeFloat 3s ease-in-out infinite" }}>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-5 py-2 rounded-full"
                     style={{
                       background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
                       color: "#0B0F13",
-                      boxShadow: "0 4px 20px rgba(0,255,163,0.3)",
+                      boxShadow: "0 4px 24px rgba(0,255,163,0.35)",
                     }}>
                     <Star className="w-3 h-3" fill="currentColor" />
                     Mais escolhido
