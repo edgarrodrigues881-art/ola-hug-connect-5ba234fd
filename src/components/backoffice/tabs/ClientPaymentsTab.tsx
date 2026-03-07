@@ -113,6 +113,9 @@ const ClientPaymentsTab = ({ client }: Props) => {
       discount: Number(p.discount) > 0 ? fmtBRL(Number(p.discount)) : "",
       fee: Number(p.fee) > 0 ? fmtBRL(Number(p.fee)) : "",
       plan_value: client.plan_price > 0 ? fmtBRL(client.plan_price) : "",
+      selected_plan_price: 0,
+      include_notification: false,
+    });
     });
     setEditPayment(p);
   };
