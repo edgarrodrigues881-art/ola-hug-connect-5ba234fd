@@ -122,24 +122,16 @@ Deno.serve(async (req) => {
           .single();
         if (insertErr) throw insertErr;
 
-        // 5. Create instance on provider (non-blocking)
-        try {
-          const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 20);
-          const instName = `${slug}-${newDevice.id.substring(0, 8)}-${Math.random().toString(36).substring(2, 6)}`;
-          const evolutionUrl = `${supabaseUrl}/functions/v1/evolution-connect`;
-          await fetch(evolutionUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: authHeader,
-            },
-            body: JSON.stringify({ action: "createInstance", deviceId: newDevice.id, instanceName: instName }),
-          });
-        } catch (e) {
-          console.warn("Instance creation failed (non-blocking):", e);
+        // 5. Token already provisioned from pool — no need to create instance on provider
+        // The token was created via /instance/init during plan provisioning in admin-data
+
+        // 6. Set base URL on device (needed for connect/QR later)
+        const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+        if (BASE_URL) {
+          await admin.from("devices").update({ uazapi_base_url: BASE_URL }).eq("id", newDevice.id);
         }
 
-        // 6. Mark token as in_use
+        // 7. Mark token as in_use
         await admin.from("user_api_tokens").update({
           status: "in_use",
           device_id: newDevice.id,
