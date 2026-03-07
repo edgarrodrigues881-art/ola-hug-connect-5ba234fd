@@ -54,7 +54,7 @@ const CustomModule = () => {
       <Accordion type="multiple" defaultValue={["prep"]} className="space-y-4">
         {/* ───── 1. Preparação do Aparelho ───── */}
         <AccordionItem value="prep" className="border-0">
-          <Card className="border-border/40 bg-card overflow-hidden rounded-xl">
+            <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <Smartphone className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -131,7 +131,7 @@ const CustomModule = () => {
 
         {/* ───── 2. Estrutura e Rede ───── */}
         <AccordionItem value="network" className="border-0">
-          <Card className="border-border/40 bg-card overflow-hidden rounded-xl">
+            <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <Wifi className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -174,7 +174,7 @@ const CustomModule = () => {
 
         {/* ───── 3. Modelagem do Aquecimento ───── */}
         <AccordionItem value="warmup" className="border-0">
-          <Card className="border-border/40 bg-card overflow-hidden rounded-xl">
+            <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <Activity className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -222,7 +222,7 @@ const CustomModule = () => {
 
         {/* ───── 4. Diagnóstico e Estado Crítico ───── */}
         <AccordionItem value="diagnostic" className="border-0">
-          <Card className="border-border/40 bg-card overflow-hidden rounded-xl">
+          <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <AlertTriangle className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -282,7 +282,7 @@ const CustomModule = () => {
       </Accordion>
 
       {/* ───── Checklist ───── */}
-      <Card className="border-border/40 bg-card rounded-xl">
+      <Card className="border-border/60 bg-card rounded-xl shadow-sm">
         <CardContent className="p-5 space-y-4">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
@@ -318,9 +318,9 @@ const CustomModule = () => {
 
 function StepCard({ step, title, icon, children }: { step: number; title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border/30 bg-muted/30 p-4 space-y-3">
+    <div className="rounded-lg border border-border/60 bg-muted/50 dark:bg-muted/20 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-500 text-xs font-bold">{step}</span>
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-bold">{step}</span>
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
@@ -331,9 +331,9 @@ function StepCard({ step, title, icon, children }: { step: number; title: string
 
 function IntensityCard({ label, icon, color, description }: { label: string; icon: React.ReactNode; color: "emerald" | "amber" | "red"; description: string }) {
   const styles = {
-    emerald: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400",
-    amber: "border-amber-500/30 bg-amber-500/5 text-amber-400",
-    red: "border-red-500/30 bg-red-500/5 text-red-400",
+    emerald: "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400",
+    amber: "border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400",
+    red: "border-red-500/40 bg-red-500/10 dark:bg-red-500/5 text-red-600 dark:text-red-400",
   };
   return (
     <div className={`rounded-lg border p-4 space-y-2 ${styles[color]}`}>
@@ -348,9 +348,9 @@ function IntensityCard({ label, icon, color, description }: { label: string; ico
 
 function StatusIndicator({ color, label, description }: { color: "emerald" | "amber" | "red"; label: string; description: string }) {
   const styles = {
-    emerald: "border-emerald-500/30 bg-emerald-500/5",
-    amber: "border-amber-500/30 bg-amber-500/5",
-    red: "border-red-500/30 bg-red-500/5",
+    emerald: "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/5",
+    amber: "border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/5",
+    red: "border-red-500/40 bg-red-500/10 dark:bg-red-500/5",
   };
   const dotStyles = {
     emerald: "bg-emerald-500",
@@ -375,7 +375,7 @@ function StatusIndicator({ color, label, description }: { color: "emerald" | "am
 
 function CheckItem({ label, invert }: { label: string; invert?: boolean }) {
   return (
-    <div className={`rounded-md border p-2.5 text-xs flex items-center gap-2 ${invert ? "border-red-500/20 bg-red-500/5 text-red-300" : "border-emerald-500/20 bg-emerald-500/5 text-emerald-300"}`}>
+    <div className={`rounded-md border p-2.5 text-xs flex items-center gap-2 ${invert ? "border-red-500/30 bg-red-500/10 dark:bg-red-500/5 text-red-600 dark:text-red-300" : "border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-300"}`}>
       <CircleDot className="w-3 h-3 shrink-0" />
       {label}
     </div>
