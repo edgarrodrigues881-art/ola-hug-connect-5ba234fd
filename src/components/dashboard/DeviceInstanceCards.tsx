@@ -125,7 +125,7 @@ export function DeviceInstanceCards({ chips, isLoading }: Props) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs gap-1 text-emerald-400 hover:text-emerald-300"
+                    className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary/80"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate("/dashboard/devices");

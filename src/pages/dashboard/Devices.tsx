@@ -1201,12 +1201,12 @@ const Devices = () => {
                       <Button variant="outline" size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium" onClick={() => openConnect(d)}>
                         <RefreshCw className="w-4 h-4" /> Tentar novamente
                       </Button>
-                      <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => openConnect(d)}>
+                      <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openConnect(d)}>
                         <QrCode className="w-4 h-4" /> Novo QR Code
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => openConnect(d)}>
+                    <Button size="sm" className="h-9 gap-2 text-sm rounded-lg font-medium bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openConnect(d)}>
                       <QrCode className="w-4 h-4" /> Novo QR Code
                     </Button>
                   )}
@@ -1284,7 +1284,7 @@ const Devices = () => {
             </div>
             <div className="flex items-center gap-3 pt-1">
               <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleCreate} disabled={!instanceName.trim()}>Criar</Button>
+              <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleCreate} disabled={!instanceName.trim()}>Criar</Button>
             </div>
           </div>
         </DialogContent>
@@ -1383,7 +1383,7 @@ const Devices = () => {
                         </>
                       ) : (
                         <div
-                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/30 flex flex-col items-center justify-center hover:border-emerald-500/30 transition-colors"
+                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/30 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
                           <Camera className="w-5 h-5 text-muted-foreground/30 mb-0.5" />
@@ -1400,7 +1400,7 @@ const Devices = () => {
 
             <div className="flex items-center gap-3 pt-1">
               <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/30" onClick={() => setEditOpen(false)}>Cancelar</Button>
-              <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
+              <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
         </DialogContent>
@@ -1504,7 +1504,7 @@ const Devices = () => {
                 </Select>
                 <div className="flex items-center gap-3 pt-1">
                   <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Cancelar</Button>
-                  <Button className="flex-1 h-11 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleConfirmProxy}>Conectar</Button>
+                  <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleConfirmProxy}>Conectar</Button>
                 </div>
               </div>
             )}

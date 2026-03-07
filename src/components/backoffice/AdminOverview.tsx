@@ -217,7 +217,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
                 className="w-16 h-5 text-[10px] font-bold bg-background border border-border rounded px-1.5 text-foreground focus:outline-none focus:border-foreground/30"
                 autoFocus
               />
-              <button onClick={confirmEditMax} className="text-emerald-500/70 hover:text-emerald-400 transition-colors"><Check size={12} /></button>
+              <button onClick={confirmEditMax} className="text-primary/70 hover:text-primary transition-colors"><Check size={12} /></button>
               <button onClick={() => setEditingMax(false)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"><X size={12} /></button>
             </div>
           ) : (
