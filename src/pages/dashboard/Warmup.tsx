@@ -777,6 +777,7 @@ const Warmup = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
     </div>
   );
 };
