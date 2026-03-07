@@ -1924,8 +1924,8 @@ const Campaigns = () => {
               </Button>
             )}
             {step < 4 ? (
-              <Button onClick={() => setStep(step + 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25">
-                CONTINUAR <ChevronRight className="w-4 h-4" />
+              <Button onClick={() => setStep(step + 1)} className="gap-3 h-14 px-14 text-[15px] font-bold tracking-wide shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:brightness-110 transition-all duration-150">
+                CONTINUAR <ChevronRight className="w-5 h-5" />
               </Button>
             ) : (
               <Button 
