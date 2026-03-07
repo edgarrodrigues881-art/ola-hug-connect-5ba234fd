@@ -300,9 +300,9 @@ const CustomModule = () => {
                 <Checkbox
                   checked={checklist[item.key]}
                   onCheckedChange={(v) => setChecklist((prev) => ({ ...prev, [item.key]: !!v }))}
-                  className="border-border data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <span className={`text-sm transition-colors ${checklist[item.key] ? "text-emerald-400 line-through" : "text-muted-foreground group-hover:text-foreground"}`}>
+                <span className={`text-sm transition-colors ${checklist[item.key] ? "text-primary line-through" : "text-muted-foreground group-hover:text-foreground"}`}>
                   {item.label}
                 </span>
               </label>
