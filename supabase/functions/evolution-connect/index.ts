@@ -76,12 +76,54 @@ async function adminCreateInstance(
   return { ok: false, error: "All auth methods returned 401" };
 }
 
+// ── Proxy connectivity test ─────────────────────────────────────────────
+async function testProxyConnectivity(
+  proxy: { host: string; port: string; username?: string; password?: string; type?: string },
+): Promise<boolean> {
+  // Test if the proxy is reachable by attempting a connection
+  // We try to fetch a known endpoint through a simple TCP-level check
+  const proxyUrl = `http://${proxy.username || ""}${proxy.password ? ":" + proxy.password : ""}${(proxy.username || proxy.password) ? "@" : ""}${proxy.host}:${proxy.port}`;
+  
+  try {
+    // Try connecting to the proxy host:port directly with a short timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    
+    // Attempt a simple HTTP request through proxy connectivity check
+    // We test if the proxy host:port is reachable
+    const testUrl = `http://${proxy.host}:${proxy.port}`;
+    const res = await fetch(testUrl, { 
+      method: "GET",
+      signal: controller.signal,
+      headers: proxy.username ? {
+        "Proxy-Authorization": "Basic " + btoa(`${proxy.username}:${proxy.password || ""}`)
+      } : {}
+    });
+    clearTimeout(timeout);
+    // Any response (even 407 proxy auth required) means the proxy is alive
+    console.log(`Proxy connectivity test: ${proxy.host}:${proxy.port} → status ${res.status}`);
+    await res.text(); // consume body
+    return true;
+  } catch (e: any) {
+    console.log(`Proxy connectivity test FAILED: ${proxy.host}:${proxy.port} → ${e.message || e}`);
+    return false;
+  }
+}
+
 // ── Proxy setter ────────────────────────────────────────────────────────
 async function setProxy(
   baseUrl: string,
   token: string,
   proxy: { host: string; port: string; username?: string; password?: string; type?: string },
 ) {
+  // STEP 1: Test if proxy is actually reachable before configuring
+  const isAlive = await testProxyConnectivity(proxy);
+  if (!isAlive) {
+    console.log(`Proxy ${proxy.host}:${proxy.port} is NOT reachable — blocking connection`);
+    return false;
+  }
+
+  // STEP 2: Configure proxy on UaZapi
   const payload = {
     host: proxy.host,
     port: proxy.port,
@@ -99,7 +141,7 @@ async function setProxy(
       }
     } catch {}
   }
-  console.log("Proxy set failed on all endpoints (non-blocking)");
+  console.log("Proxy set failed on all UaZapi endpoints");
   return false;
 }
 
