@@ -384,7 +384,21 @@ Deno.serve(async (req) => {
     userId = user.id;
   }
 
-  try {
+    // ─── PLAN CHECK HELPER ───
+    async function checkActivePlan(uid: string): Promise<string | null> {
+      const { data: sub } = await serviceClient
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!sub || new Date(sub.expires_at) < new Date()) return "Plano inativo. Ative um plano para continuar.";
+      const { data: prof } = await serviceClient.from("profiles").select("status").eq("id", uid).maybeSingle();
+      if (prof?.status === "suspended" || prof?.status === "cancelled") return "Conta suspensa. Ative um plano para continuar.";
+      return null;
+    }
+
     // ─── PAUSE ───
     if (action === "pause") {
       await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
@@ -417,6 +431,8 @@ Deno.serve(async (req) => {
 
     // ─── RESUME ───
     if (action === "resume") {
+      const planErr = await checkActivePlan(userId);
+      if (planErr) return new Response(JSON.stringify({ error: planErr }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
       selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -424,6 +440,9 @@ Deno.serve(async (req) => {
 
     // ─── START ───
     if (action === "start") {
+      const planErr = await checkActivePlan(userId);
+      if (planErr) return new Response(JSON.stringify({ error: planErr }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
       const { data: campaign } = await serviceClient.from("campaigns").select("id, user_id, device_id, device_ids, started_at").eq("id", campaignId).single();
       if (!campaign) {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
