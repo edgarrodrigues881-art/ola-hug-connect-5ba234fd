@@ -386,8 +386,14 @@ const Devices = () => {
       });
       // Extract real error from data when edge function returns non-2xx
       if (error) {
-        const realMsg = data?.error || error.message || "Erro ao criar instância";
-        throw new Error(realMsg);
+        // data may contain parsed JSON error, or extract from error.message
+        let realMsg = data?.error || "";
+        if (!realMsg && error.message) {
+          // Try to extract JSON error from message like: 'Edge function returned 400: Error, {"error":"..."}'
+          const jsonMatch = error.message.match(/\{"error"\s*:\s*"([^"]+)"\}/);
+          realMsg = jsonMatch?.[1] || error.message;
+        }
+        throw new Error(realMsg || "Erro ao criar instância");
       }
       if (data?.error) throw new Error(data.error);
       return data;
