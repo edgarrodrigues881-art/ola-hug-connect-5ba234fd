@@ -339,28 +339,6 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // CHECK ACTIVE PLAN before anything
-      const { data: activeSub } = await svc
-        .from("subscriptions")
-        .select("expires_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const { data: userProfile } = await svc
-        .from("profiles")
-        .select("status")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const planExpired = !activeSub || new Date(activeSub.expires_at) < new Date();
-      const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
-
-      if (planExpired || accountBlocked) {
-        return json({ error: "Seu plano está inativo. Ative um plano para continuar.", code: "NO_ACTIVE_PLAN" }, 403);
-      }
-
       // Device MUST have a valid token assigned from the admin pool
       if (!instanceToken) {
         return json({ error: "Esta instância não possui token configurado. Solicite ao administrador a atribuição de um token.", code: "NO_TOKEN" }, 400);
