@@ -749,7 +749,13 @@ const Devices = () => {
       body,
       headers: { Authorization: `Bearer ${s.access_token}` },
     });
-    if (response.error) throw response.error;
+    // When edge function returns non-2xx, supabase puts generic error in response.error
+    // but the real error message is in response.data
+    if (response.error) {
+      const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
+      const code = response.data?.code;
+      return { error: realError, code };
+    }
     return response.data;
   };
 
