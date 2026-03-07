@@ -208,6 +208,83 @@ Deno.serve(async (req) => {
 
       await logAction(adminClient, user.id, target_user_id, "update-subscription", `Plano: ${plan_name}, Instâncias: ${max_instances}`);
 
+      // ─── PLAN REMOVAL: reset all instances when downgraded to free/sem_plano ───
+      const isPlanRemoved = !plan_name || ["free", "sem_plano", "sem plano"].includes((plan_name || "").toLowerCase().trim());
+      if (isPlanRemoved) {
+        const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+        // Get all user devices (non-report)
+        const { data: userDevices } = await adminClient.from("devices")
+          .select("id, uazapi_token, uazapi_base_url")
+          .eq("user_id", target_user_id)
+          .neq("login_type", "report_wa");
+
+        let disconnected = 0;
+        for (const dev of (userDevices || [])) {
+          // Try to disconnect from provider (non-blocking)
+          try {
+            const devUrl = (dev.uazapi_base_url || ADMIN_BASE_URL || "").replace(/\/+$/, "");
+            if (devUrl && dev.uazapi_token) {
+              await fetch(`${devUrl}/instance/disconnect`, {
+                method: "POST",
+                headers: { token: dev.uazapi_token, "Content-Type": "application/json" },
+              });
+            }
+          } catch (e) {
+            console.warn(`[plan-removal] Failed to disconnect device ${dev.id}:`, e.message);
+          }
+
+          // Mark device as Disconnected and clear session data
+          await adminClient.from("devices").update({
+            status: "Disconnected",
+            number: "",
+            profile_name: "",
+            profile_picture: null,
+          }).eq("id", dev.id);
+
+          // Release token back to pool
+          await adminClient.from("user_api_tokens").update({
+            status: "available",
+            device_id: null,
+            assigned_at: null,
+          }).eq("device_id", dev.id);
+
+          // Pause any active warmup cycles
+          await adminClient.from("warmup_cycles").update({
+            is_running: false,
+            phase: "paused",
+            last_error: "Auto-pausado: plano removido",
+          }).eq("device_id", dev.id).eq("is_running", true);
+
+          // Cancel pending warmup jobs
+          await adminClient.from("warmup_jobs").update({
+            status: "cancelled",
+          }).eq("device_id", dev.id).eq("status", "pending");
+
+          disconnected++;
+        }
+
+        // Block all tokens
+        await adminClient.from("user_api_tokens").update({ status: "blocked" })
+          .eq("user_id", target_user_id).in("status", ["available", "reserved"]);
+
+        // Pause any running campaigns
+        await adminClient.from("campaigns").update({
+          status: "paused",
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", target_user_id).in("status", ["running", "queued"]);
+
+        await logAction(adminClient, user.id, target_user_id, "plan-removal-reset",
+          `Plano removido: ${disconnected} instância(s) desconectada(s), tokens bloqueados, campanhas pausadas`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          provision: { created: 0, blocked: 0, unblocked: 0, errors: [], reset: disconnected },
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // ─── AUTO-PROVISION / ADJUST TOKENS ───
       const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
       const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
