@@ -59,6 +59,25 @@ Deno.serve(async (req) => {
   const action = body.action || "tick"; // tick | start | pause | resume | stop
 
   try {
+    // ── PLAN CHECK for user-initiated actions ──
+    if (callerUserId && ["start", "resume"].includes(action)) {
+      const { data: activeSub } = await db
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("user_id", callerUserId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data: userProfile } = await db.from("profiles").select("status").eq("id", callerUserId).maybeSingle();
+      const planExpired = !activeSub || new Date(activeSub.expires_at) < new Date();
+      const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
+      if (planExpired || accountBlocked) {
+        return new Response(JSON.stringify({ error: "Seu plano está inativo. Ative um plano para continuar.", code: "NO_ACTIVE_PLAN" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ════════════════════════════════════════
     // ACTION: start
     // ════════════════════════════════════════
