@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -341,6 +342,34 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               </AlertDialogContent>
             </AlertDialog>
           )}
+        </div>
+
+        {/* Notification toggle */}
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/20">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Radio size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Notificação via WhatsApp</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Libera a instância de relatório mesmo sem plano ativo</p>
+              </div>
+            </div>
+            <Switch
+              checked={detail?.profile?.notificacao_liberada ?? false}
+              onCheckedChange={(checked) => {
+                mutate({
+                  action: "update-profile",
+                  body: { target_user_id: client.id, notificacao_liberada: checked },
+                }, {
+                  onSuccess: () => toast({ title: checked ? "Notificação via WhatsApp liberada" : "Notificação via WhatsApp desativada" }),
+                  onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+                });
+              }}
+              disabled={isPending}
+            />
+          </div>
         </div>
       </div>
 
