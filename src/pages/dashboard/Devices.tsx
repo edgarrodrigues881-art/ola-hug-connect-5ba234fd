@@ -945,10 +945,12 @@ const Devices = () => {
         proxyId: proxyId || undefined,
       });
 
-      // Check for proxy or duplicate phone errors
-      if (connectResult?.error && (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE")) {
+      // Check for any error returned by the edge function
+      if (connectResult?.error) {
         setConnectError(connectResult.error);
-        setConnectStep("proxy");
+        if (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE") {
+          setConnectStep("proxy");
+        }
         queryClient.invalidateQueries({ queryKey: ["devices"] });
         toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
