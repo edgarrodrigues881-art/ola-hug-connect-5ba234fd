@@ -322,6 +322,37 @@
   }
 }
 
+/* ── Mobile proportional scale system ── */
+@media (max-width: 640px) {
+  /* Page headers: reduce vertical consumption */
+  .page-header h1,
+  h1.text-2xl,
+  h1.text-xl {
+    font-size: 1.125rem !important; /* 18px */
+    line-height: 1.3 !important;
+  }
+
+  /* Standardize card padding on mobile */
+  .mobile-card-compact > div {
+    padding: 0.75rem !important;
+  }
+
+  /* Dialog/modal footer buttons: consistent height */
+  [role="dialog"] footer button,
+  [role="dialog"] [class*="DialogFooter"] button {
+    min-height: 2.5rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Ensure badges don't get too large */
+  [class*="Badge"],
+  .badge {
+    font-size: 0.625rem;
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+}
+
 /* ── Scrollbar styling ── */
 * {
   scrollbar-width: thin;

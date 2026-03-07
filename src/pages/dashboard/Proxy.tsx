@@ -341,7 +341,7 @@ const Proxy = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Disclaimer — clean & direct */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
         <DialogContent className="sm:max-w-md">
@@ -384,8 +384,8 @@ const Proxy = () => {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-foreground">Proxies</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
+        <h1 className="text-lg sm:text-xl font-bold text-foreground">Proxies</h1>
+        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
       </div>
 
       {/* Stats */}
@@ -397,8 +397,8 @@ const Proxy = () => {
           { label: "Usadas", value: counts.USADA, color: "text-muted-foreground/50" },
         ].map(s => (
           <Card key={s.label} className="border-border/15">
-            <CardContent className="p-3">
-              <p className={`text-xl font-bold tabular-nums leading-none ${s.color}`}>{s.value}</p>
+            <CardContent className="p-2.5 sm:p-3">
+              <p className={`text-lg sm:text-xl font-bold tabular-nums leading-none ${s.color}`}>{s.value}</p>
               <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1">{s.label}</p>
             </CardContent>
           </Card>
