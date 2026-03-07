@@ -256,7 +256,8 @@ const Devices = () => {
       const { data, error } = await supabase
         .from("warmup_logs")
         .select("device_id, status")
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .limit(1000);
       if (error) throw error;
       return data || [];
     },
@@ -272,7 +273,8 @@ const Devices = () => {
       const { data, error } = await supabase
         .from("campaign_contacts")
         .select("status, campaign_id")
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .limit(1000);
       if (error) throw error;
       return data || [];
     },

@@ -69,7 +69,7 @@ export function useDashboardStats() {
       const [devicesRes, warmupsRes, logsRes, proxiesRes] = await Promise.all([
         supabase.from("devices").select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type").neq("login_type", "report_wa"),
         supabase.from("warmup_sessions").select("id, device_id, status, messages_sent_today, messages_sent_total, current_day, total_days, last_executed_at, created_at"),
-        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo),
+        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo).limit(1000),
         supabase.from("proxies").select("id, host"),
       ]);
 
