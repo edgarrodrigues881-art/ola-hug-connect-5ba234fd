@@ -928,10 +928,12 @@ const Devices = () => {
         proxyConfig: proxyPayload,
       });
 
-      // Check for duplicate phone error
-      if (connectResult?.error && connectResult?.code === "DUPLICATE_PHONE") {
+      // Check for proxy or duplicate phone errors
+      if (connectResult?.error && (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE")) {
         setConnectError(connectResult.error);
+        setConnectStep("proxy");
         queryClient.invalidateQueries({ queryKey: ["devices"] });
+        toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
       }
 
