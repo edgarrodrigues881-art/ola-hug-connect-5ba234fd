@@ -2116,9 +2116,9 @@ const Devices = () => {
       <Dialog open={planGateOpen} onOpenChange={setPlanGateOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Ban size={18} className="text-destructive" /> Ative um plano para liberar instâncias</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Ban size={18} className="text-destructive" /> Funcionalidade bloqueada</DialogTitle>
             <DialogDescription className="text-muted-foreground pt-2">
-              Sua conta está {planState === "noPlan" ? "sem plano ativo" : planState === "expired" ? "com plano vencido" : "suspensa/cancelada"}. Para criar instâncias, ative um plano.
+              Sua conta está {planState === "noPlan" ? "sem plano ativo" : planState === "expired" ? "com plano vencido" : "suspensa/cancelada"}. Ative ou renove seu plano para liberar todas as funcionalidades (criar instâncias, conectar, disparar campanhas, aquecimento, etc).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
