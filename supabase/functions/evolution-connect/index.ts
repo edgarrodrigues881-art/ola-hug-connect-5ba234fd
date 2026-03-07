@@ -167,12 +167,12 @@ async function setProxy(
   baseUrl: string,
   token: string,
   proxy: { host: string; port: string; username?: string; password?: string; type?: string },
-) {
-  // STEP 1: Test if proxy is actually reachable before configuring
-  const isAlive = await testProxyConnectivity(proxy);
-  if (!isAlive) {
-    console.log(`Proxy ${proxy.host}:${proxy.port} is NOT reachable — blocking connection`);
-    return false;
+): Promise<{ ok: boolean; error?: string }> {
+  // STEP 1: Real connectivity test — sends request THROUGH the proxy
+  const test = await testProxyConnectivity(proxy);
+  if (!test.alive) {
+    console.log(`Proxy ${proxy.host}:${proxy.port} FAILED real test — blocking. Reason: ${test.error}`);
+    return { ok: false, error: test.error || "Proxy inválida" };
   }
 
   // STEP 2: Configure proxy on UaZapi
