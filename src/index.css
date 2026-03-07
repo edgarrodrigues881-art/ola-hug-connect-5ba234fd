@@ -337,11 +337,17 @@
     padding: 0.75rem !important;
   }
 
-  /* Dialog/modal footer buttons: consistent height */
+  /* Dialog/modal footer buttons: consistent height & spacing */
   [role="dialog"] footer button,
   [role="dialog"] [class*="DialogFooter"] button {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
     font-size: 0.8125rem;
+    border-radius: 10px;
+  }
+
+  /* Footer action bars: ensure balanced distribution */
+  [class*="DialogFooter"] {
+    gap: 0.5rem;
   }
 
   /* Ensure badges don't get too large */
