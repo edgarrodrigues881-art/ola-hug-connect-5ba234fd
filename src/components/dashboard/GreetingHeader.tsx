@@ -25,10 +25,10 @@ export function GreetingHeader() {
 
   return (
     <div className="space-y-1">
-      <h1 className="text-2xl font-bold text-foreground">
+      <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">
         {greeting}, {name} {emoji}
       </h1>
-      <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
+      <p className="text-xs sm:text-sm text-muted-foreground capitalize">{dateStr}</p>
     </div>
   );
 }

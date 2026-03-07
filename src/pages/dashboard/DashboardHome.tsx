@@ -53,32 +53,32 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
         <GreetingHeader />
         <QuickActions />
       </div>
 
       {/* Top Status Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {topCards.map((s) => (
           <Card key={s.label} className="border-border/50 bg-card hover:border-border/80 transition-colors">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-full ${s.bgClass} flex items-center justify-center`}>
-                  <s.icon className={`w-5 h-5 ${s.iconClass}`} />
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${s.bgClass} flex items-center justify-center`}>
+                  <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.iconClass}`} />
                 </div>
-                <span className={`w-2.5 h-2.5 rounded-full ${s.dotColor}`} />
+                <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${s.dotColor}`} />
               </div>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
                 {isLoading ? (
                   <span className="inline-block w-8 h-6 bg-muted/50 rounded animate-pulse" />
                 ) : (
                   <AnimatedCounter value={s.value} />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{s.label}</p>
             </CardContent>
           </Card>
         ))}
