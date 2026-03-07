@@ -43,6 +43,8 @@ const safetyBadge: Record<string, { label: string; class: string }> = {
 const Warmup = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isBlocked, planState } = usePlanGate();
+  const [planGateOpen, setPlanGateOpen] = useState(false);
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
@@ -78,6 +80,7 @@ const Warmup = () => {
   const planSummary = getPlanSummary(formDuration, formProfile);
 
   const handleCreate = () => {
+    if (isBlocked) { setPlanGateOpen(true); return; }
     if (!formDeviceId) {
       toast({ title: "Selecione um dispositivo", variant: "destructive" });
       return;
