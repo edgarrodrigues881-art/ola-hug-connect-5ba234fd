@@ -477,6 +477,18 @@ Deno.serve(async (req) => {
 
     // ─── CONTINUE (internal batch processing) ───
     if (action === "continue") {
+      // Plan check on continue — pause campaign if plan expired mid-send
+      const planErr = await checkActivePlan(userId);
+      if (planErr) {
+        console.log(`⚠️ Plan inactive for user ${userId}, pausing campaign ${campaignId}`);
+        await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
+        const { data: camp } = await serviceClient.from("campaigns").select("device_id, device_ids").eq("id", campaignId).single();
+        if (camp) {
+          const ids: string[] = Array.isArray(camp.device_ids) && camp.device_ids.length > 0 ? camp.device_ids : camp.device_id ? [camp.device_id] : [];
+          await releaseDeviceLocks(serviceClient, ids, campaignId);
+        }
+        return new Response(JSON.stringify({ error: planErr }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const startTime = Date.now();
 
       const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("id, user_id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, messages_per_instance, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, sent_count, failed_count, started_at, total_contacts").eq("id", campaignId).single();
