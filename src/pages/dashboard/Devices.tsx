@@ -59,11 +59,18 @@ function deriveSmartStatus(d: Device, warmupDeviceIds: Set<string>, proxyStatus?
 
 function formatPhone(num: string): string {
   const digits = num.replace(/\D/g, "");
+  // Always: +CC DD XXXXX-XXXX (dash before last 4 digits)
   if (digits.length === 13) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,9)}-${digits.slice(9)}`;
   if (digits.length === 12) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,8)}-${digits.slice(8)}`;
-  if (digits.length === 14) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,9)}-${digits.slice(9)}`;
-  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-  if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  if (digits.length === 14) return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,10)}-${digits.slice(10)}`;
+  if (digits.length === 11) return `+55 ${digits.slice(0,2)} ${digits.slice(2,7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `+55 ${digits.slice(0,2)} ${digits.slice(2,6)}-${digits.slice(6)}`;
+  // Fallback: add country code and format with dash before last 4
+  if (digits.length >= 8) {
+    const last4 = digits.slice(-4);
+    const rest = digits.slice(0, -4);
+    return `+${rest}-${last4}`;
+  }
   return num;
 }
 
