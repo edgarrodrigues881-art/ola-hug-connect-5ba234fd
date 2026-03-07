@@ -394,11 +394,15 @@ Deno.serve(async (req) => {
       if (campaignDeviceIds.length > 0) {
         const lockResult = await acquireDeviceLocks(serviceClient, campaignDeviceIds, campaignId, campaign.user_id);
         if (!lockResult.acquired) {
-          console.log(`Campaign ${campaignId} cannot start: device locked by campaign ${lockResult.lockedBy}`);
+          console.log(`Campaign ${campaignId} queued: device locked by campaign ${lockResult.lockedBy}`);
+          await serviceClient.from("campaigns").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", campaignId);
+          await oplog(serviceClient, userId, "campaign_queued", `Campanha enfileirada — instância em uso por outra campanha`, null, { campaign_id: campaignId, locked_by: lockResult.lockedBy });
           return new Response(JSON.stringify({
-            error: "Dispositivo em uso por outra campanha. Aguarde a campanha atual finalizar ou pause-a antes de iniciar uma nova.",
+            success: true,
+            status: "queued",
+            message: "Instância em uso. A campanha iniciará automaticamente quando a instância for liberada.",
             lockedBy: lockResult.lockedBy,
-          }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         console.log(`Device locks acquired for campaign ${campaignId}`);
       }
