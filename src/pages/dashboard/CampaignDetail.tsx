@@ -71,8 +71,9 @@ const CampaignDetail = () => {
     enabled: !!id && !!user,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status && ["running", "processing", "paused", "queued"].includes(status)) return 1000;
-      return 10000;
+      if (status && ["running", "processing"].includes(status)) return 3000;
+      if (status && ["paused", "queued", "scheduled"].includes(status)) return 15000;
+      return false; // completed/draft/cancelled — no polling, realtime handles it
     },
   });
 
@@ -110,8 +111,8 @@ const CampaignDetail = () => {
     },
     enabled: !!id && !!user,
     refetchInterval: () => {
-      if (campaign && ["running", "processing"].includes(campaign.status)) return 1000;
-      return 10000;
+      if (campaign && ["running", "processing"].includes(campaign.status)) return 5000;
+      return false; // No polling for inactive campaigns
     },
   });
 
