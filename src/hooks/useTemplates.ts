@@ -39,7 +39,7 @@ export function useCreateTemplate() {
       const { data, error } = await supabase
         .from("templates")
         .insert({ ...template, user_id: user!.id, buttons: template.buttons || [] })
-        .select()
+        .select("id, name, content, type, media_url, buttons, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
@@ -57,7 +57,7 @@ export function useUpdateTemplate() {
         .from("templates")
         .update(updates)
         .eq("id", id)
-        .select()
+        .select("id, name, content, type, media_url, buttons, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;

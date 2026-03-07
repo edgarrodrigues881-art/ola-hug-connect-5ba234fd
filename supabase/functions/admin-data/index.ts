@@ -547,7 +547,7 @@ Deno.serve(async (req) => {
         status: "Disconnected",
         uazapi_token: availableToken?.token || null,
         uazapi_base_url: availableToken ? ADMIN_BASE_URL : null,
-      }).select().single();
+      }).select("id, name, user_id, status, login_type, instance_type, created_at").single();
 
       if (error) throw error;
 

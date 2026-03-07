@@ -155,7 +155,7 @@ export function useCreateCycle() {
           daily_interaction_budget_target: budgetTarget,
           first_24h_ends_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         })
-        .select()
+        .select("id, user_id, device_id, chip_state, days_total, plan_id, phase, is_running, day_index, started_at, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, next_run_at, last_error, created_at, updated_at")
         .single();
       if (error) throw error;
       return data as unknown as WarmupCycle;

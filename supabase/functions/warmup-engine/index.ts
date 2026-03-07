@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
           first_24h_ends_at: first24hEnds.toISOString(),
           daily_interaction_budget_target: budgetTarget,
         })
-        .select()
+        .select("id, user_id, device_id, phase, is_running, day_index, days_total, started_at, first_24h_ends_at, daily_interaction_budget_target, created_at")
         .single();
       if (cycleErr) throw cycleErr;
 

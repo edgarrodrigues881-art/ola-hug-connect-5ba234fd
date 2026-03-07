@@ -11,7 +11,7 @@ export function useAutosaveMutations() {
       const { data, error } = await supabase
         .from("warmup_autosave_contacts" as any)
         .insert({ ...params, user_id: user!.id })
-        .select()
+        .select("id, phone_e164, contact_name, is_active, tags, created_at")
         .single();
       if (error) throw error;
       return data;

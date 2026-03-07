@@ -34,7 +34,7 @@ export function useCreateWarmupMessage() {
       const { data, error } = await supabase
         .from("warmup_messages" as any)
         .insert({ content, user_id: user!.id })
-        .select()
+        .select("id, content, category, created_at")
         .single();
       if (error) throw error;
       return data as unknown as WarmupMessage;
