@@ -20,13 +20,14 @@ interface Props {
 
 const METHODS = ["PIX", "Cartão"];
 
-const SYSTEM_PLANS = [
+const INSTANCE_PLANS = [
   { name: "Start — 10 instâncias", price: 149.90 },
   { name: "Pro — 30 instâncias", price: 349.90 },
   { name: "Scale — 50 instâncias", price: 549.90 },
   { name: "Elite — 100 instâncias", price: 899.90 },
-  { name: "Relatório via WhatsApp", price: 18.90 },
 ];
+
+const NOTIFICATION_PRICE = 18.90;
 
 // Format number to BRL display: 10000 → "10.000,00"
 function fmtBRL(v: number): string {
