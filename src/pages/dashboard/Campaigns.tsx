@@ -1884,31 +1884,31 @@ const Campaigns = () => {
       </div>
 
       {/* ═══ Bottom Navigation ═══ */}
-      <div className="mt-8 mb-6">
-        <div className="flex items-center justify-between">
+      <div className="mt-6 sm:mt-8 mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-0">
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-xs gap-1.5 h-9 w-[170px] justify-center border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100"
+            className="text-xs gap-1.5 h-9 w-full sm:w-[170px] justify-center border-border/40 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:border-destructive/30 transition-colors duration-100 order-3 sm:order-1"
             onClick={step === 1 ? clearStep1 : step === 2 ? clearStep2 : step === 3 ? clearStep3 : clearAllForm}
           >
             <Eraser className="w-3.5 h-3.5" /> {step === 1 ? "Limpar mensagem" : step === 2 ? "Limpar contatos" : step === 3 ? "Limpar parâmetros" : "Limpar tudo"}
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2">
             {step > 1 && (
-              <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide">
+              <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide">
                 ← VOLTAR
               </Button>
             )}
             {step < 4 ? (
-              <Button onClick={() => setStep(step + 1)} className="gap-3 h-14 px-14 text-[15px] font-bold tracking-wide shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 hover:brightness-110 transition-all duration-150">
-                CONTINUAR <ChevronRight className="w-5 h-5" />
+              <Button onClick={() => setStep(step + 1)} className="gap-1.5 sm:gap-3 h-10 sm:h-11 flex-1 sm:flex-none sm:px-14 text-xs sm:text-[15px] font-bold tracking-wide shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:brightness-110 transition-all duration-150">
+                CONTINUAR <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             ) : (
               <Button 
                 onClick={handleSendCampaign} 
                 disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-                className="gap-2.5 h-12 px-10 text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
