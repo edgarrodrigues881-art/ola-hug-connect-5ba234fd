@@ -181,16 +181,16 @@ export function AppSidebar() {
                           <NavLink
                           to={item.url}
                           className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
-                            transition-all duration-150 ease-out
+                            transition-[background-color,color,opacity] duration-[120ms] ease-out
                             ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : 'gap-[11px] px-3.5 py-[10px]'}
                             ${active
-                              ? 'bg-primary/[0.08] text-foreground font-semibold'
-                              : 'text-muted-foreground font-medium hover:text-foreground hover:bg-sidebar-accent/30'
+                              ? 'bg-primary/10 text-foreground font-semibold'
+                              : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
                             }`}
                           activeClassName=""
                         >
                           {active && !collapsed && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary transition-opacity duration-150" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
                           )}
                           <item.icon
                             className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : ''}`}
