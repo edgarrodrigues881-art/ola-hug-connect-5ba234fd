@@ -410,6 +410,7 @@ Deno.serve(async (req) => {
           ? camp.device_ids : camp.device_id ? [camp.device_id] : [];
         await releaseDeviceLocks(serviceClient, ids, campaignId);
         console.log(`Released device locks for canceled campaign ${campaignId}`);
+        startNextQueuedCampaigns(serviceClient, ids, supabaseUrl, serviceRoleKey);
       }
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -487,6 +488,7 @@ Deno.serve(async (req) => {
         console.error(`No valid devices found for campaign ${campaignId}.`);
         await serviceClient.from("campaigns").update({ status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -569,6 +571,7 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída (sem pendentes)`, null, { campaign_id: campaignId });
         console.log(`Campaign ${campaignId} completed! Locks released.`);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -975,11 +978,13 @@ Deno.serve(async (req) => {
           await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
           await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída`, null, { campaign_id: campaignId, sent: sentCount, failed: failedCount });
           console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}. Locks released.`);
+          startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         }
       } else if (finalCampaign && (finalCampaign.status === "paused" || finalCampaign.status === "canceled" || finalCampaign.status === "failed")) {
         // Release locks on terminal/paused states
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         console.log(`Campaign ${campaignId} is ${finalCampaign.status}, locks released.`);
+        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
       }
 
       return new Response(JSON.stringify({
