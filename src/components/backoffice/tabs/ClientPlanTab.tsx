@@ -274,7 +274,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         <div className="flex gap-3 flex-wrap">
           <Button onClick={handleSave} disabled={isPending || provisioning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {isNoPlan ? "Remover Plano" : "Salvar Plano + Criar Ciclo + Tokens"}
+            {isNoPlan ? "Remover Plano" : isTrial ? `Ativar Trial (${trialDays} dias)` : "Salvar Plano + Criar Ciclo + Tokens"}
           </Button>
           {sub && !isNoPlan && (
             <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={isPending || provisioning} variant="outline" className="border-primary/30 text-primary hover:text-primary/80">
