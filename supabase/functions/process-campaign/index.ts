@@ -197,7 +197,15 @@ function replaceVariables(template: string, contact: any, rand4: string, rand3: 
 }
 
 function randomBetween(min: number, max: number): number {
-  return min + Math.random() * (max - min);
+  // Ensure there's always some variation even if min==max
+  const effectiveMin = Math.min(min, max);
+  const effectiveMax = Math.max(min, max);
+  // If min==max, add ±20% jitter so delay is never perfectly fixed
+  if (effectiveMax - effectiveMin < 1) {
+    const jitter = effectiveMin * 0.2;
+    return (effectiveMin - jitter) + Math.random() * (jitter * 2);
+  }
+  return effectiveMin + Math.random() * (effectiveMax - effectiveMin);
 }
 
 // True random picker: picks a random variant each time, avoiding consecutive repeats
