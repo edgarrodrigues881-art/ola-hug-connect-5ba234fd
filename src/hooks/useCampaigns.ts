@@ -173,8 +173,12 @@ export function useStartCampaign() {
         body: { action: "start", campaignId, deviceId },
       });
       if (error) throw error;
-      // Handle device lock conflict (409)
-      if (data?.error && data?.lockedBy) {
+      // Handle queued status (device busy)
+      if (data?.status === "queued") {
+        return data; // Not an error — campaign is queued
+      }
+      // Handle unexpected errors
+      if (data?.error && !data?.success) {
         throw new Error(data.error);
       }
       return data;
