@@ -969,7 +969,7 @@ const Campaigns = () => {
       </div>
 
       {/* ═══ Step Content ═══ */}
-      <div>
+      <div key={step} className="animate-fade-in">
         {/* ===== STEP 1: Message ===== */}
         {step === 1 && (
           <div className="space-y-12">
