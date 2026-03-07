@@ -1773,6 +1773,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_old_logs: { Args: { _retention_days?: number }; Returns: Json }
       cleanup_stale_locks: {
         Args: { _stale_seconds?: number }
         Returns: number
