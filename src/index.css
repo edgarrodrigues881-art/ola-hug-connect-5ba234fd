@@ -366,9 +366,40 @@
     line-height: 1.4 !important;
   }
 
-  /* Standardize card padding on mobile */
-  .mobile-card-compact > div {
+  /* ── Card & container standardization ── */
+
+  /* Uniform card border-radius */
+  [class*="rounded-2xl"],
+  [class*="rounded-\\[20px\\]"],
+  [class*="rounded-\\[14px\\]"] {
+    border-radius: 0.75rem !important; /* 12px */
+  }
+
+  /* Card grids: consistent gap */
+  .grid {
+    gap: 0.5rem !important;
+  }
+  /* Restore larger gaps for main content sections */
+  .space-y-5 > * + *,
+  .space-y-6 > * + *,
+  .space-y-8 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  /* Surface cards / custom containers: consistent padding */
+  [class*="SurfaceCard"],
+  .rounded-2xl[class*="border"][class*="bg-card"],
+  .rounded-2xl[class*="border"][class*="bg-\\[hsl"] {
     padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  /* Prevent excessively tall empty cards */
+  [class*="CardContent"]:empty,
+  [class*="CardContent"] > .flex.items-center.justify-center {
+    min-height: auto !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
   }
 
   /* Dialog/modal footer buttons: consistent height & spacing */
