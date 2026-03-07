@@ -1441,11 +1441,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
-                      <Input type="number" value={minDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setMinDelay(v); }} onBlur={() => { const v = Math.max(minDelay, 1); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={minDelay || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setMinDelay(v); }} onBlur={() => { const v = Math.max(minDelay || 1, 1); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
-                      <Input type="number" value={maxDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setMaxDelay(v); }} onBlur={() => { const v = Math.max(maxDelay, 1); setMaxDelay(v < minDelay ? minDelay : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={maxDelay || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setMaxDelay(v); }} onBlur={() => { const v = Math.max(maxDelay || 1, 1); setMaxDelay(v < minDelay ? minDelay : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">{minDelay}s – {maxDelay}s a cada envio</p>
@@ -1467,11 +1467,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín</label>
-                      <Input type="number" value={pauseEveryMin} onChange={(e) => { const v = parseInt(e.target.value) || 0; setPauseEveryMin(v); }} onBlur={() => { const v = Math.max(pauseEveryMin, 1); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseEveryMin || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setPauseEveryMin(v); }} onBlur={() => { const v = Math.max(pauseEveryMin || 1, 1); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx</label>
-                      <Input type="number" value={pauseEveryMax} onChange={(e) => { const v = parseInt(e.target.value) || 0; setPauseEveryMax(v); }} onBlur={() => { const v = Math.max(pauseEveryMax, 1); setPauseEveryMax(v < pauseEveryMin ? pauseEveryMin : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseEveryMax || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setPauseEveryMax(v); }} onBlur={() => { const v = Math.max(pauseEveryMax || 1, 1); setPauseEveryMax(v < pauseEveryMin ? pauseEveryMin : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">A cada {pauseEveryMin}–{pauseEveryMax} msgs</p>
@@ -1493,11 +1493,11 @@ const Campaigns = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
-                      <Input type="number" value={pauseDurationMin} onChange={(e) => { const v = parseInt(e.target.value) || 0; setPauseDurationMin(v); }} onBlur={() => { const v = Math.max(pauseDurationMin, 1); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseDurationMin || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setPauseDurationMin(v); }} onBlur={() => { const v = Math.max(pauseDurationMin || 1, 1); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
-                      <Input type="number" value={pauseDurationMax} onChange={(e) => { const v = parseInt(e.target.value) || 0; setPauseDurationMax(v); }} onBlur={() => { const v = Math.max(pauseDurationMax, 1); setPauseDurationMax(v < pauseDurationMin ? pauseDurationMin : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
+                      <Input type="number" value={pauseDurationMax || ""} onChange={(e) => { const v = e.target.value === "" ? 0 : parseInt(e.target.value); if (!isNaN(v)) setPauseDurationMax(v); }} onBlur={() => { const v = Math.max(pauseDurationMax || 1, 1); setPauseDurationMax(v < pauseDurationMin ? pauseDurationMin : v); }} className="h-9 text-xs bg-muted/15 dark:bg-muted/8 border-border/15 tabular-nums" min={1} />
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40 tabular-nums">{pauseDurationMin}s – {pauseDurationMax}s de pausa</p>

@@ -200,32 +200,21 @@ function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-// Shuffle bag: cycles through all variants before repeating, never picks same consecutively
-class ShuffleBag {
-  private bag: number[] = [];
+// True random picker: picks a random variant each time, avoiding consecutive repeats
+class RandomPicker {
   private lastPicked: number = -1;
   private total: number;
 
   constructor(totalVariants: number) {
     this.total = totalVariants;
-    this.refill();
-  }
-
-  private refill() {
-    this.bag = Array.from({ length: this.total }, (_, i) => i);
-    for (let i = this.bag.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
-    }
-    if (this.bag.length > 1 && this.bag[0] === this.lastPicked) {
-      const swapIdx = 1 + Math.floor(Math.random() * (this.bag.length - 1));
-      [this.bag[0], this.bag[swapIdx]] = [this.bag[swapIdx], this.bag[0]];
-    }
   }
 
   next(): number {
-    if (this.bag.length === 0) this.refill();
-    const picked = this.bag.shift()!;
+    if (this.total <= 1) return 0;
+    let picked: number;
+    do {
+      picked = Math.floor(Math.random() * this.total);
+    } while (picked === this.lastPicked && this.total > 1);
     this.lastPicked = picked;
     return picked;
   }
@@ -547,7 +536,7 @@ Deno.serve(async (req) => {
       const msgType = campaign.message_type || "texto";
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
-      const shuffleBag = new ShuffleBag(messageVariants.length);
+      const randomPicker = new RandomPicker(messageVariants.length);
       let sequentialIndex = 0;
       let needsContinue = false;
       let heartbeatCounter = 0;
@@ -565,7 +554,7 @@ Deno.serve(async (req) => {
           let devHeartbeat = 0;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
-          const devShuffleBag = new ShuffleBag(messageVariants.length);
+          const devRandomPicker = new RandomPicker(messageVariants.length);
 
           for (const contact of chunk) {
             if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
@@ -600,7 +589,7 @@ Deno.serve(async (req) => {
             try {
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
-              const chosenMessage = messageVariants[devShuffleBag.next()];
+              const chosenMessage = messageVariants[devRandomPicker.next()];
               const msg = replaceVariables(chosenMessage, contact, rand4, rand3);
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
@@ -784,7 +773,7 @@ Deno.serve(async (req) => {
           try {
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
-            const msgIndex = sequentialMode ? sequentialIndex : shuffleBag.next();
+            const msgIndex = sequentialMode ? sequentialIndex : randomPicker.next();
             const chosenMessage = messageVariants[msgIndex % messageVariants.length];
             if (sequentialMode) sequentialIndex = (sequentialIndex + 1) % messageVariants.length;
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
