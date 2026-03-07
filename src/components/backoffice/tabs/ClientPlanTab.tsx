@@ -257,8 +257,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               <Label className="text-muted-foreground text-xs">Data de Início</Label>
               <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
             </div>
+            {isTrial && (
+              <div>
+                <Label className="text-muted-foreground text-xs">Dias de Trial</Label>
+                <Input type="number" min={1} max={90} value={trialDays} onChange={e => setTrialDays(Number(e.target.value) || 7)} className="bg-card border-border text-foreground mt-1 h-9" />
+              </div>
+            )}
             <div>
-              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + 30 dias)</Label>
+              <Label className="text-muted-foreground text-xs">Data de Vencimento (início + {cycleDays} dias)</Label>
               <Input value={new Date(expiresAt).toLocaleDateString("pt-BR")} disabled className="bg-muted/50 border-border text-muted-foreground mt-1 h-9" />
             </div>
           </div>
