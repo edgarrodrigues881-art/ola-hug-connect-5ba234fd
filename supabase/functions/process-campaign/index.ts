@@ -262,6 +262,48 @@ async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campa
   }
 }
 
+// After releasing locks, auto-start next queued campaign for any of these devices
+async function startNextQueuedCampaigns(serviceClient: any, deviceIds: string[], supabaseUrl: string, serviceRoleKey: string) {
+  try {
+    for (const deviceId of deviceIds) {
+      // Find oldest queued campaign that uses this device
+      const { data: queued } = await serviceClient
+        .from("campaigns")
+        .select("id, user_id, device_id, device_ids")
+        .eq("status", "queued")
+        .order("created_at", { ascending: true });
+
+      if (!queued || queued.length === 0) continue;
+
+      // Find first queued campaign that uses this specific device
+      const match = queued.find((c: any) => {
+        const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
+          ? c.device_ids : c.device_id ? [c.device_id] : [];
+        return ids.includes(deviceId);
+      });
+
+      if (match) {
+        console.log(`🚀 Auto-starting queued campaign ${match.id} for device ${deviceId}`);
+        await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
+
+        // Try to acquire lock
+        const lockResult = await acquireDeviceLocks(serviceClient, [deviceId], match.id, match.user_id);
+        if (lockResult.acquired) {
+          await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
+          // Fire and forget
+          selfContinue(supabaseUrl, serviceRoleKey, match.id, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
+        } else {
+          // Another campaign grabbed the lock first, revert to queued
+          await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
+        }
+        break; // Only start one at a time per release
+      }
+    }
+  } catch (err: any) {
+    console.error(`Error starting next queued campaign: ${err.message}`);
+  }
+}
+
 async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
