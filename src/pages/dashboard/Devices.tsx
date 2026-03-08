@@ -1703,6 +1703,7 @@ const Devices = () => {
                           const pairingProxyData = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
                           const pairingProxyPayload = pairingProxyData ? { host: pairingProxyData.host, port: pairingProxyData.port, username: pairingProxyData.username, password: pairingProxyData.password, type: pairingProxyData.type } : undefined;
                           const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload, proxyId: connectingDevice.proxy_id || undefined });
+                          console.log("[PairingCode] Result:", JSON.stringify(result));
                           if (result?.error && result?.code === "PROXY_FAILED") {
                             setConnectError(result.error);
                             setConnectStep("proxy");
@@ -1715,21 +1716,20 @@ const Devices = () => {
                             toast({ title: "Já conectado!" });
                             return;
                           }
-                          if (result.suggestQr) {
+                          const code = result.pairingCode || result.pairing_code;
+                          if (code) {
+                            setPairingCode(code);
+                            startPolling(connectingDevice.id, null);
+                          } else if (result.suggestQr) {
                             toast({ title: "Código não suportado", description: "Use o QR Code para conectar.", variant: "destructive" });
                             setConnectStep("qr");
                             if (result.qrCode) setQrCodeBase64(result.qrCode);
                             startPolling(connectingDevice.id, null);
-                            return;
-                          }
-                          const code = result.pairingCode || result.code || result.pairing_code;
-                          if (code) setPairingCode(code);
-                          else {
+                          } else {
                             toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
                             setConnectStep("qr");
                             startPolling(connectingDevice.id, null);
                           }
-                          startPolling(connectingDevice.id, null);
                         } catch (err: any) {
                           toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
                           setConnectStep("qr");
