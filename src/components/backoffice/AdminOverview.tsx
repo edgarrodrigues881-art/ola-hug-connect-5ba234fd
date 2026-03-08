@@ -153,13 +153,15 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       )}
 
       {/* ═══ PERIOD FILTER ═══ */}
-      <div className="bg-card rounded-xl border border-border p-3 sm:p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <DollarSign size={16} className="text-muted-foreground" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">Financeiro</p>
-          <div className="h-px flex-1 bg-border" />
+      <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <DollarSign size={15} className="text-muted-foreground/70" />
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Financeiro</p>
+          </div>
+          <div className="hidden sm:block h-4 w-px bg-border" />
+          <PeriodFilter {...periodFilter} />
         </div>
-        <PeriodFilter {...periodFilter} />
       </div>
 
       {/* ═══ KPIs ═══ */}

@@ -78,29 +78,31 @@ export const PeriodFilter = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
       {/* Quick chips */}
-      {PRESETS.map(p => (
-        <button
-          key={p.id}
-          onClick={() => selectPreset(p.id)}
-          className={cn(
-            "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded transition-all duration-200",
-            activePreset === p.id
-              ? "bg-foreground/10 text-foreground border border-border"
-              : "text-muted-foreground/40 hover:text-muted-foreground/70 border border-transparent"
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
+      <div className="flex items-center gap-1 overflow-x-auto">
+        {PRESETS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => selectPreset(p.id)}
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-md transition-all duration-200 whitespace-nowrap",
+              activePreset === p.id
+                ? "bg-foreground/10 text-foreground border border-border"
+                : "text-muted-foreground/40 hover:text-muted-foreground/70 border border-transparent"
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {/* Custom date range */}
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <button
             className={cn(
-              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded transition-all duration-200 flex items-center gap-1.5",
+              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-md transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap",
               activePreset === "custom"
                 ? "bg-foreground/10 text-foreground border border-border"
                 : "text-muted-foreground/40 hover:text-muted-foreground/70 border border-transparent"
@@ -153,8 +155,8 @@ export const PeriodFilter = ({
       </Popover>
 
       {/* Active period badge */}
-      <span className="text-[9px] text-muted-foreground/30 font-medium ml-1">
-        {format(range.start, "dd/MM/yyyy")} → {format(range.end, "dd/MM/yyyy")}
+      <span className="text-[9px] text-muted-foreground/30 font-medium ml-auto whitespace-nowrap">
+        {format(range.start, "dd/MM/yyyy")} — {format(range.end, "dd/MM/yyyy")}
       </span>
     </div>
   );
