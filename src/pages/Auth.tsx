@@ -197,7 +197,7 @@ const Auth = () => {
       <div className="w-full max-w-[440px] auth-card-fade-in">
         {/* Logo + brand */}
         <div className="flex flex-col items-center mb-10">
-          <img src={logo} alt="DG Contingência Pro" className="w-16 h-16 rounded-2xl mb-3" />
+          <img src={logo} alt="DG Contingência Pro" className="w-16 h-16 rounded-2xl mb-3 brightness-110 contrast-110" style={{ filter: 'brightness(1.1) contrast(1.1)', background: '#1a1a1a' }} />
           <span className="text-sm font-bold tracking-widest uppercase text-[#E5E7EB]"><span className="text-primary">DG</span> CONTINGÊNCIA <span className="text-primary">PRO</span></span>
         </div>
 
