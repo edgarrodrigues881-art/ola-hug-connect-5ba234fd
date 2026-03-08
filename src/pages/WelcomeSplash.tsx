@@ -10,11 +10,11 @@ const WelcomeSplash = () => {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 300);
-    const t2 = setTimeout(() => setPhase(2), 900);
-    const t3 = setTimeout(() => setPhase(3), 1400);
-    const t4 = setTimeout(() => setPhase(4), 3200);
-    const t5 = setTimeout(() => navigate(redirectTo, { replace: true }), 3800);
+    const t1 = setTimeout(() => setPhase(1), 150);
+    const t2 = setTimeout(() => setPhase(2), 500);
+    const t3 = setTimeout(() => setPhase(3), 800);
+    const t4 = setTimeout(() => setPhase(4), 2200);
+    const t5 = setTimeout(() => navigate(redirectTo, { replace: true }), 2600);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
   }, [navigate, redirectTo]);
