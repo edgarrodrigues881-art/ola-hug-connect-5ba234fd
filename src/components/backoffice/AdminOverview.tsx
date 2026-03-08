@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pencil, Check, X, TrendingUp, TrendingDown, DollarSign, CreditCard, Tag, AlertTriangle, BarChart3 } from "lucide-react";
+import RevenueChart from "./RevenueChart";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { AdminDashboard } from "@/hooks/useAdmin";
@@ -278,6 +279,8 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
           <p className="text-[11px] text-[#b0b8c8] mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
+      {/* ═══ GRÁFICO DE RECEITA ═══ */}
+      <RevenueChart payments={payments} costs={costs} />
     </div>
   );
 };

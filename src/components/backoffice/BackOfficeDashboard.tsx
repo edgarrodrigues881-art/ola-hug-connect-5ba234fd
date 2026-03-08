@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
-  Flame, ListTodo, Server, Heart, Loader2, LogOut, ChevronLeft,
-  Copy, Check, ChevronRight, Menu, X
+  Flame, ListTodo, Server, Heart, Loader2, LogOut,
+  Copy, Check, ChevronRight, Menu, X, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -26,16 +26,16 @@ function getDaysLeft(expiresAt: string | null): number | null {
 }
 
 const NAV_ITEMS = [
-  { id: "overview", label: "Visão Geral", icon: LayoutDashboard, group: "principal", badge: false },
-  { id: "clients", label: "Clientes", icon: Users, group: "principal", badge: false },
-  { id: "pendencias", label: "Pendências", icon: Bell, group: "principal", badge: true },
-  { id: "logs", label: "Auditoria", icon: ScrollText, group: "gestao", badge: false },
-  { id: "costs", label: "Custos", icon: Wallet, group: "gestao", badge: false },
-  { id: "groups-pool", label: "Grupos Pool", icon: Database, group: "operacao", badge: false },
-  { id: "warmup-cycles", label: "Ciclos", icon: Flame, group: "operacao", badge: false },
-  { id: "warmup-jobs", label: "Jobs", icon: ListTodo, group: "operacao", badge: false },
-  { id: "infra", label: "Infraestrutura", icon: Server, group: "sistema", badge: false },
-  { id: "community", label: "Comunidade", icon: Heart, group: "sistema", badge: false },
+  { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
+  { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
+  { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
+  { id: "logs", label: "Auditoria", shortLabel: "Logs", icon: ScrollText, group: "gestao", badge: false },
+  { id: "costs", label: "Custos", shortLabel: "Custos", icon: Wallet, group: "gestao", badge: false },
+  { id: "groups-pool", label: "Grupos Pool", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
+  { id: "warmup-cycles", label: "Ciclos", shortLabel: "Ciclos", icon: Flame, group: "operacao", badge: false },
+  { id: "warmup-jobs", label: "Jobs", shortLabel: "Jobs", icon: ListTodo, group: "operacao", badge: false },
+  { id: "infra", label: "Infraestrutura", shortLabel: "Infra", icon: Server, group: "sistema", badge: false },
+  { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
 ] as const;
 
 const GROUP_LABELS: Record<string, string> = {
@@ -44,6 +44,10 @@ const GROUP_LABELS: Record<string, string> = {
   operacao: "Operação",
   sistema: "Sistema",
 };
+
+// Mobile bottom nav - show first 4 + "more"
+const MOBILE_NAV_PRIMARY = NAV_ITEMS.slice(0, 4);
+const MOBILE_NAV_MORE = NAV_ITEMS.slice(4);
 
 const PENDENCIA_CATEGORIES = [
   { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-50 border-amber-200" },
@@ -75,7 +79,7 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {PENDENCIA_CATEGORIES.map(cat => {
         const items = users.filter(u => {
           const d = getDaysLeft(u.plan_expires_at);
@@ -83,26 +87,28 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
         });
         if (items.length === 0) return null;
         return (
-          <div key={cat.label} className={`border rounded-xl p-5 ${cat.color}`}>
+          <div key={cat.label} className={`border rounded-xl p-4 ${cat.color}`}>
             <h3 className="text-sm font-semibold text-[#2e3440] mb-3">{cat.label} ({items.length})</h3>
             <div className="space-y-2">
               {items.map(u => {
                 const days = getDaysLeft(u.plan_expires_at)!;
                 return (
-                  <div key={u.id} className="flex items-center gap-3 bg-white/80 rounded-lg px-4 py-2.5 border border-[#e5e9f0]/60">
+                  <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white/80 rounded-lg px-3 py-2.5 border border-[#e5e9f0]/60">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[#2e3440] font-medium truncate">{u.full_name || u.email}</p>
-                      <p className="text-xs text-[#8892a4]">{u.phone || "—"} · {u.plan_name || "Sem plano"} · {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}</p>
+                      <p className="text-xs text-[#8892a4] truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
                     </div>
-                    <span className={`text-xs font-semibold ${days <= 0 ? "text-red-500" : "text-amber-500"}`}>
-                      {days <= 0 ? `${Math.abs(days)}d vencido` : `${days}d`}
-                    </span>
-                    <Button variant="ghost" size="sm" onClick={() => copyMsg(u, days)} className="text-[#8892a4] hover:text-[#2e3440] h-8 px-2">
-                      {copiedId === u.id ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => onSelectClient(u)} className="text-primary hover:text-primary/80 h-8 px-2 text-xs font-medium">
-                      Gerenciar <ChevronRight size={12} className="ml-0.5" />
-                    </Button>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <span className={`text-xs font-semibold ${days <= 0 ? "text-red-500" : "text-amber-500"}`}>
+                        {days <= 0 ? `${Math.abs(days)}d vencido` : `${days}d`}
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={() => copyMsg(u, days)} className="text-[#8892a4] hover:text-[#2e3440] h-8 w-8 p-0">
+                        {copiedId === u.id ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onSelectClient(u)} className="text-primary hover:text-primary/80 h-8 px-2 text-xs font-medium">
+                        <ChevronRight size={14} />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -127,6 +133,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const pendingCount = useMemo(() =>
     (data?.users || []).filter(u => {
@@ -148,7 +155,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   if (error) {
     return (
-      <div className="text-center py-32">
+      <div className="text-center py-32 px-4">
         <p className="text-red-500 font-medium">Erro ao carregar dados</p>
         <p className="text-sm text-[#8892a4] mt-1">{(error as any)?.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => refetch()}>Tentar novamente</Button>
@@ -165,6 +172,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   }
 
   const groups = [...new Set(NAV_ITEMS.map(i => i.group))];
+  const isInMoreMenu = MOBILE_NAV_MORE.some(i => i.id === activeTab);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -186,8 +194,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   return (
     <div className="flex min-h-screen">
-      {/* ═══ SIDEBAR ═══ */}
-      {/* Overlay mobile */}
+      {/* ═══ SIDEBAR (desktop) ═══ */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -195,8 +202,9 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       <aside className={`
         fixed lg:sticky top-0 left-0 z-50 lg:z-auto
         w-[240px] h-screen bg-white border-r border-[#e5e9f0]
-        flex flex-col transition-transform duration-200
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        flex-col transition-transform duration-200
+        hidden lg:flex
+        ${sidebarOpen ? "!flex translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Brand */}
         <div className="px-5 py-5 border-b border-[#e5e9f0]">
@@ -229,7 +237,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
                       className={`
                         w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
                         ${isActive
-                          ? "bg-primary/8 text-primary"
+                          ? "bg-primary/10 text-primary"
                           : "text-[#4c566a] hover:bg-[#f0f2f8] hover:text-[#2e3440]"
                         }
                       `}
@@ -262,17 +270,16 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       </aside>
 
       {/* ═══ MAIN ═══ */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 pb-20 lg:pb-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-[#e5e9f0] px-6 py-3.5 flex items-center gap-4">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#4c566a] hover:text-[#2e3440]">
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#e5e9f0] px-4 lg:px-6 py-3 flex items-center gap-3">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#4c566a] hover:text-[#2e3440] p-1">
             <Menu size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            {currentItem && <currentItem.icon size={18} className="text-[#8892a4]" />}
-            <h2 className="text-base font-semibold text-[#2e3440]">{currentItem?.label || "Visão Geral"}</h2>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {currentItem && <currentItem.icon size={18} className="text-[#8892a4] shrink-0" />}
+            <h2 className="text-base font-semibold text-[#2e3440] truncate">{currentItem?.label || "Visão Geral"}</h2>
           </div>
-          <div className="flex-1" />
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary/60">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             Online
@@ -280,10 +287,85 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         </header>
 
         {/* Content */}
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
           {renderContent()}
         </div>
       </main>
+
+      {/* ═══ BOTTOM NAV (mobile) ═══ */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e5e9f0] lg:hidden safe-bottom">
+        <div className="flex items-stretch">
+          {MOBILE_NAV_PRIMARY.map(item => {
+            const isActive = activeTab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => { setActiveTab(item.id); setMoreMenuOpen(false); }}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 transition-colors relative
+                  ${isActive ? "text-primary" : "text-[#8892a4]"}`}
+              >
+                <div className="relative">
+                  <Icon size={20} />
+                  {item.badge && pendingCount > 0 && (
+                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium">{item.shortLabel}</span>
+                {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
+              </button>
+            );
+          })}
+
+          {/* More button */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+              className={`w-full flex flex-col items-center gap-0.5 py-2 pt-2.5 transition-colors
+                ${isInMoreMenu ? "text-primary" : "text-[#8892a4]"}`}
+            >
+              <MoreHorizontal size={20} />
+              <span className="text-[10px] font-medium">Mais</span>
+              {isInMoreMenu && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
+            </button>
+
+            {/* More menu popup */}
+            {moreMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
+                <div className="absolute bottom-full right-0 mb-2 mr-1 w-48 bg-white rounded-xl border border-[#e5e9f0] shadow-lg z-50 py-2 overflow-hidden">
+                  {MOBILE_NAV_MORE.map(item => {
+                    const isActive = activeTab === item.id;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => { setActiveTab(item.id); setMoreMenuOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
+                          ${isActive ? "text-primary bg-primary/5" : "text-[#4c566a] hover:bg-[#f8f9fc]"}`}
+                      >
+                        <Icon size={16} className={isActive ? "text-primary" : "text-[#8892a4]"} />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                  <div className="border-t border-[#e5e9f0] mt-1 pt-1">
+                    <button
+                      onClick={() => { setMoreMenuOpen(false); onLogout(); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      Sair
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
     </div>
   );
 };
