@@ -632,6 +632,7 @@ const AdminMessages = () => {
           </Button>
         </div>
       </div>
+      </>
     );
   }
 
