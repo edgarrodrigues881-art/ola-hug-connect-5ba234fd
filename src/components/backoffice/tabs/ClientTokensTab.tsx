@@ -77,12 +77,10 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   };
 
   const handleDeleteAll = () => {
-    const tokenIds = tokens.map((t: any) => t.id);
-    if (tokenIds.length === 0) return;
     mutate(
-      { action: "delete-all-tokens", body: { target_user_id: client.id, token_ids: tokenIds } },
+      { action: "delete-all-tokens", body: { target_user_id: client.id } },
       {
-        onSuccess: () => toast({ title: `${tokenIds.length} token(s) removido(s)` }),
+        onSuccess: (data: any) => toast({ title: `${data?.removed ?? 0} token(s) removido(s)` }),
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
