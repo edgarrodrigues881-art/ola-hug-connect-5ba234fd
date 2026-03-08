@@ -242,7 +242,7 @@ const Plans = () => {
                   <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
                 </li>
               ))}
-              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/55">
+              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/60">
                 <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
                 <span className={p.whatsappReports ? "" : "text-white/25"}>Relatórios WhatsApp {p.whatsappReports ? "incluso" : ""}</span>
               </li>
