@@ -1845,10 +1845,10 @@ const Devices = () => {
             )}
 
             {connectStep === "connecting" && (
-              <div className="flex flex-col items-center gap-4 py-10">
+              <motion.div key="connecting" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.25 }} className="flex flex-col items-center gap-4 py-10">
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
                 <p className="text-sm font-medium text-muted-foreground">Conectando...</p>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "done" && (
