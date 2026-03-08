@@ -1114,7 +1114,7 @@ const Devices = () => {
       )}
 
       {/* Device grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 420px))' }}>
         {filteredDevices.map((d) => {
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const proxyStatus = assignedProxy?.status;
@@ -1150,8 +1150,8 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-5 pt-6 pb-6 space-y-5">
+            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow max-w-[420px] w-full">
+              <CardContent className="p-5 flex flex-col gap-3">
                 {/* Header: Avatar + Name + Badge */}
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
