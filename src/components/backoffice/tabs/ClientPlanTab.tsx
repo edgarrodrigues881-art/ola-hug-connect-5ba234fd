@@ -298,18 +298,37 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             </Select>
           </div>
 
-          {/* Valor Total */}
+          {/* Valor do Plano */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase font-medium">Valor Total</Label>
-            <div className="h-9 rounded-lg border border-border bg-muted/30 px-3 flex items-center gap-2">
-              <DollarSign size={13} className="text-muted-foreground shrink-0" />
-              <span className="text-sm font-semibold text-foreground">R$ {totalPrice.toFixed(2)}</span>
-              {includeNotification && (
-                <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                  {isTrial ? "incluso" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}`}
-                </span>
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1">
+              Valor do Plano
+              {manualPrice !== "" && (
+                <span className="text-primary text-[8px] bg-primary/10 px-1 rounded">manual</span>
+              )}
+            </Label>
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={manualPrice !== "" ? manualPrice : autoTotal.toFixed(2)}
+                  onChange={e => setManualPrice(e.target.value)}
+                  className="bg-muted/30 border-border text-foreground h-9 rounded-lg pl-9"
+                />
+              </div>
+              {manualPrice !== "" && (
+                <Button size="sm" variant="ghost" onClick={() => setManualPrice("")} className="h-9 px-2 text-[10px] text-muted-foreground hover:text-foreground shrink-0">
+                  Auto
+                </Button>
               )}
             </div>
+            {includeNotification && (
+              <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                {isTrial ? "Relatório incluso" : `Relatório + R$ ${NOTIFICATION_PRICE.toFixed(2)}`}
+              </span>
+            )}
           </div>
 
           {/* Data de Início */}
