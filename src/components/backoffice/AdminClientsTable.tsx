@@ -59,47 +59,50 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
     return { exp, expiring };
   }, [users]);
 
-  const filters = [
-    { label: "Todos", value: "all" },
-    { label: "Ativos", value: "active" },
-    { label: "Suspensos", value: "suspended" },
-    { label: `Vencendo (${counts.expiring})`, value: "expiring" },
-    { label: `Vencidos (${counts.exp})`, value: "expired" },
-    
-    { label: "Start", value: "Start" },
-    { label: "Pro", value: "Pro" },
-    { label: "Scale", value: "Scale" },
-    { label: "Elite", value: "Elite" },
+  const filterGroups = [
+    {
+      label: null,
+      items: [{ label: "Todos", value: "all" }],
+    },
+    {
+      label: "Status",
+      items: [
+        { label: "Ativos", value: "active" },
+        { label: "Suspensos", value: "suspended" },
+        { label: `Vencendo (${counts.expiring})`, value: "expiring" },
+        { label: `Vencidos (${counts.exp})`, value: "expired" },
+      ],
+    },
+    {
+      label: "Planos",
+      items: [
+        { label: "Start", value: "Start" },
+        { label: "Pro", value: "Pro" },
+        { label: "Scale", value: "Scale" },
+        { label: "Elite", value: "Elite" },
+      ],
+    },
   ];
 
-  return (
-    <div className="space-y-4">
-      {/* Search + Filters */}
-      <div className="space-y-3">
-        <div className="relative max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {filters.map(f => {
-            const isActive = filter === f.value;
-            const isDanger = f.value === "expired";
-            return (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={`
-                  shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
-                  ${isActive
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : isDanger && counts.exp > 0
-                      ? "bg-card border-destructive/30 text-destructive hover:bg-destructive/5"
-                      : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                  }
-                `}
-              >
-                {f.label}
-              </button>
+  const renderFilterBtn = (f: { label: string; value: string }) => {
+    const isActive = filter === f.value;
+    const isDanger = f.value === "expired";
+    return (
+      <button
+        key={f.value}
+        onClick={() => setFilter(f.value)}
+        className={`
+          shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
+          ${isActive
+            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+            : isDanger && counts.exp > 0
+              ? "bg-card border-destructive/30 text-destructive hover:bg-destructive/5"
+              : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+          }
+        `}
+      >
+        {f.label}
+      </button>
             );
           })}
         </div>
