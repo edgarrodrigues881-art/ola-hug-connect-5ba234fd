@@ -27,8 +27,10 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
   const [notificacaoLiberada, setNotificacaoLiberada] = useState(profile.notificacao_liberada ?? false);
+  const [copiedToken, setCopiedToken] = useState(false);
   const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
+  const monitorToken = profile.whatsapp_monitor_token || "";
 
   const planLimit = client.max_instances || 0;
   const totalAllowed = planLimit + (form.instance_override || 0);
