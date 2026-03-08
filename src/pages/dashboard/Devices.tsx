@@ -115,7 +115,7 @@ const Devices = () => {
   const [bulkUseProxy, setBulkUseProxy] = useState(false);
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
   const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
-  const bulkTotalCount = bulkUseProxy ? bulkSelectedProxies.length : bulkCount;
+  const bulkTotalCount = bulkUseProxy ? bulkSelectedProxies.length : (bulkCount || 0);
 
   // Selection for bulk delete
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
