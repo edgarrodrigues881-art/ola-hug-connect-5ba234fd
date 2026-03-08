@@ -660,8 +660,7 @@ const AdminMessages = () => {
                       {deviceGroups.length} grupos
                     </Badge>
                   </div>
-                  <ScrollArea className="max-h-[450px]">
-                    <div className="space-y-1.5">
+                  <div className="h-[450px] overflow-y-auto space-y-1.5 pr-1">
                       {deviceGroups
                         .filter((g: any) => {
                           if (!groupSearch) return true;
@@ -691,8 +690,7 @@ const AdminMessages = () => {
                           {configGroupId === g.id && <Check size={14} className="text-primary shrink-0" />}
                         </button>
                       ))}
-                    </div>
-                  </ScrollArea>
+                  </div>
                 </>
               )}
             </div>
