@@ -384,15 +384,15 @@ const Auth = () => {
                   </button>
                 </div>
                 {isLogin && (
-                  <div className="flex items-center justify-between mt-1">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div className="flex items-center justify-between mt-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-[#1E2330] bg-[#151821] text-[#22C55E] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#22C55E]"
+                        className="w-4 h-4 rounded-md border-[#1E2330] bg-[#151821] text-[#22C55E] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#22C55E]"
                       />
-                      <span className="text-xs text-[#9CA3AF]">Manter conectado</span>
+                      <span className="text-xs font-medium text-[#9CA3AF]">Manter conectado</span>
                     </label>
                     <button
                       type="button"
@@ -400,7 +400,7 @@ const Auth = () => {
                         setForgotEmail(email);
                         setShowForgot(true);
                       }}
-                      className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
+                      className="text-xs font-medium text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-200"
                     >
                       Esqueceu sua senha?
                     </button>
