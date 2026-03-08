@@ -119,7 +119,7 @@ const MyPlan = () => {
                 {/* Badge */}
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg"
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg border border-black/10 dark:border-transparent"
                       style={{
                         background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
                         boxShadow: "0 4px 20px rgba(0,255,163,0.25)",
@@ -176,7 +176,7 @@ const MyPlan = () => {
                     rel="noopener noreferrer"
                     className={`w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 mb-6 transition-all duration-200 rounded-xl
                       ${plan.popular
-                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-black/10 dark:border-transparent"
                         : "bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08] hover:border-border"
                       }
                     `}
