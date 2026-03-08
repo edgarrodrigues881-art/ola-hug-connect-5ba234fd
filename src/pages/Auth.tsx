@@ -163,7 +163,7 @@ const Auth = () => {
     }
   };
 
-  const inputClass = "pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150";
+  const inputClass = "pl-11 h-[52px] rounded-2xl border-[#1E2330] bg-[#151821]/80 text-white text-sm font-medium placeholder:text-[#6B7280] focus:border-[#22C55E]/60 focus:bg-[#151821] focus:ring-1 focus:ring-[#22C55E]/20 transition-all duration-200";
 
 
   return (
