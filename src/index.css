@@ -128,78 +128,44 @@
     --shadow-2xl: 0 8px 16px 0px hsl(0 0% 0% / 0.5);
   }
 
-  /* BackOffice purple clean premium theme */
-  .backoffice-light {
-    --background: 250 20% 97%;
-    --foreground: 250 30% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 250 30% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 250 30% 12%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 250 15% 30%;
-    --secondary-foreground: 250 10% 96%;
-    --muted: 250 15% 93%;
-    --muted-foreground: 250 10% 40%;
-    --accent: 250 20% 95%;
-    --accent-foreground: 250 20% 20%;
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
-    --border: 250 15% 88%;
-    --input: 250 15% 88%;
-    --ring: 262 83% 58%;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 250 30% 12%;
-    --sidebar-primary: 262 83% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 15% 30%;
-    --sidebar-accent-foreground: 250 10% 96%;
-    --sidebar-border: 250 15% 90%;
-    --sidebar-ring: 262 83% 58%;
-    --success: 142 71% 45%;
-    --shadow-2xs: 0 1px 3px 0px hsl(262 30% 20% / 0.04);
-    --shadow-xs: 0 1px 3px 0px hsl(262 30% 20% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(262 30% 20% / 0.08), 0 1px 2px -1px hsl(262 30% 20% / 0.06);
-    --shadow-md: 0 2px 6px 0px hsl(262 30% 20% / 0.08), 0 2px 4px -1px hsl(262 30% 20% / 0.06);
-    --shadow-lg: 0 4px 12px 0px hsl(262 30% 20% / 0.1), 0 4px 6px -1px hsl(262 30% 20% / 0.06);
-    color-scheme: light;
-  }
+  /* BackOffice dark premium theme */
+  .backoffice-light,
   .dark.backoffice-light {
-    --background: 250 20% 97%;
-    --foreground: 250 30% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 250 30% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 250 30% 12%;
+    --background: 240 6% 6%;
+    --foreground: 0 0% 95%;
+    --card: 240 5% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 5% 12%;
+    --popover-foreground: 0 0% 95%;
     --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 250 15% 30%;
-    --secondary-foreground: 250 10% 96%;
-    --muted: 250 15% 93%;
-    --muted-foreground: 250 10% 40%;
-    --accent: 250 20% 95%;
-    --accent-foreground: 250 20% 20%;
+    --secondary: 240 5% 18%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 0 0% 85%;
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
-    --border: 250 15% 88%;
-    --input: 250 15% 88%;
+    --border: 240 5% 16%;
+    --input: 240 5% 16%;
     --ring: 262 83% 58%;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 250 30% 12%;
+    --sidebar-background: 240 6% 8%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 15% 30%;
-    --sidebar-accent-foreground: 250 10% 96%;
-    --sidebar-border: 250 15% 90%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 240 5% 14%;
     --sidebar-ring: 262 83% 58%;
     --success: 142 71% 45%;
-    --shadow-2xs: 0 1px 3px 0px hsl(262 30% 20% / 0.04);
-    --shadow-xs: 0 1px 3px 0px hsl(262 30% 20% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(262 30% 20% / 0.08), 0 1px 2px -1px hsl(262 30% 20% / 0.06);
-    --shadow-md: 0 2px 6px 0px hsl(262 30% 20% / 0.08), 0 2px 4px -1px hsl(262 30% 20% / 0.06);
-    --shadow-lg: 0 4px 12px 0px hsl(262 30% 20% / 0.1), 0 4px 6px -1px hsl(262 30% 20% / 0.06);
-    color-scheme: light;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.3);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 2px 6px 0px hsl(0 0% 0% / 0.4), 0 2px 4px -1px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 4px 12px 0px hsl(0 0% 0% / 0.5), 0 4px 6px -1px hsl(0 0% 0% / 0.3);
+    color-scheme: dark;
+    font-weight: 500;
   }
 
   /* Landing page dark scope */
