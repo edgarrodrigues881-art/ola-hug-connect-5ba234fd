@@ -523,34 +523,28 @@ const Devices = () => {
   };
 
   const handleBulkDelete = async (ids: string[]) => {
+    // Optimistic: remove from cache immediately
+    const previous = queryClient.getQueryData<Device[]>(["devices"]);
+    const idsSet = new Set(ids);
+    queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+      old ? old.filter(d => !idsSet.has(d.id)) : old
+    );
+    setSelectedDevices([]);
     try {
-      for (const id of ids) {
-        const device = devices.find(d => d.id === id);
-        if (device?.proxy_id) {
-          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
-          await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
-        }
-        const { error } = await supabase.from("devices").delete().eq("id", id);
-        if (error) throw error;
-      }
-      const { data: remaining } = await supabase
-        .from("devices")
-        .select("id, name")
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true });
-      if (remaining) {
-        for (let i = 0; i < remaining.length; i++) {
-          const newName = `Instância ${i + 1}`;
-          if (remaining[i].name !== newName) {
-            await supabase.from("devices").update({ name: newName } as any).eq("id", remaining[i].id);
-          }
-        }
-      }
+      // Delete all in parallel via edge function
+      await Promise.allSettled(
+        ids.map(id =>
+          supabase.functions.invoke("manage-devices", {
+            body: { action: "delete", deviceId: id },
+          })
+        )
+      );
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      setSelectedDevices([]);
       toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
+      // Rollback on error
+      if (previous) queryClient.setQueryData(["devices"], previous);
       toast({ title: "Erro ao remover instâncias", variant: "destructive" });
     }
   };
