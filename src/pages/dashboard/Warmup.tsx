@@ -45,11 +45,7 @@ const Warmup = () => {
   const { user } = useAuth();
   const { isBlocked, planState } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
-  const [warningShown, setWarningShown] = useState(false);
-  const [showWarning, setShowWarning] = useState(() => {
-    const dismissed = sessionStorage.getItem("warmup-warning-dismissed");
-    return !dismissed;
-  });
+  const [showWarning, setShowWarning] = useState(true);
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
@@ -389,10 +385,7 @@ const Warmup = () => {
     <div className="space-y-4 sm:space-y-5">
       {/* Warning popup */}
       <Dialog open={showWarning} onOpenChange={(open) => {
-        if (!open) {
-          setShowWarning(false);
-          sessionStorage.setItem("warmup-warning-dismissed", "true");
-        }
+        if (!open) setShowWarning(false);
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -413,10 +406,7 @@ const Warmup = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button onClick={() => {
-              setShowWarning(false);
-              sessionStorage.setItem("warmup-warning-dismissed", "true");
-            }}>
+            <Button onClick={() => setShowWarning(false)}>
               Entendi
             </Button>
           </DialogFooter>
