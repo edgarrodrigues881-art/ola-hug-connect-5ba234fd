@@ -79,7 +79,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
     mutate(
       { action: "create-device", body: { target_user_id: client.id, name: newName.trim(), login_type: "principal" } },
       {
-        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setShowCreate(false); },
+        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setShowCreate(false); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -88,7 +88,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const deleteDevice = (id: string, name: string) => {
     mutate(
       { action: "delete-device", body: { target_user_id: client.id, device_id: id, device_name: name } },
-      { onSuccess: () => toast({ title: "Instância removida" }), onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
+      { onSuccess: () => { toast({ title: "Instância removida" }); invalidateClient(client.id); invalidateDashboard(); }, onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
     );
   };
 
