@@ -1927,7 +1927,11 @@ const Devices = () => {
                   placeholder="1"
                   onChange={e => {
                     const remaining = Math.max(1, maxInstancesAllowed - devices.length);
-                    setBulkCount(Math.min(remaining, Math.max(1, parseInt(e.target.value) || 1)));
+                    const raw = e.target.value;
+                    if (raw === "") { setBulkCount(""); return; }
+                    const parsed = parseInt(raw);
+                    if (isNaN(parsed)) return;
+                    setBulkCount(Math.min(remaining, Math.max(1, parsed)));
                   }}
                   className="h-10 w-20 text-sm text-center"
                 />
