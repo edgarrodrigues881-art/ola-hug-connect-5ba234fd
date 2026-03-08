@@ -1153,7 +1153,7 @@ const Devices = () => {
             <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow w-full">
                <CardContent className="p-6 pt-6 pb-8 flex flex-col gap-6">
                 {/* Header: Avatar + Name + Badge */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
                       <img 
