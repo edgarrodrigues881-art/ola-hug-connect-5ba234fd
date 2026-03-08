@@ -24,10 +24,10 @@ const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
 const GridPattern = () => (
   <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
     <div className="absolute inset-0" style={{
-      backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
+      backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
       backgroundSize: '64px 64px',
     }} />
-    <div className="absolute inset-0 bg-gradient-to-b from-[#13161b] via-transparent to-[#13161b]" />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#181c24] via-transparent to-[#181c24]" />
   </div>
 );
 
