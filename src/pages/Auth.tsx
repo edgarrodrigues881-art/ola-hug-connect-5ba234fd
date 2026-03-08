@@ -213,7 +213,7 @@ const Auth = () => {
 
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="forgotEmail" className="text-xs font-medium text-[#9CA3AF]">
+                <Label htmlFor="forgotEmail" className="text-xs font-semibold text-[#9CA3AF] tracking-wide uppercase">
                   Endereço de e-mail
                 </Label>
                 <div className="relative">
