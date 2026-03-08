@@ -247,60 +247,18 @@ const Devices = () => {
 
   const planBadgeText = planState === "noPlan" ? "Sem plano" : planState === "expired" ? "Plano vencido" : planState === "suspended" ? "Conta suspensa" : null;
 
-  // Fetch recent warmup logs for health scoring (last 7 days)
-  const { data: recentLogs = [] } = useQuery({
-    queryKey: ["warmup_logs_recent"],
-    queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { data, error } = await supabase
-        .from("warmup_logs")
-        .select("device_id, status")
-        .gte("created_at", sevenDaysAgo.toISOString())
-        .limit(1000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!session,
-  });
-
-  // Fetch recent campaign send stats for health scoring
-  const { data: recentCampaignStats = [] } = useQuery({
-    queryKey: ["campaign_contacts_recent_stats"],
-    queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { data, error } = await supabase
-        .from("campaign_contacts")
-        .select("status, campaign_id")
-        .gte("created_at", sevenDaysAgo.toISOString())
-        .limit(1000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!session,
-  });
-
-  // Calculate health score per device
+  // Lightweight health score — no extra queries needed
   const deviceHealthScores = useMemo(() => {
     const scores: Record<string, number> = {};
     for (const d of devices) {
       let score = 100;
-      // Penalty for status
       if (d.status === "Disconnected") score -= 20;
       if (!d.has_api_config) score -= 30;
       if (!d.proxy_id) score -= 10;
-      // Penalty for warmup log failures
-      const deviceLogs = recentLogs.filter(l => l.device_id === d.id);
-      const failedLogs = deviceLogs.filter(l => l.status === "failed" || l.status === "error");
-      if (deviceLogs.length > 0) {
-        const failRate = failedLogs.length / deviceLogs.length;
-        if (failRate > 0.1) score -= Math.min(30, Math.round(failRate * 50));
-      }
       scores[d.id] = Math.max(0, Math.min(100, score));
     }
     return scores;
-  }, [devices, recentLogs, recentCampaignStats]);
+  }, [devices]);
 
   const getHealthColor = (score: number) => {
     if (score >= 80) return "text-emerald-500";
