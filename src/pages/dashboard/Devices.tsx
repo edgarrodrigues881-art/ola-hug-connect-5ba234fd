@@ -1796,7 +1796,7 @@ const Devices = () => {
                     Gerar código
                   </Button>
                 </div>
-              </div>
+              </motion.div>
               );
             })()}
 
