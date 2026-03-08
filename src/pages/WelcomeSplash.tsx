@@ -27,25 +27,6 @@ const WelcomeSplash = () => {
           transition={{ duration: 0.4 }}
         >
           <div className="flex flex-col items-center gap-2 px-6">
-            <motion.span
-              className="text-sm sm:text-base font-black tracking-[0.35em] uppercase text-primary"
-              style={{ willChange: "opacity, transform" }}
-              initial={{ opacity: 0, translateY: 12 }}
-              animate={phase >= 1 ? { opacity: 1, translateY: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-            >
-              Bem-vindo
-            </motion.span>
-
-            <motion.span
-              className="text-sm font-bold tracking-[0.5em] uppercase text-slate-700 dark:text-muted-foreground/60"
-              style={{ willChange: "opacity" }}
-              initial={{ opacity: 0 }}
-              animate={phase >= 2 ? { opacity: 1 } : undefined}
-              transition={{ duration: 0.4 }}
-            >
-              ao
-            </motion.span>
 
             <motion.div
               className="mt-4 sm:mt-5"
