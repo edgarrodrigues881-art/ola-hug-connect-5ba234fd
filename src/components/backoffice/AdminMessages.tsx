@@ -575,7 +575,26 @@ const AdminMessages = () => {
                           {d.status}
                         </Badge>
                       </button>
-                      <div className="pr-3">
+                      <div className="pr-3 flex items-center gap-1.5">
+                        {isConnected && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await callApi({ action: "logout", deviceId: d.id });
+                                toast({ title: "✅ Instância desconectada" });
+                                queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+                              } catch (err: any) {
+                                toast({ title: "Erro ao desconectar", description: err?.message, variant: "destructive" });
+                              }
+                            }}
+                            className="h-9 px-3 gap-1.5 shrink-0 border-destructive/20 text-destructive hover:bg-destructive/10"
+                          >
+                            <WifiOff size={14} />
+                            <span className="text-[10px]">Desconectar</span>
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
