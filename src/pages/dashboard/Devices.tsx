@@ -439,16 +439,31 @@ const Devices = () => {
       });
       if (error) throw new Error(error.message || "Erro ao excluir instância");
       if (data?.error) throw new Error(data.error);
-      return data;
+      return { id };
+    },
+    onMutate: async (id: string) => {
+      // Optimistic: remove from cache immediately
+      await queryClient.cancelQueries({ queryKey: ["devices"] });
+      const previous = queryClient.getQueryData<Device[]>(["devices"]);
+      queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+        old ? old.filter(d => d.id !== id) : old
+      );
+      return { previous };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+      queryClient.invalidateQueries({ queryKey: ["sidebar-stats"] });
       toast({ title: "Instância removida" });
     },
-    onError: (err: any) => {
+    onError: (err: any, _id, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        queryClient.setQueryData(["devices"], context.previous);
+      }
       console.error("Delete error:", err);
       toast({ title: "Erro ao apagar instância", description: err?.message || "Erro desconhecido", variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
     },
   });
 
