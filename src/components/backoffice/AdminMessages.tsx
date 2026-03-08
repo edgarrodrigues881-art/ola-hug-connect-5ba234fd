@@ -24,9 +24,7 @@ const TEMPLATES = [
     color: "text-emerald-500",
     desc: "Primeiro login",
     build: (v: any) => {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 3);
-      return `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano Trial de 3 dias já está ativo.\nVencimento: ${trialEnd.toLocaleDateString("pt-BR")}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`;
+      return `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano ${v.plano} já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`;
     },
   },
   {
