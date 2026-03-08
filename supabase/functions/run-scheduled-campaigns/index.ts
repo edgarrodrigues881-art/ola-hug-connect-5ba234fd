@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         await res.text();
         restarted.push(stuck.id);
         console.log(`🔄 Watchdog restarted stuck campaign ${stuck.id} (${pendingCount} pending): ${res.status}`);
-      } catch (err: any) {
+      } catch (err) {
         console.error(`Failed to restart campaign ${stuck.id}:`, err.message);
       }
     }
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
         const text = await res.text();
         results.push({ campaignId: campaign.id, status: res.status, response: text });
         console.log(`✅ Triggered scheduled campaign ${campaign.id}: ${res.status}`);
-      } catch (err: any) {
+      } catch (err) {
         console.error(`Failed to trigger campaign ${campaign.id}:`, err.message);
         // Revert status so watchdog or next tick can retry
         await serviceClient.from("campaigns").update({
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err: any) {
+  } catch (err) {
     console.error("Run scheduled campaigns error:", err);
     return new Response(
       JSON.stringify({ error: err.message }),

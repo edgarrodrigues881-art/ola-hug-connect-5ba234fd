@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     // ── TICK: process pending jobs ──
     return await handleTick(db);
 
-  } catch (err: any) {
+  } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
@@ -331,7 +331,7 @@ async function handleTick(db: any) {
       }).eq("id", job.id);
       succeeded++;
 
-    } catch (jobErr: any) {
+    } catch (jobErr) {
       failed++;
       const newAttempts = job.attempts + 1;
       if (newAttempts < job.max_attempts) {
