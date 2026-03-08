@@ -797,68 +797,9 @@ const AdminMessages = () => {
         </div>
       </ScrollArea>
     </div>
-
-    {/* QR Code Dialog */}
-    <Dialog open={qrDialogOpen} onOpenChange={(open) => {
-      if (!open) {
-        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-        if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
-        setQrDialogOpen(false);
-      }
-    }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <QrCode size={18} className="text-primary" />
-            Escanear QR Code
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col items-center gap-4 py-4">
-          {qrLoading && (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
-            </div>
-          )}
-
-          {qrError && !qrLoading && (
-            <div className="text-center py-6 space-y-2">
-              <XCircle size={32} className="text-destructive mx-auto" />
-              <p className="text-sm text-destructive font-medium">Erro</p>
-              <p className="text-xs text-muted-foreground max-w-xs">{qrError}</p>
-              <Button variant="outline" size="sm" onClick={() => openQrDialog(qrDeviceId)} className="mt-2">
-                Tentar novamente
-              </Button>
-            </div>
-          )}
-
-          {qrCodeBase64 && !qrConnected && !qrLoading && (
-            <>
-              <div className="bg-white p-3 rounded-xl">
-                <img src={qrCodeBase64} alt="QR Code" className="w-56 h-56 object-contain" />
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm text-foreground font-medium">Escaneie com o WhatsApp</p>
-                <p className="text-xs text-muted-foreground">
-                  Atualizando em <span className="font-mono font-bold text-primary">{qrCountdown}s</span>
-                </p>
-              </div>
-            </>
-          )}
-
-          {qrConnected && (
-            <div className="flex flex-col items-center gap-3 py-6">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <Check size={24} className="text-emerald-500" />
-              </div>
-              <p className="text-sm font-bold text-foreground">Conectado com sucesso!</p>
-              <p className="text-xs text-muted-foreground">Selecione esta instância e escolha o grupo.</p>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    {qrDialog}
     </>
   );
+};
 
 export default AdminMessages;
