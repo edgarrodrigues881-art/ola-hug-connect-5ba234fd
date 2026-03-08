@@ -16,7 +16,7 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
-const ClientOverviewTab = ({ client, detail }: Props) => {
+const ClientOverviewTab = memo(({ client, detail }: Props) => {
   const sub = detail?.subscription;
   const devices = detail?.devices || [];
   const daysLeft = getDaysLeft(client.plan_expires_at);
@@ -24,7 +24,7 @@ const ClientOverviewTab = ({ client, detail }: Props) => {
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
   const maxInst = sub?.max_instances ?? client.max_instances ?? 0;
   const connectedCount = devices.filter((d: any) => d.status === "Connected" || d.status === "Ready").length;
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
 
   const resetPassword = () => {
