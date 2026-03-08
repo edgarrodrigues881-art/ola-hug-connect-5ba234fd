@@ -44,7 +44,7 @@ const WelcomeSplash = () => {
           <motion.div
             className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-64 pointer-events-none"
             style={{
-              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.08) 15%, hsl(var(--primary) / 0.20) 50%, hsl(var(--primary) / 0.08) 85%, transparent 100%)",
+              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.05) 15%, hsl(var(--primary) / 0.12) 50%, hsl(var(--primary) / 0.05) 85%, transparent 100%)",
               filter: "blur(70px)",
             }}
             initial={{ opacity: 0, scaleX: 0.3 }}
