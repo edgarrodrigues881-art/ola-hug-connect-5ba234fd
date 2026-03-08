@@ -899,7 +899,7 @@ const Devices = () => {
       return;
     }
     setConnectingDevice(device);
-    setConnectStep("proxy");
+    setConnectStep("choose");
     setQrCodeBase64("");
     setPairingCode("");
     setConnectError("");
