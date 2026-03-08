@@ -98,17 +98,17 @@ const WelcomeSplash = () => {
 
             {/* Loading bar */}
             <motion.div
-              className="mt-10 relative w-52 h-[4px] rounded-full overflow-hidden"
-              initial={{ opacity: 0 }}
-              animate={phase >= 3 ? { opacity: 1 } : {}}
-              transition={{ delay: 0.3, duration: 0.3 }}
+              className="mt-10 relative w-56 h-[6px] rounded-full overflow-hidden"
+              initial={{ opacity: 0, scaleX: 0.8 }}
+              animate={phase >= 3 ? { opacity: 1, scaleX: 1 } : {}}
+              transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
             >
-              <div className="absolute inset-0 bg-primary/10 rounded-full" />
+              <div className="absolute inset-0 bg-primary/15 rounded-full" />
               <motion.div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
-                  background: "linear-gradient(90deg, hsl(var(--primary) / 0.6), hsl(var(--primary)), hsl(var(--primary) / 0.6))",
-                  boxShadow: "0 0 12px hsl(var(--primary) / 0.4)",
+                  background: "linear-gradient(90deg, hsl(var(--primary) / 0.4), hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                  boxShadow: "0 0 16px hsl(var(--primary) / 0.5), 0 0 4px hsl(var(--primary) / 0.3)",
                 }}
                 initial={{ width: "0%" }}
                 animate={phase >= 3 ? { width: "100%" } : {}}
