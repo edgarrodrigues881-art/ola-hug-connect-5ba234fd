@@ -469,39 +469,52 @@ const AdminMessages = () => {
     return (
       <>{qrDialog}
       <div className="space-y-5">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <button onClick={() => setView("list")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowLeft size={18} className="text-muted-foreground" />
           </button>
-          <Settings2 size={20} className="text-primary" />
-          <h2 className="text-lg font-bold text-foreground">Configuração</h2>
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Settings2 size={16} className="text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-foreground">Configuração</h2>
+            <p className="text-[10px] text-muted-foreground">Configure a instância e o grupo para relatórios</p>
+          </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Step 1: Select device */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground">1. Selecione a Instância</label>
+          <div className="p-5 space-y-3 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">1</div>
+              <label className="text-xs font-semibold text-foreground">Selecione a Instância</label>
+            </div>
+
             {adminDevices.length === 0 ? (
-              <div className="space-y-3 bg-muted/20 rounded-lg p-4 border border-border">
-                <p className="text-xs text-muted-foreground">Nenhuma instância encontrada. Cole o token da instância abaixo:</p>
+              <div className="space-y-3 bg-muted/10 rounded-xl p-4 border border-dashed border-border">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Smartphone size={14} />
+                  <p className="text-xs">Adicione uma instância colando o token:</p>
+                </div>
                 <div className="space-y-2">
                   <Input
-                    placeholder="Nome da instância (ex: Relatório WA)"
+                    placeholder="Nome (ex: Relatório WA)"
                     value={newInstanceName}
                     onChange={e => setNewInstanceName(e.target.value)}
-                    className="h-8 text-xs bg-background"
+                    className="h-9 text-xs bg-background border-border/60"
                   />
                   <Input
                     placeholder="URL base (ex: https://dgcontingencia.uazapi.com)"
                     value={newBaseUrl}
                     onChange={e => setNewBaseUrl(e.target.value)}
-                    className="h-8 text-xs bg-background"
+                    className="h-9 text-xs bg-background border-border/60"
                   />
                   <Input
-                    placeholder="Instance Token"
+                    placeholder="Instance Token (UUID)"
                     value={newToken}
                     onChange={e => setNewToken(e.target.value)}
-                    className="h-8 text-xs bg-background font-mono"
+                    className="h-9 text-xs bg-background border-border/60 font-mono"
                   />
                   <Button
                     size="sm"
@@ -526,48 +539,57 @@ const AdminMessages = () => {
                         setCreatingDevice(false);
                       }
                     }}
-                    className="w-full h-8 text-xs gap-1.5"
+                    className="w-full h-9 text-xs gap-2"
                   >
-                    {creatingDevice ? <Loader2 size={12} className="animate-spin" /> : <Smartphone size={12} />}
+                    {creatingDevice ? <Loader2 size={13} className="animate-spin" /> : <Smartphone size={13} />}
                     Adicionar Instância
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {adminDevices.map((d: any) => {
-                  const isDisconnected = d.status !== "Connected";
+                  const isConnected = d.status === "Connected" || d.status === "Ready";
+                  const isSelected = configDeviceId === d.id;
                   return (
-                    <div key={d.id} className="flex items-center gap-2">
+                    <div key={d.id} className={`flex items-center gap-2 rounded-xl border transition-all ${
+                      isSelected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/10 hover:border-primary/20"
+                    }`}>
                       <button
                         onClick={() => selectDevice(d.id)}
-                        className={`flex-1 flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
-                          configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
-                        }`}
+                        className="flex-1 flex items-center gap-3 px-4 py-3 text-left"
                       >
-                        <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isSelected ? "bg-primary/15" : "bg-muted/30"
+                        }`}>
+                          <Smartphone size={15} className={isSelected ? "text-primary" : "text-muted-foreground"} />
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{d.name}</p>
                           <p className="text-[10px] text-muted-foreground">{d.number || "Sem número"}</p>
                         </div>
-                        <Badge variant="outline" className={`text-[9px] ${
-                          d.status === "Connected" ? "border-emerald-500/30 text-emerald-500" : "border-destructive/30 text-destructive"
+                        <Badge variant="outline" className={`text-[9px] px-2 py-0.5 ${
+                          isConnected ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-destructive/30 text-destructive bg-destructive/5"
                         }`}>
-                          {d.status === "Connected" ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
+                          {isConnected ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
                           {d.status}
                         </Badge>
                       </button>
-                      {isDisconnected && (
+                      <div className="pr-3">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openQrDialog(d.id)}
-                          className="h-10 px-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 shrink-0"
+                          className={`h-9 px-3 gap-1.5 shrink-0 ${
+                            isConnected
+                              ? "border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10"
+                              : "border-primary/30 text-primary hover:bg-primary/10"
+                          }`}
                         >
                           <QrCode size={14} />
-                          <span className="text-[10px]">QR</span>
+                          <span className="text-[10px]">{isConnected ? "Reconectar" : "Conectar"}</span>
                         </Button>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
@@ -577,13 +599,16 @@ const AdminMessages = () => {
 
           {/* Step 2: Select group */}
           {configDeviceId && (
-            <div className="space-y-2">
+            <div className="p-5 space-y-3 border-b border-border/50">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-foreground">2. Selecione o Grupo</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">2</div>
+                  <label className="text-xs font-semibold text-foreground">Selecione o Grupo</label>
+                </div>
                 <button
                   onClick={() => fetchGroups(configDeviceId)}
                   disabled={loadingGroups}
-                  className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+                  className="flex items-center gap-1.5 text-[10px] text-primary hover:text-primary/80 transition-colors bg-primary/5 rounded-md px-2 py-1"
                 >
                   <RefreshCw size={10} className={loadingGroups ? "animate-spin" : ""} />
                   Atualizar
@@ -591,14 +616,15 @@ const AdminMessages = () => {
               </div>
 
               {loadingGroups ? (
-                <div className="flex items-center justify-center py-6 bg-muted/20 rounded-lg border border-border">
+                <div className="flex items-center justify-center py-8 bg-muted/10 rounded-xl border border-dashed border-border">
                   <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
                   <span className="text-xs text-muted-foreground">Buscando grupos...</span>
                 </div>
               ) : deviceGroups.length === 0 ? (
-                <div className="text-xs text-muted-foreground bg-muted/20 rounded-lg p-4 border border-border text-center space-y-1">
-                  <p>Nenhum grupo encontrado.</p>
-                  <p className="text-[10px]">Verifique se a instância está conectada e tem grupos.</p>
+                <div className="text-center py-6 bg-muted/10 rounded-xl border border-dashed border-border space-y-1">
+                  <Users size={20} className="text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Nenhum grupo encontrado.</p>
+                  <p className="text-[10px] text-muted-foreground/60">Verifique se a instância está conectada.</p>
                 </div>
               ) : (
                 <ScrollArea className="max-h-48">
@@ -610,8 +636,8 @@ const AdminMessages = () => {
                           setConfigGroupId(g.id);
                           setConfigGroupName(g.name);
                         }}
-                        className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
-                          configGroupId === g.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
+                        className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all text-left ${
+                          configGroupId === g.id ? "bg-primary/10 border-primary/40" : "bg-muted/10 border-border hover:border-primary/20"
                         }`}
                       >
                         <Users size={14} className={configGroupId === g.id ? "text-primary" : "text-muted-foreground"} />
@@ -631,21 +657,23 @@ const AdminMessages = () => {
             </div>
           )}
 
-          {/* Selected group summary */}
-          {configGroupId && configGroupName && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
-              <Check size={14} className="text-primary shrink-0" />
-              <div className="text-xs">
-                <span className="text-muted-foreground">Grupo selecionado: </span>
-                <span className="font-semibold text-foreground">{configGroupName}</span>
+          {/* Summary + Save */}
+          <div className="p-5 space-y-3">
+            {configGroupId && configGroupName && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center gap-2.5">
+                <Check size={14} className="text-primary shrink-0" />
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Grupo: </span>
+                  <span className="font-semibold text-foreground">{configGroupName}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <Button onClick={saveConfig} disabled={!configDeviceId || !configGroupId || isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9">
-            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Check size={14} className="mr-1.5" />}
-            Salvar Configuração
-          </Button>
+            <Button onClick={saveConfig} disabled={!configDeviceId || !configGroupId || isPending} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-10 gap-2">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check size={15} />}
+              Salvar Configuração
+            </Button>
+          </div>
         </div>
       </div>
       </>
