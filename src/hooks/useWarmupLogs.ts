@@ -36,6 +36,7 @@ export function useWarmupLogs(sessionId?: string) {
       return data as unknown as WarmupLog[];
     },
     enabled: !!user,
+    staleTime: 60_000,
   });
 }
 
