@@ -446,69 +446,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         </div>
       </div>
 
-      {/* ── Histórico de Ciclos ── */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Histórico de Ciclos</p>
-        {cycles.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">Nenhum ciclo registrado</p>
-        ) : (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-muted/40 text-muted-foreground text-[9px] uppercase tracking-wider">
-                  <th className="text-left px-3 py-2">Plano</th>
-                  <th className="text-left px-3 py-2">Início</th>
-                  <th className="text-left px-3 py-2">Fim</th>
-                  <th className="text-left px-3 py-2">Valor</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {cycles.map((c: any, idx: number) => {
-                  const cfg = cycleStatusConfig[c.status] || cycleStatusConfig.pending;
-                  const Icon = cfg.icon;
-                  return (
-                    <tr key={c.id} className={idx === 0 ? "bg-primary/5" : "hover:bg-muted/20"}>
-                      <td className="px-3 py-2 text-foreground font-medium">{c.plan_name}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{toLocalDate(c.cycle_start)}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{toLocalDate(c.cycle_end)}</td>
-                      <td className="px-3 py-2 text-foreground font-medium">R$ {Number(c.cycle_amount).toFixed(2)}</td>
-                      <td className="px-3 py-2">
-                        <span className={`text-[10px] font-semibold flex items-center gap-1 ${cfg.color}`}>
-                          <Icon size={11} /> {cfg.label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <div className="flex gap-0.5 justify-end">
-                          {c.status !== "paid" && (
-                            <Button variant="ghost" size="sm" className="text-green-500 hover:text-green-400 hover:bg-green-500/10 text-[9px] h-6 px-1.5 rounded"
-                              onClick={() => updateCycleStatus(c.id, "paid")} disabled={loading}>
-                              Pago
-                            </Button>
-                          )}
-                          {c.status !== "partial" && (
-                            <Button variant="ghost" size="sm" className="text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 text-[9px] h-6 px-1.5 rounded"
-                              onClick={() => updateCycleStatus(c.id, "partial")} disabled={loading}>
-                              Parcial
-                            </Button>
-                          )}
-                          {c.status !== "pending" && (
-                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-[9px] h-6 px-1.5 rounded"
-                              onClick={() => updateCycleStatus(c.id, "pending")} disabled={loading}>
-                              Pendente
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
