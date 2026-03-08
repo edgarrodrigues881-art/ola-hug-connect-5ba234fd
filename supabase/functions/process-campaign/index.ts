@@ -71,7 +71,7 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
   }
   if (!res.ok) {
     let errorMsg = `API error ${res.status}`;
-    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch { errorMsg = text; }
+    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch (_e) { errorMsg = text; }
     throw new Error(errorMsg);
   }
   const parsed = JSON.parse(text);
