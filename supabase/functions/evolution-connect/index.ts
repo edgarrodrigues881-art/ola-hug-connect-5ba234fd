@@ -627,10 +627,7 @@ Deno.serve(async (req) => {
       if (isConnected && check.owner) {
         // Save phone and mark Ready
         const raw = String(check.owner).replace(/\D/g, "");
-        let fmt = "";
-        if (raw.startsWith("55") && raw.length >= 12)
-          fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-        else if (raw) fmt = `+${raw}`;
+        const fmt = formatBrPhone(raw);
         // Check for duplicate phone
         const statusDup = await checkDuplicatePhone(check.owner);
         if (statusDup.isDuplicate) {
