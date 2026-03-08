@@ -15,7 +15,7 @@ const NOTIFICATION_PRICE = 18.90;
 
 const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number; reports_whatsapp_enabled?: boolean }> = {
   "Sem plano": { price: 0, max_instances: 0 },
-  Trial: { price: 0, max_instances: 3, defaultDays: 7 },
+  Trial: { price: 0, max_instances: 3, defaultDays: 3 },
   Start: { price: 149.9, max_instances: 10 },
   Pro: { price: 349.9, max_instances: 30 },
   Scale: { price: 549.9, max_instances: 50, reports_whatsapp_enabled: true },
@@ -47,14 +47,15 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [startedAt, setStartedAt] = useState<string>(
     sub?.started_at ? sub.started_at.split("T")[0] : new Date().toISOString().split("T")[0]
   );
-  const [trialDays, setTrialDays] = useState<number>(7);
+  const [trialDays, setTrialDays] = useState<number>(3);
   const [manualExpires, setManualExpires] = useState<string>("");
   const [includeNotification, setIncludeNotification] = useState<boolean>(detail?.profile?.notificacao_liberada ?? false);
 
   const planConfig = PLANS[planName] || PLANS.Start;
-  const totalPrice = planConfig.price + (includeNotification ? NOTIFICATION_PRICE : 0);
   const isTrial = planName === "Trial";
   const isNoPlan = planName === "Sem plano";
+  const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
+  const totalPrice = planConfig.price + (includeNotification ? notificationPrice : 0);
   const cycleDays = isTrial ? trialDays : 30;
   
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
@@ -292,7 +293,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               <div className="mt-1 h-10 rounded-md border border-border bg-muted/50 px-3 flex items-center gap-2 text-sm">
                 <span className="text-foreground font-medium">R$ {totalPrice.toFixed(2)}</span>
                 {includeNotification && (
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">+ R$ {NOTIFICATION_PRICE.toFixed(2)} notificação</span>
+                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{isTrial ? "incluso no trial" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)} notificação`}</span>
                 )}
               </div>
             </div>
@@ -303,7 +304,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             {isTrial && (
               <div>
                 <Label className="text-muted-foreground text-xs">Dias de Trial</Label>
-                <Input type="number" min={1} max={90} value={trialDays} onChange={e => setTrialDays(Number(e.target.value) || 7)} className="bg-card border-border text-foreground mt-1 h-9" />
+                <Input type="number" min={1} max={90} value={trialDays === 0 ? "" : trialDays} onChange={e => setTrialDays(e.target.value === "" ? 0 : Math.max(1, Math.min(90, Number(e.target.value))))} className="bg-card border-border text-foreground mt-1 h-9" />
               </div>
             )}
             <div>
@@ -341,9 +342,9 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold ${includeNotification ? "text-emerald-500" : "text-muted-foreground"}`}>
-                    + R$ {NOTIFICATION_PRICE.toFixed(2)}/mês
-                  </span>
+                   <span className={`text-xs font-semibold ${includeNotification ? "text-emerald-500" : "text-muted-foreground"}`}>
+                     {isTrial ? "Grátis no Trial" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}/mês`}
+                   </span>
                   <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
                 </div>
               </div>
