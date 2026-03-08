@@ -189,12 +189,25 @@ export function useStartCampaign() {
 
 export function useDeleteCampaign() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("campaigns").delete().eq("id", id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["campaigns"] });
+      const previous = queryClient.getQueryData(["campaigns", user?.id]);
+      queryClient.setQueryData(["campaigns", user?.id], (old: Campaign[] | undefined) =>
+        old ? old.filter(c => c.id !== id) : old
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(["campaigns", user?.id], context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }

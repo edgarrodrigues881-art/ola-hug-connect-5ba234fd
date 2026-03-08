@@ -27,6 +27,7 @@ export function useTemplates() {
       return data as Template[];
     },
     enabled: !!user,
+    staleTime: 120_000,
   });
 }
 
