@@ -2,6 +2,7 @@ import type { AdminUser } from "@/hooks/useAdmin";
 import { User, CreditCard, Server, Clock, AlertTriangle, KeyRound, LogOut, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAction } from "@/hooks/useAdmin";
+import { memo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
