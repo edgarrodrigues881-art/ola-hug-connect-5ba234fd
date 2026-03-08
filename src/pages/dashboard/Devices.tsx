@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
@@ -109,8 +110,11 @@ const Devices = () => {
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
+  const [bulkCount, setBulkCount] = useState(1);
+  const [bulkUseProxy, setBulkUseProxy] = useState(false);
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
   const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
+  const bulkTotalCount = bulkUseProxy ? bulkSelectedProxies.length : bulkCount;
 
   // Selection for bulk delete
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -466,7 +470,10 @@ const Devices = () => {
       toast({ title: "Informe o prefixo do nome", variant: "destructive" });
       return;
     }
-    const totalCount = bulkSelectedProxies.length + bulkNoProxyCount;
+    // When using proxy, total = selected proxies count; otherwise total = bulkCount
+    const proxyIds = bulkUseProxy ? bulkSelectedProxies : [];
+    const noProxyCount = bulkUseProxy ? 0 : bulkCount;
+    const totalCount = proxyIds.length + noProxyCount;
     if (totalCount === 0) {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
       return;
@@ -491,8 +498,8 @@ const Devices = () => {
         body: {
           action: "bulk-create",
           prefix: bulkPrefix,
-          proxyIds: bulkSelectedProxies,
-          noProxyCount: bulkNoProxyCount,
+          proxyIds,
+          noProxyCount,
           startIndex: devices.length + 1,
         },
       });
@@ -1043,7 +1050,7 @@ const Devices = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
                         if (!canCreateInstance) { if (planState !== "active") setPlanGateOpen(true); else setLimitGateOpen(true); return; }
-                        setBulkOpen(true); setBulkPrefix("Instância"); setBulkSelectedProxies([]); setBulkNoProxyCount(0);
+                        setBulkOpen(true); setBulkPrefix("Instância"); setBulkCount(1); setBulkUseProxy(false); setBulkSelectedProxies([]); setBulkNoProxyCount(0);
                       }}>
                         <Layers className="w-3.5 h-3.5 mr-2" /> Criar em massa
                       </DropdownMenuItem>
@@ -1880,8 +1887,9 @@ const Devices = () => {
             <DialogTitle className="text-base">Criar em massa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* 1. Nome */}
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Prefixo do nome</Label>
+              <Label className="text-[11px] text-muted-foreground">Nome</Label>
               <Input
                 value={bulkPrefix}
                 onChange={e => setBulkPrefix(e.target.value)}
@@ -1890,81 +1898,97 @@ const Devices = () => {
               />
               <p className="text-[10px] text-muted-foreground/50">Resultado: "{bulkPrefix} 1", "{bulkPrefix} 2", etc.</p>
             </div>
+
+            {/* 2. Quantidade */}
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Proxies ({bulkSelectedProxies.length})</Label>
-              <div className="max-h-[200px] overflow-y-auto space-y-0.5 border border-border/20 rounded-lg p-1.5">
-                {availableProxies.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground text-center py-3">Nenhuma proxy disponível</p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
-                      onClick={() => {
-                        if (bulkSelectedProxies.length === availableProxies.length) {
-                          setBulkSelectedProxies([]);
-                        } else {
-                          setBulkSelectedProxies(availableProxies.map(p => p.id));
-                        }
-                      }}
-                    >
-                      <Checkbox checked={bulkSelectedProxies.length === availableProxies.length} />
-                      <span className="text-[11px] font-medium">Todas</span>
-                    </div>
-                    {availableProxies.map(p => (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
-                        onClick={() => toggleBulkProxy(p.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Checkbox checked={bulkSelectedProxies.includes(p.id)} />
-                          <span className="text-[11px]">{p.label}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Sem proxy</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  max={Math.max(0, maxInstancesAllowed - devices.length - bulkSelectedProxies.length)}
-                  value={bulkNoProxyCount || ""}
-                  placeholder="0"
-                  onChange={e => {
-                    const remaining = Math.max(0, maxInstancesAllowed - devices.length - bulkSelectedProxies.length);
-                    setBulkNoProxyCount(Math.min(remaining, Math.max(0, parseInt(e.target.value) || 0)));
-                  }}
-                  className="h-7 w-16 text-xs"
-                />
-                <span className="text-[10px] text-muted-foreground/50">extra sem proxy</span>
-              </div>
+              <Label className="text-[11px] text-muted-foreground">Quantas instâncias</Label>
+              <Input
+                type="number"
+                min={1}
+                max={Math.max(1, maxInstancesAllowed - devices.length)}
+                value={bulkCount || ""}
+                placeholder="1"
+                onChange={e => {
+                  const remaining = Math.max(1, maxInstancesAllowed - devices.length);
+                  setBulkCount(Math.min(remaining, Math.max(1, parseInt(e.target.value) || 1)));
+                }}
+                className="h-8 w-24 text-xs"
+              />
               <p className="text-[10px] text-muted-foreground/40">
                 Disponível: {Math.max(0, maxInstancesAllowed - devices.length)} de {maxInstancesAllowed} ({devices.length} em uso)
               </p>
             </div>
 
+            {/* 3. Toggle proxy */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] text-muted-foreground">Vincular proxy às instâncias</Label>
+                <Switch
+                  checked={bulkUseProxy}
+                  onCheckedChange={(checked) => {
+                    setBulkUseProxy(checked);
+                    if (!checked) setBulkSelectedProxies([]);
+                  }}
+                />
+              </div>
+
+              {/* 4. Proxy list (shown only when toggle is on) */}
+              {bulkUseProxy && (
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">Selecionar proxies ({bulkSelectedProxies.length})</Label>
+                  <div className="max-h-[200px] overflow-y-auto space-y-0.5 border border-border/20 rounded-lg p-1.5">
+                    {availableProxies.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground text-center py-3">Nenhuma proxy disponível</p>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
+                          onClick={() => {
+                            if (bulkSelectedProxies.length === availableProxies.length) {
+                              setBulkSelectedProxies([]);
+                            } else {
+                              setBulkSelectedProxies(availableProxies.map(p => p.id));
+                            }
+                          }}
+                        >
+                          <Checkbox checked={bulkSelectedProxies.length === availableProxies.length && availableProxies.length > 0} />
+                          <span className="text-[11px] font-medium">Todas</span>
+                        </div>
+                        {availableProxies.map(p => (
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/30 cursor-pointer"
+                            onClick={() => toggleBulkProxy(p.id)}
+                          >
+                            <Checkbox checked={bulkSelectedProxies.includes(p.id)} />
+                            <span className="text-[11px]">{p.label}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/40">
+                    Cada proxy selecionada cria 1 instância. O total será a quantidade de proxies selecionadas.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Summary */}
-            {(bulkSelectedProxies.length + bulkNoProxyCount) > 0 && (
+            {bulkTotalCount > 0 && (
               <div className="p-2.5 rounded-lg bg-muted/10 border border-border/15">
                 <p className="text-[12px] text-foreground font-medium">
-                  {bulkSelectedProxies.length + bulkNoProxyCount} instância{(bulkSelectedProxies.length + bulkNoProxyCount) !== 1 ? "s" : ""} serão criadas
+                  {bulkTotalCount} instância{bulkTotalCount !== 1 ? "s" : ""} serão criadas
                 </p>
                 <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-                  {bulkSelectedProxies.length > 0 && `${bulkSelectedProxies.length} com proxy`}
-                  {bulkSelectedProxies.length > 0 && bulkNoProxyCount > 0 && " · "}
-                  {bulkNoProxyCount > 0 && `${bulkNoProxyCount} sem proxy`}
+                  {bulkUseProxy ? `${bulkSelectedProxies.length} com proxy` : `${bulkCount} sem proxy`}
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleBulkCreate} disabled={bulkSelectedProxies.length + bulkNoProxyCount === 0}>
-              Criar {bulkSelectedProxies.length + bulkNoProxyCount}
+            <Button size="sm" onClick={handleBulkCreate} disabled={bulkTotalCount === 0}>
+              Criar {bulkTotalCount}
             </Button>
           </DialogFooter>
         </DialogContent>
