@@ -176,7 +176,7 @@ const MyPlan = () => {
                     rel="noopener noreferrer"
                     className={`w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 mb-6 transition-all duration-200 rounded-xl
                       ${plan.popular
-                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-black/10 dark:border-transparent"
                         : "bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08] hover:border-border"
                       }
                     `}
