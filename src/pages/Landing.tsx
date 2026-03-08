@@ -71,7 +71,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">{children}</h2>
+  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white/95 tracking-tight mb-4 leading-tight">{children}</h2>
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
