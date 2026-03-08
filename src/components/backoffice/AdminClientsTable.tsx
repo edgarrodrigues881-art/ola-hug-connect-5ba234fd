@@ -102,6 +102,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
         `}
       >
         {f.label}
+      </button>
     );
   };
 
