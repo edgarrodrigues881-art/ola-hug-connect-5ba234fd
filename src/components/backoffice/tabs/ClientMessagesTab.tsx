@@ -239,18 +239,12 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
             {history.map((m: any) => {
               const tpl = TEMPLATES.find(t => t.type === m.template_type);
               return (
-                <div key={m.id} className="flex items-start gap-3 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/50">
-                  <div className="shrink-0 mt-0.5">
-                    {tpl ? <tpl.icon size={14} className={tpl.color} /> : <MessageCircle size={14} className="text-muted-foreground" />}
+                <div key={m.id} className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/50">
+                  <div className="shrink-0">
+                    {tpl ? <tpl.icon size={13} className={tpl.color} /> : <MessageCircle size={13} className="text-muted-foreground" />}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-semibold text-foreground">{tpl?.label || m.template_type}</span>
-                      <span className="text-[9px] text-muted-foreground">{new Date(m.sent_at).toLocaleString("pt-BR")}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground line-clamp-1">{m.message_content}</p>
-                    {m.observation && <p className="text-[10px] text-muted-foreground/70 mt-0.5 italic">📝 {m.observation}</p>}
-                  </div>
+                  <span className="text-[10px] font-semibold text-foreground">{tpl?.label || m.template_type}</span>
+                  <span className="text-[9px] text-muted-foreground ml-auto shrink-0">{new Date(m.sent_at).toLocaleDateString("pt-BR")}</span>
                 </div>
               );
             })}
