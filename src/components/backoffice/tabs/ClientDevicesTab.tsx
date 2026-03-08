@@ -23,11 +23,17 @@ const PLAN_ORDER = ["Start", "Pro", "Scale", "Elite"];
 
 interface Props { client: AdminUser; detail: any; }
 
-const statusTextColor: Record<string, string> = {
-  Connected: "text-green-500", Disconnected: "text-muted-foreground", connecting: "text-yellow-500", Blocked: "text-destructive",
+const statusConfig: Record<string, { label: string; color: string; dot: string; icon: React.ElementType }> = {
+  Connected: { label: "Conectada", color: "text-green-500", dot: "bg-green-500", icon: Wifi },
+  Disconnected: { label: "Desconectada", color: "text-muted-foreground", dot: "bg-muted-foreground", icon: WifiOff },
+  connecting: { label: "Conectando", color: "text-yellow-500", dot: "bg-yellow-500", icon: Wifi },
+  Blocked: { label: "Bloqueada", color: "text-destructive", dot: "bg-destructive", icon: Lock },
 };
-const statusLabel: Record<string, string> = {
-  Connected: "Conectada", Disconnected: "Desconectada", connecting: "Conectando", Blocked: "Bloqueada",
+
+const typeLabels: Record<string, { label: string; color: string }> = {
+  principal: { label: "Principal", color: "bg-primary/10 text-primary" },
+  contingencia: { label: "Contingência", color: "bg-yellow-500/10 text-yellow-500" },
+  notificacao: { label: "Notificação", color: "bg-amber-500/10 text-amber-500" },
 };
 
 const ClientDevicesTab = ({ client, detail }: Props) => {
@@ -54,10 +60,13 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const nextPlan = currentPlanIndex >= 0 && currentPlanIndex < PLAN_ORDER.length - 1 ? PLAN_ORDER[currentPlanIndex + 1] : null;
   const nextPlanConfig = nextPlan ? PLANS[nextPlan] : null;
 
+  const usagePercent = maxInstances > 0 ? Math.round((devices.length / maxInstances) * 100) : 0;
+  const connectedCount = devices.filter((d: any) => d.status === "Connected").length;
+
   let blockReason = "";
-  if (isBlocked) blockReason = `Cliente ${client.status === "suspended" ? "suspenso" : "cancelado"} — bloqueado`;
-  else if (noPlan) blockReason = !hasActivePlan ? "Sem plano ativo — criação bloqueada" : "Assinatura vencida — criação bloqueada";
-  else if (atLimit) blockReason = `Limite do plano atingido (${devices.length}/${maxInstances})`;
+  if (isBlocked) blockReason = `Conta ${client.status === "suspended" ? "suspensa" : "cancelada"}`;
+  else if (noPlan) blockReason = !hasActivePlan ? "Sem plano ativo" : "Assinatura vencida";
+  else if (atLimit) blockReason = `Limite atingido (${devices.length}/${maxInstances})`;
 
   const handleCreateClick = () => {
     if (noPlan || isBlocked) { setShowNoPlan(true); return; }
@@ -99,87 +108,125 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
     });
   };
 
+  const getDeviceType = (d: any) => {
+    if (d.instance_type === "notificacao") return "notificacao";
+    if (d.login_type === "contingencia") return "contingencia";
+    return "principal";
+  };
+
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Server size={18} className="text-primary" />
-          <h3 className="text-base font-bold text-foreground">Instâncias</h3>
-          <span className="text-sm text-muted-foreground">({devices.length}/{maxInstances})</span>
+    <div className="space-y-4">
+      {/* ── Header com resumo ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Instâncias</p>
+          <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs px-3" disabled={isPending || isBlocked}>
+            {(isBlocked || noPlan) ? <Ban size={12} className="mr-1.5" /> : atLimit ? <ArrowUpCircle size={12} className="mr-1.5" /> : <Plus size={12} className="mr-1.5" />}
+            {noPlan ? "Sem Plano" : atLimit && !isBlocked ? "Upgrade" : "Nova Instância"}
+          </Button>
         </div>
-        <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          disabled={isPending || isBlocked}>
-          {(isBlocked || noPlan) ? <Ban size={14} className="mr-1" /> : atLimit ? <ArrowUpCircle size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
-          {noPlan ? "Sem plano" : atLimit && !isBlocked ? "Upgrade" : "Criar Instância"}
-        </Button>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="bg-muted/30 rounded-lg px-3 py-2">
+            <p className="text-[9px] text-muted-foreground uppercase font-medium">Criadas</p>
+            <p className="text-lg font-bold text-foreground">{devices.length}<span className="text-xs font-normal text-muted-foreground"> / {maxInstances}</span></p>
+          </div>
+          <div className="bg-muted/30 rounded-lg px-3 py-2">
+            <p className="text-[9px] text-muted-foreground uppercase font-medium">Online</p>
+            <p className="text-lg font-bold text-green-500">{connectedCount}</p>
+          </div>
+          <div className="bg-muted/30 rounded-lg px-3 py-2">
+            <p className="text-[9px] text-muted-foreground uppercase font-medium">Ocupação</p>
+            <p className="text-lg font-bold text-foreground">{usagePercent}%</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full bg-muted/50 rounded-full h-1.5">
+          <div className={`h-1.5 rounded-full transition-all ${usagePercent >= 90 ? "bg-destructive" : usagePercent >= 70 ? "bg-yellow-500" : "bg-primary"}`} style={{ width: `${Math.min(usagePercent, 100)}%` }} />
+        </div>
       </div>
 
+      {/* ── Alerta de bloqueio ── */}
       {!canCreate && blockReason && (
-        <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-md px-4 py-2.5 text-sm text-destructive">
-          <AlertTriangle size={16} className="shrink-0" /> {blockReason}
+        <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-2 text-xs text-destructive">
+          <AlertTriangle size={13} className="shrink-0" /> {blockReason}
         </div>
       )}
 
-      <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
-              <th className="text-left px-4 py-2.5">Nome</th>
-              <th className="text-left px-4 py-2.5">Tipo</th>
-              <th className="text-left px-4 py-2.5">Número</th>
-              <th className="text-left px-4 py-2.5">Status</th>
-              <th className="text-left px-4 py-2.5">Criada em</th>
-              <th className="text-right px-4 py-2.5">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {devices.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma instância</td></tr>
-            ) : devices.map((d: any) => (
-              <tr key={d.id} className="hover:bg-muted/30">
-                <td className="px-4 py-2.5 text-foreground font-medium">{d.name}</td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {d.instance_type === "notificacao" ? (
-                    <span className="text-amber-500 font-medium">Notificação</span>
-                  ) : d.login_type === "contingencia" ? "Contingência" : "Principal"}
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{d.number || "—"}</td>
-                <td className="px-4 py-2.5">
-                  <span className={`text-xs font-medium flex items-center gap-1 ${statusTextColor[d.status] || "text-muted-foreground"}`}>
-                    {d.status === "Connected" ? <Wifi size={12} /> : d.status === "Blocked" ? <Lock size={12} /> : <WifiOff size={12} />}
-                    {statusLabel[d.status] || d.status}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
-                <td className="px-4 py-2.5 text-right">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive h-8 w-8"><Trash2 size={14} /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-card border-border">
-                      <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* ── Tabela de Instâncias ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lista de Instâncias</p>
+        {devices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+            <Server size={28} className="mb-2 opacity-30" />
+            <p className="text-xs">Nenhuma instância criada</p>
+          </div>
+        ) : (
+          <div className="border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/40 text-muted-foreground text-[9px] uppercase tracking-wider">
+                  <th className="text-left px-3 py-2">Nome</th>
+                  <th className="text-left px-3 py-2">Tipo</th>
+                  <th className="text-left px-3 py-2">Número</th>
+                  <th className="text-left px-3 py-2">Status</th>
+                  <th className="text-left px-3 py-2">Criada em</th>
+                  <th className="text-right px-3 py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {devices.map((d: any) => {
+                  const st = statusConfig[d.status] || statusConfig.Disconnected;
+                  const tp = typeLabels[getDeviceType(d)] || typeLabels.principal;
+                  const StIcon = st.icon;
+                  return (
+                    <tr key={d.id} className="hover:bg-muted/20">
+                      <td className="px-3 py-2 text-foreground font-medium">{d.name}</td>
+                      <td className="px-3 py-2">
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${tp.color}`}>{tp.label}</span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{d.number || "—"}</td>
+                      <td className="px-3 py-2">
+                        <span className={`text-[10px] font-semibold flex items-center gap-1 ${st.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-2 text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"><Trash2 size={13} /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-card border-border">
+                            <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente. O token será liberado para reutilização.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Criar Instância</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-border sm:max-w-md">
+          <DialogHeader><DialogTitle>Nova Instância</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label className="text-muted-foreground text-xs">Nome</Label>
-              <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-muted/30 border-border mt-1" />
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground uppercase font-medium">Nome</Label>
+              <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-muted/30 border-border h-9 rounded-lg" />
             </div>
-            <div>
-              <Label className="text-muted-foreground text-xs">Tipo</Label>
-              <select value={newType} onChange={e => setNewType(e.target.value)} className="mt-1 w-full h-9 rounded-md border border-border bg-card text-foreground px-3 text-sm">
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground uppercase font-medium">Tipo</Label>
+              <select value={newType} onChange={e => setNewType(e.target.value)} className="w-full h-9 rounded-lg border border-border bg-muted/30 text-foreground px-3 text-sm cursor-pointer">
                 <option value="principal">Principal</option>
                 <option value="contingencia">Contingência</option>
                 <option value="notificacao">Notificação</option>
@@ -187,8 +234,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={createDevice} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Criar
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="border-border text-muted-foreground">Cancelar</Button>
+            <Button onClick={createDevice} disabled={isPending || !newName.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Plus size={13} className="mr-1.5" />} Criar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -196,32 +244,32 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
       {/* Upgrade dialog */}
       <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ArrowUpCircle size={18} className="text-primary" />Limite Atingido</DialogTitle>
-            <DialogDescription className="text-muted-foreground pt-2">
-              Limite do plano <strong className="text-foreground">{currentPlan}</strong> ({maxInstances} inst.).
-              {nextPlan && nextPlanConfig && <span className="block mt-2">Migrar para <strong className="text-primary">{nextPlan}</strong> ({nextPlanConfig.max_instances} inst., R$ {nextPlanConfig.price.toFixed(2)}/mês)?</span>}
+            <DialogTitle className="flex items-center gap-2"><ArrowUpCircle size={16} className="text-primary" />Limite Atingido</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2 text-xs">
+              Plano <strong className="text-foreground">{currentPlan}</strong> permite até {maxInstances} instâncias.
+              {nextPlan && nextPlanConfig && <span className="block mt-1.5">Migrar para <strong className="text-primary">{nextPlan}</strong> ({nextPlanConfig.max_instances} inst., R$ {nextPlanConfig.price.toFixed(2)}/mês)?</span>}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowUpgrade(false)} className="border-border text-muted-foreground">Cancelar</Button>
-            {nextPlan && <Button onClick={upgradePlan} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground"><ArrowUpCircle size={14} className="mr-2" />Migrar para {nextPlan}</Button>}
+            {nextPlan && <Button onClick={upgradePlan} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm"><ArrowUpCircle size={13} className="mr-1.5" />Migrar para {nextPlan}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* No Plan dialog */}
       <Dialog open={showNoPlan} onOpenChange={setShowNoPlan}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Ban size={18} className="text-destructive" /> Ative um plano para liberar instâncias</DialogTitle>
-            <DialogDescription className="text-muted-foreground pt-2">
+            <DialogTitle className="flex items-center gap-2"><Ban size={16} className="text-destructive" />Criação Bloqueada</DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2 text-xs">
               {isBlocked
-                ? "Esta conta está suspensa/cancelada. Reative antes de criar instâncias."
+                ? "Conta suspensa/cancelada. Reative na aba Visão Geral."
                 : !hasActivePlan
-                  ? "Esta conta está sem plano ativo. Atribua um plano na aba Plano para liberar instâncias."
-                  : "A assinatura está vencida. Registre um pagamento para reativar."}
+                  ? "Sem plano ativo. Atribua um plano na aba Plano & Assinatura."
+                  : "Assinatura vencida. Renove na aba Plano & Assinatura."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
