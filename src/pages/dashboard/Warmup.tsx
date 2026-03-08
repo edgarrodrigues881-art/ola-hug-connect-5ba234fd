@@ -45,6 +45,11 @@ const Warmup = () => {
   const { user } = useAuth();
   const { isBlocked, planState } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
+  const [warningShown, setWarningShown] = useState(false);
+  const [showWarning, setShowWarning] = useState(() => {
+    const dismissed = sessionStorage.getItem("warmup-warning-dismissed");
+    return !dismissed;
+  });
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
@@ -382,6 +387,41 @@ const Warmup = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {/* Warning popup */}
+      <Dialog open={showWarning} onOpenChange={(open) => {
+        if (!open) {
+          setShowWarning(false);
+          sessionStorage.setItem("warmup-warning-dismissed", "true");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Aviso importante
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+            <p>
+              <strong className="text-foreground">Evite colocar números que estão caindo ou sendo restringidos pelo WhatsApp.</strong>
+            </p>
+            <p>
+              O aquecimento é um processo gradual para fortalecer chips saudáveis. Números que já estão sendo banidos ou restringidos têm grandes chances de serem bloqueados permanentemente durante o processo.
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Recomendamos usar chips novos ou estáveis para melhores resultados.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => {
+              setShowWarning(false);
+              sessionStorage.setItem("warmup-warning-dismissed", "true");
+            }}>
+              Entendi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
