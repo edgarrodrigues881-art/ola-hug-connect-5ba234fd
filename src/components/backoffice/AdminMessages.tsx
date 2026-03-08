@@ -116,7 +116,7 @@ const AdminMessages = () => {
   const [configGroupId, setConfigGroupId] = useState("");
   const [configGroupName, setConfigGroupName] = useState("");
   const [newToken, setNewToken] = useState("");
-  const [newBaseUrl, setNewBaseUrl] = useState("https://dgcontingencia.uazapi.com");
+  const [newBaseUrl, setNewBaseUrl] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("Relatório WA");
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
@@ -504,7 +504,7 @@ const AdminMessages = () => {
                     className="h-9 text-xs bg-background border-border/60"
                   />
                   <Input
-                    placeholder="URL base (ex: https://dgcontingencia.uazapi.com)"
+                    placeholder="URL base da API"
                     value={newBaseUrl}
                     onChange={e => setNewBaseUrl(e.target.value)}
                     className="h-9 text-xs bg-background border-border/60"

@@ -73,7 +73,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [provisioning, setProvisioning] = useState(false);
   const loading = isPending || provisioning;
 
-  // Auto-provision tokens via UAZAPI API
+  // Auto-provision tokens via API
   const handleAutoProvision = (quantity: number) => {
     setProvisioning(true);
     const clientName = client.full_name || client.email || "cliente";
@@ -84,7 +84,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
       onSuccess: (data: any) => {
         setProvisioning(false);
         if (data.created > 0) {
-          toast({ title: `${data.created} token(s) criado(s) automaticamente via UAZAPI`, description: data.errors > 0 ? `${data.errors} erro(s): ${data.error_details?.join(", ")}` : undefined });
+          toast({ title: `${data.created} token(s) criado(s) automaticamente`, description: data.errors > 0 ? `${data.errors} erro(s): ${data.error_details?.join(", ")}` : undefined });
         } else if (data.existing >= quantity) {
           toast({ title: `Cliente já possui ${data.existing} token(s) — nenhum novo necessário` });
         } else {
