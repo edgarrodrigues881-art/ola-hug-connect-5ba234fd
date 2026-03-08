@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   const db = createClient(supabaseUrl, serviceKey);
 
   let body: any = {};
-  try { body = await req.json(); } catch {}
+  try { body = await req.json(); } catch (_e) { /* ignore */ }
 
   const action = body.action || "tick"; // tick | daily
 

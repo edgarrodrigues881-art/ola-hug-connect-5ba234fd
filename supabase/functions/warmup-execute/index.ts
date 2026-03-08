@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     targetSessionId = body.sessionId || null;
     forceExecute = body.forceExecute === true;
-  } catch {}
+  } catch (_e) { /* ignore */ }
 
   try {
     // ─── PLAN CHECK ───

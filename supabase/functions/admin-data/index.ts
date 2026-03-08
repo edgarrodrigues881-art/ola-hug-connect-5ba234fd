@@ -569,7 +569,7 @@ Deno.serve(async (req) => {
             } else {
               console.log(`Token ${uncheckedToken.id} is invalid (401), skipping`);
             }
-          } catch {
+          } catch (_e) {
             // Network error, still assign it
             availableToken = uncheckedToken;
           }

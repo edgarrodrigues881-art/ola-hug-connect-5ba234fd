@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   }
 
   let body: any = {};
-  try { body = await req.json(); } catch {}
+  try { body = await req.json(); } catch (_e) { /* ignore */ }
 
   const action = body.action || "tick"; // tick | start | pause | resume | stop
 

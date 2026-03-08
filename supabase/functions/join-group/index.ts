@@ -13,7 +13,7 @@ function extractInviteCode(link: string): string | null {
       .replace(/^chat\.whatsapp\.com\//, "");
     const code = cleaned.split("?")[0].split("/")[0].trim();
     return code && code.length >= 10 ? code : null;
-  } catch {
+  } catch (_e) {
     return null;
   }
 }
@@ -72,7 +72,7 @@ async function tryJoin(
       });
       const raw = await res.text();
       let body: any;
-      try { body = JSON.parse(raw); } catch { body = { raw }; }
+      try { body = JSON.parse(raw); } catch (_e) { body = { raw }; }
       console.log(`${ep.method} result: ${res.status} ${raw.substring(0, 300)}`);
 
       // If 405 Method Not Allowed, try next strategy
