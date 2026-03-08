@@ -359,8 +359,8 @@ const Auth = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-medium text-[#9CA3AF]">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                   Senha de acesso
                 </Label>
                 <div className="relative">
