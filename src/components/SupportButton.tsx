@@ -24,7 +24,7 @@ const SupportButton = () => {
 
       <Button
         size="icon"
-        className="h-14 w-14 rounded-full bg-primary hover:bg-[hsl(142,71%,38%)] shadow-lg transition-colors"
+        className="h-14 w-14 rounded-full bg-primary hover:bg-[hsl(142,71%,38%)] transition-colors shadow-none"
         onClick={() => setOpen(!open)}
       >
         {open ? (
