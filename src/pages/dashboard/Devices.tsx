@@ -475,7 +475,7 @@ const Devices = () => {
     }
     // When using proxy, total = selected proxies count; otherwise total = bulkCount
     const proxyIds = bulkUseProxy ? bulkSelectedProxies : [];
-    const noProxyCount = bulkUseProxy ? 0 : bulkCount;
+    const noProxyCount = bulkUseProxy ? 0 : (bulkCount || 0);
     const totalCount = proxyIds.length + noProxyCount;
     if (totalCount === 0) {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
