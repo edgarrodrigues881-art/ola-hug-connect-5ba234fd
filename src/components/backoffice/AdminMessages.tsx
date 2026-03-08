@@ -833,48 +833,70 @@ const AdminMessages = () => {
   // ─── MAIN LIST ───
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-5">
+        {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Radio size={20} className="text-emerald-500" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Radio size={18} className="text-primary" />
+            </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
-              <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
+              <h2 className="text-base font-bold text-foreground tracking-tight">Relatório via WhatsApp</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Clique no cliente → veja a mensagem → envie</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => setView("history")}
+              className="text-[11px] h-8 gap-1.5 rounded-lg border-border hover:bg-muted/30">
               <History size={13} /> Histórico
             </Button>
             <Button variant="outline" size="sm" onClick={() => setView("config")}
-              className={`text-xs h-8 gap-1.5 ${isConfigured ? "border-emerald-500/30 text-emerald-600" : "border-destructive/30 text-destructive"}`}>
+              className={`text-[11px] h-8 gap-1.5 rounded-lg ${
+                isConfigured
+                  ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10"
+                  : "border-destructive/30 text-destructive bg-destructive/5 hover:bg-destructive/10"
+              }`}>
               {isConfigured ? <Wifi size={13} /> : <WifiOff size={13} />}
               {isConfigured ? "Conectado" : "Configurar"}
             </Button>
           </div>
         </div>
-        <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar cliente..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-10 h-10 bg-card border-border text-sm rounded-xl"
+          />
         </div>
+
+        {/* Client list */}
         <ScrollArea className="max-h-[calc(100vh-320px)]">
-          <div className="space-y-1">
+          <div className="space-y-2">
             {filteredUsers.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
+              <div className="text-center py-16 space-y-2">
+                <User size={28} className="text-muted-foreground/30 mx-auto" />
+                <p className="text-muted-foreground text-sm">Nenhum cliente encontrado</p>
+              </div>
             ) : filteredUsers.map(u => {
               const d = getDaysLeft(u.plan_expires_at);
               const status = getStatusBadge(d);
               return (
                 <button key={u.id} onClick={() => openClient(u)}
-                  className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left">
-                  <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                    <User size={14} className="text-muted-foreground" />
+                  className="w-full flex items-center gap-3.5 bg-card border border-border rounded-xl px-4 py-3.5 hover:border-primary/30 hover:bg-primary/[0.02] transition-all text-left group">
+                  <div className="w-9 h-9 rounded-xl bg-muted/40 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                    <User size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
+                    <p className="text-[13px] font-semibold text-foreground truncate">{u.full_name || u.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
                   </div>
-                  <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>{status.label}</Badge>
+                  <Badge variant="outline" className={`text-[9px] px-2.5 py-0.5 shrink-0 rounded-md ${status.className}`}>
+                    {status.label}
+                  </Badge>
                 </button>
               );
             })}
