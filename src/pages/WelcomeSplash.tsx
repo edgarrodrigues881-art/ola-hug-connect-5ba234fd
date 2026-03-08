@@ -55,7 +55,7 @@ const WelcomeSplash = () => {
           <div className="relative flex flex-col items-center gap-2 px-6">
             {/* Bem-vindo */}
             <motion.span
-              className="text-sm sm:text-base font-bold tracking-[0.35em] uppercase text-primary"
+              className="text-sm sm:text-base font-black tracking-[0.35em] uppercase text-primary drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-none"
               initial={{ opacity: 0, y: 12 }}
               animate={phase >= 1 ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -65,7 +65,7 @@ const WelcomeSplash = () => {
 
             {/* ao */}
             <motion.span
-              className="text-sm text-muted-foreground/60 tracking-[0.5em] uppercase font-medium"
+              className="text-sm text-muted-foreground/70 dark:text-muted-foreground/60 tracking-[0.5em] uppercase font-semibold"
               initial={{ opacity: 0 }}
               animate={phase >= 2 ? { opacity: 1 } : {}}
               transition={{ duration: 0.4, ease: "easeOut" }}
@@ -126,15 +126,15 @@ const WelcomeSplash = () => {
               transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1
-                className="text-2xl sm:text-5xl font-extrabold tracking-tight text-foreground text-center"
+                className="text-2xl sm:text-5xl font-black tracking-tight text-foreground text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] dark:drop-shadow-none"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                <span className="text-primary">DG</span>{" "}
+                <span className="text-primary drop-shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:drop-shadow-none">DG</span>{" "}
                 <span>CONTINGÊNCIA</span>{" "}
-                <span className="text-primary">PRO</span>
+                <span className="text-primary drop-shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:drop-shadow-none">PRO</span>
               </h1>
               <motion.span
-                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/40 font-medium"
+                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/60 dark:text-muted-foreground/40 font-semibold"
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : {}}
                 transition={{ duration: 0.5, delay: 0.4 }}
