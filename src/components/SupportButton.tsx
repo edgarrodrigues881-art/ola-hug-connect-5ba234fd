@@ -32,7 +32,6 @@ const SupportButton = () => {
           <X className="w-6 h-6" />
         ) : (
           <img src={whatsappLogo} alt="WhatsApp" className="w-8 h-8" />
-          </svg>
         )}
       </Button>
     </div>
