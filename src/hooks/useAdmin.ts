@@ -54,6 +54,9 @@ export function useAdminDashboard() {
       }
       return data as AdminDashboard;
     },
+    staleTime: 120_000,
+    gcTime: 300_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -68,6 +71,9 @@ export function useClientDetail(userId: string | null) {
       return data;
     },
     enabled: !!userId,
+    staleTime: 60_000,
+    gcTime: 120_000,
+    refetchOnWindowFocus: false,
   });
 }
 
