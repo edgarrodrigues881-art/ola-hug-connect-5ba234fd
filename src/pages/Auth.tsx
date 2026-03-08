@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, Eye, EyeOff, Building2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.png";
-import SupportButton from "@/components/SupportButton";
+
 
 const translateAuthError = (msg: string): string => {
   const map: Record<string, string> = {
@@ -461,8 +461,6 @@ const Auth = () => {
         )}
       </div>
 
-      {/* Floating support button */}
-      <SupportButton />
       </div>
     </div>
   );
