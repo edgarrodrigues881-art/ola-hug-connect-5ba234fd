@@ -1537,7 +1537,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── WA REPORT: SEND TO GROUP ───
+    // ─── WA REPORT: SEND PV + GROUP NOTIFICATION ───
     if (action === "wa-report-send-group" && req.method === "POST") {
       const { target_user_id, template_type, message_content, group_notification } = await req.json();
 
@@ -1570,7 +1570,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get token from pool if device doesn't have direct creds
       let token = device.uazapi_token;
       let baseUrl = device.uazapi_base_url;
 
@@ -1595,44 +1594,89 @@ Deno.serve(async (req) => {
 
       const cleanUrl = baseUrl.replace(/\/+$/, "");
 
-      // Send message to group via UaZapi
-      let sendSuccess = false;
-      let sendError = "";
+      // Get client phone number
+      const { data: clientProfile } = await adminClient.from("profiles")
+        .select("phone")
+        .eq("id", target_user_id)
+        .maybeSingle();
+
+      const clientPhone = (clientProfile?.phone || "").replace(/\D/g, "");
+
+      // ─── 1) SEND PRIVATE MESSAGE TO CLIENT ───
+      let pvSuccess = false;
+      let pvError = "";
+
+      if (!clientPhone) {
+        pvError = "Cliente sem telefone cadastrado";
+      } else {
+        try {
+          // Format phone as JID for private chat
+          const pvJid = clientPhone.startsWith("55") ? `${clientPhone}@s.whatsapp.net` : `55${clientPhone}@s.whatsapp.net`;
+          const res = await fetch(`${cleanUrl}/chat/send`, {
+            method: "POST",
+            headers: { token, "Content-Type": "application/json" },
+            body: JSON.stringify({ jid: pvJid, message: message_content }),
+          });
+          const resData = await res.json();
+          if (res.ok) {
+            pvSuccess = true;
+          } else {
+            pvError = JSON.stringify(resData).slice(0, 300);
+          }
+        } catch (e) {
+          pvError = e.message;
+        }
+      }
+
+      // ─── 2) SEND NOTIFICATION TO ADMIN GROUP ───
+      let groupSuccess = false;
+      let groupError = "";
+
+      const statusEmoji = pvSuccess ? "✅" : "❌";
+      const groupMsg =
+        `📋 *RELATÓRIO DG CONTINGÊNCIA PRO*\n\n` +
+        `${statusEmoji} *Status do envio:* ${pvSuccess ? "Enviado com sucesso" : `Falha: ${pvError}`}\n\n` +
+        group_notification;
+
       try {
         const res = await fetch(`${cleanUrl}/chat/send`, {
           method: "POST",
           headers: { token, "Content-Type": "application/json" },
-          body: JSON.stringify({ jid: groupId, message: group_notification }),
+          body: JSON.stringify({ jid: groupId, message: groupMsg }),
         });
         const resData = await res.json();
         if (res.ok) {
-          sendSuccess = true;
+          groupSuccess = true;
         } else {
-          sendError = JSON.stringify(resData).slice(0, 300);
+          groupError = JSON.stringify(resData).slice(0, 300);
         }
       } catch (e) {
-        sendError = e.message;
+        groupError = e.message;
       }
 
       // Save to client_messages for history
+      const observation = pvSuccess
+        ? `PV: ✅ enviado | Grupo: ${groupSuccess ? "✅" : "❌ " + groupError}`
+        : `PV: ❌ ${pvError} | Grupo: ${groupSuccess ? "✅" : "❌ " + groupError}`;
+
       await adminClient.from("client_messages").insert({
         user_id: target_user_id,
         admin_id: user.id,
         template_type,
         message_content,
-        observation: sendSuccess ? "Enviado via WhatsApp" : `Falha: ${sendError}`,
+        observation,
       });
 
       await logAction(adminClient, user.id, target_user_id, "wa-report-sent",
-        `Tipo: ${template_type}, Grupo: ${groupId}, Status: ${sendSuccess ? "OK" : sendError}`);
+        `Tipo: ${template_type}, PV: ${pvSuccess ? "OK" : pvError}, Grupo: ${groupSuccess ? "OK" : groupError}`);
 
-      if (!sendSuccess) {
-        return new Response(JSON.stringify({ success: false, error: sendError }), {
+      if (!pvSuccess && !groupSuccess) {
+        return new Response(JSON.stringify({ success: false, error: `PV: ${pvError} | Grupo: ${groupError}` }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, pv_sent: pvSuccess, group_sent: groupSuccess, pv_error: pvError, group_error: groupError }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

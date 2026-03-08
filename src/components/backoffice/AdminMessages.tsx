@@ -208,7 +208,6 @@ const AdminMessages = () => {
     const messageToSend = tpl.build(vars);
 
     const groupNotification =
-      `📋 *RELATÓRIO DG CONTINGÊNCIA PRO*\n\n` +
       `👤 *Cliente:* ${selectedClient.full_name || "—"}\n` +
       `📧 *Email:* ${selectedClient.email}\n` +
       `📱 *Telefone:* ${selectedClient.phone || "—"}\n` +
@@ -216,7 +215,7 @@ const AdminMessages = () => {
       `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR") : "—"}\n` +
       `🏷️ *Tipo:* ${tpl.label}\n\n` +
       `─────────────────\n` +
-      `✉️ *Mensagem para enviar ao cliente:*\n\n${messageToSend}`;
+      `✉️ *Mensagem enviada:*\n\n${messageToSend}`;
 
     setIsSending(true);
     mutate(
@@ -230,8 +229,15 @@ const AdminMessages = () => {
         },
       },
       {
-        onSuccess: () => {
-          toast({ title: "✅ Enviado para o grupo!" });
+        onSuccess: (data: any) => {
+          const pvOk = data?.pv_sent;
+          const grpOk = data?.group_sent;
+          const msg = pvOk && grpOk
+            ? "✅ Mensagem enviada no PV e notificação enviada ao grupo!"
+            : pvOk ? "✅ PV enviado, mas falha no grupo"
+            : grpOk ? "⚠️ Grupo notificado, mas falha no PV: " + (data?.pv_error || "")
+            : "Enviado com ressalvas";
+          toast({ title: msg });
           queryClient.invalidateQueries({ queryKey: ["admin-wa-report-history"] });
           setIsSending(false);
           setView("list");
@@ -414,7 +420,7 @@ const AdminMessages = () => {
         {/* Message preview */}
         {tpl && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground">Mensagem que será enviada ao grupo:</p>
+            <p className="text-xs font-semibold text-muted-foreground">Mensagem que será enviada no PV do cliente:</p>
             <div className="bg-muted/30 rounded-xl p-4 border border-border">
               <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{message}</pre>
             </div>
@@ -432,7 +438,7 @@ const AdminMessages = () => {
           ) : (
             <Send size={16} />
           )}
-          {isSending ? "Enviando..." : "Enviar para o Grupo"}
+          {isSending ? "Enviando..." : "Enviar no PV + Notificar Grupo"}
         </Button>
 
         {!isConfigured && (
