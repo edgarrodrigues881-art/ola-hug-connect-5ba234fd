@@ -1868,6 +1868,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── LIST MESSAGES (for client detail) ───
+    if (action === "list-messages" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const { data: messages } = await adminClient.from("client_messages")
+        .select("id, template_type, message_content, observation, sent_at")
+        .eq("user_id", target_user_id)
+        .order("sent_at", { ascending: false })
+        .limit(50);
+
+      return new Response(JSON.stringify({ messages: messages || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── SAVE MESSAGE ───
+    if (action === "save-message" && req.method === "POST") {
+      const { target_user_id, template_type, message_content, observation } = await req.json();
+      await adminClient.from("client_messages").insert({
+        user_id: target_user_id,
+        admin_id: user.id,
+        template_type,
+        message_content,
+        observation: observation || null,
+      });
+      await logAction(adminClient, user.id, target_user_id, "message-sent", `Tipo: ${template_type}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DELETE MESSAGE ───
+    if (action === "delete-message" && req.method === "POST") {
+      const { message_id, target_user_id } = await req.json();
+      await adminClient.from("client_messages").delete().eq("id", message_id);
+      await logAction(adminClient, user.id, target_user_id, "message-deleted", `ID: ${message_id}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
