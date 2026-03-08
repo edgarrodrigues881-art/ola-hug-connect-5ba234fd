@@ -739,21 +739,23 @@ const Devices = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (!loggingOutDevice) return;
     const device = loggingOutDevice;
-    // Close dialog & update UI immediately (optimistic)
+    // Close dialog & update UI immediately
     setLogoutOpen(false);
     setLoggingOutDevice(null);
+
+    // Instant optimistic cache update (no await, no mutation overhead)
+    queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+      old ? old.map(d => d.id === device.id ? { ...d, status: "Disconnected" as const, number: "", proxy_id: null, profile_picture: null, profile_name: null } : d) : old
+    );
     toast({ title: "Desconectado", description: `${device.name} foi desconectado.` });
 
-    // Optimistic UI update
-    updateMutation.mutate({
-      id: device.id,
-      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
-    });
-
-    // Fire API + proxy cleanup in background (don't await)
+    // Fire everything in background (don't block UI)
+    muteAutoSync(5000);
+    supabase.from("devices").update({ status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null } as any).eq("id", device.id)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["devices"] }));
     callApi({ action: "logout", deviceId: device.id }).catch(err => console.error("Logout API error:", err));
     if (device.proxy_id) {
       supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id)
