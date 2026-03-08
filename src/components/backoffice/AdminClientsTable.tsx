@@ -43,7 +43,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
       const sub = getSubStatus(u);
       if (filter === "expiring" && sub.label !== "Vencendo") return false;
       if (filter === "expired" && sub.label !== "Vencida") return false;
-      if (filter === "risk" && !u.risk_flag) return false;
+      
       if (["Start", "Pro", "Scale", "Elite"].includes(filter) && u.plan_name !== filter) return false;
       if (filter === "active" && u.status !== "active") return false;
       if (filter === "suspended" && u.status !== "suspended") return false;
@@ -56,8 +56,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
   const counts = useMemo(() => {
     const exp = users.filter(u => getSubStatus(u).label === "Vencida").length;
     const expiring = users.filter(u => getSubStatus(u).label === "Vencendo").length;
-    const risk = users.filter(u => u.risk_flag).length;
-    return { exp, expiring, risk };
+    return { exp, expiring };
   }, [users]);
 
   const filters = [
@@ -66,7 +65,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
     { label: "Suspensos", value: "suspended" },
     { label: `Vencendo (${counts.expiring})`, value: "expiring" },
     { label: `Vencidos (${counts.exp})`, value: "expired" },
-    { label: `Risco (${counts.risk})`, value: "risk" },
+    
     { label: "Start", value: "Start" },
     { label: "Pro", value: "Pro" },
     { label: "Scale", value: "Scale" },
@@ -84,7 +83,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
         <div className="flex flex-wrap gap-1.5">
           {filters.map(f => {
             const isActive = filter === f.value;
-            const isDanger = f.value === "expired" || f.value === "risk";
+            const isDanger = f.value === "expired";
             return (
               <button
                 key={f.value}
@@ -93,7 +92,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                   shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
                   ${isActive
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : isDanger && (f.value === "expired" ? counts.exp > 0 : f.value === "risk" ? counts.risk > 0 : false)
+                    : isDanger && counts.exp > 0
                       ? "bg-card border-destructive/30 text-destructive hover:bg-destructive/5"
                       : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                   }
@@ -126,7 +125,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-foreground font-semibold text-sm truncate">{u.full_name || "—"}</span>
-                    {u.risk_flag && <AlertTriangle size={12} className="text-destructive shrink-0" />}
+                    
                     {u.roles.includes("admin") && <Shield size={12} className="text-primary shrink-0" />}
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.email}</p>
@@ -197,7 +196,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
                         <span className="text-foreground font-medium text-xs">{u.full_name || "—"}</span>
-                        {u.risk_flag && <AlertTriangle size={12} className="text-destructive" />}
+                        
                         {u.roles.includes("admin") && <Shield size={12} className="text-primary" />}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
