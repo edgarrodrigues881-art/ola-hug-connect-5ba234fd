@@ -1,13 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+
+// Global mute flag: when set, realtime + auto-sync skip invalidation
+let mutedUntil = 0;
+
+export function muteAutoSync(ms = 3000) {
+  mutedUntil = Date.now() + ms;
+}
 
 /**
  * Auto-syncs device statuses by calling sync-devices edge function periodically.
  * Also sends keep-alive pings to connected instances to prevent session timeout.
  * Pauses when the browser tab is hidden.
- * @param intervalMs - sync interval in milliseconds (default 30s)
+ * @param intervalMs - sync interval in milliseconds (default 60s)
  */
 export function useAutoSyncDevices(intervalMs = 60000) {
   const { session } = useAuth();
@@ -19,10 +26,13 @@ export function useAutoSyncDevices(intervalMs = 60000) {
 
     const doSync = async () => {
       if (syncingRef.current || document.hidden) return;
+      if (Date.now() < mutedUntil) return; // skip while muted
       syncingRef.current = true;
       try {
         await supabase.functions.invoke("sync-devices");
-        queryClient.invalidateQueries({ queryKey: ["devices"] });
+        if (Date.now() >= mutedUntil) {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        }
       } catch {
         // silent fail
       } finally {
@@ -38,14 +48,13 @@ export function useAutoSyncDevices(intervalMs = 60000) {
     return () => clearInterval(interval);
   }, [session?.access_token, intervalMs, queryClient]);
 
-  // Keep-alive: ping connected devices every 10 minutes to prevent session timeout
+  // Keep-alive: ping connected devices every 5 minutes to prevent session timeout
   useEffect(() => {
     if (!session?.access_token) return;
 
     const doKeepAlive = async () => {
       if (document.hidden) return;
       try {
-        // Get connected devices (excluding report_wa devices - they have separate management)
         const { data: connectedDevices } = await supabase
           .from("devices")
           .select("id")
@@ -54,7 +63,6 @@ export function useAutoSyncDevices(intervalMs = 60000) {
         
         if (!connectedDevices?.length) return;
 
-        // Send keepAlive to each connected device (parallel, fire-and-forget)
         await Promise.allSettled(
           connectedDevices.map(d =>
             supabase.functions.invoke("evolution-connect", {
@@ -67,9 +75,7 @@ export function useAutoSyncDevices(intervalMs = 60000) {
       }
     };
 
-    // Keep-alive every 5 minutes (prevents 30-day session timeout)
     const keepAliveInterval = setInterval(doKeepAlive, 5 * 60 * 1000);
-    // First keep-alive after 2 minutes
     const initialTimeout = setTimeout(doKeepAlive, 2 * 60 * 1000);
 
     return () => {
@@ -93,10 +99,12 @@ export function useAutoSyncDevices(intervalMs = 60000) {
           filter: `user_id=eq.${session.user.id}`,
         },
         () => {
-          // Debounce: coalesce rapid-fire changes into a single invalidation
+          if (Date.now() < mutedUntil) return; // skip while muted
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ["devices"] });
+            if (Date.now() >= mutedUntil) {
+              queryClient.invalidateQueries({ queryKey: ["devices"] });
+            }
           }, 500);
         }
       )
