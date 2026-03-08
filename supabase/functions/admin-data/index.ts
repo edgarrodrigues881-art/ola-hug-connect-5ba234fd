@@ -1637,8 +1637,29 @@ Deno.serve(async (req) => {
         }
       };
 
-      // Strategy 1: paginated list
+      // Strategy 1: paginated list (page 0-based)
       for (let page = 0; page < 10; page++) {
+        try {
+          const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=500`, {
+            method: "GET",
+            headers: { token, Accept: "application/json", "Content-Type": "application/json" },
+          });
+          if (!res.ok) { console.log(`[groups] page ${page} status ${res.status}`); break; }
+          const data = await res.json();
+          const groups = data.groups || data || [];
+          const groupArray = Array.isArray(groups) ? groups : [];
+          console.log(`[groups] page ${page}: ${groupArray.length} items, total unique so far: ${seenJids.size}`);
+          if (groupArray.length === 0) break;
+          const before = seenJids.size;
+          addGroups(groupArray);
+          if (seenJids.size === before) break;
+        } catch (_e) {
+          break;
+        }
+      }
+
+      // Strategy 2: try page 1-based pagination (some APIs start at 1)
+      for (let page = 1; page <= 5; page++) {
         try {
           const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=500`, {
             method: "GET",
@@ -1649,16 +1670,14 @@ Deno.serve(async (req) => {
           const groups = data.groups || data || [];
           const groupArray = Array.isArray(groups) ? groups : [];
           if (groupArray.length === 0) break;
-          const before = seenJids.size;
           addGroups(groupArray);
-          if (seenJids.size === before) break;
         } catch (_e) {
           break;
         }
       }
 
-      // Strategy 2: try alternate endpoints to catch any missed groups
-      for (const endpoint of ["/group/listAll", "/group/list?GetParticipants=false&count=9999"]) {
+      // Strategy 3: try alternate endpoints
+      for (const endpoint of ["/group/listAll", "/group/list?GetParticipants=false&count=9999", "/chat/list?type=group&count=500"]) {
         try {
           const res = await fetch(`${cleanUrl}${endpoint}`, {
             method: "GET",
@@ -1666,13 +1685,17 @@ Deno.serve(async (req) => {
           });
           if (!res.ok) continue;
           const data = await res.json();
-          const groups = data.groups || data || [];
-          const groupArray = Array.isArray(groups) ? groups : [];
+          const rawGroups = data.groups || data.chats || data || [];
+          const groupArray = Array.isArray(rawGroups) ? rawGroups : [];
+          const before = seenJids.size;
           addGroups(groupArray);
+          console.log(`[groups] ${endpoint}: +${seenJids.size - before} new groups`);
         } catch (_e) {
           // ignore
         }
       }
+
+      console.log(`[groups] TOTAL: ${allGroups.length} groups found`);
 
       return new Response(JSON.stringify({ groups: allGroups }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
