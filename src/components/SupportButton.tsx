@@ -31,7 +31,7 @@ const SupportButton = () => {
         {open ? (
           <X className="w-6 h-6" />
         ) : (
-          <img src={whatsappLogo} alt="WhatsApp" className="w-8 h-8" />
+          <img src={whatsappLogo} alt="WhatsApp" className="w-5 h-5" />
         )}
       </Button>
     </div>
