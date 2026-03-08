@@ -119,7 +119,7 @@ const MyPlan = () => {
                 {/* Badge */}
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg"
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg border border-black/10 dark:border-transparent"
                       style={{
                         background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
                         boxShadow: "0 4px 20px rgba(0,255,163,0.25)",
