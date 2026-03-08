@@ -597,12 +597,6 @@ const AdminMessages = () => {
         </div>
       </div>
 
-      {!isConfigured && (
-        <div className="bg-destructive/5 border border-destructive/20 rounded-lg px-4 py-3">
-          <p className="text-xs text-destructive font-medium">⚠️ Configure uma instância e grupo para enviar relatórios.</p>
-          <button onClick={() => setView("config")} className="text-xs text-primary hover:underline mt-1">Configurar agora →</button>
-        </div>
-      )}
 
       {/* Search */}
       <div className="relative max-w-sm">
