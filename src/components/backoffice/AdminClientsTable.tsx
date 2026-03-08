@@ -102,9 +102,26 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
         `}
       >
         {f.label}
-      </button>
-            );
-          })}
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search + Filters */}
+      <div className="space-y-3">
+        <div className="relative max-w-xs">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {filterGroups.map((group, gi) => (
+            <div key={gi} className="flex items-center gap-1.5">
+              {group.label && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold mr-0.5">{group.label}</span>
+              )}
+              {group.items.map(f => renderFilterBtn(f))}
+            </div>
+          ))}
         </div>
       </div>
 
