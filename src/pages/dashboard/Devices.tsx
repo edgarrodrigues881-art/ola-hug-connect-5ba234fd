@@ -1701,8 +1701,8 @@ const Devices = () => {
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Já escaneei, sincronizar
                 </Button>
-              </div>
-            </motion.div>)}
+              </motion.div>
+            )}
 
             {connectStep === "code_phone" && (() => {
               const rawDigits = codePhone.replace(/\D/g, "");
