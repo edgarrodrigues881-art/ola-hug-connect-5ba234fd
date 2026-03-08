@@ -152,7 +152,11 @@ const ClientProfileTab = ({ client, detail }: Props) => {
                   mutate(
                     { action: "toggle-notification", body: { target_user_id: client.id, enabled: v } },
                     {
-                      onSuccess: () => toast({ title: v ? "Notificação liberada" : "Notificação bloqueada" }),
+                      onSuccess: (data: any) => {
+                        const msg = v ? "Notificação liberada" : "Notificação bloqueada";
+                        const desc = v && data?.monitor_token ? "Token de monitoramento provisionado automaticamente" : undefined;
+                        toast({ title: msg, description: desc });
+                      },
                       onError: (e) => {
                         toast({ title: "Erro", description: e.message, variant: "destructive" });
                         setNotificacaoLiberada(!v);
