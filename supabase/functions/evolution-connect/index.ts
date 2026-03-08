@@ -33,7 +33,7 @@ async function uazapi(
   let data: any;
   try {
     data = JSON.parse(text);
-  } catch {
+  } catch (_e) {
     data = { raw: text.substring(0, 500) };
   }
   return { ok: res.ok, status: res.status, data };
@@ -118,7 +118,7 @@ async function testProxyConnectivity(
       ),
     ]);
 
-    try { conn.close(); } catch {}
+    try { conn.close(); } catch (_e) { /* ignore */ }
 
     if (!n || n === 0) {
       console.log(`Proxy test FAILED: ${proxy.host}:${proxy.port} → empty response`);
@@ -191,7 +191,7 @@ async function setProxy(
         console.log("Proxy set via", ep);
         return { ok: true };
       }
-    } catch {}
+    } catch (_e) { /* ignore */ }
   }
   console.log("Proxy set failed on all UaZapi endpoints");
   return { ok: false, error: "Falha ao configurar proxy no provedor" };
@@ -199,7 +199,7 @@ async function setProxy(
 
 
 async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
-  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
           profileName: inst.profileName || "",
           profilePicUrl: inst.profilePicUrl || "",
         };
-      } catch {
+      } catch (_e) {
         return { valid: false, status: "error" };
       }
     };
@@ -826,7 +826,7 @@ Deno.serve(async (req) => {
 
       // Method 1: Disconnect + delete with instance token (try POST and DELETE)
       if (instanceToken) {
-        try { await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST"); } catch {}
+        try { await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST"); } catch (_e) { /* ignore */ }
         
         for (const ep of ["/instance/delete", "/instance/remove"]) {
           for (const m of ["DELETE" as const, "POST" as const]) {
@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
               const r = await uazapi(instanceUrl, ep, instanceToken, m);
               console.log(`Delete (inst) ${m} ${ep}: ${r.status}`);
               if (r.ok) { deleted = true; break; }
-            } catch {}
+            } catch (_e) { /* ignore */ }
           }
           if (deleted) break;
         }
@@ -863,7 +863,7 @@ Deno.serve(async (req) => {
                 if (res.ok) { deleted = true; break outer; }
                 if (res.status === 401) continue;
                 if (res.status === 405) break; // wrong method, try next
-              } catch {}
+              } catch (_e) { /* ignore */ }
             }
           }
         }
