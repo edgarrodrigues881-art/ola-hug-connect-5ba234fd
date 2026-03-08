@@ -155,7 +155,7 @@ const steps = [
 ];
 
 const HowItWorks = () => (
-  <Section id="como-funciona" className="bg-white/[0.01]">
+  <Section id="como-funciona">
     <div className="text-center mb-16">
       <SectionLabel>Como funciona</SectionLabel>
       <SectionTitle>4 passos para começar</SectionTitle>
