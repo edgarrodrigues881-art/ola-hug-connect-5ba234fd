@@ -481,10 +481,9 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 1500));
       }
 
-      // Call connect WITH the phone number directly from disconnected state
-      // The API generates a pairing code instead of QR when number is provided
-      console.log(`Pairing: calling POST /instance/connect with number=${phoneNumber}`);
-      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", { number: phoneNumber });
+      // Call connect with the phone field (UaZapi uses "phone" not "number")
+      console.log(`Pairing: calling POST /instance/connect with phone=${phoneNumber}`);
+      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", { phone: phoneNumber });
       console.log(`Pairing connect response:`, JSON.stringify(connectRes.data).substring(0, 500));
 
       // Extract pairing code from response
