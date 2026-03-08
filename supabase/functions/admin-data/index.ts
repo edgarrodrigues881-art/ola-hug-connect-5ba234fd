@@ -1785,12 +1785,14 @@ Deno.serve(async (req) => {
             body: JSON.stringify({ jid: pvJid, message: message_content }),
           });
           const resData = await res.json();
+          console.log("[wa-report-send] PV response:", res.status, JSON.stringify(resData).slice(0, 200));
           if (res.ok) {
             pvSuccess = true;
           } else {
             pvError = JSON.stringify(resData).slice(0, 300);
           }
         } catch (e) {
+          console.log("[wa-report-send] PV error:", e.message);
           pvError = e.message;
         }
       }
