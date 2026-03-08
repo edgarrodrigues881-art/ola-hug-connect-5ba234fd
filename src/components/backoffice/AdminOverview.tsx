@@ -133,19 +133,19 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
         <div className="flex flex-wrap gap-3">
           {expired.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
               <AlertTriangle size={14} />
               {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}
             </div>
           )}
           {expiringSoon.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-semibold">
               <AlertTriangle size={14} />
               {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}
             </div>
           )}
           {serverOccupancy >= 80 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold">
               <BarChart3 size={14} />
               Servidor {serverOccupancy}%
             </div>
@@ -154,11 +154,11 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       )}
 
       {/* ═══ PERIOD FILTER ═══ */}
-      <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-3 mb-4">
-          <DollarSign size={16} className="text-[#8892a4]" />
-          <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em]">Financeiro</p>
-          <div className="h-px flex-1 bg-[#e5e9f0]" />
+          <DollarSign size={16} className="text-muted-foreground" />
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">Financeiro</p>
+          <div className="h-px flex-1 bg-border" />
         </div>
         <PeriodFilter {...periodFilter} />
       </div>
@@ -166,81 +166,81 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       {/* ═══ KPIs ═══ */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Receita Líquida */}
-        <div className={`bg-white rounded-xl border p-5 ${isPositive ? "border-emerald-200" : "border-red-200"}`}>
+        <div className={`bg-card rounded-xl border p-5 ${isPositive ? "border-emerald-500/30" : "border-destructive/30"}`}>
           <div className="flex items-center gap-2 mb-3">
-            {isPositive ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-red-500" />}
-            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Receita Líquida</p>
+            {isPositive ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-destructive" />}
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Receita Líquida</p>
           </div>
-          <p className={`text-2xl font-bold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>{fmt(netRevenue)}</p>
-          <p className="text-[11px] text-[#b0b8c8] mt-1">
+          <p className={`text-2xl font-bold ${isPositive ? "text-emerald-400" : "text-destructive"}`}>{fmt(netRevenue)}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">
             {!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
           </p>
         </div>
 
         {/* Recebida */}
-        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <CreditCard size={14} className="text-emerald-500" />
-            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Recebida</p>
+            <CreditCard size={14} className="text-emerald-400" />
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Recebida</p>
           </div>
-          <p className="text-2xl font-bold text-[#2e3440]">{fmt(revenueReceived)}</p>
-          <p className="text-[11px] text-[#b0b8c8] mt-1">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
+          <p className="text-2xl font-bold text-foreground">{fmt(revenueReceived)}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
         </div>
 
         {/* Contratada */}
-        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={14} className="text-teal-500" />
-            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Contratada</p>
+            <DollarSign size={14} className="text-teal-400" />
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Contratada</p>
           </div>
-          <p className="text-2xl font-bold text-[#2e3440]">{fmt(revenueBrute)}</p>
-          <p className="text-[11px] text-[#b0b8c8] mt-1">{activePlans} planos</p>
+          <p className="text-2xl font-bold text-foreground">{fmt(revenueBrute)}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">{activePlans} planos</p>
         </div>
 
         {/* Descontos */}
-        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Tag size={14} className="text-amber-500" />
-            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Descontos</p>
+            <Tag size={14} className="text-amber-400" />
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Descontos</p>
           </div>
-          <p className="text-2xl font-bold text-[#2e3440]">{fmt(discounts)}</p>
-          <p className="text-[11px] text-[#b0b8c8] mt-1">Concedidos</p>
+          <p className="text-2xl font-bold text-foreground">{fmt(discounts)}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">Concedidos</p>
         </div>
 
         {/* Taxas & Custos */}
-        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingDown size={14} className="text-red-500" />
-            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Taxas & Custos</p>
+            <TrendingDown size={14} className="text-destructive" />
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Taxas & Custos</p>
           </div>
-          <p className="text-2xl font-bold text-[#2e3440]">{fmt(totalCosts)}</p>
-          <p className="text-[11px] text-[#b0b8c8] mt-1">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
+          <p className="text-2xl font-bold text-foreground">{fmt(totalCosts)}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
         </div>
       </div>
 
       {/* ═══ OPERAÇÃO ═══ */}
-      <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <BarChart3 size={16} className="text-[#8892a4]" />
-            <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em]">Operação</p>
+            <BarChart3 size={16} className="text-muted-foreground" />
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">Operação</p>
           </div>
           {editingMax ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#8892a4]">Capacidade:</span>
+              <span className="text-xs text-muted-foreground">Capacidade:</span>
               <input
                 type="number"
                 value={editMaxValue}
                 onChange={e => setEditMaxValue(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && confirmEditMax()}
-                className="w-20 h-7 text-xs font-semibold bg-[#f8f9fc] border border-[#e5e9f0] rounded-lg px-2 text-[#2e3440] focus:outline-none focus:border-primary"
+                className="w-20 h-7 text-xs font-bold bg-muted border border-border rounded-lg px-2 text-foreground focus:outline-none focus:border-primary"
                 autoFocus
               />
               <button onClick={confirmEditMax} className="text-primary hover:text-primary/80"><Check size={14} /></button>
-              <button onClick={() => setEditingMax(false)} className="text-[#b0b8c8] hover:text-[#8892a4]"><X size={14} /></button>
+              <button onClick={() => setEditingMax(false)} className="text-muted-foreground/50 hover:text-muted-foreground"><X size={14} /></button>
             </div>
           ) : (
-            <button onClick={startEditMax} className="flex items-center gap-1.5 text-xs text-[#b0b8c8] hover:text-[#4c566a] transition-colors group">
+            <button onClick={startEditMax} className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors group">
               <span>Capacidade: {maxInstances}</span>
               <Pencil size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
@@ -248,35 +248,35 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
-            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Liberadas</p>
-            <p className="text-lg font-bold text-[#2e3440] mt-1">{totalAllocated} <span className="text-xs font-normal text-[#b0b8c8]">/ {maxInstances}</span></p>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Liberadas</p>
+            <p className="text-lg font-bold text-foreground mt-1">{totalAllocated} <span className="text-xs font-medium text-muted-foreground/60">/ {maxInstances}</span></p>
           </div>
-          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
-            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Em Uso</p>
-            <p className="text-lg font-bold text-[#2e3440] mt-1">{totalInUse} <span className="text-xs font-normal text-[#b0b8c8]">{stats.active_devices} on</span></p>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Em Uso</p>
+            <p className="text-lg font-bold text-foreground mt-1">{totalInUse} <span className="text-xs font-medium text-muted-foreground/60">{stats.active_devices} on</span></p>
           </div>
-          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
-            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Ocupação</p>
-            <p className={`text-lg font-bold mt-1 ${serverOccupancy >= 80 ? "text-red-500" : "text-[#2e3440]"}`}>{serverOccupancy}%</p>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Ocupação</p>
+            <p className={`text-lg font-bold mt-1 ${serverOccupancy >= 80 ? "text-destructive" : "text-foreground"}`}>{serverOccupancy}%</p>
           </div>
-          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
-            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Bloqueados</p>
-            <p className="text-lg font-bold text-[#2e3440] mt-1">{blocked.length}</p>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Bloqueados</p>
+            <p className="text-lg font-bold text-foreground mt-1">{blocked.length}</p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div>
-          <div className="relative h-2 bg-[#f0f2f8] rounded-full overflow-hidden">
+          <div className="relative h-2 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
-                serverOccupancy >= 90 ? "bg-red-500" : serverOccupancy >= 70 ? "bg-amber-500" : "bg-primary"
+                serverOccupancy >= 90 ? "bg-destructive" : serverOccupancy >= 70 ? "bg-amber-500" : "bg-primary"
               }`}
               style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
             />
           </div>
-          <p className="text-[11px] text-[#b0b8c8] mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
       {/* ═══ GRÁFICO DE RECEITA ═══ */}
