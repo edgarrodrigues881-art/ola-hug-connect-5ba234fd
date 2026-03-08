@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import whatsappLogo from "@/assets/whatsapp-logo.svg";
 
 const SupportButton = () => {
   const [open, setOpen] = useState(false);
