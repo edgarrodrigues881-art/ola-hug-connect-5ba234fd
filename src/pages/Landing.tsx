@@ -27,7 +27,7 @@ const GridPattern = () => (
       backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
       backgroundSize: '64px 64px',
     }} />
-    <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#13161b] via-transparent to-[#13161b]" />
   </div>
 );
 
@@ -37,7 +37,7 @@ const Navbar = () => {
   const scroll = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#0a0a0a]/80 border-b border-white/[0.06]">
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#13161b]/85 border-b border-white/[0.06]">
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-5">
         <div className="flex items-center gap-2.5">
           <img src={logo} alt="DG" width={32} height={32} className="rounded-lg" />
@@ -372,7 +372,7 @@ const Landing = () => {
   useEffect(() => { prefetchRoutes(); }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative" style={{ overflowX: "hidden" }}>
+    <div className="min-h-screen bg-[#13161b] relative" style={{ overflowX: "hidden" }}>
       <GridPattern />
       <div className="relative z-10">
         <Navbar />
