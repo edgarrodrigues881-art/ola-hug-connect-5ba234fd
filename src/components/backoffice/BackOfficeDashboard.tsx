@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, lazy, Suspense, memo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
@@ -7,18 +7,20 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import AdminOverview from "./AdminOverview";
-import AdminClientsTable from "./AdminClientsTable";
-import AdminClientDetail from "./AdminClientDetail";
-import AdminLogs from "./AdminLogs";
-import CostsTab from "./CostsTab";
-import AdminGroupsPool from "./AdminGroupsPool";
-import AdminWarmupCycles from "./AdminWarmupCycles";
-import AdminWarmupJobs from "./AdminWarmupJobs";
-import AdminInfra from "./AdminInfra";
-import AdminCommunityWarmer from "./AdminCommunityWarmer";
-import AdminWarmupRoadmap from "./AdminWarmupRoadmap";
-import AdminMessages from "./AdminMessages";
+
+// Lazy load all tab components
+const AdminOverview = lazy(() => import("./AdminOverview"));
+const AdminClientsTable = lazy(() => import("./AdminClientsTable"));
+const AdminClientDetail = lazy(() => import("./AdminClientDetail"));
+const AdminLogs = lazy(() => import("./AdminLogs"));
+const CostsTab = lazy(() => import("./CostsTab"));
+const AdminGroupsPool = lazy(() => import("./AdminGroupsPool"));
+const AdminWarmupCycles = lazy(() => import("./AdminWarmupCycles"));
+const AdminWarmupJobs = lazy(() => import("./AdminWarmupJobs"));
+const AdminInfra = lazy(() => import("./AdminInfra"));
+const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
+const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
+const AdminMessages = lazy(() => import("./AdminMessages"));
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -49,6 +51,7 @@ const GROUP_LABELS: Record<string, string> = {
   sistema: "Sistema",
 };
 
+const GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))];
 
 const PENDENCIA_CATEGORIES = [
   { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-500/10 border-amber-500/30" },
@@ -59,7 +62,7 @@ const PENDENCIA_CATEGORIES = [
   { label: "Vencido +30 dias", filter: (d: number) => d < -30, color: "bg-muted/50 border-border" },
 ];
 
-const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelectClient: (u: AdminUser) => void }) => {
+const PendenciasTab = memo(({ users, onSelectClient }: { users: AdminUser[]; onSelectClient: (u: AdminUser) => void }) => {
   const { toast } = useToast();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -79,19 +82,27 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
     toast({ title: "Mensagem copiada!" });
   };
 
+  const categorizedUsers = useMemo(() => {
+    return PENDENCIA_CATEGORIES.map(cat => {
+      const items = users.filter(u => {
+        const d = getDaysLeft(u.plan_expires_at);
+        return d !== null && cat.filter(d);
+      });
+      return { ...cat, items };
+    });
+  }, [users]);
+
+  const hasAny = categorizedUsers.some(c => c.items.length > 0);
+
   return (
     <div className="space-y-4">
-      {PENDENCIA_CATEGORIES.map(cat => {
-        const items = users.filter(u => {
-          const d = getDaysLeft(u.plan_expires_at);
-          return d !== null && cat.filter(d);
-        });
-        if (items.length === 0) return null;
+      {categorizedUsers.map(cat => {
+        if (cat.items.length === 0) return null;
         return (
           <div key={cat.label} className={`border rounded-xl p-4 ${cat.color}`}>
-            <h3 className="text-sm font-semibold text-foreground mb-3">{cat.label} ({items.length})</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">{cat.label} ({cat.items.length})</h3>
             <div className="space-y-2">
-              {items.map(u => {
+              {cat.items.map(u => {
                 const days = getDaysLeft(u.plan_expires_at)!;
                 return (
                   <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-card/80 rounded-lg px-3 py-2.5 border border-border/60">
@@ -117,7 +128,7 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
           </div>
         );
       })}
-      {PENDENCIA_CATEGORIES.every(cat => users.filter(u => { const d = getDaysLeft(u.plan_expires_at); return d !== null && cat.filter(d); }).length === 0) && (
+      {!hasAny && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
             <Check size={20} className="text-primary" />
@@ -127,14 +138,23 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
       )}
     </div>
   );
-};
+});
+PendenciasTab.displayName = "PendenciasTab";
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-16">
+    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+  </div>
+);
 
 const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const { data, isLoading, error, refetch } = useAdminDashboard();
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
+  const handleSelectClient = useCallback((u: AdminUser) => setSelectedClient(u), []);
+  const handleBack = useCallback(() => setSelectedClient(null), []);
 
   const pendingCount = useMemo(() =>
     (data?.users || []).filter(u => {
@@ -167,30 +187,32 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   if (selectedClient) {
     return (
       <div className="min-h-screen bg-background">
-        <AdminClientDetail client={selectedClient} onBack={() => setSelectedClient(null)} />
+        <Suspense fallback={<TabLoader />}>
+          <AdminClientDetail client={selectedClient} onBack={handleBack} />
+        </Suspense>
       </div>
     );
   }
 
-  const groups = [...new Set(NAV_ITEMS.map(i => i.group))];
-  
-
   const renderContent = () => {
-    switch (activeTab) {
-      case "overview": return data ? <AdminOverview data={data} /> : null;
-      case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={setSelectedClient} />;
-      case "pendencias": return <PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} />;
-      case "messages": return <AdminMessages />;
-      case "logs": return <AdminLogs />;
-      case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
-      case "groups-pool": return <AdminGroupsPool />;
-      case "warmup-cycles": return <AdminWarmupCycles />;
-      case "warmup-jobs": return <AdminWarmupJobs />;
-      case "infra": return <AdminInfra />;
-      case "community": return <AdminCommunityWarmer />;
-      case "warmup-roadmap": return <AdminWarmupRoadmap />;
-      default: return null;
-    }
+    const content = (() => {
+      switch (activeTab) {
+        case "overview": return data ? <AdminOverview data={data} /> : null;
+        case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={handleSelectClient} />;
+        case "pendencias": return <PendenciasTab users={data?.users || []} onSelectClient={handleSelectClient} />;
+        case "messages": return <AdminMessages />;
+        case "logs": return <AdminLogs />;
+        case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
+        case "groups-pool": return <AdminGroupsPool />;
+        case "warmup-cycles": return <AdminWarmupCycles />;
+        case "warmup-jobs": return <AdminWarmupJobs />;
+        case "infra": return <AdminInfra />;
+        case "community": return <AdminCommunityWarmer />;
+        case "warmup-roadmap": return <AdminWarmupRoadmap />;
+        default: return null;
+      }
+    })();
+    return <Suspense fallback={<TabLoader />}>{content}</Suspense>;
   };
 
   const currentItem = NAV_ITEMS.find(i => i.id === activeTab);
@@ -223,7 +245,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {groups.map(group => (
+          {GROUPS.map(group => (
             <div key={group} className="mb-4">
               <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.15em] px-3 mb-2">
                 {GROUP_LABELS[group]}

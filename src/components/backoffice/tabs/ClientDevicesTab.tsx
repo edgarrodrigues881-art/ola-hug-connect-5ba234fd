@@ -47,7 +47,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const [showNoPlan, setShowNoPlan] = useState(false);
   const [newName, setNewName] = useState("");
   
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient, invalidateDashboard } = useAdminAction();
   const { toast } = useToast();
 
   const atLimit = devices.length >= maxInstances;
@@ -79,7 +79,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
     mutate(
       { action: "create-device", body: { target_user_id: client.id, name: newName.trim(), login_type: "principal" } },
       {
-        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setShowCreate(false); },
+        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setShowCreate(false); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -88,7 +88,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const deleteDevice = (id: string, name: string) => {
     mutate(
       { action: "delete-device", body: { target_user_id: client.id, device_id: id, device_name: name } },
-      { onSuccess: () => toast({ title: "Instância removida" }), onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
+      { onSuccess: () => { toast({ title: "Instância removida" }); invalidateClient(client.id); invalidateDashboard(); }, onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
     );
   };
 
@@ -103,7 +103,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
         expires_at: new Date(now.getTime() + 30 * 86400000).toISOString(),
       },
     }, {
-      onSuccess: () => { toast({ title: `Migrado para ${nextPlan}` }); setShowUpgrade(false); },
+      onSuccess: () => { toast({ title: `Migrado para ${nextPlan}` }); setShowUpgrade(false); invalidateClient(client.id); invalidateDashboard(); },
       onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
     });
   };

@@ -16,7 +16,7 @@ interface Props { client: AdminUser; detail: any; }
 
 const ClientTokensTab = ({ client, detail }: Props) => {
   const tokens = detail?.api_tokens || [];
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
   const [newTokens, setNewTokens] = useState("");
   const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
@@ -44,6 +44,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
           toast({ title: info });
           setNewTokens("");
           setShowAddArea(false);
+          invalidateClient(client.id);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
@@ -58,6 +59,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
         onSuccess: (data: any) => {
           toast({ title: `${data.total} tokens validados — ${data.healthy} válidos, ${data.invalid} inválidos` });
           setValidating(false);
+          invalidateClient(client.id);
         },
         onError: (e) => {
           toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -71,7 +73,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "delete-token", body: { token_id: tokenId, target_user_id: client.id } },
       {
-        onSuccess: () => toast({ title: "Token removido" }),
+        onSuccess: () => { toast({ title: "Token removido" }); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -81,7 +83,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "delete-all-tokens", body: { target_user_id: client.id } },
       {
-        onSuccess: (data: any) => toast({ title: `${data?.removed ?? 0} token(s) removido(s)` }),
+        onSuccess: (data: any) => { toast({ title: `${data?.removed ?? 0} token(s) removido(s)` }); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -97,7 +99,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "update-monitor-token", body: { target_user_id: client.id, whatsapp_monitor_token: monitorToken.trim() } },
       {
-        onSuccess: () => toast({ title: monitorToken.trim() ? "Token de monitoramento salvo" : "Token de monitoramento removido" }),
+        onSuccess: () => { toast({ title: monitorToken.trim() ? "Token de monitoramento salvo" : "Token de monitoramento removido" }); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );

@@ -27,7 +27,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
   const [notificacaoLiberada, setNotificacaoLiberada] = useState(profile.notificacao_liberada ?? false);
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
 
   const planLimit = client.max_instances || 0;
@@ -38,7 +38,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     mutate(
       { action: "update-client", body: { target_user_id: client.id, ...form } },
       {
-        onSuccess: () => toast({ title: "Dados atualizados com sucesso" }),
+        onSuccess: () => { toast({ title: "Dados atualizados com sucesso" }); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );

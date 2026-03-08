@@ -2,6 +2,7 @@ import type { AdminUser } from "@/hooks/useAdmin";
 import { User, CreditCard, Server, Clock, AlertTriangle, KeyRound, LogOut, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAction } from "@/hooks/useAdmin";
+import { memo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -15,7 +16,7 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
-const ClientOverviewTab = ({ client, detail }: Props) => {
+const ClientOverviewTab = memo(({ client, detail }: Props) => {
   const sub = detail?.subscription;
   const devices = detail?.devices || [];
   const daysLeft = getDaysLeft(client.plan_expires_at);
@@ -23,7 +24,7 @@ const ClientOverviewTab = ({ client, detail }: Props) => {
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
   const maxInst = sub?.max_instances ?? client.max_instances ?? 0;
   const connectedCount = devices.filter((d: any) => d.status === "Connected" || d.status === "Ready").length;
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
 
   const resetPassword = () => {
@@ -41,7 +42,7 @@ const ClientOverviewTab = ({ client, detail }: Props) => {
   const toggleStatus = (s: string) => {
     mutate(
       { action: "toggle-status", body: { target_user_id: client.id, new_status: s } },
-      { onSuccess: () => toast({ title: `Status: ${s}` }), onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
+      { onSuccess: () => { toast({ title: `Status: ${s}` }); invalidateClient(client.id); }, onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
     );
   };
 
@@ -216,6 +217,7 @@ const ClientOverviewTab = ({ client, detail }: Props) => {
       </div>
     </div>
   );
-};
+});
 
+ClientOverviewTab.displayName = "ClientOverviewTab";
 export default ClientOverviewTab;
