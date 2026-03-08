@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
-  Loader2, Check, ChevronRight, User, ArrowLeft, Wifi, WifiOff,
-  Settings2, Radio, Smartphone, RefreshCw, Trash2, History, Zap
+  Loader2, Check, User, ArrowLeft, Wifi, WifiOff,
+  Settings2, Smartphone, History, Radio
 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
@@ -21,8 +21,6 @@ const TEMPLATES = [
     label: "Boas-vindas",
     icon: MessageCircle,
     color: "text-emerald-500",
-    bg: "bg-emerald-500/10 border-emerald-500/20",
-    bgActive: "bg-emerald-500 text-white",
     desc: "Primeiro login",
     build: (v: any) => {
       const trialEnd = new Date();
@@ -35,8 +33,6 @@ const TEMPLATES = [
     label: "Faltam 3 dias",
     icon: Clock,
     color: "text-yellow-500",
-    bg: "bg-yellow-500/10 border-yellow-500/20",
-    bgActive: "bg-yellow-500 text-black",
     desc: "3 dias p/ vencer",
     build: (v: any) =>
       `Olá ${v.nome}!\n\nSeu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\nRenove agora para não perder o acesso.\n\nSuporte: ${v.suporte_numero}`,
@@ -46,8 +42,6 @@ const TEMPLATES = [
     label: "Vence hoje",
     icon: AlertTriangle,
     color: "text-orange-500",
-    bg: "bg-orange-500/10 border-orange-500/20",
-    bgActive: "bg-orange-500 text-white",
     desc: "No dia do vencimento",
     build: (v: any) =>
       `${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\nSem renovação, suas instâncias serão bloqueadas.\n\nRenove → ${v.suporte_numero}`,
@@ -57,8 +51,6 @@ const TEMPLATES = [
     label: "Vencido 1 dia",
     icon: XCircle,
     color: "text-destructive",
-    bg: "bg-destructive/10 border-destructive/20",
-    bgActive: "bg-destructive text-destructive-foreground",
     desc: "1 dia vencido",
     build: (v: any) =>
       `${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\nSuas instâncias estão bloqueadas.\n\nRenove → ${v.suporte_numero}`,
@@ -68,8 +60,6 @@ const TEMPLATES = [
     label: "Vencido 7 dias",
     icon: XCircle,
     color: "text-destructive",
-    bg: "bg-destructive/10 border-destructive/20",
-    bgActive: "bg-destructive text-destructive-foreground",
     desc: "7 dias vencido",
     build: (v: any) =>
       `${v.nome}, já se passaram 7 dias desde o vencimento do plano ${v.plano}.\n\nSuas instâncias continuam bloqueadas.\n\nAjuda? → ${v.suporte_numero}`,
@@ -79,8 +69,6 @@ const TEMPLATES = [
     label: "Vencido 30 dias",
     icon: Skull,
     color: "text-destructive",
-    bg: "bg-destructive/10 border-destructive/20",
-    bgActive: "bg-destructive text-destructive-foreground",
     desc: "30 dias — remoção",
     build: (v: any) =>
       `${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\nSuas instâncias poderão ser removidas em breve.\n\nContato: ${v.suporte_numero}`,
@@ -93,16 +81,24 @@ function getDaysLeft(expiresAt: string | null): number | null {
 }
 
 function getSuggestedType(daysLeft: number | null) {
-  if (daysLeft === null) return null;
+  if (daysLeft === null) return "boas-vindas";
   if (daysLeft <= -30) return "vencido-30-dias";
   if (daysLeft <= -7) return "vencido-7-dias";
   if (daysLeft <= -1) return "vencido-1-dia";
   if (daysLeft === 0) return "vence-hoje";
   if (daysLeft <= 3) return "faltam-3-dias";
-  return null;
+  return "boas-vindas";
 }
 
-type ViewMode = "pending" | "config" | "client-detail" | "history";
+function getStatusBadge(daysLeft: number | null) {
+  if (daysLeft === null) return { label: "Sem plano", className: "border-border text-muted-foreground" };
+  if (daysLeft <= -7) return { label: `${Math.abs(daysLeft)}d vencido`, className: "border-destructive/40 text-destructive bg-destructive/5" };
+  if (daysLeft <= 0) return { label: daysLeft === 0 ? "Vence hoje" : `${Math.abs(daysLeft)}d vencido`, className: "border-orange-500/40 text-orange-500 bg-orange-500/5" };
+  if (daysLeft <= 3) return { label: `${daysLeft}d restante(s)`, className: "border-yellow-500/40 text-yellow-500 bg-yellow-500/5" };
+  return { label: `${daysLeft}d restante(s)`, className: "border-emerald-500/40 text-emerald-500 bg-emerald-500/5" };
+}
+
+type ViewMode = "list" | "config" | "detail" | "history";
 
 const AdminMessages = () => {
   const { data } = useAdminDashboard();
@@ -110,7 +106,7 @@ const AdminMessages = () => {
   const queryClient = useQueryClient();
   const { mutate, isPending } = useAdminAction();
 
-  const [view, setView] = useState<ViewMode>("pending");
+  const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -124,7 +120,7 @@ const AdminMessages = () => {
   const users = data?.users || [];
 
   // Load WhatsApp report config
-  const { data: reportConfig, isLoading: configLoading, refetch: refetchConfig } = useQuery({
+  const { data: reportConfig, refetch: refetchConfig } = useQuery({
     queryKey: ["admin-wa-report-config"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-config-get");
@@ -143,7 +139,6 @@ const AdminMessages = () => {
     },
   });
 
-  // Set config from loaded data
   useEffect(() => {
     if (reportConfig) {
       setConfigDeviceId(reportConfig.device_id || "");
@@ -153,29 +148,22 @@ const AdminMessages = () => {
   }, [reportConfig]);
 
   const isConfigured = !!reportConfig?.device_id && !!reportConfig?.group_id;
-  const connectedDevice = adminDevices.find((d: any) => d.id === (reportConfig?.device_id || configDeviceId));
 
-  // Filter users with pending notifications
-  const pendingUsers = useMemo(() => {
-    return users.filter(u => {
-      const d = getDaysLeft(u.plan_expires_at);
-      return d !== null && getSuggestedType(d) !== null;
-    }).sort((a, b) => {
+  // Filter users
+  const filteredUsers = useMemo(() => {
+    const sorted = [...users].sort((a, b) => {
       const da = getDaysLeft(a.plan_expires_at) ?? 999;
       const db = getDaysLeft(b.plan_expires_at) ?? 999;
       return da - db;
     });
-  }, [users]);
-
-  const filteredPending = useMemo(() => {
-    if (!search) return pendingUsers;
+    if (!search) return sorted;
     const q = search.toLowerCase();
-    return pendingUsers.filter(u =>
+    return sorted.filter(u =>
       u.full_name?.toLowerCase().includes(q) ||
       u.email?.toLowerCase().includes(q) ||
       u.phone?.includes(q)
     );
-  }, [pendingUsers, search]);
+  }, [users, search]);
 
   // History
   const { data: history = [], isLoading: historyLoading } = useQuery({
@@ -188,48 +176,55 @@ const AdminMessages = () => {
     enabled: view === "history",
   });
 
-  // Send notification to WhatsApp group
-  const sendToGroup = (client: AdminUser, templateType: string) => {
+  // Open client detail
+  const openClient = (u: AdminUser) => {
+    const d = getDaysLeft(u.plan_expires_at);
+    setSelectedClient(u);
+    setSelectedTemplate(getSuggestedType(d));
+    setView("detail");
+  };
+
+  // Send
+  const sendToGroup = () => {
+    if (!selectedClient || !selectedTemplate) return;
     if (!isConfigured) {
-      toast({ title: "Configure primeiro", description: "Conecte uma instância e selecione o grupo", variant: "destructive" });
+      toast({ title: "Configure primeiro", description: "Conecte uma instância e grupo", variant: "destructive" });
       setView("config");
       return;
     }
 
-    const daysLeft = getDaysLeft(client.plan_expires_at);
-    const tpl = TEMPLATES.find(t => t.type === templateType);
+    const daysLeft = getDaysLeft(selectedClient.plan_expires_at);
+    const tpl = TEMPLATES.find(t => t.type === selectedTemplate);
     if (!tpl) return;
 
     const vars = {
-      nome: client.full_name || client.email,
-      plano: client.plan_name || "Sem plano",
-      vencimento: client.plan_expires_at ? new Date(client.plan_expires_at).toLocaleDateString("pt-BR") : "—",
+      nome: selectedClient.full_name || selectedClient.email,
+      plano: selectedClient.plan_name || "Sem plano",
+      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR") : "—",
       dias_restantes: daysLeft !== null ? String(daysLeft) : "—",
       suporte_numero: SUPORTE_NUMERO,
     };
 
     const messageToSend = tpl.build(vars);
 
-    // Build the group notification
     const groupNotification =
       `📋 *RELATÓRIO DG CONTINGÊNCIA PRO*\n\n` +
-      `👤 *Cliente:* ${client.full_name || "—"}\n` +
-      `📧 *Email:* ${client.email}\n` +
-      `📱 *Telefone:* ${client.phone || "—"}\n` +
-      `📦 *Plano:* ${client.plan_name || "Sem plano"}\n` +
-      `📅 *Vencimento:* ${client.plan_expires_at ? new Date(client.plan_expires_at).toLocaleDateString("pt-BR") : "—"}\n` +
-      `⏳ *Status:* ${daysLeft !== null ? (daysLeft <= 0 ? `Vencido há ${Math.abs(daysLeft)} dia(s)` : `${daysLeft} dia(s) restante(s)`) : "—"}\n` +
+      `👤 *Cliente:* ${selectedClient.full_name || "—"}\n` +
+      `📧 *Email:* ${selectedClient.email}\n` +
+      `📱 *Telefone:* ${selectedClient.phone || "—"}\n` +
+      `📦 *Plano:* ${selectedClient.plan_name || "Sem plano"}\n` +
+      `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR") : "—"}\n` +
       `🏷️ *Tipo:* ${tpl.label}\n\n` +
       `─────────────────\n` +
-      `✉️ *Mensagem para enviar:*\n\n${messageToSend}`;
+      `✉️ *Mensagem para enviar ao cliente:*\n\n${messageToSend}`;
 
     setIsSending(true);
     mutate(
       {
         action: "wa-report-send-group",
         body: {
-          target_user_id: client.id,
-          template_type: templateType,
+          target_user_id: selectedClient.id,
+          template_type: selectedTemplate,
           message_content: messageToSend,
           group_notification: groupNotification,
         },
@@ -239,11 +234,9 @@ const AdminMessages = () => {
           toast({ title: "✅ Enviado para o grupo!" });
           queryClient.invalidateQueries({ queryKey: ["admin-wa-report-history"] });
           setIsSending(false);
-          if (view === "client-detail") {
-            setView("pending");
-            setSelectedClient(null);
-            setSelectedTemplate(null);
-          }
+          setView("list");
+          setSelectedClient(null);
+          setSelectedTemplate(null);
         },
         onError: (e) => {
           toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
@@ -264,7 +257,7 @@ const AdminMessages = () => {
         onSuccess: () => {
           toast({ title: "✅ Configuração salva" });
           refetchConfig();
-          setView("pending");
+          setView("list");
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
@@ -276,26 +269,19 @@ const AdminMessages = () => {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3">
-          <button onClick={() => setView("pending")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <button onClick={() => setView("list")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowLeft size={18} className="text-muted-foreground" />
           </button>
-          <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
-            <Settings2 size={20} className="text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Configuração</h2>
-            <p className="text-xs text-muted-foreground">Conecte uma instância e selecione o grupo de notificações</p>
-          </div>
+          <Settings2 size={20} className="text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Configuração</h2>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5 space-y-5">
-          {/* Device selection */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground">Instância WhatsApp (Admin)</label>
-            <p className="text-[10px] text-muted-foreground">Selecione a instância que enviará as notificações ao grupo</p>
+            <label className="text-xs font-semibold text-foreground">Instância WhatsApp</label>
             {adminDevices.length === 0 ? (
               <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border">
-                Nenhuma instância encontrada. Crie uma instância primeiro.
+                Nenhuma instância encontrada.
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -304,9 +290,7 @@ const AdminMessages = () => {
                     key={d.id}
                     onClick={() => setConfigDeviceId(d.id)}
                     className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
-                      configDeviceId === d.id
-                        ? "bg-primary/10 border-primary/40"
-                        : "bg-muted/20 border-border hover:border-primary/20"
+                      configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
                     }`}
                   >
                     <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
@@ -326,10 +310,9 @@ const AdminMessages = () => {
             )}
           </div>
 
-          {/* Group ID */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-foreground">ID do Grupo WhatsApp</label>
-            <p className="text-[10px] text-muted-foreground">Cole o JID do grupo privado (ex: 5562999999999-1234567890@g.us)</p>
+            <p className="text-[10px] text-muted-foreground">Cole o JID do grupo (ex: 5562999999999-1234567890@g.us)</p>
             <Input
               placeholder="5562999999999-1234567890@g.us"
               value={configGroupId}
@@ -338,7 +321,6 @@ const AdminMessages = () => {
             />
           </div>
 
-          {/* Group name (optional) */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-foreground">Nome do Grupo (opcional)</label>
             <Input
@@ -349,23 +331,20 @@ const AdminMessages = () => {
             />
           </div>
 
-          <Button
-            onClick={saveConfig}
-            disabled={!configDeviceId || !configGroupId || isPending}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9"
-          >
+          <Button onClick={saveConfig} disabled={!configDeviceId || !configGroupId || isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9">
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Check size={14} className="mr-1.5" />}
-            Salvar Configuração
+            Salvar
           </Button>
         </div>
       </div>
     );
   }
 
-  // ─── CLIENT DETAIL VIEW ───
-  if (view === "client-detail" && selectedClient) {
+  // ─── DETAIL VIEW (Simple: info + message + send button) ───
+  if (view === "detail" && selectedClient) {
     const daysLeft = getDaysLeft(selectedClient.plan_expires_at);
-    const suggestedType = getSuggestedType(daysLeft);
+    const status = getStatusBadge(daysLeft);
+    const tpl = TEMPLATES.find(t => t.type === selectedTemplate);
 
     const vars = {
       nome: selectedClient.full_name || selectedClient.email,
@@ -375,107 +354,91 @@ const AdminMessages = () => {
       suporte_numero: SUPORTE_NUMERO,
     };
 
-    const selectedTpl = TEMPLATES.find(t => t.type === (selectedTemplate || suggestedType));
-    const message = selectedTpl ? selectedTpl.build(vars) : "";
-    const activeTemplate = selectedTemplate || suggestedType;
+    const message = tpl ? tpl.build(vars) : "";
 
     return (
-      <div className="space-y-5">
-        {/* Back + Client Info */}
+      <div className="space-y-4">
+        {/* Header */}
         <div className="flex items-center gap-3">
-          <button onClick={() => { setView("pending"); setSelectedClient(null); setSelectedTemplate(null); }} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <button onClick={() => { setView("list"); setSelectedClient(null); }} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowLeft size={18} className="text-muted-foreground" />
           </button>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <User size={16} className="text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Enviar Relatório</h2>
+        </div>
+
+        {/* Client info card */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User size={18} className="text-primary" />
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{selectedClient.full_name || selectedClient.email}</p>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span>{selectedClient.email}</span>
-                <span>·</span>
-                <span>{selectedClient.phone || "—"}</span>
-                {daysLeft !== null && (
-                  <>
-                    <span>·</span>
-                    <span className={daysLeft <= 0 ? "text-destructive font-semibold" : daysLeft <= 3 ? "text-yellow-500 font-semibold" : ""}>
-                      {daysLeft <= 0 ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d restantes`}
-                    </span>
-                  </>
-                )}
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground truncate">{selectedClient.full_name || "Sem nome"}</p>
+              <p className="text-xs text-muted-foreground truncate">{selectedClient.email}</p>
             </div>
+            <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-3 border border-border/50">
+            <div><span className="text-muted-foreground">Telefone:</span> <span className="font-medium text-foreground">{selectedClient.phone || "—"}</span></div>
+            <div><span className="text-muted-foreground">Plano:</span> <span className="font-medium text-foreground">{selectedClient.plan_name || "Sem plano"}</span></div>
+            <div><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium text-foreground">{selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR") : "—"}</span></div>
+            <div><span className="text-muted-foreground">Instâncias:</span> <span className="font-medium text-foreground">{selectedClient.devices_connected}/{selectedClient.devices_count}</span></div>
           </div>
         </div>
 
-        {/* Templates */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Selecionar Notificação</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        {/* Template selector (simple pills) */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">Tipo de mensagem:</p>
+          <div className="flex flex-wrap gap-1.5">
             {TEMPLATES.map(t => {
-              const Icon = t.icon;
-              const isActive = activeTemplate === t.type;
-              const isSuggested = suggestedType === t.type && !selectedTemplate;
+              const isActive = selectedTemplate === t.type;
               return (
                 <button
                   key={t.type}
                   onClick={() => setSelectedTemplate(t.type)}
-                  className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 transition-all text-center cursor-pointer
-                    ${isActive ? `${t.bgActive} border-transparent shadow-md` : `${t.bg} hover:opacity-80`}
-                  `}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-all ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card border-border text-foreground hover:border-primary/30"
+                  }`}
                 >
-                  {isSuggested && (
-                    <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full animate-pulse" />
-                  )}
-                  <Icon size={16} className={isActive ? "" : t.color} />
-                  <span className={`text-[10px] font-semibold leading-tight ${isActive ? "" : "text-foreground"}`}>{t.label}</span>
-                  <span className={`text-[8px] leading-tight ${isActive ? "opacity-80" : "text-muted-foreground"}`}>{t.desc}</span>
+                  <t.icon size={12} className={isActive ? "" : t.color} />
+                  {t.label}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Preview + Send */}
-        {selectedTpl && (
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prévia do Relatório para o Grupo</p>
-              <Badge variant="outline" className="text-[9px] border-border">{selectedTpl.label}</Badge>
-            </div>
-
-            {/* Group notification preview */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border space-y-2">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <div><span className="text-muted-foreground">Cliente:</span> <span className="font-medium text-foreground">{selectedClient.full_name || "—"}</span></div>
-                <div><span className="text-muted-foreground">Email:</span> <span className="font-medium text-foreground">{selectedClient.email}</span></div>
-                <div><span className="text-muted-foreground">Telefone:</span> <span className="font-medium text-foreground">{selectedClient.phone || "—"}</span></div>
-                <div><span className="text-muted-foreground">Plano:</span> <span className="font-medium text-foreground">{selectedClient.plan_name || "Sem plano"}</span></div>
-              </div>
-              <div className="border-t border-border pt-2">
-                <p className="text-[10px] font-semibold text-muted-foreground mb-1">Mensagem para enviar ao cliente:</p>
-                <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{message}</pre>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => sendToGroup(selectedClient, activeTemplate!)}
-                disabled={isSending || !isConfigured}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
-              >
-                {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />}
-                Enviar para o Grupo
-              </Button>
-              {!isConfigured && (
-                <button onClick={() => setView("config")} className="text-[10px] text-primary hover:underline">
-                  Configure a instância primeiro →
-                </button>
-              )}
+        {/* Message preview */}
+        {tpl && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Mensagem que será enviada ao grupo:</p>
+            <div className="bg-muted/30 rounded-xl p-4 border border-border">
+              <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{message}</pre>
             </div>
           </div>
+        )}
+
+        {/* SEND BUTTON — big and obvious */}
+        <Button
+          onClick={sendToGroup}
+          disabled={isSending || !isConfigured || !tpl}
+          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold gap-2"
+        >
+          {isSending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send size={16} />
+          )}
+          {isSending ? "Enviando..." : "Enviar para o Grupo"}
+        </Button>
+
+        {!isConfigured && (
+          <button onClick={() => setView("config")} className="w-full text-center text-xs text-primary hover:underline">
+            ⚠️ Configure a instância e grupo primeiro →
+          </button>
         )}
       </div>
     );
@@ -486,16 +449,11 @@ const AdminMessages = () => {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3">
-          <button onClick={() => setView("pending")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <button onClick={() => setView("list")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowLeft size={18} className="text-muted-foreground" />
           </button>
-          <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
-            <History size={20} className="text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Histórico de Envios</h2>
-            <p className="text-xs text-muted-foreground">Mensagens enviadas para o grupo</p>
-          </div>
+          <History size={20} className="text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Histórico de Envios</h2>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-4">
@@ -513,11 +471,11 @@ const AdminMessages = () => {
                       {tpl ? <tpl.icon size={14} className={tpl.color} /> : <MessageCircle size={14} className="text-muted-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-foreground">{tpl?.label || m.template_type}</span>
-                        <span className="text-[9px] text-muted-foreground">{new Date(m.sent_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                      </div>
-                      {m.observation && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Cliente: {m.observation}</p>}
+                      <span className="text-xs font-semibold text-foreground">{tpl?.label || m.template_type}</span>
+                      <span className="text-[9px] text-muted-foreground ml-2">
+                        {new Date(m.sent_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {m.observation && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{m.observation}</p>}
                     </div>
                     <Badge variant="outline" className="text-[8px] border-emerald-500/30 text-emerald-500 shrink-0">
                       <Check size={8} className="mr-0.5" /> Enviado
@@ -532,24 +490,21 @@ const AdminMessages = () => {
     );
   }
 
-  // ─── PENDING LIST (Main view) ───
+  // ─── MAIN LIST ───
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Radio size={20} className="text-emerald-500" />
-          </div>
+        <div className="flex items-center gap-3">
+          <Radio size={20} className="text-emerald-500" />
           <div>
             <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Envie relatórios de clientes para seu grupo privado</p>
+            <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
-            <History size={13} />
-            Histórico
+            <History size={13} /> Histórico
           </Button>
           <Button
             variant="outline"
@@ -563,20 +518,9 @@ const AdminMessages = () => {
         </div>
       </div>
 
-      {/* Connection status */}
-      {isConfigured && connectedDevice && (
-        <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
-          <Smartphone size={13} className="text-emerald-500" />
-          <span className="text-[11px] text-foreground font-medium">{connectedDevice.name}</span>
-          <span className="text-[10px] text-muted-foreground">({connectedDevice.number || "—"})</span>
-          <span className="text-[10px] text-muted-foreground">→</span>
-          <span className="text-[11px] text-foreground font-medium">{reportConfig?.group_name || "Grupo"}</span>
-        </div>
-      )}
-
       {!isConfigured && (
         <div className="bg-destructive/5 border border-destructive/20 rounded-lg px-4 py-3">
-          <p className="text-xs text-destructive font-medium">⚠️ Configure uma instância WhatsApp e grupo para começar a enviar relatórios.</p>
+          <p className="text-xs text-destructive font-medium">⚠️ Configure uma instância e grupo para enviar relatórios.</p>
           <button onClick={() => setView("config")} className="text-xs text-primary hover:underline mt-1">Configurar agora →</button>
         </div>
       )}
@@ -584,80 +528,34 @@ const AdminMessages = () => {
       {/* Search */}
       <div className="relative max-w-sm">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar cliente pendente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+        <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-3">
-        <Badge variant="outline" className="text-[10px] border-border gap-1">
-          <Zap size={10} className="text-yellow-500" />
-          {pendingUsers.length} pendente(s)
-        </Badge>
-      </div>
-
-      {/* Pending clients */}
-      <ScrollArea className="max-h-[calc(100vh-380px)]">
-        <div className="space-y-1.5">
-          {filteredPending.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
-                <Check size={20} className="text-primary" />
-              </div>
-              <p className="text-muted-foreground text-sm">Nenhuma pendência no momento</p>
-            </div>
-          ) : filteredPending.map(u => {
+      {/* Client list */}
+      <ScrollArea className="max-h-[calc(100vh-320px)]">
+        <div className="space-y-1">
+          {filteredUsers.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
+          ) : filteredUsers.map(u => {
             const d = getDaysLeft(u.plan_expires_at);
-            const suggested = getSuggestedType(d);
-            const tpl = TEMPLATES.find(t => t.type === suggested);
+            const status = getStatusBadge(d);
             return (
-              <div
+              <button
                 key={u.id}
-                className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all group"
+                onClick={() => openClient(u)}
+                className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left"
               >
                 <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
                   <User size={14} className="text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.email}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {tpl && (
-                    <Badge variant="outline" className={`text-[9px] ${
-                      (suggested || "").includes("vencido") ? "border-destructive/30 text-destructive" :
-                      suggested === "vence-hoje" ? "border-orange-500/30 text-orange-500" :
-                      "border-yellow-500/30 text-yellow-500"
-                    }`}>
-                      {tpl.label}
-                    </Badge>
-                  )}
-                  {/* Quick send button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (suggested) sendToGroup(u, suggested);
-                    }}
-                    disabled={!isConfigured || isSending || !suggested}
-                    className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
-                    title="Enviar direto para o grupo"
-                  >
-                    <Send size={12} />
-                  </Button>
-                  {/* Detail button */}
-                  <button
-                    onClick={() => {
-                      setSelectedClient(u);
-                      setSelectedTemplate(null);
-                      setView("client-detail");
-                    }}
-                    className="p-1 text-muted-foreground/40 hover:text-primary transition-colors"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
+                <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>
+                  {status.label}
+                </Badge>
+              </button>
             );
           })}
         </div>
