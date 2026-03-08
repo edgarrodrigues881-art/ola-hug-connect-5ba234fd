@@ -1801,7 +1801,7 @@ const Devices = () => {
             })()}
 
             {connectStep === "code" && (
-              <div className="flex flex-col items-center gap-5">
+              <motion.div key="code" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col items-center gap-5">
                 {pairingCode ? (
                   <div className="relative px-10 py-6 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
                     <p className="text-3xl font-mono font-bold tracking-[0.5em] text-foreground">{pairingCode}</p>
