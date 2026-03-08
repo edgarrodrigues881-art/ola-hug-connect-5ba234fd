@@ -23,16 +23,16 @@ const Navbar = () => {
             Como funciona
           </button>
           <button
-            onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })}
-            className="text-sm text-white/50 hover:text-white transition-colors"
-          >
-            Planos
-          </button>
-          <button
             onClick={() => document.getElementById("confianca")?.scrollIntoView({ behavior: "smooth" })}
             className="text-sm text-white/50 hover:text-white transition-colors"
           >
             Confiança
+          </button>
+          <button
+            onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            Planos
           </button>
           <a
             href="https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte."
