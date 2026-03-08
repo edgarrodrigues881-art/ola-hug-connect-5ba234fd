@@ -34,7 +34,7 @@ const TEMPLATES = [
     color: "text-yellow-500",
     desc: "3 dias p/ vencer",
     build: (v: any) =>
-      `Olá ${v.nome}!\n\nSeu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\nRenove agora para não perder o acesso.\n\nSuporte: ${v.suporte_numero}`,
+      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vence-hoje",
@@ -43,7 +43,7 @@ const TEMPLATES = [
     color: "text-orange-500",
     desc: "No dia do vencimento",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\nSem renovação, suas instâncias serão bloqueadas.\n\nRenove → ${v.suporte_numero}`,
+      `⚠️ ${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\n🚫 Sem renovação, suas instâncias serão bloqueadas.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vencido-1-dia",
@@ -52,7 +52,7 @@ const TEMPLATES = [
     color: "text-destructive",
     desc: "1 dia vencido",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\nSuas instâncias estão bloqueadas.\n\nRenove → ${v.suporte_numero}`,
+      `❌ ${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\n🔒 Suas instâncias estão bloqueadas.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vencido-7-dias",
@@ -61,7 +61,7 @@ const TEMPLATES = [
     color: "text-destructive",
     desc: "7 dias vencido",
     build: (v: any) =>
-      `${v.nome}, já se passaram 7 dias desde o vencimento do plano ${v.plano}.\n\nSuas instâncias continuam bloqueadas.\n\nAjuda? → ${v.suporte_numero}`,
+      `🔴 ${v.nome}, já se passaram 7 dias desde o vencimento do plano ${v.plano}.\n\n🔒 Suas instâncias continuam bloqueadas.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vencido-30-dias",
@@ -70,7 +70,7 @@ const TEMPLATES = [
     color: "text-destructive",
     desc: "30 dias — remoção",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\nSuas instâncias poderão ser removidas em breve.\n\nContato: ${v.suporte_numero}`,
+      `💀 ${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\n⚠️ Suas instâncias poderão ser removidas em breve.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
 ];
 
