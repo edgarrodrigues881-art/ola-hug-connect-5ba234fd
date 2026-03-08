@@ -1159,7 +1159,7 @@ const Devices = () => {
                       <img 
                         src={d.profile_picture} 
                         alt={d.name} 
-                        className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
