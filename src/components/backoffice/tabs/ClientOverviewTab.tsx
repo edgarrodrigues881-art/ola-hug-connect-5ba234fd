@@ -42,7 +42,7 @@ const ClientOverviewTab = memo(({ client, detail }: Props) => {
   const toggleStatus = (s: string) => {
     mutate(
       { action: "toggle-status", body: { target_user_id: client.id, new_status: s } },
-      { onSuccess: () => toast({ title: `Status: ${s}` }), onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
+      { onSuccess: () => { toast({ title: `Status: ${s}` }); invalidateClient(client.id); }, onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }) }
     );
   };
 
