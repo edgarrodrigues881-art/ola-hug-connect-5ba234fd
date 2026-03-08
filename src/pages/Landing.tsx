@@ -193,7 +193,7 @@ const Features = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {features.map((f) => (
-        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
+        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-300">
           <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-5" />
           <h3 className="text-[15px] font-bold text-white mb-2">{f.title}</h3>
           <p className="text-[13px] text-white/45 leading-relaxed">{f.desc}</p>
