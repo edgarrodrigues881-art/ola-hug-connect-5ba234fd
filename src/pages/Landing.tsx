@@ -235,7 +235,7 @@ const Plans = () => {
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1.5">{p.name}</h3>
-            <p className="text-[13px] text-white/45 font-medium mb-6">{p.instances} instâncias</p>
+            <p className="text-[13px] text-white/50 font-medium mb-6">{p.instances} instâncias</p>
             <ul className="space-y-3 mb-7">
               {["Disparos ilimitados", "Warmup automático", "Campanhas avançadas", "Suporte prioritário"].map((item) => (
                 <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/55 font-medium">
