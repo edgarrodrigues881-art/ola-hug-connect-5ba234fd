@@ -300,31 +300,6 @@ const FAQ = () => (
   </Section>
 );
 
-// ─── 8. CTA Final ───
-const CTAFinal = () => {
-  const navigate = useNavigate();
-  return (
-    <Section>
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-10 md:p-16 overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-[hsl(var(--primary))]/5 rounded-3xl blur-[80px] pointer-events-none" />
-        <div className="relative">
-          <Rocket className="w-10 h-10 text-[hsl(var(--primary))] mx-auto mb-6" />
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-5 tracking-tight leading-tight">
-            Pronto para escalar sua operação?
-          </h2>
-          <p className="text-base text-white/50 max-w-md mx-auto mb-9 font-medium">
-            Crie sua conta agora e comece a operar com a infraestrutura que sua operação merece.
-          </p>
-          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-base font-bold px-10 h-14 gap-2.5 shadow-xl shadow-[hsl(var(--primary))]/25 rounded-xl">
-            Começar agora <ArrowRight className="w-5 h-5" />
-          </Button>
-        </div>
-      </motion.div>
-    </Section>
-  );
-};
 
 // ─── Footer ───
 const FooterSection = () => (
@@ -367,7 +342,7 @@ const Landing = () => {
         <Plans />
         
         <FAQ />
-        <CTAFinal />
+        
         <FooterSection />
       </div>
       <WhatsAppFloat />
