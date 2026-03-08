@@ -1623,9 +1623,9 @@ Deno.serve(async (req) => {
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
 
-      for (let page = 0; page < 5; page++) {
+      for (let page = 0; page < 10; page++) {
         try {
-          const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=200`, {
+          const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=500`, {
             method: "GET",
             headers: { token, Accept: "application/json", "Content-Type": "application/json" },
           });
