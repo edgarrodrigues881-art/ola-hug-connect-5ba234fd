@@ -121,7 +121,19 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
     },
   });
 
-  const copyMessage = () => {
+  const deleteMessage = (messageId: string) => {
+    mutate(
+      { action: "delete-message", body: { message_id: messageId, target_user_id: client.id } },
+      {
+        onSuccess: () => {
+          toast({ title: "Mensagem apagada" });
+          queryClient.invalidateQueries({ queryKey: ["admin-messages", client.id] });
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
+
     navigator.clipboard.writeText(message);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
