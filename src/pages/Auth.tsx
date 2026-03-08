@@ -163,7 +163,7 @@ const Auth = () => {
     }
   };
 
-  const inputClass = "pl-11 h-12 rounded-xl border-[#1E2330] bg-[#151821] text-[#E5E7EB] placeholder:text-[#9CA3AF]/40 focus:border-[#22C55E] focus:ring-0 transition-colors duration-150";
+  const inputClass = "pl-11 h-[52px] rounded-2xl border-[#1E2330] bg-[#151821]/80 text-white text-sm font-medium placeholder:text-[#6B7280] focus:border-[#22C55E]/60 focus:bg-[#151821] focus:ring-1 focus:ring-[#22C55E]/20 transition-all duration-200";
 
 
   return (
@@ -183,37 +183,37 @@ const Auth = () => {
         />
       </div>
       {/* Back button */}
-      <div className="absolute top-6 left-6">
+      <div className="absolute top-6 left-6 z-10">
         <button
           onClick={() => showForgot ? setShowForgot(false) : navigate("/")}
-          className="flex items-center gap-2 text-sm text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
+          className="flex items-center gap-2 text-sm font-medium text-[#9CA3AF] hover:text-white transition-colors duration-200 group"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
           Voltar
         </button>
       </div>
 
       {/* Main card */}
-      <div className="w-full max-w-[420px] auth-card-fade-in">
+      <div className="w-full max-w-[440px] auth-card-fade-in">
         {/* Logo + brand */}
-        <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="DG Contingência" className="w-10 h-10 rounded-xl mb-3" />
-          <span className="text-xs font-medium tracking-wide text-[#9CA3AF]">DG Contingência</span>
+        <div className="flex flex-col items-center mb-10">
+          <img src={logo} alt="DG Contingência" className="w-14 h-14 rounded-2xl mb-3 shadow-lg shadow-black/20" />
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#6B7280]">DG Contingência</span>
         </div>
 
         {showForgot ? (
           <>
             {/* Forgot password view */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">Recuperar senha</h1>
-              <p className="text-sm text-[#9CA3AF]">
+             <div className="text-center mb-8">
+              <h1 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Recuperar senha</h1>
+              <p className="text-sm text-[#9CA3AF] font-medium">
                 Informe seu e-mail e enviaremos um link para redefinir sua senha
               </p>
             </div>
 
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="forgotEmail" className="text-xs font-medium text-[#9CA3AF]">
+                <Label htmlFor="forgotEmail" className="text-xs font-semibold text-[#9CA3AF] tracking-wide uppercase">
                   Endereço de e-mail
                 </Label>
                 <div className="relative">
@@ -235,8 +235,8 @@ const Auth = () => {
               <Button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
-                style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
+                className="w-full h-[52px] text-sm font-bold rounded-2xl bg-[#22C55E] hover:bg-[#16A34A] active:scale-[0.98] text-white transition-all duration-200 border-0 tracking-wide"
+                style={{ boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)' }}
               >
                 {forgotLoading ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -266,11 +266,11 @@ const Auth = () => {
         ) : (
           <>
             {/* Heading */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">
+            <div className="text-center mb-10">
+              <h1 className="text-3xl sm:text-[32px] font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
               </h1>
-              <p className="text-sm text-[#9CA3AF]">
+              <p className="text-sm text-[#9CA3AF] font-medium">
                 {isLogin
                   ? "Entre para gerenciar seus disparos"
                   : "Comece a enviar mensagens profissionais"}
@@ -278,11 +278,11 @@ const Auth = () => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
                 <>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fullName" className="text-xs font-medium text-[#9CA3AF]">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                       Nome completo
                     </Label>
                     <div className="relative">
@@ -300,8 +300,8 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-medium text-[#9CA3AF]">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                       Número de telefone
                     </Label>
                     <div className="relative">
@@ -319,8 +319,8 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="company" className="text-xs font-medium text-[#9CA3AF]">
+                  <div className="space-y-2">
+                    <Label htmlFor="company" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                       Nome fantasia
                     </Label>
                     <div className="relative">
@@ -340,8 +340,8 @@ const Auth = () => {
                 </>
               )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-medium text-[#9CA3AF]">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                   Endereço de e-mail
                 </Label>
                 <div className="relative">
@@ -359,8 +359,8 @@ const Auth = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-medium text-[#9CA3AF]">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                   Senha de acesso
                 </Label>
                 <div className="relative">
@@ -384,15 +384,15 @@ const Auth = () => {
                   </button>
                 </div>
                 {isLogin && (
-                  <div className="flex items-center justify-between mt-1">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div className="flex items-center justify-between mt-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-[#1E2330] bg-[#151821] text-[#22C55E] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#22C55E]"
+                        className="w-4 h-4 rounded-md border-[#1E2330] bg-[#151821] text-[#22C55E] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#22C55E]"
                       />
-                      <span className="text-xs text-[#9CA3AF]">Manter conectado</span>
+                      <span className="text-xs font-medium text-[#9CA3AF]">Manter conectado</span>
                     </label>
                     <button
                       type="button"
@@ -400,7 +400,7 @@ const Auth = () => {
                         setForgotEmail(email);
                         setShowForgot(true);
                       }}
-                      className="text-xs text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-150"
+                      className="text-xs font-medium text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-200"
                     >
                       Esqueceu sua senha?
                     </button>
@@ -409,8 +409,8 @@ const Auth = () => {
               </div>
 
               {!isLogin && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className="text-xs font-medium text-[#9CA3AF]">
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                     Confirmar senha
                   </Label>
                   <div className="relative">
@@ -439,8 +439,8 @@ const Auth = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
-                style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
+                className="w-full h-[52px] text-[15px] font-bold rounded-2xl bg-[#22C55E] hover:bg-[#16A34A] active:scale-[0.98] text-white transition-all duration-200 border-0 tracking-wide mt-2"
+                style={{ boxShadow: '0 4px 20px rgba(34, 197, 94, 0.25)' }}
               >
                 {loading ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -451,20 +451,19 @@ const Auth = () => {
             </form>
 
             {/* Security microcopy */}
-            <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
-              <ShieldCheck className="w-3 h-3" />
+            <div className="flex items-center justify-center gap-2 mt-5 text-[11px] text-[#6B7280] font-medium">
+              <ShieldCheck className="w-3.5 h-3.5" />
               <span>Ambiente seguro e criptografado</span>
             </div>
 
             {/* Divider */}
-            <div className="my-6 border-t border-[#1E2330]" />
+            <div className="my-7 border-t border-[#1E2330]/60" />
 
-            {/* Toggle */}
-            <p className="text-center text-sm text-[#9CA3AF]">
+            <p className="text-center text-sm font-medium text-[#9CA3AF]">
               {isLogin ? "Não tem conta? " : "Já tem conta? "}
               <button
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
+                className="text-[#22C55E] hover:text-[#16A34A] font-bold transition-colors duration-200"
               >
                 {isLogin ? "Criar agora" : "Faça login"}
               </button>
