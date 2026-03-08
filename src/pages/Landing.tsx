@@ -38,7 +38,7 @@ const Landing = () => {
         <Footer />
       </div>
 
-      <SocialProofToast />
+      
       
     </div>
   );
