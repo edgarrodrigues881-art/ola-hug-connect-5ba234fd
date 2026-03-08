@@ -462,21 +462,6 @@ const Auth = () => {
       </div>
 
       {/* Floating support button */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => window.open("https://wa.me/5562994192500?text=Ol%C3%A1%20DG%2C%20vim%20do%20site%20e%20preciso%20de%20suporte!", "_blank")}
-              className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-[#166534] hover:bg-[#15803d] flex items-center justify-center transition-colors duration-150 shadow-lg"
-            >
-              <MessageCircle className="w-5 h-5 text-white" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="text-xs">
-            Precisa de ajuda?
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
       <SupportButton />
       </div>
     </div>
