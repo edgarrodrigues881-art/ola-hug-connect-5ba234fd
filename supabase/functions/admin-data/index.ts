@@ -1908,6 +1908,59 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Payments ──
+    if (action === "list-payments" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const { data: payments } = await adminClient.from("payments")
+        .select("*")
+        .eq("user_id", target_user_id)
+        .order("paid_at", { ascending: false });
+      return new Response(JSON.stringify({ payments: payments || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "add-payment" && req.method === "POST") {
+      const { target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
+      const { error: insErr } = await adminClient.from("payments").insert({
+        user_id: target_user_id,
+        admin_id: user.id,
+        amount: amount || 0,
+        method: method || "PIX",
+        notes: notes || null,
+        paid_at: paid_at || new Date().toISOString(),
+        discount: discount || 0,
+        fee: fee || 0,
+      });
+      if (insErr) throw new Error(insErr.message);
+      await logAction(adminClient, user.id, target_user_id, "add-payment", `Pagamento R$ ${amount} registrado`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update-payment" && req.method === "POST") {
+      const { payment_id, target_user_id, amount, method, notes, paid_at, discount, fee } = await req.json();
+      const { error: updErr } = await adminClient.from("payments")
+        .update({ amount, method, notes, paid_at, discount, fee })
+        .eq("id", payment_id);
+      if (updErr) throw new Error(updErr.message);
+      await logAction(adminClient, user.id, target_user_id, "update-payment", `Pagamento atualizado`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete-payment" && req.method === "POST") {
+      const { payment_id, target_user_id } = await req.json();
+      const { error: delErr } = await adminClient.from("payments").delete().eq("id", payment_id);
+      if (delErr) throw new Error(delErr.message);
+      await logAction(adminClient, user.id, target_user_id, "delete-payment", `Pagamento removido`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
