@@ -734,7 +734,7 @@ const AdminMessages = () => {
 
   // ─── MAIN LIST ───
   return (
-    <div className="space-y-4">
+    <>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
@@ -795,7 +795,7 @@ const AdminMessages = () => {
             );
           })}
         </div>
-      </ScrollArea>
+    </ScrollArea>
     </div>
     {qrDialog}
     </>
