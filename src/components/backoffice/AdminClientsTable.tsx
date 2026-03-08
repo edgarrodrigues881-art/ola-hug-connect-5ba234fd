@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronRight, AlertTriangle, Shield } from "lucide-react";
+import { Search, ChevronRight, AlertTriangle, Shield, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/hooks/useAdmin";
@@ -36,6 +36,7 @@ const statusTextColor: Record<string, string> = { active: "text-green-500", susp
 const AdminClientsTable = ({ users, onSelectClient }: Props) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -110,20 +111,34 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
     <div className="space-y-4">
       {/* Search + Filters */}
       <div className="space-y-3">
-        <div className="relative max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+          </div>
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+              showFilters || filter !== "all"
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "bg-card border-border text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            Filtros
+            {filter !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+            <ChevronDown size={14} className={`transition-transform ${showFilters ? "rotate-180" : ""}`} />
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {filterGroups.map((group, gi) => (
-            <div key={gi} className="flex items-center gap-1.5">
-              {group.label && (
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold mr-0.5">{group.label}</span>
-              )}
-              {group.items.map(f => renderFilterBtn(f))}
-            </div>
-          ))}
-        </div>
+        {showFilters && (
+          <div className="flex flex-col gap-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
+            {filterGroups.filter(g => g.label).map((group, gi) => (
+              <div key={gi} className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold w-14 shrink-0">{group.label}</span>
+                {group.items.map(f => renderFilterBtn(f))}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ═══ MOBILE: Card layout ═══ */}
