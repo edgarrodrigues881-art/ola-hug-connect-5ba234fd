@@ -166,7 +166,7 @@ const HowItWorks = () => (
         <motion.div key={s.num} variants={fadeUp} className="relative text-center md:text-left">
           <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/10 block mb-3 font-mono">{s.num}</span>
           <h3 className="text-[15px] font-bold text-white mb-2">{s.title}</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed">{s.desc}</p>
+          <p className="text-[13px] text-white/50 leading-relaxed">{s.desc}</p>
           {i < 3 && <div className="hidden md:block absolute top-8 -right-4 w-8 border-t border-dashed border-white/10" />}
         </motion.div>
       ))}
