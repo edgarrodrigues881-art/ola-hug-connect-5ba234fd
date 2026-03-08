@@ -187,7 +187,83 @@ const AdminMessages = () => {
     fetchGroups(id);
   };
 
-  // Filter users
+  // ─── QR CODE FUNCTIONS ───
+  const callApi = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Não autenticado");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) throw response.error;
+    return response.data;
+  };
+
+  const openQrDialog = (deviceId: string) => {
+    setQrDeviceId(deviceId);
+    setQrDialogOpen(true);
+    setQrCodeBase64("");
+    setQrConnected(false);
+    setQrError("");
+    setQrLoading(true);
+    // Start QR flow
+    callApi({ action: "connect", deviceId, method: "qr" }).then(result => {
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+        toast({ title: "✅ Já conectado!" });
+        return;
+      }
+      const b64 = result?.base64 || result?.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      } else {
+        setQrError("QR Code não retornado. Verifique se o token está atribuído.");
+      }
+    }).catch(err => {
+      setQrError(err?.message || "Erro ao gerar QR Code");
+    }).finally(() => setQrLoading(false));
+  };
+
+  // QR auto-refresh countdown
+  useEffect(() => {
+    if (!qrDialogOpen || !qrCodeBase64 || qrConnected) return;
+    setQrCountdown(30);
+    if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+    qrCountdownRef.current = setInterval(() => {
+      setQrCountdown(prev => {
+        if (prev <= 1) {
+          // Refresh QR
+          callApi({ action: "refreshQr", deviceId: qrDeviceId }).then(result => {
+            const b64 = result?.base64 || result?.qr;
+            if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+          }).catch(() => {});
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [qrDialogOpen, qrCodeBase64, qrConnected, qrDeviceId]);
+
+  // Poll connection status
+  useEffect(() => {
+    if (!qrDialogOpen || !qrDeviceId || qrConnected) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await callApi({ action: "status", deviceId: qrDeviceId });
+        if (result?.status === "authenticated" || result?.status === "connected" || result?.status === "Ready") {
+          setQrConnected(true);
+          queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+          toast({ title: "✅ Instância conectada!" });
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setTimeout(() => setQrDialogOpen(false), 2000);
+        }
+      } catch (_e) {}
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [qrDialogOpen, qrDeviceId, qrConnected]);
+
   const filteredUsers = useMemo(() => {
     const sorted = [...users].sort((a, b) => {
       const da = getDaysLeft(a.plan_expires_at) ?? 999;
