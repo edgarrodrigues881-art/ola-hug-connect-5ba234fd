@@ -1,12 +1,7 @@
-import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Star, Users } from "lucide-react";
+import { Check, X, ArrowRight, Crown, Zap, Shield, Sparkles, BarChart3, Star, Users } from "lucide-react";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
   const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência – ${plan.name} (${plan.instances} Instâncias) no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
-  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
-};
-
-const buildAddonWhatsappUrl = () => {
-  const msg = `Olá, tudo bem?\nTenho interesse em contratar o addon Relatórios via WhatsApp no valor de R$ 18,90/mês.\nPode me enviar os dados para ativação?`;
   return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
 };
 
