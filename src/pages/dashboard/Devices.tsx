@@ -1841,7 +1841,7 @@ const Devices = () => {
                     <p className="text-xs text-muted-foreground">Digite o código acima</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "connecting" && (
