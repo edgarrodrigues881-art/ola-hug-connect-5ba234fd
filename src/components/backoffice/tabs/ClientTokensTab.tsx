@@ -44,6 +44,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
           toast({ title: info });
           setNewTokens("");
           setShowAddArea(false);
+          invalidateClient(client.id);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
