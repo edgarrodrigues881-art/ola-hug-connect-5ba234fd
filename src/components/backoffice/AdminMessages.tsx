@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAdminDashboard, useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Search, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
   Loader2, Check, User, ArrowLeft, Wifi, WifiOff,
-  Settings2, Smartphone, History, Radio, Users, RefreshCw
+  Settings2, Smartphone, History, Radio, Users, RefreshCw, QrCode
 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
@@ -119,6 +120,17 @@ const AdminMessages = () => {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
 
+  // QR Code state
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrConnected, setQrConnected] = useState(false);
+  const [qrError, setQrError] = useState("");
+  const [qrDeviceId, setQrDeviceId] = useState("");
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const users = data?.users || [];
 
   // Load WhatsApp report config
@@ -175,7 +187,83 @@ const AdminMessages = () => {
     fetchGroups(id);
   };
 
-  // Filter users
+  // ─── QR CODE FUNCTIONS ───
+  const callApi = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Não autenticado");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) throw response.error;
+    return response.data;
+  };
+
+  const openQrDialog = (deviceId: string) => {
+    setQrDeviceId(deviceId);
+    setQrDialogOpen(true);
+    setQrCodeBase64("");
+    setQrConnected(false);
+    setQrError("");
+    setQrLoading(true);
+    // Start QR flow
+    callApi({ action: "connect", deviceId, method: "qr" }).then(result => {
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+        toast({ title: "✅ Já conectado!" });
+        return;
+      }
+      const b64 = result?.base64 || result?.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      } else {
+        setQrError("QR Code não retornado. Verifique se o token está atribuído.");
+      }
+    }).catch(err => {
+      setQrError(err?.message || "Erro ao gerar QR Code");
+    }).finally(() => setQrLoading(false));
+  };
+
+  // QR auto-refresh countdown
+  useEffect(() => {
+    if (!qrDialogOpen || !qrCodeBase64 || qrConnected) return;
+    setQrCountdown(30);
+    if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+    qrCountdownRef.current = setInterval(() => {
+      setQrCountdown(prev => {
+        if (prev <= 1) {
+          // Refresh QR
+          callApi({ action: "refreshQr", deviceId: qrDeviceId }).then(result => {
+            const b64 = result?.base64 || result?.qr;
+            if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+          }).catch(() => {});
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [qrDialogOpen, qrCodeBase64, qrConnected, qrDeviceId]);
+
+  // Poll connection status
+  useEffect(() => {
+    if (!qrDialogOpen || !qrDeviceId || qrConnected) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await callApi({ action: "status", deviceId: qrDeviceId });
+        if (result?.status === "authenticated" || result?.status === "connected" || result?.status === "Ready") {
+          setQrConnected(true);
+          queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+          toast({ title: "✅ Instância conectada!" });
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setTimeout(() => setQrDialogOpen(false), 2000);
+        }
+      } catch (_e) {}
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [qrDialogOpen, qrDeviceId, qrConnected]);
+
   const filteredUsers = useMemo(() => {
     const sorted = [...users].sort((a, b) => {
       const da = getDaysLeft(a.plan_expires_at) ?? 999;
@@ -296,6 +384,66 @@ const AdminMessages = () => {
     );
   };
 
+  // QR Dialog component (rendered in all views)
+  const qrDialog = (
+    <Dialog open={qrDialogOpen} onOpenChange={(open) => {
+      if (!open) {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
+        setQrDialogOpen(false);
+      }
+    }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <QrCode size={18} className="text-primary" />
+            Escanear QR Code
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-4">
+          {qrLoading && (
+            <div className="flex flex-col items-center gap-2 py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+            </div>
+          )}
+          {qrError && !qrLoading && (
+            <div className="text-center py-6 space-y-2">
+              <XCircle size={32} className="text-destructive mx-auto" />
+              <p className="text-sm text-destructive font-medium">Erro</p>
+              <p className="text-xs text-muted-foreground max-w-xs">{qrError}</p>
+              <Button variant="outline" size="sm" onClick={() => openQrDialog(qrDeviceId)} className="mt-2">
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+          {qrCodeBase64 && !qrConnected && !qrLoading && (
+            <>
+              <div className="bg-white p-3 rounded-xl">
+                <img src={qrCodeBase64} alt="QR Code" className="w-56 h-56 object-contain" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm text-foreground font-medium">Escaneie com o WhatsApp</p>
+                <p className="text-xs text-muted-foreground">
+                  Atualizando em <span className="font-mono font-bold text-primary">{qrCountdown}s</span>
+                </p>
+              </div>
+            </>
+          )}
+          {qrConnected && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <Check size={24} className="text-emerald-500" />
+              </div>
+              <p className="text-sm font-bold text-foreground">Conectado com sucesso!</p>
+              <p className="text-xs text-muted-foreground">Selecione esta instância e escolha o grupo.</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   // ─── CONFIG VIEW ───
   if (view === "config") {
     return (
@@ -318,27 +466,42 @@ const AdminMessages = () => {
               </p>
             ) : (
               <div className="space-y-1.5">
-                {adminDevices.map((d: any) => (
-                  <button
-                    key={d.id}
-                    onClick={() => selectDevice(d.id)}
-                    className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
-                      configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
-                    }`}
-                  >
-                    <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{d.number || "Sem número"}</p>
+                {adminDevices.map((d: any) => {
+                  const isDisconnected = d.status !== "Connected";
+                  return (
+                    <div key={d.id} className="flex items-center gap-2">
+                      <button
+                        onClick={() => selectDevice(d.id)}
+                        className={`flex-1 flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
+                          configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
+                        }`}
+                      >
+                        <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.number || "Sem número"}</p>
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] ${
+                          d.status === "Connected" ? "border-emerald-500/30 text-emerald-500" : "border-destructive/30 text-destructive"
+                        }`}>
+                          {d.status === "Connected" ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
+                          {d.status}
+                        </Badge>
+                      </button>
+                      {isDisconnected && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openQrDialog(d.id)}
+                          className="h-10 px-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 shrink-0"
+                        >
+                          <QrCode size={14} />
+                          <span className="text-[10px]">QR</span>
+                        </Button>
+                      )}
                     </div>
-                    <Badge variant="outline" className={`text-[9px] ${
-                      d.status === "Connected" ? "border-emerald-500/30 text-emerald-500" : "border-destructive/30 text-destructive"
-                    }`}>
-                      {d.status === "Connected" ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
-                      {d.status}
-                    </Badge>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -571,69 +734,57 @@ const AdminMessages = () => {
 
   // ─── MAIN LIST ───
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Radio size={20} className="text-emerald-500" />
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
-            <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Radio size={20} className="text-emerald-500" />
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
+              <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
+              <History size={13} /> Histórico
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setView("config")}
+              className={`text-xs h-8 gap-1.5 ${isConfigured ? "border-emerald-500/30 text-emerald-600" : "border-destructive/30 text-destructive"}`}>
+              {isConfigured ? <Wifi size={13} /> : <WifiOff size={13} />}
+              {isConfigured ? "Conectado" : "Configurar"}
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
-            <History size={13} /> Histórico
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView("config")}
-            className={`text-xs h-8 gap-1.5 ${isConfigured ? "border-emerald-500/30 text-emerald-600" : "border-destructive/30 text-destructive"}`}
-          >
-            {isConfigured ? <Wifi size={13} /> : <WifiOff size={13} />}
-            {isConfigured ? "Conectado" : "Configurar"}
-          </Button>
+        <div className="relative max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
         </div>
+        <ScrollArea className="max-h-[calc(100vh-320px)]">
+          <div className="space-y-1">
+            {filteredUsers.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
+            ) : filteredUsers.map(u => {
+              const d = getDaysLeft(u.plan_expires_at);
+              const status = getStatusBadge(d);
+              return (
+                <button key={u.id} onClick={() => openClient(u)}
+                  className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left">
+                  <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                    <User size={14} className="text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
+                  </div>
+                  <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>{status.label}</Badge>
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </div>
-
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
-      </div>
-
-      {/* Client list */}
-      <ScrollArea className="max-h-[calc(100vh-320px)]">
-        <div className="space-y-1">
-          {filteredUsers.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
-          ) : filteredUsers.map(u => {
-            const d = getDaysLeft(u.plan_expires_at);
-            const status = getStatusBadge(d);
-            return (
-              <button
-                key={u.id}
-                onClick={() => openClient(u)}
-                className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                  <User size={14} className="text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
-                </div>
-                <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>
-                  {status.label}
-                </Badge>
-              </button>
-            );
-          })}
-        </div>
-      </ScrollArea>
-    </div>
+      {qrDialog}
+    </>
   );
 };
 
