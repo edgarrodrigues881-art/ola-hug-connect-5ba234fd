@@ -132,7 +132,8 @@ const WelcomeSplash = () => {
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 <span className="text-primary">DG</span>{" "}
-                <span>CONTINGÊNCIA</span>
+                <span>CONTINGÊNCIA</span>{" "}
+                <span className="text-primary">PRO</span>
               </h1>
               <motion.span
                 className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/40 font-medium"
