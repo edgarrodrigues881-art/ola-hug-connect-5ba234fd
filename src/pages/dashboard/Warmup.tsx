@@ -385,10 +385,7 @@ const Warmup = () => {
     <div className="space-y-4 sm:space-y-5">
       {/* Warning popup */}
       <Dialog open={showWarning} onOpenChange={(open) => {
-        if (!open) {
-          setShowWarning(false);
-          sessionStorage.setItem("warmup-warning-dismissed", "true");
-        }
+        if (!open) setShowWarning(false);
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -409,10 +406,7 @@ const Warmup = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button onClick={() => {
-              setShowWarning(false);
-              sessionStorage.setItem("warmup-warning-dismissed", "true");
-            }}>
+            <Button onClick={() => setShowWarning(false)}>
               Entendi
             </Button>
           </DialogFooter>
