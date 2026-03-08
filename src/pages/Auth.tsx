@@ -319,8 +319,8 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="company" className="text-xs font-medium text-[#9CA3AF]">
+                  <div className="space-y-2">
+                    <Label htmlFor="company" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                       Nome fantasia
                     </Label>
                     <div className="relative">
