@@ -176,7 +176,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const renderContent = () => {
     switch (activeTab) {
       case "overview": return data ? <AdminOverview data={data} /> : null;
-      case "clients": return <AdminClientsTable users={data?.users || []} cycles={data?.cycles || []} adminLogs={data?.admin_logs || []} onSelectClient={setSelectedClient} />;
+      case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={setSelectedClient} />;
       case "pendencias": return <PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} />;
       case "logs": return <AdminLogs />;
       case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
