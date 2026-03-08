@@ -75,7 +75,7 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm md:text-base text-white/60 max-w-2xl leading-relaxed font-medium">{children}</p>
+  <p className="text-sm md:text-base text-white/60 max-w-2xl leading-relaxed font-medium mx-auto">{children}</p>
 );
 
 // ─── 1. Hero ───
