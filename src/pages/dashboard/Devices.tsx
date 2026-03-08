@@ -1863,6 +1863,7 @@ const Devices = () => {
                 <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Fechar</Button>
               </div>
             )}
+           </AnimatePresence>
           </div>
         </DialogContent>
       </Dialog>
