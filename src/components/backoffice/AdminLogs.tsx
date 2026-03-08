@@ -60,7 +60,7 @@ const AdminLogs = () => {
         </div>
       ) : (
         <div className="border border-border rounded-xl overflow-hidden">
-          <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
+          <div className="max-h-[calc(100vh-220px)] overflow-y-auto" style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}>
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-card text-muted-foreground text-xs uppercase tracking-wider">
