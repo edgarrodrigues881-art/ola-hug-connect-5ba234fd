@@ -24,10 +24,10 @@ const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
 const GridPattern = () => (
   <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
     <div className="absolute inset-0" style={{
-      backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
+      backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
       backgroundSize: '64px 64px',
     }} />
-    <div className="absolute inset-0 bg-gradient-to-b from-[#13161b] via-transparent to-[#13161b]" />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#181c24] via-transparent to-[#181c24]" />
   </div>
 );
 
@@ -37,7 +37,7 @@ const Navbar = () => {
   const scroll = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#13161b]/85 border-b border-white/[0.06]">
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#181c24]/90 border-b border-white/[0.08]">
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-5">
         <div className="flex items-center gap-2.5">
           <img src={logo} alt="DG" width={32} height={32} className="rounded-lg" />
@@ -71,11 +71,11 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">{children}</h2>
+  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white/95 tracking-tight mb-4 leading-tight">{children}</h2>
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm md:text-base text-white/55 max-w-2xl leading-relaxed font-medium">{children}</p>
+  <p className="text-sm md:text-base text-white/60 max-w-2xl leading-relaxed font-medium">{children}</p>
 );
 
 // ─── 1. Hero ───
@@ -134,12 +134,12 @@ const Benefits = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {benefits.map((b) => (
-        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
+        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-all duration-300">
           <div className="w-11 h-11 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center mb-5 group-hover:bg-[hsl(var(--primary))]/15 transition-colors">
             <b.icon className="w-5 h-5 text-[hsl(var(--primary))]" />
           </div>
           <h3 className="text-[15px] font-bold text-white mb-2">{b.title}</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed">{b.desc}</p>
+          <p className="text-[13px] text-white/50 leading-relaxed">{b.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -166,7 +166,7 @@ const HowItWorks = () => (
         <motion.div key={s.num} variants={fadeUp} className="relative text-center md:text-left">
           <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/10 block mb-3 font-mono">{s.num}</span>
           <h3 className="text-[15px] font-bold text-white mb-2">{s.title}</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed">{s.desc}</p>
+          <p className="text-[13px] text-white/50 leading-relaxed">{s.desc}</p>
           {i < 3 && <div className="hidden md:block absolute top-8 -right-4 w-8 border-t border-dashed border-white/10" />}
         </motion.div>
       ))}
@@ -193,10 +193,10 @@ const Features = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {features.map((f) => (
-        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
+        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-300">
           <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-5" />
           <h3 className="text-[15px] font-bold text-white mb-2">{f.title}</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed">{f.desc}</p>
+          <p className="text-[13px] text-white/50 leading-relaxed">{f.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -225,8 +225,8 @@ const Plans = () => {
           <motion.div key={p.name} variants={fadeUp}
             className={`relative rounded-2xl border transition-all duration-300 ${
               p.popular
-                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.05] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
-                : "border-white/[0.06] bg-white/[0.02] p-7 md:p-8 hover:border-white/10"
+                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.06] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
+                : "border-white/[0.08] bg-white/[0.03] p-7 md:p-8 hover:border-white/[0.14]"
             }`}
           >
             {p.popular && (
@@ -235,14 +235,14 @@ const Plans = () => {
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1.5">{p.name}</h3>
-            <p className="text-[13px] text-white/45 font-medium mb-6">{p.instances} instâncias</p>
+            <p className="text-[13px] text-white/50 font-medium mb-6">{p.instances} instâncias</p>
             <ul className="space-y-3 mb-7">
               {["Disparos ilimitados", "Warmup automático", "Campanhas avançadas", "Suporte prioritário"].map((item) => (
                 <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/55 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
                 </li>
               ))}
-              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/55">
+              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/60">
                 <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
                 <span className={p.whatsappReports ? "" : "text-white/25"}>Relatórios WhatsApp {p.whatsappReports ? "incluso" : ""}</span>
               </li>
@@ -267,7 +267,7 @@ const Plans = () => {
 const Addon = () => (
   <Section>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-      className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+      className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
     >
       <div className="flex items-start gap-5">
         <div className="w-13 h-13 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center flex-shrink-0" style={{ width: 52, height: 52 }}>
@@ -275,7 +275,7 @@ const Addon = () => (
         </div>
         <div>
           <h3 className="text-lg font-bold text-white mb-1.5">Relatórios via WhatsApp</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed max-w-md font-medium">
+          <p className="text-[13px] text-white/50 leading-relaxed max-w-md font-medium">
             Receba alertas de desconexão, fim de campanha e relatórios periódicos direto no seu WhatsApp. Incluso nos planos Scale e Elite.
           </p>
         </div>
@@ -304,12 +304,12 @@ const FAQ = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
-        <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
           <summary className="flex items-center justify-between px-6 py-5 cursor-pointer text-[15px] font-semibold text-white/80 hover:text-white transition-colors list-none">
             {f.q}
             <ChevronDown className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" />
           </summary>
-          <p className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed font-medium">{f.a}</p>
+          <p className="px-6 pb-5 text-[13px] text-white/50 leading-relaxed font-medium">{f.a}</p>
         </motion.details>
       ))}
     </motion.div>
@@ -350,10 +350,10 @@ const FooterSection = () => (
         <img src={logo} alt="DG" width={28} height={28} className="rounded-lg" />
         <span className="text-sm font-semibold text-white">DG Contingência</span>
       </div>
-      <p className="text-[11px] text-white/30 text-center max-w-lg leading-relaxed">
+      <p className="text-[11px] text-white/35 text-center max-w-lg leading-relaxed">
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
       </p>
-      <p className="text-[11px] text-white/20">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
+      <p className="text-[11px] text-white/25">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
     </div>
   </footer>
 );
@@ -372,7 +372,7 @@ const Landing = () => {
   useEffect(() => { prefetchRoutes(); }, []);
 
   return (
-    <div className="min-h-screen bg-[#13161b] relative" style={{ overflowX: "hidden" }}>
+    <div className="min-h-screen bg-[#181c24] relative" style={{ overflowX: "hidden" }}>
       <GridPattern />
       <div className="relative z-10">
         <Navbar />
