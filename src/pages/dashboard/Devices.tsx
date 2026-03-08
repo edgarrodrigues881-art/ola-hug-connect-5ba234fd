@@ -247,60 +247,18 @@ const Devices = () => {
 
   const planBadgeText = planState === "noPlan" ? "Sem plano" : planState === "expired" ? "Plano vencido" : planState === "suspended" ? "Conta suspensa" : null;
 
-  // Fetch recent warmup logs for health scoring (last 7 days)
-  const { data: recentLogs = [] } = useQuery({
-    queryKey: ["warmup_logs_recent"],
-    queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { data, error } = await supabase
-        .from("warmup_logs")
-        .select("device_id, status")
-        .gte("created_at", sevenDaysAgo.toISOString())
-        .limit(1000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!session,
-  });
-
-  // Fetch recent campaign send stats for health scoring
-  const { data: recentCampaignStats = [] } = useQuery({
-    queryKey: ["campaign_contacts_recent_stats"],
-    queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { data, error } = await supabase
-        .from("campaign_contacts")
-        .select("status, campaign_id")
-        .gte("created_at", sevenDaysAgo.toISOString())
-        .limit(1000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!session,
-  });
-
-  // Calculate health score per device
+  // Lightweight health score — no extra queries needed
   const deviceHealthScores = useMemo(() => {
     const scores: Record<string, number> = {};
     for (const d of devices) {
       let score = 100;
-      // Penalty for status
       if (d.status === "Disconnected") score -= 20;
       if (!d.has_api_config) score -= 30;
       if (!d.proxy_id) score -= 10;
-      // Penalty for warmup log failures
-      const deviceLogs = recentLogs.filter(l => l.device_id === d.id);
-      const failedLogs = deviceLogs.filter(l => l.status === "failed" || l.status === "error");
-      if (deviceLogs.length > 0) {
-        const failRate = failedLogs.length / deviceLogs.length;
-        if (failRate > 0.1) score -= Math.min(30, Math.round(failRate * 50));
-      }
       scores[d.id] = Math.max(0, Math.min(100, score));
     }
     return scores;
-  }, [devices, recentLogs, recentCampaignStats]);
+  }, [devices]);
 
   const getHealthColor = (score: number) => {
     if (score >= 80) return "text-emerald-500";
@@ -565,34 +523,28 @@ const Devices = () => {
   };
 
   const handleBulkDelete = async (ids: string[]) => {
+    // Optimistic: remove from cache immediately
+    const previous = queryClient.getQueryData<Device[]>(["devices"]);
+    const idsSet = new Set(ids);
+    queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+      old ? old.filter(d => !idsSet.has(d.id)) : old
+    );
+    setSelectedDevices([]);
     try {
-      for (const id of ids) {
-        const device = devices.find(d => d.id === id);
-        if (device?.proxy_id) {
-          await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id);
-          await supabase.from("devices").update({ proxy_id: null } as any).eq("id", id);
-        }
-        const { error } = await supabase.from("devices").delete().eq("id", id);
-        if (error) throw error;
-      }
-      const { data: remaining } = await supabase
-        .from("devices")
-        .select("id, name")
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true });
-      if (remaining) {
-        for (let i = 0; i < remaining.length; i++) {
-          const newName = `Instância ${i + 1}`;
-          if (remaining[i].name !== newName) {
-            await supabase.from("devices").update({ name: newName } as any).eq("id", remaining[i].id);
-          }
-        }
-      }
+      // Delete all in parallel via edge function
+      await Promise.allSettled(
+        ids.map(id =>
+          supabase.functions.invoke("manage-devices", {
+            body: { action: "delete", deviceId: id },
+          })
+        )
+      );
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      setSelectedDevices([]);
       toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
+      // Rollback on error
+      if (previous) queryClient.setQueryData(["devices"], previous);
       toast({ title: "Erro ao remover instâncias", variant: "destructive" });
     }
   };

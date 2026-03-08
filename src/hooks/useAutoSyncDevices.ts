@@ -78,9 +78,10 @@ export function useAutoSyncDevices(intervalMs = 60000) {
     };
   }, [session?.access_token]);
 
-  // Realtime subscription for instant DB change propagation
+  // Realtime subscription for instant DB change propagation (debounced)
   useEffect(() => {
     if (!session?.user?.id) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
       .channel("devices-autosync")
       .on(
@@ -92,11 +93,16 @@ export function useAutoSyncDevices(intervalMs = 60000) {
           filter: `user_id=eq.${session.user.id}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["devices"] });
+          // Debounce: coalesce rapid-fire changes into a single invalidation
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["devices"] });
+          }, 500);
         }
       )
       .subscribe();
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [session?.user?.id, queryClient]);
