@@ -60,6 +60,36 @@ const WarmupInstances = () => {
 
   return (
     <div className="space-y-5">
+      {/* Warning popup */}
+      <Dialog open={showWarning} onOpenChange={(open) => {
+        if (!open) setShowWarning(false);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Aviso importante
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+            <p>
+              <strong className="text-foreground">Evite colocar números que estão caindo ou sendo restringidos pelo WhatsApp.</strong>
+            </p>
+            <p>
+              O aquecimento é um processo gradual para fortalecer chips saudáveis. Números que já estão sendo banidos ou restringidos têm grandes chances de serem bloqueados permanentemente durante o processo.
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Recomendamos usar chips novos ou estáveis para melhores resultados.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowWarning(false)}>
+              Entendi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
