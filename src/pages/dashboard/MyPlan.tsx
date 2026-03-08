@@ -80,20 +80,19 @@ const MyPlan = () => {
 
         {/* Hero */}
         <div className="text-center max-w-2xl mx-auto pt-14 sm:pt-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-8 border border-primary/20 bg-primary/5 text-primary">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border border-primary/20 bg-primary/5 text-primary">
             <Sparkles className="w-3.5 h-3.5" />
             Planos flexíveis para qualquer escala
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-[3.25rem] font-extrabold tracking-tight leading-[1.08] text-foreground" style={fontDisplay}>
+          <h1 className="text-2xl sm:text-4xl md:text-[3.25rem] font-extrabold tracking-tight leading-[1.12] text-foreground px-2" style={fontDisplay}>
             Escalone sua operação de WhatsApp com segurança
           </h1>
-          <p className="text-base md:text-lg mt-6 leading-relaxed max-w-lg mx-auto text-muted-foreground">
+          <p className="text-sm sm:text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto text-muted-foreground px-4">
             Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground/60">
-            <Users className="w-4 h-4" />
+          <p className="mt-4 text-xs sm:text-sm text-muted-foreground/50">
             Mais de 1.200 operadores já usam nossa plataforma
-          </div>
+          </p>
         </div>
 
         {/* Plans Grid */}
