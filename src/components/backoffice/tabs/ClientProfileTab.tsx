@@ -171,6 +171,26 @@ const ClientProfileTab = ({ client, detail }: Props) => {
             <p className="text-[10px] text-muted-foreground mt-2">
               Ao liberar, instâncias de notificação serão ativadas e um webhook será disparado.
             </p>
+            {monitorToken && (
+              <div className="mt-3 p-2.5 bg-muted/30 rounded-lg border border-border">
+                <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Token de Monitoramento</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-[11px] font-mono text-foreground/80 bg-background px-2 py-1 rounded-md flex-1 break-all select-all">
+                    {monitorToken}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(monitorToken);
+                      setCopiedToken(true);
+                      setTimeout(() => setCopiedToken(false), 1500);
+                    }}
+                    className="text-muted-foreground/60 hover:text-foreground transition-colors shrink-0 p-1"
+                  >
+                    {copiedToken ? <Check size={13} className="text-primary" /> : <Copy size={13} />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
