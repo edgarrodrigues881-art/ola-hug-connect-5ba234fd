@@ -131,7 +131,8 @@ const ClientPaymentsTab = ({ client }: Props) => {
   };
 
   const addPayment = () => {
-    if (!form.amount || parseBRL(form.amount) <= 0) return;
+    const am = parseBRL(form.amount);
+    if (am < 0) return;
     adminAction(
       { action: "add-payment", body: { target_user_id: client.id, ...buildBody() } },
       {
