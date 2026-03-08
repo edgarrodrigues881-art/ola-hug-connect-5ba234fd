@@ -1678,133 +1678,101 @@ const Devices = () => {
               </div>
             )}
 
-            {connectStep === "code_phone" && (
-              <div className="space-y-4">
-                <div className="text-center space-y-1">
-                  <p className="text-sm text-muted-foreground">Digite o número do WhatsApp que deseja conectar</p>
+            {connectStep === "code_phone" && (() => {
+              const rawDigits = codePhone.replace(/\D/g, "");
+              const isValid = rawDigits.length >= 12;
+              const handleRequestCode = async () => {
+                if (!connectingDevice || !isValid) return;
+                setConnectStep("code");
+                try {
+                  if (!connectingDevice.has_api_config) {
+                    toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
+                    return;
+                  }
+                  const pd = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
+                  const pp = pd ? { host: pd.host, port: pd.port, username: pd.username, password: pd.password, type: pd.type } : undefined;
+                  const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: rawDigits, proxyConfig: pp, proxyId: connectingDevice.proxy_id || undefined });
+                  console.log("[PairingCode] Result:", JSON.stringify(result));
+                  if (result?.error && result?.code === "PROXY_FAILED") {
+                    setConnectError(result.error);
+                    setConnectStep("proxy");
+                    queryClient.invalidateQueries({ queryKey: ["proxies"] });
+                    toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
+                    return;
+                  }
+                  if (result.alreadyConnected) { setConnectStep("done"); toast({ title: "Já conectado!" }); return; }
+                  const code = result.pairingCode || result.pairing_code;
+                  if (code) { setPairingCode(code); startPolling(connectingDevice.id, null); }
+                  else if (result.suggestQr) { toast({ title: "Código não suportado", description: "Use o QR Code.", variant: "destructive" }); setConnectStep("qr"); if (result.qrCode) setQrCodeBase64(result.qrCode); startPolling(connectingDevice.id, null); }
+                  else { toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" }); setConnectStep("qr"); startPolling(connectingDevice.id, null); }
+                } catch {
+                  toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                  setConnectStep("qr");
+                  if (connectingDevice) startPolling(connectingDevice.id, null);
+                }
+              };
+              return (
+              <div className="space-y-5">
+                {/* Icon + instruction */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-foreground">Conectar via código</p>
+                    <p className="text-xs text-muted-foreground">Insira o número completo com código do país</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground font-medium">Número com DDD e código do país</Label>
-                  <Input
-                    value={codePhone}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/\D/g, "").slice(0, 13);
-                      let formatted = raw;
-                      if (raw.length > 2) formatted = `+${raw.slice(0, 2)} ${raw.slice(2)}`;
-                      if (raw.length > 4) formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4)}`;
-                      if (raw.length > 9) formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-                      setCodePhone(formatted);
-                    }}
-                    placeholder="+55 11 99999-9999"
-                    className="h-12 text-lg font-mono text-center tracking-wider"
-                    autoFocus
-                    onKeyDown={e => { if (e.key === "Enter" && codePhone.replace(/\D/g, "").length >= 10) {
-                      setConnectStep("code");
-                      (async () => {
-                        try {
-                          if (!connectingDevice) return;
-                          if (!connectingDevice.has_api_config) {
-                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
-                            return;
-                          }
-                          const pairingProxyData = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
-                          const pairingProxyPayload = pairingProxyData ? { host: pairingProxyData.host, port: pairingProxyData.port, username: pairingProxyData.username, password: pairingProxyData.password, type: pairingProxyData.type } : undefined;
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload, proxyId: connectingDevice.proxy_id || undefined });
-                          console.log("[PairingCode] Result:", JSON.stringify(result));
-                          if (result?.error && result?.code === "PROXY_FAILED") {
-                            setConnectError(result.error);
-                            setConnectStep("proxy");
-                            queryClient.invalidateQueries({ queryKey: ["proxies"] });
-                            toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
-                            return;
-                          }
-                          if (result.alreadyConnected) {
-                            setConnectStep("done");
-                            toast({ title: "Já conectado!" });
-                            return;
-                          }
-                          const code = result.pairingCode || result.pairing_code;
-                          if (code) {
-                            setPairingCode(code);
-                            startPolling(connectingDevice.id, null);
-                          } else if (result.suggestQr) {
-                            toast({ title: "Código não suportado", description: "Use o QR Code para conectar.", variant: "destructive" });
-                            setConnectStep("qr");
-                            if (result.qrCode) setQrCodeBase64(result.qrCode);
-                            startPolling(connectingDevice.id, null);
-                          } else {
-                            toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
-                            setConnectStep("qr");
-                            startPolling(connectingDevice.id, null);
-                          }
-                        } catch (err: any) {
-                          toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
-                          setConnectStep("qr");
-                          if (connectingDevice) startPolling(connectingDevice.id, null);
-                        }
-                      })();
-                    }}}
-                  />
-                  <p className="text-[11px] text-muted-foreground/50 text-center">Exemplo: +55 63 91234-5678</p>
+
+                {/* Phone input */}
+                <div className="space-y-3">
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                      <span className="text-base">🇧🇷</span>
+                    </div>
+                    <Input
+                      value={codePhone}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 13);
+                        let f = raw;
+                        if (raw.length > 2) f = `+${raw.slice(0, 2)} ${raw.slice(2)}`;
+                        if (raw.length > 4) f = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4)}`;
+                        if (raw.length > 9) f = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+                        setCodePhone(f);
+                      }}
+                      placeholder="+55 11 99999-9999"
+                      className="h-14 pl-10 text-lg font-mono tracking-wider bg-muted/30 border-border/50 focus-visible:border-primary/60 focus-visible:ring-primary/20 transition-all"
+                      autoFocus
+                      onKeyDown={e => { if (e.key === "Enter" && isValid) handleRequestCode(); }}
+                    />
+                    {isValid && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/60 text-center flex items-center justify-center gap-1">
+                    <span>Ex:</span>
+                    <span className="font-mono">+55 63 91234-5678</span>
+                  </p>
                 </div>
-                <div className="flex items-center gap-3 pt-2">
-                  <Button variant="outline" className="flex-1 h-10" onClick={() => setConnectStep("proxy")}>Voltar</Button>
+
+                {/* Buttons */}
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => setConnectStep("proxy")}>
+                    Voltar
+                  </Button>
                   <Button
-                    className="flex-1 h-10"
-                    disabled={codePhone.replace(/\D/g, "").length < 10}
-                    onClick={() => {
-                      setConnectStep("code");
-                      (async () => {
-                        try {
-                          if (!connectingDevice) return;
-                          if (!connectingDevice.has_api_config) {
-                            toast({ title: "Sem token configurado", description: "Solicite ao administrador a atribuição de um token.", variant: "destructive" });
-                            return;
-                          }
-                          const pairingProxyData2 = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
-                          const pairingProxyPayload2 = pairingProxyData2 ? { host: pairingProxyData2.host, port: pairingProxyData2.port, username: pairingProxyData2.username, password: pairingProxyData2.password, type: pairingProxyData2.type } : undefined;
-                          const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: codePhone.replace(/\D/g, ""), proxyConfig: pairingProxyPayload2, proxyId: connectingDevice.proxy_id || undefined });
-                          console.log("[PairingCode] Result:", JSON.stringify(result));
-                          if (result?.error && result?.code === "PROXY_FAILED") {
-                            setConnectError(result.error);
-                            setConnectStep("proxy");
-                            queryClient.invalidateQueries({ queryKey: ["proxies"] });
-                            toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
-                            return;
-                          }
-                          if (result.alreadyConnected) {
-                            setConnectStep("done");
-                            toast({ title: "Já conectado!" });
-                            return;
-                          }
-                          // Extract pairing code first - check before suggestQr
-                          const code = result.pairingCode || result.pairing_code;
-                          if (code) {
-                            setPairingCode(code);
-                            startPolling(connectingDevice.id, null);
-                          } else if (result.suggestQr) {
-                            toast({ title: "Código não suportado", description: "Use o QR Code para conectar.", variant: "destructive" });
-                            setConnectStep("qr");
-                            if (result.qrCode) setQrCodeBase64(result.qrCode);
-                            startPolling(connectingDevice.id, null);
-                          } else {
-                            toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
-                            setConnectStep("qr");
-                            startPolling(connectingDevice.id, null);
-                          }
-                        } catch (err: any) {
-                          toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
-                          setConnectStep("qr");
-                          if (connectingDevice) startPolling(connectingDevice.id, null);
-                        }
-                      })();
-                    }}
+                    className="flex-1 h-11 text-sm font-semibold"
+                    disabled={!isValid}
+                    onClick={handleRequestCode}
                   >
                     Gerar código
                   </Button>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {connectStep === "code" && (
               <div className="flex flex-col items-center gap-5">
