@@ -122,6 +122,7 @@ const AdminMessages = () => {
   const [newInstanceName, setNewInstanceName] = useState("Relatório WA");
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
   const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
 
   // QR Code state
