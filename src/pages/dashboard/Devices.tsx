@@ -1150,8 +1150,8 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow max-w-[420px] w-full">
-              <CardContent className="p-5 flex flex-col gap-3">
+            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow w-full">
+              <CardContent className="p-5 flex flex-col gap-4">
                 {/* Header: Avatar + Name + Badge */}
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
