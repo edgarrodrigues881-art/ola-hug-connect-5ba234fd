@@ -1159,7 +1159,7 @@ const Devices = () => {
                       <img 
                         src={d.profile_picture} 
                         alt={d.name} 
-                        className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
+                        className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
@@ -1169,7 +1169,7 @@ const Devices = () => {
                       />
                     ) : null}
                     <div 
-                      className={`w-14 h-14 rounded-full items-center justify-center text-lg font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
+                      className={`w-12 h-12 rounded-full items-center justify-center text-lg font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
