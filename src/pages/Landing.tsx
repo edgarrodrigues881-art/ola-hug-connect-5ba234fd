@@ -365,7 +365,7 @@ const Landing = () => {
         <HowItWorks />
         <Features />
         <Plans />
-        <Addon />
+        
         <FAQ />
         <CTAFinal />
         <FooterSection />
