@@ -279,18 +279,21 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           {/* Plano */}
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase font-medium">Plano</Label>
-            <select value={planName} onChange={e => { 
-              setPlanName(e.target.value); 
+            <Select value={planName} onValueChange={(val) => { 
+              setPlanName(val); 
               setStartedAt(new Date().toISOString().split("T")[0]);
-            }}
-              className="w-full h-9 rounded-lg border border-border bg-muted/30 text-foreground text-sm px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all cursor-pointer">
-              <option value="" disabled>Selecione um plano</option>
-              {Object.keys(PLANS).map(p => (
-                <option key={p} value={p}>
-                  {p === "Sem plano" ? "Sem plano" : `${p} — ${PLANS[p].max_instances} inst. — R$ ${PLANS[p].price.toFixed(2)}`}
-                </option>
-              ))}
-            </select>
+            }}>
+              <SelectTrigger className="w-full h-9 rounded-lg border-border bg-muted/30 text-foreground text-sm">
+                <SelectValue placeholder="Selecione um plano" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(PLANS).map(p => (
+                  <SelectItem key={p} value={p}>
+                    {p === "Sem plano" ? "Sem plano" : `${p} — ${PLANS[p].max_instances} inst. — R$ ${PLANS[p].price.toFixed(2)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Valor Total */}
