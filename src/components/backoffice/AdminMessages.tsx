@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
   Loader2, Check, User, ArrowLeft, Wifi, WifiOff,
-  Settings2, Smartphone, History, Radio
+  Settings2, Smartphone, History, Radio, Users, RefreshCw
 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
@@ -116,6 +116,8 @@ const AdminMessages = () => {
   const [configDeviceId, setConfigDeviceId] = useState("");
   const [configGroupId, setConfigGroupId] = useState("");
   const [configGroupName, setConfigGroupName] = useState("");
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
 
   const users = data?.users || [];
 
@@ -148,6 +150,30 @@ const AdminMessages = () => {
   }, [reportConfig]);
 
   const isConfigured = !!reportConfig?.device_id && !!reportConfig?.group_id;
+
+  // Fetch groups when device is selected in config
+  const fetchGroups = async (deviceId: string) => {
+    setLoadingGroups(true);
+    setDeviceGroups([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-groups", {
+        body: { device_id: deviceId },
+      });
+      if (error) throw error;
+      setDeviceGroups(data?.groups || []);
+    } catch (e: any) {
+      toast({ title: "Erro ao buscar grupos", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const selectDevice = (id: string) => {
+    setConfigDeviceId(id);
+    setConfigGroupId("");
+    setConfigGroupName("");
+    fetchGroups(id);
+  };
 
   // Filter users
   const filteredUsers = useMemo(() => {
@@ -283,18 +309,19 @@ const AdminMessages = () => {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          {/* Step 1: Select device */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground">Instância WhatsApp</label>
+            <label className="text-xs font-semibold text-foreground">1. Selecione a Instância</label>
             {adminDevices.length === 0 ? (
               <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border">
-                Nenhuma instância encontrada.
+                Nenhuma instância encontrada. Crie uma instância primeiro.
               </p>
             ) : (
               <div className="space-y-1.5">
                 {adminDevices.map((d: any) => (
                   <button
                     key={d.id}
-                    onClick={() => setConfigDeviceId(d.id)}
+                    onClick={() => selectDevice(d.id)}
                     className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
                       configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
                     }`}
@@ -316,30 +343,76 @@ const AdminMessages = () => {
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground">ID do Grupo WhatsApp</label>
-            <p className="text-[10px] text-muted-foreground">Cole o JID do grupo (ex: 5562999999999-1234567890@g.us)</p>
-            <Input
-              placeholder="5562999999999-1234567890@g.us"
-              value={configGroupId}
-              onChange={e => setConfigGroupId(e.target.value)}
-              className="h-9 bg-background border-border text-sm font-mono"
-            />
-          </div>
+          {/* Step 2: Select group */}
+          {configDeviceId && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground">2. Selecione o Grupo</label>
+                <button
+                  onClick={() => fetchGroups(configDeviceId)}
+                  disabled={loadingGroups}
+                  className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+                >
+                  <RefreshCw size={10} className={loadingGroups ? "animate-spin" : ""} />
+                  Atualizar
+                </button>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground">Nome do Grupo (opcional)</label>
-            <Input
-              placeholder="Ex: Notificações DG Pro"
-              value={configGroupName}
-              onChange={e => setConfigGroupName(e.target.value)}
-              className="h-9 bg-background border-border text-sm"
-            />
-          </div>
+              {loadingGroups ? (
+                <div className="flex items-center justify-center py-6 bg-muted/20 rounded-lg border border-border">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
+                  <span className="text-xs text-muted-foreground">Buscando grupos...</span>
+                </div>
+              ) : deviceGroups.length === 0 ? (
+                <div className="text-xs text-muted-foreground bg-muted/20 rounded-lg p-4 border border-border text-center space-y-1">
+                  <p>Nenhum grupo encontrado.</p>
+                  <p className="text-[10px]">Verifique se a instância está conectada e tem grupos.</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-48">
+                  <div className="space-y-1.5">
+                    {deviceGroups.map((g: any) => (
+                      <button
+                        key={g.id}
+                        onClick={() => {
+                          setConfigGroupId(g.id);
+                          setConfigGroupName(g.name);
+                        }}
+                        className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
+                          configGroupId === g.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
+                        }`}
+                      >
+                        <Users size={14} className={configGroupId === g.id ? "text-primary" : "text-muted-foreground"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{g.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono truncate">{g.id}</p>
+                        </div>
+                        {g.participants > 0 && (
+                          <span className="text-[9px] text-muted-foreground">{g.participants} membros</span>
+                        )}
+                        {configGroupId === g.id && <Check size={14} className="text-primary shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          )}
+
+          {/* Selected group summary */}
+          {configGroupId && configGroupName && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
+              <Check size={14} className="text-primary shrink-0" />
+              <div className="text-xs">
+                <span className="text-muted-foreground">Grupo selecionado: </span>
+                <span className="font-semibold text-foreground">{configGroupName}</span>
+              </div>
+            </div>
+          )}
 
           <Button onClick={saveConfig} disabled={!configDeviceId || !configGroupId || isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9">
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Check size={14} className="mr-1.5" />}
-            Salvar
+            Salvar Configuração
           </Button>
         </div>
       </div>

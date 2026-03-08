@@ -1537,6 +1537,87 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── WA REPORT: LIST GROUPS FOR A DEVICE ───
+    if (action === "wa-report-groups" && req.method === "POST") {
+      const { device_id } = await req.json();
+      if (!device_id) {
+        return new Response(JSON.stringify({ error: "device_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: device } = await adminClient.from("devices")
+        .select("id, uazapi_token, uazapi_base_url, status")
+        .eq("id", device_id)
+        .maybeSingle();
+
+      if (!device) {
+        return new Response(JSON.stringify({ error: "Dispositivo não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let token = device.uazapi_token;
+      let baseUrl = device.uazapi_base_url;
+
+      if (!token) {
+        const { data: poolToken } = await adminClient.from("user_api_tokens")
+          .select("token")
+          .eq("device_id", device_id)
+          .eq("status", "in_use")
+          .maybeSingle();
+        token = poolToken?.token || null;
+      }
+      if (!baseUrl) {
+        baseUrl = Deno.env.get("UAZAPI_BASE_URL") || "";
+      }
+
+      if (!token || !baseUrl) {
+        return new Response(JSON.stringify({ error: "Dispositivo sem credenciais" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cleanUrl = baseUrl.replace(/\/+$/, "");
+      const allGroups: any[] = [];
+      const seenJids = new Set<string>();
+
+      for (let page = 0; page < 5; page++) {
+        try {
+          const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=200`, {
+            method: "GET",
+            headers: { token, Accept: "application/json", "Content-Type": "application/json" },
+          });
+          if (!res.ok) break;
+          const data = await res.json();
+          const groups = data.groups || data || [];
+          const groupArray = Array.isArray(groups) ? groups : [];
+          if (groupArray.length === 0) break;
+
+          let newCount = 0;
+          for (const g of groupArray) {
+            const jid = g.JID || g.jid || g.id || "";
+            if (jid && !seenJids.has(jid)) {
+              seenJids.add(jid);
+              allGroups.push({
+                id: jid,
+                name: g.Name || g.name || g.Subject || g.subject || "Grupo sem nome",
+                participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || 0,
+              });
+              newCount++;
+            }
+          }
+          if (newCount === 0) break;
+        } catch (_e) {
+          break;
+        }
+      }
+
+      return new Response(JSON.stringify({ groups: allGroups }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── WA REPORT: SEND PV + GROUP NOTIFICATION ───
     if (action === "wa-report-send-group" && req.method === "POST") {
       const { target_user_id, template_type, message_content, group_notification } = await req.json();
