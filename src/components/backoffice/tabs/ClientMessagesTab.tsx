@@ -133,7 +133,7 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
       }
     );
   };
-
+  const copyMessage = () => {
     navigator.clipboard.writeText(message);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
