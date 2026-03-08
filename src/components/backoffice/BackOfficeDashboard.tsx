@@ -26,16 +26,16 @@ function getDaysLeft(expiresAt: string | null): number | null {
 }
 
 const NAV_ITEMS = [
-  { id: "overview", label: "Visão Geral", icon: LayoutDashboard, group: "principal" },
-  { id: "clients", label: "Clientes", icon: Users, group: "principal" },
+  { id: "overview", label: "Visão Geral", icon: LayoutDashboard, group: "principal", badge: false },
+  { id: "clients", label: "Clientes", icon: Users, group: "principal", badge: false },
   { id: "pendencias", label: "Pendências", icon: Bell, group: "principal", badge: true },
-  { id: "logs", label: "Auditoria", icon: ScrollText, group: "gestao" },
-  { id: "costs", label: "Custos", icon: Wallet, group: "gestao" },
-  { id: "groups-pool", label: "Grupos Pool", icon: Database, group: "operacao" },
-  { id: "warmup-cycles", label: "Ciclos", icon: Flame, group: "operacao" },
-  { id: "warmup-jobs", label: "Jobs", icon: ListTodo, group: "operacao" },
-  { id: "infra", label: "Infraestrutura", icon: Server, group: "sistema" },
-  { id: "community", label: "Comunidade", icon: Heart, group: "sistema" },
+  { id: "logs", label: "Auditoria", icon: ScrollText, group: "gestao", badge: false },
+  { id: "costs", label: "Custos", icon: Wallet, group: "gestao", badge: false },
+  { id: "groups-pool", label: "Grupos Pool", icon: Database, group: "operacao", badge: false },
+  { id: "warmup-cycles", label: "Ciclos", icon: Flame, group: "operacao", badge: false },
+  { id: "warmup-jobs", label: "Jobs", icon: ListTodo, group: "operacao", badge: false },
+  { id: "infra", label: "Infraestrutura", icon: Server, group: "sistema", badge: false },
+  { id: "community", label: "Comunidade", icon: Heart, group: "sistema", badge: false },
 ] as const;
 
 const GROUP_LABELS: Record<string, string> = {
