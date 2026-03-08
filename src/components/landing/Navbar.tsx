@@ -34,6 +34,14 @@ const Navbar = () => {
           >
             Confiança
           </button>
+          <a
+            href="https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            Suporte
+          </a>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
