@@ -10,7 +10,7 @@ const SUPORTE_NUMERO = "(62) 99419-2500";
 
 // ─── MESSAGE TEMPLATES ───
 function buildWelcomeMessage(nome: string, plano: string, vencimento: string): string {
-  return `Olá ${nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano ${plano} já está ativo.\nVencimento: ${vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${SUPORTE_NUMERO}\n\nBons envios! 🚀`;
+  return `Olá ${nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\n📦 Seu plano ${plano} já está ativo.\n📅 Vencimento: ${vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${SUPORTE_NUMERO} 📞\n\nBons envios! 🚀`;
 }
 
 function buildLifecycleGroupAlert(tipo: string, nome: string, email: string, phone: string, plano: string, vencimento: string, diasRestantes: number): string {
