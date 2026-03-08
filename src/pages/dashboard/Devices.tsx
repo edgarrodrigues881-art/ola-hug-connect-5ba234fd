@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -1503,9 +1504,10 @@ const Devices = () => {
             </div>
           </div>
 
-          <div className="px-6 pb-6 pt-5">
+          <div className="px-6 pb-6 pt-5 overflow-hidden">
+           <AnimatePresence mode="wait">
             {connectStep === "choose" && (
-              <div className="space-y-5">
+              <motion.div key="choose" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 <p className="text-sm text-muted-foreground">Como deseja conectar seu WhatsApp?</p>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -1533,11 +1535,11 @@ const Devices = () => {
                     </div>
                   </button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "proxy" && (
-              <div className="space-y-5">
+              <motion.div key="proxy" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 {/* Header */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -1591,11 +1593,11 @@ const Devices = () => {
                     Conectar
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "qr" && (
-              <div className="flex flex-col items-center gap-5">
+              <motion.div key="qr" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col items-center gap-5">
                 {/* QR Code display */}
                 <div className="relative w-[272px] h-[272px]">
                   {/* Loading state */}
@@ -1699,7 +1701,7 @@ const Devices = () => {
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Já escaneei, sincronizar
                 </Button>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "code_phone" && (() => {
@@ -1736,7 +1738,7 @@ const Devices = () => {
                 }
               };
               return (
-              <div className="space-y-5">
+              <motion.div key="code_phone" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 {/* Icon + instruction */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -1794,12 +1796,12 @@ const Devices = () => {
                     Gerar código
                   </Button>
                 </div>
-              </div>
+              </motion.div>
               );
             })()}
 
             {connectStep === "code" && (
-              <div className="flex flex-col items-center gap-5">
+              <motion.div key="code" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col items-center gap-5">
                 {pairingCode ? (
                   <div className="relative px-10 py-6 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
                     <p className="text-3xl font-mono font-bold tracking-[0.5em] text-foreground">{pairingCode}</p>
@@ -1839,18 +1841,18 @@ const Devices = () => {
                     <p className="text-xs text-muted-foreground">Digite o código acima</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "connecting" && (
-              <div className="flex flex-col items-center gap-4 py-10">
+              <motion.div key="connecting" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.25 }} className="flex flex-col items-center gap-4 py-10">
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
                 <p className="text-sm font-medium text-muted-foreground">Conectando...</p>
-              </div>
+              </motion.div>
             )}
 
             {connectStep === "done" && (
-              <div className="flex flex-col items-center gap-5 py-8">
+              <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} className="flex flex-col items-center gap-5 py-8">
                 <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
                   <CheckCircle2 className="w-9 h-9 text-emerald-500" />
                 </div>
@@ -1859,8 +1861,9 @@ const Devices = () => {
                   <p className="text-sm text-muted-foreground mt-1">Sua instância está pronta para uso</p>
                 </div>
                 <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Fechar</Button>
-              </div>
+              </motion.div>
             )}
+           </AnimatePresence>
           </div>
         </DialogContent>
       </Dialog>
