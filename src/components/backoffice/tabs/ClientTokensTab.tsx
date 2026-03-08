@@ -59,6 +59,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
         onSuccess: (data: any) => {
           toast({ title: `${data.total} tokens validados — ${data.healthy} válidos, ${data.invalid} inválidos` });
           setValidating(false);
+          invalidateClient(client.id);
         },
         onError: (e) => {
           toast({ title: "Erro", description: e.message, variant: "destructive" });
