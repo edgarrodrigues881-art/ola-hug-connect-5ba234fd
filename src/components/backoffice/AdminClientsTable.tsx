@@ -3,12 +3,9 @@ import { Search, ChevronRight, AlertTriangle, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/hooks/useAdmin";
-import { calculateClientScore, scoreColors, type ScoreLevel } from "@/lib/clientScore";
 
 interface Props {
   users: AdminUser[];
-  cycles?: any[];
-  adminLogs?: any[];
   onSelectClient: (u: AdminUser) => void;
 }
 
@@ -36,19 +33,8 @@ function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | n
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
 const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
-const AdminClientsTable = ({ users, cycles = [], adminLogs = [], onSelectClient }: Props) => {
+const AdminClientsTable = ({ users, onSelectClient }: Props) => {
   const [search, setSearch] = useState("");
-
-  const userScores = useMemo(() => {
-    const map = new Map<string, { level: ScoreLevel; label: string; score: number }>();
-    users.forEach(u => {
-      const uCycles = cycles.filter((c: any) => c.user_id === u.id);
-      const uLogs = adminLogs.filter((l: any) => l.target_user_id === u.id);
-      const s = calculateClientScore({ risk_flag: u.risk_flag, cycles: uCycles, admin_logs: uLogs });
-      map.set(u.id, { level: s.level, label: s.label, score: s.score });
-    });
-    return map;
-  }, [users, cycles, adminLogs]);
   const [filter, setFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
