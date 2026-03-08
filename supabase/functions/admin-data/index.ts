@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         total_devices: devices?.length || 0,
         active_devices: devices?.filter((d: any) => d.status === "Connected").length || 0,
         total_campaigns: campaigns?.length || 0,
-        total_contacts: contacts?.length || 0,
+        total_contacts: contactsCountRes.count || 0,
         total_subscriptions: subscriptions?.length || 0,
       };
 
