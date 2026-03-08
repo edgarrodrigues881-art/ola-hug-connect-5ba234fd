@@ -73,7 +73,11 @@ const WarmupInstances = () => {
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
             <p>
-              <strong className="text-foreground">Evite colocar números que estão caindo ou sendo restringidos pelo WhatsApp.</strong>
+              <strong className="text-foreground">Evite colocar números que estão caindo ou sendo restringidos com apenas 1 mensagem no WhatsApp.</strong>
+            </p>
+            <p>
+              Faça uma limpeza antes de começar a usar o processo.
+              No módulo <strong className="text-foreground">Ajuda</strong> existem algumas orientações para realizar essa verificação.
             </p>
             <p>
               O aquecimento é um processo gradual para fortalecer chips saudáveis. Números que já estão sendo banidos ou restringidos têm grandes chances de serem bloqueados novamente durante o processo.
