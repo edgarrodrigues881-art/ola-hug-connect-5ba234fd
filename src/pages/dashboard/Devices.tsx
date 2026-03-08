@@ -28,7 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { muteAutoSync } from "@/hooks/useAutoSyncDevices";
+import { muteAutoSync, trackDeletedDevice, getRecentlyDeletedIds } from "@/hooks/useAutoSyncDevices";
 import { useNavigate } from "react-router-dom";
 
 type PlanState = "noPlan" | "active" | "expired" | "suspended";
@@ -173,19 +173,22 @@ const Devices = () => {
       const configuredDeviceIds = new Set(
         (tokensRes.data || []).map((t: any) => t.device_id)
       );
-      return (devicesRes.data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        number: d.number || "",
-        status: d.status as "Ready" | "Disconnected" | "Loading",
-        login_type: d.login_type,
-        proxy_id: d.proxy_id,
-        profile_picture: d.profile_picture || null,
-        profile_name: d.profile_name || null,
-        created_at: d.created_at,
-        updated_at: d.updated_at,
-        has_api_config: configuredDeviceIds.has(d.id),
-      })) as Device[];
+      const deletedIds = getRecentlyDeletedIds();
+      return (devicesRes.data || [])
+        .filter((d: any) => !deletedIds.has(d.id))
+        .map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          number: d.number || "",
+          status: d.status as "Ready" | "Disconnected" | "Loading",
+          login_type: d.login_type,
+          proxy_id: d.proxy_id,
+          profile_picture: d.profile_picture || null,
+          profile_name: d.profile_name || null,
+          created_at: d.created_at,
+          updated_at: d.updated_at,
+          has_api_config: configuredDeviceIds.has(d.id),
+        })) as Device[];
     },
     enabled: !!session,
   });
@@ -429,9 +432,9 @@ const Devices = () => {
       return { id };
     },
     onMutate: async (id: string) => {
-      // Mute auto-sync/realtime for 5s to prevent ghost re-appearance
-      muteAutoSync(5000);
-      // Optimistic: remove from cache immediately
+      // Track this ID so it's filtered from all future query results
+      trackDeletedDevice(id);
+      muteAutoSync(15000);
       await queryClient.cancelQueries({ queryKey: ["devices"] });
       const previous = queryClient.getQueryData<Device[]>(["devices"]);
       queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
@@ -444,7 +447,6 @@ const Devices = () => {
       toast({ title: "Instância removida" });
     },
     onError: (err: any, _id, context) => {
-      // Rollback on error
       if (context?.previous) {
         queryClient.setQueryData(["devices"], context.previous);
       }
@@ -452,7 +454,10 @@ const Devices = () => {
       toast({ title: "Erro ao apagar instância", description: err?.message || "Erro desconhecido", variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      // Delay the invalidation to give the server time to fully delete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["devices"] });
+      }, 3000);
     },
   });
 
