@@ -306,7 +306,7 @@ const CTAFinal = () => {
   return (
     <Section>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-12 md:p-20 overflow-hidden"
+        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-10 md:p-16 overflow-hidden"
       >
         <div className="absolute inset-0 bg-[hsl(var(--primary))]/5 rounded-3xl blur-[80px] pointer-events-none" />
         <div className="relative">
