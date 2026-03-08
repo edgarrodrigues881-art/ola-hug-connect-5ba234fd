@@ -16,7 +16,7 @@ interface Props { client: AdminUser; detail: any; }
 
 const ClientTokensTab = ({ client, detail }: Props) => {
   const tokens = detail?.api_tokens || [];
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
   const [newTokens, setNewTokens] = useState("");
   const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
