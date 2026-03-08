@@ -213,8 +213,9 @@ Deno.serve(async (req) => {
           formattedPhone = "";
         }
 
-        profilePicture = inst.profilePicUrl || device.profile_picture || null;
-        const syncedProfileName = inst.profileName || inst.pushname || "";
+        // Only use provider profile data when connected to avoid stale data from reused tokens
+        profilePicture = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : null;
+        const syncedProfileName = isConnected ? (inst.profileName || inst.pushname || "") : "";
         newStatus = isConnected ? "Ready" : "Disconnected";
 
         const statusChanged = newStatus !== device.status;
