@@ -5,9 +5,21 @@ import { useAuth } from "@/lib/auth";
 
 // Global mute flag: when set, realtime + auto-sync skip invalidation
 let mutedUntil = 0;
+// Track recently deleted device IDs to filter from query results
+const recentlyDeletedIds = new Set<string>();
 
 export function muteAutoSync(ms = 3000) {
   mutedUntil = Date.now() + ms;
+}
+
+export function trackDeletedDevice(id: string) {
+  recentlyDeletedIds.add(id);
+  // Auto-cleanup after 30s
+  setTimeout(() => recentlyDeletedIds.delete(id), 30000);
+}
+
+export function getRecentlyDeletedIds(): Set<string> {
+  return recentlyDeletedIds;
 }
 
 /**
