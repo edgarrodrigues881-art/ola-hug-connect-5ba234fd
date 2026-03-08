@@ -219,13 +219,9 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={copyMessage} variant="outline" size="sm" className="border-border text-muted-foreground text-xs h-8">
-              {copied ? <Check size={13} className="mr-1.5 text-emerald-500" /> : <Copy size={13} className="mr-1.5" />}
-              {copied ? "Copiado!" : "Copiar"}
-            </Button>
-            <Button onClick={markAsSent} disabled={isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
-              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />}
-              Marcar como Enviado
+            <Button onClick={() => { copyMessage(); markAsSent(); }} disabled={isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Copy size={13} className="mr-1.5" />}
+              Copiar e Marcar como Enviado
             </Button>
           </div>
         </div>
@@ -239,7 +235,7 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
         ) : history.length === 0 ? (
           <p className="text-muted-foreground text-xs text-center py-6">Nenhuma mensagem enviada para este cliente</p>
         ) : (
-          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+          <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
             {history.map((m: any) => {
               const tpl = TEMPLATES.find(t => t.type === m.template_type);
               return (
