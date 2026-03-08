@@ -15,13 +15,13 @@ function fmt(v: number) {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-[#e5e9f0] rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-semibold text-[#2e3440] mb-2 capitalize">{label}</p>
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-xs">
+      <p className="font-bold text-foreground mb-2 capitalize">{label}</p>
       {payload.map((entry: any) => (
         <div key={entry.name} className="flex items-center gap-2 mb-1">
           <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
-          <span className="text-[#8892a4]">{entry.name}:</span>
-          <span className="font-semibold text-[#2e3440]">{fmt(entry.value)}</span>
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-bold text-foreground">{fmt(entry.value)}</span>
         </div>
       ))}
     </div>
@@ -69,9 +69,9 @@ const RevenueChart = ({ payments, costs }: RevenueChartProps) => {
 
   if (!hasData) {
     return (
-      <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
-        <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em] mb-4">Receita Mensal</p>
-        <div className="flex items-center justify-center h-[200px] text-[#b0b8c8] text-sm">
+      <div className="bg-card rounded-xl border border-border p-5">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4">Receita Mensal</p>
+        <div className="flex items-center justify-center h-[200px] text-muted-foreground/50 text-sm">
           Sem dados de receita para exibir
         </div>
       </div>
@@ -79,20 +79,20 @@ const RevenueChart = ({ payments, costs }: RevenueChartProps) => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
-      <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em] mb-4">Receita Mensal (6 meses)</p>
+    <div className="bg-card rounded-xl border border-border p-5">
+      <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4">Receita Mensal (6 meses)</p>
       <div className="h-[240px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barGap={2} barCategoryGap="20%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f8" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 5% 18%)" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fill: "#8892a4" }}
+              tick={{ fontSize: 11, fill: "hsl(240 5% 55%)", fontWeight: 500 }}
               tickLine={false}
-              axisLine={{ stroke: "#e5e9f0" }}
+              axisLine={{ stroke: "hsl(240 5% 18%)" }}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#8892a4" }}
+              tick={{ fontSize: 11, fill: "hsl(240 5% 55%)", fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `R$${(v / 1000).toFixed(v >= 1000 ? 1 : 0)}${v >= 1000 ? "k" : ""}`}
