@@ -106,6 +106,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route path="/welcome" element={<ProtectedRoute><WelcomeSplash /></ProtectedRoute>} />
               <Route path="/backoffice" element={<BackOffice />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
