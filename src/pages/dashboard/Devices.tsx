@@ -1507,7 +1507,7 @@ const Devices = () => {
           <div className="px-6 pb-6 pt-5 overflow-hidden">
            <AnimatePresence mode="wait">
             {connectStep === "choose" && (
-              <div className="space-y-5">
+              <motion.div key="choose" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 <p className="text-sm text-muted-foreground">Como deseja conectar seu WhatsApp?</p>
                 <div className="grid grid-cols-2 gap-3">
                   <button
