@@ -451,8 +451,8 @@ const Auth = () => {
             </form>
 
             {/* Security microcopy */}
-            <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
-              <ShieldCheck className="w-3 h-3" />
+            <div className="flex items-center justify-center gap-2 mt-5 text-[11px] text-[#6B7280] font-medium">
+              <ShieldCheck className="w-3.5 h-3.5" />
               <span>Ambiente seguro e criptografado</span>
             </div>
 
