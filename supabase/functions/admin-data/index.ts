@@ -1814,12 +1814,14 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ jid: groupId, message: groupMsg }),
         });
         const resData = await res.json();
+        console.log("[wa-report-send] Group response:", res.status, JSON.stringify(resData).slice(0, 200));
         if (res.ok) {
           groupSuccess = true;
         } else {
           groupError = JSON.stringify(resData).slice(0, 300);
         }
       } catch (e) {
+        console.log("[wa-report-send] Group error:", e.message);
         groupError = e.message;
       }
 
