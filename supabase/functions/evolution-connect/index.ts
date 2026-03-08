@@ -419,11 +419,7 @@ Deno.serve(async (req) => {
           if (st === "connected") {
             const phone = pi.owner || pi.phone || "";
             let fmt = "";
-            if (phone) {
-              const raw = String(phone).replace(/\D/g, "");
-              if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-              else if (raw) fmt = `+${raw}`;
-            }
+            let fmt = phone ? formatBrPhone(phone) : "";
             const pollDup = await checkDuplicatePhone(phone);
             if (pollDup.isDuplicate) {
               await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
