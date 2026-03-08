@@ -85,21 +85,21 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
         if (items.length === 0) return null;
         return (
           <div key={cat.label} className={`border rounded-xl p-4 ${cat.color}`}>
-            <h3 className="text-sm font-semibold text-[#2e3440] mb-3">{cat.label} ({items.length})</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">{cat.label} ({items.length})</h3>
             <div className="space-y-2">
               {items.map(u => {
                 const days = getDaysLeft(u.plan_expires_at)!;
                 return (
-                  <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white/80 rounded-lg px-3 py-2.5 border border-[#e5e9f0]/60">
+                  <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-card/80 rounded-lg px-3 py-2.5 border border-border/60">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#2e3440] font-medium truncate">{u.full_name || u.email}</p>
-                      <p className="text-xs text-[#8892a4] truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
+                      <p className="text-sm text-foreground font-medium truncate">{u.full_name || u.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
                     </div>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <span className={`text-xs font-semibold ${days <= 0 ? "text-red-500" : "text-amber-500"}`}>
                         {days <= 0 ? `${Math.abs(days)}d vencido` : `${days}d`}
                       </span>
-                      <Button variant="ghost" size="sm" onClick={() => copyMsg(u, days)} className="text-[#8892a4] hover:text-[#2e3440] h-8 w-8 p-0">
+                      <Button variant="ghost" size="sm" onClick={() => copyMsg(u, days)} className="text-muted-foreground hover:text-foreground h-8 w-8 p-0">
                         {copiedId === u.id ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => onSelectClient(u)} className="text-primary hover:text-primary/80 h-8 px-2 text-xs font-medium">
@@ -118,7 +118,7 @@ const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelect
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
             <Check size={20} className="text-primary" />
           </div>
-          <p className="text-[#8892a4] text-sm">Nenhuma pendência no momento</p>
+          <p className="text-muted-foreground text-sm">Nenhuma pendência no momento</p>
         </div>
       )}
     </div>
@@ -144,7 +144,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       <div className="flex items-center justify-center py-32">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-[#8892a4]">Carregando dados...</p>
+          <p className="text-sm text-muted-foreground">Carregando dados...</p>
         </div>
       </div>
     );
@@ -153,8 +153,8 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   if (error) {
     return (
       <div className="text-center py-32 px-4">
-        <p className="text-red-500 font-medium">Erro ao carregar dados</p>
-        <p className="text-sm text-[#8892a4] mt-1">{(error as any)?.message}</p>
+        <p className="text-destructive font-medium">Erro ao carregar dados</p>
+        <p className="text-sm text-muted-foreground mt-1">{(error as any)?.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => refetch()}>Tentar novamente</Button>
       </div>
     );
@@ -162,7 +162,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   if (selectedClient) {
     return (
-      <div className="min-h-screen bg-[#f8f9fc]">
+      <div className="min-h-screen bg-background">
         <AdminClientDetail client={selectedClient} onBack={() => setSelectedClient(null)} />
       </div>
     );
@@ -198,19 +198,19 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
       <aside className={`
         fixed lg:sticky top-0 left-0 z-50 lg:z-auto
-        w-[240px] h-screen bg-white border-r border-[#e5e9f0]
+        w-[240px] h-screen bg-card border-r border-border
         flex-col transition-transform duration-200
         hidden lg:flex
         ${sidebarOpen ? "!flex translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-[#e5e9f0]">
+        <div className="px-5 py-5 border-b border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-base font-bold text-[#2e3440] tracking-tight">DG Control</h1>
-              <p className="text-[10px] text-[#b0b8c8] font-medium uppercase tracking-widest mt-0.5">Center</p>
+              <h1 className="text-base font-bold text-foreground tracking-tight">DG Control</h1>
+              <p className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest mt-0.5">Center</p>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#8892a4] hover:text-[#2e3440]">
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-muted-foreground hover:text-foreground">
               <X size={18} />
             </button>
           </div>
@@ -220,7 +220,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           {groups.map(group => (
             <div key={group} className="mb-4">
-              <p className="text-[10px] font-bold text-[#b0b8c8] uppercase tracking-[0.15em] px-3 mb-2">
+              <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.15em] px-3 mb-2">
                 {GROUP_LABELS[group]}
               </p>
               <div className="space-y-0.5">
@@ -235,11 +235,11 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
                         w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
                         ${isActive
                           ? "bg-primary/10 text-primary"
-                          : "text-[#4c566a] hover:bg-[#f0f2f8] hover:text-[#2e3440]"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
                         }
                       `}
                     >
-                      <Icon size={17} className={isActive ? "text-primary" : "text-[#8892a4]"} />
+                      <Icon size={17} className={isActive ? "text-primary" : "text-muted-foreground"} />
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.badge && pendingCount > 0 && (
                         <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold">
@@ -255,10 +255,10 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-4 border-t border-[#e5e9f0]">
+        <div className="px-3 py-4 border-t border-border">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#8892a4] hover:bg-red-50 hover:text-red-500 transition-all duration-150"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
           >
             <LogOut size={17} />
             <span>Sair</span>
@@ -269,13 +269,13 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       {/* ═══ MAIN ═══ */}
       <main className="flex-1 min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#e5e9f0] px-4 lg:px-6 py-3 flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#4c566a] hover:text-[#2e3440] p-1">
+        <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border px-4 lg:px-6 py-3 flex items-center gap-3">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground p-1">
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {currentItem && <currentItem.icon size={18} className="text-[#8892a4] shrink-0" />}
-            <h2 className="text-base font-semibold text-[#2e3440] truncate">{currentItem?.label || "Visão Geral"}</h2>
+            {currentItem && <currentItem.icon size={18} className="text-muted-foreground shrink-0" />}
+            <h2 className="text-base font-semibold text-foreground truncate">{currentItem?.label || "Visão Geral"}</h2>
           </div>
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary/60">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />

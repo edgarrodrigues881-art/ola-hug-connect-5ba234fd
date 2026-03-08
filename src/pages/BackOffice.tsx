@@ -100,7 +100,7 @@ const BackOffice = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -108,53 +108,53 @@ const BackOffice = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-[400px]">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
               <Lock size={24} className="text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-[#2e3440] tracking-tight">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
               {showReset ? "Redefinir senha" : "DG Control Center"}
             </h1>
-            <p className="text-sm text-[#8892a4] mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {showReset ? "Digite seu e-mail para receber o link." : "Acesso restrito a administradores"}
             </p>
           </div>
 
           {showReset ? (
-            <form onSubmit={handleReset} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
+            <form onSubmit={handleReset} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
                 <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20" />
+                  className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20" />
               </div>
-              <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
+              <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
                 {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Enviar Link
               </Button>
               <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">Voltar ao login</button>
             </form>
           ) : (
-            <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
+            <form onSubmit={handleLogin} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
                 <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20" />
+                  className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">Senha</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Senha</label>
                 <div className="relative">
                   <Input type={showPass ? "text" : "password"} placeholder="••••••••" value={pass} onChange={(e) => setPass(e.target.value)}
-                    className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] pr-10 focus:border-primary focus:ring-primary/20" />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#b0b8c8] hover:text-[#4c566a]">
+                    className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground/50 pr-10 focus:border-primary focus:ring-primary/20" />
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
-              <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
+              <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
                 {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Entrar
               </Button>
-              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-[#8892a4] hover:text-primary font-medium">Esqueci minha senha</button>
+              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-muted-foreground hover:text-primary font-medium">Esqueci minha senha</button>
             </form>
           )}
         </div>
@@ -164,12 +164,12 @@ const BackOffice = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#f8f9fc] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#2e3440]">⛔ Acesso restrito</p>
-          <p className="text-sm text-[#8892a4] mt-1">Apenas administradores podem acessar esta área.</p>
+          <p className="text-lg font-semibold text-foreground">⛔ Acesso restrito</p>
+          <p className="text-sm text-muted-foreground mt-1">Apenas administradores podem acessar esta área.</p>
         </div>
-        <Button variant="outline" onClick={handleLogout} className="border-[#e5e9f0] text-[#4c566a] hover:bg-[#f0f2f8]">
+        <Button variant="outline" onClick={handleLogout} className="border-border text-muted-foreground hover:bg-accent">
           <LogOut size={16} className="mr-1" /> Sair
         </Button>
       </div>
@@ -177,7 +177,7 @@ const BackOffice = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
+    <div className="min-h-screen bg-background">
       <BackOfficeDashboard onLogout={handleLogout} />
     </div>
   );
