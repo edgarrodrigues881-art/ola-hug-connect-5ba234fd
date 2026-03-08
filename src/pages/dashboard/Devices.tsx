@@ -731,23 +731,24 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Call logout via API
-    try {
-      await callApi({ action: "logout", deviceId: loggingOutDevice.id });
-    } catch (err) {
-      console.error("Logout API error:", err);
-    }
-    if (loggingOutDevice.proxy_id) {
-      await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", loggingOutDevice.proxy_id);
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
-    }
-    updateMutation.mutate({
-      id: loggingOutDevice.id,
-      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
-    });
-    toast({ title: "Desconectado", description: `${loggingOutDevice.name} foi desconectado.` });
+    const device = loggingOutDevice;
+    // Close dialog & update UI immediately (optimistic)
     setLogoutOpen(false);
     setLoggingOutDevice(null);
+    toast({ title: "Desconectado", description: `${device.name} foi desconectado.` });
+
+    // Optimistic UI update
+    updateMutation.mutate({
+      id: device.id,
+      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
+    });
+
+    // Fire API + proxy cleanup in background (don't await)
+    callApi({ action: "logout", deviceId: device.id }).catch(err => console.error("Logout API error:", err));
+    if (device.proxy_id) {
+      supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id)
+        .then(() => queryClient.invalidateQueries({ queryKey: ["proxies"] }));
+    }
   };
 
   // Helper to call evolution-connect edge function
@@ -776,11 +777,15 @@ const Devices = () => {
       if (!device) return;
 
       if (action === "restart") {
-        // Disconnect WhatsApp session (keeps token/instance intact)
-        await callApi({ action: "logout", deviceId });
-        await supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", deviceId);
-        queryClient.invalidateQueries({ queryKey: ["devices"] });
+        // Optimistic UI update first
+        queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+          old ? old.map(d => d.id === deviceId ? { ...d, status: "Disconnected", number: "", profile_picture: null, profile_name: null } : d) : old
+        );
         toast({ title: "Instância desconectada", description: "Reconecte via QR Code para reutilizar a mesma instância." });
+        // Fire API in background
+        callApi({ action: "logout", deviceId }).catch(err => console.error("Restart logout error:", err));
+        supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", deviceId)
+          .then(() => queryClient.invalidateQueries({ queryKey: ["devices"] }));
       } else if (action === "testApi") {
         const result = await callApi({ action: "status", deviceId });
         const status = result?.status;
