@@ -47,7 +47,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const [showNoPlan, setShowNoPlan] = useState(false);
   const [newName, setNewName] = useState("");
   
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient, invalidateDashboard } = useAdminAction();
   const { toast } = useToast();
 
   const atLimit = devices.length >= maxInstances;
