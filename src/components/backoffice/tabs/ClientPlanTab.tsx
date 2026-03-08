@@ -96,6 +96,10 @@ const ClientPlanTab = ({ client, detail }: Props) => {
 
   // Save plan — provisioning happens automatically in update-subscription
   const handleSave = () => {
+    if (isTrial && (!trialDays || trialDays < 1)) {
+      toast({ title: "Dias inválidos", description: "Informe ao menos 1 dia para o Trial.", variant: "destructive" });
+      return;
+    }
     if (isNoPlan) {
       mutate({
         action: "remove-subscription",
