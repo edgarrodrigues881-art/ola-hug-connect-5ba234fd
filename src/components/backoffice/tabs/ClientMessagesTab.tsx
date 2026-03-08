@@ -219,16 +219,8 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
             <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{message}</pre>
           </div>
 
-          <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground uppercase font-medium">Observação (opcional)</p>
-            <Textarea
-              value={observation}
-              onChange={e => setObservation(e.target.value)}
-              className="bg-muted/30 border-border text-foreground text-xs min-h-[60px]"
-              rows={2}
-              placeholder="Ex: Cliente disse que paga amanhã..."
-            />
-          </div>
+
+
 
           <div className="flex gap-2">
             <Button onClick={markAsSent} disabled={isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
