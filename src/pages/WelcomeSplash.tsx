@@ -28,38 +28,44 @@ const WelcomeSplash = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          {/* Static background glow — no animation on blur, GPU-friendly */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] sm:w-[700px] sm:h-[700px] rounded-full pointer-events-none will-change-transform"
+          {/* Background glow — static blur, animated opacity only */}
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] sm:w-[600px] sm:h-[600px] rounded-full pointer-events-none"
             style={{
-              background: "radial-gradient(circle, hsl(var(--primary) / 0.07) 0%, hsl(var(--primary) / 0.02) 40%, transparent 70%)",
+              background: "radial-gradient(circle, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.02) 45%, transparent 70%)",
               filter: "blur(80px)",
             }}
+            initial={{ opacity: 0 }}
+            animate={phase >= 1 ? { opacity: 1 } : {}}
+            transition={{ duration: 1.5, ease: "easeOut" }}
           />
 
-          {/* Static horizontal stripe — no animation, just present */}
-          <div
-            className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-48 sm:h-64 pointer-events-none"
+          {/* Horizontal stripe — static blur, animated opacity only */}
+          <motion.div
+            className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-48 sm:h-56 pointer-events-none"
             style={{
-              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.05) 15%, hsl(var(--primary) / 0.10) 50%, hsl(var(--primary) / 0.05) 85%, transparent 100%)",
+              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.04) 20%, hsl(var(--primary) / 0.10) 50%, hsl(var(--primary) / 0.04) 80%, transparent 100%)",
               filter: "blur(60px)",
             }}
+            initial={{ opacity: 0 }}
+            animate={phase >= 2 ? { opacity: 1 } : {}}
+            transition={{ duration: 1.2, ease: "easeOut" }}
           />
 
           <div className="relative flex flex-col items-center gap-2 px-6">
-            {/* Bem-vindo — only opacity + translateY, GPU composited */}
+            {/* Bem-vindo */}
             <motion.span
-              className="text-sm sm:text-base font-bold tracking-[0.35em] uppercase text-primary will-change-[opacity,transform]"
-              initial={{ opacity: 0, y: 16 }}
+              className="text-sm sm:text-base font-bold tracking-[0.35em] uppercase text-primary"
+              initial={{ opacity: 0, y: 12 }}
               animate={phase >= 1 ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
               Bem-vindo
             </motion.span>
 
-            {/* ao — only opacity */}
+            {/* ao */}
             <motion.span
-              className="text-sm text-muted-foreground/60 tracking-[0.5em] uppercase font-medium will-change-[opacity]"
+              className="text-sm text-muted-foreground/60 tracking-[0.5em] uppercase font-medium"
               initial={{ opacity: 0 }}
               animate={phase >= 2 ? { opacity: 1 } : {}}
               transition={{ duration: 0.4, ease: "easeOut" }}
@@ -67,40 +73,40 @@ const WelcomeSplash = () => {
               ao
             </motion.span>
 
-            {/* Logo — only opacity + scale, GPU composited */}
+            {/* Logo */}
             <motion.div
-              className="mt-4 sm:mt-5 relative will-change-[opacity,transform]"
-              initial={{ opacity: 0, scale: 0.85 }}
+              className="mt-4 sm:mt-5 relative"
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={phase >= 3 ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Static glow behind logo — no keyframe animation */}
-              <div
+              {/* Soft glow behind logo — animated opacity only */}
+              <motion.div
                 className="absolute -inset-5 sm:-inset-6 rounded-3xl pointer-events-none"
                 style={{
-                  background: "radial-gradient(circle, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.05) 50%, transparent 75%)",
-                  filter: "blur(20px)",
-                  opacity: phase >= 3 ? 1 : 0,
-                  transition: "opacity 0.8s ease-out",
+                  background: "radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.04) 55%, transparent 75%)",
+                  filter: "blur(18px)",
                 }}
+                initial={{ opacity: 0 }}
+                animate={phase >= 3 ? { opacity: 1 } : {}}
+                transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
               />
 
-              {/* Rotating border — uses CSS animation instead of framer-motion for smoother GPU perf */}
-              <div
+              {/* Light sweep border — CSS animation for GPU perf */}
+              <motion.div
                 className="absolute -inset-[3px] rounded-2xl overflow-hidden"
-                style={{
-                  opacity: phase >= 3 ? 1 : 0,
-                  transition: "opacity 0.3s ease-out 0.3s",
-                }}
+                initial={{ opacity: 0 }}
+                animate={phase >= 3 ? { opacity: 1 } : {}}
+                transition={{ delay: 0.3, duration: 0.4 }}
               >
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary) / 0.6) 8%, hsl(var(--primary) / 0.2) 15%, transparent 25%, transparent 100%)",
+                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary) / 0.5) 8%, hsl(var(--primary) / 0.15) 16%, transparent 25%, transparent 100%)",
                     animation: phase >= 3 ? "spin 3s linear forwards" : "none",
                   }}
                 />
-              </div>
+              </motion.div>
 
               {/* Inner mask */}
               <div className="absolute inset-[2px] rounded-[14px] bg-background z-[1]" />
@@ -108,14 +114,14 @@ const WelcomeSplash = () => {
               <img
                 src={logo}
                 alt="DG Contingência Pro"
-                className="relative z-[2] w-28 h-28 sm:w-40 sm:h-40 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+                className="relative z-[2] w-28 h-28 sm:w-40 sm:h-40 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.3)]"
               />
             </motion.div>
 
-            {/* Brand name — only opacity + translateY */}
+            {/* Brand name */}
             <motion.div
-              className="mt-5 sm:mt-6 flex flex-col items-center gap-1.5 will-change-[opacity,transform]"
-              initial={{ opacity: 0, y: 20 }}
+              className="mt-5 sm:mt-6 flex flex-col items-center gap-1.5"
+              initial={{ opacity: 0, y: 16 }}
               animate={phase >= 3 ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             >
@@ -128,31 +134,32 @@ const WelcomeSplash = () => {
                 <span className="text-primary">PRO</span>
               </h1>
               <motion.span
-                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/40 font-medium will-change-[opacity]"
+                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/40 font-medium"
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : {}}
-                transition={{ duration: 0.4, delay: 0.4 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
               >
                 Plataforma de Automação
               </motion.span>
             </motion.div>
 
-            {/* Loading bar — only width animation, GPU composited */}
+            {/* Loading bar */}
             <motion.div
-              className="mt-8 sm:mt-10 relative w-48 sm:w-60 h-[5px] rounded-full overflow-hidden will-change-[opacity]"
+              className="mt-8 sm:mt-10 relative w-48 sm:w-60 h-[5px] rounded-full overflow-hidden"
               initial={{ opacity: 0 }}
               animate={phase >= 3 ? { opacity: 1 } : {}}
               transition={{ delay: 0.3, duration: 0.3 }}
             >
               <div className="absolute inset-0 bg-primary/10 rounded-full" />
-              <div
+              <motion.div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
                   background: "linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--primary)), hsl(var(--primary) / 0.7))",
-                  boxShadow: "0 0 12px hsl(var(--primary) / 0.4)",
-                  width: phase >= 3 ? "100%" : "0%",
-                  transition: "width 2.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 0 10px hsl(var(--primary) / 0.35)",
                 }}
+                initial={{ width: "0%" }}
+                animate={phase >= 3 ? { width: "100%" } : {}}
+                transition={{ duration: 2.5, ease: [0.4, 0, 0.2, 1] }}
               />
             </motion.div>
           </div>
