@@ -37,7 +37,10 @@ const typeLabels: Record<string, { label: string; color: string }> = {
 };
 
 const ClientDevicesTab = ({ client, detail }: Props) => {
-  const devices = detail?.devices || [];
+  const allDevices = detail?.devices || [];
+  // Separate report_wa devices from plan-counted devices
+  const devices = allDevices.filter((d: any) => d.login_type !== "report_wa");
+  const reportDevices = allDevices.filter((d: any) => d.login_type === "report_wa");
   const subscription = detail?.subscription;
   const maxInstances = subscription?.max_instances ?? 0;
   const currentPlan = subscription?.plan_name || "Sem plano";
