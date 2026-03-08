@@ -735,69 +735,55 @@ const AdminMessages = () => {
   // ─── MAIN LIST ───
   return (
     <>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Radio size={20} className="text-emerald-500" />
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
-            <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Radio size={20} className="text-emerald-500" />
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Relatório via WhatsApp</h2>
+              <p className="text-xs text-muted-foreground">Clique no cliente → veja a mensagem → envie</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
+              <History size={13} /> Histórico
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setView("config")}
+              className={`text-xs h-8 gap-1.5 ${isConfigured ? "border-emerald-500/30 text-emerald-600" : "border-destructive/30 text-destructive"}`}>
+              {isConfigured ? <Wifi size={13} /> : <WifiOff size={13} />}
+              {isConfigured ? "Conectado" : "Configurar"}
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setView("history")} className="text-xs h-8 gap-1.5">
-            <History size={13} /> Histórico
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView("config")}
-            className={`text-xs h-8 gap-1.5 ${isConfigured ? "border-emerald-500/30 text-emerald-600" : "border-destructive/30 text-destructive"}`}
-          >
-            {isConfigured ? <Wifi size={13} /> : <WifiOff size={13} />}
-            {isConfigured ? "Conectado" : "Configurar"}
-          </Button>
+        <div className="relative max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
         </div>
+        <ScrollArea className="max-h-[calc(100vh-320px)]">
+          <div className="space-y-1">
+            {filteredUsers.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
+            ) : filteredUsers.map(u => {
+              const d = getDaysLeft(u.plan_expires_at);
+              const status = getStatusBadge(d);
+              return (
+                <button key={u.id} onClick={() => openClient(u)}
+                  className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left">
+                  <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                    <User size={14} className="text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
+                  </div>
+                  <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>{status.label}</Badge>
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </div>
-
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
-      </div>
-
-      {/* Client list */}
-      <ScrollArea className="max-h-[calc(100vh-320px)]">
-        <div className="space-y-1">
-          {filteredUsers.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-12">Nenhum cliente encontrado</p>
-          ) : filteredUsers.map(u => {
-            const d = getDaysLeft(u.plan_expires_at);
-            const status = getStatusBadge(d);
-            return (
-              <button
-                key={u.id}
-                onClick={() => openClient(u)}
-                className="w-full flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/30 hover:bg-muted/20 transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                  <User size={14} className="text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
-                </div>
-                <Badge variant="outline" className={`text-[9px] shrink-0 ${status.className}`}>
-                  {status.label}
-                </Badge>
-              </button>
-            );
-          })}
-        </div>
-    </ScrollArea>
-    </div>
-    {qrDialog}
+      {qrDialog}
     </>
   );
 };
