@@ -197,6 +197,23 @@ async function setProxy(
   return { ok: false, error: "Falha ao configurar proxy no provedor" };
 }
 
+function formatBrPhone(phone: string): string {
+  const raw = String(phone).replace(/\D/g, "");
+  if (!raw) return "";
+  if (raw.startsWith("55") && raw.length === 13) {
+    // 55 + DD + 9XXXX-XXXX (celular com 9)
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+  }
+  if (raw.startsWith("55") && raw.length === 12) {
+    // 55 + DD + XXXX-XXXX (sem o 9 extra)
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 8)}-${raw.slice(8)}`;
+  }
+  if (raw.startsWith("55") && raw.length >= 10) {
+    // fallback: split last 4 digits
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, raw.length - 4)}-${raw.slice(raw.length - 4)}`;
+  }
+  return `+${raw}`;
+}
 
 async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
@@ -340,10 +357,7 @@ Deno.serve(async (req) => {
         const phone = existingStatus.owner || "";
         let formatted = "";
         if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
+          formatted = formatBrPhone(phone);
         }
         const dupCheck = await checkDuplicatePhone(phone);
         if (dupCheck.isDuplicate) {
@@ -381,10 +395,7 @@ Deno.serve(async (req) => {
         const phone = connInst.owner || connInst.phone || "";
         let formatted = "";
         if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
+          formatted = formatBrPhone(phone);
         }
         const dup = await checkDuplicatePhone(phone);
         if (dup.isDuplicate) {
@@ -408,11 +419,7 @@ Deno.serve(async (req) => {
           if (st === "connected") {
             const phone = pi.owner || pi.phone || "";
             let fmt = "";
-            if (phone) {
-              const raw = String(phone).replace(/\D/g, "");
-              if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-              else if (raw) fmt = `+${raw}`;
-            }
+            let fmt = phone ? formatBrPhone(phone) : "";
             const pollDup = await checkDuplicatePhone(phone);
             if (pollDup.isDuplicate) {
               await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
@@ -465,10 +472,7 @@ Deno.serve(async (req) => {
         const phone = statusCheck.owner || "";
         let formatted = "";
         if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
+          formatted = formatBrPhone(phone);
         }
         await svc.from("devices").update({ status: "Ready", number: formatted }).eq("id", deviceId);
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
@@ -514,11 +518,7 @@ Deno.serve(async (req) => {
           if (st === "connected") {
             const phone = poll.data?.instance?.owner || poll.data?.instance?.phone || "";
             let fmt = "";
-            if (phone) {
-              const raw = String(phone).replace(/\D/g, "");
-              if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-              else if (raw) fmt = `+${raw}`;
-            }
+            let fmt = phone ? formatBrPhone(phone) : "";
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
           }
@@ -554,10 +554,7 @@ Deno.serve(async (req) => {
         const phone = statusCheck.owner || "";
         let formatted = "";
         if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
+          formatted = formatBrPhone(phone);
         }
         // Check for duplicate phone
         const refreshDup = await checkDuplicatePhone(phone);
@@ -630,10 +627,7 @@ Deno.serve(async (req) => {
       if (isConnected && check.owner) {
         // Save phone and mark Ready
         const raw = String(check.owner).replace(/\D/g, "");
-        let fmt = "";
-        if (raw.startsWith("55") && raw.length >= 12)
-          fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-        else if (raw) fmt = `+${raw}`;
+        const fmt = formatBrPhone(raw);
         // Check for duplicate phone
         const statusDup = await checkDuplicatePhone(check.owner);
         if (statusDup.isDuplicate) {
