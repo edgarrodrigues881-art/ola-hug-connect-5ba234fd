@@ -372,7 +372,7 @@ const Landing = () => {
   useEffect(() => { prefetchRoutes(); }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative" style={{ overflowX: "hidden" }}>
+    <div className="min-h-screen bg-[#13161b] relative" style={{ overflowX: "hidden" }}>
       <GridPattern />
       <div className="relative z-10">
         <Navbar />
