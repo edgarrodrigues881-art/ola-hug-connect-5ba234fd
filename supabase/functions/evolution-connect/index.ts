@@ -234,28 +234,12 @@ Deno.serve(async (req) => {
       return json({ success: true, baseUrl: BASE_URL });
     }
 
-    // ── createInstance ──
+    // ── createInstance ── BLOCKED: tokens must come from the admin pool
     if (action === "createInstance") {
-      if (!BASE_URL || !ADMIN_TOKEN) {
-        return json({ error: "UaZapi não configurado no servidor." }, 400);
-      }
-      const instName = (body.instanceName || `inst-${Date.now()}`).substring(0, 50);
-      const result = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, instName);
-      if (!result.ok) return json({ error: result.error }, 500);
-
-      if (deviceId && result.token) {
-        await svc.from("devices").update({
-          uazapi_token: result.token,
-          uazapi_base_url: BASE_URL,
-        }).eq("id", deviceId);
-      }
-
       return json({
-        success: true,
-        instanceToken: result.token,
-        instanceName: instName,
-        baseUrl: BASE_URL,
-      });
+        error: "Criação de instâncias ad-hoc desabilitada. Tokens são provisionados pelo administrador via pool.",
+        code: "CREATE_BLOCKED",
+      }, 403);
     }
 
     // ── Resolve device credentials ──
