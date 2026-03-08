@@ -55,7 +55,7 @@ const WelcomeSplash = () => {
           <div className="relative flex flex-col items-center gap-2 px-6">
             {/* Bem-vindo */}
             <motion.span
-              className="text-sm sm:text-base font-black tracking-[0.35em] uppercase text-primary drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-none"
+              className="text-sm sm:text-base font-black tracking-[0.35em] uppercase text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] dark:drop-shadow-none"
               initial={{ opacity: 0, y: 12 }}
               animate={phase >= 1 ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, ease: "easeOut" }}
