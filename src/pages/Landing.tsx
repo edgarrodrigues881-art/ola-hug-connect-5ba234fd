@@ -61,7 +61,7 @@ const Navbar = () => {
 
 // ─── Section wrapper ─── (120px spacing)
 const Section = ({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) => (
-  <section id={id} className={`py-[60px] md:py-[120px] px-5 ${className}`}>
+  <section id={id} className={`py-12 md:py-20 px-5 ${className}`}>
     <div className="max-w-6xl mx-auto">{children}</div>
   </section>
 );
@@ -82,7 +82,7 @@ const SectionSub = ({ children }: { children: React.ReactNode }) => (
 const Hero = () => {
   const navigate = useNavigate();
   return (
-    <section className="relative pt-32 md:pt-48 pb-20 md:pb-32 px-5 text-center overflow-hidden">
+    <section className="relative pt-28 md:pt-40 pb-14 md:pb-20 px-5 text-center overflow-hidden">
       {/* Radial glow behind title */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.12)_0%,transparent_70%)]" />
@@ -127,7 +127,7 @@ const benefits = [
 
 const Benefits = () => (
   <Section id="beneficios">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>Benefícios</SectionLabel>
       <SectionTitle>Por que escolher a DG?</SectionTitle>
       <SectionSub>Infraestrutura pensada para quem opera em grande escala.</SectionSub>
@@ -156,7 +156,7 @@ const steps = [
 
 const HowItWorks = () => (
   <Section id="como-funciona">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>Como funciona</SectionLabel>
       <SectionTitle>4 passos para começar</SectionTitle>
       <SectionSub>Do cadastro ao primeiro disparo em minutos.</SectionSub>
@@ -186,7 +186,7 @@ const features = [
 
 const Features = () => (
   <Section id="recursos">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>Recursos</SectionLabel>
       <SectionTitle>Tudo que você precisa</SectionTitle>
       <SectionSub>Funcionalidades pensadas para operação profissional.</SectionSub>
@@ -215,7 +215,7 @@ const Plans = () => {
   const navigate = useNavigate();
   return (
     <Section id="planos">
-      <div className="text-center mb-16">
+      <div className="text-center mb-10">
         <SectionLabel>Planos</SectionLabel>
         <SectionTitle>Escolha o plano ideal</SectionTitle>
         <SectionSub>Todos os planos incluem acesso completo à plataforma.</SectionSub>
@@ -282,7 +282,7 @@ const faqs = [
 
 const FAQ = () => (
   <Section id="faq">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>FAQ</SectionLabel>
       <SectionTitle>Perguntas frequentes</SectionTitle>
     </div>
@@ -306,7 +306,7 @@ const CTAFinal = () => {
   return (
     <Section>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-12 md:p-20 overflow-hidden"
+        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-10 md:p-16 overflow-hidden"
       >
         <div className="absolute inset-0 bg-[hsl(var(--primary))]/5 rounded-3xl blur-[80px] pointer-events-none" />
         <div className="relative">
