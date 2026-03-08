@@ -364,6 +364,48 @@ Deno.serve(async (req) => {
         throw new Error("Já existe uma instância de relatório configurada.");
       }
 
+      // Auto-provision UaZapi instance for report_wa
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+      if (!ADMIN_BASE_URL || !ADMIN_TOKEN) {
+        throw new Error("Configuração do provedor incompleta. Contate o administrador.");
+      }
+
+      // Get client name for label
+      const { data: profile } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      const clientName = (profile?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+      const instanceName = `${clientName}_report_wa`;
+
+      // Create instance on UaZapi
+      const headerVariants = [
+        { admintoken: ADMIN_TOKEN },
+        { token: ADMIN_TOKEN },
+        { Authorization: `Bearer ${ADMIN_TOKEN}` },
+      ];
+
+      let provisionedToken: string | null = null;
+      for (const authHeaders of headerVariants) {
+        const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+          method: "POST",
+          headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ name: instanceName }),
+        });
+        if (res.status === 401) continue;
+        const resData = await res.json().catch(() => ({}));
+        if (res.ok) {
+          provisionedToken = resData.token || resData.instance?.token || resData.data?.token;
+          break;
+        }
+        throw new Error(`Falha ao criar instância no provedor [${res.status}]: ${JSON.stringify(resData).substring(0, 200)}`);
+      }
+
+      if (!provisionedToken) {
+        throw new Error("Falha na autenticação com o provedor. Contate o administrador.");
+      }
+
+      console.log(`[create-report] Instance provisioned: ${instanceName}, token: ${!!provisionedToken}`);
+
       const { data: newDevice, error: insertErr } = await admin
         .from("devices")
         .insert({
@@ -372,11 +414,18 @@ Deno.serve(async (req) => {
           user_id: user.id,
           status: "Disconnected",
           instance_type: "notificacao",
+          uazapi_token: provisionedToken,
+          uazapi_base_url: ADMIN_BASE_URL,
         })
         .select("id, name, status, login_type, created_at")
         .single();
 
       if (insertErr) throw insertErr;
+
+      // Also save token to profile for admin visibility
+      await admin.from("profiles").update({ whatsapp_monitor_token: provisionedToken }).eq("id", user.id);
+
+      await oplog(admin, user.id, "report_wa_provisioned", `Instância report_wa criada: ${instanceName}`, newDevice.id, { token_assigned: true });
 
       return new Response(
         JSON.stringify({ device: newDevice }),
