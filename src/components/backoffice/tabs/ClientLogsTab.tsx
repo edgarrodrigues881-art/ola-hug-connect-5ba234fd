@@ -1,61 +1,106 @@
 import { Badge } from "@/components/ui/badge";
-import { ScrollText } from "lucide-react";
+import { ScrollText, Shield, CreditCard, MessageSquare, Monitor, Settings, Trash2, UserCog, KeyRound, Bell, RefreshCw, FileText } from "lucide-react";
 
 interface Props {
   detail: any;
 }
 
-const actionLabels: Record<string, string> = {
-  "update-client": "Atualização de dados",
-  "update-subscription": "Alteração de plano",
-  "reset-password": "Reset de senha",
-  "force-logout": "Logout forçado",
-  "toggle-status": "Alteração de status",
-  "set-role": "Alteração de role",
-  "create-device": "Criação de instância",
-  "delete-device": "Remoção de instância",
-  "add-payment": "Pagamento registrado",
-  "delete-payment": "Pagamento removido",
-  "send-message": "Mensagem enviada",
+const actionConfig: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
+  "update-client": { label: "Dados atualizados", icon: UserCog, color: "text-sky-400", bgColor: "bg-sky-500/10" },
+  "update-subscription": { label: "Plano alterado", icon: FileText, color: "text-violet-400", bgColor: "bg-violet-500/10" },
+  "reset-password": { label: "Senha resetada", icon: Shield, color: "text-amber-400", bgColor: "bg-amber-500/10" },
+  "force-logout": { label: "Logout forçado", icon: RefreshCw, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "toggle-status": { label: "Status alterado", icon: Settings, color: "text-orange-400", bgColor: "bg-orange-500/10" },
+  "set-role": { label: "Role alterada", icon: Shield, color: "text-pink-400", bgColor: "bg-pink-500/10" },
+  "create-device": { label: "Instância criada", icon: Monitor, color: "text-primary", bgColor: "bg-primary/10" },
+  "delete-device": { label: "Instância removida", icon: Trash2, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "add-payment": { label: "Pagamento registrado", icon: CreditCard, color: "text-primary", bgColor: "bg-primary/10" },
+  "delete-payment": { label: "Pagamento removido", icon: CreditCard, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "update-payment": { label: "Pagamento editado", icon: CreditCard, color: "text-sky-400", bgColor: "bg-sky-500/10" },
+  "send-message": { label: "Mensagem enviada", icon: MessageSquare, color: "text-primary", bgColor: "bg-primary/10" },
+  "delete-message": { label: "Mensagem removida", icon: MessageSquare, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "toggle-notification": { label: "Notificação alterada", icon: Bell, color: "text-amber-400", bgColor: "bg-amber-500/10" },
+  "create-cycle": { label: "Ciclo criado", icon: RefreshCw, color: "text-violet-400", bgColor: "bg-violet-500/10" },
+  "auto-trial": { label: "Trial automático", icon: KeyRound, color: "text-primary", bgColor: "bg-primary/10" },
+  "add-tokens": { label: "Tokens adicionados", icon: KeyRound, color: "text-primary", bgColor: "bg-primary/10" },
+  "delete-token": { label: "Token removido", icon: KeyRound, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "delete-all-tokens": { label: "Tokens limpos", icon: Trash2, color: "text-destructive", bgColor: "bg-destructive/10" },
+  "update-monitor-token": { label: "Token monitor", icon: Bell, color: "text-sky-400", bgColor: "bg-sky-500/10" },
 };
 
-const actionColors: Record<string, string> = {
-  "update-client": "bg-teal-600/50 text-teal-200",
-  "update-subscription": "bg-purple-600/50 text-purple-200",
-  "reset-password": "bg-yellow-600/50 text-yellow-200",
-  "force-logout": "bg-red-600/50 text-red-200",
-  "toggle-status": "bg-orange-600/50 text-orange-200",
-  "set-role": "bg-pink-600/50 text-pink-200",
-  "create-device": "bg-green-600/50 text-green-200",
-  "delete-device": "bg-red-600/50 text-red-200",
-  "add-payment": "bg-green-600/50 text-green-200",
-  "delete-payment": "bg-red-600/50 text-red-200",
-  "send-message": "bg-cyan-600/50 text-cyan-200",
-};
+const defaultConfig = { label: "", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted/50" };
+
+function groupByDate(logs: any[]): Record<string, any[]> {
+  const groups: Record<string, any[]> = {};
+  for (const log of logs) {
+    const date = new Date(log.created_at).toLocaleDateString("pt-BR");
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(log);
+  }
+  return groups;
+}
 
 const ClientLogsTab = ({ detail }: Props) => {
   const logs = detail?.admin_logs || [];
+  const grouped = groupByDate(logs);
 
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 space-y-5">
-      <div className="flex items-center gap-2">
-        <ScrollText size={20} className="text-purple-400" />
-        <h3 className="text-lg font-semibold text-zinc-200">Histórico de Ações</h3>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <ScrollText size={18} className="text-primary" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-foreground">Histórico de Ações</h3>
+          <p className="text-xs text-muted-foreground">{logs.length} registro{logs.length !== 1 ? "s" : ""}</p>
+        </div>
       </div>
 
       {logs.length === 0 ? (
-        <p className="text-zinc-500 text-sm text-center py-8">Nenhuma ação registrada para este cliente</p>
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <ScrollText size={32} className="mb-2 opacity-20" />
+          <p className="text-sm">Nenhuma ação registrada</p>
+        </div>
       ) : (
-        <div className="space-y-2">
-          {logs.map((log: any) => (
-            <div key={log.id} className="flex items-center gap-3 bg-zinc-900 rounded-lg px-4 py-3">
-              <Badge className={`text-[10px] px-2 shrink-0 ${actionColors[log.action] || "bg-zinc-600 text-zinc-200"}`}>
-                {actionLabels[log.action] || log.action}
-              </Badge>
-              <span className="text-sm text-zinc-300 flex-1">{log.details}</span>
-              <span className="text-xs text-zinc-500 shrink-0">
-                {new Date(log.created_at).toLocaleString("pt-BR")}
-              </span>
+        <div className="space-y-6">
+          {Object.entries(grouped).map(([date, dateLogs]) => (
+            <div key={date} className="space-y-1.5">
+              {/* Date header */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{date}</span>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] text-muted-foreground/60">{dateLogs.length} ação{dateLogs.length !== 1 ? "ões" : ""}</span>
+              </div>
+
+              {/* Log entries */}
+              {dateLogs.map((log: any) => {
+                const cfg = actionConfig[log.action] || { ...defaultConfig, label: log.action };
+                const Icon = cfg.icon;
+                const time = new Date(log.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+                return (
+                  <div key={log.id} className="group flex items-start gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:border-primary/15 hover:shadow-sm transition-all duration-200">
+                    {/* Icon */}
+                    <div className={`w-7 h-7 rounded-lg ${cfg.bgColor} flex items-center justify-center shrink-0 mt-0.5`}>
+                      <Icon size={13} className={cfg.color} />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-xs font-semibold ${cfg.color}`}>{cfg.label}</span>
+                      </div>
+                      {log.details && (
+                        <p className="text-[12px] text-muted-foreground leading-relaxed line-clamp-2">{log.details}</p>
+                      )}
+                    </div>
+
+                    {/* Time */}
+                    <span className="text-[11px] text-muted-foreground/50 tabular-nums shrink-0 mt-0.5">{time}</span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
