@@ -37,7 +37,10 @@ const typeLabels: Record<string, { label: string; color: string }> = {
 };
 
 const ClientDevicesTab = ({ client, detail }: Props) => {
-  const devices = detail?.devices || [];
+  const allDevices = detail?.devices || [];
+  // Separate report_wa devices from plan-counted devices
+  const devices = allDevices.filter((d: any) => d.login_type !== "report_wa");
+  const reportDevices = allDevices.filter((d: any) => d.login_type === "report_wa");
   const subscription = detail?.subscription;
   const maxInstances = subscription?.max_instances ?? 0;
   const currentPlan = subscription?.plan_name || "Sem plano";
@@ -214,6 +217,53 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
           </div>
         )}
       </div>
+
+      {/* ── Instâncias de Relatório (fora do limite do plano) ── */}
+      {reportDevices.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Instâncias de Relatório <span className="text-muted-foreground/60">(fora do limite do plano)</span></p>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/40 text-muted-foreground text-[9px] uppercase tracking-wider">
+                  <th className="text-left px-3 py-2">Nome</th>
+                  <th className="text-left px-3 py-2">Tipo</th>
+                  <th className="text-left px-3 py-2">Número</th>
+                  <th className="text-left px-3 py-2">Status</th>
+                  <th className="text-left px-3 py-2">Criada em</th>
+                  <th className="text-right px-3 py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {reportDevices.map((d: any) => {
+                  const st = statusConfig[d.status] || statusConfig.Disconnected;
+                  const tp = typeLabels[getDeviceType(d)] || typeLabels.principal;
+                  return (
+                    <tr key={d.id} className="hover:bg-muted/20">
+                      <td className="px-3 py-2 text-foreground font-medium">{d.name}</td>
+                      <td className="px-3 py-2"><span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${tp.color}`}>{tp.label}</span></td>
+                      <td className="px-3 py-2 text-muted-foreground">{d.number || "—"}</td>
+                      <td className="px-3 py-2"><span className={`text-[10px] font-semibold flex items-center gap-1 ${st.color}`}><span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />{st.label}</span></td>
+                      <td className="px-3 py-2 text-muted-foreground">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-2 text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"><Trash2 size={13} /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-card border-border">
+                            <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
