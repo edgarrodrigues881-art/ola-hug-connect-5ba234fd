@@ -1068,12 +1068,20 @@ Deno.serve(async (req) => {
     }
 
 
-    if (action === "update-monitor-token" && req.method === "POST") {
+    if (action === "update-monitor-token") {
       const { target_user_id, whatsapp_monitor_token } = await req.json();
-      await adminClient.from("profiles").update({
+      console.log("[admin-data] update-monitor-token for:", target_user_id, "token:", whatsapp_monitor_token ? "***" : "(empty)");
+      const { error: updErr } = await adminClient.from("profiles").update({
         whatsapp_monitor_token: whatsapp_monitor_token || null,
         updated_at: new Date().toISOString(),
       }).eq("id", target_user_id);
+      if (updErr) {
+        console.error("[admin-data] update-monitor-token error:", updErr);
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
         whatsapp_monitor_token ? `Token de monitoramento configurado` : `Token de monitoramento removido`);
       return new Response(JSON.stringify({ success: true }), {
