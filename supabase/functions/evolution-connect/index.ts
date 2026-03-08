@@ -418,8 +418,7 @@ Deno.serve(async (req) => {
           const st = pi.status || poll.data?.status;
           if (st === "connected") {
             const phone = pi.owner || pi.phone || "";
-            let fmt = "";
-            let fmt = phone ? formatBrPhone(phone) : "";
+            const fmt = phone ? formatBrPhone(phone) : "";
             const pollDup = await checkDuplicatePhone(phone);
             if (pollDup.isDuplicate) {
               await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
@@ -517,8 +516,7 @@ Deno.serve(async (req) => {
           const st = poll.data?.instance?.status || poll.data?.status;
           if (st === "connected") {
             const phone = poll.data?.instance?.owner || poll.data?.instance?.phone || "";
-            let fmt = "";
-            let fmt = phone ? formatBrPhone(phone) : "";
+            const fmt = phone ? formatBrPhone(phone) : "";
             await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
             return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
           }
