@@ -4,10 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ShieldCheck, RotateCcw, Users, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
 
 const CommunityRulesTab = () => {
   const { toast } = useToast();
@@ -51,76 +50,112 @@ const CommunityRulesTab = () => {
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
+  const rules = [
+    {
+      key: "min_phase_required_for_pool",
+      icon: ShieldCheck,
+      title: "Fase mínima para o pool",
+      description: "Instâncias precisam estar nessa fase ou acima para serem elegíveis.",
+      type: "select" as const,
+      options: [
+        { value: "pre_24h", label: "pre_24h" },
+        { value: "groups_only", label: "groups_only" },
+        { value: "autosave_enabled", label: "autosave_enabled" },
+        { value: "community_enabled", label: "community_enabled" },
+      ],
+      defaultValue: "autosave_enabled",
+    },
+    {
+      key: "max_active_pairs_per_instance",
+      icon: Users,
+      title: "Máx. pares ativos por instância",
+      description: "Limita quantos pares simultâneos cada instância pode ter.",
+      type: "number" as const,
+      min: 1,
+      max: 10,
+      defaultValue: "1",
+    },
+    {
+      key: "rotation_policy_last_n",
+      icon: RotateCcw,
+      title: "Política de rotação",
+      description: "Evita repetir o mesmo par nas últimas N execuções.",
+      type: "number" as const,
+      min: 0,
+      max: 50,
+      defaultValue: "3",
+    },
+    {
+      key: "show_community_to_users",
+      icon: Eye,
+      title: "Visibilidade para clientes",
+      description: "Se ativo, clientes veem o status de comunidade em suas instâncias.",
+      type: "toggle" as const,
+      defaultValue: "false",
+    },
+  ];
+
   return (
-    <div className="space-y-6 max-w-lg">
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Fase mínima para entrar no pool</Label>
-        <div className="flex gap-2">
-          <Select value={local.min_phase_required_for_pool || "autosave_enabled"} onValueChange={v => setLocal(prev => ({ ...prev, min_phase_required_for_pool: v }))}>
-            <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pre_24h">pre_24h</SelectItem>
-              <SelectItem value="groups_only">groups_only</SelectItem>
-              <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
-              <SelectItem value="community_enabled">community_enabled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={() => handleSave("min_phase_required_for_pool")} disabled={updateSetting.isPending}>
-            <Save size={14} />
-          </Button>
-        </div>
-        <p className="text-[11px] text-muted-foreground">Instâncias precisam estar nessa fase ou acima para serem elegíveis ao pool.</p>
-      </div>
+    <div className="space-y-3 max-w-xl">
+      {rules.map(rule => {
+        const Icon = rule.icon;
+        return (
+          <div key={rule.key} className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-muted/50 shrink-0">
+                <Icon size={15} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">{rule.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{rule.description}</p>
+              </div>
+            </div>
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Máx. pares ativos por instância</Label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min={1}
-            max={10}
-            value={local.max_active_pairs_per_instance || "1"}
-            onChange={e => setLocal(prev => ({ ...prev, max_active_pairs_per_instance: e.target.value }))}
-            className="bg-card border-border w-24"
-          />
-          <Button size="sm" onClick={() => handleSave("max_active_pairs_per_instance")} disabled={updateSetting.isPending}>
-            <Save size={14} />
-          </Button>
-        </div>
-      </div>
+            {rule.type === "select" && (
+              <div className="flex gap-2 pl-11">
+                <Select value={local[rule.key] || rule.defaultValue} onValueChange={v => setLocal(prev => ({ ...prev, [rule.key]: v }))}>
+                  <SelectTrigger className="bg-background border-border text-xs h-8 flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {rule.options!.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" className="h-8 px-3" onClick={() => handleSave(rule.key)} disabled={updateSetting.isPending}>
+                  <Save size={13} />
+                </Button>
+              </div>
+            )}
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Política de rotação (evitar últimos N pares)</Label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min={0}
-            max={50}
-            value={local.rotation_policy_last_n || "3"}
-            onChange={e => setLocal(prev => ({ ...prev, rotation_policy_last_n: e.target.value }))}
-            className="bg-card border-border w-24"
-          />
-          <Button size="sm" onClick={() => handleSave("rotation_policy_last_n")} disabled={updateSetting.isPending}>
-            <Save size={14} />
-          </Button>
-        </div>
-        <p className="text-[11px] text-muted-foreground">Evita repetir o mesmo par nas últimas N execuções.</p>
-      </div>
+            {rule.type === "number" && (
+              <div className="flex gap-2 pl-11">
+                <Input
+                  type="number"
+                  min={rule.min}
+                  max={rule.max}
+                  value={local[rule.key] || rule.defaultValue}
+                  onChange={e => setLocal(prev => ({ ...prev, [rule.key]: e.target.value }))}
+                  className="bg-background border-border w-24 text-xs h-8"
+                />
+                <Button size="sm" className="h-8 px-3" onClick={() => handleSave(rule.key)} disabled={updateSetting.isPending}>
+                  <Save size={13} />
+                </Button>
+              </div>
+            )}
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Mostrar status "Comunidade" para clientes</Label>
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={local.show_community_to_users === "true"}
-            onCheckedChange={v => {
-              setLocal(prev => ({ ...prev, show_community_to_users: v ? "true" : "false" }));
-              updateSetting.mutate({ key: "show_community_to_users", value: v ? "true" : "false" });
-            }}
-          />
-          <span className="text-xs text-muted-foreground">{local.show_community_to_users === "true" ? "Visível" : "Oculto"}</span>
-        </div>
-        <p className="text-[11px] text-muted-foreground">Se ativo, clientes veem "Comunidade: Ativa/Desativada" em suas instâncias.</p>
-      </div>
+            {rule.type === "toggle" && (
+              <div className="flex items-center gap-3 pl-11">
+                <Switch
+                  checked={local[rule.key] === "true"}
+                  onCheckedChange={v => {
+                    setLocal(prev => ({ ...prev, [rule.key]: v ? "true" : "false" }));
+                    updateSetting.mutate({ key: rule.key, value: v ? "true" : "false" });
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">{local[rule.key] === "true" ? "Visível" : "Oculto"}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
