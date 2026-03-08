@@ -267,7 +267,7 @@ const Plans = () => {
 const Addon = () => (
   <Section>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-      className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+      className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
     >
       <div className="flex items-start gap-5">
         <div className="w-13 h-13 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center flex-shrink-0" style={{ width: 52, height: 52 }}>
