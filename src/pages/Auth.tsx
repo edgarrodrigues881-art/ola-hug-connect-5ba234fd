@@ -168,20 +168,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ backgroundColor: '#0F1115' }}>
-      {/* Galactic green background */}
-      <div className="fixed inset-0 pointer-events-none" style={{ contain: 'strict' }}>
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 60% at 20% 15%, hsl(142 70% 30% / 0.35) 0%, transparent 55%),
-              radial-gradient(ellipse 60% 50% at 80% 25%, hsl(160 70% 25% / 0.25) 0%, transparent 50%),
-              radial-gradient(ellipse 70% 50% at 50% 70%, hsl(130 50% 20% / 0.2) 0%, transparent 55%),
-              radial-gradient(ellipse 90% 70% at 50% 40%, hsl(140 40% 12% / 0.35) 0%, transparent 65%)
-            `,
-          }}
-        />
-      </div>
       {/* Back button */}
       <div className="absolute top-6 left-6 z-10">
         <button
