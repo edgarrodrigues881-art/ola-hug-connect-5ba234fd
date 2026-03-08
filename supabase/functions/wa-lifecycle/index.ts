@@ -224,6 +224,27 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ── CAPACITY CHECK (280+ instances) ──
+      const SERVER_MAX = 300;
+      const ALERT_THRESHOLD = 280;
+      const { count: totalDevices } = await adminClient.from("devices")
+        .select("id", { count: "exact", head: true });
+
+      if (totalDevices !== null && totalDevices >= ALERT_THRESHOLD) {
+        const pct = Math.round((totalDevices / SERVER_MAX) * 100);
+        const capacityMsg =
+          `🔥 *ALERTA DE CAPACIDADE DO SERVIDOR*\n\n` +
+          `📊 *${totalDevices}/${SERVER_MAX}* instâncias ativas (${pct}%)\n\n` +
+          (totalDevices >= SERVER_MAX
+            ? `🚨 *SERVIDOR LOTADO!* Nenhuma nova instância pode ser criada.\n`
+            : `⚠️ Restam apenas *${SERVER_MAX - totalDevices}* vagas.\n`) +
+          `\n💡 Considere expandir a infraestrutura ou remover instâncias inativas.`;
+
+        await sendText(config.baseUrl, config.token, config.groupNumber, capacityMsg);
+        console.log(`[wa-lifecycle] Capacity alert sent: ${totalDevices}/${SERVER_MAX}`);
+      }
+
+      // ── LIFECYCLE ALERTS ──
       // Get all active subscriptions with profiles
       const { data: subs } = await adminClient.from("subscriptions")
         .select("user_id, plan_name, expires_at");
@@ -308,7 +329,7 @@ Deno.serve(async (req) => {
 
       console.log(`[wa-lifecycle] Cron completed: ${alertsSent} alerts sent`);
 
-      return new Response(JSON.stringify({ success: true, alerts_sent: alertsSent }), {
+      return new Response(JSON.stringify({ success: true, alerts_sent: alertsSent, total_devices: totalDevices }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
