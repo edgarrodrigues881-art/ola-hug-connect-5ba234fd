@@ -5,9 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw, CircleDot, Zap, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -22,11 +21,12 @@ const ClientTokensTab = ({ client, detail }: Props) => {
   const [newTokens, setNewTokens] = useState("");
   const [monitorToken, setMonitorToken] = useState(detail?.profile?.whatsapp_monitor_token || "");
   const [validating, setValidating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showAddArea, setShowAddArea] = useState(false);
 
   useEffect(() => {
     setMonitorToken(detail?.profile?.whatsapp_monitor_token || "");
   }, [detail?.profile?.whatsapp_monitor_token]);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleAddTokens = () => {
     const lines = newTokens.split("\n").map(l => l.trim()).filter(Boolean);
@@ -43,6 +43,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
             : `${lines.length} token(s) adicionado(s)`;
           toast({ title: info });
           setNewTokens("");
+          setShowAddArea(false);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
@@ -92,11 +93,6 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const available = tokens.filter((t: any) => t.status === "available").length;
-  const inUse = tokens.filter((t: any) => t.status === "in_use").length;
-  const healthyCount = tokens.filter((t: any) => t.healthy === true).length;
-  const invalidCount = tokens.filter((t: any) => t.healthy === false).length;
-
   const handleSaveMonitorToken = () => {
     mutate(
       { action: "update-monitor-token", body: { target_user_id: client.id, whatsapp_monitor_token: monitorToken.trim() } },
@@ -107,174 +103,263 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     );
   };
 
-  const getHealthIcon = (healthy: boolean | null) => {
-    if (healthy === true) return <ShieldCheck size={14} className="text-emerald-500" />;
-    if (healthy === false) return <ShieldX size={14} className="text-destructive" />;
-    return <ShieldQuestion size={14} className="text-muted-foreground/50" />;
-  };
+  const available = tokens.filter((t: any) => t.status === "available").length;
+  const inUse = tokens.filter((t: any) => t.status === "in_use").length;
+  const invalidCount = tokens.filter((t: any) => t.healthy === false).length;
 
   const getHealthBadge = (healthy: boolean | null) => {
-    if (healthy === true) return <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30 gap-1"><ShieldCheck size={10} />Válido</Badge>;
-    if (healthy === false) return <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30 gap-1"><ShieldX size={10} />Inválido</Badge>;
-    return <Badge variant="outline" className="text-[10px] text-muted-foreground border-border gap-1"><ShieldQuestion size={10} />Não verificado</Badge>;
+    if (healthy === true) return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+        <ShieldCheck size={12} /> Válido
+      </span>
+    );
+    if (healthy === false) return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive">
+        <ShieldX size={12} /> Inválido
+      </span>
+    );
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/50">
+        <ShieldQuestion size={12} /> Pendente
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === "in_use") return (
+      <Badge className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/10">
+        <CircleDot size={8} className="mr-1" /> Em uso
+      </Badge>
+    );
+    return (
+      <Badge className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+        <Zap size={8} className="mr-1" /> Disponível
+      </Badge>
+    );
   };
 
   return (
-    <div className="space-y-4">
-      {/* WhatsApp Monitor Token */}
-      <div className="bg-card border border-border rounded-lg p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <Radio size={18} className="text-primary" />
-          <h3 className="text-base font-bold text-foreground">Token de Monitoramento WhatsApp</h3>
-          {monitorToken.trim() ? (
-            <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">Configurado</Badge>
-          ) : (
-            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">Não configurado</Badge>
-          )}
+    <div className="space-y-5">
+
+      {/* ─── Monitor Token Section ─── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Radio size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-foreground">Monitoramento WhatsApp</h3>
+              {monitorToken.trim() ? (
+                <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Ativo</Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">Inativo</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Token usado para enviar alertas e notificações via WhatsApp
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Token da instância que será usada para enviar notificações e alertas via WhatsApp para este cliente.
-        </p>
-        <div className="flex items-end gap-2">
-          <div className="flex-1 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Token da instância de monitoramento</Label>
+
+        <div className="bg-card border border-border rounded-xl p-4">
+          <Label className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Token da instância</Label>
+          <div className="flex items-center gap-2 mt-1.5">
             <Input
               placeholder="Cole o token aqui..."
               value={monitorToken}
               onChange={e => setMonitorToken(e.target.value)}
-              className="bg-muted/30 border-border font-mono text-xs"
+              className="bg-muted/30 border-border font-mono text-xs flex-1"
             />
+            <Button size="sm" onClick={handleSaveMonitorToken} disabled={isPending}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 rounded-lg h-9 px-4">
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save size={13} />}
+              Salvar
+            </Button>
           </div>
-          <Button size="sm" onClick={handleSaveMonitorToken} disabled={isPending}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save size={14} className="mr-1" />}
-            Salvar
-          </Button>
         </div>
       </div>
 
-      {/* Instance Tokens */}
-      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Key size={18} className="text-primary" />
-          <h3 className="text-base font-bold text-foreground">Tokens de Instância</h3>
-          <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">{available} disponíveis</Badge>
-          <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">{inUse} em uso</Badge>
-          {invalidCount > 0 && (
-            <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">{invalidCount} inválidos</Badge>
+      {/* ─── Instance Tokens Section ─── */}
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Key size={18} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Pool de Tokens</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{tokens.length} token{tokens.length !== 1 ? "s" : ""} no pool</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleValidateAll}
+              disabled={validating || isPending || tokens.length === 0}
+              className="gap-1.5 text-xs rounded-lg h-8"
+            >
+              {validating ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              Validar
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending || tokens.length === 0}
+                  className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 rounded-lg h-8"
+                >
+                  <Trash2 size={13} />
+                  Limpar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remover todos os tokens?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-muted-foreground">
+                    Isso removerá todos os {tokens.length} token(s) deste cliente. Esta ação é permanente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Remover todos
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        {/* Stats mini-cards */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Zap size={14} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">Disponíveis</p>
+              <p className="text-xl font-bold text-foreground tabular-nums">{available}</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <CircleDot size={14} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">Em uso</p>
+              <p className="text-xl font-bold text-foreground tabular-nums">{inUse}</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${invalidCount > 0 ? "bg-destructive/10" : "bg-muted/50"}`}>
+              <AlertTriangle size={14} className={invalidCount > 0 ? "text-destructive" : "text-muted-foreground/40"} />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">Inválidos</p>
+              <p className="text-xl font-bold text-foreground tabular-nums">{invalidCount}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Add Tokens */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowAddArea(!showAddArea)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Plus size={14} className="text-primary" />
+              <span className="text-sm font-medium text-foreground">Adicionar tokens</span>
+            </div>
+            <span className={`text-muted-foreground text-xs transition-transform ${showAddArea ? "rotate-180" : ""}`}>▼</span>
+          </button>
+
+          {showAddArea && (
+            <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+              <Textarea
+                placeholder={"token_abc123\ntoken_def456\ntoken_ghi789"}
+                value={newTokens}
+                onChange={e => setNewTokens(e.target.value)}
+                className="bg-muted/20 border-border font-mono text-xs min-h-[80px] resize-none"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-muted-foreground">Um token por linha • Validação automática ao adicionar</p>
+                <Button size="sm" onClick={handleAddTokens} disabled={isPending || !newTokens.trim()}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 rounded-lg h-8 text-xs">
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus size={13} />}
+                  Adicionar
+                </Button>
+              </div>
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isPending || tokens.length === 0}
-                className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+
+        {/* Token List */}
+        {tokens.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Key size={32} className="mb-2 opacity-20" />
+            <p className="text-sm">Nenhum token cadastrado</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Adicione tokens acima para começar</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {tokens.map((t: any, idx: number) => (
+              <div
+                key={t.id}
+                className={`group bg-card border rounded-xl px-4 py-3 flex items-center justify-between hover:border-primary/20 hover:shadow-sm transition-all duration-200 ${
+                  t.healthy === false ? "border-destructive/20 bg-destructive/[0.02]" : "border-border"
+                }`}
               >
-                <Trash2 size={14} />
-                Limpar todos
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-card border-border">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Remover todos os tokens?</AlertDialogTitle>
-                <AlertDialogDescription className="text-muted-foreground">
-                  Isso removerá todos os {tokens.length} token(s) deste cliente. Esta ação é permanente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Remover todos
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleValidateAll}
-            disabled={validating || isPending || tokens.length === 0}
-            className="gap-1.5 text-xs"
-          >
-            {validating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            Validar todos
-          </Button>
-        </div>
-      </div>
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  {/* Index */}
+                  <span className="text-xs font-mono text-muted-foreground/50 w-5 text-right tabular-nums">{idx + 1}</span>
 
-      <p className="text-xs text-muted-foreground">
-        Adicione tokens de instância para este cliente. Tokens são validados automaticamente ao adicionar. Tokens inválidos (401) não serão atribuídos a novas instâncias.
-      </p>
-
-      {/* Add tokens area */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Adicionar tokens (um por linha)</Label>
-        <Textarea
-          placeholder={"token_abc123\ntoken_def456\ntoken_ghi789"}
-          value={newTokens}
-          onChange={e => setNewTokens(e.target.value)}
-          className="bg-muted/30 border-border font-mono text-xs min-h-[80px]"
-        />
-        <Button size="sm" onClick={handleAddTokens} disabled={isPending || !newTokens.trim()}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus size={14} className="mr-1" />}
-          Adicionar
-        </Button>
-      </div>
-
-      {/* Token list */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
-              <th className="text-left px-4 py-2.5">#</th>
-              <th className="text-left px-4 py-2.5">Token</th>
-              <th className="text-left px-4 py-2.5">Saúde</th>
-              <th className="text-left px-4 py-2.5">Status</th>
-              <th className="text-left px-4 py-2.5">Instância</th>
-              <th className="text-left px-4 py-2.5">Criado em</th>
-              <th className="text-right px-4 py-2.5">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {tokens.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum token cadastrado</td></tr>
-            ) : tokens.map((t: any, idx: number) => (
-              <tr key={t.id} className={`hover:bg-muted/30 ${t.healthy === false ? "bg-destructive/[0.03]" : ""}`}>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">{idx + 1}</td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <code className="text-xs font-mono text-foreground bg-muted/40 px-2 py-0.5 rounded max-w-[200px] truncate">
+                  {/* Token value */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <code className="text-[11px] font-mono text-foreground/80 bg-muted/40 px-2 py-1 rounded-md max-w-[220px] truncate block">
                       {t.token}
                     </code>
-                    <button onClick={() => copyToken(t.token, t.id)} className="text-muted-foreground hover:text-foreground">
-                      {copiedId === t.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                    <button
+                      onClick={() => copyToken(t.token, t.id)}
+                      className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+                    >
+                      {copiedId === t.id ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
                     </button>
                   </div>
-                </td>
-                <td className="px-4 py-2.5">
-                  {getHealthBadge(t.healthy)}
-                </td>
-                <td className="px-4 py-2.5">
-                  <Badge variant="outline" className={`text-[10px] ${t.status === "in_use" ? "text-amber-500 border-amber-500/30" : "text-emerald-500 border-emerald-500/30"}`}>
-                    {t.status === "in_use" ? "Em uso" : "Disponível"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {t.device_name || "—"}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                  {new Date(t.created_at).toLocaleDateString("pt-BR")}
-                </td>
-                <td className="px-4 py-2.5 text-right">
+
+                  {/* Health */}
+                  <div className="shrink-0">
+                    {getHealthBadge(t.healthy)}
+                  </div>
+
+                  {/* Status */}
+                  <div className="shrink-0">
+                    {getStatusBadge(t.status)}
+                  </div>
+
+                  {/* Device name */}
+                  {t.device_name && (
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[120px] hidden lg:block">
+                      {t.device_name}
+                    </span>
+                  )}
+
+                  {/* Date */}
+                  <span className="text-[11px] text-muted-foreground/60 tabular-nums hidden md:block shrink-0">
+                    {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+
+                {/* Delete */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive h-8 w-8">
-                        <Trash2 size={14} />
+                      <Button variant="ghost" size="icon" className="text-muted-foreground/40 hover:text-destructive h-7 w-7 rounded-lg">
+                        <Trash2 size={13} />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-border">
@@ -288,13 +373,12 @@ const ClientTokensTab = ({ client, detail }: Props) => {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        )}
       </div>
-    </div>
     </div>
   );
 };
