@@ -27,7 +27,7 @@ const ClientProfileTab = ({ client, detail }: Props) => {
     instance_override: profile.instance_override ?? client.instance_override ?? 0,
   });
   const [notificacaoLiberada, setNotificacaoLiberada] = useState(profile.notificacao_liberada ?? false);
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient } = useAdminAction();
   const { toast } = useToast();
 
   const planLimit = client.max_instances || 0;
