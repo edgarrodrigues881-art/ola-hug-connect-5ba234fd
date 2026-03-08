@@ -51,12 +51,12 @@ const GROUP_LABELS: Record<string, string> = {
 
 
 const PENDENCIA_CATEGORIES = [
-  { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-50 border-amber-200" },
-  { label: "Vence hoje", filter: (d: number) => d === 0, color: "bg-red-50 border-red-200" },
-  { label: "Vencido 1 dia", filter: (d: number) => d === -1, color: "bg-red-50 border-red-200" },
-  { label: "Vencido 2-7 dias", filter: (d: number) => d <= -2 && d >= -7, color: "bg-red-50/60 border-red-200" },
-  { label: "Vencido 8-30 dias", filter: (d: number) => d <= -8 && d >= -30, color: "bg-gray-50 border-gray-200" },
-  { label: "Vencido +30 dias", filter: (d: number) => d < -30, color: "bg-gray-50 border-gray-200" },
+  { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-500/10 border-amber-500/30" },
+  { label: "Vence hoje", filter: (d: number) => d === 0, color: "bg-red-500/10 border-red-500/30" },
+  { label: "Vencido 1 dia", filter: (d: number) => d === -1, color: "bg-red-500/10 border-red-500/30" },
+  { label: "Vencido 2-7 dias", filter: (d: number) => d <= -2 && d >= -7, color: "bg-red-500/5 border-red-500/20" },
+  { label: "Vencido 8-30 dias", filter: (d: number) => d <= -8 && d >= -30, color: "bg-muted/50 border-border" },
+  { label: "Vencido +30 dias", filter: (d: number) => d < -30, color: "bg-muted/50 border-border" },
 ];
 
 const PendenciasTab = ({ users, onSelectClient }: { users: AdminUser[]; onSelectClient: (u: AdminUser) => void }) => {
