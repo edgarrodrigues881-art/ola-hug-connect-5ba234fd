@@ -115,7 +115,7 @@ const BackOffice = () => {
               <Lock size={24} className="text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              {showReset ? "Redefinir senha" : "DG Control Center"}
+              {showReset ? "Redefinir senha" : "Painel DG"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {showReset ? "Digite seu e-mail para receber o link." : "Acesso restrito a administradores"}
