@@ -214,7 +214,7 @@ const plans = [
 const Plans = () => {
   const navigate = useNavigate();
   return (
-    <Section id="planos" className="bg-white/[0.01]">
+    <Section id="planos">
       <div className="text-center mb-16">
         <SectionLabel>Planos</SectionLabel>
         <SectionTitle>Escolha o plano ideal</SectionTitle>
