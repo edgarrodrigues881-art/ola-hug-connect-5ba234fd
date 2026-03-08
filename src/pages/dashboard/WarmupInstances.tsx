@@ -77,7 +77,7 @@ const WarmupInstances = () => {
             </p>
             <p>
               Faça uma limpeza antes de começar a usar o processo.
-              No módulo <strong className="text-foreground">Ajuda</strong> existem algumas orientações No módulo <strong className="text-foreground">Ajuda</strong> existem algumas orientações para realizar essa limpeza.
+              No módulo <strong className="text-foreground">Ajuda</strong> existem algumas orientações para realizar essa verificação.
             </p>
             <p>
               O aquecimento é um processo gradual para fortalecer chips saudáveis. Números que já estão sendo banidos ou restringidos têm grandes chances de serem bloqueados novamente durante o processo.
