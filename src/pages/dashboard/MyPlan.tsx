@@ -195,7 +195,7 @@ const MyPlan = () => {
                             <GradientCheck />
                           ) : (
                             <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted/30 dark:bg-white/[0.03]">
-                              <X className="w-3 h-3 text-muted-foreground/20" strokeWidth={2} />
+                              <X className="w-3 h-3 text-red-400" strokeWidth={2} />
                             </div>
                           )}
                           <span className={!included ? "line-through decoration-muted-foreground/10" : ""}>
@@ -258,7 +258,7 @@ const MyPlan = () => {
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-primary" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-muted-foreground/15" strokeWidth={2} />
+                            <X className="w-4 h-4 mx-auto text-red-400" strokeWidth={2} />
                           )
                         ) : (
                           <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground/80"}`}>
