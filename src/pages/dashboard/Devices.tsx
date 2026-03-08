@@ -1114,7 +1114,7 @@ const Devices = () => {
       )}
 
       {/* Device grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 420px))' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 420px))' }}>
         {filteredDevices.map((d) => {
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const proxyStatus = assignedProxy?.status;
@@ -1150,8 +1150,8 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow max-w-[420px] w-full">
-              <CardContent className="p-5 flex flex-col gap-3">
+            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow w-full">
+              <CardContent className="p-5 flex flex-col gap-4">
                 {/* Header: Avatar + Name + Badge */}
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
@@ -1159,7 +1159,7 @@ const Devices = () => {
                       <img 
                         src={d.profile_picture} 
                         alt={d.name} 
-                        className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
@@ -1169,7 +1169,7 @@ const Devices = () => {
                       />
                     ) : null}
                     <div 
-                      className={`w-12 h-12 rounded-full items-center justify-center text-lg font-bold shadow-sm ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
+                      className={`w-14 h-14 rounded-full items-center justify-center text-lg font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
