@@ -62,7 +62,7 @@ const WelcomeSplash = () => {
           <div className="relative flex flex-col items-center gap-2">
             {/* Bem-vindo */}
             <motion.span
-              className="text-xs sm:text-sm font-semibold tracking-[0.35em] uppercase text-primary/70"
+              className="text-sm sm:text-base font-bold tracking-[0.35em] uppercase text-primary"
               initial={{ opacity: 0, y: 16, letterSpacing: "0.2em" }}
               animate={phase >= 1 ? { opacity: 1, y: 0, letterSpacing: "0.35em" } : {}}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -72,7 +72,7 @@ const WelcomeSplash = () => {
 
             {/* ao */}
             <motion.span
-              className="text-xs text-muted-foreground/50 tracking-[0.5em] uppercase"
+              className="text-sm text-muted-foreground/60 tracking-[0.5em] uppercase font-medium"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={phase >= 2 ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -100,7 +100,7 @@ const WelcomeSplash = () => {
               <img
                 src={logo}
                 alt="DG Contingência"
-                className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-white/5"
+                className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-white/5"
               />
             </motion.div>
 
@@ -112,7 +112,7 @@ const WelcomeSplash = () => {
               transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1
-                className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+                className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 <span className="text-primary">DG</span>{" "}
@@ -130,7 +130,7 @@ const WelcomeSplash = () => {
 
             {/* Premium loading bar */}
             <motion.div
-              className="mt-10 relative w-48 h-[2px] rounded-full overflow-hidden"
+              className="mt-10 relative w-52 h-[4px] rounded-full overflow-hidden"
               initial={{ opacity: 0 }}
               animate={phase >= 3 ? { opacity: 1 } : {}}
               transition={{ delay: 0.4, duration: 0.3 }}
