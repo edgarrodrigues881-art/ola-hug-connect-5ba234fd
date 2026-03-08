@@ -395,10 +395,7 @@ Deno.serve(async (req) => {
         const phone = connInst.owner || connInst.phone || "";
         let formatted = "";
         if (phone) {
-          const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12)
-            formatted = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-          else if (raw) formatted = `+${raw}`;
+          formatted = formatBrPhone(phone);
         }
         const dup = await checkDuplicatePhone(phone);
         if (dup.isDuplicate) {
