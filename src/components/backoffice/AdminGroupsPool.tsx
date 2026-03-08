@@ -34,6 +34,7 @@ const AdminGroupsPool = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editRef, setEditRef] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["admin-groups-pool"],
