@@ -275,7 +275,7 @@ const Addon = () => (
         </div>
         <div>
           <h3 className="text-lg font-bold text-white mb-1.5">Relatórios via WhatsApp</h3>
-          <p className="text-[13px] text-white/45 leading-relaxed max-w-md font-medium">
+          <p className="text-[13px] text-white/50 leading-relaxed max-w-md font-medium">
             Receba alertas de desconexão, fim de campanha e relatórios periódicos direto no seu WhatsApp. Incluso nos planos Scale e Elite.
           </p>
         </div>
