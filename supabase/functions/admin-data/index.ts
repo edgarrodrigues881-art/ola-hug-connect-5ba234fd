@@ -1992,21 +1992,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── UPDATE MONITOR TOKEN ──
-    if (action === "update-monitor-token" && req.method === "POST") {
-      const { target_user_id, whatsapp_monitor_token } = await req.json();
-      await adminClient.from("profiles").update({
-        whatsapp_monitor_token: whatsapp_monitor_token || null,
-        updated_at: new Date().toISOString(),
-      }).eq("id", target_user_id);
-
-      await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
-        whatsapp_monitor_token ? "Token de monitoramento atualizado" : "Token de monitoramento removido");
-
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // (update-monitor-token handler is defined earlier in the file)
 
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
