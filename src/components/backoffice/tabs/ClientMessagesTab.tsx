@@ -6,28 +6,76 @@ import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Copy, Check, Loader2, Send } from "lucide-react";
+import { Copy, Check, Loader2, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull } from "lucide-react";
 
-const SUPORTE_NUMERO = "(11) 99999-9999"; // ajustar
+const SUPORTE_NUMERO = "(11) 99999-9999";
 
-const TEMPLATES: { type: string; label: string; build: (vars: any) => string }[] = [
-  { type: "boas-vindas", label: "🎉 Boas-vindas", build: (v) =>
-    `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano ${v.plano} já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`
+const TEMPLATES = [
+  {
+    type: "boas-vindas",
+    label: "Boas-vindas",
+    icon: MessageCircle,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+    bgActive: "bg-emerald-500 text-white",
+    desc: "Enviada no primeiro login do cliente",
+    build: (v: any) =>
+      `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano ${v.plano} já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`,
   },
-  { type: "faltam-3-dias", label: "⚠️ Faltam 3 dias", build: (v) =>
-    `Olá ${v.nome}!\n\nSeu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\nRenove agora para não perder o acesso às suas instâncias.\n\nSuporte: ${v.suporte_numero}`
+  {
+    type: "faltam-3-dias",
+    label: "Faltam 3 dias",
+    icon: Clock,
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10 border-yellow-500/20",
+    bgActive: "bg-yellow-500 text-black",
+    desc: "3 dias antes do vencimento",
+    build: (v: any) =>
+      `Olá ${v.nome}!\n\nSeu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\nRenove agora para não perder o acesso às suas instâncias.\n\nSuporte: ${v.suporte_numero}`,
   },
-  { type: "vence-hoje", label: "🔴 Vence hoje", build: (v) =>
-    `${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\nSem renovação, suas instâncias serão bloqueadas.\n\nRenove agora → Suporte: ${v.suporte_numero}`
+  {
+    type: "vence-hoje",
+    label: "Vence hoje",
+    icon: AlertTriangle,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10 border-orange-500/20",
+    bgActive: "bg-orange-500 text-white",
+    desc: "No dia do vencimento",
+    build: (v: any) =>
+      `${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\nSem renovação, suas instâncias serão bloqueadas.\n\nRenove agora → Suporte: ${v.suporte_numero}`,
   },
-  { type: "vencido-1-dia", label: "❌ Vencido 1 dia", build: (v) =>
-    `${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\nSuas instâncias estão bloqueadas para novas criações.\n\nRenove para reativar → ${v.suporte_numero}`
+  {
+    type: "vencido-1-dia",
+    label: "Vencido 1 dia",
+    icon: XCircle,
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+    bgActive: "bg-destructive text-destructive-foreground",
+    desc: "1 dia após o vencimento",
+    build: (v: any) =>
+      `${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\nSuas instâncias estão bloqueadas para novas criações.\n\nRenove para reativar → ${v.suporte_numero}`,
   },
-  { type: "vencido-7-dias", label: "⚠️ Vencido 7 dias", build: (v) =>
-    `${v.nome}, já se passaram 7 dias desde o vencimento do seu plano ${v.plano}.\n\nSuas instâncias continuam bloqueadas.\n\nPrecisa de ajuda para renovar? → ${v.suporte_numero}`
+  {
+    type: "vencido-7-dias",
+    label: "Vencido 7 dias",
+    icon: XCircle,
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+    bgActive: "bg-destructive text-destructive-foreground",
+    desc: "7 dias após o vencimento",
+    build: (v: any) =>
+      `${v.nome}, já se passaram 7 dias desde o vencimento do seu plano ${v.plano}.\n\nSuas instâncias continuam bloqueadas.\n\nPrecisa de ajuda para renovar? → ${v.suporte_numero}`,
   },
-  { type: "vencido-30-dias", label: "🗑️ Vencido 30 dias", build: (v) =>
-    `${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\nPor questões de segurança, suas instâncias poderão ser removidas em breve.\n\nEntre em contato: ${v.suporte_numero}`
+  {
+    type: "vencido-30-dias",
+    label: "Vencido 30 dias",
+    icon: Skull,
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+    bgActive: "bg-destructive text-destructive-foreground",
+    desc: "30 dias após — remoção iminente",
+    build: (v: any) =>
+      `${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\nPor questões de segurança, suas instâncias poderão ser removidas em breve.\n\nEntre em contato: ${v.suporte_numero}`,
   },
 ];
 
@@ -55,12 +103,9 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
   const [observation, setObservation] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const message = useMemo(() => {
-    const t = TEMPLATES.find(t => t.type === selectedTemplate);
-    return t ? t.build(vars) : "";
-  }, [selectedTemplate, vars]);
+  const selectedTpl = TEMPLATES.find(t => t.type === selectedTemplate);
+  const message = useMemo(() => selectedTpl ? selectedTpl.build(vars) : "", [selectedTemplate, vars]);
 
-  // Fetch message history
   const { data: history = [], isLoading } = useQuery({
     queryKey: ["admin-messages", client.id],
     queryFn: async () => {
@@ -84,12 +129,7 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
     mutate(
       {
         action: "save-message",
-        body: {
-          target_user_id: client.id,
-          template_type: selectedTemplate,
-          message_content: message,
-          observation,
-        },
+        body: { target_user_id: client.id, template_type: selectedTemplate, message_content: message, observation },
       },
       {
         onSuccess: () => {
@@ -102,80 +142,118 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
     );
   };
 
+  // Detect suggested template based on daysLeft
+  const suggestedType = daysLeft !== null
+    ? daysLeft <= -30 ? "vencido-30-dias"
+      : daysLeft <= -7 ? "vencido-7-dias"
+      : daysLeft <= -1 ? "vencido-1-dia"
+      : daysLeft === 0 ? "vence-hoje"
+      : daysLeft <= 3 ? "faltam-3-dias"
+      : null
+    : null;
+
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 space-y-5">
-      <div className="flex items-center gap-2">
-        <MessageSquare size={20} className="text-purple-400" />
-        <h3 className="text-lg font-semibold text-zinc-200">Mensagens (Manual)</h3>
-      </div>
+    <div className="space-y-4">
+      {/* ── Ciclo de vida ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ciclo de Vida — Mensagens</p>
 
-      {/* Template selector */}
-      <div>
-        <p className="text-xs text-zinc-400 mb-2">Selecione um template:</p>
-        <div className="flex gap-2 flex-wrap">
-          {TEMPLATES.map(t => (
-            <Button
-              key={t.type}
-              size="sm"
-              variant={selectedTemplate === t.type ? "default" : "outline"}
-              onClick={() => setSelectedTemplate(t.type)}
-              className={selectedTemplate === t.type ? "bg-purple-600 hover:bg-purple-700 text-white text-xs" : "border-zinc-700 text-zinc-400 text-xs"}
-            >
-              {t.label}
-            </Button>
-          ))}
+        {/* Timeline visual */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {TEMPLATES.map((t) => {
+            const Icon = t.icon;
+            const isActive = selectedTemplate === t.type;
+            const isSuggested = suggestedType === t.type;
+            return (
+              <button
+                key={t.type}
+                onClick={() => setSelectedTemplate(isActive ? null : t.type)}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 transition-all text-center cursor-pointer
+                  ${isActive ? `${t.bgActive} border-transparent shadow-md` : `${t.bg} hover:opacity-80`}
+                `}
+              >
+                {isSuggested && !isActive && (
+                  <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full animate-pulse" />
+                )}
+                <Icon size={16} className={isActive ? "" : t.color} />
+                <span className={`text-[10px] font-semibold leading-tight ${isActive ? "" : "text-foreground"}`}>{t.label}</span>
+                <span className={`text-[8px] leading-tight ${isActive ? "opacity-80" : "text-muted-foreground"}`}>{t.desc}</span>
+              </button>
+            );
+          })}
         </div>
+
+        {suggestedType && !selectedTemplate && (
+          <p className="text-[10px] text-primary mt-2 flex items-center gap-1">
+            <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+            Sugestão automática baseada no vencimento ({daysLeft} dias)
+          </p>
+        )}
       </div>
 
-      {/* Message preview */}
-      {selectedTemplate && (
-        <div className="space-y-3">
-          <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
-            <p className="text-xs text-zinc-400 mb-2">Prévia da mensagem:</p>
-            <pre className="text-sm text-zinc-200 whitespace-pre-wrap font-sans">{message}</pre>
+      {/* ── Preview + Ações ── */}
+      {selectedTpl && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prévia da Mensagem</p>
+            <Badge variant="outline" className="text-[9px] border-border">{selectedTpl.label}</Badge>
           </div>
-          <div>
-            <p className="text-xs text-zinc-400 mb-1">Observação (opcional):</p>
+
+          <div className="bg-muted/30 rounded-lg p-3 border border-border">
+            <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{message}</pre>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase font-medium">Observação (opcional)</p>
             <Textarea
               value={observation}
               onChange={e => setObservation(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-100"
+              className="bg-muted/30 border-border text-foreground text-xs min-h-[60px]"
               rows={2}
               placeholder="Ex: Cliente disse que paga amanhã..."
             />
           </div>
+
           <div className="flex gap-2">
-            <Button onClick={copyMessage} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 text-xs">
-              {copied ? <Check size={14} className="mr-1.5 text-green-400" /> : <Copy size={14} className="mr-1.5" />}
-              {copied ? "Copiado!" : "Copiar Mensagem"}
+            <Button onClick={copyMessage} variant="outline" size="sm" className="border-border text-muted-foreground text-xs h-8">
+              {copied ? <Check size={13} className="mr-1.5 text-emerald-500" /> : <Copy size={13} className="mr-1.5" />}
+              {copied ? "Copiado!" : "Copiar"}
             </Button>
-            <Button onClick={markAsSent} disabled={isPending} size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Send size={14} className="mr-1.5" />}
+            <Button onClick={markAsSent} disabled={isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />}
               Marcar como Enviado
             </Button>
           </div>
         </div>
       )}
 
-      {/* History */}
-      <div className="border-t border-zinc-700 pt-4">
-        <h4 className="text-sm font-medium text-zinc-300 mb-3">Histórico de Mensagens</h4>
+      {/* ── Histórico ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Histórico de Envios</p>
         {isLoading ? (
-          <div className="text-center py-4"><Loader2 className="w-5 h-5 animate-spin mx-auto text-purple-400" /></div>
+          <div className="text-center py-6"><Loader2 className="w-4 h-4 animate-spin mx-auto text-primary" /></div>
         ) : history.length === 0 ? (
-          <p className="text-zinc-500 text-sm text-center py-4">Nenhuma mensagem registrada</p>
+          <p className="text-muted-foreground text-xs text-center py-6">Nenhuma mensagem enviada para este cliente</p>
         ) : (
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {history.map((m: any) => (
-              <div key={m.id} className="bg-zinc-900 rounded-lg px-4 py-3 border border-zinc-700/50">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge className="bg-purple-600/50 text-purple-200 text-[10px]">{m.template_type}</Badge>
-                  <span className="text-[10px] text-zinc-500">{new Date(m.sent_at).toLocaleString("pt-BR")}</span>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {history.map((m: any) => {
+              const tpl = TEMPLATES.find(t => t.type === m.template_type);
+              return (
+                <div key={m.id} className="flex items-start gap-3 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/50">
+                  <div className="shrink-0 mt-0.5">
+                    {tpl ? <tpl.icon size={14} className={tpl.color} /> : <MessageCircle size={14} className="text-muted-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-semibold text-foreground">{tpl?.label || m.template_type}</span>
+                      <span className="text-[9px] text-muted-foreground">{new Date(m.sent_at).toLocaleString("pt-BR")}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground line-clamp-1">{m.message_content}</p>
+                    {m.observation && <p className="text-[10px] text-muted-foreground/70 mt-0.5 italic">📝 {m.observation}</p>}
+                  </div>
                 </div>
-                <p className="text-xs text-zinc-400 line-clamp-2">{m.message_content}</p>
-                {m.observation && <p className="text-xs text-zinc-500 mt-1 italic">📝 {m.observation}</p>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
