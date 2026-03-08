@@ -190,113 +190,161 @@ const ClientPaymentsTab = ({ client }: Props) => {
   })();
 
   const formFields = (
-    <div className="space-y-3">
+    <div className="space-y-5">
+      {/* Plan Selection Section */}
       <div className="space-y-3">
-        <div>
-          <Label className="text-muted-foreground text-xs">Plano de Instâncias</Label>
-          <select
-            value={String(form.selected_plan_price || "")}
-            onChange={e => {
-              const price = Number(e.target.value) || 0;
-              const total = price + (form.include_notification ? NOTIFICATION_PRICE : 0);
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+            <Receipt size={13} className="text-primary" />
+          </div>
+          <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Plano & Serviços</span>
+        </div>
+        <div className="bg-muted/30 rounded-xl border border-border p-4 space-y-3">
+          <div>
+            <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Plano de Instâncias</Label>
+            <select
+              value={String(form.selected_plan_price || "")}
+              onChange={e => {
+                const price = Number(e.target.value) || 0;
+                const total = price + (form.include_notification ? NOTIFICATION_PRICE : 0);
+                setForm(f => ({
+                  ...f,
+                  selected_plan_price: price,
+                  plan_value: total > 0 ? fmtBRL(total) : "",
+                }));
+              }}
+              className="mt-1.5 w-full h-10 rounded-lg border border-border bg-card text-foreground px-3 text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+            >
+              <option value="" className="bg-card text-foreground">Selecione um plano</option>
+              {INSTANCE_PLANS.map(p => (
+                <option key={p.name} value={String(p.price)} className="bg-card text-foreground">
+                  {p.name} — R$ {fmtBRL(p.price)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div
+            onClick={() => {
+              const newVal = !form.include_notification;
+              const total = (form.selected_plan_price || 0) + (newVal ? NOTIFICATION_PRICE : 0);
               setForm(f => ({
                 ...f,
-                selected_plan_price: price,
+                include_notification: newVal,
                 plan_value: total > 0 ? fmtBRL(total) : "",
               }));
             }}
-            className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm"
+            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+              form.include_notification
+                ? "border-primary/50 bg-primary/5"
+                : "border-border hover:border-muted-foreground/30"
+            }`}
           >
-            <option value="" className="bg-card text-foreground">Selecione um plano</option>
-            {INSTANCE_PLANS.map(p => (
-              <option key={p.name} value={String(p.price)} className="bg-card text-foreground">
-                {p.name} — R$ {fmtBRL(p.price)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div
-          onClick={() => {
-            const newVal = !form.include_notification;
-            const total = (form.selected_plan_price || 0) + (newVal ? NOTIFICATION_PRICE : 0);
-            setForm(f => ({
-              ...f,
-              include_notification: newVal,
-              plan_value: total > 0 ? fmtBRL(total) : "",
-            }));
-          }}
-          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-            form.include_notification
-              ? "border-primary/50 bg-primary/5"
-              : "border-border bg-muted/20 hover:border-muted-foreground/30"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={form.include_notification} readOnly
-              className="w-4 h-4 rounded border-border accent-primary" />
-            <span className="text-sm text-foreground">Relatório via WhatsApp</span>
+            <div className="flex items-center gap-2.5">
+              <input type="checkbox" checked={form.include_notification} readOnly
+                className="w-4 h-4 rounded border-border accent-primary" />
+              <span className="text-sm font-medium text-foreground">Relatório via WhatsApp</span>
+            </div>
+            <span className={`text-xs font-semibold ${form.include_notification ? "text-primary" : "text-muted-foreground"}`}>
+              + R$ {fmtBRL(NOTIFICATION_PRICE)}/mês
+            </span>
           </div>
-          <span className={`text-xs font-semibold ${form.include_notification ? "text-primary" : "text-muted-foreground"}`}>
-            + R$ {fmtBRL(NOTIFICATION_PRICE)}/mês
-          </span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+      </div>
+
+      {/* Values Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+            <DollarSign size={13} className="text-primary" />
+          </div>
+          <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Valores</span>
+        </div>
+        <div className="bg-muted/30 rounded-xl border border-border p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Valor do Plano</Label>
+              <div className="relative mt-1.5">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">R$</span>
+                <Input type="text" readOnly value={form.plan_value || "0,00"}
+                  className="bg-muted/60 border-border text-foreground font-semibold pl-9 cursor-default" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Valor Recebido</Label>
+              <div className="relative mt-1.5">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-primary font-medium">R$</span>
+                <CurrencyInput value={form.amount}
+                  onChange={v => setForm(f => ({ ...f, amount: v }))}
+                  className="bg-card border-border text-foreground font-semibold pl-9" />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-border" />
+
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <Label className="text-muted-foreground text-[10px] uppercase tracking-wide font-medium">Desconto</Label>
+              <div className="relative mt-1.5">
+                <Input type="text" readOnly value={autoDiscount}
+                  className="bg-muted/60 border-border text-orange-500 font-semibold text-sm cursor-default" />
+              </div>
+              <p className="text-[9px] text-muted-foreground/70 mt-0.5 italic">Plano − Recebido</p>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-[10px] uppercase tracking-wide font-medium">Taxa</Label>
+              <div className="relative mt-1.5">
+                <CurrencyInput value={form.fee}
+                  onChange={v => setForm(f => ({ ...f, fee: v }))}
+                  className="bg-card border-border text-foreground text-sm" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-[10px] uppercase tracking-wide font-medium">Líquido</Label>
+              <div className="relative mt-1.5">
+                <Input type="text" readOnly value={(() => {
+                  const am = parseBRL(form.amount);
+                  const fe = parseBRL(form.fee);
+                  const liq = am - fe;
+                  return liq > 0 ? fmtBRL(liq) : "0,00";
+                })()}
+                  className="bg-primary/5 border-primary/20 text-primary font-bold text-sm cursor-default" />
+              </div>
+              <p className="text-[9px] text-muted-foreground/70 mt-0.5 italic">Recebido − Taxa</p>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-[10px] uppercase tracking-wide font-medium">Método</Label>
+              <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}
+                className="mt-1.5 w-full h-10 rounded-lg border border-border bg-card text-foreground px-3 text-sm focus:ring-2 focus:ring-primary/40 transition-all">
+                {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Details Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+            <Calendar size={13} className="text-primary" />
+          </div>
+          <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Detalhes</span>
+        </div>
+        <div className="bg-muted/30 rounded-xl border border-border p-4 space-y-3">
           <div>
-            <Label className="text-muted-foreground text-xs">Valor do Plano (R$)</Label>
-            <Input type="text" readOnly value={form.plan_value || "0,00"}
-              className="bg-muted border-border text-foreground font-medium mt-1 cursor-default" />
+            <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Data do Pagamento</Label>
+            <Input type="date" value={form.paid_at}
+              onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
+              className="bg-card border-border text-foreground mt-1.5 focus:ring-2 focus:ring-primary/40 transition-all" />
           </div>
           <div>
-            <Label className="text-muted-foreground text-xs">Valor Recebido (R$)</Label>
-            <CurrencyInput value={form.amount}
-              onChange={v => setForm(f => ({ ...f, amount: v }))}
-              className="bg-card border-border text-foreground mt-1" />
+            <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Observação</Label>
+            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              className="bg-card border-border text-foreground mt-1.5 focus:ring-2 focus:ring-primary/40 transition-all resize-none" rows={2}
+              placeholder="Ex: Pagamento referente ao mês de março" />
           </div>
         </div>
-      </div>
-      <div className="grid grid-cols-4 gap-3">
-        <div>
-          <Label className="text-muted-foreground text-xs">Desconto (R$)</Label>
-          <Input type="text" readOnly value={autoDiscount}
-            className="bg-muted border-border text-orange-500 font-medium mt-1 cursor-default" />
-          <p className="text-[10px] text-muted-foreground mt-0.5">Plano − Recebido</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-xs">Taxa / Custo (R$)</Label>
-          <CurrencyInput value={form.fee}
-            onChange={v => setForm(f => ({ ...f, fee: v }))}
-            className="bg-card border-border text-foreground mt-1" />
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-xs">Líquido (R$)</Label>
-          <Input type="text" readOnly value={(() => {
-            const am = parseBRL(form.amount);
-            const fe = parseBRL(form.fee);
-            const liq = am - fe;
-            return liq > 0 ? fmtBRL(liq) : "0,00";
-          })()}
-            className="bg-muted border-border text-primary font-bold mt-1 cursor-default" />
-          <p className="text-[10px] text-muted-foreground mt-0.5">Recebido − Taxa</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-xs">Método</Label>
-          <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}
-            className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm">
-            {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-      </div>
-      <div>
-        <Label className="text-muted-foreground text-xs">Data do Pagamento</Label>
-        <Input type="date" value={form.paid_at}
-          onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
-          className="bg-card border-border text-foreground mt-1" />
-      </div>
-      <div>
-        <Label className="text-muted-foreground text-xs">Observação</Label>
-        <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-          className="bg-card border-border text-foreground mt-1" rows={2}
-          placeholder="Ex: Pagamento referente ao mês de março" />
       </div>
     </div>
   );
