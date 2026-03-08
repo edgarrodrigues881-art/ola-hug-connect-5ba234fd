@@ -65,10 +65,32 @@ const WelcomeSplash = () => {
               animate={phase >= 3 ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
+              {/* Flash border contour */}
+              <motion.div
+                className="absolute -inset-[3px] rounded-2xl"
+                style={{
+                  background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary)) 10%, transparent 20%, transparent 100%)",
+                }}
+                initial={{ opacity: 0, rotate: 0 }}
+                animate={phase >= 3 ? { opacity: [0, 1, 1, 0.6], rotate: 360 } : {}}
+                transition={{ duration: 1.5, ease: "linear", delay: 0.3 }}
+              />
+              {/* Inner mask to keep only the border visible */}
+              <div className="absolute inset-[2px] rounded-[14px] bg-background z-[1]" />
               <img
                 src={logo}
                 alt="DG Contingência"
-                className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-white/5"
+                className="relative z-[2] w-28 h-28 sm:w-36 sm:h-36 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+              />
+              {/* Glow pulse */}
+              <motion.div
+                className="absolute -inset-2 rounded-2xl z-0"
+                style={{
+                  boxShadow: "0 0 30px hsl(var(--primary) / 0.4), 0 0 60px hsl(var(--primary) / 0.15)",
+                }}
+                initial={{ opacity: 0 }}
+                animate={phase >= 3 ? { opacity: [0, 0.8, 0.3] } : {}}
+                transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
               />
             </motion.div>
 
