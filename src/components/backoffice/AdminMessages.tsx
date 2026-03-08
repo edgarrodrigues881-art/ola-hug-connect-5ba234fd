@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
   Loader2, Check, User, ArrowLeft, Wifi, WifiOff,
-  Settings2, Smartphone, History, Radio
+  Settings2, Smartphone, History, Radio, Users, RefreshCw
 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
