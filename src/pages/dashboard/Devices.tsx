@@ -1504,7 +1504,8 @@ const Devices = () => {
             </div>
           </div>
 
-          <div className="px-6 pb-6 pt-5">
+          <div className="px-6 pb-6 pt-5 overflow-hidden">
+           <AnimatePresence mode="wait">
             {connectStep === "choose" && (
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">Como deseja conectar seu WhatsApp?</p>
