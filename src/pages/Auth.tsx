@@ -204,9 +204,9 @@ const Auth = () => {
         {showForgot ? (
           <>
             {/* Forgot password view */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-[#E5E7EB] mb-1.5">Recuperar senha</h1>
-              <p className="text-sm text-[#9CA3AF]">
+             <div className="text-center mb-8">
+              <h1 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Recuperar senha</h1>
+              <p className="text-sm text-[#9CA3AF] font-medium">
                 Informe seu e-mail e enviaremos um link para redefinir sua senha
               </p>
             </div>
