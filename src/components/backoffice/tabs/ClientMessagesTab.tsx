@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, Loader2, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull } from "lucide-react";
 
-const SUPORTE_NUMERO = "(11) 99999-9999";
+const SUPORTE_NUMERO = "(62) 99419-2500";
 
 const TEMPLATES = [
   {
@@ -20,7 +20,7 @@ const TEMPLATES = [
     bgActive: "bg-emerald-500 text-white",
     desc: "Enviada no primeiro login do cliente",
     build: (v: any) =>
-      `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano ${v.plano} já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`,
+      `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano Trial de 3 dias já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`,
   },
   {
     type: "faltam-3-dias",
