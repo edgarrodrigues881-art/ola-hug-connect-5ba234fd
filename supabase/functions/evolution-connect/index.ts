@@ -474,46 +474,53 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // Disconnect if in a bad state
-      if (statusCheck.status && statusCheck.status !== "disconnected" && statusCheck.status !== "connecting") {
+      // Step 1: Ensure instance is in "connecting" state (QR session active)
+      if (statusCheck.status === "disconnected" || !statusCheck.status) {
+        console.log("Pairing: instance disconnected, starting connect session first...");
+        await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+        await new Promise(r => setTimeout(r, 1500));
+      } else if (statusCheck.status !== "connecting") {
+        // Reset if in a bad state
         await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 1000));
+        await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
+        await new Promise(r => setTimeout(r, 1500));
       }
 
-      // Try multiple endpoint patterns for pairing code
-      const endpoints = [
-        { url: `/instance/connect?number=${phoneNumber}`, method: "POST" as const },
-        { url: `/instance/connect?number=${phoneNumber}`, method: "GET" as const },
-        { url: `/instance/pairingcode?number=${phoneNumber}`, method: "POST" as const },
+      // Step 2: Now request pairing code with the phone number
+      const pairingEndpoints = [
+        { url: `/instance/connect?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
+        { url: `/instance/connect?number=${phoneNumber}`, method: "GET" as const, body: undefined },
+        { url: `/instance/pairingcode?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
+        { url: `/instance/paircode?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
       ];
 
       let pairingCode: string | null = null;
       let lastError = "";
 
-      for (const ep of endpoints) {
+      for (const ep of pairingEndpoints) {
         try {
           console.log(`Trying pairing code: ${ep.method} ${ep.url}`);
-          const res = await uazapi(instanceUrl, ep.url, instanceToken, ep.method, ep.method === "POST" ? { number: phoneNumber } : undefined);
-          console.log(`Pairing response:`, JSON.stringify(res.data).substring(0, 300));
+          const res = await uazapi(instanceUrl, ep.url, instanceToken, ep.method, ep.body);
+          console.log(`Pairing response:`, JSON.stringify(res.data).substring(0, 400));
           
-          // Check multiple field names for the pairing code
-          const code = res.data?.pairingCode || res.data?.pairing_code || res.data?.code;
-          if (code && typeof code === "string" && code.length >= 6 && code.length <= 12) {
-            pairingCode = code;
-            break;
-          }
-          
-          // Some APIs return the code inside instance object
-          const inst = res.data?.instance || {};
-          const instCode = inst.pairingCode || inst.pairing_code || inst.paircode;
-          if (instCode && typeof instCode === "string" && instCode.length >= 6) {
-            pairingCode = instCode;
-            break;
-          }
+          // Extract pairing code from various response shapes
+          const extractCode = (obj: any): string | null => {
+            if (!obj || typeof obj !== "object") return null;
+            for (const key of ["pairingCode", "pairing_code", "paircode", "code"]) {
+              const val = obj[key];
+              if (val && typeof val === "string" && val.length >= 6 && val.length <= 12 && /^[A-Z0-9-]+$/i.test(val)) {
+                return val;
+              }
+            }
+            // Check nested instance object
+            if (obj.instance) return extractCode(obj.instance);
+            return null;
+          };
 
-          // Check paircode at root level too
-          if (res.data?.paircode && typeof res.data.paircode === "string" && res.data.paircode.length >= 6) {
-            pairingCode = res.data.paircode;
+          const code = extractCode(res.data);
+          if (code) {
+            pairingCode = code;
             break;
           }
 
