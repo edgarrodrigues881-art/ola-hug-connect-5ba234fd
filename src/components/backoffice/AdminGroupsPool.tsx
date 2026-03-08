@@ -119,31 +119,6 @@ const AdminGroupsPool = () => {
 
   return (
     <div className="space-y-4">
-      {/* Pool validation */}
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
-        activeCount === 8 
-          ? "bg-emerald-500/5 border-emerald-500/20" 
-          : "bg-destructive/5 border-destructive/20"
-      }`}>
-        {activeCount === 8 ? (
-          <ShieldCheck size={18} className="text-emerald-400" />
-        ) : (
-          <AlertTriangle size={18} className="text-destructive" />
-        )}
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">
-            Pool: {activeCount}/8 grupos ativos
-          </p>
-          {activeCount !== 8 && (
-            <p className="text-xs text-muted-foreground">
-              O motor requer exatamente 8 grupos ativos para funcionar corretamente.
-            </p>
-          )}
-        </div>
-        <Badge variant={activeCount === 8 ? "default" : "destructive"} className="text-[10px]">
-          {activeCount === 8 ? "OK" : "ATENÇÃO"}
-        </Badge>
-      </div>
 
       {/* Add new group */}
       <div className="bg-card border border-border rounded-lg p-4">
