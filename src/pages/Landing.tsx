@@ -350,7 +350,7 @@ const FooterSection = () => (
         <img src={logo} alt="DG" width={28} height={28} className="rounded-lg" />
         <span className="text-sm font-semibold text-white">DG Contingência</span>
       </div>
-      <p className="text-[11px] text-white/30 text-center max-w-lg leading-relaxed">
+      <p className="text-[11px] text-white/35 text-center max-w-lg leading-relaxed">
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
       </p>
       <p className="text-[11px] text-white/20">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
