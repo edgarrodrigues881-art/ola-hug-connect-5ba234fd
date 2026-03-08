@@ -1114,7 +1114,7 @@ const Devices = () => {
       )}
 
       {/* Device grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 420px))' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 420px))' }}>
         {filteredDevices.map((d) => {
           const assignedProxy = d.proxy_id ? availableProxies.find(p => p.id === d.proxy_id) : null;
           const proxyStatus = assignedProxy?.status;
