@@ -173,19 +173,22 @@ const Devices = () => {
       const configuredDeviceIds = new Set(
         (tokensRes.data || []).map((t: any) => t.device_id)
       );
-      return (devicesRes.data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        number: d.number || "",
-        status: d.status as "Ready" | "Disconnected" | "Loading",
-        login_type: d.login_type,
-        proxy_id: d.proxy_id,
-        profile_picture: d.profile_picture || null,
-        profile_name: d.profile_name || null,
-        created_at: d.created_at,
-        updated_at: d.updated_at,
-        has_api_config: configuredDeviceIds.has(d.id),
-      })) as Device[];
+      const deletedIds = getRecentlyDeletedIds();
+      return (devicesRes.data || [])
+        .filter((d: any) => !deletedIds.has(d.id))
+        .map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          number: d.number || "",
+          status: d.status as "Ready" | "Disconnected" | "Loading",
+          login_type: d.login_type,
+          proxy_id: d.proxy_id,
+          profile_picture: d.profile_picture || null,
+          profile_name: d.profile_name || null,
+          created_at: d.created_at,
+          updated_at: d.updated_at,
+          has_api_config: configuredDeviceIds.has(d.id),
+        })) as Device[];
     },
     enabled: !!session,
   });
