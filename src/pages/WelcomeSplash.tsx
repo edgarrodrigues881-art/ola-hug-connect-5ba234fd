@@ -32,7 +32,7 @@ const WelcomeSplash = () => {
           <motion.div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none"
             style={{
-              background: "radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.04) 40%, transparent 70%)",
+              background: "radial-gradient(circle, hsl(var(--primary) / 0.07) 0%, hsl(var(--primary) / 0.02) 40%, transparent 70%)",
               filter: "blur(80px)",
             }}
             initial={{ scale: 0.3, opacity: 0 }}
@@ -44,7 +44,7 @@ const WelcomeSplash = () => {
           <motion.div
             className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-64 pointer-events-none"
             style={{
-              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.08) 15%, hsl(var(--primary) / 0.20) 50%, hsl(var(--primary) / 0.08) 85%, transparent 100%)",
+              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.05) 15%, hsl(var(--primary) / 0.12) 50%, hsl(var(--primary) / 0.05) 85%, transparent 100%)",
               filter: "blur(70px)",
             }}
             initial={{ opacity: 0, scaleX: 0.3 }}
@@ -84,11 +84,11 @@ const WelcomeSplash = () => {
               <motion.div
                 className="absolute -inset-6 rounded-3xl pointer-events-none"
                 style={{
-                  background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, hsl(var(--primary) / 0.10) 50%, transparent 75%)",
+                  background: "radial-gradient(circle, hsl(var(--primary) / 0.20) 0%, hsl(var(--primary) / 0.06) 50%, transparent 75%)",
                   filter: "blur(25px)",
                 }}
                 initial={{ opacity: 0, scale: 0.5 }}
-                animate={phase >= 3 ? { opacity: [0, 1, 0.7], scale: [0.5, 1.2, 1] } : {}}
+                animate={phase >= 3 ? { opacity: [0, 0.7, 0.5], scale: [0.5, 1.1, 1] } : {}}
                 transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
               />
 
@@ -102,11 +102,11 @@ const WelcomeSplash = () => {
                 <motion.div
                   className="absolute inset-0"
                   style={{
-                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary)) 8%, hsl(var(--primary) / 0.5) 15%, transparent 25%, transparent 100%)",
+                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary) / 0.7) 8%, hsl(var(--primary) / 0.3) 15%, transparent 25%, transparent 100%)",
                   }}
                   initial={{ rotate: 0 }}
                   animate={phase >= 3 ? { rotate: 360 } : {}}
-                  transition={{ duration: 2, ease: "linear", repeat: 1 }}
+                  transition={{ duration: 3, ease: "linear", repeat: 0 }}
                 />
               </motion.div>
 
