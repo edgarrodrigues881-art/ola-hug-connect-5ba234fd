@@ -103,6 +103,17 @@ export function useDeleteWarmup() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["warmup_sessions"] });
+      const previous = queryClient.getQueryData(["warmup_sessions"]);
+      queryClient.setQueriesData({ queryKey: ["warmup_sessions"] }, (old: any) =>
+        Array.isArray(old) ? old.filter((s: any) => s.id !== id) : old
+      );
+      return { previous };
+    },
+    onError: (_err: any, _id: string, context: any) => {
+      if (context?.previous) queryClient.setQueriesData({ queryKey: ["warmup_sessions"] }, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
   });
 }
