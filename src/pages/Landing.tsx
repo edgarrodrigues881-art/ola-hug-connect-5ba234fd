@@ -205,10 +205,10 @@ const Features = () => (
 
 // ─── 5. Planos ───
 const plans = [
-  { name: "Start", instances: 10, price: null, popular: false, whatsappReports: false },
-  { name: "Pro", instances: 30, price: null, popular: true, whatsappReports: false },
-  { name: "Scale", instances: 50, price: null, popular: false, whatsappReports: true },
-  { name: "Elite", instances: 100, price: null, popular: false, whatsappReports: true },
+  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false },
+  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false },
+  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true },
+  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true },
 ];
 
 const Plans = () => {
@@ -234,17 +234,25 @@ const Plans = () => {
                 Popular
               </span>
             )}
-            <h3 className="text-xl font-extrabold text-white mb-1.5">{p.name}</h3>
-            <p className="text-[13px] text-white/50 font-medium mb-6">{p.instances} instâncias</p>
+            <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
+            <p className="text-[13px] text-white/50 font-medium mb-4">{p.instances} instâncias</p>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-sm font-medium text-white/40">R$</span>
+              <span className="text-3xl font-extrabold text-white">{p.price.split(",")[0]}</span>
+              <span className="text-base font-bold text-white/40">,{p.price.split(",")[1]}</span>
+              <span className="text-sm font-medium text-white/35">/mês</span>
+            </div>
             <ul className="space-y-3 mb-7">
               {["Disparos ilimitados", "Warmup automático", "Campanhas avançadas", "Suporte prioritário"].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/55 font-medium">
+                <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/60 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
                 </li>
               ))}
-              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/60">
+              <li className="flex items-center gap-2.5 text-[13px] font-medium">
                 <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
-                <span className={p.whatsappReports ? "" : "text-white/25"}>Relatórios WhatsApp {p.whatsappReports ? "incluso" : ""}</span>
+                <span className={p.whatsappReports ? "text-white/60" : "text-white/25"}>
+                  Relatórios WhatsApp {p.whatsappReports ? "incluso" : <span className="text-white/30 ml-1">+R$18,90</span>}
+                </span>
               </li>
             </ul>
             <Button onClick={() => navigate("/auth?mode=signup")}
@@ -262,30 +270,6 @@ const Plans = () => {
     </Section>
   );
 };
-
-// ─── 6. Addon ───
-const Addon = () => (
-  <Section>
-    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-      className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
-    >
-      <div className="flex items-start gap-5">
-        <div className="w-13 h-13 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center flex-shrink-0" style={{ width: 52, height: 52 }}>
-          <MessageSquare className="w-6 h-6 text-[hsl(var(--primary))]" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-white mb-1.5">Relatórios via WhatsApp</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed max-w-md font-medium">
-            Receba alertas de desconexão, fim de campanha e relatórios periódicos direto no seu WhatsApp. Incluso nos planos Scale e Elite.
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-4 flex-shrink-0">
-        <span className="text-3xl font-extrabold text-white">R$18,90<span className="text-sm font-medium text-white/40">/mês</span></span>
-      </div>
-    </motion.div>
-  </Section>
-);
 
 // ─── 7. FAQ ───
 const faqs = [
@@ -381,7 +365,7 @@ const Landing = () => {
         <HowItWorks />
         <Features />
         <Plans />
-        <Addon />
+        
         <FAQ />
         <CTAFinal />
         <FooterSection />
