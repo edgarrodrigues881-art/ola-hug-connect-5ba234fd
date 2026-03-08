@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAdminDashboard, useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Search, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
   Loader2, Check, User, ArrowLeft, Wifi, WifiOff,
-  Settings2, Smartphone, History, Radio, Users, RefreshCw
+  Settings2, Smartphone, History, Radio, Users, RefreshCw, QrCode
 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
