@@ -88,7 +88,7 @@ const WelcomeSplash = () => {
                   filter: "blur(25px)",
                 }}
                 initial={{ opacity: 0, scale: 0.5 }}
-                animate={phase >= 3 ? { opacity: [0, 1, 0.7], scale: [0.5, 1.2, 1] } : {}}
+                animate={phase >= 3 ? { opacity: [0, 0.7, 0.5], scale: [0.5, 1.1, 1] } : {}}
                 transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
               />
 
