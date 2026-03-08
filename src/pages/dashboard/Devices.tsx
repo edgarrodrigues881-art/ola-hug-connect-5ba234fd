@@ -1539,7 +1539,7 @@ const Devices = () => {
             </motion.div>)
 
             {connectStep === "proxy" && (
-              <div className="space-y-5">
+              <motion.div key="proxy" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 {/* Header */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
