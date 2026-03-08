@@ -3,7 +3,7 @@ import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
-  Copy, Check, ChevronRight, Menu, X, MoreHorizontal
+  Copy, Check, ChevronRight, Menu, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -45,9 +45,6 @@ const GROUP_LABELS: Record<string, string> = {
   sistema: "Sistema",
 };
 
-// Mobile bottom nav - show first 4 + "more"
-const MOBILE_NAV_PRIMARY = NAV_ITEMS.slice(0, 4);
-const MOBILE_NAV_MORE = NAV_ITEMS.slice(4);
 
 const PENDENCIA_CATEGORIES = [
   { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-50 border-amber-200" },
@@ -133,7 +130,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  
 
   const pendingCount = useMemo(() =>
     (data?.users || []).filter(u => {
@@ -172,7 +169,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   }
 
   const groups = [...new Set(NAV_ITEMS.map(i => i.group))];
-  const isInMoreMenu = MOBILE_NAV_MORE.some(i => i.id === activeTab);
+  
 
   const renderContent = () => {
     switch (activeTab) {
@@ -270,7 +267,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       </aside>
 
       {/* ═══ MAIN ═══ */}
-      <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+      <main className="flex-1 min-w-0">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#e5e9f0] px-4 lg:px-6 py-3 flex items-center gap-3">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#4c566a] hover:text-[#2e3440] p-1">
@@ -292,80 +289,6 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         </div>
       </main>
 
-      {/* ═══ BOTTOM NAV (mobile) ═══ */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e5e9f0] lg:hidden safe-bottom">
-        <div className="flex items-stretch">
-          {MOBILE_NAV_PRIMARY.map(item => {
-            const isActive = activeTab === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setActiveTab(item.id); setMoreMenuOpen(false); }}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 transition-colors relative
-                  ${isActive ? "text-primary" : "text-[#8892a4]"}`}
-              >
-                <div className="relative">
-                  <Icon size={20} />
-                  {item.badge && pendingCount > 0 && (
-                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {pendingCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-medium">{item.shortLabel}</span>
-                {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
-              </button>
-            );
-          })}
-
-          {/* More button */}
-          <div className="relative flex-1">
-            <button
-              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-              className={`w-full flex flex-col items-center gap-0.5 py-2 pt-2.5 transition-colors
-                ${isInMoreMenu ? "text-primary" : "text-[#8892a4]"}`}
-            >
-              <MoreHorizontal size={20} />
-              <span className="text-[10px] font-medium">Mais</span>
-              {isInMoreMenu && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
-            </button>
-
-            {/* More menu popup */}
-            {moreMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
-                <div className="absolute bottom-full right-0 mb-2 mr-1 w-48 bg-white rounded-xl border border-[#e5e9f0] shadow-lg z-50 py-2 overflow-hidden">
-                  {MOBILE_NAV_MORE.map(item => {
-                    const isActive = activeTab === item.id;
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => { setActiveTab(item.id); setMoreMenuOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
-                          ${isActive ? "text-primary bg-primary/5" : "text-[#4c566a] hover:bg-[#f8f9fc]"}`}
-                      >
-                        <Icon size={16} className={isActive ? "text-primary" : "text-[#8892a4]"} />
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                  <div className="border-t border-[#e5e9f0] mt-1 pt-1">
-                    <button
-                      onClick={() => { setMoreMenuOpen(false); onLogout(); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Sair
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
     </div>
   );
 };
