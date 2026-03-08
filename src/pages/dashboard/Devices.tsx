@@ -468,7 +468,10 @@ const Devices = () => {
       toast({ title: "Informe o prefixo do nome", variant: "destructive" });
       return;
     }
-    const totalCount = bulkSelectedProxies.length + bulkNoProxyCount;
+    // When using proxy, total = selected proxies count; otherwise total = bulkCount
+    const proxyIds = bulkUseProxy ? bulkSelectedProxies : [];
+    const noProxyCount = bulkUseProxy ? 0 : bulkCount;
+    const totalCount = proxyIds.length + noProxyCount;
     if (totalCount === 0) {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
       return;
@@ -493,8 +496,8 @@ const Devices = () => {
         body: {
           action: "bulk-create",
           prefix: bulkPrefix,
-          proxyIds: bulkSelectedProxies,
-          noProxyCount: bulkNoProxyCount,
+          proxyIds,
+          noProxyCount,
           startIndex: devices.length + 1,
         },
       });
