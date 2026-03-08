@@ -111,7 +111,7 @@ const Devices = () => {
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
-  const [bulkCount, setBulkCount] = useState(1);
+  const [bulkCount, setBulkCount] = useState<number | "">(1);
   const [bulkUseProxy, setBulkUseProxy] = useState(false);
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
   const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
