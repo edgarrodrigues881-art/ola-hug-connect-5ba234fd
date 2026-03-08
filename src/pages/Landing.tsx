@@ -309,7 +309,7 @@ const FAQ = () => (
             {f.q}
             <ChevronDown className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" />
           </summary>
-          <p className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed font-medium">{f.a}</p>
+          <p className="px-6 pb-5 text-[13px] text-white/50 leading-relaxed font-medium">{f.a}</p>
         </motion.details>
       ))}
     </motion.div>
