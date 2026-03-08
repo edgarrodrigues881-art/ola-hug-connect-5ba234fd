@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Clock, XCircle, Gauge, Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, TrendingUp, TrendingDown, DollarSign, CreditCard, Tag, AlertTriangle, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { AdminDashboard } from "@/hooks/useAdmin";
@@ -32,7 +32,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const [maxInstances, setMaxInstances] = useState(loadMaxInstances);
   const [editingMax, setEditingMax] = useState(false);
   const [editMaxValue, setEditMaxValue] = useState("");
-
   const now = new Date();
 
   // ── Period-filtered calculations ──
@@ -82,20 +81,14 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
   const totalCosts = periodCosts + paymentFees;
   const netRevenue = revenueReceived - totalCosts;
+  const isPositive = netRevenue >= 0;
+  const hasMovements = paymentsCount > 0 || periodCosts > 0;
 
-  // ── Operational (not period-dependent) ──
+  // ── Operational ──
   const revenueAtRisk = useMemo(() =>
     users.reduce((sum, u) => {
       const d = getDaysLeft(u.plan_expires_at);
       if (d !== null && d > 0 && d <= 3 && u.plan_price > 0) return sum + u.plan_price;
-      return sum;
-    }, 0),
-  [users]);
-
-  const revenueExpired = useMemo(() =>
-    users.reduce((sum, u) => {
-      const d = getDaysLeft(u.plan_expires_at);
-      if (d !== null && d <= 0 && u.plan_price > 0) return sum + u.plan_price;
       return sum;
     }, 0),
   [users]);
@@ -106,6 +99,14 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
   const expired = useMemo(() =>
     users.filter(u => { const d = getDaysLeft(u.plan_expires_at); return d !== null && d <= 0; }),
+  [users]);
+
+  const revenueExpired = useMemo(() =>
+    users.reduce((sum, u) => {
+      const d = getDaysLeft(u.plan_expires_at);
+      if (d !== null && d <= 0 && u.plan_price > 0) return sum + u.plan_price;
+      return sum;
+    }, 0),
   [users]);
 
   const blocked = useMemo(() =>
@@ -124,137 +125,157 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   };
   const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
-  const isPositive = netRevenue >= 0;
-  const hasMovements = paymentsCount > 0 || periodCosts > 0;
-
   return (
-    <div className="space-y-3">
-
-      {/* ═══ HEADER ═══ */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-[-0.03em] leading-none uppercase">
-            DG CONTROL CENTER
-          </h1>
-          <p className="text-[10px] text-muted-foreground/30 mt-1 capitalize tracking-wide font-medium">
-            {format(now, "MMMM yyyy", { locale: ptBR })}
-          </p>
-        </div>
-        <span className="text-[7px] uppercase tracking-[0.35em] font-bold text-emerald-400/40 mb-0.5">
-          ● PROD
-        </span>
-      </div>
+    <div className="space-y-6">
 
       {/* ═══ ALERTS ═══ */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {expired.length > 0 && (
-            <span className="text-[9px] text-destructive/70 font-semibold">⬤ {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-medium">
+              <AlertTriangle size={14} />
+              {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}
+            </div>
           )}
           {expiringSoon.length > 0 && (
-            <span className="text-[9px] text-yellow-500/60 font-semibold">⬤ {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 text-xs font-medium">
+              <AlertTriangle size={14} />
+              {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}
+            </div>
           )}
           {serverOccupancy >= 80 && (
-            <span className="text-[9px] text-orange-500/60 font-semibold">⬤ Servidor {serverOccupancy}%</span>
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-xs font-medium">
+              <BarChart3 size={14} />
+              Servidor {serverOccupancy}%
+            </div>
           )}
         </div>
       )}
 
       {/* ═══ PERIOD FILTER ═══ */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold whitespace-nowrap">Financeiro</p>
-          <div className="h-px flex-1 bg-border/20" />
+      <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <DollarSign size={16} className="text-[#8892a4]" />
+          <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em]">Financeiro</p>
+          <div className="h-px flex-1 bg-[#e5e9f0]" />
         </div>
         <PeriodFilter {...periodFilter} />
       </div>
 
-      {/* ═══ KPIs — 5 colunas iguais ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        {/* Receita Líquida — leve destaque */}
-        <div className={`bg-card border rounded-md px-3 py-3 ${isPositive ? "border-emerald-500/25" : "border-red-500/25"}`}>
-          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Receita Líquida</p>
-          <p className={`text-xl font-black mt-1 leading-none ${isPositive ? "text-green-400" : "text-red-400"}`}>{fmt(netRevenue)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5">
+      {/* ═══ KPIs ═══ */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* Receita Líquida */}
+        <div className={`bg-white rounded-xl border p-5 ${isPositive ? "border-emerald-200" : "border-red-200"}`}>
+          <div className="flex items-center gap-2 mb-3">
+            {isPositive ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-red-500" />}
+            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Receita Líquida</p>
+          </div>
+          <p className={`text-2xl font-bold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>{fmt(netRevenue)}</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1">
             {!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
           </p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
-          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Recebida</p>
-          <p className="text-xl font-black text-green-400 mt-1 leading-none">{fmt(revenueReceived)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
+
+        {/* Recebida */}
+        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard size={14} className="text-emerald-500" />
+            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Recebida</p>
+          </div>
+          <p className="text-2xl font-bold text-[#2e3440]">{fmt(revenueReceived)}</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
-          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Contratada</p>
-          <p className="text-xl font-black text-teal-400 mt-1 leading-none">{fmt(revenueBrute)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5">{activePlans} planos</p>
+
+        {/* Contratada */}
+        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign size={14} className="text-teal-500" />
+            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Contratada</p>
+          </div>
+          <p className="text-2xl font-bold text-[#2e3440]">{fmt(revenueBrute)}</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1">{activePlans} planos</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
-          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Descontos</p>
-          <p className="text-xl font-black text-orange-400 mt-1 leading-none">{fmt(discounts)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5">Concedidos</p>
+
+        {/* Descontos */}
+        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag size={14} className="text-amber-500" />
+            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Descontos</p>
+          </div>
+          <p className="text-2xl font-bold text-[#2e3440]">{fmt(discounts)}</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1">Concedidos</p>
         </div>
-        <div className="bg-card border border-border/40 rounded-md px-3 py-3">
-          <p className="text-[9px] text-muted-foreground/35 uppercase tracking-[0.15em] font-semibold">Taxas & Custos</p>
-          <p className="text-xl font-black text-red-400 mt-1 leading-none">{fmt(totalCosts)}</p>
-          <p className="text-[9px] text-muted-foreground/20 mt-1.5">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
+
+        {/* Taxas & Custos */}
+        <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown size={14} className="text-red-500" />
+            <p className="text-[11px] font-semibold text-[#8892a4] uppercase tracking-wider">Taxas & Custos</p>
+          </div>
+          <p className="text-2xl font-bold text-[#2e3440]">{fmt(totalCosts)}</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
         </div>
       </div>
 
-
-      {/* ═══ OPERAÇÃO — card horizontal único ═══ */}
-      <div className="bg-card/50 border border-border/30 rounded-md px-4 py-3">
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-[9px] text-muted-foreground/25 uppercase tracking-[0.25em] font-bold">Operação</p>
+      {/* ═══ OPERAÇÃO ═══ */}
+      <div className="bg-white rounded-xl border border-[#e5e9f0] p-5">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={16} className="text-[#8892a4]" />
+            <p className="text-xs font-bold text-[#8892a4] uppercase tracking-[0.15em]">Operação</p>
+          </div>
           {editingMax ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-muted-foreground/40 font-medium">Capacidade:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#8892a4]">Capacidade:</span>
               <input
                 type="number"
                 value={editMaxValue}
                 onChange={e => setEditMaxValue(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && confirmEditMax()}
-                className="w-16 h-5 text-[10px] font-bold bg-background border border-border rounded px-1.5 text-foreground focus:outline-none focus:border-foreground/30"
+                className="w-20 h-7 text-xs font-semibold bg-[#f8f9fc] border border-[#e5e9f0] rounded-lg px-2 text-[#2e3440] focus:outline-none focus:border-primary"
                 autoFocus
               />
-              <button onClick={confirmEditMax} className="text-primary/70 hover:text-primary transition-colors"><Check size={12} /></button>
-              <button onClick={() => setEditingMax(false)} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"><X size={12} /></button>
+              <button onClick={confirmEditMax} className="text-primary hover:text-primary/80"><Check size={14} /></button>
+              <button onClick={() => setEditingMax(false)} className="text-[#b0b8c8] hover:text-[#8892a4]"><X size={14} /></button>
             </div>
           ) : (
-            <button onClick={startEditMax} className="flex items-center gap-1 text-[9px] text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors group">
-              <span className="font-medium">Capacidade: {maxInstances}</span>
-              <Pencil size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            <button onClick={startEditMax} className="flex items-center gap-1.5 text-xs text-[#b0b8c8] hover:text-[#4c566a] transition-colors group">
+              <span>Capacidade: {maxInstances}</span>
+              <Pencil size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           )}
         </div>
-        <div className="grid grid-cols-4 gap-x-6 gap-y-1">
-          <div>
-            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Liberadas</p>
-            <p className="text-sm font-black text-foreground/70 mt-0.5">{totalAllocated} <span className="text-[9px] font-medium text-muted-foreground/20">/ {maxInstances}</span></p>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
+            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Liberadas</p>
+            <p className="text-lg font-bold text-[#2e3440] mt-1">{totalAllocated} <span className="text-xs font-normal text-[#b0b8c8]">/ {maxInstances}</span></p>
           </div>
-          <div>
-            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Em Uso</p>
-            <p className="text-sm font-black text-foreground/70 mt-0.5">{totalInUse} <span className="text-[9px] font-medium text-muted-foreground/20">{stats.active_devices} on</span></p>
+          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
+            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Em Uso</p>
+            <p className="text-lg font-bold text-[#2e3440] mt-1">{totalInUse} <span className="text-xs font-normal text-[#b0b8c8]">{stats.active_devices} on</span></p>
           </div>
-          <div>
-            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Ocupação</p>
-            <p className={`text-sm font-black mt-0.5 ${serverOccupancy >= 80 ? "text-red-400/80" : "text-foreground/70"}`}>{serverOccupancy}%</p>
+          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
+            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Ocupação</p>
+            <p className={`text-lg font-bold mt-1 ${serverOccupancy >= 80 ? "text-red-500" : "text-[#2e3440]"}`}>{serverOccupancy}%</p>
           </div>
-          <div>
-            <p className="text-[9px] text-muted-foreground/30 uppercase tracking-wider font-medium">Bloqueados</p>
-            <p className="text-sm font-black text-foreground/70 mt-0.5">{blocked.length}</p>
+          <div className="bg-[#f8f9fc] rounded-lg px-4 py-3">
+            <p className="text-[11px] text-[#8892a4] font-medium uppercase tracking-wider">Bloqueados</p>
+            <p className="text-lg font-bold text-[#2e3440] mt-1">{blocked.length}</p>
           </div>
         </div>
-        <div className="mt-2.5">
-          <div className="relative h-1.5 bg-background/80 rounded-full overflow-hidden">
+
+        {/* Progress bar */}
+        <div>
+          <div className="relative h-2 bg-[#f0f2f8] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
-                serverOccupancy >= 90 ? "bg-red-500" : serverOccupancy >= 70 ? "bg-yellow-500" : "bg-emerald-500/80"
+                serverOccupancy >= 90 ? "bg-red-500" : serverOccupancy >= 70 ? "bg-amber-500" : "bg-primary"
               }`}
               style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
             />
           </div>
-          <p className="text-[8px] text-muted-foreground/20 mt-1 font-medium">{totalInUse} / {maxInstances} instâncias</p>
+          <p className="text-[11px] text-[#b0b8c8] mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
     </div>
