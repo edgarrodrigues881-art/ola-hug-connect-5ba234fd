@@ -146,10 +146,10 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
-  // Initial fetch + polling every 3s for fast detection
+  // Initial fetch + light polling as safety net (realtime handles instant delivery)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 3000);
+    const interval = setInterval(fetchNotifications, 30000); // 30s — realtime is the primary channel
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
