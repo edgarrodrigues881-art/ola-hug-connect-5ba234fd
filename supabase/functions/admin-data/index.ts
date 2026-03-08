@@ -1705,6 +1705,7 @@ Deno.serve(async (req) => {
     // ─── WA REPORT: SEND PV + GROUP NOTIFICATION ───
     if (action === "wa-report-send-group" && req.method === "POST") {
       const { target_user_id, template_type, message_content, group_notification } = await req.json();
+      console.log("[wa-report-send] target:", target_user_id, "template:", template_type);
 
       // Get config
       const { data: configRows } = await adminClient.from("community_settings")
@@ -1716,6 +1717,7 @@ Deno.serve(async (req) => {
 
       const deviceId = cfg["wa_report_device_id"];
       const groupId = cfg["wa_report_group_id"];
+      console.log("[wa-report-send] config deviceId:", deviceId, "groupId:", groupId);
 
       if (!deviceId || !groupId) {
         return new Response(JSON.stringify({ error: "Configuração incompleta: instância ou grupo não definido" }), {
@@ -1783,12 +1785,14 @@ Deno.serve(async (req) => {
             body: JSON.stringify({ jid: pvJid, message: message_content }),
           });
           const resData = await res.json();
+          console.log("[wa-report-send] PV response:", res.status, JSON.stringify(resData).slice(0, 200));
           if (res.ok) {
             pvSuccess = true;
           } else {
             pvError = JSON.stringify(resData).slice(0, 300);
           }
         } catch (e) {
+          console.log("[wa-report-send] PV error:", e.message);
           pvError = e.message;
         }
       }
@@ -1810,12 +1814,14 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ jid: groupId, message: groupMsg }),
         });
         const resData = await res.json();
+        console.log("[wa-report-send] Group response:", res.status, JSON.stringify(resData).slice(0, 200));
         if (res.ok) {
           groupSuccess = true;
         } else {
           groupError = JSON.stringify(resData).slice(0, 300);
         }
       } catch (e) {
+        console.log("[wa-report-send] Group error:", e.message);
         groupError = e.message;
       }
 
