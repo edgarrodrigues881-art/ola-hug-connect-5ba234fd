@@ -1434,6 +1434,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── DELETE ALL TOKENS ───
+    if (action === "delete-all-tokens" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      const { error, count } = await adminClient
+        .from("user_api_tokens")
+        .delete({ count: "exact" })
+        .eq("user_id", target_user_id);
+      
+      if (error) {
+        console.error("[delete-all-tokens] error:", error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${count} token(s) removido(s)`);
+      return new Response(JSON.stringify({ success: true, deleted: count }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
