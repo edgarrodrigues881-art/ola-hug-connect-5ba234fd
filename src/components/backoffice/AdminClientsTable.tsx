@@ -130,12 +130,14 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
           </button>
         </div>
         {showFilters && (
-          <div className="flex flex-col gap-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
             {filterGroups.filter(g => g.label).map((group, gi) => (
-              <div key={gi} className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold w-14 shrink-0">{group.label}</span>
-                {group.items.map(f => renderFilterBtn(f))}
-              </div>
+              <>
+                <span key={`l-${gi}`} className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold self-center">{group.label}</span>
+                <div key={`f-${gi}`} className="flex items-center gap-1.5 overflow-x-auto">
+                  {group.items.map(f => renderFilterBtn(f))}
+                </div>
+              </>
             ))}
           </div>
         )}
