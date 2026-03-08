@@ -243,7 +243,7 @@ const AdminWarmupRoadmap = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Flame size={20} className="text-primary" />
