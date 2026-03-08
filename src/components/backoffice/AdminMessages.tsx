@@ -451,6 +451,7 @@ const AdminMessages = () => {
   // ─── CONFIG VIEW ───
   if (view === "config") {
     return (
+      <>{qrDialog}
       <div className="space-y-5">
         <div className="flex items-center gap-3">
           <button onClick={() => setView("list")} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
@@ -631,6 +632,7 @@ const AdminMessages = () => {
           </Button>
         </div>
       </div>
+      </>
     );
   }
 
