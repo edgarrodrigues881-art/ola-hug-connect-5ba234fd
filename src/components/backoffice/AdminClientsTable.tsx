@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, ChevronRight, AlertTriangle, Shield, ChevronDown } from "lucide-react";
+import { useState, useMemo, useCallback, memo } from "react";
+import { Search, ChevronRight, Shield, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/hooks/useAdmin";
@@ -33,10 +33,13 @@ function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | n
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
 const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
-const AdminClientsTable = ({ users, onSelectClient }: Props) => {
+const PAGE_SIZE = 30;
+
+const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -53,6 +56,17 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
       return true;
     });
   }, [users, search, filter]);
+
+  // Reset page when filters change
+  const handleSearch = useCallback((val: string) => { setSearch(val); setPage(0); }, []);
+  const handleFilter = useCallback((val: string) => { setFilter(val); setPage(0); }, []);
+
+  const paginatedItems = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
   const counts = useMemo(() => {
     const exp = users.filter(u => getSubStatus(u).label === "Vencida").length;
@@ -91,7 +105,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
     return (
       <button
         key={f.value}
-        onClick={() => setFilter(f.value)}
+        onClick={() => handleFilter(f.value)}
         className={`
           shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
           ${isActive
@@ -114,7 +128,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-xs">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+            <Input placeholder="Buscar por" value={search} onChange={e => handleSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
           </div>
           <button
             onClick={() => setShowFilters(v => !v)}
@@ -145,9 +159,9 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
 
       {/* ═══ MOBILE: Card layout ═══ */}
       <div className="space-y-2 sm:hidden">
-        {filtered.length === 0 ? (
+        {paginatedItems.length === 0 ? (
           <p className="text-center py-8 text-muted-foreground text-sm">Nenhum cliente encontrado</p>
-        ) : filtered.map(u => {
+        ) : paginatedItems.map(u => {
           const daysLeft = getDaysLeft(u.plan_expires_at);
           const isExpired = daysLeft !== null && daysLeft <= 0;
           const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
@@ -221,9 +235,9 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.length === 0 ? (
+              {paginatedItems.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
-              ) : filtered.map(u => {
+              ) : paginatedItems.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
                 const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
@@ -281,9 +295,25 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
           </table>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground text-right">{filtered.length} de {users.length} clientes</p>
+
+      {/* Pagination + Count */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">{filtered.length} de {users.length} clientes</p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              Anterior
+            </Button>
+            <span className="text-xs text-muted-foreground px-2">{page + 1}/{totalPages}</span>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+              Próxima
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
-};
+});
+AdminClientsTable.displayName = "AdminClientsTable";
 
 export default AdminClientsTable;

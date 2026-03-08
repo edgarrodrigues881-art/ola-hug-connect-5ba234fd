@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCallback } from "react";
 
 export interface AdminUser {
   id: string;
@@ -54,9 +55,10 @@ export function useAdminDashboard() {
       }
       return data as AdminDashboard;
     },
-    staleTime: 120_000,
-    gcTime: 300_000,
+    staleTime: 300_000,
+    gcTime: 600_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
@@ -71,25 +73,40 @@ export function useClientDetail(userId: string | null) {
       return data;
     },
     enabled: !!userId,
-    staleTime: 60_000,
-    gcTime: 120_000,
+    staleTime: 120_000,
+    gcTime: 300_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
 export function useAdminAction() {
   const queryClient = useQueryClient();
-  return useMutation({
+
+  const invalidateClient = useCallback((userId?: string) => {
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: ["admin-client-detail", userId] });
+    }
+  }, [queryClient]);
+
+  const invalidateDashboard = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+  }, [queryClient]);
+
+  const mutation = useMutation({
     mutationFn: async ({ action, body }: { action: string; body: Record<string, any> }) => {
       const { data, error } = await supabase.functions.invoke(`admin-data?action=${action}`, { body });
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-client-detail"] });
-    },
+    // Don't auto-invalidate everything — let callers decide
   });
+
+  return {
+    ...mutation,
+    invalidateClient,
+    invalidateDashboard,
+  };
 }
 
 export function useSetUserRole() {
@@ -102,7 +119,8 @@ export function useSetUserRole() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-client-detail", vars.targetUserId] });
       queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
     },
   });
