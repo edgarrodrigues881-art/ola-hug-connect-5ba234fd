@@ -1525,6 +1525,47 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── WA REPORT: CREATE DEVICE FROM TOKEN ───
+    if (action === "wa-report-create-device" && req.method === "POST") {
+      const { name, base_url, token } = await req.json();
+      if (!token || !base_url) {
+        return new Response(JSON.stringify({ error: "token e base_url obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create device
+      const { data: device, error: devErr } = await adminClient.from("devices").insert({
+        user_id: user.id,
+        name: name || "Relatório WA",
+        status: "disconnected",
+        instance_type: "uazapi",
+        login_type: "qr",
+        uazapi_base_url: base_url,
+        uazapi_token: token,
+      }).select("id").single();
+
+      if (devErr) {
+        return new Response(JSON.stringify({ error: devErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Also create a token record
+      await adminClient.from("user_api_tokens").insert({
+        user_id: user.id,
+        admin_id: user.id,
+        token: token,
+        device_id: device.id,
+        label: name || "Relatório WA",
+        status: "in_use",
+      });
+
+      return new Response(JSON.stringify({ ok: true, device_id: device.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── WA REPORT: LIST ADMIN DEVICES ───
     if (action === "wa-report-devices") {
       const { data: devices } = await adminClient.from("devices")
