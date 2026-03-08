@@ -1169,7 +1169,7 @@ const Devices = () => {
                       />
                     ) : null}
                     <div 
-                      className={`w-16 h-16 rounded-full items-center justify-center text-2xl font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
+                      className={`w-12 h-12 rounded-full items-center justify-center text-lg font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
