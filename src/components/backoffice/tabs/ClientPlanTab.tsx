@@ -73,7 +73,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [provisioning, setProvisioning] = useState(false);
   const loading = isPending || provisioning;
 
-  // Auto-provision tokens via UAZAPI API
+  // Auto-provision tokens via API
   const handleAutoProvision = (quantity: number) => {
     setProvisioning(true);
     const clientName = client.full_name || client.email || "cliente";

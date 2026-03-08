@@ -504,7 +504,7 @@ const AdminMessages = () => {
                     className="h-9 text-xs bg-background border-border/60"
                   />
                   <Input
-                    placeholder="URL base (ex: https://dgcontingencia.uazapi.com)"
+                    placeholder="URL base da API"
                     value={newBaseUrl}
                     onChange={e => setNewBaseUrl(e.target.value)}
                     className="h-9 text-xs bg-background border-border/60"

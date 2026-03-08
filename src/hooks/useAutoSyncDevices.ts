@@ -38,7 +38,7 @@ export function useAutoSyncDevices(intervalMs = 60000) {
     return () => clearInterval(interval);
   }, [session?.access_token, intervalMs, queryClient]);
 
-  // Keep-alive: ping connected devices every 10 minutes to prevent UaZapi session timeout
+  // Keep-alive: ping connected devices every 10 minutes to prevent session timeout
   useEffect(() => {
     if (!session?.access_token) return;
 
