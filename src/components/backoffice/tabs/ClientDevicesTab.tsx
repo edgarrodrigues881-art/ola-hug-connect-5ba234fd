@@ -214,6 +214,8 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
       </div>
 
       {/* ── Instâncias de Relatório (fora do limite do plano) ── */}
@@ -262,8 +264,6 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
           </div>
         </div>
       )}
-        )}
-      </div>
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
