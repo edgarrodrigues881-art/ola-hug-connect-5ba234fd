@@ -627,7 +627,7 @@ const AdminMessages = () => {
                   <p className="text-[10px] text-muted-foreground/60">Verifique se a instância está conectada.</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-48">
+                <ScrollArea className="max-h-[400px]">
                   <div className="space-y-1.5">
                     {deviceGroups.map((g: any) => (
                       <button
