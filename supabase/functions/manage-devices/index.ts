@@ -249,6 +249,13 @@ Deno.serve(async (req) => {
         throw bulkErr;
       }
 
+      // Set uazapi_base_url on all new devices (same as single create)
+      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      if (BASE_URL && newDevices) {
+        const deviceIds = newDevices.map((d: any) => d.id);
+        await admin.from("devices").update({ uazapi_base_url: BASE_URL }).in("id", deviceIds);
+      }
+
       // Mark tokens as in_use
       if (newDevices && tokens) {
         for (let i = 0; i < Math.min(newDevices.length, tokens.length); i++) {
