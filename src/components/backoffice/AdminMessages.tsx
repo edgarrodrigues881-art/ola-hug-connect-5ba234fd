@@ -329,7 +329,7 @@ const AdminMessages = () => {
       `📧 *Email:* ${selectedClient.email}\n` +
       `📱 *Telefone:* ${selectedClient.phone || "—"}\n` +
       `📦 *Plano:* ${selectedClient.plan_name || "Sem plano"}\n` +
-      `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR") : "—"}\n` +
+      `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}\n` +
       `🏷️ *Tipo:* ${tpl.label}\n\n` +
       `─────────────────\n` +
       `✉️ *Mensagem enviada:*\n\n${messageToSend}`;
