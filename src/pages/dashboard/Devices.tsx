@@ -1175,7 +1175,7 @@ const Devices = () => {
                       {d.name.charAt(0).toUpperCase()}
                     </div>
                     {smartStatus === 'online' && (
-                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-card" />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-card" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
