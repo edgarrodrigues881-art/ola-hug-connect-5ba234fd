@@ -1922,7 +1922,7 @@ Deno.serve(async (req) => {
     }
 
     // ── TOGGLE NOTIFICATION (auto-provision monitoring token) ──
-    if (action === "toggle-notification" && req.method === "POST") {
+    if (action === "toggle-notification") {
       const { target_user_id, enabled } = await req.json();
 
       // Update profile flag
