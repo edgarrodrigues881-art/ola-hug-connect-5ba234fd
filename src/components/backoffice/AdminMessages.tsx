@@ -397,50 +397,66 @@ const AdminMessages = () => {
         setQrDialogOpen(false);
       }
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm border-primary/20 bg-card">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <QrCode size={18} className="text-primary" />
-            Escanear QR Code
+          <DialogTitle className="flex items-center gap-2.5 text-base">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <QrCode size={16} className="text-primary" />
+            </div>
+            Conectar WhatsApp
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-4 py-4">
+        <div className="flex flex-col items-center gap-5 py-2">
           {qrLoading && (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-3 py-10">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Loader2 className="w-7 h-7 animate-spin text-primary" />
+              </div>
               <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
             </div>
           )}
           {qrError && !qrLoading && (
-            <div className="text-center py-6 space-y-2">
-              <XCircle size={32} className="text-destructive mx-auto" />
-              <p className="text-sm text-destructive font-medium">Erro</p>
-              <p className="text-xs text-muted-foreground max-w-xs">{qrError}</p>
-              <Button variant="outline" size="sm" onClick={() => openQrDialog(qrDeviceId)} className="mt-2">
-                Tentar novamente
+            <div className="text-center py-8 space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                <XCircle size={28} className="text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Falha ao gerar QR</p>
+                <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">{qrError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => openQrDialog(qrDeviceId)} className="mt-1 gap-1.5">
+                <RefreshCw size={12} /> Tentar novamente
               </Button>
             </div>
           )}
           {qrCodeBase64 && !qrConnected && !qrLoading && (
-            <>
-              <div className="bg-white p-3 rounded-xl">
-                <img src={qrCodeBase64} alt="QR Code" className="w-56 h-56 object-contain" />
+            <div className="space-y-4 w-full flex flex-col items-center">
+              <div className="bg-white p-4 rounded-2xl shadow-lg shadow-primary/5 border border-border/50">
+                <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 object-contain" />
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm text-foreground font-medium">Escaneie com o WhatsApp</p>
+              <div className="text-center space-y-1.5">
+                <p className="text-sm font-medium text-foreground">Abra o WhatsApp e escaneie</p>
                 <p className="text-xs text-muted-foreground">
-                  Atualizando em <span className="font-mono font-bold text-primary">{qrCountdown}s</span>
+                  Atualiza em <span className="font-mono font-bold text-primary">{qrCountdown}s</span>
                 </p>
               </div>
-            </>
+              <div className="w-full bg-muted/30 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-primary/60 rounded-full transition-all duration-1000 ease-linear"
+                  style={{ width: `${(qrCountdown / 30) * 100}%` }}
+                />
+              </div>
+            </div>
           )}
           {qrConnected && (
-            <div className="flex flex-col items-center gap-3 py-6">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <Check size={24} className="text-emerald-500" />
+            <div className="flex flex-col items-center gap-4 py-8">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                <Check size={28} className="text-emerald-500" />
               </div>
-              <p className="text-sm font-bold text-foreground">Conectado com sucesso!</p>
-              <p className="text-xs text-muted-foreground">Selecione esta instância e escolha o grupo.</p>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-foreground">Conectado com sucesso!</p>
+                <p className="text-xs text-muted-foreground">Agora selecione o grupo de destino.</p>
+              </div>
             </div>
           )}
         </div>
