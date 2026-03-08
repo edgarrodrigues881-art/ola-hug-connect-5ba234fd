@@ -692,20 +692,6 @@ export default function ReportWhatsApp() {
                 <Button size="sm" className="h-9 px-6" onClick={() => setQrDialogOpen(false)}>Fechar</Button>
               </div>
             )}
-
-            {/* Done */}
-            {connectStep === "done" && (
-              <div className="flex flex-col items-center gap-4 py-6">
-                <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                </div>
-                <div className="text-center">
-                  <p className="text-base font-semibold text-foreground">Conectado com sucesso</p>
-                  <p className="text-xs text-muted-foreground/50 mt-1">A instância de relatório está online e pronta.</p>
-                </div>
-                <Button size="sm" className="h-9 px-6" onClick={() => setQrDialogOpen(false)}>Fechar</Button>
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>
