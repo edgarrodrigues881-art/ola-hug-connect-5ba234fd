@@ -102,7 +102,7 @@ const WelcomeSplash = () => {
                 <motion.div
                   className="absolute inset-0"
                   style={{
-                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary)) 8%, hsl(var(--primary) / 0.5) 15%, transparent 25%, transparent 100%)",
+                    background: "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary) / 0.7) 8%, hsl(var(--primary) / 0.3) 15%, transparent 25%, transparent 100%)",
                   }}
                   initial={{ rotate: 0 }}
                   animate={phase >= 3 ? { rotate: 360 } : {}}
