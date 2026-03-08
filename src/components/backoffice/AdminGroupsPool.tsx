@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, AlertTriangle, Check, X, Pencil, RefreshCw, ShieldCheck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PoolGroup {
   id: string;
@@ -24,6 +34,7 @@ const AdminGroupsPool = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editRef, setEditRef] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["admin-groups-pool"],
@@ -214,9 +225,7 @@ const AdminGroupsPool = () => {
                     <Button size="sm" variant="ghost" onClick={() => startEdit(g)}>
                       <Pencil size={12} />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (confirm("Remover este grupo do pool?")) deleteGroup.mutate(g.id);
-                    }}>
+                    <Button size="sm" variant="ghost" onClick={() => setDeleteTargetId(g.id)}>
                       <Trash2 size={12} className="text-destructive" />
                     </Button>
                   </>
@@ -226,6 +235,29 @@ const AdminGroupsPool = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover grupo do pool?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O grupo será removido permanentemente do pool de aquecimento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTargetId) deleteGroup.mutate(deleteTargetId);
+                setDeleteTargetId(null);
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
