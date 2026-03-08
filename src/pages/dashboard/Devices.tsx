@@ -1538,34 +1538,58 @@ const Devices = () => {
 
             {connectStep === "proxy" && (
               <div className="space-y-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Deseja usar um proxy?</p>
-                  <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-muted/20 text-muted-foreground/60 border-border/20">Opcional</Badge>
+                {/* Header */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-foreground">Configurar proxy</p>
+                    <p className="text-xs text-muted-foreground">Proteja sua conexão com um proxy <span className="text-muted-foreground/50">(opcional)</span></p>
+                  </div>
                 </div>
-                <Select value={selectedProxy} onValueChange={setSelectedProxy}>
-                  <SelectTrigger className="h-11 text-sm rounded-xl">
-                    <SelectValue placeholder="Sem proxy" />
-                  </SelectTrigger>
-                  <SelectContent side="bottom" align="start" className="max-h-[250px]">
-                    <SelectItem value="none">
-                      <span className="text-sm text-muted-foreground">Sem proxy</span>
-                    </SelectItem>
-                    {availableProxies.map(p => {
-                      const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20 bg-amber-500/10" : p.status === "USADA" ? "text-red-400 border-red-500/20 bg-red-500/10" : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10";
-                      return (
-                        <SelectItem key={p.id} value={p.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{p.label}</span>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-semibold ${cls}`}>{p.status}</Badge>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-3 pt-1">
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Cancelar</Button>
-                  <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleConfirmProxy}>Conectar</Button>
+
+                {/* Proxy selector */}
+                <div className="space-y-2">
+                  <Select value={selectedProxy} onValueChange={setSelectedProxy}>
+                    <SelectTrigger className="h-12 text-sm bg-muted/30 border-border/50">
+                      <SelectValue placeholder="Sem proxy" />
+                    </SelectTrigger>
+                    <SelectContent side="bottom" align="start" className="max-h-[250px]">
+                      <SelectItem value="none">
+                        <div className="flex items-center gap-2">
+                          <Ban className="w-3.5 h-3.5 text-muted-foreground/50" />
+                          <span className="text-sm text-muted-foreground">Sem proxy</span>
+                        </div>
+                      </SelectItem>
+                      {availableProxies.map(p => {
+                        const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20 bg-amber-500/10" : p.status === "USADA" ? "text-red-400 border-red-500/20 bg-red-500/10" : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10";
+                        return (
+                          <SelectItem key={p.id} value={p.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{p.label}</span>
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-semibold ${cls}`}>{p.status}</Badge>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {selectedProxy !== "none" && (
+                    <p className="text-[11px] text-primary/70 text-center flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Proxy será testada antes de conectar
+                    </p>
+                  )}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>
+                    Cancelar
+                  </Button>
+                  <Button className="flex-1 h-11 text-sm font-semibold" onClick={handleConfirmProxy}>
+                    Conectar
+                  </Button>
                 </div>
               </div>
             )}
