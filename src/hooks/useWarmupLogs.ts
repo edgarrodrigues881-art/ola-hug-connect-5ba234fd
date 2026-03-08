@@ -69,5 +69,6 @@ export function useWarmupDailyStats(sessionId?: string) {
       return Object.entries(byDay).map(([day, count]) => ({ day, msgs: count }));
     },
     enabled: !!user,
+    staleTime: 60_000,
   });
 }
