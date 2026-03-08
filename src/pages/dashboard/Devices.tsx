@@ -922,7 +922,8 @@ const Devices = () => {
 
   const handleConnect = (method: "qr" | "code") => {
     setConnectMethod(method);
-    setSelectedProxy("none");
+    // Pre-select the proxy already assigned to the device
+    setSelectedProxy(connectingDevice?.proxy_id || "none");
     setConnectStep("proxy");
   };
 
