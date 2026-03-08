@@ -474,62 +474,55 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // Step 1: Ensure instance is in "connecting" state (QR session active)
-      if (statusCheck.status === "disconnected" || !statusCheck.status) {
-        console.log("Pairing: instance disconnected, starting connect session first...");
-        await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
-        await new Promise(r => setTimeout(r, 1500));
-      } else if (statusCheck.status !== "connecting") {
-        // Reset if in a bad state
+      // Ensure instance is disconnected before requesting pairing code
+      if (statusCheck.status !== "disconnected" && statusCheck.status) {
+        console.log("Pairing: instance not disconnected, disconnecting first...");
         await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-        await new Promise(r => setTimeout(r, 1000));
-        await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {});
         await new Promise(r => setTimeout(r, 1500));
       }
 
-      // Step 2: Now request pairing code with the phone number
-      const pairingEndpoints = [
-        { url: `/instance/connect?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
-        { url: `/instance/connect?number=${phoneNumber}`, method: "GET" as const, body: undefined },
-        { url: `/instance/pairingcode?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
-        { url: `/instance/paircode?number=${phoneNumber}`, method: "POST" as const, body: { number: phoneNumber } },
-      ];
+      // Call connect WITH the phone number directly from disconnected state
+      // The API generates a pairing code instead of QR when number is provided
+      console.log(`Pairing: calling POST /instance/connect with number=${phoneNumber}`);
+      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", { number: phoneNumber });
+      console.log(`Pairing connect response:`, JSON.stringify(connectRes.data).substring(0, 500));
 
-      let pairingCode: string | null = null;
-      let lastError = "";
+      // Extract pairing code from response
+      const extractCode = (obj: any): string | null => {
+        if (!obj || typeof obj !== "object") return null;
+        for (const key of ["pairingCode", "pairing_code", "paircode", "code"]) {
+          const val = obj[key];
+          if (val && typeof val === "string" && val.length >= 4 && val.length <= 20) {
+            return val;
+          }
+        }
+        if (obj.instance) return extractCode(obj.instance);
+        return null;
+      };
 
-      for (const ep of pairingEndpoints) {
-        try {
-          console.log(`Trying pairing code: ${ep.method} ${ep.url}`);
-          const res = await uazapi(instanceUrl, ep.url, instanceToken, ep.method, ep.body);
-          console.log(`Pairing response:`, JSON.stringify(res.data).substring(0, 400));
-          
-          // Extract pairing code from various response shapes
-          const extractCode = (obj: any): string | null => {
-            if (!obj || typeof obj !== "object") return null;
-            for (const key of ["pairingCode", "pairing_code", "paircode", "code"]) {
-              const val = obj[key];
-              if (val && typeof val === "string" && val.length >= 6 && val.length <= 12 && /^[A-Z0-9-]+$/i.test(val)) {
-                return val;
-              }
+      let pairingCode = extractCode(connectRes.data);
+
+      // If not found, poll status a few times to check if paircode appears
+      if (!pairingCode) {
+        for (let i = 0; i < 5; i++) {
+          await new Promise(r => setTimeout(r, 800));
+          const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
+          console.log(`Pairing poll ${i}:`, JSON.stringify(poll.data).substring(0, 400));
+          pairingCode = extractCode(poll.data);
+          if (pairingCode) break;
+          // Check if connected already
+          const st = poll.data?.instance?.status || poll.data?.status;
+          if (st === "connected") {
+            const phone = poll.data?.instance?.owner || poll.data?.instance?.phone || "";
+            let fmt = "";
+            if (phone) {
+              const raw = String(phone).replace(/\D/g, "");
+              if (raw.startsWith("55") && raw.length >= 12) fmt = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+              else if (raw) fmt = `+${raw}`;
             }
-            // Check nested instance object
-            if (obj.instance) return extractCode(obj.instance);
-            return null;
-          };
-
-          const code = extractCode(res.data);
-          if (code) {
-            pairingCode = code;
-            break;
+            await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
+            return json({ success: true, alreadyConnected: true, phone: fmt, status: "authenticated" });
           }
-
-          if (!res.ok) {
-            lastError = `${res.status}: ${JSON.stringify(res.data).substring(0, 100)}`;
-          }
-        } catch (e) {
-          lastError = e.message || "Request failed";
-          console.log(`Endpoint failed: ${ep.url}`, lastError);
         }
       }
 
