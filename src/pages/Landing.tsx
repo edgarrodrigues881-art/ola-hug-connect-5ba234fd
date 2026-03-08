@@ -282,7 +282,7 @@ const faqs = [
 
 const FAQ = () => (
   <Section id="faq">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>FAQ</SectionLabel>
       <SectionTitle>Perguntas frequentes</SectionTitle>
     </div>
