@@ -111,11 +111,11 @@ const Devices = () => {
   // Bulk create dialog
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrefix, setBulkPrefix] = useState("Instância");
-  const [bulkCount, setBulkCount] = useState(1);
+  const [bulkCount, setBulkCount] = useState<number | "">(1);
   const [bulkUseProxy, setBulkUseProxy] = useState(false);
   const [bulkSelectedProxies, setBulkSelectedProxies] = useState<string[]>([]);
   const [bulkNoProxyCount, setBulkNoProxyCount] = useState(0);
-  const bulkTotalCount = bulkUseProxy ? bulkSelectedProxies.length : bulkCount;
+  const bulkTotalCount = bulkUseProxy ? bulkSelectedProxies.length : (bulkCount || 0);
 
   // Selection for bulk delete
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -475,7 +475,7 @@ const Devices = () => {
     }
     // When using proxy, total = selected proxies count; otherwise total = bulkCount
     const proxyIds = bulkUseProxy ? bulkSelectedProxies : [];
-    const noProxyCount = bulkUseProxy ? 0 : bulkCount;
+    const noProxyCount = bulkUseProxy ? 0 : (bulkCount || 0);
     const totalCount = proxyIds.length + noProxyCount;
     if (totalCount === 0) {
       toast({ title: "Defina ao menos uma instância", variant: "destructive" });
@@ -1927,7 +1927,11 @@ const Devices = () => {
                   placeholder="1"
                   onChange={e => {
                     const remaining = Math.max(1, maxInstancesAllowed - devices.length);
-                    setBulkCount(Math.min(remaining, Math.max(1, parseInt(e.target.value) || 1)));
+                    const raw = e.target.value;
+                    if (raw === "") { setBulkCount(""); return; }
+                    const parsed = parseInt(raw);
+                    if (isNaN(parsed)) return;
+                    setBulkCount(Math.min(remaining, Math.max(1, parsed)));
                   }}
                   className="h-10 w-20 text-sm text-center"
                 />
