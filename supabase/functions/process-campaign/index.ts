@@ -1034,7 +1034,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (err: any) {
+  } catch (err) {
     const translated = translateErrorMessage(err.message || "Erro interno");
     console.error("Process campaign error:", translated);
     return new Response(JSON.stringify({ error: translated }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
