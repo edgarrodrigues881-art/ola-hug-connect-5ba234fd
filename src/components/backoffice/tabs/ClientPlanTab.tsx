@@ -58,7 +58,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
   const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0);
   const [manualPrice, setManualPrice] = useState<string>("");
-  const totalPrice = manualPrice !== "" ? Number(manualPrice) : autoTotal;
+  const totalPrice = manualPrice !== "" ? (Number(manualPrice.replace(",", ".")) || 0) : autoTotal;
   const cycleDays = isTrial ? trialDays : 30;
   
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
