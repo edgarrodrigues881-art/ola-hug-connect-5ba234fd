@@ -84,7 +84,7 @@ const WelcomeSplash = () => {
               <motion.div
                 className="absolute -inset-6 rounded-3xl pointer-events-none"
                 style={{
-                  background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, hsl(var(--primary) / 0.10) 50%, transparent 75%)",
+                  background: "radial-gradient(circle, hsl(var(--primary) / 0.20) 0%, hsl(var(--primary) / 0.06) 50%, transparent 75%)",
                   filter: "blur(25px)",
                 }}
                 initial={{ opacity: 0, scale: 0.5 }}
