@@ -153,6 +153,7 @@ const CommunityPoolTab = () => {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );
