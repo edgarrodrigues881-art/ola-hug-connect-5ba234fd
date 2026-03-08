@@ -1593,8 +1593,8 @@ const Devices = () => {
                     Conectar
                   </Button>
                 </div>
-              </div>
-            </motion.div>)}
+              </motion.div>
+            )}
 
             {connectStep === "qr" && (
               <motion.div key="qr" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col items-center gap-5">
