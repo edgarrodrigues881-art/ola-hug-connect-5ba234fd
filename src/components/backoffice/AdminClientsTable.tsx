@@ -115,8 +115,6 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
           const isExpired = daysLeft !== null && daysLeft <= 0;
           const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
           const sub = getSubStatus(u);
-          const us = userScores.get(u.id);
-          const sColor = us ? scoreColors[us.level] : null;
 
           return (
             <div
@@ -133,12 +131,6 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.email}</p>
                 </div>
-                {us && sColor && (
-                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded shrink-0 ${sColor.bg} ${sColor.text}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${sColor.dot}`} />
-                    {us.score}
-                  </span>
-                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-[11px]">
@@ -181,7 +173,7 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
             <thead>
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Cliente</th>
-                <th className="text-left px-3 py-2.5">Score</th>
+                <th className="text-left px-3 py-2.5">Telefone</th>
                 <th className="text-left px-3 py-2.5">Telefone</th>
                 <th className="text-left px-3 py-2.5">Plano</th>
                 <th className="text-left px-3 py-2.5">Instâncias</th>
@@ -199,8 +191,6 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                 const isExpired = daysLeft !== null && daysLeft <= 0;
                 const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
                 const sub = getSubStatus(u);
-                const us = userScores.get(u.id);
-                const sColor = us ? scoreColors[us.level] : null;
 
                 return (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onSelectClient(u)}>
@@ -211,14 +201,6 @@ const AdminClientsTable = ({ users, onSelectClient }: Props) => {
                         {u.roles.includes("admin") && <Shield size={12} className="text-primary" />}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {us && sColor && (
-                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded ${sColor.bg} ${sColor.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${sColor.dot}`} />
-                          {us.score}
-                        </span>
-                      )}
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground text-xs">{u.phone || "—"}</td>
                     <td className="px-3 py-2.5">
