@@ -232,8 +232,8 @@ const MyPlan = () => {
               Veja o que cada plano oferece lado a lado.
             </p>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm">
-            <table className="w-full text-sm min-w-[420px]">
+          <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="bg-muted/20 dark:bg-white/[0.02]">
                   <th className="text-left px-3 sm:px-5 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[120px] sm:w-[200px] text-muted-foreground/50">Recurso</th>
