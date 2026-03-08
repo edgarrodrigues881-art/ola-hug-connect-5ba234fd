@@ -304,7 +304,7 @@ const FAQ = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
-        <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
           <summary className="flex items-center justify-between px-6 py-5 cursor-pointer text-[15px] font-semibold text-white/80 hover:text-white transition-colors list-none">
             {f.q}
             <ChevronDown className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" />
