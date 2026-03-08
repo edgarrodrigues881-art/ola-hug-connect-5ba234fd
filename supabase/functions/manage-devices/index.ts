@@ -249,21 +249,24 @@ Deno.serve(async (req) => {
         throw bulkErr;
       }
 
-      // Set uazapi_base_url on all new devices (same as single create)
+      // Set uazapi_base_url + mark tokens as in_use + mark proxies as USANDO — all in parallel
       const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const parallelOps: Promise<any>[] = [];
+
+      // Set base URL on all new devices
       if (BASE_URL && newDevices) {
         const deviceIds = newDevices.map((d: any) => d.id);
-        await admin.from("devices").update({ uazapi_base_url: BASE_URL }).in("id", deviceIds);
+        parallelOps.push(admin.from("devices").update({ uazapi_base_url: BASE_URL }).in("id", deviceIds));
       }
 
-      // Mark tokens as in_use
+      // Mark tokens as in_use (batch update instead of sequential)
       if (newDevices && tokens) {
         for (let i = 0; i < Math.min(newDevices.length, tokens.length); i++) {
-          await admin.from("user_api_tokens").update({
+          parallelOps.push(admin.from("user_api_tokens").update({
             status: "in_use",
             device_id: newDevices[i].id,
             assigned_at: new Date().toISOString(),
-          }).eq("id", tokens[i].id);
+          }).eq("id", tokens[i].id));
         }
       }
 
@@ -272,14 +275,18 @@ Deno.serve(async (req) => {
         .map((d: any) => d.proxy_id)
         .filter(Boolean);
       if (assignedProxyIds.length > 0) {
-        await admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds);
+        parallelOps.push(admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds));
       }
 
-      // Log bulk creation
-      for (const d of (newDevices || [])) {
-        await oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk)`, d.id, { proxy_id: d.proxy_id, has_token: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token });
-        if (d.proxy_id) await oplog(admin, user.id, "proxy_assigned", `Proxy atribuída → USANDO`, d.id, { proxy_id: d.proxy_id });
-      }
+      // Run all in parallel
+      await Promise.allSettled(parallelOps);
+
+      // Log bulk creation in background (don't block response)
+      Promise.allSettled((newDevices || []).map((d: any) => {
+        const ops = [oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk)`, d.id, { proxy_id: d.proxy_id, has_token: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token })];
+        if (d.proxy_id) ops.push(oplog(admin, user.id, "proxy_assigned", `Proxy atribuída → USANDO`, d.id, { proxy_id: d.proxy_id }));
+        return Promise.all(ops);
+      })).catch(() => {});
 
       // Return devices without token fields
       const safeDevices = (newDevices || []).map((d: any) => ({

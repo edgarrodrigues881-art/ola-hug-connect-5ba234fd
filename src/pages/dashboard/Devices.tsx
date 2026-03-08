@@ -361,12 +361,36 @@ const Devices = () => {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: (data) => {
-      // Optimistic: add the new device to cache immediately
-      if (data?.device) {
+    onMutate: async (device) => {
+      muteAutoSync(5000);
+      await queryClient.cancelQueries({ queryKey: ["devices"] });
+      const previous = queryClient.getQueryData<Device[]>(["devices"]);
+      const tempId = `temp-${Date.now()}`;
+      queryClient.setQueryData(["devices"], (old: Device[] | undefined) => {
+        if (!old) return old;
+        return [...old, {
+          id: tempId,
+          name: device.name,
+          number: "",
+          status: "Disconnected" as const,
+          login_type: device.login_type,
+          proxy_id: null,
+          profile_picture: null,
+          profile_name: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          has_api_config: false,
+        } as Device];
+      });
+      toast({ title: "Instância criada" });
+      return { previous, tempId };
+    },
+    onSuccess: (data, _vars, context) => {
+      // Replace temp device with real one
+      if (data?.device && context?.tempId) {
         queryClient.setQueryData(["devices"], (old: Device[] | undefined) => {
           if (!old) return old;
-          return [...old, {
+          return old.map(d => d.id === context.tempId ? {
             id: data.device.id,
             name: data.device.name,
             number: data.device.number || "",
@@ -377,16 +401,15 @@ const Devices = () => {
             profile_name: null,
             created_at: data.device.created_at || new Date().toISOString(),
             updated_at: data.device.updated_at || new Date().toISOString(),
-            has_api_config: false,
-          } as Device];
+            has_api_config: data.device.has_api_config || false,
+          } as Device : d);
         });
       }
-      // Background refresh for accurate data
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["sidebar-stats"] });
-      toast({ title: "Instância criada" });
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["devices"], context.previous);
       const msg = err?.message || "";
       if (msg.includes("device_limit") || msg.includes("Limite")) {
         toast({ title: `Seu plano permite apenas ${maxInstancesAllowed} instâncias`, variant: "destructive" });
@@ -496,6 +519,29 @@ const Devices = () => {
       });
       return;
     }
+    // Optimistic: add placeholder devices immediately
+    muteAutoSync(5000);
+    const startIdx = devices.length + 1;
+    const tempDevices: Device[] = Array.from({ length: totalCount }, (_, i) => ({
+      id: `temp-bulk-${Date.now()}-${i}`,
+      name: `${bulkPrefix} ${startIdx + i}`,
+      number: "",
+      status: "Disconnected" as const,
+      login_type: "qr",
+      proxy_id: proxyIds[i] || null,
+      profile_picture: null,
+      profile_name: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      has_api_config: false,
+    }));
+    queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+      old ? [...old, ...tempDevices] : tempDevices
+    );
+    toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
+    setBulkOpen(false);
+
+    // Fire API in background
     try {
       const { data, error } = await supabase.functions.invoke("manage-devices", {
         body: {
@@ -503,17 +549,15 @@ const Devices = () => {
           prefix: bulkPrefix,
           proxyIds,
           noProxyCount,
-          startIndex: devices.length + 1,
+          startIndex: startIdx,
         },
       });
       if (error) throw new Error(error.message || "Erro ao criar instâncias");
       if (data?.error) throw new Error(data.error);
-
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
-      setBulkOpen(false);
     } catch (err: any) {
       const msg = err?.message || "";
+      // Rollback temp devices
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       if (msg.includes("Limite") || msg.includes("LIMIT")) {
         toast({ title: "Limite de instâncias atingido", description: msg, variant: "destructive" });
