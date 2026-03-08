@@ -95,7 +95,7 @@ const AdminClientsTable = ({ users, cycles = [], adminLogs = [], onSelectClient 
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex flex-wrap gap-1.5">
           {filters.map(f => {
             const isActive = filter === f.value;
             const isDanger = f.value === "expired" || f.value === "risk";
