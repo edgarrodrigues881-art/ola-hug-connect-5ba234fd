@@ -265,8 +265,9 @@ const ClientPaymentsTab = ({ client }: Props) => {
               <Label className="text-muted-foreground text-[11px] uppercase tracking-wide font-medium">Valor do Plano</Label>
               <div className="relative mt-1.5">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">R$</span>
-                <Input type="text" readOnly value={form.plan_value || "0,00"}
-                  className="bg-muted/60 border-border text-foreground font-semibold pl-9 cursor-default" />
+                <CurrencyInput value={form.plan_value || "0,00"}
+                  onChange={v => setForm(f => ({ ...f, plan_value: v }))}
+                  className="bg-card border-border text-foreground font-semibold pl-9" />
               </div>
             </div>
             <div>
