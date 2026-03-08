@@ -799,6 +799,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── DELETE MESSAGE ───
+    if (action === "delete-message" && req.method === "POST") {
+      const { message_id, target_user_id } = await req.json();
+      await adminClient.from("client_messages").delete().eq("id", message_id);
+      await logAction(adminClient, user.id, target_user_id, "delete-message", `Mensagem removida: ${message_id}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── ADD COST ───
     if (action === "add-cost" && req.method === "POST") {
       const { category, amount, description, cost_date } = await req.json();
