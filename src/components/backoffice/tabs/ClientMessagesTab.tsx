@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, Loader2, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull } from "lucide-react";
 
-const SUPORTE_NUMERO = "(11) 99999-9999";
+const SUPORTE_NUMERO = "(62) 99419-2500";
 
 const TEMPLATES = [
   {
