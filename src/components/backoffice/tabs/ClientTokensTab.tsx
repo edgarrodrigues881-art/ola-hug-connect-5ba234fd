@@ -76,6 +76,18 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     );
   };
 
+  const handleDeleteAll = () => {
+    const tokenIds = tokens.map((t: any) => t.id);
+    if (tokenIds.length === 0) return;
+    mutate(
+      { action: "delete-all-tokens", body: { target_user_id: client.id, token_ids: tokenIds } },
+      {
+        onSuccess: () => toast({ title: `${tokenIds.length} token(s) removido(s)` }),
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
+
   const copyToken = (token: string, id: string) => {
     navigator.clipboard.writeText(token);
     setCopiedId(id);
@@ -155,16 +167,45 @@ const ClientTokensTab = ({ client, detail }: Props) => {
             <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">{invalidCount} inválidos</Badge>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleValidateAll}
-          disabled={validating || isPending || tokens.length === 0}
-          className="gap-1.5 text-xs"
-        >
-          {validating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-          Validar todos
-        </Button>
+        <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isPending || tokens.length === 0}
+                className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <Trash2 size={14} />
+                Limpar todos
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-card border-border">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remover todos os tokens?</AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground">
+                  Isso removerá todos os {tokens.length} token(s) deste cliente. Esta ação é permanente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Remover todos
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleValidateAll}
+            disabled={validating || isPending || tokens.length === 0}
+            className="gap-1.5 text-xs"
+          >
+            {validating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            Validar todos
+          </Button>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">

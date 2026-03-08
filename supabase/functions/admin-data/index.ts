@@ -999,7 +999,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── UPDATE WHATSAPP MONITOR TOKEN ───
+    // ─── DELETE ALL TOKENS ───
+    if (action === "delete-all-tokens" && req.method === "POST") {
+      const { target_user_id, token_ids } = await req.json();
+      const { error } = await adminClient.from("user_api_tokens").delete().in("id", token_ids);
+      if (error) throw error;
+      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${token_ids.length} tokens removidos`);
+      return new Response(JSON.stringify({ success: true, removed: token_ids.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     if (action === "update-monitor-token" && req.method === "POST") {
       const { target_user_id, whatsapp_monitor_token } = await req.json();
       await adminClient.from("profiles").update({
