@@ -217,7 +217,7 @@ const ClientOverviewTab = memo(({ client, detail }: Props) => {
       </div>
     </div>
   );
-};
+});
 
 ClientOverviewTab.displayName = "ClientOverviewTab";
 export default ClientOverviewTab;
