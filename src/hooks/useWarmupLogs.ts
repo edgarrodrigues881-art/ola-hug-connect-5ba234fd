@@ -36,6 +36,7 @@ export function useWarmupLogs(sessionId?: string) {
       return data as unknown as WarmupLog[];
     },
     enabled: !!user,
+    staleTime: 60_000,
   });
 }
 
@@ -68,5 +69,6 @@ export function useWarmupDailyStats(sessionId?: string) {
       return Object.entries(byDay).map(([day, count]) => ({ day, msgs: count }));
     },
     enabled: !!user,
+    staleTime: 60_000,
   });
 }

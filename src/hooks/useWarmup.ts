@@ -67,7 +67,13 @@ export function useCreateWarmup() {
       if (error) throw error;
       return data as unknown as WarmupSession;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
+    onSuccess: (newSession) => {
+      // Optimistic cache update
+      queryClient.setQueryData(["warmup_sessions", newSession.user_id], (old: WarmupSession[] | undefined) =>
+        old ? [newSession, ...old] : [newSession]
+      );
+      queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] });
+    },
   });
 }
 
@@ -97,6 +103,17 @@ export function useDeleteWarmup() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["warmup_sessions"] });
+      const previous = queryClient.getQueryData(["warmup_sessions"]);
+      queryClient.setQueriesData({ queryKey: ["warmup_sessions"] }, (old: any) =>
+        Array.isArray(old) ? old.filter((s: any) => s.id !== id) : old
+      );
+      return { previous };
+    },
+    onError: (_err: any, _id: string, context: any) => {
+      if (context?.previous) queryClient.setQueriesData({ queryKey: ["warmup_sessions"] }, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
   });
 }

@@ -31,7 +31,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported when needed to reduce initial bundle
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { PlanGateDialog } from "@/components/PlanGateDialog";
 
@@ -649,8 +649,9 @@ const Campaigns = () => {
     let parseError: string | null = null;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];

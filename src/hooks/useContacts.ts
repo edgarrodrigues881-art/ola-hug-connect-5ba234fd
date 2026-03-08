@@ -27,6 +27,7 @@ export function useContacts() {
       return data as Contact[];
     },
     enabled: !!user,
+    staleTime: 120_000,
   });
 }
 
@@ -44,7 +45,11 @@ export function useCreateContact() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
+    onSuccess: (newContact) => {
+      queryClient.setQueryData(["contacts", user!.id], (old: Contact[] | undefined) =>
+        old ? [newContact as Contact, ...old] : [newContact as Contact]
+      );
+    },
   });
 }
 
@@ -83,12 +88,25 @@ export function useUpdateContact() {
 
 export function useDeleteContacts() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
       const { error } = await supabase.from("contacts").delete().in("id", ids);
       if (error) throw error;
+      return ids;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
+    onMutate: async (ids: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["contacts"] });
+      const previous = queryClient.getQueryData(["contacts", user?.id]);
+      queryClient.setQueryData(["contacts", user?.id], (old: Contact[] | undefined) =>
+        old ? old.filter(c => !ids.includes(c.id)) : old
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(["contacts", user?.id], context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
   });
 }

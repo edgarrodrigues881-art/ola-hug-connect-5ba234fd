@@ -22,7 +22,7 @@ import {
   Plus, Upload, Search, Zap, Trash2, Edit2, Power, PowerOff,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Users, FileSpreadsheet,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported when needed to reduce initial bundle
 
 // ── E.164 parser ──
 function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {
@@ -205,8 +205,9 @@ const AutoSave = () => {
     setImportPreview(null);
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const XLSX = await import("xlsx");
         const data = evt.target?.result;
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];

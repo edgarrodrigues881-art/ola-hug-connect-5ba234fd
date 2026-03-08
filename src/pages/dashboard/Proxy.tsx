@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported when needed to reduce initial bundle
 import { RefreshCw, Shield, Link2, Upload, Download, Trash2, CheckSquare, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -226,8 +226,9 @@ const Proxy = () => {
 
     if (ext === "xlsx" || ext === "xls") {
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
+          const XLSX = await import("xlsx");
           const data = new Uint8Array(ev.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: "array" });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
