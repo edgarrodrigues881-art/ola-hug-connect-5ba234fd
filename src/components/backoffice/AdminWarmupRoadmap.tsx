@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, Flame, MessageSquare, Users, Phone, Shield } from "lucide-react";
 
@@ -243,7 +243,7 @@ const AdminWarmupRoadmap = () => {
   ];
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-1" style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Flame size={20} className="text-primary" />
@@ -282,7 +282,7 @@ const AdminWarmupRoadmap = () => {
                 const allDone = completedCount === plan.checklist.length;
 
                 return (
-                  <div key={plan.day} className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div key={plan.day} className="bg-card border border-border rounded-lg overflow-hidden" style={{ contain: "content" }}>
                     {/* Day header */}
                     <button
                       onClick={() => toggle(plan.day)}
