@@ -127,7 +127,7 @@ const benefits = [
 
 const Benefits = () => (
   <Section id="beneficios">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>Benefícios</SectionLabel>
       <SectionTitle>Por que escolher a DG?</SectionTitle>
       <SectionSub>Infraestrutura pensada para quem opera em grande escala.</SectionSub>
