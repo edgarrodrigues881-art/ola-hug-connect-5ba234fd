@@ -5,11 +5,6 @@ const buildWhatsappUrl = (plan: { name: string; instances: number; price: string
   return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
 };
 
-const buildAddonWhatsappUrl = () => {
-  const msg = `Olá, tudo bem?\nTenho interesse em contratar o addon Relatórios via WhatsApp no valor de R$ 18,90/mês.\nPode me enviar os dados para ativação?`;
-  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
-};
-
 const FEATURES = [
   "Aquecimento automático inteligente",
   "Disparo de mensagens em massa",
@@ -276,74 +271,6 @@ const MyPlan = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Addon — Relatórios via WhatsApp */}
-        <div className="max-w-md mx-auto">
-          <div className="relative overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
-            {/* Addon tag */}
-            <div className="absolute top-5 right-5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full bg-primary/8 text-primary border border-primary/12">
-                Addon
-              </span>
-            </div>
-
-            <div className="p-7 sm:p-8">
-              <div className="flex items-start gap-4 mb-8">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/8 border border-primary/12">
-                  <Bell className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground" style={fontDisplay}>
-                    Relatórios via WhatsApp
-                  </h3>
-                  <p className="text-[13px] mt-1 leading-relaxed text-muted-foreground/70">
-                    Acompanhe sua operação sem precisar abrir o painel.
-                  </p>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="mb-8">
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm font-medium text-muted-foreground/50">R$</span>
-                  <span className="text-[2rem] font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>
-                    18
-                  </span>
-                  <span className="text-lg font-bold text-foreground/40">,90</span>
-                </div>
-                <p className="text-[12px] mt-1 text-muted-foreground/45">por mês</p>
-              </div>
-
-              <div className="space-y-3.5 mb-8">
-                {[
-                  "Relatórios automáticos de aquecimento",
-                  "Notificação quando campanhas iniciam ou finalizam",
-                  "Alertas de conexão e desconexão das instâncias",
-                  "1 número dedicado apenas para notificações",
-                ].map((feat, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-[13px] text-foreground/65">
-                    <GradientCheck />
-                    {feat}
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-[11px] mb-6 text-muted-foreground/35 leading-relaxed">
-                Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
-              </p>
-
-              <a
-                href={buildAddonWhatsappUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 transition-all duration-200 rounded-xl bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08]"
-              >
-                Ativar notificações
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
           </div>
         </div>
 
