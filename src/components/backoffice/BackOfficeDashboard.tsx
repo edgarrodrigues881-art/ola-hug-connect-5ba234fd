@@ -3,7 +3,7 @@ import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
-  Copy, Check, ChevronRight, Menu, X
+  Copy, Check, ChevronRight, Menu, X, BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ import AdminWarmupCycles from "./AdminWarmupCycles";
 import AdminWarmupJobs from "./AdminWarmupJobs";
 import AdminInfra from "./AdminInfra";
 import AdminCommunityWarmer from "./AdminCommunityWarmer";
+import AdminWarmupRoadmap from "./AdminWarmupRoadmap";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { id: "warmup-jobs", label: "Jobs", shortLabel: "Jobs", icon: ListTodo, group: "operacao", badge: false },
   { id: "infra", label: "Infraestrutura", shortLabel: "Infra", icon: Server, group: "sistema", badge: false },
   { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
+  { id: "warmup-roadmap", label: "Roteiro de Aquecimento", shortLabel: "Roteiro", icon: BookOpen, group: "operacao", badge: false },
 ] as const;
 
 const GROUP_LABELS: Record<string, string> = {
@@ -183,6 +185,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       case "warmup-jobs": return <AdminWarmupJobs />;
       case "infra": return <AdminInfra />;
       case "community": return <AdminCommunityWarmer />;
+      case "warmup-roadmap": return <AdminWarmupRoadmap />;
       default: return null;
     }
   };
