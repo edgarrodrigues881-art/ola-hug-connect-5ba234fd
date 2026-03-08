@@ -27,7 +27,7 @@ const GridPattern = () => (
       backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
       backgroundSize: '64px 64px',
     }} />
-    <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#13161b] via-transparent to-[#13161b]" />
   </div>
 );
 
