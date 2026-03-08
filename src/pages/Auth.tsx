@@ -409,8 +409,8 @@ const Auth = () => {
               </div>
 
               {!isLogin && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className="text-xs font-medium text-[#9CA3AF]">
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                     Confirmar senha
                   </Label>
                   <div className="relative">
