@@ -5,6 +5,11 @@ const buildWhatsappUrl = (plan: { name: string; instances: number; price: string
   return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
 };
 
+const buildAddonWhatsappUrl = () => {
+  const msg = `Olá, tudo bem?\nTenho interesse em contratar o addon Relatórios via WhatsApp no valor de R$ 18,90/mês.\nPode me enviar os dados para ativação?`;
+  return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+};
+
 const FEATURES = [
   "Aquecimento automático inteligente",
   "Disparo de mensagens em massa",
