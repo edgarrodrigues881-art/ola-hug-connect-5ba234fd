@@ -1536,7 +1536,7 @@ const Devices = () => {
                   </button>
                 </div>
               </div>
-            )}
+            </motion.div>)
 
             {connectStep === "proxy" && (
               <div className="space-y-5">
