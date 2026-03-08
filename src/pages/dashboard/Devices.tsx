@@ -1242,7 +1242,7 @@ const Devices = () => {
                         className="h-10 px-4 gap-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                         onClick={() => openConnect(d)}
                       >
-                        <QrCode className="w-4 h-4" /> Novo QR Code
+                        <Plug className="w-4 h-4" /> Conexão
                       </Button>
                     </>
                   ) : (
@@ -1251,7 +1251,7 @@ const Devices = () => {
                       className="h-10 px-4 gap-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                       onClick={() => openConnect(d)}
                     >
-                      <QrCode className="w-4 h-4" /> Novo QR Code
+                      <Plug className="w-4 h-4" /> Conexão
                     </Button>
                   )}
                 </div>
