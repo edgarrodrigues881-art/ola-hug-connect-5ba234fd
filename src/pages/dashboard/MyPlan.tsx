@@ -97,7 +97,7 @@ const MyPlan = () => {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-5 items-stretch max-w-[1080px] mx-auto lg:overflow-visible overflow-x-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-6 items-stretch max-w-[1080px] mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -124,7 +124,7 @@ const MyPlan = () => {
                 </div>
               )}
 
-              <div className="p-7 pt-9 flex flex-col h-full">
+              <div className="p-6 sm:p-7 pt-8 sm:pt-9 flex flex-col h-full">
                 {/* Plan name */}
                 <h3 className={`text-[11px] font-bold uppercase tracking-[0.14em] ${plan.popular ? "text-primary" : "text-muted-foreground/60"}`}>
                   {plan.name}
