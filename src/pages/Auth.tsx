@@ -457,14 +457,13 @@ const Auth = () => {
             </div>
 
             {/* Divider */}
-            <div className="my-6 border-t border-[#1E2330]" />
+            <div className="my-7 border-t border-[#1E2330]/60" />
 
-            {/* Toggle */}
-            <p className="text-center text-sm text-[#9CA3AF]">
+            <p className="text-center text-sm font-medium text-[#9CA3AF]">
               {isLogin ? "Não tem conta? " : "Já tem conta? "}
               <button
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
+                className="text-[#22C55E] hover:text-[#16A34A] font-bold transition-colors duration-200"
               >
                 {isLogin ? "Criar agora" : "Faça login"}
               </button>
