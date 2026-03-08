@@ -134,7 +134,7 @@ const Benefits = () => (
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {benefits.map((b) => (
-        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
+        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-all duration-300">
           <div className="w-11 h-11 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center mb-5 group-hover:bg-[hsl(var(--primary))]/15 transition-colors">
             <b.icon className="w-5 h-5 text-[hsl(var(--primary))]" />
           </div>
