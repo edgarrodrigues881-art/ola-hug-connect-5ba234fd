@@ -8,7 +8,7 @@ import { Loader2, Save, AlertTriangle, Server, Bell, User, Building2, Phone, Mai
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { calculateClientScore, scoreColors } from "@/lib/clientScore";
+
 
 interface Props {
   client: AdminUser;
@@ -33,13 +33,6 @@ const ClientProfileTab = ({ client, detail }: Props) => {
   const planLimit = client.max_instances || 0;
   const totalAllowed = planLimit + (form.instance_override || 0);
 
-  const score = useMemo(() => calculateClientScore({
-    risk_flag: form.risk_flag,
-    cycles: detail?.cycles || [],
-    admin_logs: detail?.admin_logs || [],
-  }), [form.risk_flag, detail?.cycles, detail?.admin_logs]);
-
-  const sc = scoreColors[score.level];
 
   const handleSave = () => {
     mutate(
@@ -56,23 +49,6 @@ const ClientProfileTab = ({ client, detail }: Props) => {
 
   return (
     <div className="space-y-4">
-      {/* Score */}
-      <div className={`${sc.bg} border border-border rounded-xl p-3 flex items-center gap-3`}>
-        <div className={`w-10 h-10 rounded-full ${sc.bg} border border-border flex items-center justify-center`}>
-          <span className={`text-sm font-bold ${sc.text}`}>{score.score}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-            <span className={`text-xs font-semibold ${sc.text}`}>{score.label}</span>
-          </div>
-          {score.breakdown.length > 0 && (
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              {score.breakdown.map(b => `${b.label} (${b.penalty})`).join(" · ")}
-            </p>
-          )}
-        </div>
-      </div>
 
       {/* Grid: Dados + Configurações lado a lado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -191,14 +167,6 @@ const ClientProfileTab = ({ client, detail }: Props) => {
             </p>
           </div>
 
-          {/* Risco */}
-          <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={14} className="text-red-400" />
-              <span className="text-xs text-foreground font-medium">Cliente de alto risco</span>
-            </div>
-            <Switch checked={form.risk_flag} onCheckedChange={v => setForm({...form, risk_flag: v})} />
-          </div>
         </div>
       </div>
 
