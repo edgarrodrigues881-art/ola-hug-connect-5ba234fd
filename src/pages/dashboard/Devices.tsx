@@ -28,6 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { muteAutoSync } from "@/hooks/useAutoSyncDevices";
 import { useNavigate } from "react-router-dom";
 
 type PlanState = "noPlan" | "active" | "expired" | "suspended";
