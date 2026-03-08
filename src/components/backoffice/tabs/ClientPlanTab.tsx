@@ -124,6 +124,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         target_user_id: client.id,
         plan_name: planName,
         plan_price: totalPrice,
+        max_instances: planConfig.max_instances,
         started_at: cycleStart,
         expires_at: cycleEnd,
       },
