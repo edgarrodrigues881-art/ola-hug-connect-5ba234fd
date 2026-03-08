@@ -226,8 +226,9 @@ const Proxy = () => {
 
     if (ext === "xlsx" || ext === "xls") {
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
+          const XLSX = await import("xlsx");
           const data = new Uint8Array(ev.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: "array" });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
