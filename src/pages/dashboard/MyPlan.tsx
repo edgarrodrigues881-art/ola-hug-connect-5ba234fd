@@ -102,7 +102,7 @@ const MyPlan = () => {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 lg:gap-5 items-stretch max-w-[1100px] mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-6 lg:gap-5 items-stretch max-w-[1100px] mx-auto">
           {plans.map((plan) => {
             const Icon = plan.icon;
             return (
@@ -110,7 +110,7 @@ const MyPlan = () => {
                 key={plan.name}
                 className={`relative group transition-all duration-300 ease-out rounded-2xl border flex flex-col
                   ${plan.popular
-                    ? "border-primary/30 shadow-lg shadow-primary/5 dark:shadow-primary/10 bg-card lg:scale-[1.04] z-10 ring-1 ring-primary/10"
+                    ? "border-primary/30 shadow-lg shadow-primary/5 dark:shadow-primary/10 bg-card lg:scale-[1.04] z-10 ring-1 ring-primary/10 mt-2 sm:mt-0"
                     : "border-border/60 bg-card shadow-sm hover:shadow-md dark:shadow-none"
                   }
                   hover:-translate-y-1
