@@ -207,8 +207,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         <div className="px-5 py-5 border-b border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-base font-bold text-foreground tracking-tight">DG Control</h1>
-              <p className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest mt-0.5">Center</p>
+              <h1 className="text-base font-bold text-foreground tracking-tight">Painel DG</h1>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-muted-foreground hover:text-foreground">
               <X size={18} />
