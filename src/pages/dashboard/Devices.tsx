@@ -1002,7 +1002,7 @@ const Devices = () => {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="w-full max-w-5xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
