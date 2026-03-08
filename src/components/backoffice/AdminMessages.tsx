@@ -116,6 +116,8 @@ const AdminMessages = () => {
   const [configDeviceId, setConfigDeviceId] = useState("");
   const [configGroupId, setConfigGroupId] = useState("");
   const [configGroupName, setConfigGroupName] = useState("");
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
 
   const users = data?.users || [];
 
