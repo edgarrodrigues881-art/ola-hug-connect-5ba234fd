@@ -116,7 +116,7 @@ const AdminMessages = () => {
   const [configGroupId, setConfigGroupId] = useState("");
   const [configGroupName, setConfigGroupName] = useState("");
   const [newToken, setNewToken] = useState("");
-  const [newBaseUrl, setNewBaseUrl] = useState("https://dgcontingencia.uazapi.com");
+  const [newBaseUrl, setNewBaseUrl] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("Relatório WA");
   const [creatingDevice, setCreatingDevice] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
