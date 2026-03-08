@@ -128,6 +128,44 @@
     --shadow-2xl: 0 8px 16px 0px hsl(0 0% 0% / 0.5);
   }
 
+  /* Force light theme only on BackOffice, even when dark mode is active */
+  .dark.backoffice-light {
+    --background: 0 0% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 24% 26%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 222 47% 11%;
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 20%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 160 84% 39%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 24% 26%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 160 84% 39%;
+    --success: 142 71% 45%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    color-scheme: light;
+  }
+
   /* Landing page dark scope */
   .landing-dark {
     --background: 220 20% 7%;
