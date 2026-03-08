@@ -406,27 +406,42 @@ const AdminMessages = () => {
               </p>
             ) : (
               <div className="space-y-1.5">
-                {adminDevices.map((d: any) => (
-                  <button
-                    key={d.id}
-                    onClick={() => selectDevice(d.id)}
-                    className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
-                      configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
-                    }`}
-                  >
-                    <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{d.number || "Sem número"}</p>
+                {adminDevices.map((d: any) => {
+                  const isDisconnected = d.status !== "Connected";
+                  return (
+                    <div key={d.id} className="flex items-center gap-2">
+                      <button
+                        onClick={() => selectDevice(d.id)}
+                        className={`flex-1 flex items-center gap-3 rounded-lg px-3 py-2.5 border transition-all text-left ${
+                          configDeviceId === d.id ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border hover:border-primary/20"
+                        }`}
+                      >
+                        <Smartphone size={14} className={configDeviceId === d.id ? "text-primary" : "text-muted-foreground"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.number || "Sem número"}</p>
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] ${
+                          d.status === "Connected" ? "border-emerald-500/30 text-emerald-500" : "border-destructive/30 text-destructive"
+                        }`}>
+                          {d.status === "Connected" ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
+                          {d.status}
+                        </Badge>
+                      </button>
+                      {isDisconnected && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openQrDialog(d.id)}
+                          className="h-10 px-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 shrink-0"
+                        >
+                          <QrCode size={14} />
+                          <span className="text-[10px]">QR</span>
+                        </Button>
+                      )}
                     </div>
-                    <Badge variant="outline" className={`text-[9px] ${
-                      d.status === "Connected" ? "border-emerald-500/30 text-emerald-500" : "border-destructive/30 text-destructive"
-                    }`}>
-                      {d.status === "Connected" ? <Wifi size={9} className="mr-1" /> : <WifiOff size={9} className="mr-1" />}
-                      {d.status}
-                    </Badge>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
