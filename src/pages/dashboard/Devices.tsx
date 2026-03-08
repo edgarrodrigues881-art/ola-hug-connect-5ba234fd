@@ -1597,7 +1597,7 @@ const Devices = () => {
             </motion.div>)}
 
             {connectStep === "qr" && (
-              <div className="flex flex-col items-center gap-5">
+              <motion.div key="qr" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col items-center gap-5">
                 {/* QR Code display */}
                 <div className="relative w-[272px] h-[272px]">
                   {/* Loading state */}
