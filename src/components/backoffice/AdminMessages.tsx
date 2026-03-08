@@ -120,6 +120,17 @@ const AdminMessages = () => {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
 
+  // QR Code state
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrConnected, setQrConnected] = useState(false);
+  const [qrError, setQrError] = useState("");
+  const [qrDeviceId, setQrDeviceId] = useState("");
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const users = data?.users || [];
 
   // Load WhatsApp report config
