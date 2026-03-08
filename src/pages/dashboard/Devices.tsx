@@ -731,23 +731,24 @@ const Devices = () => {
 
   const handleLogout = async () => {
     if (!loggingOutDevice) return;
-    // Call logout via API
-    try {
-      await callApi({ action: "logout", deviceId: loggingOutDevice.id });
-    } catch (err) {
-      console.error("Logout API error:", err);
-    }
-    if (loggingOutDevice.proxy_id) {
-      await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", loggingOutDevice.proxy_id);
-      queryClient.invalidateQueries({ queryKey: ["proxies"] });
-    }
-    updateMutation.mutate({
-      id: loggingOutDevice.id,
-      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
-    });
-    toast({ title: "Desconectado", description: `${loggingOutDevice.name} foi desconectado.` });
+    const device = loggingOutDevice;
+    // Close dialog & update UI immediately (optimistic)
     setLogoutOpen(false);
     setLoggingOutDevice(null);
+    toast({ title: "Desconectado", description: `${device.name} foi desconectado.` });
+
+    // Optimistic UI update
+    updateMutation.mutate({
+      id: device.id,
+      updates: { status: "Disconnected", number: "", proxy_id: null, profile_picture: null, profile_name: null },
+    });
+
+    // Fire API + proxy cleanup in background (don't await)
+    callApi({ action: "logout", deviceId: device.id }).catch(err => console.error("Logout API error:", err));
+    if (device.proxy_id) {
+      supabase.from("proxies").update({ status: "USADA" } as any).eq("id", device.proxy_id)
+        .then(() => queryClient.invalidateQueries({ queryKey: ["proxies"] }));
+    }
   };
 
   // Helper to call evolution-connect edge function
