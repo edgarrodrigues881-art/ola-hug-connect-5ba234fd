@@ -106,7 +106,7 @@ const WelcomeSplash = () => {
                   }}
                   initial={{ rotate: 0 }}
                   animate={phase >= 3 ? { rotate: 360 } : {}}
-                  transition={{ duration: 2, ease: "linear", repeat: 1 }}
+                  transition={{ duration: 3, ease: "linear", repeat: 0 }}
                 />
               </motion.div>
 
