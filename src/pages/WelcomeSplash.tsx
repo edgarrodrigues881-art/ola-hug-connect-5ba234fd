@@ -130,7 +130,7 @@ const WelcomeSplash = () => {
 
             {/* Premium loading bar */}
             <motion.div
-              className="mt-10 relative w-48 h-[2px] rounded-full overflow-hidden"
+              className="mt-10 relative w-52 h-[4px] rounded-full overflow-hidden"
               initial={{ opacity: 0 }}
               animate={phase >= 3 ? { opacity: 1 } : {}}
               transition={{ delay: 0.4, duration: 0.3 }}
