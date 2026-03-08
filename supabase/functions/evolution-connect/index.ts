@@ -146,7 +146,7 @@ async function testProxyConnectivity(
       return { alive: true };
     }
     return { alive: false, error: `Resposta inesperada: ${statusLine.substring(0, 60)}` };
-  } catch (e: any) {
+  } catch (e) {
     const msg = e?.message || String(e);
     console.log(`Proxy test FAILED: ${proxy.host}:${proxy.port} → ${msg}`);
     if (msg.includes("connect timeout") || msg.includes("TCP connect")) {
@@ -536,7 +536,7 @@ Deno.serve(async (req) => {
           if (!res.ok) {
             lastError = `${res.status}: ${JSON.stringify(res.data).substring(0, 100)}`;
           }
-        } catch (e: any) {
+        } catch (e) {
           lastError = e.message || "Request failed";
           console.log(`Endpoint failed: ${ep.url}`, lastError);
         }
@@ -887,7 +887,7 @@ Deno.serve(async (req) => {
     }
 
     return json({ error: `Ação desconhecida: ${action}` }, 400);
-  } catch (err: any) {
+  } catch (err) {
     console.error("Edge function error:", err);
     return json({ error: err.message || "Erro interno" }, 500);
   }

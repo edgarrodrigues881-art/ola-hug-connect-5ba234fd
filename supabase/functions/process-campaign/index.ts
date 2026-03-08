@@ -748,7 +748,7 @@ Deno.serve(async (req) => {
                 console.log(`✅ [P-${devIdx}] Sent to ${normalized} | delay=${Math.round(delayMs / 1000)}s`);
                 await new Promise(r => setTimeout(r, delayMs));
               }
-            } catch (err: any) {
+            } catch (err) {
               const translated = translateErrorMessage(err.message || "Erro");
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
               devFailed++;
@@ -972,7 +972,7 @@ Deno.serve(async (req) => {
               pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
               console.log(`Pause done. Next pause after ${pauseAfter} messages`);
             }
-          } catch (err: any) {
+          } catch (err) {
             const translated = translateErrorMessage(err.message || "Erro ao enviar");
             console.error(`Unexpected error for ${phone} via ${activeDevice.name}:`, translated);
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);

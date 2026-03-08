@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
                 await randomDelay(session.min_delay_seconds, session.max_delay_seconds);
               }
             }
-          } catch (msgErr: any) {
+          } catch (msgErr) {
             errorCount++;
 
             await supabase
@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
           sent_today: newSentToday,
           groups_available: deviceGroups.length,
         });
-      } catch (sessionErr: any) {
+      } catch (sessionErr) {
         console.error(`Session error:`, sessionErr.message);
         results.push({ session_id: session.id, status: "error", reason: sessionErr.message });
       }
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Warmup execute error:", err.message);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,

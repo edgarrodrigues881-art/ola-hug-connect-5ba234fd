@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
             headers: { "token": deviceToken, "Accept": "application/json" },
             signal: controller.signal,
           });
-        } catch (fetchErr: any) {
+        } catch (fetchErr) {
           clearTimeout(timeoutId);
           const isTimeout = fetchErr?.name === "AbortError";
           const errorType = isTimeout ? "timeout" : "network_error";
