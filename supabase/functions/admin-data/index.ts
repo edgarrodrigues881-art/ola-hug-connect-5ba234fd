@@ -59,17 +59,43 @@ Deno.serve(async (req) => {
 
     // ─── DASHBOARD ───
     if (action === "dashboard") {
-      const { data: authUsers } = await adminClient.auth.admin.listUsers();
-      const { data: profiles } = await adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at");
-      const { data: roles } = await adminClient.from("user_roles").select("id, user_id, role");
-      const { data: devices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, created_at");
-      const { data: campaigns } = await adminClient.from("campaigns").select("id, user_id, name, status, total_contacts, sent_count, failed_count, created_at");
-      const { data: contacts } = await adminClient.from("contacts").select("id, user_id");
-      const { data: subscriptions } = await adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at");
-      const { data: cycles } = await adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at");
-      const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at");
-      const { data: adminLogs } = await adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").order("created_at", { ascending: false }).limit(500);
-      const { data: costs } = await adminClient.from("admin_costs").select("id, admin_id, category, amount, description, cost_date, created_at");
+      // Run all queries in parallel for speed
+      const [
+        authUsersRes,
+        profilesRes,
+        rolesRes,
+        devicesRes,
+        campaignsRes,
+        contactsCountRes,
+        subscriptionsRes,
+        cyclesRes,
+        paymentsRes,
+        adminLogsRes,
+        costsRes,
+      ] = await Promise.all([
+        adminClient.auth.admin.listUsers(),
+        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at"),
+        adminClient.from("user_roles").select("id, user_id, role"),
+        adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, created_at"),
+        adminClient.from("campaigns").select("id, user_id, name, status, total_contacts, sent_count, failed_count, created_at"),
+        adminClient.from("contacts").select("id", { count: "exact", head: true }),
+        adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at"),
+        adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at"),
+        adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at"),
+        adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").order("created_at", { ascending: false }).limit(500),
+        adminClient.from("admin_costs").select("id, admin_id, category, amount, description, cost_date, created_at"),
+      ]);
+
+      const authUsers = authUsersRes.data;
+      const profiles = profilesRes.data;
+      const roles = rolesRes.data;
+      const devices = devicesRes.data;
+      const campaigns = campaignsRes.data;
+      const subscriptions = subscriptionsRes.data;
+      const cycles = cyclesRes.data;
+      const payments = paymentsRes.data;
+      const adminLogs = adminLogsRes.data;
+      const costs = costsRes.data;
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);
@@ -113,7 +139,7 @@ Deno.serve(async (req) => {
         total_devices: devices?.length || 0,
         active_devices: devices?.filter((d: any) => d.status === "Connected").length || 0,
         total_campaigns: campaigns?.length || 0,
-        total_contacts: contacts?.length || 0,
+        total_contacts: contactsCountRes.count || 0,
         total_subscriptions: subscriptions?.length || 0,
       };
 
@@ -126,15 +152,28 @@ Deno.serve(async (req) => {
     if (action === "client-detail" && req.method === "POST") {
       const { target_user_id } = await req.json();
       
-      const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
-      const { data: profile } = await adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at").eq("id", target_user_id).maybeSingle();
-      const { data: sub } = await adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at").eq("user_id", target_user_id).maybeSingle();
-      const { data: devices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, uazapi_token, uazapi_base_url, created_at, updated_at").eq("user_id", target_user_id).order("created_at", { ascending: false });
-      const { data: campaigns } = await adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20);
-      const { data: logs } = await adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50);
-      const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at").eq("user_id", target_user_id).order("paid_at", { ascending: false });
-      const { data: cycles } = await adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at").eq("user_id", target_user_id).order("cycle_start", { ascending: false });
-      const { data: apiTokens } = await adminClient.from("user_api_tokens").select("id, user_id, device_id, token, status, healthy, label, assigned_at, last_checked_at, created_at").eq("user_id", target_user_id).order("created_at", { ascending: true });
+      // Run all queries in parallel
+      const [authUserRes, profileRes, subRes, devicesRes, campaignsRes, logsRes, paymentsRes, cyclesRes, apiTokensRes] = await Promise.all([
+        adminClient.auth.admin.getUserById(target_user_id),
+        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at").eq("id", target_user_id).maybeSingle(),
+        adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at").eq("user_id", target_user_id).maybeSingle(),
+        adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, uazapi_token, uazapi_base_url, created_at, updated_at").eq("user_id", target_user_id).order("created_at", { ascending: false }),
+        adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20),
+        adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").eq("target_user_id", target_user_id).order("created_at", { ascending: false }).limit(50),
+        adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at").eq("user_id", target_user_id).order("paid_at", { ascending: false }),
+        adminClient.from("subscription_cycles").select("id, user_id, subscription_id, plan_name, status, cycle_start, cycle_end, cycle_amount, notes, created_at").eq("user_id", target_user_id).order("cycle_start", { ascending: false }),
+        adminClient.from("user_api_tokens").select("id, user_id, device_id, token, status, healthy, label, assigned_at, last_checked_at, created_at").eq("user_id", target_user_id).order("created_at", { ascending: true }),
+      ]);
+
+      const authUser = authUserRes.data;
+      const profile = profileRes.data;
+      const sub = subRes.data;
+      const devices = devicesRes.data;
+      const campaigns = campaignsRes.data;
+      const logs = logsRes.data;
+      const payments = paymentsRes.data;
+      const cycles = cyclesRes.data;
+      const apiTokens = apiTokensRes.data;
 
       // Enrich tokens with device name
       const enrichedTokens = (apiTokens || []).map((t: any) => {
