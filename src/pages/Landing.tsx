@@ -186,7 +186,7 @@ const features = [
 
 const Features = () => (
   <Section id="recursos">
-    <div className="text-center mb-16">
+    <div className="text-center mb-10">
       <SectionLabel>Recursos</SectionLabel>
       <SectionTitle>Tudo que você precisa</SectionTitle>
       <SectionSub>Funcionalidades pensadas para operação profissional.</SectionSub>
