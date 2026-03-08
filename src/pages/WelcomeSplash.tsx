@@ -134,7 +134,7 @@ const WelcomeSplash = () => {
                 <span className="text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] dark:drop-shadow-none">PRO</span>
               </h1>
               <motion.span
-                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-muted-foreground/60 dark:text-muted-foreground/40 font-semibold"
+                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-slate-500 dark:text-muted-foreground/40 font-bold"
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : {}}
                 transition={{ duration: 0.5, delay: 0.4 }}
