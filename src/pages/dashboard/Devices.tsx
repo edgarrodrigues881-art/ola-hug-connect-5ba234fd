@@ -1738,7 +1738,7 @@ const Devices = () => {
                 }
               };
               return (
-              <div className="space-y-5">
+              <motion.div key="code_phone" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }} className="space-y-5">
                 {/* Icon + instruction */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
