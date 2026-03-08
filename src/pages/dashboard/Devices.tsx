@@ -1151,15 +1151,15 @@ const Devices = () => {
 
           return (
             <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-sm hover:shadow-md transition-shadow w-full">
-               <CardContent className="p-8 pt-14 pb-12 flex flex-col gap-8">
+               <CardContent className="p-6 pt-6 pb-8 flex flex-col gap-6">
                 {/* Header: Avatar + Name + Badge */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
                       <img 
                         src={d.profile_picture} 
                         alt={d.name} 
-                        className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
+                        className="w-8 h-8 rounded-full object-cover ring-2 ring-emerald-500/40 shadow-sm" 
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
@@ -1169,13 +1169,13 @@ const Devices = () => {
                       />
                     ) : null}
                     <div 
-                      className={`w-12 h-12 rounded-full items-center justify-center text-lg font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
+                      className={`w-8 h-8 rounded-full items-center justify-center text-sm font-bold shadow-sm shrink-0 ${smartStatus === 'online' ? 'bg-emerald-500 text-white ring-2 ring-emerald-500/40' : 'bg-muted text-muted-foreground ring-2 ring-border'}`}
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
                     </div>
                     {smartStatus === 'online' && (
-                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-card" />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-card" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
