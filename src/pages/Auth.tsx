@@ -340,8 +340,8 @@ const Auth = () => {
                 </>
               )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-medium text-[#9CA3AF]">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold text-[#9CA3AF] tracking-wide">
                   Endereço de e-mail
                 </Label>
                 <div className="relative">
