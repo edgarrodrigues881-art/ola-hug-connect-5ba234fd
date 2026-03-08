@@ -278,48 +278,7 @@ const MyPlan = () => {
           </div>
         </div>
 
-        {/* Addon — Relatórios via WhatsApp */}
-        <div className="max-w-xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
-            <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              <div className="flex items-start gap-4 flex-1">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/8 border border-primary/12">
-                  <Bell className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-base font-bold text-foreground" style={fontDisplay}>
-                      Relatórios via WhatsApp
-                    </h3>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.1em] px-2.5 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/12">
-                      Addon
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground/60 leading-relaxed">
-                    Receba relatórios automáticos e alertas direto no WhatsApp. Já incluso nos planos Scale e Elite.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto">
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-xs font-medium text-muted-foreground/50">R$</span>
-                  <span className="text-2xl font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>18</span>
-                  <span className="text-sm font-bold text-foreground/40">,90</span>
-                  <span className="text-[10px] text-muted-foreground/40 ml-0.5">/mês</span>
-                </div>
-                <a
-                  href={buildAddonWhatsappUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto sm:ml-0 px-5 py-2.5 font-semibold text-xs flex items-center gap-2 transition-all duration-200 rounded-xl bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08]"
-                >
-                  Ativar
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Trust */}
         <div className="flex flex-row items-center justify-center gap-8 sm:gap-12 text-xs text-muted-foreground/40 pb-4">
