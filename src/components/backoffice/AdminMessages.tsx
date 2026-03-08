@@ -461,9 +461,57 @@ const AdminMessages = () => {
           <div className="space-y-2">
             <label className="text-xs font-semibold text-foreground">1. Selecione a Instância</label>
             {adminDevices.length === 0 ? (
-              <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border">
-                Nenhuma instância encontrada. Crie uma instância primeiro.
-              </p>
+              <div className="space-y-3 bg-muted/20 rounded-lg p-4 border border-border">
+                <p className="text-xs text-muted-foreground">Nenhuma instância encontrada. Cole o token da instância abaixo:</p>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Nome da instância (ex: Relatório WA)"
+                    value={newInstanceName}
+                    onChange={e => setNewInstanceName(e.target.value)}
+                    className="h-8 text-xs bg-background"
+                  />
+                  <Input
+                    placeholder="URL base (ex: https://dgcontingencia.uazapi.com)"
+                    value={newBaseUrl}
+                    onChange={e => setNewBaseUrl(e.target.value)}
+                    className="h-8 text-xs bg-background"
+                  />
+                  <Input
+                    placeholder="Instance Token"
+                    value={newToken}
+                    onChange={e => setNewToken(e.target.value)}
+                    className="h-8 text-xs bg-background font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    disabled={!newToken.trim() || !newBaseUrl.trim() || creatingDevice}
+                    onClick={async () => {
+                      setCreatingDevice(true);
+                      try {
+                        const { error } = await supabase.functions.invoke("admin-data?action=wa-report-create-device", {
+                          body: {
+                            name: newInstanceName.trim() || "Relatório WA",
+                            base_url: newBaseUrl.trim(),
+                            token: newToken.trim(),
+                          },
+                        });
+                        if (error) throw error;
+                        toast({ title: "✅ Instância criada!" });
+                        setNewToken("");
+                        queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+                      } catch (e: any) {
+                        toast({ title: "Erro", description: e.message, variant: "destructive" });
+                      } finally {
+                        setCreatingDevice(false);
+                      }
+                    }}
+                    className="w-full h-8 text-xs gap-1.5"
+                  >
+                    {creatingDevice ? <Loader2 size={12} className="animate-spin" /> : <Smartphone size={12} />}
+                    Adicionar Instância
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-1.5">
                 {adminDevices.map((d: any) => {
