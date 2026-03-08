@@ -19,8 +19,12 @@ const TEMPLATES = [
     bg: "bg-emerald-500/10 border-emerald-500/20",
     bgActive: "bg-emerald-500 text-white",
     desc: "Enviada no primeiro login do cliente",
-    build: (v: any) =>
-      `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano Trial de 3 dias já está ativo.\nVencimento: ${v.vencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`,
+    build: (v: any) => {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 3);
+      const trialVencimento = trialEnd.toLocaleDateString("pt-BR");
+      return `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano Trial de 3 dias já está ativo.\nVencimento: ${trialVencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`;
+    },
   },
   {
     type: "faltam-3-dias",
