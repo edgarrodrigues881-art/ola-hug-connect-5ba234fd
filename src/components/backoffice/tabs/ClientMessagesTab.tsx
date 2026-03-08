@@ -6,7 +6,7 @@ import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Copy, Check, Loader2, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull } from "lucide-react";
+import { Copy, Check, Loader2, Send, MessageCircle, Clock, AlertTriangle, XCircle, Skull, Trash2 } from "lucide-react";
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
 
@@ -245,6 +245,13 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
                   </div>
                   <span className="text-[10px] font-semibold text-foreground">{tpl?.label || m.template_type}</span>
                   <span className="text-[9px] text-muted-foreground ml-auto shrink-0">{new Date(m.sent_at).toLocaleDateString("pt-BR")}</span>
+                  <button
+                    onClick={() => deleteMessage(m.id)}
+                    className="shrink-0 text-muted-foreground/50 hover:text-destructive transition-colors ml-1"
+                    title="Apagar"
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               );
             })}
