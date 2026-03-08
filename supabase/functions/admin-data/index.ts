@@ -1777,12 +1777,13 @@ Deno.serve(async (req) => {
         pvError = "Cliente sem telefone cadastrado";
       } else {
         try {
-          // Format phone as JID for private chat
-          const pvJid = clientPhone.startsWith("55") ? `${clientPhone}@s.whatsapp.net` : `55${clientPhone}@s.whatsapp.net`;
-          const res = await fetch(`${cleanUrl}/chat/send`, {
+          // Use UAZAPI /send/text endpoint with number format
+          const pvNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
+          console.log("[wa-report-send] PV sending to number:", pvNumber);
+          const res = await fetch(`${cleanUrl}/send/text`, {
             method: "POST",
             headers: { token, "Content-Type": "application/json" },
-            body: JSON.stringify({ jid: pvJid, message: message_content }),
+            body: JSON.stringify({ number: pvNumber, text: message_content }),
           });
           const resData = await res.json();
           console.log("[wa-report-send] PV response:", res.status, JSON.stringify(resData).slice(0, 200));
