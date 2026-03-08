@@ -268,7 +268,7 @@ const Auth = () => {
             {/* Heading */}
             <div className="text-center mb-10">
               <h1 className="text-3xl sm:text-[32px] font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
+                {isLogin ? "Bem-vindo" : "Crie sua conta"}
               </h1>
               <p className="text-sm text-[#9CA3AF] font-medium">
                 {isLogin
