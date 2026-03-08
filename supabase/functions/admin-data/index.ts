@@ -1809,10 +1809,13 @@ Deno.serve(async (req) => {
         group_notification;
 
       try {
-        const res = await fetch(`${cleanUrl}/chat/send`, {
+        // Extract group number from JID (remove @g.us suffix) for UAZAPI
+        const groupNumber = groupId.replace(/@g\.us$/, "");
+        console.log("[wa-report-send] Group sending to:", groupNumber);
+        const res = await fetch(`${cleanUrl}/send/text`, {
           method: "POST",
           headers: { token, "Content-Type": "application/json" },
-          body: JSON.stringify({ jid: groupId, message: groupMsg }),
+          body: JSON.stringify({ number: groupNumber, text: groupMsg }),
         });
         const resData = await res.json();
         console.log("[wa-report-send] Group response:", res.status, JSON.stringify(resData).slice(0, 200));
