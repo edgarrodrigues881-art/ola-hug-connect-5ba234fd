@@ -6,7 +6,7 @@ import TrustSection from "@/components/landing/TrustSection";
 import PlansSection from "@/components/landing/PlansSection";
 import Footer from "@/components/landing/Footer";
 import LandingBackground from "@/components/landing/LandingBackground";
-import SocialProofToast from "@/components/landing/SocialProofToast";
+
 
 
 // Prefetch Auth and MyPlan chunks on idle
