@@ -197,6 +197,23 @@ async function setProxy(
   return { ok: false, error: "Falha ao configurar proxy no provedor" };
 }
 
+function formatBrPhone(phone: string): string {
+  const raw = String(phone).replace(/\D/g, "");
+  if (!raw) return "";
+  if (raw.startsWith("55") && raw.length === 13) {
+    // 55 + DD + 9XXXX-XXXX (celular com 9)
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+  }
+  if (raw.startsWith("55") && raw.length === 12) {
+    // 55 + DD + XXXX-XXXX (sem o 9 extra)
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 8)}-${raw.slice(8)}`;
+  }
+  if (raw.startsWith("55") && raw.length >= 10) {
+    // fallback: split last 4 digits
+    return `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, raw.length - 4)}-${raw.slice(raw.length - 4)}`;
+  }
+  return `+${raw}`;
+}
 
 async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
