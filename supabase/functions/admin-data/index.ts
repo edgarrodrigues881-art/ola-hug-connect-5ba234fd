@@ -1623,6 +1623,21 @@ Deno.serve(async (req) => {
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
 
+      const addGroups = (groupArray: any[]) => {
+        for (const g of groupArray) {
+          const jid = g.JID || g.jid || g.id || "";
+          if (jid && !seenJids.has(jid)) {
+            seenJids.add(jid);
+            allGroups.push({
+              id: jid,
+              name: g.Name || g.name || g.Subject || g.subject || "Grupo sem nome",
+              participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || 0,
+            });
+          }
+        }
+      };
+
+      // Strategy 1: paginated list
       for (let page = 0; page < 10; page++) {
         try {
           const res = await fetch(`${cleanUrl}/group/list?GetParticipants=false&page=${page}&count=500`, {
@@ -1634,23 +1649,28 @@ Deno.serve(async (req) => {
           const groups = data.groups || data || [];
           const groupArray = Array.isArray(groups) ? groups : [];
           if (groupArray.length === 0) break;
-
-          let newCount = 0;
-          for (const g of groupArray) {
-            const jid = g.JID || g.jid || g.id || "";
-            if (jid && !seenJids.has(jid)) {
-              seenJids.add(jid);
-              allGroups.push({
-                id: jid,
-                name: g.Name || g.name || g.Subject || g.subject || "Grupo sem nome",
-                participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || 0,
-              });
-              newCount++;
-            }
-          }
-          if (newCount === 0) break;
+          const before = seenJids.size;
+          addGroups(groupArray);
+          if (seenJids.size === before) break;
         } catch (_e) {
           break;
+        }
+      }
+
+      // Strategy 2: try alternate endpoints to catch any missed groups
+      for (const endpoint of ["/group/listAll", "/group/list?GetParticipants=false&count=9999"]) {
+        try {
+          const res = await fetch(`${cleanUrl}${endpoint}`, {
+            method: "GET",
+            headers: { token, Accept: "application/json", "Content-Type": "application/json" },
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const groups = data.groups || data || [];
+          const groupArray = Array.isArray(groups) ? groups : [];
+          addGroups(groupArray);
+        } catch (_e) {
+          // ignore
         }
       }
 
