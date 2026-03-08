@@ -7,6 +7,7 @@ export type PlanState = "noPlan" | "active" | "expired" | "suspended";
 
 // Plans that include WhatsApp reports natively
 const PLANS_WITH_REPORTS: Record<string, boolean> = {
+  Trial: true,
   Scale: true,
   Elite: true,
 };
