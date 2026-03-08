@@ -98,11 +98,11 @@ const RevenueChart = ({ payments, costs }: RevenueChartProps) => {
               tickFormatter={(v) => `R$${(v / 1000).toFixed(v >= 1000 ? 1 : 0)}${v >= 1000 ? "k" : ""}`}
               width={55}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8f9fc" }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(240 5% 14%)" }} />
             <Legend
               iconType="square"
               iconSize={10}
-              wrapperStyle={{ fontSize: "11px", color: "#8892a4", paddingTop: "8px" }}
+              wrapperStyle={{ fontSize: "11px", color: "hsl(240 5% 55%)", paddingTop: "8px", fontWeight: 500 }}
             />
             <Bar dataKey="Recebida" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
             <Bar dataKey="Custos" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
