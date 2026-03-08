@@ -99,7 +99,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "update-monitor-token", body: { target_user_id: client.id, whatsapp_monitor_token: monitorToken.trim() } },
       {
-        onSuccess: () => toast({ title: monitorToken.trim() ? "Token de monitoramento salvo" : "Token de monitoramento removido" }),
+        onSuccess: () => { toast({ title: monitorToken.trim() ? "Token de monitoramento salvo" : "Token de monitoramento removido" }); invalidateClient(client.id); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );

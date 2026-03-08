@@ -103,7 +103,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
         expires_at: new Date(now.getTime() + 30 * 86400000).toISOString(),
       },
     }, {
-      onSuccess: () => { toast({ title: `Migrado para ${nextPlan}` }); setShowUpgrade(false); },
+      onSuccess: () => { toast({ title: `Migrado para ${nextPlan}` }); setShowUpgrade(false); invalidateClient(client.id); invalidateDashboard(); },
       onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
     });
   };
