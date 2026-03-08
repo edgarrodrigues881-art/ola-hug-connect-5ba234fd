@@ -279,6 +279,8 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
           <p className="text-[11px] text-[#b0b8c8] mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
         </div>
       </div>
+      {/* ═══ GRÁFICO DE RECEITA ═══ */}
+      <RevenueChart payments={payments} costs={costs} />
     </div>
   );
 };
