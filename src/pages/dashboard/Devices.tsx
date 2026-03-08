@@ -1594,7 +1594,7 @@ const Devices = () => {
                   </Button>
                 </div>
               </div>
-            )}
+            </motion.div>)}
 
             {connectStep === "qr" && (
               <div className="flex flex-col items-center gap-5">
