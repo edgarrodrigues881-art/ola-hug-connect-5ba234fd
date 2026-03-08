@@ -33,6 +33,7 @@ const phaseLabels: Record<string, string> = {
 const WarmupInstances = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showWarning, setShowWarning] = useState(true);
 
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices-warmup-list", user?.id],
