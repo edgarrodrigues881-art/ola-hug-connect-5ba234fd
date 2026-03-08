@@ -77,7 +77,7 @@ const WelcomeSplash = () => {
                 <span className="text-primary">PRO</span>
               </h1>
               <motion.span
-                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-slate-500 dark:text-muted-foreground/40 font-bold"
+                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-slate-600 dark:text-muted-foreground/40 font-bold"
                 style={{ willChange: "opacity" }}
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : undefined}
