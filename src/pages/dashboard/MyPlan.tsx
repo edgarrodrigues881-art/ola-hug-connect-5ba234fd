@@ -1,5 +1,4 @@
-import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Star, Users } from "lucide-react";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
   const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência – ${plan.name} (${plan.instances} Instâncias) no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
@@ -29,6 +28,7 @@ const plans = [
     cta: "Começar agora",
     popular: false,
     reportsIncluded: false,
+    icon: Shield,
   },
   {
     name: "Pro",
@@ -38,6 +38,7 @@ const plans = [
     cta: "Começar agora",
     popular: true,
     reportsIncluded: false,
+    icon: Zap,
   },
   {
     name: "Scale",
@@ -47,6 +48,7 @@ const plans = [
     cta: "Escalar operação",
     popular: false,
     reportsIncluded: true,
+    icon: BarChart3,
   },
   {
     name: "Elite",
@@ -56,6 +58,7 @@ const plans = [
     cta: "Máximo desempenho",
     popular: false,
     reportsIncluded: true,
+    icon: Crown,
   },
 ];
 
@@ -67,172 +70,180 @@ const comparisonRows = [
   { label: "Relatórios via WhatsApp", values: [false, false, true, true] },
 ];
 
-const GradientCheck = ({ className = "" }: { className?: string }) => (
-  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-primary/10 ${className}`}>
+const GradientCheck = () => (
+  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
     <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
   </div>
 );
 
+const fontDisplay = { fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" };
+
 const MyPlan = () => {
   return (
-    <div className="min-h-screen pb-20 bg-background -m-2.5 sm:-m-5 md:-m-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-20">
+    <div className="min-h-screen pb-24 bg-background -m-2.5 sm:-m-5 md:-m-8">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 space-y-24">
 
         {/* Hero */}
-        <div className="text-center max-w-2xl mx-auto pt-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border border-primary/20 bg-primary/5 text-primary">
+        <div className="text-center max-w-2xl mx-auto pt-14 sm:pt-16">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-8 border border-primary/20 bg-primary/5 text-primary">
             <Sparkles className="w-3.5 h-3.5" />
             Planos flexíveis para qualquer escala
           </div>
-          <h1 className="text-4xl md:text-[3rem] font-extrabold tracking-tight leading-[1.1] text-foreground"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+          <h1 className="text-3xl sm:text-4xl md:text-[3.25rem] font-extrabold tracking-tight leading-[1.08] text-foreground" style={fontDisplay}>
             Escalone sua operação de WhatsApp com segurança
           </h1>
-          <p className="text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto text-muted-foreground">
+          <p className="text-base md:text-lg mt-6 leading-relaxed max-w-lg mx-auto text-muted-foreground">
             Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
           </p>
-          <p className="mt-4 text-sm font-medium text-muted-foreground/60">
+          <div className="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground/60">
+            <Users className="w-4 h-4" />
             Mais de 1.200 operadores já usam nossa plataforma
-          </p>
+          </div>
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-6 items-stretch max-w-[1080px] mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative group transition-all duration-200 ease-out rounded-2xl border
-                ${plan.popular
-                  ? "border-primary/30 shadow-[0_10px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.45)] bg-card scale-[1.05] z-10"
-                  : "border-border bg-card shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
-                }
-                hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]
-                ${plan.popular ? "hover:scale-[1.07] hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)]" : ""}
-              `}
-            >
-              {/* Badge */}
-              {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground"
-                    style={{
-                      background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
-                      boxShadow: "0 4px 20px rgba(0,255,163,0.3)",
-                    }}>
-                    <Star className="w-3 h-3" fill="currentColor" />
-                    Mais escolhido
-                  </span>
-                </div>
-              )}
-
-              <div className="p-6 sm:p-7 pt-8 sm:pt-9 flex flex-col h-full">
-                {/* Plan name */}
-                <h3 className={`text-[11px] font-bold uppercase tracking-[0.14em] ${plan.popular ? "text-primary" : "text-muted-foreground/60"}`}>
-                  {plan.name}
-                </h3>
-
-                {/* Instances */}
-                <p className="font-semibold text-base mt-1.5 text-foreground">
-                  {plan.instances} instâncias
-                </p>
-
-                {/* Price */}
-                <div className="mt-6 mb-1">
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-sm font-medium text-muted-foreground/60">R$</span>
-                    <span className="text-[2.75rem] font-extrabold tracking-tighter leading-none text-foreground"
-                      style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
-                      {plan.price.split(",")[0]}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 lg:gap-5 items-stretch max-w-[1100px] mx-auto">
+          {plans.map((plan) => {
+            const Icon = plan.icon;
+            return (
+              <div
+                key={plan.name}
+                className={`relative group transition-all duration-300 ease-out rounded-2xl border flex flex-col
+                  ${plan.popular
+                    ? "border-primary/30 shadow-lg shadow-primary/5 dark:shadow-primary/10 bg-card lg:scale-[1.04] z-10 ring-1 ring-primary/10"
+                    : "border-border/60 bg-card shadow-sm hover:shadow-md dark:shadow-none"
+                  }
+                  hover:-translate-y-1
+                `}
+              >
+                {/* Badge */}
+                {plan.popular && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg"
+                      style={{
+                        background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
+                        boxShadow: "0 4px 20px rgba(0,255,163,0.25)",
+                      }}>
+                      <Star className="w-3 h-3" fill="currentColor" />
+                      Mais escolhido
                     </span>
-                    <span className="text-xl font-bold text-foreground/50">
-                      ,{plan.price.split(",")[1]}
-                    </span>
-                  </div>
-                  <span className="text-[13px] text-muted-foreground/50">por mês</span>
-                </div>
-                <p className="text-[11px] mt-0.5 text-muted-foreground/40">
-                  Cancele quando quiser
-                </p>
-
-                {/* Description */}
-                <p className="text-[13px] leading-relaxed mt-4 mb-7 min-h-[40px] text-muted-foreground/70">
-                  {plan.description}
-                </p>
-
-                {/* CTA */}
-                <a
-                  href={buildWhatsappUrl(plan)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 mb-7 transition-all duration-150 rounded-xl
-                    ${plan.popular
-                      ? "text-primary-foreground shadow-[0_4px_20px_rgba(0,255,163,0.2)] hover:shadow-[0_8px_30px_rgba(0,255,163,0.35)] hover:-translate-y-0.5"
-                      : "bg-muted/50 dark:bg-white/5 text-foreground border border-border hover:bg-muted dark:hover:bg-white/10"
-                    }
-                  `}
-                  style={plan.popular ? { background: "linear-gradient(135deg, #00FFA3, #00C2FF)" } : {}}
-                >
-                  {plan.cta}
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                </a>
-
-                {/* Divider */}
-                <div className="h-px mb-6 bg-border/50" />
-
-                {/* Features */}
-                <div className="space-y-4 flex-1">
-                  {FEATURES.map((feature, i) => {
-                    const isReport = feature === "Relatórios via WhatsApp";
-                    const included = isReport ? plan.reportsIncluded : true;
-                    return (
-                      <div key={i} className={`flex items-center gap-3 text-[13px] ${included ? "text-foreground/70" : "text-muted-foreground/25"}`}>
-                        {included ? (
-                          <GradientCheck />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted/50 dark:bg-white/5">
-                            <X className="w-3 h-3 text-muted-foreground/25" strokeWidth={2.5} />
-                          </div>
-                        )}
-                        <span className={!included ? "line-through decoration-muted-foreground/15" : ""}>
-                          {feature}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Report highlight */}
-                {plan.reportsIncluded && (
-                  <div className="mt-6 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold text-primary">
-                      <Bell className="w-3.5 h-3.5" />
-                      Relatórios WhatsApp incluídos
-                    </div>
                   </div>
                 )}
+
+                <div className="p-6 sm:p-7 pt-8 sm:pt-9 flex flex-col h-full">
+                  {/* Plan header */}
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${plan.popular ? "bg-primary/15" : "bg-muted/60 dark:bg-white/5"}`}>
+                      <Icon className={`w-4 h-4 ${plan.popular ? "text-primary" : "text-muted-foreground/60"}`} />
+                    </div>
+                    <div>
+                      <h3 className={`text-[11px] font-bold uppercase tracking-[0.14em] leading-none ${plan.popular ? "text-primary" : "text-muted-foreground/50"}`}>
+                        {plan.name}
+                      </h3>
+                      <p className="font-semibold text-sm mt-0.5 text-foreground">
+                        {plan.instances} instâncias
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mt-4 mb-1.5">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-sm font-medium text-muted-foreground/50">R$</span>
+                      <span className="text-[2.5rem] sm:text-[2.75rem] font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>
+                        {plan.price.split(",")[0]}
+                      </span>
+                      <span className="text-lg font-bold text-foreground/40">
+                        ,{plan.price.split(",")[1]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[13px] text-muted-foreground/45">por mês</span>
+                      <span className="text-[10px] text-muted-foreground/30">•</span>
+                      <span className="text-[11px] text-muted-foreground/35">Cancele quando quiser</span>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-[13px] leading-relaxed mt-4 mb-6 min-h-[40px] text-muted-foreground/60">
+                    {plan.description}
+                  </p>
+
+                  {/* CTA */}
+                  <a
+                    href={buildWhatsappUrl(plan)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 mb-6 transition-all duration-200 rounded-xl
+                      ${plan.popular
+                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                        : "bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08] hover:border-border"
+                      }
+                    `}
+                    style={plan.popular ? { background: "linear-gradient(135deg, #00FFA3, #00C2FF)" } : {}}
+                  >
+                    {plan.cta}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+
+                  {/* Divider */}
+                  <div className="h-px mb-5 bg-border/40" />
+
+                  {/* Features */}
+                  <div className="space-y-3.5 flex-1">
+                    {FEATURES.map((feature, i) => {
+                      const isReport = feature === "Relatórios via WhatsApp";
+                      const included = isReport ? plan.reportsIncluded : true;
+                      return (
+                        <div key={i} className={`flex items-center gap-2.5 text-[12.5px] ${included ? "text-foreground/65" : "text-muted-foreground/20"}`}>
+                          {included ? (
+                            <GradientCheck />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted/30 dark:bg-white/[0.03]">
+                              <X className="w-3 h-3 text-muted-foreground/20" strokeWidth={2} />
+                            </div>
+                          )}
+                          <span className={!included ? "line-through decoration-muted-foreground/10" : ""}>
+                            {feature}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Report highlight */}
+                  {plan.reportsIncluded && (
+                    <div className="mt-5 px-3.5 py-2.5 rounded-xl bg-primary/[0.04] border border-primary/10">
+                      <div className="flex items-center gap-2 text-[11px] font-medium text-primary">
+                        <Bell className="w-3.5 h-3.5" />
+                        Relatórios WhatsApp incluídos
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Comparison Table */}
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-bold flex items-center justify-center gap-2 text-foreground"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+          <div className="text-center mb-10">
+            <h2 className="text-xl font-bold flex items-center justify-center gap-2.5 text-foreground" style={fontDisplay}>
               <BarChart3 className="w-5 h-5 text-primary" />
               Comparação rápida
             </h2>
-            <p className="text-sm mt-1.5 text-muted-foreground">
+            <p className="text-sm mt-2 text-muted-foreground">
               Veja o que cada plano oferece lado a lado.
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/30 dark:bg-white/[0.03]">
-                  <th className="text-left px-5 py-4 text-xs font-semibold uppercase tracking-wider w-[200px] text-muted-foreground/60">Recurso</th>
+                <tr className="bg-muted/20 dark:bg-white/[0.02]">
+                  <th className="text-left px-5 py-4 text-[11px] font-semibold uppercase tracking-wider w-[200px] text-muted-foreground/50">Recurso</th>
                   {plans.map(p => (
-                    <th key={p.name} className={`text-center px-3 py-4 text-xs font-bold uppercase tracking-wider ${p.popular ? "text-primary" : "text-foreground/60"}`}>
+                    <th key={p.name} className={`text-center px-3 py-4 text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-primary" : "text-foreground/50"}`}>
                       {p.name}
                     </th>
                   ))}
@@ -241,9 +252,9 @@ const MyPlan = () => {
               <tbody>
                 {comparisonRows.map((row, ri) => (
                   <tr key={ri}
-                    className={`transition-colors duration-150 border-t border-border/30 hover:bg-muted/30 dark:hover:bg-white/[0.04] ${ri % 2 === 1 ? "bg-muted/15 dark:bg-white/[0.015]" : ""}`}
+                    className={`transition-colors duration-100 border-t border-border/20 hover:bg-muted/20 dark:hover:bg-white/[0.02] ${ri % 2 === 1 ? "bg-muted/8 dark:bg-white/[0.008]" : ""}`}
                   >
-                    <td className="px-5 py-3.5 text-[13px] font-medium text-foreground/65">
+                    <td className="px-5 py-3.5 text-[13px] font-medium text-foreground/60">
                       {row.label}
                     </td>
                     {row.values.map((val, vi) => (
@@ -252,10 +263,10 @@ const MyPlan = () => {
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-primary" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-muted-foreground/20" strokeWidth={2.5} />
+                            <X className="w-4 h-4 mx-auto text-muted-foreground/15" strokeWidth={2} />
                           )
                         ) : (
-                          <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground"}`}>
+                          <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground/80"}`}>
                             {val}
                           </span>
                         )}
@@ -270,57 +281,56 @@ const MyPlan = () => {
 
         {/* Addon — Relatórios via WhatsApp */}
         <div className="max-w-md mx-auto">
-          <div className="relative overflow-hidden rounded-2xl bg-card border border-border shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+          <div className="relative overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
             {/* Addon tag */}
-            <div className="absolute top-4 right-4">
-              <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/15">
+            <div className="absolute top-5 right-5">
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full bg-primary/8 text-primary border border-primary/12">
                 Addon
               </span>
             </div>
 
-            <div className="p-8">
-              <div className="flex items-start gap-4 mb-7">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/15">
+            <div className="p-7 sm:p-8">
+              <div className="flex items-start gap-4 mb-8">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/8 border border-primary/12">
                   <Bell className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-foreground" style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+                  <h3 className="text-lg font-bold text-foreground" style={fontDisplay}>
                     Relatórios via WhatsApp
                   </h3>
-                  <p className="text-[13px] mt-1 leading-relaxed text-muted-foreground">
+                  <p className="text-[13px] mt-1 leading-relaxed text-muted-foreground/70">
                     Acompanhe sua operação sem precisar abrir o painel.
                   </p>
                 </div>
               </div>
 
               {/* Price */}
-              <div className="mb-7">
+              <div className="mb-8">
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm font-medium text-muted-foreground/60">R$</span>
-                  <span className="text-[2rem] font-extrabold tracking-tighter leading-none text-foreground"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" }}>
+                  <span className="text-sm font-medium text-muted-foreground/50">R$</span>
+                  <span className="text-[2rem] font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>
                     18
                   </span>
-                  <span className="text-lg font-bold text-foreground/50">,90</span>
+                  <span className="text-lg font-bold text-foreground/40">,90</span>
                 </div>
-                <p className="text-[12px] mt-0.5 text-muted-foreground/50">por mês</p>
+                <p className="text-[12px] mt-1 text-muted-foreground/45">por mês</p>
               </div>
 
-              <div className="space-y-4 mb-7">
+              <div className="space-y-3.5 mb-8">
                 {[
                   "Relatórios automáticos de aquecimento",
                   "Notificação quando campanhas iniciam ou finalizam",
                   "Alertas de conexão e desconexão das instâncias",
                   "1 número dedicado apenas para notificações",
                 ].map((feat, i) => (
-                  <div key={i} className="flex items-center gap-3 text-[13px] text-foreground/70">
+                  <div key={i} className="flex items-center gap-2.5 text-[13px] text-foreground/65">
                     <GradientCheck />
                     {feat}
                   </div>
                 ))}
               </div>
 
-              <p className="text-[11px] mb-6 text-muted-foreground/40">
+              <p className="text-[11px] mb-6 text-muted-foreground/35 leading-relaxed">
                 Já incluso nos planos Scale e Elite. Disponível separadamente para Start e Pro.
               </p>
 
@@ -328,7 +338,7 @@ const MyPlan = () => {
                 href={buildAddonWhatsappUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-150 rounded-xl bg-muted/50 dark:bg-white/5 text-foreground border border-border hover:bg-muted dark:hover:bg-white/10"
+                className="w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 transition-all duration-200 rounded-xl bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08]"
               >
                 Ativar notificações
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -338,7 +348,7 @@ const MyPlan = () => {
         </div>
 
         {/* Trust */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-xs text-muted-foreground/50">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12 text-xs text-muted-foreground/40 pb-4">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Sem fidelidade
