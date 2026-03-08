@@ -353,7 +353,7 @@ const FooterSection = () => (
       <p className="text-[11px] text-white/35 text-center max-w-lg leading-relaxed">
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
       </p>
-      <p className="text-[11px] text-white/20">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
+      <p className="text-[11px] text-white/25">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
     </div>
   </footer>
 );
