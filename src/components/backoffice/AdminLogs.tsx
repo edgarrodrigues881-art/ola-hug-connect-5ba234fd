@@ -59,29 +59,31 @@ const AdminLogs = () => {
           Nenhuma ação registrada
         </div>
       ) : (
-        <div className="border border-zinc-700 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-zinc-800 text-zinc-400 text-xs uppercase tracking-wider">
-                <th className="text-left px-4 py-3">Ação</th>
-                <th className="text-left px-4 py-3">Detalhes</th>
-                <th className="text-left px-4 py-3">Data</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {logs.map((log: any) => (
-                <tr key={log.id} className="hover:bg-zinc-800/50">
-                  <td className="px-4 py-3">
-                    <Badge className={`text-[10px] px-2 ${actionColors[log.action] || "bg-zinc-600 text-zinc-200"}`}>
-                      {actionLabels[log.action] || log.action}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{log.details}</td>
-                  <td className="px-4 py-3 text-zinc-500 text-xs">{new Date(log.created_at).toLocaleString("pt-BR")}</td>
+        <div className="border border-border rounded-xl overflow-hidden">
+          <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-card text-muted-foreground text-xs uppercase tracking-wider">
+                  <th className="text-left px-4 py-3">Ação</th>
+                  <th className="text-left px-4 py-3">Detalhes</th>
+                  <th className="text-left px-4 py-3">Data</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {logs.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <Badge className={`text-[10px] px-2 ${actionColors[log.action] || "bg-muted text-muted-foreground"}`}>
+                        {actionLabels[log.action] || log.action}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-foreground/80">{log.details}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{new Date(log.created_at).toLocaleString("pt-BR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
