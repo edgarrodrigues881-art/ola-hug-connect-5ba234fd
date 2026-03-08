@@ -147,20 +147,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               body: { target_user_id: client.id, enabled: includeNotification },
             }, { onSuccess: () => {}, onError: () => {} });
 
-            if (includeNotification) {
-              mutate({
-                action: "update-subscription",
-                body: {
-                  target_user_id: client.id,
-                  plan_name: "Relatórios WhatsApp",
-                  plan_price: NOTIFICATION_PRICE,
-                  max_instances: 0,
-                  started_at: cycleStart,
-                  expires_at: cycleEnd,
-                  is_addon: true,
-                },
-              }, { onSuccess: () => {}, onError: () => {} });
-            }
+            // Addon notification is already included in totalPrice, no separate subscription needed
 
             setProvisioning(false);
             let desc = "Ciclo criado.";
