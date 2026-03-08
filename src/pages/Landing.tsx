@@ -155,7 +155,7 @@ const steps = [
 ];
 
 const HowItWorks = () => (
-  <Section id="como-funciona" className="bg-white/[0.01]">
+  <Section id="como-funciona">
     <div className="text-center mb-16">
       <SectionLabel>Como funciona</SectionLabel>
       <SectionTitle>4 passos para começar</SectionTitle>
@@ -214,7 +214,7 @@ const plans = [
 const Plans = () => {
   const navigate = useNavigate();
   return (
-    <Section id="planos" className="bg-white/[0.01]">
+    <Section id="planos">
       <div className="text-center mb-16">
         <SectionLabel>Planos</SectionLabel>
         <SectionTitle>Escolha o plano ideal</SectionTitle>
@@ -297,7 +297,7 @@ const faqs = [
 ];
 
 const FAQ = () => (
-  <Section id="faq" className="bg-white/[0.01]">
+  <Section id="faq">
     <div className="text-center mb-16">
       <SectionLabel>FAQ</SectionLabel>
       <SectionTitle>Perguntas frequentes</SectionTitle>
