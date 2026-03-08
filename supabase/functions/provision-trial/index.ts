@@ -126,6 +126,23 @@ Deno.serve(async (req) => {
 
     console.log(`[provision-trial] user=${user.id} created=${created} errors=${errors.length}`);
 
+    // ─── TRIGGER AUTOMATIC WELCOME MESSAGE ───
+    try {
+      const waLifecycleUrl = `${supabaseUrl}/functions/v1/wa-lifecycle?action=welcome`;
+      const welcomeRes = await fetch(waLifecycleUrl, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${serviceKey}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      const welcomeData = await welcomeRes.json();
+      console.log("[provision-trial] Welcome message result:", JSON.stringify(welcomeData));
+    } catch (e) {
+      console.error("[provision-trial] Welcome message error (non-blocking):", e.message);
+    }
+
     return new Response(JSON.stringify({ success: true, created, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
