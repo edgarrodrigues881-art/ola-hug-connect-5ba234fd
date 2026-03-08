@@ -1150,16 +1150,33 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-shadow w-full overflow-hidden">
+            <Card key={d.id} className="rounded-xl border-0 bg-card shadow-sm hover:shadow-lg transition-all w-full overflow-hidden">
+              {/* Header colorido com status */}
+              <div className={`px-5 py-3 flex items-center justify-between ${
+                smartStatus === 'online'
+                  ? 'bg-primary/15 dark:bg-primary/20'
+                  : 'bg-destructive/10 dark:bg-destructive/15'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`} />
+                  <span className={`text-sm font-semibold ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`}>
+                    {ss.label}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-mono">ID: {devices.indexOf(d) + 1}</span>
+              </div>
+
               <CardContent className="p-5 flex flex-col gap-4">
-                {/* Header: Avatar + Nome + ID */}
+                {/* Avatar + Nome */}
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
                       <img
                         src={d.profile_picture}
                         alt={d.name}
-                        className="w-12 h-12 rounded-full object-cover ring-[3px] ring-primary/25"
+                        className={`w-11 h-11 rounded-full object-cover ring-2 ${
+                          smartStatus === 'online' ? 'ring-primary/30' : 'ring-border/50'
+                        }`}
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
@@ -1169,18 +1186,15 @@ const Devices = () => {
                       />
                     ) : null}
                     <div
-                      className={`w-12 h-12 rounded-full items-center justify-center text-lg font-bold shrink-0 ${
+                      className={`w-11 h-11 rounded-full items-center justify-center text-base font-bold shrink-0 ${
                         smartStatus === 'online'
-                          ? 'bg-primary text-primary-foreground ring-[3px] ring-primary/25'
-                          : 'bg-muted text-muted-foreground ring-[3px] ring-border/60'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
                     </div>
-                    {smartStatus === 'online' && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-primary rounded-full border-2 border-card" />
-                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -1194,32 +1208,21 @@ const Devices = () => {
                           if (e.key === "Enter") commitInlineEdit();
                           if (e.key === "Escape") setInlineEditId(null);
                         }}
-                        className="text-base font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
+                        className="text-sm font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
                       />
                     ) : (
                       <p
-                        className="text-base font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
+                        className="text-sm font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
                         onClick={() => startInlineEdit(d)}
                         title={d.name}
                       >
                         {d.name}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">ID: {devices.indexOf(d) + 1}</p>
-                  </div>
-                </div>
-
-                {/* Status + Telefone */}
-                <div className="space-y-1.5 pl-1">
-                  <div className="flex items-center gap-2">
-                    <StatusIcon className={`w-4 h-4 shrink-0 ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`} />
-                    <span className={`text-sm font-medium ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`}>
-                      {ss.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Smartphone className="w-4 h-4 shrink-0" />
-                    <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
+                    <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                      <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                      <span>{d.number ? formatPhone(d.number) : "Sem número"}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1229,44 +1232,44 @@ const Devices = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 gap-2 rounded-lg text-sm font-medium text-destructive border-destructive/30 hover:bg-destructive/10"
+                      className="h-8 gap-1.5 rounded-lg text-xs font-medium text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => openLogout(d)}
                     >
-                      <Power className="w-4 h-4" /> Desconectar
+                      <Power className="w-3.5 h-3.5" /> Desconectar
                     </Button>
                   ) : hadPreviousConnection ? (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 gap-2 rounded-lg text-sm font-medium"
+                        className="h-8 gap-1.5 rounded-lg text-xs font-medium"
                         onClick={() => openConnect(d)}
                       >
-                        <RefreshCw className="w-4 h-4" /> Tentar novamente
+                        <RefreshCw className="w-3.5 h-3.5" /> Reconectar
                       </Button>
                       <Button
                         size="sm"
-                        className="h-9 gap-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+                        className="h-8 gap-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
                         onClick={() => openConnect(d)}
                       >
-                        <QrCode className="w-4 h-4" /> Novo QR Code
+                        <QrCode className="w-3.5 h-3.5" /> Novo QR Code
                       </Button>
                     </>
                   ) : (
                     <Button
                       size="sm"
-                      className="h-9 gap-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="h-8 gap-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
                       onClick={() => openConnect(d)}
                     >
-                      <QrCode className="w-4 h-4" /> Novo QR Code
+                      <QrCode className="w-3.5 h-3.5" /> Novo QR Code
                     </Button>
                   )}
                 </div>
 
                 {/* Editar + Excluir */}
-                <div className="flex items-center gap-5 pt-2 border-t border-border/30">
+                <div className="flex items-center gap-4 pt-2 border-t border-border/20">
                   <button
-                    className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                     onClick={() => {
                       setEditingDevice(d);
                       setEditName(d.name);
@@ -1281,7 +1284,7 @@ const Devices = () => {
                     <Pencil className="w-3.5 h-3.5" /> Editar
                   </button>
                   <button
-                    className="flex items-center gap-1.5 text-sm text-destructive hover:text-destructive/80 transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors font-medium"
                     onClick={() => {
                       if (d.status === "Ready") {
                         setDeleteSingleDevice(d);
