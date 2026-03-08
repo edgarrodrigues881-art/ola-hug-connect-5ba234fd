@@ -472,7 +472,18 @@ const Devices = () => {
       const { error } = await supabase.from("devices").update(updates as any).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["devices"] });
+      const previous = queryClient.getQueryData<Device[]>(["devices"]);
+      queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+        old ? old.map(d => d.id === id ? { ...d, ...updates } : d) : old
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["devices"], context.previous);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     },
   });

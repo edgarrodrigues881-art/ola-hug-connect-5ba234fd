@@ -45,7 +45,7 @@ focusManager.setEventListener((handleFocus) => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30,             // 30s
+      staleTime: 1000 * 60,              // 60s — reduce refetches
       gcTime: 1000 * 60 * 10,           // 10 min
       refetchOnWindowFocus: false,
       retry: 1,
