@@ -39,7 +39,7 @@ const Landing = () => {
       </div>
 
       <SocialProofToast />
-      <SupportButton />
+      
     </div>
   );
 };
