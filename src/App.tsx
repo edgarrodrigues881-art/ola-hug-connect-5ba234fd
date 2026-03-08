@@ -33,6 +33,7 @@ const CampaignDetail = lazy(() => import("./pages/dashboard/CampaignDetail"));
 const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
 const WarmupInstances = lazy(() => import("./pages/dashboard/WarmupInstances"));
 const WarmupInstanceDetail = lazy(() => import("./pages/dashboard/WarmupInstanceDetail"));
+const AutoSave = lazy(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazy(() => import("./pages/WelcomeSplash"));
 
 // Pause polling when tab is hidden
