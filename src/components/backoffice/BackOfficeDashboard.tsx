@@ -3,7 +3,7 @@ import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
-  Copy, Check, ChevronRight, Menu, X, BookOpen
+  Copy, Check, ChevronRight, Menu, X, BookOpen, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ import AdminWarmupJobs from "./AdminWarmupJobs";
 import AdminInfra from "./AdminInfra";
 import AdminCommunityWarmer from "./AdminCommunityWarmer";
 import AdminWarmupRoadmap from "./AdminWarmupRoadmap";
+import AdminMessages from "./AdminMessages";
 
 const SUPORTE_NUMERO = "(11) 99999-9999";
 
@@ -29,6 +30,7 @@ function getDaysLeft(expiresAt: string | null): number | null {
 const NAV_ITEMS = [
   { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
   { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
+  { id: "messages", label: "Mensagens", shortLabel: "Msgs", icon: MessageCircle, group: "principal", badge: false },
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
   { id: "logs", label: "Auditoria", shortLabel: "Logs", icon: ScrollText, group: "gestao", badge: false },
   { id: "costs", label: "Custos", shortLabel: "Custos", icon: Wallet, group: "gestao", badge: false },
@@ -178,6 +180,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       case "overview": return data ? <AdminOverview data={data} /> : null;
       case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={setSelectedClient} />;
       case "pendencias": return <PendenciasTab users={data?.users || []} onSelectClient={setSelectedClient} />;
+      case "messages": return <AdminMessages />;
       case "logs": return <AdminLogs />;
       case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
       case "groups-pool": return <AdminGroupsPool />;
