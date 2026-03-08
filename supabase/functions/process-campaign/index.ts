@@ -56,7 +56,7 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
   let res: Response;
   try {
     res = await fetch(url, fetchOptions);
-  } catch (fetchErr: any) {
+  } catch (fetchErr) {
     clearTimeout(timeoutId);
     if (fetchErr?.name === "AbortError") {
       throw new Error(`Timeout após ${API_TIMEOUT_MS / 1000}s aguardando resposta da API`);
@@ -135,7 +135,7 @@ async function sendWithRetry(
       await sendUazapiMessage(baseUrl, token, to, body, mediaUrl, buttons, messageType);
       if (attempt > 1) console.log(`✅ Retry ${attempt - 1} succeeded for ${to}`);
       return { success: true, attempts: attempt };
-    } catch (err: any) {
+    } catch (err) {
       lastError = err.message || "Erro";
       if (!isTemporaryError(lastError) || attempt > MAX_RETRIES) {
         return { success: false, attempts: attempt, error: lastError };
@@ -155,7 +155,7 @@ async function checkNumberExists(baseUrl: string, token: string, phone: string):
       return { exists: false, error: "Número inválido" };
     }
     return { exists: true };
-  } catch (err: any) {
+  } catch (err) {
     const msg = err.message || "";
     if (isDisconnectError(msg)) {
       return { exists: false, error: "WhatsApp desconectado" };
@@ -299,7 +299,7 @@ async function startNextQueuedCampaigns(serviceClient: any, deviceIds: string[],
         break; // Only start one at a time per release
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`Error starting next queued campaign: ${err.message}`);
   }
 }
@@ -342,7 +342,7 @@ async function selfContinue(supabaseUrl: string, serviceRoleKey: string, campaig
       },
       body: JSON.stringify({ action: "continue", campaignId, deviceId, ...batchState }),
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error(`Self-continue failed: ${err.message}`);
   }
 }
