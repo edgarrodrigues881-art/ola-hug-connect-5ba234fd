@@ -297,7 +297,7 @@ const faqs = [
 ];
 
 const FAQ = () => (
-  <Section id="faq" className="bg-white/[0.01]">
+  <Section id="faq">
     <div className="text-center mb-16">
       <SectionLabel>FAQ</SectionLabel>
       <SectionTitle>Perguntas frequentes</SectionTitle>
