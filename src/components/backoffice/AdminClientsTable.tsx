@@ -89,21 +89,34 @@ const AdminClientsTable = ({ users, cycles = [], adminLogs = [], onSelectClient 
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      {/* Search + Filters */}
+      <div className="space-y-3">
+        <div className="relative max-w-xs">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, email ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
+          <Input placeholder="Buscar por" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
         </div>
-        <div className="flex gap-1 flex-wrap">
-          {filters.map(f => (
-            <Button key={f.value} size="sm" variant={filter === f.value ? "default" : "outline"}
-              onClick={() => setFilter(f.value)}
-              className={filter === f.value
-                ? "bg-primary hover:bg-primary/90 text-primary-foreground text-[11px]"
-                : "border-border text-muted-foreground text-[11px] px-2"
-              }
-            >{f.label}</Button>
-          ))}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {filters.map(f => {
+            const isActive = filter === f.value;
+            const isDanger = f.value === "expired" || f.value === "risk";
+            return (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={`
+                  shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
+                  ${isActive
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : isDanger && (f.value === "expired" ? counts.exp > 0 : f.value === "risk" ? counts.risk > 0 : false)
+                      ? "bg-card border-destructive/30 text-destructive hover:bg-destructive/5"
+                      : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }
+                `}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
