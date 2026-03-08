@@ -1040,24 +1040,18 @@ Deno.serve(async (req) => {
 
     // ─── DELETE ALL TOKENS ───
     if (action === "delete-all-tokens" && req.method === "POST") {
-      const { target_user_id, token_ids } = await req.json();
-      console.log("[delete-all-tokens] target:", target_user_id, "ids count:", token_ids?.length);
+      const { target_user_id } = await req.json();
+      console.log("[delete-all-tokens] target:", target_user_id);
       
-      if (!token_ids || token_ids.length === 0) {
-        // Fallback: delete all tokens for this user
-        const { error } = await adminClient.from("user_api_tokens").delete().eq("user_id", target_user_id);
-        if (error) throw error;
-        await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `Todos os tokens removidos (fallback)`);
-        return new Response(JSON.stringify({ success: true, removed: 0 }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      const { error, count } = await adminClient
+        .from("user_api_tokens")
+        .delete({ count: "exact" })
+        .eq("user_id", target_user_id);
       
-      const { error, count } = await adminClient.from("user_api_tokens").delete({ count: "exact" }).eq("user_id", target_user_id).in("id", token_ids);
       console.log("[delete-all-tokens] deleted count:", count, "error:", error);
       if (error) throw error;
-      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${count ?? token_ids.length} tokens removidos`);
-      return new Response(JSON.stringify({ success: true, removed: count ?? token_ids.length }), {
+      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${count} token(s) removido(s)`);
+      return new Response(JSON.stringify({ success: true, removed: count }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
