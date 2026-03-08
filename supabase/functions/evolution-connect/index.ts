@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
     const deviceName = device?.name || "instance";
 
     // ── PLAN CHECK for all device operations (except deleteInstance and status) ──
-    if (action !== "deleteInstance" && action !== "status" && action !== "getBaseUrl") {
+    if (action !== "deleteInstance" && action !== "status" && action !== "getBaseUrl" && action !== "logout") {
       const { data: activeSub } = await svc
         .from("subscriptions")
         .select("expires_at")
