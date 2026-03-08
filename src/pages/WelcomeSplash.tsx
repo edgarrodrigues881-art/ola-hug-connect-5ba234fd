@@ -67,8 +67,8 @@ const WelcomeSplash = () => {
                 className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl shadow-lg"
               />
               <div className="flex flex-col items-center">
-                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  DGC CONTINGÊNCIA
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  DG CONTINGÊNCIA
                 </span>
               </div>
             </motion.div>
