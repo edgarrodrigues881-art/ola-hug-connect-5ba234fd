@@ -225,9 +225,7 @@ const AdminGroupsPool = () => {
                     <Button size="sm" variant="ghost" onClick={() => startEdit(g)}>
                       <Pencil size={12} />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (confirm("Remover este grupo do pool?")) deleteGroup.mutate(g.id);
-                    }}>
+                    <Button size="sm" variant="ghost" onClick={() => setDeleteTargetId(g.id)}>
                       <Trash2 size={12} className="text-destructive" />
                     </Button>
                   </>
