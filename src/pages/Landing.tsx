@@ -342,7 +342,7 @@ const Landing = () => {
         <Plans />
         
         <FAQ />
-        <CTAFinal />
+        
         <FooterSection />
       </div>
       <WhatsAppFloat />
