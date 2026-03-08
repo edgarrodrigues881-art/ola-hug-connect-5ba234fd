@@ -160,8 +160,12 @@ Deno.serve(async (req) => {
         let formattedPhone = "";
         if (phone) {
           const raw = String(phone).replace(/\D/g, "");
-          if (raw.startsWith("55") && raw.length >= 12) {
+          if (raw.startsWith("55") && raw.length === 13) {
             formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+          } else if (raw.startsWith("55") && raw.length === 12) {
+            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 8)}-${raw.slice(8)}`;
+          } else if (raw.startsWith("55") && raw.length >= 10) {
+            formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, raw.length - 4)}-${raw.slice(raw.length - 4)}`;
           } else if (raw) {
             formattedPhone = `+${raw}`;
           }
