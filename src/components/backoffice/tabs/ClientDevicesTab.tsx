@@ -46,7 +46,7 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showNoPlan, setShowNoPlan] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState("principal");
+  
   const { mutate, isPending } = useAdminAction();
   const { toast } = useToast();
 
@@ -77,9 +77,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const createDevice = () => {
     if (!newName.trim()) return;
     mutate(
-      { action: "create-device", body: { target_user_id: client.id, name: newName.trim(), login_type: newType } },
+      { action: "create-device", body: { target_user_id: client.id, name: newName.trim(), login_type: "principal" } },
       {
-        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setNewType("principal"); setShowCreate(false); },
+        onSuccess: () => { toast({ title: "Instância criada" }); setNewName(""); setShowCreate(false); },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -219,19 +219,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader><DialogTitle>Nova Instância</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground uppercase font-medium">Nome</Label>
-              <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-muted/30 border-border h-9 rounded-lg" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground uppercase font-medium">Tipo</Label>
-              <select value={newType} onChange={e => setNewType(e.target.value)} className="w-full h-9 rounded-lg border border-border bg-muted/30 text-foreground px-3 text-sm cursor-pointer">
-                <option value="principal">Principal</option>
-                <option value="contingencia">Contingência</option>
-                <option value="notificacao">Notificação</option>
-              </select>
-            </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium">Nome</Label>
+            <Input placeholder="Nome da instância" value={newName} onChange={e => setNewName(e.target.value)} className="bg-muted/30 border-border h-9 rounded-lg" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)} className="border-border text-muted-foreground">Cancelar</Button>
