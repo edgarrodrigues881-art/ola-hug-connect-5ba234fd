@@ -112,7 +112,7 @@ const WelcomeSplash = () => {
               transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1
-                className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+                className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 <span className="text-primary">DG</span>{" "}
