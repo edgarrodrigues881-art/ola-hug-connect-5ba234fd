@@ -151,6 +151,30 @@ const AdminMessages = () => {
 
   const isConfigured = !!reportConfig?.device_id && !!reportConfig?.group_id;
 
+  // Fetch groups when device is selected in config
+  const fetchGroups = async (deviceId: string) => {
+    setLoadingGroups(true);
+    setDeviceGroups([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-groups", {
+        body: { device_id: deviceId },
+      });
+      if (error) throw error;
+      setDeviceGroups(data?.groups || []);
+    } catch (e: any) {
+      toast({ title: "Erro ao buscar grupos", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const selectDevice = (id: string) => {
+    setConfigDeviceId(id);
+    setConfigGroupId("");
+    setConfigGroupName("");
+    fetchGroups(id);
+  };
+
   // Filter users
   const filteredUsers = useMemo(() => {
     const sorted = [...users].sort((a, b) => {
