@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lock, LogOut, Loader2 } from "lucide-react";
+import { Lock, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -13,13 +13,13 @@ const BackOffice = () => {
   const [logging, setLogging] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showReset, setShowReset] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
-
     const checkAdminRole = async (userId: string) => {
       try {
         const { data } = await supabase
@@ -51,29 +51,21 @@ const BackOffice = () => {
         const { data: { session: s } } = await supabase.auth.getSession();
         if (!isMounted) return;
         setSession(s);
-        if (s?.user) {
-          await checkAdminRole(s.user.id);
-        }
+        if (s?.user) await checkAdminRole(s.user.id);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
     initializeAuth();
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { isMounted = false; subscription.unsubscribe(); };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLogging(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) {
-      toast({ title: "Credenciais inválidas", variant: "destructive" });
-    }
+    if (error) toast({ title: "Credenciais inválidas", variant: "destructive" });
     setLogging(false);
   };
 
@@ -88,7 +80,7 @@ const BackOffice = () => {
     if (error) {
       toast({ title: "Erro ao enviar e-mail", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada." });
       setShowReset(false);
     }
   };
@@ -101,75 +93,98 @@ const BackOffice = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+      <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
-        {showReset ? (
-          <form onSubmit={handleReset} className="w-full max-w-sm space-y-4 bg-zinc-800 p-8 rounded-2xl border border-zinc-700">
-            <div className="flex items-center gap-2 justify-center text-purple-400 mb-2">
-              <Lock size={24} />
-              <h1 className="text-xl font-bold text-zinc-100">Redefinir Senha</h1>
+      <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4">
+        <div className="w-full max-w-[400px]">
+          {/* Logo / Brand */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+              <Lock size={24} className="text-primary" />
             </div>
-            <p className="text-sm text-zinc-400 text-center">Digite seu e-mail para receber o link de redefinição.</p>
-            <Input
-              placeholder="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-100"
-            />
-            <Button type="submit" disabled={resetting} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-              {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Enviar Link
-            </Button>
-            <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-purple-400 hover:underline">
-              Voltar ao login
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 bg-zinc-800 p-8 rounded-2xl border border-zinc-700">
-            <div className="flex items-center gap-2 justify-center text-purple-400 mb-2">
-              <Lock size={24} />
-              <h1 className="text-xl font-bold text-zinc-100">Back-Office</h1>
-            </div>
-            <Input
-              placeholder="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-100"
-            />
-            <Input
-              type="password"
-              placeholder="Senha"
-              value={pass}
-              onChange={(e) => setPass(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-100"
-            />
-            <Button type="submit" disabled={logging} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-              {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Entrar
-            </Button>
-            <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-zinc-400 hover:text-purple-400">
-              Esqueci minha senha
-            </button>
-          </form>
-        )}
+            <h1 className="text-2xl font-bold text-[#2e3440] tracking-tight">
+              {showReset ? "Redefinir senha" : "DG Control Center"}
+            </h1>
+            <p className="text-sm text-[#8892a4] mt-1">
+              {showReset ? "Digite seu e-mail para receber o link." : "Acesso restrito a administradores"}
+            </p>
+          </div>
+
+          {showReset ? (
+            <form onSubmit={handleReset} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
+                <Input
+                  placeholder="admin@empresa.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20"
+                />
+              </div>
+              <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
+                {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Enviar Link
+              </Button>
+              <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">
+                Voltar ao login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
+                <Input
+                  placeholder="admin@empresa.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">Senha</label>
+                <div className="relative">
+                  <Input
+                    type={showPass ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={pass}
+                    onChange={(e) => setPass(e.target.value)}
+                    className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] pr-10 focus:border-primary focus:ring-primary/20"
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#b0b8c8] hover:text-[#4c566a]">
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
+                {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Entrar
+              </Button>
+              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-[#8892a4] hover:text-primary font-medium">
+                Esqueci minha senha
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center gap-4 text-zinc-100">
-        <p className="text-lg">⛔ Acesso restrito a administradores.</p>
-        <Button variant="outline" onClick={handleLogout} className="border-zinc-600 text-zinc-300">
+      <div className="min-h-screen bg-[#f8f9fc] flex flex-col items-center justify-center gap-4">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-[#2e3440]">⛔ Acesso restrito</p>
+          <p className="text-sm text-[#8892a4] mt-1">Apenas administradores podem acessar esta área.</p>
+        </div>
+        <Button variant="outline" onClick={handleLogout} className="border-[#e5e9f0] text-[#4c566a] hover:bg-[#f0f2f8]">
           <LogOut size={16} className="mr-1" /> Sair
         </Button>
       </div>
@@ -177,14 +192,8 @@ const BackOffice = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-100">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <h1 className="text-lg font-bold text-foreground tracking-tight">DG Control Center</h1>
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-zinc-400 hover:text-zinc-100">
-          <LogOut size={16} className="mr-1" /> Sair
-        </Button>
-      </header>
-      <BackOfficeDashboard />
+    <div className="min-h-screen bg-[#f8f9fc]">
+      <BackOfficeDashboard onLogout={handleLogout} />
     </div>
   );
 };
