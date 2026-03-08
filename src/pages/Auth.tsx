@@ -180,14 +180,15 @@ const Auth = () => {
         </button>
       </div>
 
-      {/* Logo + brand */}
-      <div className="flex flex-col items-center mb-10">
-        <img src={logo} alt="DG Contingência Pro" className="w-24 h-24 rounded-2xl mb-3" style={{ background: '#1a1a1a' }} />
-        <span className="text-sm font-bold tracking-widest uppercase text-[#E5E7EB]"><span className="text-primary">DG</span> CONTINGÊNCIA <span className="text-primary">PRO</span></span>
-      </div>
+      <div className="w-full max-w-[440px] flex flex-col items-center">
+        {/* Logo + brand */}
+        <div className="flex flex-col items-center mb-10">
+          <img src={logo} alt="DG Contingência Pro" className="w-24 h-24 rounded-2xl mb-3" style={{ background: '#1a1a1a' }} />
+          <span className="text-sm font-bold tracking-widest uppercase text-[#E5E7EB]"><span className="text-primary">DG</span> CONTINGÊNCIA <span className="text-primary">PRO</span></span>
+        </div>
 
-      {/* Main card */}
-      <div className="w-full max-w-[440px]">
+        {/* Main card */}
+        <div className="w-full">
 
         {showForgot ? (
           <>
@@ -477,6 +478,7 @@ const Auth = () => {
         </Tooltip>
       </TooltipProvider>
       <SupportButton />
+      </div>
     </div>
   );
 };
