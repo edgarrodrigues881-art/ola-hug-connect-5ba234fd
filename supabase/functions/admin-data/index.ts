@@ -1961,6 +1961,93 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── TOGGLE NOTIFICATION (auto-provision monitoring token) ──
+    if (action === "toggle-notification" && req.method === "POST") {
+      const { target_user_id, enabled } = await req.json();
+
+      // Update profile flag
+      await adminClient.from("profiles").update({
+        notificacao_liberada: !!enabled,
+        updated_at: new Date().toISOString(),
+      }).eq("id", target_user_id);
+
+      let monitorTokenValue = "";
+
+      if (enabled) {
+        // Check if client already has a monitoring token
+        const { data: profile } = await adminClient.from("profiles")
+          .select("whatsapp_monitor_token").eq("id", target_user_id).maybeSingle();
+
+        if (!profile?.whatsapp_monitor_token) {
+          // Auto-provision a UAZAPI instance for monitoring
+          const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+          const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+          if (ADMIN_BASE_URL && ADMIN_TOKEN) {
+            // Get client name for label
+            const { data: fullProfile } = await adminClient.from("profiles")
+              .select("full_name").eq("id", target_user_id).maybeSingle();
+            const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
+            const clientName = fullProfile?.full_name || authUser?.user?.email || "cliente";
+            const sanitizedName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+            const instanceName = `${sanitizedName}_monitor`;
+
+            try {
+              const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+                method: "POST",
+                headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({ name: instanceName }),
+              });
+              const body = await res.json();
+              console.log(`[monitor-provision] ${instanceName}: status=${res.status}`, JSON.stringify(body));
+
+              const token = body?.token || body?.data?.token || body?.instance?.token;
+              if (token) {
+                monitorTokenValue = token;
+                // Save token to profile
+                await adminClient.from("profiles").update({
+                  whatsapp_monitor_token: token,
+                  updated_at: new Date().toISOString(),
+                }).eq("id", target_user_id);
+
+                await logAction(adminClient, user.id, target_user_id, "monitor-token-provisioned",
+                  `Token de monitoramento provisionado automaticamente: ${instanceName}`);
+              } else {
+                console.warn(`[monitor-provision] No token in response for ${instanceName}`);
+              }
+            } catch (e) {
+              console.error(`[monitor-provision] Error provisioning monitor token:`, e.message);
+            }
+          }
+        } else {
+          monitorTokenValue = profile.whatsapp_monitor_token;
+        }
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "toggle-notification",
+        enabled ? "Notificação WhatsApp ativada" : "Notificação WhatsApp desativada");
+
+      return new Response(JSON.stringify({ ok: true, monitor_token: monitorTokenValue }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── UPDATE MONITOR TOKEN ──
+    if (action === "update-monitor-token" && req.method === "POST") {
+      const { target_user_id, whatsapp_monitor_token } = await req.json();
+      await adminClient.from("profiles").update({
+        whatsapp_monitor_token: whatsapp_monitor_token || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", target_user_id);
+
+      await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
+        whatsapp_monitor_token ? "Token de monitoramento atualizado" : "Token de monitoramento removido");
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
