@@ -354,17 +354,20 @@ Deno.serve(async (req) => {
       // Check if user already has a report_wa device
       const { data: existing } = await admin
         .from("devices")
-        .select("id")
+        .select("id, uazapi_token")
         .eq("user_id", user.id)
         .eq("login_type", "report_wa")
         .limit(1)
         .maybeSingle();
 
       if (existing) {
-        throw new Error("Já existe uma instância de relatório configurada.");
+        // Already exists — just return it, don't create another
+        return new Response(
+          JSON.stringify({ device: existing, reused: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // Auto-provision UaZapi instance for report_wa
       const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
       const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
 
@@ -372,39 +375,45 @@ Deno.serve(async (req) => {
         throw new Error("Configuração do provedor incompleta. Contate o administrador.");
       }
 
-      // Get client name for label
-      const { data: profile } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-      const clientName = (profile?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
-      const instanceName = `${clientName}_report_wa`;
-
-      // Create instance on UaZapi
-      const headerVariants = [
-        { admintoken: ADMIN_TOKEN },
-        { token: ADMIN_TOKEN },
-        { Authorization: `Bearer ${ADMIN_TOKEN}` },
-      ];
-
-      let provisionedToken: string | null = null;
-      for (const authHeaders of headerVariants) {
-        const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
-          method: "POST",
-          headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify({ name: instanceName }),
-        });
-        if (res.status === 401) continue;
-        const resData = await res.json().catch(() => ({}));
-        if (res.ok) {
-          provisionedToken = resData.token || resData.instance?.token || resData.data?.token;
-          break;
-        }
-        throw new Error(`Falha ao criar instância no provedor [${res.status}]: ${JSON.stringify(resData).substring(0, 200)}`);
-      }
+      // Check if profile already has a token (reuse it instead of creating new)
+      const { data: profile } = await admin.from("profiles").select("full_name, whatsapp_monitor_token").eq("id", user.id).maybeSingle();
+      let provisionedToken = profile?.whatsapp_monitor_token || null;
 
       if (!provisionedToken) {
-        throw new Error("Falha na autenticação com o provedor. Contate o administrador.");
+        // Only create new instance on provider if no token exists
+        const clientName = (profile?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+        const instanceName = `${clientName}_report_wa`;
+
+        const headerVariants = [
+          { admintoken: ADMIN_TOKEN },
+          { token: ADMIN_TOKEN },
+          { Authorization: `Bearer ${ADMIN_TOKEN}` },
+        ];
+
+        for (const authHeaders of headerVariants) {
+          const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+            method: "POST",
+            headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name: instanceName }),
+          });
+          if (res.status === 401) continue;
+          const resData = await res.json().catch(() => ({}));
+          if (res.ok) {
+            provisionedToken = resData.token || resData.instance?.token || resData.data?.token;
+            break;
+          }
+          throw new Error(`Falha ao criar instância no provedor [${res.status}]: ${JSON.stringify(resData).substring(0, 200)}`);
+        }
+
+        if (!provisionedToken) {
+          throw new Error("Falha na autenticação com o provedor. Contate o administrador.");
+        }
+
+        // Save token to profile
+        await admin.from("profiles").update({ whatsapp_monitor_token: provisionedToken }).eq("id", user.id);
       }
 
-      console.log(`[create-report] Instance provisioned: ${instanceName}, token: ${!!provisionedToken}`);
+      console.log(`[create-report] Token: reused=${!!profile?.whatsapp_monitor_token}`);
 
       const { data: newDevice, error: insertErr } = await admin
         .from("devices")
@@ -422,10 +431,7 @@ Deno.serve(async (req) => {
 
       if (insertErr) throw insertErr;
 
-      // Also save token to profile for admin visibility
-      await admin.from("profiles").update({ whatsapp_monitor_token: provisionedToken }).eq("id", user.id);
-
-      await oplog(admin, user.id, "report_wa_provisioned", `Instância report_wa criada: ${instanceName}`, newDevice.id, { token_assigned: true });
+      await oplog(admin, user.id, "report_wa_provisioned", `Instância report_wa criada`, newDevice.id, { token_reused: !!profile?.whatsapp_monitor_token });
 
       return new Response(
         JSON.stringify({ device: newDevice }),
