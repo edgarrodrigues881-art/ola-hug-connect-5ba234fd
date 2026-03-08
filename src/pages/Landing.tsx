@@ -82,7 +82,7 @@ const SectionSub = ({ children }: { children: React.ReactNode }) => (
 const Hero = () => {
   const navigate = useNavigate();
   return (
-    <section className="relative pt-32 md:pt-48 pb-20 md:pb-32 px-5 text-center overflow-hidden">
+    <section className="relative pt-28 md:pt-40 pb-14 md:pb-20 px-5 text-center overflow-hidden">
       {/* Radial glow behind title */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.12)_0%,transparent_70%)]" />
