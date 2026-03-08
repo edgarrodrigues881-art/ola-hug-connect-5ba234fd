@@ -194,11 +194,11 @@ const Auth = () => {
       </div>
 
       {/* Main card */}
-      <div className="w-full max-w-[420px] auth-card-fade-in">
+      <div className="w-full max-w-[440px] auth-card-fade-in">
         {/* Logo + brand */}
-        <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="DG Contingência" className="w-10 h-10 rounded-xl mb-3" />
-          <span className="text-xs font-medium tracking-wide text-[#9CA3AF]">DG Contingência</span>
+        <div className="flex flex-col items-center mb-10">
+          <img src={logo} alt="DG Contingência" className="w-14 h-14 rounded-2xl mb-3 shadow-lg shadow-black/20" />
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#6B7280]">DG Contingência</span>
         </div>
 
         {showForgot ? (
