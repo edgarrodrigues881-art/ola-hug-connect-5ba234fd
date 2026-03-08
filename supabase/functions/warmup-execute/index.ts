@@ -78,7 +78,7 @@ async function uazapiRequest(
     try {
       const d = JSON.parse(text);
       errorMsg = d?.message || d?.error || text;
-    } catch {
+    } catch (_e) {
       errorMsg = text;
     }
     throw new Error(errorMsg);
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     targetSessionId = body.sessionId || null;
     forceExecute = body.forceExecute === true;
-  } catch {}
+  } catch (_e) { /* ignore */ }
 
   try {
     // ─── PLAN CHECK ───

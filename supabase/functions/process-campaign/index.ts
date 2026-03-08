@@ -28,7 +28,7 @@ function buildMenuChoice(button: CampaignButton, index: number): string | null {
 }
 
 async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
-  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch {}
+  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
 }
 
 const API_TIMEOUT_MS = 30_000;
@@ -71,7 +71,7 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
   }
   if (!res.ok) {
     let errorMsg = `API error ${res.status}`;
-    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch { errorMsg = text; }
+    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch (_e) { errorMsg = text; }
     throw new Error(errorMsg);
   }
   const parsed = JSON.parse(text);
