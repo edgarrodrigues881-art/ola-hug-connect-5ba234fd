@@ -57,7 +57,7 @@ const WelcomeSplash = () => {
               <img
                 src={logo}
                 alt="DG Contingência Pro"
-                className="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl shadow-lg"
+                className="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl"
               />
             </motion.div>
 
