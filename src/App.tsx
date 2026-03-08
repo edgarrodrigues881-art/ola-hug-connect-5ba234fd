@@ -34,6 +34,7 @@ const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
 const WarmupInstances = lazy(() => import("./pages/dashboard/WarmupInstances"));
 const WarmupInstanceDetail = lazy(() => import("./pages/dashboard/WarmupInstanceDetail"));
 const AutoSave = lazy(() => import("./pages/dashboard/AutoSave"));
+const WelcomeSplash = lazy(() => import("./pages/WelcomeSplash"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
@@ -106,6 +107,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route path="/welcome" element={<ProtectedRoute><WelcomeSplash /></ProtectedRoute>} />
               <Route path="/backoffice" element={<BackOffice />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
