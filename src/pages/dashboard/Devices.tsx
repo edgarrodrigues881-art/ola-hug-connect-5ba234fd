@@ -406,6 +406,8 @@ const Devices = () => {
       return { id };
     },
     onMutate: async (id: string) => {
+      // Mute auto-sync/realtime for 5s to prevent ghost re-appearance
+      muteAutoSync(5000);
       // Optimistic: remove from cache immediately
       await queryClient.cancelQueries({ queryKey: ["devices"] });
       const previous = queryClient.getQueryData<Device[]>(["devices"]);
