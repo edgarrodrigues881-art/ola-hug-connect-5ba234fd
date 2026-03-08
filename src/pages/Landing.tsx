@@ -225,8 +225,8 @@ const Plans = () => {
           <motion.div key={p.name} variants={fadeUp}
             className={`relative rounded-2xl border transition-all duration-300 ${
               p.popular
-                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.05] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
-                : "border-white/[0.06] bg-white/[0.02] p-7 md:p-8 hover:border-white/10"
+                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.06] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
+                : "border-white/[0.08] bg-white/[0.03] p-7 md:p-8 hover:border-white/[0.14]"
             }`}
           >
             {p.popular && (
