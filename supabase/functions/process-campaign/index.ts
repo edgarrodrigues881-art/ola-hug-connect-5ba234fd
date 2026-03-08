@@ -399,6 +399,7 @@ Deno.serve(async (req) => {
       return null;
     }
 
+    try {
     // ─── PAUSE ───
     if (action === "pause") {
       await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
