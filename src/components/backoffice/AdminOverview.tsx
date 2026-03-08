@@ -127,8 +127,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-4 sm:space-y-6">
       {/* ═══ ALERTS ═══ */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
         <div className="flex flex-wrap gap-3">
@@ -154,7 +153,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       )}
 
       {/* ═══ PERIOD FILTER ═══ */}
-      <div className="bg-card rounded-xl border border-border p-5">
+      <div className="bg-card rounded-xl border border-border p-3 sm:p-5">
         <div className="flex items-center gap-3 mb-4">
           <DollarSign size={16} className="text-muted-foreground" />
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">Financeiro</p>
@@ -164,62 +163,62 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       </div>
 
       {/* ═══ KPIs ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Receita Líquida */}
-        <div className={`bg-card rounded-xl border p-5 ${isPositive ? "border-emerald-500/30" : "border-destructive/30"}`}>
+        <div className={`bg-card rounded-xl border p-4 sm:p-5 ${isPositive ? "border-emerald-500/30" : "border-destructive/30"}`}>
           <div className="flex items-center gap-2 mb-3">
             {isPositive ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-destructive" />}
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Receita Líquida</p>
           </div>
-          <p className={`text-2xl font-bold ${isPositive ? "text-emerald-400" : "text-destructive"}`}>{fmt(netRevenue)}</p>
+          <p className={`text-xl sm:text-2xl font-bold ${isPositive ? "text-emerald-400" : "text-destructive"}`}>{fmt(netRevenue)}</p>
           <p className="text-[11px] text-muted-foreground/60 mt-1">
             {!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
           </p>
         </div>
 
         {/* Recebida */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <CreditCard size={14} className="text-emerald-400" />
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Recebida</p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{fmt(revenueReceived)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(revenueReceived)}</p>
           <p className="text-[11px] text-muted-foreground/60 mt-1">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
         </div>
 
         {/* Contratada */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={14} className="text-teal-400" />
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Contratada</p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{fmt(revenueBrute)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(revenueBrute)}</p>
           <p className="text-[11px] text-muted-foreground/60 mt-1">{activePlans} planos</p>
         </div>
 
         {/* Descontos */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <Tag size={14} className="text-amber-400" />
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Descontos</p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{fmt(discounts)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(discounts)}</p>
           <p className="text-[11px] text-muted-foreground/60 mt-1">Concedidos</p>
         </div>
 
         {/* Taxas & Custos */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <TrendingDown size={14} className="text-destructive" />
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Taxas & Custos</p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{fmt(totalCosts)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(totalCosts)}</p>
           <p className="text-[11px] text-muted-foreground/60 mt-1">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
         </div>
       </div>
 
       {/* ═══ OPERAÇÃO ═══ */}
-      <div className="bg-card rounded-xl border border-border p-5">
+      <div className="bg-card rounded-xl border border-border p-3 sm:p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <BarChart3 size={16} className="text-muted-foreground" />
