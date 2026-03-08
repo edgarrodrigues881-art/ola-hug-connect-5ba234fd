@@ -439,8 +439,8 @@ const Auth = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 text-sm font-semibold rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-sm transition-colors duration-150 border-0"
-                style={{ boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)' }}
+                className="w-full h-[52px] text-[15px] font-bold rounded-2xl bg-[#22C55E] hover:bg-[#16A34A] active:scale-[0.98] text-white transition-all duration-200 border-0 tracking-wide mt-2"
+                style={{ boxShadow: '0 4px 20px rgba(34, 197, 94, 0.25)' }}
               >
                 {loading ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
