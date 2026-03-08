@@ -120,7 +120,76 @@ const AdminClientsTable = ({ users, cycles = [], adminLogs = [], onSelectClient 
         </div>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden">
+      {/* ═══ MOBILE: Card layout ═══ */}
+      <div className="space-y-2 sm:hidden">
+        {filtered.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground text-sm">Nenhum cliente encontrado</p>
+        ) : filtered.map(u => {
+          const daysLeft = getDaysLeft(u.plan_expires_at);
+          const isExpired = daysLeft !== null && daysLeft <= 0;
+          const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
+          const sub = getSubStatus(u);
+          const us = userScores.get(u.id);
+          const sColor = us ? scoreColors[us.level] : null;
+
+          return (
+            <div
+              key={u.id}
+              onClick={() => onSelectClient(u)}
+              className="bg-card border border-border rounded-xl p-3.5 active:bg-muted/30 transition-colors cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-semibold text-sm truncate">{u.full_name || "—"}</span>
+                    {u.risk_flag && <AlertTriangle size={12} className="text-destructive shrink-0" />}
+                    {u.roles.includes("admin") && <Shield size={12} className="text-primary shrink-0" />}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.email}</p>
+                </div>
+                {us && sColor && (
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded shrink-0 ${sColor.bg} ${sColor.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${sColor.dot}`} />
+                    {us.score}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Plano</p>
+                  <p className={`font-semibold ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>{u.plan_name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Instâncias</p>
+                  <p className="font-semibold">
+                    <span className={u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-destructive" : "text-foreground"}>{u.devices_count}</span>
+                    <span className="text-muted-foreground">/{u.max_instances}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Status</p>
+                  <p className={`font-semibold ${sub.color}`}>{sub.label}</p>
+                </div>
+              </div>
+
+              {daysLeft !== null && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                  <span className="text-[11px] text-muted-foreground">
+                    {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                  <span className={`text-[11px] font-bold ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-400" : "text-muted-foreground"}`}>
+                    {isExpired ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d restantes`}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ═══ DESKTOP: Table layout ═══ */}
+      <div className="border border-border rounded-lg overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
