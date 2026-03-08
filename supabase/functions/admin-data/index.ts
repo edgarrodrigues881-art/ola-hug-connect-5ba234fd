@@ -1477,6 +1477,177 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── WA REPORT: GET CONFIG ───
+    if (action === "wa-report-config-get") {
+      const { data: config } = await adminClient.from("community_settings")
+        .select("key, value")
+        .in("key", ["wa_report_device_id", "wa_report_group_id", "wa_report_group_name"]);
+
+      const configMap: Record<string, string> = {};
+      for (const c of (config || [])) configMap[c.key] = c.value;
+
+      return new Response(JSON.stringify({
+        config: {
+          device_id: configMap["wa_report_device_id"] || null,
+          group_id: configMap["wa_report_group_id"] || null,
+          group_name: configMap["wa_report_group_name"] || null,
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── WA REPORT: SAVE CONFIG ───
+    if (action === "wa-report-config-save" && req.method === "POST") {
+      const { device_id, group_id, group_name } = await req.json();
+      const now = new Date().toISOString();
+
+      for (const [key, value] of [
+        ["wa_report_device_id", device_id],
+        ["wa_report_group_id", group_id],
+        ["wa_report_group_name", group_name || ""],
+      ]) {
+        const { data: existing } = await adminClient.from("community_settings")
+          .select("id").eq("key", key).maybeSingle();
+        if (existing) {
+          await adminClient.from("community_settings")
+            .update({ value, updated_at: now, updated_by: user.id })
+            .eq("key", key);
+        } else {
+          await adminClient.from("community_settings")
+            .insert({ key, value, updated_by: user.id });
+        }
+      }
+
+      await logAction(adminClient, user.id, null, "wa-report-config", `Config: device=${device_id}, group=${group_id}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── WA REPORT: LIST ADMIN DEVICES ───
+    if (action === "wa-report-devices") {
+      const { data: devices } = await adminClient.from("devices")
+        .select("id, name, number, status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      return new Response(JSON.stringify({ devices: devices || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── WA REPORT: SEND TO GROUP ───
+    if (action === "wa-report-send-group" && req.method === "POST") {
+      const { target_user_id, template_type, message_content, group_notification } = await req.json();
+
+      // Get config
+      const { data: configRows } = await adminClient.from("community_settings")
+        .select("key, value")
+        .in("key", ["wa_report_device_id", "wa_report_group_id"]);
+
+      const cfg: Record<string, string> = {};
+      for (const c of (configRows || [])) cfg[c.key] = c.value;
+
+      const deviceId = cfg["wa_report_device_id"];
+      const groupId = cfg["wa_report_group_id"];
+
+      if (!deviceId || !groupId) {
+        return new Response(JSON.stringify({ error: "Configuração incompleta: instância ou grupo não definido" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get device credentials
+      const { data: device } = await adminClient.from("devices")
+        .select("id, uazapi_token, uazapi_base_url")
+        .eq("id", deviceId)
+        .maybeSingle();
+
+      if (!device) {
+        return new Response(JSON.stringify({ error: "Dispositivo não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get token from pool if device doesn't have direct creds
+      let token = device.uazapi_token;
+      let baseUrl = device.uazapi_base_url;
+
+      if (!token) {
+        const { data: poolToken } = await adminClient.from("user_api_tokens")
+          .select("token")
+          .eq("device_id", deviceId)
+          .eq("status", "in_use")
+          .maybeSingle();
+        token = poolToken?.token || null;
+      }
+
+      if (!baseUrl) {
+        baseUrl = Deno.env.get("UAZAPI_BASE_URL") || "";
+      }
+
+      if (!token || !baseUrl) {
+        return new Response(JSON.stringify({ error: "Credenciais do dispositivo não encontradas" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cleanUrl = baseUrl.replace(/\/+$/, "");
+
+      // Send message to group via UaZapi
+      let sendSuccess = false;
+      let sendError = "";
+      try {
+        const res = await fetch(`${cleanUrl}/chat/send`, {
+          method: "POST",
+          headers: { token, "Content-Type": "application/json" },
+          body: JSON.stringify({ jid: groupId, message: group_notification }),
+        });
+        const resData = await res.json();
+        if (res.ok) {
+          sendSuccess = true;
+        } else {
+          sendError = JSON.stringify(resData).slice(0, 300);
+        }
+      } catch (e) {
+        sendError = e.message;
+      }
+
+      // Save to client_messages for history
+      await adminClient.from("client_messages").insert({
+        user_id: target_user_id,
+        admin_id: user.id,
+        template_type,
+        message_content,
+        observation: sendSuccess ? "Enviado via WhatsApp" : `Falha: ${sendError}`,
+      });
+
+      await logAction(adminClient, user.id, target_user_id, "wa-report-sent",
+        `Tipo: ${template_type}, Grupo: ${groupId}, Status: ${sendSuccess ? "OK" : sendError}`);
+
+      if (!sendSuccess) {
+        return new Response(JSON.stringify({ success: false, error: sendError }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── WA REPORT: HISTORY ───
+    if (action === "wa-report-history") {
+      const { data: messages } = await adminClient.from("client_messages")
+        .select("id, user_id, admin_id, template_type, message_content, observation, sent_at, created_at")
+        .order("sent_at", { ascending: false })
+        .limit(100);
+
+      return new Response(JSON.stringify({ messages: messages || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
