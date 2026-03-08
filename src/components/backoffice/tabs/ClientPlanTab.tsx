@@ -52,10 +52,10 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [includeNotification, setIncludeNotification] = useState<boolean>(detail?.profile?.notificacao_liberada ?? false);
 
   const planConfig = PLANS[planName] || PLANS.Start;
-  const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
-  const totalPrice = planConfig.price + (includeNotification ? notificationPrice : 0);
   const isTrial = planName === "Trial";
   const isNoPlan = planName === "Sem plano";
+  const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
+  const totalPrice = planConfig.price + (includeNotification ? notificationPrice : 0);
   const cycleDays = isTrial ? trialDays : 30;
   
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
