@@ -386,12 +386,9 @@ const Devices = () => {
       const { data, error } = await supabase.functions.invoke("manage-devices", {
         body: { action: "create", name: device.name, login_type: device.login_type },
       });
-      // Extract real error from data when edge function returns non-2xx
       if (error) {
-        // data may contain parsed JSON error, or extract from error.message
         let realMsg = data?.error || "";
         if (!realMsg && error.message) {
-          // Try to extract JSON error from message like: 'Edge function returned 400: Error, {"error":"..."}'
           const jsonMatch = error.message.match(/\{"error"\s*:\s*"([^"]+)"\}/);
           realMsg = jsonMatch?.[1] || error.message;
         }
@@ -400,8 +397,29 @@ const Devices = () => {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Optimistic: add the new device to cache immediately
+      if (data?.device) {
+        queryClient.setQueryData(["devices"], (old: Device[] | undefined) => {
+          if (!old) return old;
+          return [...old, {
+            id: data.device.id,
+            name: data.device.name,
+            number: data.device.number || "",
+            status: data.device.status || "Disconnected",
+            login_type: data.device.login_type || "qr",
+            proxy_id: data.device.proxy_id || null,
+            profile_picture: null,
+            profile_name: null,
+            created_at: data.device.created_at || new Date().toISOString(),
+            updated_at: data.device.updated_at || new Date().toISOString(),
+            has_api_config: false,
+          } as Device];
+        });
+      }
+      // Background refresh for accurate data
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["sidebar-stats"] });
       toast({ title: "Instância criada" });
     },
     onError: (err: any) => {
