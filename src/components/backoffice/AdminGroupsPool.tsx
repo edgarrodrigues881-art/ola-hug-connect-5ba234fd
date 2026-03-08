@@ -149,7 +149,7 @@ const AdminGroupsPool = () => {
       {/* Groups list */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Grupos do Pool ({groups.length})</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Grupo De Aquecimento ({groups.length})</p>
           <Button variant="ghost" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ["admin-groups-pool"] })}>
             <RefreshCw size={12} className="mr-1" /> Atualizar
           </Button>
