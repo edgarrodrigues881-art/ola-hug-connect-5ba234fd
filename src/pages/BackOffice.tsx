@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTheme } from "next-themes";
+
 import BackOfficeDashboard from "@/components/backoffice/BackOfficeDashboard";
 
 const BackOffice = () => {
@@ -18,13 +18,12 @@ const BackOffice = () => {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const { toast } = useToast();
-  const { setTheme } = useTheme();
 
-  // Force light theme on BackOffice
+  // Force light theme locally via class on the wrapper
   useEffect(() => {
-    setTheme("light");
-    return () => setTheme("system");
-  }, [setTheme]);
+    document.documentElement.classList.add("backoffice-light");
+    return () => document.documentElement.classList.remove("backoffice-light");
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
