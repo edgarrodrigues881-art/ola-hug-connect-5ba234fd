@@ -519,6 +519,29 @@ const Devices = () => {
       });
       return;
     }
+    // Optimistic: add placeholder devices immediately
+    muteAutoSync(5000);
+    const startIdx = devices.length + 1;
+    const tempDevices: Device[] = Array.from({ length: totalCount }, (_, i) => ({
+      id: `temp-bulk-${Date.now()}-${i}`,
+      name: `${bulkPrefix} ${startIdx + i}`,
+      number: "",
+      status: "Disconnected" as const,
+      login_type: "qr",
+      proxy_id: proxyIds[i] || null,
+      profile_picture: null,
+      profile_name: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      has_api_config: false,
+    }));
+    queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+      old ? [...old, ...tempDevices] : tempDevices
+    );
+    toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
+    setBulkOpen(false);
+
+    // Fire API in background
     try {
       const { data, error } = await supabase.functions.invoke("manage-devices", {
         body: {
@@ -526,17 +549,15 @@ const Devices = () => {
           prefix: bulkPrefix,
           proxyIds,
           noProxyCount,
-          startIndex: devices.length + 1,
+          startIndex: startIdx,
         },
       });
       if (error) throw new Error(error.message || "Erro ao criar instâncias");
       if (data?.error) throw new Error(data.error);
-
       queryClient.invalidateQueries({ queryKey: ["devices"] });
-      toast({ title: `${totalCount} instância${totalCount !== 1 ? "s" : ""} criada${totalCount !== 1 ? "s" : ""}` });
-      setBulkOpen(false);
     } catch (err: any) {
       const msg = err?.message || "";
+      // Rollback temp devices
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       if (msg.includes("Limite") || msg.includes("LIMIT")) {
         toast({ title: "Limite de instâncias atingido", description: msg, variant: "destructive" });
