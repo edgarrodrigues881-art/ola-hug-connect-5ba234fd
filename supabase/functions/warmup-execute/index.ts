@@ -78,7 +78,7 @@ async function uazapiRequest(
     try {
       const d = JSON.parse(text);
       errorMsg = d?.message || d?.error || text;
-    } catch {
+    } catch (_e) {
       errorMsg = text;
     }
     throw new Error(errorMsg);
