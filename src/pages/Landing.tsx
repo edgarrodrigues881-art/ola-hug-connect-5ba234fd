@@ -20,6 +20,17 @@ const prefetchRoutes = () => {
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
 
+// ─── Grid pattern background ───
+const GridPattern = () => (
+  <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
+    <div className="absolute inset-0" style={{
+      backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
+      backgroundSize: '64px 64px',
+    }} />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
+  </div>
+);
+
 // ─── Navbar ───
 const Navbar = () => {
   const navigate = useNavigate();
@@ -30,74 +41,79 @@ const Navbar = () => {
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-5">
         <div className="flex items-center gap-2.5">
           <img src={logo} alt="DG" width={32} height={32} className="rounded-lg" />
-          <span className="text-sm font-semibold text-white tracking-tight">
+          <span className="text-sm font-bold text-white tracking-tight">
             DG Contingência <span className="text-[hsl(var(--primary))]">PRO</span>
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-7">
           {[["beneficios", "Benefícios"], ["como-funciona", "Como funciona"], ["recursos", "Recursos"], ["planos", "Planos"], ["faq", "FAQ"]].map(([id, label]) => (
-            <button key={id} onClick={() => scroll(id)} className="text-[13px] text-white/45 hover:text-white transition-colors">{label}</button>
+            <button key={id} onClick={() => scroll(id)} className="text-[13px] font-medium text-white/45 hover:text-white transition-colors">{label}</button>
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-xs text-white/50 hover:text-white hover:bg-white/5">Entrar</Button>
-          <Button size="sm" onClick={() => navigate("/auth?mode=signup")} className="text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white">Criar conta</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-xs font-medium text-white/50 hover:text-white hover:bg-white/5">Entrar</Button>
+          <Button size="sm" onClick={() => navigate("/auth?mode=signup")} className="text-xs font-semibold bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white">Criar conta</Button>
         </div>
       </div>
     </header>
   );
 };
 
-// ─── Section wrapper ───
+// ─── Section wrapper ─── (120px spacing)
 const Section = ({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) => (
-  <section id={id} className={`py-20 md:py-28 px-5 ${className}`}>
+  <section id={id} className={`py-[60px] md:py-[120px] px-5 ${className}`}>
     <div className="max-w-6xl mx-auto">{children}</div>
   </section>
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.15em] text-[hsl(var(--primary))] mb-4">{children}</span>
+  <span className="inline-block text-[11px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--primary))] mb-4">{children}</span>
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-2xl md:text-4xl font-bold text-white tracking-tight mb-4">{children}</h2>
+  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">{children}</h2>
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm md:text-base text-white/50 max-w-2xl leading-relaxed">{children}</p>
+  <p className="text-sm md:text-base text-white/55 max-w-2xl leading-relaxed font-medium">{children}</p>
 );
 
 // ─── 1. Hero ───
 const Hero = () => {
   const navigate = useNavigate();
   return (
-    <Section className="pt-32 md:pt-44 pb-16 md:pb-24 text-center">
-      <motion.div initial="hidden" animate="visible" variants={stagger}>
-        <motion.div variants={fadeUp}>
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-[11px] text-white/60 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] animate-pulse" />
-            Plataforma de contingência profissional
-          </span>
+    <section className="relative pt-32 md:pt-48 pb-20 md:pb-32 px-5 text-center overflow-hidden">
+      {/* Radial glow behind title */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none" aria-hidden>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.12)_0%,transparent_70%)]" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-[hsl(var(--primary))]/8 rounded-full blur-[100px]" />
+      </div>
+      <div className="max-w-6xl mx-auto relative z-10">
+        <motion.div initial="hidden" animate="visible" variants={stagger}>
+          <motion.div variants={fadeUp}>
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] font-semibold text-white/60 mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] animate-pulse" />
+              Plataforma de contingência profissional
+            </span>
+          </motion.div>
+          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
+            Gerencie seus disparos com{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima performance</span>
+          </motion.h1>
+          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
+            Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar com segurança.
+          </motion.p>
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm font-semibold px-8 h-12 gap-2 shadow-lg shadow-[hsl(var(--primary))]/20">
+              Começar agora <ArrowRight className="w-4 h-4" />
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })} className="border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm font-semibold px-8 h-12">
+              Ver planos
+            </Button>
+          </motion.div>
         </motion.div>
-        <motion.h1 variants={fadeUp} className="text-3xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-[1.1] mb-5 max-w-3xl mx-auto">
-          Gerencie seus disparos com{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima performance</span>
-        </motion.h1>
-        <motion.p variants={fadeUp} className="text-sm sm:text-base md:text-lg text-white/45 max-w-xl mx-auto mb-8 leading-relaxed">
-          Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar com segurança.
-        </motion.p>
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm px-7 h-11 gap-2">
-            Começar agora <ArrowRight className="w-4 h-4" />
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })} className="border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm px-7 h-11">
-            Ver planos
-          </Button>
-        </motion.div>
-      </motion.div>
-      {/* gradient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[hsl(var(--primary))]/10 rounded-full blur-[120px] pointer-events-none" />
-    </Section>
+      </div>
+    </section>
   );
 };
 
@@ -111,19 +127,19 @@ const benefits = [
 
 const Benefits = () => (
   <Section id="beneficios">
-    <div className="text-center mb-14">
+    <div className="text-center mb-16">
       <SectionLabel>Benefícios</SectionLabel>
       <SectionTitle>Por que escolher a DG?</SectionTitle>
       <SectionSub>Infraestrutura pensada para quem opera em grande escala.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {benefits.map((b) => (
-        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
-          <div className="w-10 h-10 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center mb-4 group-hover:bg-[hsl(var(--primary))]/15 transition-colors">
+        <motion.div key={b.title} variants={fadeUp} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
+          <div className="w-11 h-11 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center mb-5 group-hover:bg-[hsl(var(--primary))]/15 transition-colors">
             <b.icon className="w-5 h-5 text-[hsl(var(--primary))]" />
           </div>
-          <h3 className="text-sm font-semibold text-white mb-2">{b.title}</h3>
-          <p className="text-xs text-white/40 leading-relaxed">{b.desc}</p>
+          <h3 className="text-[15px] font-bold text-white mb-2">{b.title}</h3>
+          <p className="text-[13px] text-white/45 leading-relaxed">{b.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -140,18 +156,18 @@ const steps = [
 
 const HowItWorks = () => (
   <Section id="como-funciona" className="bg-white/[0.01]">
-    <div className="text-center mb-14">
+    <div className="text-center mb-16">
       <SectionLabel>Como funciona</SectionLabel>
       <SectionTitle>4 passos para começar</SectionTitle>
       <SectionSub>Do cadastro ao primeiro disparo em minutos.</SectionSub>
     </div>
-    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {steps.map((s, i) => (
         <motion.div key={s.num} variants={fadeUp} className="relative text-center md:text-left">
-          <span className="text-4xl font-bold text-[hsl(var(--primary))]/15 block mb-3 font-mono">{s.num}</span>
-          <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
-          <p className="text-xs text-white/40 leading-relaxed">{s.desc}</p>
-          {i < 3 && <div className="hidden md:block absolute top-6 -right-3 w-6 border-t border-dashed border-white/10" />}
+          <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/10 block mb-3 font-mono">{s.num}</span>
+          <h3 className="text-[15px] font-bold text-white mb-2">{s.title}</h3>
+          <p className="text-[13px] text-white/45 leading-relaxed">{s.desc}</p>
+          {i < 3 && <div className="hidden md:block absolute top-8 -right-4 w-8 border-t border-dashed border-white/10" />}
         </motion.div>
       ))}
     </motion.div>
@@ -170,17 +186,17 @@ const features = [
 
 const Features = () => (
   <Section id="recursos">
-    <div className="text-center mb-14">
+    <div className="text-center mb-16">
       <SectionLabel>Recursos</SectionLabel>
       <SectionTitle>Tudo que você precisa</SectionTitle>
       <SectionSub>Funcionalidades pensadas para operação profissional.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {features.map((f) => (
-        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 hover:border-white/10 transition-all">
-          <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-4" />
-          <h3 className="text-sm font-semibold text-white mb-2">{f.title}</h3>
-          <p className="text-xs text-white/40 leading-relaxed">{f.desc}</p>
+        <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
+          <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-5" />
+          <h3 className="text-[15px] font-bold text-white mb-2">{f.title}</h3>
+          <p className="text-[13px] text-white/45 leading-relaxed">{f.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -199,39 +215,43 @@ const Plans = () => {
   const navigate = useNavigate();
   return (
     <Section id="planos" className="bg-white/[0.01]">
-      <div className="text-center mb-14">
+      <div className="text-center mb-16">
         <SectionLabel>Planos</SectionLabel>
         <SectionTitle>Escolha o plano ideal</SectionTitle>
         <SectionSub>Todos os planos incluem acesso completo à plataforma.</SectionSub>
       </div>
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
         {plans.map((p) => (
           <motion.div key={p.name} variants={fadeUp}
-            className={`relative rounded-2xl border p-6 transition-all ${
-              p.popular ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.04]" : "border-white/[0.06] bg-white/[0.02]"
+            className={`relative rounded-2xl border transition-all duration-300 ${
+              p.popular
+                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.05] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
+                : "border-white/[0.06] bg-white/[0.02] p-7 md:p-8 hover:border-white/10"
             }`}
           >
             {p.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wider bg-[hsl(var(--primary))] text-white px-3 py-1 rounded-full">
+              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-[hsl(var(--primary))] text-white px-4 py-1.5 rounded-full shadow-lg shadow-[hsl(var(--primary))]/30">
                 Popular
               </span>
             )}
-            <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
-            <p className="text-xs text-white/40 mb-5">{p.instances} instâncias</p>
-            <ul className="space-y-2.5 mb-6">
+            <h3 className="text-xl font-extrabold text-white mb-1.5">{p.name}</h3>
+            <p className="text-[13px] text-white/45 font-medium mb-6">{p.instances} instâncias</p>
+            <ul className="space-y-3 mb-7">
               {["Disparos ilimitados", "Warmup automático", "Campanhas avançadas", "Suporte prioritário"].map((item) => (
-                <li key={item} className="flex items-center gap-2 text-xs text-white/50">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />{item}
+                <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/55 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
                 </li>
               ))}
-              <li className="flex items-center gap-2 text-xs text-white/50">
-                <CheckCircle2 className={`w-3.5 h-3.5 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
+              <li className="flex items-center gap-2.5 text-[13px] font-medium text-white/55">
+                <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
                 <span className={p.whatsappReports ? "" : "text-white/25"}>Relatórios WhatsApp {p.whatsappReports ? "incluso" : ""}</span>
               </li>
             </ul>
             <Button onClick={() => navigate("/auth?mode=signup")}
-              className={`w-full text-xs h-9 ${
-                p.popular ? "bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white" : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+              className={`w-full text-[13px] font-semibold h-10 ${
+                p.popular
+                  ? "bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shadow-md shadow-[hsl(var(--primary))]/20"
+                  : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
               }`}
             >
               Contratar plano
@@ -247,21 +267,21 @@ const Plans = () => {
 const Addon = () => (
   <Section>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-      className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+      className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
     >
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center flex-shrink-0">
+      <div className="flex items-start gap-5">
+        <div className="w-13 h-13 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center flex-shrink-0" style={{ width: 52, height: 52 }}>
           <MessageSquare className="w-6 h-6 text-[hsl(var(--primary))]" />
         </div>
         <div>
-          <h3 className="text-base font-semibold text-white mb-1">Relatórios via WhatsApp</h3>
-          <p className="text-xs text-white/40 leading-relaxed max-w-md">
+          <h3 className="text-lg font-bold text-white mb-1.5">Relatórios via WhatsApp</h3>
+          <p className="text-[13px] text-white/45 leading-relaxed max-w-md font-medium">
             Receba alertas de desconexão, fim de campanha e relatórios periódicos direto no seu WhatsApp. Incluso nos planos Scale e Elite.
           </p>
         </div>
       </div>
       <div className="flex items-center gap-4 flex-shrink-0">
-        <span className="text-2xl font-bold text-white">R$18,90<span className="text-xs font-normal text-white/40">/mês</span></span>
+        <span className="text-3xl font-extrabold text-white">R$18,90<span className="text-sm font-medium text-white/40">/mês</span></span>
       </div>
     </motion.div>
   </Section>
@@ -278,18 +298,18 @@ const faqs = [
 
 const FAQ = () => (
   <Section id="faq" className="bg-white/[0.01]">
-    <div className="text-center mb-14">
+    <div className="text-center mb-16">
       <SectionLabel>FAQ</SectionLabel>
       <SectionTitle>Perguntas frequentes</SectionTitle>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
         <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-          <summary className="flex items-center justify-between px-5 py-4 cursor-pointer text-sm font-medium text-white/80 hover:text-white transition-colors list-none">
+          <summary className="flex items-center justify-between px-6 py-5 cursor-pointer text-[15px] font-semibold text-white/80 hover:text-white transition-colors list-none">
             {f.q}
             <ChevronDown className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" />
           </summary>
-          <p className="px-5 pb-4 text-xs text-white/40 leading-relaxed">{f.a}</p>
+          <p className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed font-medium">{f.a}</p>
         </motion.details>
       ))}
     </motion.div>
@@ -302,19 +322,19 @@ const CTAFinal = () => {
   return (
     <Section>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="relative text-center rounded-2xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.06] to-transparent p-10 md:p-16 overflow-hidden"
+        className="relative text-center rounded-3xl border border-[hsl(var(--primary))]/20 bg-gradient-to-b from-[hsl(var(--primary))]/[0.08] to-transparent p-12 md:p-20 overflow-hidden"
       >
-        <div className="absolute inset-0 bg-[hsl(var(--primary))]/5 rounded-2xl blur-[60px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[hsl(var(--primary))]/5 rounded-3xl blur-[80px] pointer-events-none" />
         <div className="relative">
-          <Rocket className="w-8 h-8 text-[hsl(var(--primary))] mx-auto mb-5" />
-          <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 tracking-tight">
+          <Rocket className="w-10 h-10 text-[hsl(var(--primary))] mx-auto mb-6" />
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-5 tracking-tight leading-tight">
             Pronto para escalar sua operação?
           </h2>
-          <p className="text-sm text-white/45 max-w-md mx-auto mb-7">
+          <p className="text-base text-white/50 max-w-md mx-auto mb-9 font-medium">
             Crie sua conta agora e comece a operar com a infraestrutura que sua operação merece.
           </p>
-          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm px-8 h-11 gap-2">
-            Começar agora <ArrowRight className="w-4 h-4" />
+          <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-base font-bold px-10 h-14 gap-2.5 shadow-xl shadow-[hsl(var(--primary))]/25 rounded-xl">
+            Começar agora <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
       </motion.div>
@@ -324,11 +344,11 @@ const CTAFinal = () => {
 
 // ─── Footer ───
 const FooterSection = () => (
-  <footer className="py-10 px-5 border-t border-white/[0.04]">
+  <footer className="py-12 px-5 border-t border-white/[0.04]">
     <div className="max-w-6xl mx-auto flex flex-col items-center gap-4">
       <div className="flex items-center gap-2.5">
         <img src={logo} alt="DG" width={28} height={28} className="rounded-lg" />
-        <span className="text-sm font-medium text-white">DG Contingência</span>
+        <span className="text-sm font-semibold text-white">DG Contingência</span>
       </div>
       <p className="text-[11px] text-white/30 text-center max-w-lg leading-relaxed">
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
@@ -353,16 +373,19 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative" style={{ overflowX: "hidden" }}>
-      <Navbar />
-      <Hero />
-      <Benefits />
-      <HowItWorks />
-      <Features />
-      <Plans />
-      <Addon />
-      <FAQ />
-      <CTAFinal />
-      <FooterSection />
+      <GridPattern />
+      <div className="relative z-10">
+        <Navbar />
+        <Hero />
+        <Benefits />
+        <HowItWorks />
+        <Features />
+        <Plans />
+        <Addon />
+        <FAQ />
+        <CTAFinal />
+        <FooterSection />
+      </div>
       <WhatsAppFloat />
     </div>
   );
