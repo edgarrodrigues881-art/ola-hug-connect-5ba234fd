@@ -38,7 +38,7 @@ const WelcomeSplash = () => {
             </motion.span>
 
             <motion.span
-              className="text-sm font-bold tracking-[0.5em] uppercase text-slate-600 dark:text-muted-foreground/60"
+              className="text-sm font-bold tracking-[0.5em] uppercase text-slate-700 dark:text-muted-foreground/60"
               style={{ willChange: "opacity" }}
               initial={{ opacity: 0 }}
               animate={phase >= 2 ? { opacity: 1 } : undefined}
@@ -57,7 +57,7 @@ const WelcomeSplash = () => {
               <img
                 src={logo}
                 alt="DG Contingência Pro"
-                className="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl shadow-lg"
+                className="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl"
               />
             </motion.div>
 
@@ -69,7 +69,7 @@ const WelcomeSplash = () => {
               transition={{ duration: 0.5, delay: 0.1 }}
             >
               <h1
-                className="text-2xl sm:text-5xl font-black tracking-tight text-center text-slate-900 dark:text-foreground"
+                className="text-2xl sm:text-5xl font-black tracking-tight text-center text-black dark:text-foreground"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 <span className="text-primary">DG</span>{" "}
@@ -77,7 +77,7 @@ const WelcomeSplash = () => {
                 <span className="text-primary">PRO</span>
               </h1>
               <motion.span
-                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-slate-500 dark:text-muted-foreground/40 font-bold"
+                className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-slate-600 dark:text-muted-foreground/40 font-bold"
                 style={{ willChange: "opacity" }}
                 initial={{ opacity: 0 }}
                 animate={phase >= 3 ? { opacity: 1 } : undefined}
