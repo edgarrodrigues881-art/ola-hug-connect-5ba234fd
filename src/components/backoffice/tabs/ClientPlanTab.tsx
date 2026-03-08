@@ -123,8 +123,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
       body: {
         target_user_id: client.id,
         plan_name: planName,
-        plan_price: planConfig.price,
-        max_instances: planConfig.max_instances,
+        plan_price: totalPrice,
         started_at: cycleStart,
         expires_at: cycleEnd,
       },
