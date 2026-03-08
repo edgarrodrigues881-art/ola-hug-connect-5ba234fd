@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 import BackOfficeDashboard from "@/components/backoffice/BackOfficeDashboard";
 
 const BackOffice = () => {
@@ -17,6 +18,13 @@ const BackOffice = () => {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const { toast } = useToast();
+  const { setTheme } = useTheme();
+
+  // Force light theme on BackOffice
+  useEffect(() => {
+    setTheme("light");
+    return () => setTheme("system");
+  }, [setTheme]);
 
   useEffect(() => {
     let isMounted = true;
@@ -103,7 +111,6 @@ const BackOffice = () => {
     return (
       <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4">
         <div className="w-full max-w-[400px]">
-          {/* Logo / Brand */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
               <Lock size={24} className="text-primary" />
@@ -120,56 +127,35 @@ const BackOffice = () => {
             <form onSubmit={handleReset} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
-                <Input
-                  placeholder="admin@empresa.com"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20"
-                />
+                <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20" />
               </div>
               <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
-                {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Enviar Link
+                {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Enviar Link
               </Button>
-              <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">
-                Voltar ao login
-              </button>
+              <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">Voltar ao login</button>
             </form>
           ) : (
             <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-[#e5e9f0] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">E-mail</label>
-                <Input
-                  placeholder="admin@empresa.com"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20"
-                />
+                <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] focus:border-primary focus:ring-primary/20" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#4c566a] uppercase tracking-wider mb-1.5 block">Senha</label>
                 <div className="relative">
-                  <Input
-                    type={showPass ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={pass}
-                    onChange={(e) => setPass(e.target.value)}
-                    className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] pr-10 focus:border-primary focus:ring-primary/20"
-                  />
+                  <Input type={showPass ? "text" : "password"} placeholder="••••••••" value={pass} onChange={(e) => setPass(e.target.value)}
+                    className="h-11 bg-[#f8f9fc] border-[#e5e9f0] text-[#2e3440] placeholder:text-[#b0b8c8] pr-10 focus:border-primary focus:ring-primary/20" />
                   <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#b0b8c8] hover:text-[#4c566a]">
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
               <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl">
-                {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Entrar
+                {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Entrar
               </Button>
-              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-[#8892a4] hover:text-primary font-medium">
-                Esqueci minha senha
-              </button>
+              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-[#8892a4] hover:text-primary font-medium">Esqueci minha senha</button>
             </form>
           )}
         </div>
