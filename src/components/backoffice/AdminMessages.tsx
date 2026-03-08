@@ -647,32 +647,53 @@ const AdminMessages = () => {
                   <p className="text-[10px] text-muted-foreground/60">Verifique se a instância está conectada.</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[400px]">
-                  <div className="space-y-1.5">
-                    {deviceGroups.map((g: any) => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          setConfigGroupId(g.id);
-                          setConfigGroupName(g.name);
-                        }}
-                        className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all text-left ${
-                          configGroupId === g.id ? "bg-primary/10 border-primary/40" : "bg-muted/10 border-border hover:border-primary/20"
-                        }`}
-                      >
-                        <Users size={14} className={configGroupId === g.id ? "text-primary" : "text-muted-foreground"} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate">{g.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono truncate">{g.id}</p>
-                        </div>
-                        {g.participants > 0 && (
-                          <span className="text-[9px] text-muted-foreground">{g.participants} membros</span>
-                        )}
-                        {configGroupId === g.id && <Check size={14} className="text-primary shrink-0" />}
-                      </button>
-                    ))}
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Search size={13} className="text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar grupo..."
+                      value={groupSearch}
+                      onChange={e => setGroupSearch(e.target.value)}
+                      className="h-8 text-xs bg-background border-border/60"
+                    />
+                    <Badge variant="outline" className="text-[9px] shrink-0 px-2">
+                      {deviceGroups.length} grupos
+                    </Badge>
                   </div>
-                </ScrollArea>
+                  <ScrollArea className="max-h-[450px]">
+                    <div className="space-y-1.5">
+                      {deviceGroups
+                        .filter((g: any) => {
+                          if (!groupSearch) return true;
+                          const q = groupSearch.toLowerCase();
+                          return (g.name || "").toLowerCase().includes(q) || (g.id || "").toLowerCase().includes(q);
+                        })
+                        .sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""))
+                        .map((g: any) => (
+                        <button
+                          key={g.id}
+                          onClick={() => {
+                            setConfigGroupId(g.id);
+                            setConfigGroupName(g.name);
+                          }}
+                          className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all text-left ${
+                            configGroupId === g.id ? "bg-primary/10 border-primary/40" : "bg-muted/10 border-border hover:border-primary/20"
+                          }`}
+                        >
+                          <Users size={14} className={configGroupId === g.id ? "text-primary" : "text-muted-foreground"} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{g.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate">{g.id}</p>
+                          </div>
+                          {g.participants > 0 && (
+                            <span className="text-[9px] text-muted-foreground">{g.participants} membros</span>
+                          )}
+                          {configGroupId === g.id && <Check size={14} className="text-primary shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
               )}
             </div>
           )}
