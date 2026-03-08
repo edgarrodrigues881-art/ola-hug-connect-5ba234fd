@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pencil, Check, X, TrendingUp, TrendingDown, DollarSign, CreditCard, Tag, AlertTriangle, BarChart3 } from "lucide-react";
+import RevenueChart from "./RevenueChart";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { AdminDashboard } from "@/hooks/useAdmin";
