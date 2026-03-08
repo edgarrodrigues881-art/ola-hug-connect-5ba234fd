@@ -61,7 +61,7 @@ const Navbar = () => {
 
 // ─── Section wrapper ─── (120px spacing)
 const Section = ({ id, children, className = "" }: { id?: string; children: React.ReactNode; className?: string }) => (
-  <section id={id} className={`py-[60px] md:py-[120px] px-5 ${className}`}>
+  <section id={id} className={`py-12 md:py-20 px-5 ${className}`}>
     <div className="max-w-6xl mx-auto">{children}</div>
   </section>
 );
