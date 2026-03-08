@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
       try {
         const { baseUrl, token: apiToken } = await getDeviceCredentials(targetId);
         await uazapiRequest(baseUrl, apiToken, "/instance/logout", "POST", {});
-      } catch { /* best effort */ }
+      } catch (_e) { /* best effort */ }
 
       await serviceClient.from("report_wa_configs").update({
         connection_status: "disconnected",
@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
           connectedPhone: isConnected ? (formattedPhone || config.connected_phone) : config.connected_phone,
           config,
         });
-      } catch {
+      } catch (_e) {
         return json({
           status: config.connection_status || "disconnected",
           connectedPhone: config.connected_phone,
@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
         if (listGroups.length > refreshedGroups.length) {
           refreshedGroups = listGroups;
         }
-      } catch { /* fallback */ }
+      } catch (_e) { /* fallback */ }
 
       // Map to normalized format
       const mapped = refreshedGroups.map((g: any) => {
@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
               if (!groupName && info.GroupName?.Name) {
                 groupName = info.GroupName.Name;
               }
-            } catch { /* try next */ }
+            } catch (_e) { /* try next */ }
           }
         }
         
@@ -513,7 +513,7 @@ Deno.serve(async (req) => {
             if (res.status >= 200 && res.status < 300 && !sendData.error && sendData.code !== 404) {
               sendSuccess = true;
             }
-          } catch { /* try next */ }
+          } catch (_e) { /* try next */ }
         }
         
         if (!sendSuccess) {
