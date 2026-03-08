@@ -437,13 +437,13 @@ const Auth = () => {
             </form>
 
             {/* Security microcopy */}
-            <div className="flex items-center justify-center gap-2 mt-5 text-[11px] text-[#6B7280] font-medium">
+            <div className="flex items-center justify-center gap-2 mt-5 text-[11px] text-[#9CA3AF] font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Ambiente seguro e criptografado</span>
             </div>
 
             {/* Divider */}
-            <div className="my-7 border-t border-[#1E2330]/60" />
+            <div className="my-7 border-t border-[#1E2330]" />
 
             <p className="text-center text-sm font-medium text-[#9CA3AF]">
               {isLogin ? "Não tem conta? " : "Já tem conta? "}
