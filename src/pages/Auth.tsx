@@ -478,6 +478,7 @@ const Auth = () => {
         </Tooltip>
       </TooltipProvider>
       <SupportButton />
+      </div>
     </div>
   );
 };
