@@ -215,7 +215,7 @@ const Plans = () => {
   const navigate = useNavigate();
   return (
     <Section id="planos">
-      <div className="text-center mb-16">
+      <div className="text-center mb-10">
         <SectionLabel>Planos</SectionLabel>
         <SectionTitle>Escolha o plano ideal</SectionTitle>
         <SectionSub>Todos os planos incluem acesso completo à plataforma.</SectionSub>
