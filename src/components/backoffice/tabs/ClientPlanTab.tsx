@@ -309,11 +309,16 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
+                  type="text"
+                  inputMode="decimal"
                   value={manualPrice !== "" ? manualPrice : autoTotal.toFixed(2)}
-                  onChange={e => setManualPrice(e.target.value)}
+                  onFocus={e => {
+                    if (manualPrice === "") setManualPrice(e.target.value);
+                  }}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                    setManualPrice(v);
+                  }}
                   className="bg-muted/30 border-border text-foreground h-9 rounded-lg pl-9"
                 />
               </div>
