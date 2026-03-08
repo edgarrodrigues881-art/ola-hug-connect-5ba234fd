@@ -1745,7 +1745,7 @@ const Devices = () => {
                       })();
                     }}}
                   />
-                  <p className="text-[11px] text-muted-foreground/50 text-center">Exemplo: 5563912345678</p>
+                  <p className="text-[11px] text-muted-foreground/50 text-center">Exemplo: +55 63 91234-5678</p>
                 </div>
                 <div className="flex items-center gap-3 pt-2">
                   <Button variant="outline" className="flex-1 h-10" onClick={() => setConnectStep("proxy")}>Voltar</Button>
