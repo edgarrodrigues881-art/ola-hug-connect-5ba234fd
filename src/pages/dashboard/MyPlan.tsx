@@ -237,13 +237,13 @@ const MyPlan = () => {
               Veja o que cada plano oferece lado a lado.
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm">
+            <table className="w-full text-sm min-w-[420px]">
               <thead>
                 <tr className="bg-muted/20 dark:bg-white/[0.02]">
-                  <th className="text-left px-5 py-4 text-[11px] font-semibold uppercase tracking-wider w-[200px] text-muted-foreground/50">Recurso</th>
+                  <th className="text-left px-3 sm:px-5 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[120px] sm:w-[200px] text-muted-foreground/50">Recurso</th>
                   {plans.map(p => (
-                    <th key={p.name} className={`text-center px-3 py-4 text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-primary" : "text-foreground/50"}`}>
+                    <th key={p.name} className={`text-center px-2 sm:px-3 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-primary" : "text-foreground/50"}`}>
                       {p.name}
                     </th>
                   ))}
@@ -254,11 +254,11 @@ const MyPlan = () => {
                   <tr key={ri}
                     className={`transition-colors duration-100 border-t border-border/20 hover:bg-muted/20 dark:hover:bg-white/[0.02] ${ri % 2 === 1 ? "bg-muted/8 dark:bg-white/[0.008]" : ""}`}
                   >
-                    <td className="px-5 py-3.5 text-[13px] font-medium text-foreground/60">
+                    <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-[12px] sm:text-[13px] font-medium text-foreground/60">
                       {row.label}
                     </td>
                     {row.values.map((val, vi) => (
-                      <td key={vi} className="text-center px-3 py-3.5">
+                      <td key={vi} className="text-center px-2 sm:px-3 py-3 sm:py-3.5">
                         {typeof val === "boolean" ? (
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-primary" strokeWidth={2.5} />
