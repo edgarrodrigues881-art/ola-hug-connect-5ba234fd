@@ -67,7 +67,13 @@ export function useCreateWarmup() {
       if (error) throw error;
       return data as unknown as WarmupSession;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] }),
+    onSuccess: (newSession) => {
+      // Optimistic cache update
+      queryClient.setQueryData(["warmup_sessions", newSession.user_id], (old: WarmupSession[] | undefined) =>
+        old ? [newSession, ...old] : [newSession]
+      );
+      queryClient.invalidateQueries({ queryKey: ["warmup_sessions"] });
+    },
   });
 }
 
