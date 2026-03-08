@@ -131,7 +131,7 @@ const Auth = () => {
         } else {
           sessionStorage.removeItem("dg_session_alive");
         }
-        navigate(redirectTo);
+        navigate(`/welcome?to=${encodeURIComponent(redirectTo)}`);
       } else {
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
