@@ -195,7 +195,9 @@ Deno.serve(async (req) => {
         const isConnected = state === "connected" || state === "authenticated";
         const phone = inst.owner || inst.phone || data.phone || "";
 
-        if (phone) {
+        // Only use phone from provider if instance is CONNECTED
+        // When disconnected, the provider may return stale data from a previous session
+        if (isConnected && phone) {
           const raw = String(phone).replace(/\D/g, "");
           if (raw.startsWith("55") && raw.length === 13) {
             formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
@@ -206,6 +208,9 @@ Deno.serve(async (req) => {
           } else if (raw) {
             formattedPhone = `+${raw}`;
           }
+        } else if (!isConnected) {
+          // Clear phone when disconnected to avoid stale data from reused tokens
+          formattedPhone = "";
         }
 
         profilePicture = inst.profilePicUrl || device.profile_picture || null;
