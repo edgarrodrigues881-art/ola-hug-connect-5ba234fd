@@ -30,14 +30,14 @@ const WelcomeSplash = () => {
         >
           {/* Horizontal blur stripe behind logo */}
           <motion.div
-            className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-40 sm:h-52"
+            className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-32 sm:h-40"
             style={{
-              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.06) 20%, hsl(var(--primary) / 0.10) 50%, hsl(var(--primary) / 0.06) 80%, transparent 100%)",
-              filter: "blur(40px)",
+              background: "linear-gradient(90deg, transparent 5%, hsl(var(--primary) / 0.12) 30%, hsl(var(--primary) / 0.18) 50%, hsl(var(--primary) / 0.12) 70%, transparent 95%)",
+              filter: "blur(50px)",
             }}
-            initial={{ opacity: 0, scaleX: 0.3 }}
-            animate={phase >= 1 ? { opacity: 1, scaleX: 1 } : {}}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            initial={{ opacity: 0, scaleX: 0.2 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
           />
 
           <div className="relative flex flex-col items-center gap-2">
