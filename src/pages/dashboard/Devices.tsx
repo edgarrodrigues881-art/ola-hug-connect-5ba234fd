@@ -429,9 +429,9 @@ const Devices = () => {
       return { id };
     },
     onMutate: async (id: string) => {
-      // Mute auto-sync/realtime for 5s to prevent ghost re-appearance
-      muteAutoSync(5000);
-      // Optimistic: remove from cache immediately
+      // Track this ID so it's filtered from all future query results
+      trackDeletedDevice(id);
+      muteAutoSync(15000);
       await queryClient.cancelQueries({ queryKey: ["devices"] });
       const previous = queryClient.getQueryData<Device[]>(["devices"]);
       queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
@@ -444,7 +444,6 @@ const Devices = () => {
       toast({ title: "Instância removida" });
     },
     onError: (err: any, _id, context) => {
-      // Rollback on error
       if (context?.previous) {
         queryClient.setQueryData(["devices"], context.previous);
       }
@@ -452,7 +451,10 @@ const Devices = () => {
       toast({ title: "Erro ao apagar instância", description: err?.message || "Erro desconhecido", variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      // Delay the invalidation to give the server time to fully delete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["devices"] });
+      }, 3000);
     },
   });
 
