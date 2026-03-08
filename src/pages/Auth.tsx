@@ -461,8 +461,6 @@ const Auth = () => {
         )}
       </div>
 
-      {/* Floating support button */}
-      <SupportButton />
       </div>
     </div>
   );
