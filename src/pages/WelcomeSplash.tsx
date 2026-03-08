@@ -72,7 +72,7 @@ const WelcomeSplash = () => {
 
             {/* ao */}
             <motion.span
-              className="text-xs text-muted-foreground/50 tracking-[0.5em] uppercase"
+              className="text-sm text-muted-foreground/60 tracking-[0.5em] uppercase font-medium"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={phase >= 2 ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.5, ease: "easeOut" }}
