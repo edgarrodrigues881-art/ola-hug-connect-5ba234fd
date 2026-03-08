@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio, Calendar, DollarSign, Layers, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -68,6 +68,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
 
   const [provisioning, setProvisioning] = useState(false);
+  const loading = isPending || provisioning;
 
   // Auto-provision tokens via UAZAPI API
   const handleAutoProvision = (quantity: number) => {
@@ -94,7 +95,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     });
   };
 
-  // Save plan — provisioning happens automatically in update-subscription
   const handleSave = () => {
     if (isTrial && (!trialDays || trialDays < 1)) {
       toast({ title: "Dias inválidos", description: "Informe ao menos 1 dia para o Trial.", variant: "destructive" });
@@ -128,7 +128,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     }, {
       onSuccess: (data: any) => {
         const prov = data?.provision;
-        // Create cycle
         mutate({
           action: "create-cycle",
           body: {
@@ -140,13 +139,11 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           },
         }, {
           onSuccess: () => {
-            // Toggle notification flag
             mutate({
               action: "toggle-notification",
               body: { target_user_id: client.id, enabled: includeNotification },
             }, { onSuccess: () => {}, onError: () => {} });
 
-            // Create/update notification addon subscription
             if (includeNotification) {
               mutate({
                 action: "update-subscription",
@@ -184,7 +181,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     });
   };
 
-  // Renew creates a new cycle from current expiry
   const handleRenew = () => {
     const currentExpiry = sub?.expires_at ? sub.expires_at.split("T")[0] : expiresAt;
     const newStart = currentExpiry;
@@ -205,7 +201,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     });
   };
 
-  // Revert last cycle
   const handleRevert = () => {
     mutate({
       action: "revert-cycle",
@@ -216,7 +211,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
     });
   };
 
-  // Update cycle status
   const updateCycleStatus = (cycleId: string, status: string) => {
     mutate({
       action: "update-cycle-status",
@@ -245,147 +239,180 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Current subscription info */}
-      <div className="bg-card border border-border rounded-lg p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CreditCard size={18} className="text-primary" />
-            <h3 className="text-base font-bold text-foreground">Plano & Assinatura</h3>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {isExpired && <span className="text-destructive font-medium flex items-center gap-1"><AlertTriangle size={14} /> Vencida</span>}
-            {isExpiring && <span className="text-yellow-500 font-medium">Vence em {daysLeft}d</span>}
-            {daysLeft !== null && !isExpired && !isExpiring && <span>{daysLeft} dias restantes</span>}
-          </div>
-        </div>
-
-        {sub && (
-          <div className="bg-muted/50 rounded-md p-4 border border-border">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Plano</p><p className="text-foreground font-medium mt-0.5">{sub.plan_name}</p></div>
-              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Valor</p><p className="text-foreground font-medium mt-0.5">R$ {Number(sub.plan_price).toFixed(2)}</p></div>
-              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Instâncias</p><p className="text-foreground font-medium mt-0.5">{sub.max_instances}</p></div>
-              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Início</p><p className="text-foreground font-medium mt-0.5">{sub.started_at ? toLocalDate(sub.started_at) : "—"}</p></div>
-              <div><p className="text-[11px] text-muted-foreground uppercase font-medium">Vencimento</p><p className={`font-medium mt-0.5 ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-foreground"}`}>{sub.expires_at ? toLocalDate(sub.expires_at) : "—"}</p></div>
-            </div>
-          </div>
-        )}
-
-        {/* Change plan form */}
-        <div className="border-t border-border pt-4">
-          <h4 className="text-sm font-semibold text-foreground mb-4">Alterar Plano</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs">Plano</Label>
-              <select value={planName} onChange={e => { 
-                const newPlan = e.target.value;
-                setPlanName(newPlan); 
-                setStartedAt(new Date().toISOString().split("T")[0]);
-              }}
-                className="mt-1 w-full h-10 rounded-md border border-border bg-card text-foreground px-3 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors cursor-pointer">
-                <option value="" disabled>Selecione um plano</option>
-                {Object.keys(PLANS).map(p => (
-                  <option key={p} value={p}>
-                    {p === "Sem plano" ? "Sem plano" : `${p} — ${PLANS[p].max_instances} instâncias — R$ ${PLANS[p].price.toFixed(2)}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs">Valor Total (R$)</Label>
-              <div className="mt-1 h-10 rounded-md border border-border bg-muted/50 px-3 flex items-center gap-2 text-sm">
-                <span className="text-foreground font-medium">R$ {totalPrice.toFixed(2)}</span>
-                {includeNotification && (
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{isTrial ? "incluso no trial" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)} notificação`}</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs">Data de Início</Label>
-              <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-card border-border text-foreground mt-1 h-9" />
-            </div>
-            {isTrial && (
-              <div>
-                <Label className="text-muted-foreground text-xs">Dias de Trial</Label>
-                <Input type="number" min={1} max={90} value={trialDays === 0 ? "" : trialDays} onChange={e => setTrialDays(e.target.value === "" ? 0 : Math.max(1, Math.min(90, Number(e.target.value))))} className="bg-card border-border text-foreground mt-1 h-9" />
-              </div>
+    <div className="space-y-4">
+      {/* ── Assinatura Atual ── */}
+      {sub && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Assinatura Atual</p>
+            {daysLeft !== null && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                isExpired ? "bg-destructive/15 text-destructive" : isExpiring ? "bg-yellow-500/15 text-yellow-500" : "bg-primary/10 text-primary"
+              }`}>
+                {isExpired ? "Vencida" : isExpiring ? `${daysLeft}d restantes` : `${daysLeft}d restantes`}
+              </span>
             )}
-            <div>
-              <Label className="text-muted-foreground text-xs">Data de Vencimento {manualExpires ? "(manual)" : `(início + ${cycleDays} dias)`}</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  type="date" 
-                  value={manualExpires || expiresAt} 
-                  onChange={e => setManualExpires(e.target.value)} 
-                  className="bg-card border-border text-foreground h-9 flex-1" 
-                />
-                {manualExpires && (
-                  <Button size="sm" variant="ghost" onClick={() => setManualExpires("")} className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0">
-                    Auto
-                  </Button>
-                )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: "Plano", value: sub.plan_name },
+              { label: "Valor", value: `R$ ${Number(sub.plan_price).toFixed(2)}` },
+              { label: "Instâncias", value: sub.max_instances },
+              { label: "Início", value: sub.started_at ? toLocalDate(sub.started_at) : "—" },
+              { label: "Vencimento", value: sub.expires_at ? toLocalDate(sub.expires_at) : "—", className: isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "" },
+            ].map((item, i) => (
+              <div key={i} className="bg-muted/30 rounded-lg px-3 py-2">
+                <p className="text-[9px] text-muted-foreground uppercase font-medium">{item.label}</p>
+                <p className={`text-sm font-semibold text-foreground mt-0.5 ${item.className || ""}`}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Alterar Plano ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alterar Plano</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Plano */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium">Plano</Label>
+            <select value={planName} onChange={e => { 
+              setPlanName(e.target.value); 
+              setStartedAt(new Date().toISOString().split("T")[0]);
+            }}
+              className="w-full h-9 rounded-lg border border-border bg-muted/30 text-foreground text-sm px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all cursor-pointer">
+              <option value="" disabled>Selecione um plano</option>
+              {Object.keys(PLANS).map(p => (
+                <option key={p} value={p}>
+                  {p === "Sem plano" ? "Sem plano" : `${p} — ${PLANS[p].max_instances} inst. — R$ ${PLANS[p].price.toFixed(2)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Valor Total */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium">Valor Total</Label>
+            <div className="h-9 rounded-lg border border-border bg-muted/30 px-3 flex items-center gap-2">
+              <DollarSign size={13} className="text-muted-foreground shrink-0" />
+              <span className="text-sm font-semibold text-foreground">R$ {totalPrice.toFixed(2)}</span>
+              {includeNotification && (
+                <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                  {isTrial ? "incluso" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}`}
+                </span>
+              )}
             </div>
-            {/* Relatório via WhatsApp addon inline */}
-            <div className="md:col-span-2">
-              <div 
-                onClick={() => setIncludeNotification(!includeNotification)}
-                className={`mt-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                  includeNotification 
-                    ? "border-emerald-500/50 bg-emerald-500/5" 
-                    : "border-border bg-muted/20 hover:border-muted-foreground/30"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${includeNotification ? "bg-emerald-500/15" : "bg-muted/50"}`}>
-                    <Radio size={16} className={includeNotification ? "text-emerald-500" : "text-muted-foreground"} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Relatório via WhatsApp</p>
-                    <p className="text-[11px] text-muted-foreground">Alertas de desconexão, campanhas e aquecimento</p>
-                  </div>
+          </div>
+
+          {/* Data de Início */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium">Data de Início</Label>
+            <Input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} className="bg-muted/30 border-border text-foreground h-9 rounded-lg" />
+          </div>
+
+          {/* Trial days */}
+          {isTrial && (
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground uppercase font-medium">Dias de Trial</Label>
+              <Input type="number" min={1} max={90} value={trialDays === 0 ? "" : trialDays} onChange={e => setTrialDays(e.target.value === "" ? 0 : Math.max(1, Math.min(90, Number(e.target.value))))} className="bg-muted/30 border-border text-foreground h-9 rounded-lg" />
+            </div>
+          )}
+
+          {/* Data de Vencimento */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1">
+              Vencimento
+              {manualExpires ? (
+                <span className="text-primary text-[8px] bg-primary/10 px-1 rounded">manual</span>
+              ) : (
+                <span className="text-[8px] text-muted-foreground/60">início + {cycleDays}d</span>
+              )}
+            </Label>
+            <div className="flex items-center gap-1.5">
+              <Input 
+                type="date" 
+                value={manualExpires || expiresAt} 
+                onChange={e => setManualExpires(e.target.value)} 
+                className="bg-muted/30 border-border text-foreground h-9 rounded-lg flex-1" 
+              />
+              {manualExpires && (
+                <Button size="sm" variant="ghost" onClick={() => setManualExpires("")} className="h-9 px-2 text-[10px] text-muted-foreground hover:text-foreground shrink-0">
+                  Auto
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Relatório via WhatsApp */}
+          <div className="md:col-span-2">
+            <div 
+              onClick={() => setIncludeNotification(!includeNotification)}
+              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                includeNotification 
+                  ? "border-emerald-500/40 bg-emerald-500/5" 
+                  : "border-border bg-muted/20 hover:border-muted-foreground/30"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${includeNotification ? "bg-emerald-500/15" : "bg-muted/50"}`}>
+                  <Radio size={15} className={includeNotification ? "text-emerald-500" : "text-muted-foreground"} />
                 </div>
-                <div className="flex items-center gap-3">
-                   <span className={`text-xs font-semibold ${includeNotification ? "text-emerald-500" : "text-muted-foreground"}`}>
-                     {isTrial ? "Grátis no Trial" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}/mês`}
-                   </span>
-                  <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Relatório via WhatsApp</p>
+                  <p className="text-[10px] text-muted-foreground">Alertas de desconexão, campanhas e aquecimento</p>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-semibold ${includeNotification ? "text-emerald-500" : "text-muted-foreground"}`}>
+                  {isTrial ? "Grátis" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}/mês`}
+                </span>
+                <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
               </div>
             </div>
           </div>
         </div>
-        </div>
+      </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleSave} disabled={isPending || provisioning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {isNoPlan ? "Remover Plano" : isTrial ? `Ativar Trial (${trialDays} dias)` : "Salvar Plano + Criar Ciclo + Tokens"}
+      {/* ── Ações ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ações do Plano</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {/* Salvar */}
+          <Button onClick={handleSave} disabled={loading} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs">
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />}
+            {isNoPlan ? "Remover Plano" : isTrial ? `Ativar Trial` : "Salvar Plano"}
           </Button>
+
+          {/* Provisionar */}
           {sub && !isNoPlan && (
-            <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={isPending || provisioning} variant="outline" className="border-primary/30 text-primary hover:text-primary/80">
-              {provisioning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap size={14} className="mr-2" />}
-              Provisionar Tokens
+            <Button onClick={() => handleAutoProvision(sub?.max_instances || planConfig.max_instances)} disabled={loading} size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 h-9 text-xs">
+              {provisioning ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Zap size={13} className="mr-1.5" />}
+              Provisionar
             </Button>
           )}
+
+          {/* Renovar */}
           {sub && (
-            <Button onClick={handleRenew} disabled={isPending} variant="outline" className="border-border text-muted-foreground hover:text-foreground">
-              <RefreshCw size={14} className="mr-2" /> Renovar +30 dias
+            <Button onClick={handleRenew} disabled={loading} size="sm" variant="outline" className="border-border text-muted-foreground hover:text-foreground h-9 text-xs">
+              <RefreshCw size={13} className="mr-1.5" /> +30 dias
             </Button>
           )}
+
+          {/* Reverter */}
           {cycles.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground" disabled={isPending}>
-                  <Undo2 size={14} className="mr-2" /> Reverter Último Ciclo
+                <Button size="sm" variant="outline" className="border-border text-muted-foreground hover:text-foreground h-9 text-xs" disabled={loading}>
+                  <Undo2 size={13} className="mr-1.5" /> Reverter Ciclo
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card border-border">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reverter última renovação?</AlertDialogTitle>
                   <AlertDialogDescription className="text-muted-foreground">
-                    O ciclo mais recente será excluído e o vencimento será recalculado com base no ciclo anterior.
+                    O ciclo mais recente será excluído e o vencimento será recalculado.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -395,11 +422,13 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               </AlertDialogContent>
             </AlertDialog>
           )}
+
+          {/* Suspender */}
           {sub && !isExpired && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="border-destructive/30 text-destructive hover:text-destructive/80" disabled={isPending}>
-                  <PauseCircle size={14} className="mr-2" /> Suspender
+                <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/5 h-9 text-xs" disabled={loading}>
+                  <PauseCircle size={13} className="mr-1.5" /> Suspender
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card border-border">
@@ -417,22 +446,22 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         </div>
       </div>
 
-      {/* Cycle history */}
-      <div className="bg-card border border-border rounded-lg p-5">
-        <h4 className="text-sm font-semibold text-foreground mb-4">Histórico de Ciclos</h4>
+      {/* ── Histórico de Ciclos ── */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Histórico de Ciclos</p>
         {cycles.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum ciclo registrado</p>
+          <p className="text-xs text-muted-foreground py-6 text-center">Nenhum ciclo registrado</p>
         ) : (
           <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
-                  <th className="text-left px-3 py-2.5">Plano</th>
-                  <th className="text-left px-3 py-2.5">Início</th>
-                  <th className="text-left px-3 py-2.5">Fim</th>
-                  <th className="text-left px-3 py-2.5">Valor</th>
-                  <th className="text-left px-3 py-2.5">Status</th>
-                  <th className="text-right px-3 py-2.5">Ações</th>
+                <tr className="bg-muted/40 text-muted-foreground text-[9px] uppercase tracking-wider">
+                  <th className="text-left px-3 py-2">Plano</th>
+                  <th className="text-left px-3 py-2">Início</th>
+                  <th className="text-left px-3 py-2">Fim</th>
+                  <th className="text-left px-3 py-2">Valor</th>
+                  <th className="text-left px-3 py-2">Status</th>
+                  <th className="text-right px-3 py-2">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -440,33 +469,33 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                   const cfg = cycleStatusConfig[c.status] || cycleStatusConfig.pending;
                   const Icon = cfg.icon;
                   return (
-                    <tr key={c.id} className={idx === 0 ? "bg-primary/5" : "hover:bg-muted/30"}>
-                      <td className="px-3 py-2.5 text-foreground font-medium">{c.plan_name}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{toLocalDate(c.cycle_start)}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{toLocalDate(c.cycle_end)}</td>
-                      <td className="px-3 py-2.5 text-foreground">R$ {Number(c.cycle_amount).toFixed(2)}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`text-xs font-medium flex items-center gap-1 ${cfg.color}`}>
-                          <Icon size={12} /> {cfg.label}
+                    <tr key={c.id} className={idx === 0 ? "bg-primary/5" : "hover:bg-muted/20"}>
+                      <td className="px-3 py-2 text-foreground font-medium">{c.plan_name}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{toLocalDate(c.cycle_start)}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{toLocalDate(c.cycle_end)}</td>
+                      <td className="px-3 py-2 text-foreground font-medium">R$ {Number(c.cycle_amount).toFixed(2)}</td>
+                      <td className="px-3 py-2">
+                        <span className={`text-[10px] font-semibold flex items-center gap-1 ${cfg.color}`}>
+                          <Icon size={11} /> {cfg.label}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <div className="flex gap-1 justify-end">
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex gap-0.5 justify-end">
                           {c.status !== "paid" && (
-                            <Button variant="ghost" size="sm" className="text-green-500 hover:text-green-400 text-[10px] h-7 px-2"
-                              onClick={() => updateCycleStatus(c.id, "paid")} disabled={isPending}>
+                            <Button variant="ghost" size="sm" className="text-green-500 hover:text-green-400 hover:bg-green-500/10 text-[9px] h-6 px-1.5 rounded"
+                              onClick={() => updateCycleStatus(c.id, "paid")} disabled={loading}>
                               Pago
                             </Button>
                           )}
                           {c.status !== "partial" && (
-                            <Button variant="ghost" size="sm" className="text-yellow-500 hover:text-yellow-400 text-[10px] h-7 px-2"
-                              onClick={() => updateCycleStatus(c.id, "partial")} disabled={isPending}>
+                            <Button variant="ghost" size="sm" className="text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 text-[9px] h-6 px-1.5 rounded"
+                              onClick={() => updateCycleStatus(c.id, "partial")} disabled={loading}>
                               Parcial
                             </Button>
                           )}
                           {c.status !== "pending" && (
-                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive/80 text-[10px] h-7 px-2"
-                              onClick={() => updateCycleStatus(c.id, "pending")} disabled={isPending}>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-[9px] h-6 px-1.5 rounded"
+                              onClick={() => updateCycleStatus(c.id, "pending")} disabled={loading}>
                               Pendente
                             </Button>
                           )}
