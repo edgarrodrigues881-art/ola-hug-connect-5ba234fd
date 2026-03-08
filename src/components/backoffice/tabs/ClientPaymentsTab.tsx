@@ -149,7 +149,8 @@ const ClientPaymentsTab = ({ client }: Props) => {
   };
 
   const saveEdit = () => {
-    if (!form.amount || parseBRL(form.amount) <= 0) return;
+    const am = parseBRL(form.amount);
+    if (am < 0) return;
     adminAction(
       { action: "update-payment", body: { payment_id: editPayment.id, target_user_id: client.id, ...buildBody() } },
       {
