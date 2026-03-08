@@ -22,7 +22,7 @@ import {
   Plus, Upload, Search, Zap, Trash2, Edit2, Power, PowerOff,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Users, FileSpreadsheet,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported when needed to reduce initial bundle
 
 // ── E.164 parser ──
 function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {

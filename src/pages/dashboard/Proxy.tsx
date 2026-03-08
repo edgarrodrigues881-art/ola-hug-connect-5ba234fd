@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported when needed to reduce initial bundle
 import { RefreshCw, Shield, Link2, Upload, Download, Trash2, CheckSquare, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
