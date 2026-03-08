@@ -440,11 +440,12 @@ const Devices = () => {
       queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
         old ? old.filter(d => d.id !== id) : old
       );
+      // Show instant feedback toast
+      toast({ title: "Instância removida" });
       return { previous };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sidebar-stats"] });
-      toast({ title: "Instância removida" });
     },
     onError: (err: any, _id, context) => {
       if (context?.previous) {
