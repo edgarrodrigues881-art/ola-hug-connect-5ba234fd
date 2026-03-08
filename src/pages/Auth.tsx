@@ -163,7 +163,7 @@ const Auth = () => {
     }
   };
 
-  const inputClass = "pl-11 h-[52px] rounded-2xl border-[#1E2330] bg-[#151821]/80 text-white text-sm font-medium placeholder:text-[#6B7280] focus:border-[#22C55E]/60 focus:bg-[#151821] focus:ring-1 focus:ring-[#22C55E]/20 transition-all duration-200";
+  const inputClass = "pl-11 h-[52px] rounded-2xl border-[#1E2330] bg-[#151821] text-white text-sm font-medium placeholder:text-[#6B7280] focus:border-[#22C55E] focus:bg-[#1a1e2a] focus:ring-1 focus:ring-[#22C55E]/40 transition-all duration-200";
 
 
   return (
