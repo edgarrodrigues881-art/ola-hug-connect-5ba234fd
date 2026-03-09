@@ -542,19 +542,9 @@ const WarmupInstanceDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {cycle.is_running && cycle.phase !== "completed" ? (
-              <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={handlePause}>
-                <Pause className="w-3 h-3" /> Pausar Aquecimento
-              </Button>
-            ) : cycle.phase === "paused" ? (
-              <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={handleResume}>
-                <Play className="w-3 h-3" /> Retomar Aquecimento
-              </Button>
-            ) : null}
-
-            {cycle.phase !== "completed" && (
+          {/* Encerrar ciclo */}
+          {cycle.phase !== "completed" && (
+            <div className="flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -563,8 +553,8 @@ const WarmupInstanceDetail = () => {
               >
                 <Square className="w-3 h-3" /> Encerrar Ciclo
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Audit Logs */}
           <Card>
