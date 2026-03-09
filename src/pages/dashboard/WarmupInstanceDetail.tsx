@@ -554,9 +554,15 @@ const WarmupInstanceDetail = () => {
                 <p>Essa ação <strong className="text-foreground">não pode ser revertida</strong>.</p>
                 <p>Todo o progresso será perdido.</p>
               </div>
-              <DialogFooter className="gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowFinishConfirm(false)}>Cancelar</Button>
-                <Button variant="destructive" size="sm" className="gap-1.5" onClick={handleFinish} disabled={engine.isPending}>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowFinishConfirm(false)}>Cancelar</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={handleFinish}
+                  disabled={engine.isPending}
+                >
                   {engine.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
                   Encerrar
                 </Button>
