@@ -63,7 +63,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const expiresAt = manualExpires || autoExpiresAt;
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient, invalidateDashboard } = useAdminAction();
   const { toast } = useToast();
 
   const daysLeft = sub?.expires_at ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000) : null;
