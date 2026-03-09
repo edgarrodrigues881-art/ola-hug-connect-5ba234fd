@@ -25,6 +25,7 @@ export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBlocked, planState, canUseReports } = usePlanGate();
+  const navigate = useNavigate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
