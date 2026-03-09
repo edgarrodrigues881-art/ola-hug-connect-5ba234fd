@@ -200,7 +200,7 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "logout", device_id: deviceId }),
+          body: JSON.stringify({ action: "logout", deviceId }),
         }
       );
 
