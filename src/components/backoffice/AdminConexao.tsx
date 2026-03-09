@@ -96,7 +96,7 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "connect", device_id: deviceId }),
+          body: JSON.stringify({ action: "connect", deviceId }),
         }
       );
       const result = await res.json();
