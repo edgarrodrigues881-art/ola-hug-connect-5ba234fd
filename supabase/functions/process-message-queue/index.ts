@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[process-mq] Found ${pendingItems.length} pending messages`);
+    console.log(`[process-mq] Claimed ${pendingItems.length} messages (${duplicateIds.length} duplicates removed)`);
 
     let sent = 0;
     let failed = 0;
