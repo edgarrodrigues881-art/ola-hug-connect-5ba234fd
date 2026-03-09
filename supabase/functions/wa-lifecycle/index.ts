@@ -120,7 +120,7 @@ async function getReportConfig(adminClient: any): Promise<{ baseUrl: string; tok
 }
 
 function formatDateUTC(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
 Deno.serve(async (req) => {

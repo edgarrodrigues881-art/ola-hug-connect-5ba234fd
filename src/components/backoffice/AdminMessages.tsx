@@ -334,7 +334,7 @@ const AdminMessages = () => {
     const vars = {
       nome: selectedClient.full_name || selectedClient.email,
       plano: selectedClient.plan_name || "Sem plano",
-      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—",
+      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—",
       dias_restantes: daysLeft !== null ? String(daysLeft) : "—",
       suporte_numero: SUPORTE_NUMERO,
     };
@@ -346,7 +346,7 @@ const AdminMessages = () => {
       `📧 *Email:* ${selectedClient.email}\n` +
       `📱 *Telefone:* ${selectedClient.phone || "—"}\n` +
       `📦 *Plano:* ${selectedClient.plan_name || "Sem plano"}\n` +
-      `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}\n` +
+      `📅 *Vencimento:* ${selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}\n` +
       `🏷️ *Tipo:* ${tpl.label}\n\n` +
       `─────────────────\n` +
       `✉️ *Mensagem enviada:*\n\n${messageToSend}`;
@@ -809,7 +809,7 @@ const AdminMessages = () => {
     const vars = {
       nome: selectedClient.full_name || selectedClient.email,
       plano: selectedClient.plan_name || "Sem plano",
-      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—",
+      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—",
       dias_restantes: daysLeft !== null ? String(daysLeft) : "—",
       suporte_numero: SUPORTE_NUMERO,
     };
@@ -842,7 +842,7 @@ const AdminMessages = () => {
           <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-3 border border-border/50">
             <div><span className="text-muted-foreground">Telefone:</span> <span className="font-medium text-foreground">{selectedClient.phone || "—"}</span></div>
             <div><span className="text-muted-foreground">Plano:</span> <span className="font-medium text-foreground">{selectedClient.plan_name || "Sem plano"}</span></div>
-            <div><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium text-foreground">{selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}</span></div>
+            <div><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium text-foreground">{selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</span></div>
             <div><span className="text-muted-foreground">Instâncias:</span> <span className="font-medium text-foreground">{selectedClient.devices_connected}/{selectedClient.devices_count}</span></div>
           </div>
         </div>
@@ -877,7 +877,7 @@ const AdminMessages = () => {
         {tpl && (() => {
           const sentRecord = clientSentMessages.find((m: any) => m.template_type === selectedTemplate);
           if (sentRecord) {
-            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
             return (
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
                 <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
