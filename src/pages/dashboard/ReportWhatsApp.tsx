@@ -209,6 +209,20 @@ export default function ReportWhatsApp() {
         />
       </div>
 
+      {/* Botão Conexão */}
+      {canUseReport && (
+        <div className="flex justify-center">
+          <Button
+            variant={isConnected ? "outline" : "default"}
+            className="gap-2"
+            onClick={() => window.location.href = "/dashboard/report-connection"}
+          >
+            <Plug className="w-4 h-4" />
+            {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conectar Instância de Relatório"}
+          </Button>
+        </div>
+      )}
+
       <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} context="notifications" />
     </div>
   );
