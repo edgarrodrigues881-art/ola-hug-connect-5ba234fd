@@ -453,13 +453,12 @@ export default function ReportWhatsApp() {
       </div>
 
       {/* 3 Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <AlertCard
-          icon={<Flame className="w-7 h-7 text-orange-500" />}
+          icon={<Flame className="w-5 h-5 text-orange-500" />}
           iconColor="orange"
-          title="Relatórios de Aquecimento"
-          description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
-          
+          title="Aquecimento"
+          description="Relatórios após cada ciclo de 24h."
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
@@ -473,11 +472,10 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-7 h-7 text-teal-500" />}
+          icon={<Megaphone className="w-5 h-5 text-teal-500" />}
           iconColor="teal"
-          title="Relatórios de Campanhas"
-          description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
-          
+          title="Campanhas"
+          description="Alertas de eventos de campanha."
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
@@ -491,11 +489,10 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Plug className="w-7 h-7 text-emerald-500" />}
+          icon={<Plug className="w-5 h-5 text-emerald-500" />}
           iconColor="emerald"
-          title="Alertas de Conexão"
-          description="Alertas enviados automaticamente quando o status da instância muda."
-          
+          title="Conexão"
+          description="Alertas de mudança de status."
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
