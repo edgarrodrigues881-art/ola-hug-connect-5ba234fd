@@ -66,8 +66,8 @@ const GroupCapture = () => {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [minDelay, setMinDelay] = useState(8);
-  const [maxDelay, setMaxDelay] = useState(25);
+  const [minDelay] = useState(10);
+  const [maxDelay] = useState(30);
   const [activeTab, setActiveTab] = useState("groups");
 
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
@@ -516,46 +516,12 @@ const GroupCapture = () => {
                   </div>
                 </div>
 
-                {/* Delay min/max — same style as campaigns */}
-                <div className="p-3 rounded-lg border border-border/20 bg-muted/5 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Timer className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[13px] font-medium text-foreground">Delay entre entradas</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground/50 font-medium">Mín (s)</label>
-                      <Input
-                        type="number"
-                        value={minDelay}
-                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMinDelay(v); }}
-                        onBlur={() => { const v = Math.max(minDelay, 1); setMinDelay(v); if (v > maxDelay) setMaxDelay(v); }}
-                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
-                        min={1}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground/50 font-medium">Máx (s)</label>
-                      <Input
-                        type="number"
-                        value={maxDelay}
-                        onChange={(e) => { const v = parseInt(e.target.value) || 0; setMaxDelay(v); }}
-                        onBlur={() => { const v = Math.max(maxDelay, 1); setMaxDelay(v < minDelay ? minDelay : v); }}
-                        className="h-9 text-xs bg-muted/15 border-border/15 tabular-nums"
-                        min={1}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/40 tabular-nums">{minDelay}s – {maxDelay}s a cada entrada</p>
-
-                  {minDelay < 8 && (
-                    <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-amber-500/5 border border-amber-500/15">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <p className="text-[11px] text-amber-400/80">
-                        Delay abaixo de 8s aumenta risco de bloqueio temporário.
-                      </p>
-                    </div>
-                  )}
+                {/* Delay info — fixed random */}
+                <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/15 bg-muted/5">
+                  <Timer className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-[12px] text-muted-foreground">
+                    Delay aleatório de <span className="font-medium text-foreground">10s – 30s</span> entre cada entrada
+                  </span>
                 </div>
 
                 {/* Offline devices warning */}
