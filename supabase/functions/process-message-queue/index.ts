@@ -321,38 +321,31 @@ Deno.serve(async (req) => {
       const result = await sendText(device.baseUrl, device.token, number, messageText);
 
       if (result.ok) {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "sent",
-            message_content: messageText,
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        // Already claimed as 'sent', just update content + timestamp
+        await adminClient.from("message_queue").update({
+          message_content: messageText,
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         sent++;
         console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
 
-        // Send report to admin group
         if (device.groupNumber) {
           const report = buildReport("sent", item, vencimento, messageText);
           await sendText(device.baseUrl, device.token, device.groupNumber, report);
           await randomDelay(1500, 2500);
         }
       } else {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: result.error || "Erro desconhecido",
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        // Revert to failed
+        await adminClient.from("message_queue").update({
+          status: "failed" as any,
+          error_message: result.error || "Erro desconhecido",
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
 
-        // Send failure report to admin group
         if (device.groupNumber) {
           const report = buildReport("failed", item, vencimento, messageText, result.error);
           await sendText(device.baseUrl, device.token, device.groupNumber, report);
