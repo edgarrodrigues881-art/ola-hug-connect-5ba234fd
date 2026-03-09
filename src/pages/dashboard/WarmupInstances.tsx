@@ -911,6 +911,14 @@ const WarmupInstances = () => {
                     >
                       <Play className="w-3.5 h-3.5" /> Retomar aquecimento
                     </Button>
+                  ) : connected && !cycle ? (
+                    <Button
+                      size="sm"
+                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
+                    >
+                      <Flame className="w-3.5 h-3.5" /> Aquecer
+                    </Button>
                   ) : null}
                   <Button
                     variant="outline"
