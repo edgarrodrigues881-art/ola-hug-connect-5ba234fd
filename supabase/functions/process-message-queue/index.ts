@@ -19,10 +19,11 @@ function buildMessageByType(
     case "WELCOME":
       return (
         `Olá ${nome}! 👋\n\n` +
-        `Seja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\n` +
-        `Seu plano ${plano} já está ativo.\n` +
-        `Vencimento: ${vencimento}\n\n` +
-        `Qualquer dúvida, fale com nosso suporte: ${SUPORTE_NUMERO}\n\n` +
+        `Seja bem-vindo ao DG CONTINGÊNCIA PRO.\n\n` +
+        `Seu teste gratuito de 3 dias já está ativo.\n\n` +
+        `📅 Vencimento: ${vencimento}\n\n` +
+        `Se precisar de ajuda, fale com nosso suporte:\n` +
+        `📞 ${SUPORTE_NUMERO}\n\n` +
         `Bons envios! 🚀`
       );
     case "DUE_3_DAYS":
@@ -86,17 +87,59 @@ async function sendText(
   }
 }
 
-// ─── GET REPORT DEVICE CREDENTIALS ───
-async function getReportDevice(adminClient: any): Promise<{ baseUrl: string; token: string } | null> {
+// ─── TYPE LABEL MAP ───
+function typeLabel(type: string): string {
+  const map: Record<string, string> = {
+    WELCOME: "Boas-vindas",
+    DUE_3_DAYS: "Vence em 3 dias",
+    DUE_TODAY: "Vence hoje",
+    OVERDUE_1: "Vencido há 1 dia",
+    OVERDUE_7: "Vencido há 7 dias",
+    OVERDUE_30: "Vencido há 30 dias",
+  };
+  return map[type] || type;
+}
+
+// ─── BUILD REPORT FOR ADMIN GROUP ───
+function buildReport(
+  status: string,
+  item: any,
+  vencimento: string,
+  messageText: string,
+  errorMsg?: string
+): string {
+  const statusLine = status === "sent"
+    ? "✅ *Status:* Enviado com sucesso"
+    : `❌ *Status:* Falha no envio\n⚠️ *Erro:* ${errorMsg || "Desconhecido"}`;
+
+  return (
+    `📋 *RELATÓRIO DG CONTINGÊNCIA PRO*\n\n` +
+    `${statusLine}\n\n` +
+    `👤 *Cliente:* ${item.client_name || "—"}\n` +
+    `📧 *Email:* ${item.client_email || "—"}\n` +
+    `📱 *Telefone:* ${item.client_phone || "—"}\n` +
+    `📦 *Plano:* ${item.plan_name || "—"}\n` +
+    `📅 *Vencimento:* ${vencimento}\n` +
+    `🏷️ *Tipo:* ${typeLabel(item.message_type)}\n\n` +
+    `─────────────────\n` +
+    `✉️ *Mensagem enviada:*\n\n` +
+    `${messageText}`
+  );
+}
+
+// ─── GET REPORT DEVICE CREDENTIALS + GROUP ───
+async function getReportDevice(adminClient: any): Promise<{ baseUrl: string; token: string; groupNumber: string | null } | null> {
   const { data: configRows } = await adminClient
     .from("community_settings")
     .select("key, value")
-    .in("key", ["wa_report_device_id"]);
+    .in("key", ["wa_report_device_id", "wa_report_group_id"]);
 
   const cfg: Record<string, string> = {};
   for (const c of configRows || []) cfg[c.key] = c.value;
 
   const deviceId = cfg["wa_report_device_id"];
+  const groupId = cfg["wa_report_group_id"] || null;
+
   if (!deviceId) {
     console.log("[process-mq] No wa_report_device_id configured");
     return null;
@@ -132,7 +175,8 @@ async function getReportDevice(adminClient: any): Promise<{ baseUrl: string; tok
     return null;
   }
 
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), token };
+  const groupNumber = groupId ? groupId.replace(/@g\.us$/, "") : null;
+  return { baseUrl: baseUrl.replace(/\/+$/, ""), token, groupNumber };
 }
 
 function formatDateBR(dateStr: string): string {
@@ -245,6 +289,13 @@ Deno.serve(async (req) => {
           .eq("id", item.id);
         sent++;
         console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
+
+        // Send report to admin group
+        if (device.groupNumber) {
+          const report = buildReport("sent", item, vencimento, messageText);
+          await sendText(device.baseUrl, device.token, device.groupNumber, report);
+          await randomDelay(1500, 2500);
+        }
       } else {
         await adminClient
           .from("message_queue")
@@ -257,6 +308,13 @@ Deno.serve(async (req) => {
           .eq("id", item.id);
         failed++;
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
+
+        // Send failure report to admin group
+        if (device.groupNumber) {
+          const report = buildReport("failed", item, vencimento, messageText, result.error);
+          await sendText(device.baseUrl, device.token, device.groupNumber, report);
+          await randomDelay(1500, 2500);
+        }
       }
 
       // Random delay between 3-8 seconds to avoid mass sending
