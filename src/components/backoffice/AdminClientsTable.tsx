@@ -44,6 +44,43 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const [filter, setFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-data", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: { target_user_id: deleteTarget.id },
+      });
+      // Use query param for action
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=delete-client`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ target_user_id: deleteTarget.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Erro ao excluir");
+      toast.success("Cliente excluído com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir cliente");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, queryClient]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
