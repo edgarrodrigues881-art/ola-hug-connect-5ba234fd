@@ -218,11 +218,6 @@ Deno.serve(async (req) => {
       console.log("[wa-lifecycle] Running daily lifecycle check");
 
       const config = await getReportConfig(adminClient);
-      if (!config) {
-        return new Response(JSON.stringify({ skipped: true, reason: "WA report not configured" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       // ── CAPACITY CHECK (280+ instances) ──
       const SERVER_MAX = 300;
@@ -230,7 +225,7 @@ Deno.serve(async (req) => {
       const { count: totalDevices } = await adminClient.from("devices")
         .select("id", { count: "exact", head: true });
 
-      if (totalDevices !== null && totalDevices >= ALERT_THRESHOLD) {
+      if (config && totalDevices !== null && totalDevices >= ALERT_THRESHOLD) {
         const pct = Math.round((totalDevices / SERVER_MAX) * 100);
         const capacityMsg =
           `🔥 *ALERTA DE CAPACIDADE DO SERVIDOR*\n\n` +
@@ -244,10 +239,11 @@ Deno.serve(async (req) => {
         console.log(`[wa-lifecycle] Capacity alert sent: ${totalDevices}/${SERVER_MAX}`);
       }
 
-      // ── LIFECYCLE ALERTS ──
-      // Get all active subscriptions with profiles
+      // ── LIFECYCLE ALERTS + AUTO MESSAGE QUEUE ──
+      // Get all subscriptions (latest per user)
       const { data: subs } = await adminClient.from("subscriptions")
-        .select("user_id, plan_name, expires_at");
+        .select("user_id, plan_name, expires_at")
+        .order("created_at", { ascending: false });
 
       if (!subs || subs.length === 0) {
         return new Response(JSON.stringify({ processed: 0 }), {
@@ -255,81 +251,121 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Deduplicate: keep only latest subscription per user
+      const latestSubs = new Map<string, typeof subs[0]>();
+      for (const s of subs) {
+        if (!latestSubs.has(s.user_id)) latestSubs.set(s.user_id, s);
+      }
+
       // Get all profiles
-      const userIds = subs.map(s => s.user_id);
+      const userIds = [...latestSubs.keys()];
       const { data: profiles } = await adminClient.from("profiles")
         .select("id, full_name, phone")
         .in("id", userIds);
-
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
       // Get auth users for emails
       const { data: authUsers } = await adminClient.auth.admin.listUsers();
       const emailMap = new Map((authUsers?.users || []).map(u => [u.id, u.email]));
 
-      // Check which lifecycle messages were already sent today
+      // Check which messages were already queued/sent today
       const todayStart = new Date();
       todayStart.setUTCHours(0, 0, 0, 0);
-      const { data: sentToday } = await adminClient.from("client_messages")
-        .select("user_id, template_type")
-        .gte("sent_at", todayStart.toISOString());
+      const { data: queuedToday } = await adminClient.from("message_queue")
+        .select("user_id, message_type")
+        .gte("created_at", todayStart.toISOString());
+      const queuedSet = new Set((queuedToday || []).map(q => `${q.user_id}:${q.message_type}`));
 
-      const sentSet = new Set((sentToday || []).map(s => `${s.user_id}:${s.template_type}`));
+      // Map legacy types to message_queue types
+      const LIFECYCLE_MAP: Record<string, { days: number; mqType: string; legacyType: string }> = {
+        "DUE_3_DAYS":  { days: 3,   mqType: "DUE_3_DAYS",  legacyType: "faltam-3-dias" },
+        "DUE_TODAY":   { days: 0,   mqType: "DUE_TODAY",    legacyType: "vence-hoje" },
+        "OVERDUE_1":   { days: -1,  mqType: "OVERDUE_1",    legacyType: "vencido-1-dia" },
+        "OVERDUE_7":   { days: -7,  mqType: "OVERDUE_7",    legacyType: "vencido-7-dias" },
+        "OVERDUE_30":  { days: -30, mqType: "OVERDUE_30",   legacyType: "vencido-30-dias" },
+      };
 
       let alertsSent = 0;
+      let queued = 0;
       const now = new Date();
 
-      for (const sub of subs) {
+      for (const [userId, sub] of latestSubs) {
         const expiresAt = new Date(sub.expires_at);
         const diffMs = expiresAt.getTime() - now.getTime();
         const daysLeft = Math.ceil(diffMs / 86400000);
 
-        // Determine lifecycle stage
-        let tipo: string | null = null;
-        if (daysLeft === 3) tipo = "faltam-3-dias";
-        else if (daysLeft === 0) tipo = "vence-hoje";
-        else if (daysLeft === -1) tipo = "vencido-1-dia";
-        else if (daysLeft === -7) tipo = "vencido-7-dias";
-        else if (daysLeft === -30) tipo = "vencido-30-dias";
+        // Find matching lifecycle stage
+        let matchedKey: string | null = null;
+        for (const [key, cfg] of Object.entries(LIFECYCLE_MAP)) {
+          if (daysLeft === cfg.days) {
+            matchedKey = key;
+            break;
+          }
+        }
 
-        if (!tipo) continue;
+        if (!matchedKey) continue;
 
-        // Skip if already sent today
-        const key = `${sub.user_id}:${tipo}`;
-        if (sentSet.has(key)) {
-          console.log(`[wa-lifecycle] Skipping ${tipo} for ${sub.user_id} - already sent today`);
+        const lifecycle = LIFECYCLE_MAP[matchedKey];
+        const mqKey = `${userId}:${lifecycle.mqType}`;
+
+        // Skip if already queued today
+        if (queuedSet.has(mqKey)) {
+          console.log(`[wa-lifecycle] Skipping ${lifecycle.mqType} for ${userId} - already queued today`);
           continue;
         }
 
-        const profile = profileMap.get(sub.user_id);
+        const profile = profileMap.get(userId);
         const nome = profile?.full_name || "Cliente";
         const phone = (profile?.phone || "").replace(/\D/g, "");
-        const email = emailMap.get(sub.user_id) || "—";
+        const email = emailMap.get(userId) || "—";
         const vencimento = formatDateUTC(sub.expires_at);
 
-        // Send group-only alert
-        const alertMsg = buildLifecycleGroupAlert(tipo, nome, email, phone, sub.plan_name, vencimento, daysLeft);
-        const result = await sendText(config.baseUrl, config.token, config.groupNumber, alertMsg);
-        console.log(`[wa-lifecycle] ${tipo} for ${sub.user_id}: ${result.ok ? "OK" : result.error}`);
+        // 1) Insert into message_queue for automatic PV sending
+        if (phone) {
+          const phoneNumber = phone.startsWith("55") ? phone : `55${phone}`;
+          await adminClient.from("message_queue").insert({
+            user_id: userId,
+            client_name: nome,
+            client_email: email,
+            client_phone: phoneNumber,
+            plan_name: sub.plan_name,
+            expires_at: sub.expires_at,
+            message_type: lifecycle.mqType as any,
+            status: "pending" as any,
+          });
+          queued++;
+          console.log(`[wa-lifecycle] Queued ${lifecycle.mqType} for ${nome} (${email})`);
+        }
 
-        // Record in history
-        await adminClient.from("client_messages").insert({
-          user_id: sub.user_id,
-          admin_id: sub.user_id,
-          template_type: tipo,
-          message_content: `[ALERTA AUTOMÁTICO] ${tipo}`,
-          observation: `AUTO-CRON | Grupo: ${result.ok ? "✅" : "❌ " + result.error} | Aguardando envio manual do PV`,
-        });
-
-        if (result.ok) alertsSent++;
-
-        // Small delay between messages
-        await new Promise(r => setTimeout(r, 1500));
+        // 2) Send group alert to admin group
+        if (config) {
+          const alertMsg = buildLifecycleGroupAlert(lifecycle.legacyType, nome, email, phone, sub.plan_name, vencimento, daysLeft);
+          const result = await sendText(config.baseUrl, config.token, config.groupNumber, alertMsg);
+          console.log(`[wa-lifecycle] Group alert ${lifecycle.legacyType} for ${userId}: ${result.ok ? "OK" : result.error}`);
+          if (result.ok) alertsSent++;
+          await new Promise(r => setTimeout(r, 1500));
+        }
       }
 
-      console.log(`[wa-lifecycle] Cron completed: ${alertsSent} alerts sent`);
+      // 3) Trigger process-message-queue to send the queued messages
+      if (queued > 0) {
+        try {
+          const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
+          const processUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-message-queue`;
+          const processRes = await fetch(processUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-cron-secret": tickSecret },
+          });
+          const processData = await processRes.json();
+          console.log(`[wa-lifecycle] process-message-queue result:`, JSON.stringify(processData));
+        } catch (e) {
+          console.error("[wa-lifecycle] Failed to trigger process-message-queue:", e.message);
+        }
+      }
 
-      return new Response(JSON.stringify({ success: true, alerts_sent: alertsSent, total_devices: totalDevices }), {
+      console.log(`[wa-lifecycle] Cron completed: ${alertsSent} group alerts, ${queued} messages queued, ${totalDevices} total devices`);
+
+      return new Response(JSON.stringify({ success: true, alerts_sent: alertsSent, queued, total_devices: totalDevices }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
