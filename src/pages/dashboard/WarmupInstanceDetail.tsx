@@ -273,14 +273,21 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* protections */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-2">
+          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-3">
             <p className="text-xs font-bold text-foreground flex items-center gap-2">
               <Shield className="w-4 h-4 text-primary" />
               Proteções automáticas
             </p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              O sistema aplica limites diários, delays aleatórios e evolução progressiva automaticamente para proteger seu chip.
-            </p>
+            <ul className="grid gap-1.5 list-disc list-inside">
+              {[
+                "Limites diários automáticos",
+                "Delays aleatórios entre ações",
+                "Evolução progressiva de fases",
+                "Proteção contínua do chip",
+              ].map((item, i) => (
+                <li key={i} className="text-[11px] text-muted-foreground leading-relaxed">{item}</li>
+              ))}
+            </ul>
           </div>
 
           {/* CTA */}
