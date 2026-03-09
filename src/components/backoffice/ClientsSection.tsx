@@ -283,19 +283,6 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, toggleClientA
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Send Modal */}
-      <Dialog open={!!bulkModal} onOpenChange={() => setBulkModal(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
-          <DialogHeader><DialogTitle>Disparo em Massa — {bulkModal?.name}</DialogTitle></DialogHeader>
-          <p className="text-xs text-zinc-400">Upload CSV com colunas: numero, mensagem</p>
-          <Input
-            type="file"
-            accept=".csv"
-            onChange={(e) => handleBulkSend(e.target.files?.[0] ?? null)}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100"
-          />
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };

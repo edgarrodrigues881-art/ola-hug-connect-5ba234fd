@@ -970,7 +970,7 @@ const AdminMessages = () => {
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground tracking-tight">Relatório via WhatsApp</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Clique no cliente → veja a mensagem → envie</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Mensagens enviadas automaticamente por eventos</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

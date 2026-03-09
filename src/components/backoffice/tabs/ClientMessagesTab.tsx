@@ -227,11 +227,8 @@ const ClientMessagesTab = ({ client, detail }: Props) => {
               {copied ? <Check size={13} className="mr-1.5 text-primary" /> : <Copy size={13} className="mr-1.5" />}
               {copied ? "Copiada!" : "Copiar Mensagem"}
             </Button>
-            <Button onClick={markAsSent} disabled={isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
-              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />}
-              Marcar como Enviado
-            </Button>
           </div>
+          <p className="text-[10px] text-muted-foreground mt-1">ℹ️ Mensagens são enviadas automaticamente pelo sistema.</p>
         </div>
       )}
 
