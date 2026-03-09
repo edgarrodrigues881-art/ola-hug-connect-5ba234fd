@@ -265,13 +265,14 @@ Deno.serve(async (req) => {
 
     const { data: device } = await svc
       .from("devices")
-      .select("name, uazapi_token, uazapi_base_url")
+      .select("name, uazapi_token, uazapi_base_url, login_type")
       .eq("id", deviceId)
       .single();
 
     let instanceUrl = (device?.uazapi_base_url || "").replace(/\/+$/, "");
     let instanceToken = device?.uazapi_token || "";
     const deviceName = device?.name || "instance";
+    const isReportDevice = device?.login_type === "report_wa";
 
     // ── PLAN CHECK for all device operations (except deleteInstance and status) ──
     if (action !== "deleteInstance" && action !== "status" && action !== "getBaseUrl" && action !== "logout") {
