@@ -299,19 +299,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Validate phone number format (DDD + 8-9 digits)
       if (!isValidPhoneNumber(phone)) {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: `Número inválido: ${phone} — formato esperado: DDD + 8-9 dígitos`,
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await adminClient.from("message_queue").update({
+          status: "failed" as any, error_message: `Número inválido: ${phone}`,
+          sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
-        console.log(`[process-mq] ⚠️ Invalid number: ${phone} for ${item.client_name}`);
         continue;
       }
 
