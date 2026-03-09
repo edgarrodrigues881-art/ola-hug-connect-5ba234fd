@@ -395,7 +395,7 @@ export default function AdminConexao() {
         {groupId ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-sm text-foreground">{groupId}</p>
+              <p className="text-sm font-medium text-foreground">{groupName || "Grupo de Relatórios"}</p>
               <p className="text-xs text-muted-foreground mt-0.5">As mensagens automáticas e relatórios serão enviados para este grupo.</p>
             </div>
             <div className="flex gap-2">
