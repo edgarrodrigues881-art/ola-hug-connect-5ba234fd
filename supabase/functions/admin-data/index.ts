@@ -501,6 +501,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── CONFIRM EMAIL ───
+    if (action === "confirm-email" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      await adminClient.auth.admin.updateUserById(target_user_id, { email_confirm: true });
+      await logAction(adminClient, user.id, target_user_id, "confirm-email", "E-mail confirmado manualmente pelo admin");
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── SET ROLE ───
     if (action === "set-role" && req.method === "POST") {
       const { target_user_id, role, remove } = await req.json();
