@@ -177,22 +177,34 @@ Deno.serve(async (req) => {
       const { data: authUser } = await adminClient.auth.admin.getUserById(user_id);
       const email = authUser?.user?.email || "—";
 
-      // 1) Insert into message_queue for automatic PV sending
+      // 1) Check if WELCOME already queued (handle_new_user trigger may have inserted one)
       let pvQueued = false;
       if (clientPhone) {
-        const phoneNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
-        await adminClient.from("message_queue").insert({
-          user_id,
-          client_name: nome,
-          client_email: email,
-          client_phone: phoneNumber,
-          plan_name: plano,
-          expires_at: sub.expires_at,
-          message_type: "WELCOME" as any,
-          status: "pending" as any,
-        });
-        pvQueued = true;
-        console.log("[wa-lifecycle] WELCOME queued for processing");
+        const { data: existing } = await adminClient
+          .from("message_queue")
+          .select("id")
+          .eq("user_id", user_id)
+          .eq("message_type", "WELCOME")
+          .limit(1);
+
+        if (!existing || existing.length === 0) {
+          const phoneNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
+          await adminClient.from("message_queue").insert({
+            user_id,
+            client_name: nome,
+            client_email: email,
+            client_phone: phoneNumber,
+            plan_name: plano,
+            expires_at: sub.expires_at,
+            message_type: "WELCOME" as any,
+            status: "pending" as any,
+          });
+          pvQueued = true;
+          console.log("[wa-lifecycle] WELCOME queued for processing");
+        } else {
+          pvQueued = true;
+          console.log("[wa-lifecycle] WELCOME already exists, skipping duplicate");
+        }
       }
 
       // 2) Notify admin group
