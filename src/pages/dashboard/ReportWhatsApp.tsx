@@ -649,7 +649,7 @@ export default function ReportWhatsApp() {
 // ─── Alert Card ───
 interface AlertCardProps {
   icon: React.ReactNode;
-  iconColor: "orange" | "teal" | "emerald";
+  iconColor: "orange" | "sky" | "emerald";
   title: string;
   description: string;
   
