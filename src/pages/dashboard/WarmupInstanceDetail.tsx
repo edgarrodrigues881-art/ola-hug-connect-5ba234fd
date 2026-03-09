@@ -125,7 +125,7 @@ const WarmupInstanceDetail = () => {
     if (!deviceId) return;
     engine.mutate(
       { action: "stop", device_id: deviceId },
-      { onSuccess: () => { setShowFinishConfirm(false); toast({ title: "Ciclo encerrado" }); } }
+      { onSuccess: () => { setShowFinishConfirm(false); toast({ title: "✅ Ciclo encerrado", description: "O aquecimento foi finalizado com sucesso." }); } }
     );
   };
 
