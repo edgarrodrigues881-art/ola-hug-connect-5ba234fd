@@ -219,9 +219,6 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, toggleClientA
                         <Button size="sm" variant="outline" onClick={() => { setWarmupModal({ clientId: c.id, instanceId: inst.id, name: inst.name }); setWarmupForm({ messages: 10, interval: 5, contacts: "" }); }} className="h-7 text-xs border-zinc-600 text-orange-300">
                           <Flame size={12} className="mr-1" /> Aquecer
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setBulkModal({ clientId: c.id, instanceId: inst.id, name: inst.name })} className="h-7 text-xs border-zinc-600 text-primary">
-                          <Send size={12} className="mr-1" /> Disparo
-                        </Button>
                       </>
                     )}
                     {inst.qrCodeUrl && inst.status === "CONECTANDO" && (
