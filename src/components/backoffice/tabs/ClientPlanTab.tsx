@@ -162,6 +162,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             if (prov?.unblocked > 0) desc += ` ${prov.unblocked} token(s) desbloqueados.`;
             if (prov?.errors?.length > 0) desc += ` ${prov.errors.length} erro(s).`;
             toast({ title: "Plano atualizado", description: desc });
+            invalidateClient(client.id);
+            invalidateDashboard();
           },
           onError: (e) => {
             setProvisioning(false);
