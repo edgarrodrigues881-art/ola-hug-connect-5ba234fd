@@ -42,8 +42,171 @@ export default function ReportWhatsApp() {
   const [pairingLoading, setPairingLoading] = useState(false);
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const canUseReport = canUseReports;
 
-  const { data: config, isLoading: loadingConfig } = useQuery({
+  // ─── Connection API helper ───
+  const callApi = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Não autenticado");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) {
+      let backendMsg = "";
+      if (response.data?.error) backendMsg = response.data.error;
+      if (!backendMsg) {
+        try {
+          const ctx = (response.error as any)?.context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) backendMsg = parsed.error;
+          }
+        } catch {}
+      }
+      throw new Error(backendMsg || response.error.message || "Erro na operação");
+    }
+    if (response.data?.error) throw new Error(response.data.error);
+    return response.data;
+  };
+
+  const openConnectDialog = () => {
+    if (!canUseReport) { setPlanGateOpen(true); return; }
+    setQrDialogOpen(true);
+    setQrCodeBase64("");
+    setQrConnected(false);
+    setConnectError("");
+    setConnectMethod("qr");
+    setConnectStep("qr");
+    setPairingCode("");
+    setPairingPhone("");
+    handleConnectQR();
+  };
+
+  const handleConnectQR = async () => {
+    if (!reportDevice?.id) return;
+    setConnectStep("qr");
+    setQrLoading(true);
+    setQrCodeBase64("");
+    setConnectError("");
+    try {
+      const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        setConnectStep("done");
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+        toast.success("Já conectado!");
+        return;
+      }
+      const b64 = result?.base64 || result?.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      }
+    } catch (err: any) {
+      let msg = "Erro ao gerar QR Code";
+      if (err?.message) msg = err.message;
+      setConnectError(msg);
+      toast.error(msg);
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleRequestPairingCode = async () => {
+    if (!reportDevice?.id || !pairingPhone) return;
+    setPairingLoading(true);
+    setConnectError("");
+    setPairingCode("");
+    try {
+      const result = await callApi({
+        action: "requestPairingCode",
+        deviceId: reportDevice.id,
+        phoneNumber: pairingPhone,
+      });
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        setConnectStep("done");
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+        toast.success("Já conectado!");
+        return;
+      }
+      if (result?.pairingCode) {
+        setPairingCode(result.pairingCode);
+      } else {
+        setConnectError("Código não retornado. Verifique o número e tente novamente.");
+      }
+    } catch (err: any) {
+      const msg = err?.message || "Erro ao solicitar código";
+      setConnectError(msg);
+      toast.error(msg);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!reportDevice?.id) return;
+    try {
+      await callApi({ action: "logout", deviceId: reportDevice.id });
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      setGroups([]);
+      toast.success("Instância desconectada");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desconectar");
+    }
+  };
+
+  // QR auto-refresh every 30s
+  useEffect(() => {
+    if (connectStep === "qr" && qrCodeBase64) {
+      setQrCountdown(30);
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+      qrCountdownRef.current = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            setQrCodeBase64("");
+            if (reportDevice?.id) {
+              callApi({ action: "refreshQr", deviceId: reportDevice.id }).then(result => {
+                if (result?.alreadyConnected) {
+                  setQrConnected(true);
+                  setConnectStep("done");
+                  queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                  return;
+                }
+                const b64 = result?.base64 || result?.qr;
+                if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+              }).catch(() => {});
+            }
+            return 30;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
+    }
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [connectStep, qrCodeBase64, reportDevice?.id]);
+
+  // Poll connection status while QR dialog open
+  useEffect(() => {
+    if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await callApi({ action: "status", deviceId: reportDevice.id });
+        if (result?.status === "authenticated" || result?.status === "connected") {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setQrConnected(true);
+          setConnectStep("done");
+          queryClient.invalidateQueries({ queryKey: ["report-device"] });
+          toast.success("Instância conectada com sucesso!");
+          setTimeout(() => setQrDialogOpen(false), 2000);
+        }
+      } catch {}
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [qrDialogOpen, reportDevice?.id, qrConnected]);
+
     queryKey: ["report-wa-config", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
