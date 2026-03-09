@@ -25,7 +25,21 @@ import {
 } from "lucide-react";
 // XLSX is dynamically imported when needed to reduce initial bundle
 
-// ── E.164 parser ──
+function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {
+  const original = raw.trim();
+  const digits = original.replace(/\D/g, "");
+  if (!digits || digits.length < 10 || digits.length > 15) {
+    return { valid: false, phone: "", original };
+  }
+  if (digits.startsWith("55") && digits.length >= 12) {
+    return { valid: true, phone: `+${digits}`, original };
+  }
+  if (digits.length === 10 || digits.length === 11) {
+    return { valid: true, phone: `+55${digits}`, original };
+  }
+  return { valid: true, phone: `+${digits}`, original };
+}
+
 // ── Virtualized Row Component (stable reference, outside main component) ──
 const AutoSaveRow = memo(({ index, style, filtered, onEdit, onToggle, onDelete, ariaAttributes }: any): ReactElement | null => {
   const c = filtered[index];
