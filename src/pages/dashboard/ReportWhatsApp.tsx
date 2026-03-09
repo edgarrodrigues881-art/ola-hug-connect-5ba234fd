@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, Plus, QrCode, XCircle, LogOut, X, Ban } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, QrCode, XCircle, LogOut, X, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { usePlanGate } from "@/hooks/usePlanGate";
@@ -64,7 +64,7 @@ export default function ReportWhatsApp() {
     enabled: !!user,
   });
 
-  // Dedicated report device
+  // Dedicated report device — auto-provision if missing
   const { data: reportDevice, isLoading: loadingDevice } = useQuery({
     queryKey: ["report-device", user?.id],
     queryFn: async () => {
@@ -74,37 +74,38 @@ export default function ReportWhatsApp() {
         .eq("user_id", user!.id)
         .eq("login_type", "report_wa")
         .maybeSingle();
-      return data;
+      
+      if (data) return data;
+
+      // Auto-create if not exists
+      const { data: created, error } = await supabase.functions.invoke("manage-devices", {
+        body: { action: "create-report" },
+      });
+      if (error || created?.error) {
+        console.error("Auto-provision report instance failed:", error || created?.error);
+        return null;
+      }
+      if (created?.device) {
+        // Link to config
+        await supabase.from("report_wa_configs").upsert({
+          user_id: user!.id,
+          device_id: created.device.id,
+        }, { onConflict: "user_id" }).select().maybeSingle();
+      }
+      // Re-fetch the device
+      const { data: refetched } = await supabase
+        .from("devices")
+        .select("id, name, number, status, login_type")
+        .eq("user_id", user!.id)
+        .eq("login_type", "report_wa")
+        .maybeSingle();
+      return refetched;
     },
-    enabled: !!user,
+    enabled: !!user && canUseReport,
   });
 
   const isConnected = reportDevice?.status === "Ready";
 
-  const handleCreateReportInstance = async () => {
-    if (!canUseReport) { setPlanGateOpen(true); return; }
-    if (!user) return;
-    setCreatingInstance(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("manage-devices", {
-        body: { action: "create-report" },
-      });
-      if (error) throw new Error(error.message || "Erro ao criar instância");
-      if (data?.error) throw new Error(data.error);
-      
-      // Link to config
-      if (data?.device) {
-        await upsertConfig.mutateAsync({ device_id: data.device.id });
-      }
-      queryClient.invalidateQueries({ queryKey: ["report-device"] });
-      toast.success("Instância de relatório criada");
-    } catch (err: any) {
-      console.error("Error creating report instance:", err);
-      toast.error(err.message || "Erro ao criar instância");
-    } finally {
-      setCreatingInstance(false);
-    }
-  };
 
   const handleDisconnect = async () => {
     if (!reportDevice?.id) return;
@@ -409,15 +410,9 @@ export default function ReportWhatsApp() {
           </div>
 
           {!reportDevice ? (
-            <div className="flex flex-col items-center py-8 space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-muted/20 border border-border/20 flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-muted-foreground/30" />
-              </div>
-              <p className="text-xs text-muted-foreground/60">Nenhuma instância configurada</p>
-              <Button onClick={handleCreateReportInstance} disabled={creatingInstance} size="sm" className="gap-1.5 h-8 text-xs">
-                {creatingInstance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Criar instância
-              </Button>
+            <div className="flex items-center gap-2 py-4 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <p className="text-xs text-muted-foreground/60">Provisionando instância...</p>
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
