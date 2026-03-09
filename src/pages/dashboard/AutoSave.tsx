@@ -467,12 +467,18 @@ const AutoSave = () => {
           </CardContent>
         </Card>
       ) : (
-        <div style={{ contain: "layout style", height: Math.min(filtered.length * 68, window.innerHeight - 320) }}>
+        <div
+          className="rounded-xl border border-border/30 overflow-hidden"
+          style={{
+            contain: "layout style",
+            height: Math.min(filtered.length * 68, 520),
+          }}
+        >
           <VirtualList
             rowCount={filtered.length}
             rowHeight={68}
-            overscanCount={8}
-            style={{ height: "100%", width: "100%", overscrollBehavior: "contain" }}
+            overscanCount={10}
+            style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
             rowProps={rowProps}
             rowComponent={AutoSaveRowInner}
           />
