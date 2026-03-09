@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
         cycle_id: cycle.id,
         level: "info",
         event_type: "cycle_started",
-        message: `Ciclo iniciado: ${days_total || 14} dias, chip ${chip_state || "new"}, ${selectedGroups.length} grupos selecionados`,
+        message: `Ciclo iniciado: ${days_total || 3} dias, chip ${chip_state || "new"}, ${selectedGroups.length} grupos selecionados`,
         meta: { groups: selectedGroups.map(g => g.name), budget_target: budgetTarget },
       });
 
