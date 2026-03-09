@@ -83,6 +83,9 @@ const CampaignDetail = () => {
 
   const [countdown, setCountdown] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
+  const [resendOpen, setResendOpen] = useState(false);
+  const [resendFailed, setResendFailed] = useState(true);
+  const [resendPending, setResendPending] = useState(true);
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
