@@ -215,14 +215,22 @@ export default function AdminConexao() {
 
   // ─── Load Groups ───
   const loadGroups = async () => {
-    if (!device?.uazapi_base_url || !device?.uazapi_token) return;
+    if (!deviceId) return;
     setLoadingGroups(true);
     try {
-      const res = await fetch(`${device.uazapi_base_url}/chats/groups`, {
-        headers: { token: device.uazapi_token },
-      });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "listGroups", deviceId }),
+        }
+      );
       const data = await res.json();
-      const list = (Array.isArray(data) ? data : data?.groups || []).map((g: any) => ({
+      const raw = Array.isArray(data?.groups) ? data.groups : Array.isArray(data) ? data : [];
+      const list = raw.map((g: any) => ({
         id: g.id || g.jid,
         name: g.name || g.subject || "Sem nome",
         participants: g.participants?.length || g.size || 0,
