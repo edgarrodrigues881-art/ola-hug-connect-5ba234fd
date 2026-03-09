@@ -324,9 +324,21 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
-                        Gerenciar <ChevronRight size={12} className="ml-1" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {!u.roles.includes("admin") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-xs px-2"
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
+                          Gerenciar <ChevronRight size={12} className="ml-1" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
