@@ -39,8 +39,12 @@ export default function ReportWhatsApp() {
   const [qrCountdown, setQrCountdown] = useState(30);
   const [qrConnected, setQrConnected] = useState(false);
   const [connectError, setConnectError] = useState("");
-  const [connectStep, setConnectStep] = useState<"qr" | "done">("qr");
-  
+  const [connectStep, setConnectStep] = useState<"qr" | "code" | "done">("qr");
+  const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
