@@ -278,6 +278,10 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             <Select value={planName} onValueChange={(val) => { 
               setPlanName(val); 
               setStartedAt(new Date().toISOString().split("T")[0]);
+              if (val === "Sem plano") {
+                setManualPrice("");
+                setIncludeNotification(false);
+              }
             }}>
               <SelectTrigger className="w-full h-9 rounded-lg border-border bg-muted/30 text-foreground text-sm">
                 <SelectValue placeholder="Selecione um plano" />
