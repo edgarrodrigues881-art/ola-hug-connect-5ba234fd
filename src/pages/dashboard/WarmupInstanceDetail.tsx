@@ -71,6 +71,22 @@ const WarmupInstanceDetail = () => {
   const { data: auditLogs = [] } = useWarmupAuditLogs(cycle?.id);
   const { data: plans = [] } = useWarmupPlans();
 
+  // Group audit logs by warmup day
+  const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
+  const dayGroups = useMemo(() => {
+    if (!cycleStartedAt || auditLogs.length === 0) return [];
+    const groups: Record<number, typeof auditLogs> = {};
+    auditLogs.forEach(log => {
+      const dayIdx = differenceInCalendarDays(new Date(log.created_at), cycleStartedAt) + 1;
+      const day = Math.max(1, dayIdx);
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(log);
+    });
+    return Object.entries(groups)
+      .map(([day, logs]) => ({ day: Number(day), logs }))
+      .sort((a, b) => b.day - a.day);
+  }, [auditLogs, cycleStartedAt?.getTime()]);
+
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
