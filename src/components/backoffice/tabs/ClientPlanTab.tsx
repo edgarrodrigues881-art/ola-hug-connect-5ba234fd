@@ -310,11 +310,13 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                 <Input
                   type="text"
                   inputMode="decimal"
-                  value={manualPrice !== "" ? manualPrice : autoTotal.toFixed(2)}
+                  disabled={isNoPlan}
+                  value={isNoPlan ? "0" : (manualPrice !== "" ? manualPrice : autoTotal.toFixed(2))}
                   onFocus={e => {
-                    if (manualPrice === "") setManualPrice(e.target.value);
+                    if (!isNoPlan && manualPrice === "") setManualPrice(e.target.value);
                   }}
                   onChange={e => {
+                    if (isNoPlan) return;
                     const v = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
                     setManualPrice(v);
                   }}
