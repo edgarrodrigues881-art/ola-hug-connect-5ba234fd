@@ -227,6 +227,9 @@ const Contacts = () => {
               <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setAddTagDialogOpen(true)}>
                 <Tag className="w-3 h-3" /> Adicionar Tag
               </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setRemoveTagDialogOpen(true)}>
+                <X className="w-3 h-3" /> Remover Tag
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={handleDeleteSelected}>
                 <Trash2 className="w-3 h-3" /> Excluir
               </Button>
