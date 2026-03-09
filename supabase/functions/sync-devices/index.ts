@@ -209,13 +209,13 @@ Deno.serve(async (req) => {
             formattedPhone = `+${raw}`;
           }
         } else if (!isConnected) {
-          // Clear phone when disconnected to avoid stale data from reused tokens
-          formattedPhone = "";
+          // Keep existing phone & picture for continuity (warmup history)
+          formattedPhone = device.number || "";
         }
 
-        // Only use provider profile data when connected to avoid stale data from reused tokens
-        profilePicture = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : null;
-        const syncedProfileName = isConnected ? (inst.profileName || inst.pushname || "") : "";
+        // Keep existing profile data when disconnected for warmup continuity
+        profilePicture = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : (device.profile_picture || null);
+        const syncedProfileName = isConnected ? (inst.profileName || inst.pushname || "") : (device.profile_name || "");
         newStatus = isConnected ? "Ready" : "Disconnected";
 
         const statusChanged = newStatus !== device.status;
