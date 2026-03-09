@@ -526,11 +526,18 @@ Deno.serve(async (req) => {
       }
 
       if (allDevices.length === 0) {
-        console.error(`No valid devices found for campaign ${campaignId}.`);
-        await serviceClient.from("campaigns").update({ status: "failed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+        console.log(`⚠️ No valid devices found for campaign ${campaignId}, pausing to preserve pending contacts`);
+        await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+        await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-        startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
-        return new Response(JSON.stringify({ error: "Nenhum dispositivo válido encontrado." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        // Notify user
+        await serviceClient.from("notifications").insert({
+          user_id: campaign.user_id,
+          title: "⏸️ Campanha pausada automaticamente",
+          message: `A campanha "${campaign.name}" foi pausada porque nenhuma instância está disponível. Conecte uma instância e retome o envio.`,
+          type: "warning",
+        });
+        return new Response(JSON.stringify({ success: true, status: "paused", reason: "no_valid_devices" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // ── PRE-FLIGHT: Check if ALL devices are connected before processing ──
