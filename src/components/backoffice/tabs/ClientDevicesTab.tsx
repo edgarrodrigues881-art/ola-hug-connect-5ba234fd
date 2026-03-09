@@ -98,6 +98,26 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
     );
   };
 
+  const saveReportCredentials = (deviceId: string) => {
+    if (!reportToken.trim() || !reportBaseUrl.trim()) {
+      toast({ title: "Preencha Token e URL Base", variant: "destructive" });
+      return;
+    }
+    mutate(
+      { action: "set-report-credentials", body: { target_user_id: client.id, device_id: deviceId, uazapi_token: reportToken, uazapi_base_url: reportBaseUrl } },
+      {
+        onSuccess: () => {
+          toast({ title: "Credenciais de relatório salvas" });
+          setEditingReportDevice(null);
+          setReportToken("");
+          setReportBaseUrl("");
+          invalidateClient(client.id);
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
+
   const upgradePlan = () => {
     if (!nextPlan || !nextPlanConfig) return;
     const now = new Date();
