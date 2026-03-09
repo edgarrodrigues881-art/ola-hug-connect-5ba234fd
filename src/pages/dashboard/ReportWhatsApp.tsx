@@ -333,15 +333,28 @@ export default function ReportWhatsApp() {
           </p>
         </div>
         {canUseReport && (
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={() => navigate("/dashboard/report-connection")}
-          >
-            <Plug className="w-4 h-4" />
-            Conexão
-          </Button>
+          <div className="flex items-center gap-2">
+            {isConnected && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                onClick={handleDisconnect}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Desconectar
+              </Button>
+            )}
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={openConnectDialog}
+            >
+              <Plug className="w-4 h-4" />
+              {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conexão"}
+            </Button>
+          </div>
         )}
       </div>
 
