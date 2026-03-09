@@ -14,8 +14,8 @@ export function muteAutoSync(ms = 3000) {
 
 export function trackDeletedDevice(id: string) {
   recentlyDeletedIds.add(id);
-  // Auto-cleanup after 30s
-  setTimeout(() => recentlyDeletedIds.delete(id), 30000);
+  // Auto-cleanup after 60s
+  setTimeout(() => recentlyDeletedIds.delete(id), 60000);
 }
 
 export function getRecentlyDeletedIds(): Set<string> {

@@ -434,14 +434,18 @@ const Devices = () => {
     onMutate: async (id: string) => {
       // Track this ID so it's filtered from all future query results
       trackDeletedDevice(id);
-      muteAutoSync(15000);
+      muteAutoSync(30000);
       await queryClient.cancelQueries({ queryKey: ["devices"] });
       const previous = queryClient.getQueryData<Device[]>(["devices"]);
+      // Find device info for the toast before removing
+      const deletedDevice = previous?.find(d => d.id === id);
       queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
         old ? old.filter(d => d.id !== id) : old
       );
-      // Show instant feedback toast
-      toast({ title: "Instância removida" });
+      // Show instant feedback toast with device name and number
+      const deviceLabel = deletedDevice?.name || "Instância";
+      const deviceNumber = deletedDevice?.number ? ` (${formatPhone(deletedDevice.number)})` : "";
+      toast({ title: `✅ ${deviceLabel} removida`, description: deviceNumber || undefined });
       return { previous };
     },
     onSuccess: () => {
@@ -458,7 +462,7 @@ const Devices = () => {
       // Delay the invalidation to give the server time to fully delete
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["devices"] });
-      }, 3000);
+      }, 8000);
     },
   });
 
