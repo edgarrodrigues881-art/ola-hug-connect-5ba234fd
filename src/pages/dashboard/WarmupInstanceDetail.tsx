@@ -130,11 +130,18 @@ const WarmupInstanceDetail = () => {
     );
   };
 
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+
   const handleFinish = () => {
     if (!deviceId) return;
     engine.mutate(
       { action: "stop", device_id: deviceId },
-      { onSuccess: () => toast({ title: "Ciclo encerrado" }) }
+      {
+        onSuccess: () => {
+          setShowFinishConfirm(false);
+          toast({ title: "Ciclo encerrado" });
+        },
+      }
     );
   };
 
