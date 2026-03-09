@@ -730,7 +730,7 @@ const WarmupInstances = () => {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Flame className="w-5 h-5 text-primary" />
-            Aquecimento V2
+            Aquecimento Automático
           </h1>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs text-muted-foreground tabular-nums">
