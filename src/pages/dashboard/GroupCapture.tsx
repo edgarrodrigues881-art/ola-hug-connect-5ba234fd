@@ -452,27 +452,7 @@ const GroupCapture = () => {
             <>
               <div className="space-y-4">
                 {/* Groups */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[13px] font-medium text-foreground">Grupos ({selectedGroups.length}/{uniqueGroups.length})</h3>
-                    <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAllGroups}>
-                      {selectedGroups.length === uniqueGroups.length ? "Desmarcar" : "Todos"}
-                    </Button>
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto rounded-md border border-border/20 p-1.5">
-                    {uniqueGroups.map((g) => (
-                      <label key={g.link} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/30 cursor-pointer">
-                        <Checkbox checked={selectedGroups.includes(g.link)} onCheckedChange={() => toggleGroup(g.link)} />
-                        <span className="text-xs truncate">{g.name}</span>
-                      </label>
-                    ))}
-                    {uniqueGroups.length === 0 && (
-                      <p className="text-[11px] text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Devices with stats */}
+                {/* Devices with stats — FIRST */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[13px] font-medium text-foreground">Instâncias ({selectedDevices.length}/{devices.length})</h3>
@@ -511,6 +491,27 @@ const GroupCapture = () => {
                     })}
                     {devices.length === 0 && (
                       <p className="text-[11px] text-muted-foreground text-center py-2">Nenhuma instância cadastrada</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Groups — SECOND */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[13px] font-medium text-foreground">Grupos ({selectedGroups.length}/{uniqueGroups.length})</h3>
+                    <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAllGroups}>
+                      {selectedGroups.length === uniqueGroups.length ? "Desmarcar" : "Todos"}
+                    </Button>
+                  </div>
+                  <div className="space-y-1 max-h-32 overflow-y-auto rounded-md border border-border/20 p-1.5">
+                    {uniqueGroups.map((g) => (
+                      <label key={g.link} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/30 cursor-pointer">
+                        <Checkbox checked={selectedGroups.includes(g.link)} onCheckedChange={() => toggleGroup(g.link)} />
+                        <span className="text-xs truncate">{g.name}</span>
+                      </label>
+                    ))}
+                    {uniqueGroups.length === 0 && (
+                      <p className="text-[11px] text-muted-foreground text-center py-2">Nenhum grupo disponível</p>
                     )}
                   </div>
                 </div>
