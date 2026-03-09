@@ -156,6 +156,9 @@ const WarmupInstanceDetail = () => {
         <div className="relative z-10">
           {/* top bar */}
           <div className="flex items-center justify-between px-5 pt-4">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => navigate("/dashboard/warmup-v2")}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <Badge
               variant="outline"
               className={cn(
@@ -168,9 +171,6 @@ const WarmupInstanceDetail = () => {
               <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isConnected ? "bg-primary animate-pulse" : "bg-muted-foreground")} />
               {isConnected ? "CONECTADO" : "DESCONECTADO"}
             </Badge>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => navigate("/dashboard/warmup-v2")}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
           </div>
 
           {/* instance identity */}
