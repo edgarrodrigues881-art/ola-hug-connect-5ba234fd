@@ -842,7 +842,7 @@ const AdminMessages = () => {
           <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-3 border border-border/50">
             <div><span className="text-muted-foreground">Telefone:</span> <span className="font-medium text-foreground">{selectedClient.phone || "—"}</span></div>
             <div><span className="text-muted-foreground">Plano:</span> <span className="font-medium text-foreground">{selectedClient.plan_name || "Sem plano"}</span></div>
-            <div><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium text-foreground">{selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}</span></div>
+            <div><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium text-foreground">{selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</span></div>
             <div><span className="text-muted-foreground">Instâncias:</span> <span className="font-medium text-foreground">{selectedClient.devices_connected}/{selectedClient.devices_count}</span></div>
           </div>
         </div>
