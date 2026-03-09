@@ -101,8 +101,8 @@ export default function AdminConexao() {
       );
       const result = await res.json();
 
-      if (result.qr_base64) {
-        setQrCodeBase64(result.qr_base64);
+      if (result.base64 || result.qr) {
+        setQrCodeBase64(result.base64 || result.qr);
         startCountdownAndPoll(deviceId);
       } else if (result.pairing_code) {
         setPairingCode(result.pairing_code);
