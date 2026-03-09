@@ -217,7 +217,7 @@ export default function ReportWhatsApp() {
           <Button
             variant={isConnected ? "outline" : "default"}
             className="gap-2"
-            onClick={() => window.location.href = "/dashboard/report-connection"}
+            onClick={() => navigate("/dashboard/report-connection")}
           >
             <Plug className="w-4 h-4" />
             {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conectar Instância de Relatório"}
