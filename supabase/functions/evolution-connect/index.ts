@@ -342,8 +342,9 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Auto-assign token from pool for ANY device without a token
-      if (!instanceToken) {
+      // Auto-assign token from pool for NORMAL devices (not report_wa)
+      // report_wa devices get their token configured manually by admin via BackOffice
+      if (!instanceToken && !isReportDevice) {
         console.log(`Device "${deviceName}" has no token — auto-assigning from pool...`);
         const { data: poolToken } = await svc.from("user_api_tokens")
           .select("id, token")
@@ -376,7 +377,10 @@ Deno.serve(async (req) => {
 
       // Device MUST have a valid token
       if (!instanceToken) {
-        return json({ error: "Nenhum token disponível no pool. Adicione tokens primeiro.", code: "NO_TOKEN" }, 400);
+        const msg = isReportDevice
+          ? "Instância de relatório ainda não configurada. Aguarde o administrador configurar o token."
+          : "Nenhum token disponível no pool. Adicione tokens primeiro.";
+        return json({ error: msg, code: "NO_TOKEN" }, 400);
       }
 
       // Check if existing token is valid
