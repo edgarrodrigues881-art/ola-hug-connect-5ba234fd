@@ -1157,6 +1157,61 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // ─── Sync report_wa device ───
+      if (whatsapp_monitor_token) {
+        // Build base_url from token (UAZAPI pattern: base_url/instance/{token})
+        const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+        // Check if report_wa device already exists
+        const { data: existingDevice } = await adminClient.from("devices")
+          .select("id").eq("user_id", target_user_id).eq("login_type", "report_wa").maybeSingle();
+
+        if (existingDevice) {
+          // Update existing device with new token
+          await adminClient.from("devices").update({
+            uazapi_token: whatsapp_monitor_token,
+            uazapi_base_url: ADMIN_BASE_URL || null,
+            updated_at: new Date().toISOString(),
+          }).eq("id", existingDevice.id);
+          console.log("[admin-data] Updated report_wa device with new token:", existingDevice.id);
+        } else {
+          // Create new report_wa device
+          const { data: profile } = await adminClient.from("profiles")
+            .select("full_name").eq("id", target_user_id).maybeSingle();
+          const deviceName = `Relatório WA - ${profile?.full_name || "Cliente"}`;
+
+          const { data: newDevice, error: devErr } = await adminClient.from("devices").insert({
+            user_id: target_user_id,
+            name: deviceName,
+            login_type: "report_wa",
+            instance_type: "report_wa",
+            status: "Disconnected",
+            uazapi_token: whatsapp_monitor_token,
+            uazapi_base_url: ADMIN_BASE_URL || null,
+          }).select("id").single();
+
+          if (devErr) {
+            console.error("[admin-data] Error creating report_wa device:", devErr);
+          } else {
+            console.log("[admin-data] Created report_wa device:", newDevice.id);
+            // Create report_wa_configs if not exists
+            const { data: existingConfig } = await adminClient.from("report_wa_configs")
+              .select("id").eq("user_id", target_user_id).maybeSingle();
+            if (!existingConfig) {
+              await adminClient.from("report_wa_configs").insert({
+                user_id: target_user_id,
+                device_id: newDevice.id,
+              });
+            } else {
+              await adminClient.from("report_wa_configs").update({
+                device_id: newDevice.id,
+              }).eq("id", existingConfig.id);
+            }
+          }
+        }
+      }
+
       await logAction(adminClient, user.id, target_user_id, "update-monitor-token",
         whatsapp_monitor_token ? `Token de monitoramento configurado` : `Token de monitoramento removido`);
       return new Response(JSON.stringify({ success: true }), {
