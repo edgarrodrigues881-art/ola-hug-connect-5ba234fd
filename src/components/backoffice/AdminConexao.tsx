@@ -76,14 +76,23 @@ export default function AdminConexao() {
   const hasCredentials = !!(device?.uazapi_token && device?.uazapi_base_url);
 
   // ─── QR Connect ───
+  const openConnectDialog = () => {
+    setQrDialogOpen(true);
+    setConnectStep("choose");
+    setConnectMethod("qr");
+    setQrCodeBase64("");
+    setQrConnected(false);
+    setConnectError("");
+    setPairingCode("");
+    setPairingPhone("");
+  };
+
   const startQrConnect = async () => {
     if (!deviceId || !device) return;
     setQrLoading(true);
     setQrCodeBase64("");
     setQrConnected(false);
     setConnectError("");
-    setQrCountdown(30);
-    setQrDialogOpen(true);
 
     try {
       const { data: session } = await supabase.auth.getSession();
