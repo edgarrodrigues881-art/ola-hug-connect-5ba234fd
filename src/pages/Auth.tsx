@@ -479,14 +479,19 @@ const Auth = () => {
 
               {/* Resend confirmation email */}
               {showResendConfirm && isLogin && (
-                <button
-                  type="button"
-                  onClick={handleResendConfirmation}
-                  disabled={resendLoading}
-                  className="w-full text-center text-sm font-semibold text-[#22C55E] hover:text-[#16A34A] transition-colors mt-2 py-2"
-                >
-                  {resendLoading ? "Reenviando..." : "📧 Reenviar e-mail de confirmação"}
-                </button>
+                <div className="mt-3 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-center space-y-2">
+                  <p className="text-sm text-yellow-200 font-medium">
+                    Seu e-mail ainda não foi confirmado.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendLoading}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#22C55E] hover:bg-[#16A34A] text-white transition-all"
+                  >
+                    {resendLoading ? "Reenviando..." : "📧 Reenviar e-mail de confirmação"}
+                  </button>
+                </div>
               )}
             </form>
 
