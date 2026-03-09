@@ -193,6 +193,23 @@ function formatDateBR(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
+// ─── VALIDATE MOBILE NUMBER (BR) ───
+function isValidMobileNumber(phone: string): boolean {
+  // Remove non-digits
+  const digits = phone.replace(/\D/g, "");
+  // Expected formats: 55DDNNNNNNNNN (13 digits) or DDNNNNNNNNN (11 digits)
+  // Mobile numbers in Brazil: DDD (2 digits) + 9 (mandatory) + 8 digits = 11 digits
+  // With country code: 55 + 11 = 13 digits
+  const local = digits.startsWith("55") ? digits.slice(2) : digits;
+  // Must be 10-11 digits (DDD + number)
+  if (local.length < 10 || local.length > 11) return false;
+  // If 11 digits, 3rd digit must be 9 (mobile)
+  if (local.length === 11 && local[2] !== "9") return false;
+  // If 10 digits, it's a landline — reject
+  if (local.length === 10) return false;
+  return true;
+}
+
 function randomDelay(minMs: number, maxMs: number): Promise<void> {
   const ms = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
   return new Promise((r) => setTimeout(r, ms));
@@ -272,6 +289,22 @@ Deno.serve(async (req) => {
           })
           .eq("id", item.id);
         failed++;
+        continue;
+      }
+
+      // Validate mobile number (reject landlines)
+      if (!isValidMobileNumber(phone)) {
+        await adminClient
+          .from("message_queue")
+          .update({
+            status: "failed",
+            error_message: `Número fixo ou inválido: ${phone} — WhatsApp requer celular`,
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id);
+        failed++;
+        console.log(`[process-mq] ⚠️ Skipped landline/invalid: ${phone} for ${item.client_name}`);
         continue;
       }
 
