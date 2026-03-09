@@ -35,7 +35,7 @@ export default function ReportWhatsApp() {
   const [qrCountdown, setQrCountdown] = useState(30);
   const [qrConnected, setQrConnected] = useState(false);
   const [connectError, setConnectError] = useState("");
-  const [connectStep, setConnectStep] = useState<"qr" | "code" | "done">("qr");
+  const [connectStep, setConnectStep] = useState<"choose" | "qr" | "code" | "done">("choose");
   const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
   const [pairingPhone, setPairingPhone] = useState("");
   const [pairingCode, setPairingCode] = useState("");
@@ -136,10 +136,9 @@ export default function ReportWhatsApp() {
     setQrConnected(false);
     setConnectError("");
     setConnectMethod("qr");
-    setConnectStep("qr");
+    setConnectStep("choose");
     setPairingCode("");
     setPairingPhone("");
-    handleConnectQR();
   };
 
   const handleRequestPairingCode = async () => {
@@ -420,6 +419,8 @@ export default function ReportWhatsApp() {
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${connectStep === "done" ? "bg-emerald-500/15" : "bg-primary/10"}`}>
                 {connectStep === "done" ? (
                   <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                ) : connectStep === "choose" ? (
+                  <Plug className="w-6 h-6 text-primary" />
                 ) : connectMethod === "qr" ? (
                   <QrCode className="w-6 h-6 text-primary" />
                 ) : (
@@ -428,9 +429,9 @@ export default function ReportWhatsApp() {
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold">
-                  {connectStep === "done" ? "Conectado com sucesso!" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
+                  {connectStep === "done" ? "Conectado com sucesso!" : connectStep === "choose" ? "Como deseja conectar?" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
                 </DialogTitle>
-                {reportDevice && connectStep !== "done" && (
+                {reportDevice && connectStep !== "done" && connectStep !== "choose" && (
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {reportDevice.name}{reportDevice.number ? ` · ${reportDevice.number}` : ""}
                   </p>
@@ -441,26 +442,20 @@ export default function ReportWhatsApp() {
 
           <div className="px-6 pb-6 pt-5 overflow-hidden">
             <AnimatePresence mode="wait">
-              {connectStep !== "done" && (
-                <motion.div key="connect-content" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }}>
-                  {/* Method chooser */}
-                  <div className="grid grid-cols-2 gap-3 mb-5">
+              {/* ── Step: Choose method ── */}
+              {connectStep === "choose" && (
+                <motion.div key="choose" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
+                  <p className="text-sm text-muted-foreground mb-5">Escolha o método de conexão para sua instância de relatório:</p>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => {
                         setConnectMethod("qr");
                         setConnectStep("qr");
-                        setConnectError("");
-                        if (!qrCodeBase64 && !qrLoading) handleConnectQR();
+                        handleConnectQR();
                       }}
-                      className={`group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all duration-200 ${
-                        connectMethod === "qr"
-                          ? "border-primary/50 bg-primary/[0.04] shadow-sm"
-                          : "border-border/30 hover:border-primary/30 bg-card hover:bg-primary/[0.02]"
-                      }`}
+                      className="group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
                     >
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                        connectMethod === "qr" ? "bg-primary/20" : "bg-primary/10 group-hover:bg-primary/15"
-                      }`}>
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
                         <QrCode className="w-6 h-6 text-primary" />
                       </div>
                       <div className="text-center">
@@ -472,17 +467,10 @@ export default function ReportWhatsApp() {
                       onClick={() => {
                         setConnectMethod("code");
                         setConnectStep("code");
-                        setConnectError("");
                       }}
-                      className={`group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all duration-200 ${
-                        connectMethod === "code"
-                          ? "border-primary/50 bg-primary/[0.04] shadow-sm"
-                          : "border-border/30 hover:border-primary/30 bg-card hover:bg-primary/[0.02]"
-                      }`}
+                      className="group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
                     >
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                        connectMethod === "code" ? "bg-primary/20" : "bg-primary/10 group-hover:bg-primary/15"
-                      }`}>
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
                         <Key className="w-6 h-6 text-primary" />
                       </div>
                       <div className="text-center">
@@ -491,6 +479,19 @@ export default function ReportWhatsApp() {
                       </div>
                     </button>
                   </div>
+                </motion.div>
+              )}
+
+              {/* ── Step: QR or Code ── */}
+              {connectStep !== "done" && connectStep !== "choose" && (
+                <motion.div key="connect-content" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25, ease: "easeOut" }}>
+                  {/* Back button */}
+                  <button
+                    onClick={() => { setConnectStep("choose"); setConnectError(""); }}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
+                  >
+                    ← Voltar
+                  </button>
 
                   {/* QR Code content */}
                   {connectMethod === "qr" && (
