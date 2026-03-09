@@ -797,7 +797,7 @@ Deno.serve(async (req) => {
           const { data: devStatuses } = await serviceClient.from("devices").select("id, status").in("id", deviceIds);
           const allDisconnected = devStatuses?.every(d => !["Ready", "Connected", "authenticated"].includes(d.status));
           if (allDisconnected) {
-            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
+            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
           }
         }
 
