@@ -410,15 +410,9 @@ export default function ReportWhatsApp() {
           </div>
 
           {!reportDevice ? (
-            <div className="flex flex-col items-center py-8 space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-muted/20 border border-border/20 flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-muted-foreground/30" />
-              </div>
-              <p className="text-xs text-muted-foreground/60">Nenhuma instância configurada</p>
-              <Button onClick={handleCreateReportInstance} disabled={creatingInstance} size="sm" className="gap-1.5 h-8 text-xs">
-                {creatingInstance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Criar instância
-              </Button>
+            <div className="flex items-center gap-2 py-4 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <p className="text-xs text-muted-foreground/60">Provisionando instância...</p>
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
