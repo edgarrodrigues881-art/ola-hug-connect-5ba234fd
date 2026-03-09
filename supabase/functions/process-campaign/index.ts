@@ -310,7 +310,7 @@ async function heartbeatLock(serviceClient: any, campaignId: string) {
 
 // When disconnect is detected mid-campaign, PAUSE instead of FAIL
 // This preserves pending contacts so user can resume after reconnecting
-async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], failedCount: number) {
+async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], failedCount: number, campaignName?: string, userId?: string) {
   console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
   // Revert any processing contacts back to pending
   await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
@@ -320,6 +320,15 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
     updated_at: new Date().toISOString(),
   }).eq("id", campaignId);
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+  // Send notification
+  if (userId) {
+    await serviceClient.from("notifications").insert({
+      user_id: userId,
+      title: "⏸️ Campanha pausada automaticamente",
+      message: `A campanha "${campaignName || ""}" foi pausada porque as instâncias ficaram indisponíveis. Reconecte e retome o envio.`,
+      type: "warning",
+    });
+  }
 }
 
 interface BatchState {
