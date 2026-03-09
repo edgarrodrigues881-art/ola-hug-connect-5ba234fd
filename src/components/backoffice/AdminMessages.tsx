@@ -119,6 +119,10 @@ const AdminMessages = () => {
   const [newBaseUrl, setNewBaseUrl] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("Relatório WA");
   const [creatingDevice, setCreatingDevice] = useState(false);
+  const [editingTokenDeviceId, setEditingTokenDeviceId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState("");
+  const [editBaseUrl, setEditBaseUrl] = useState("");
+  const [savingToken, setSavingToken] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
   const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
