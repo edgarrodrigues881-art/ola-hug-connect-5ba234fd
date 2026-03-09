@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from "react";
-import { FixedSizeList as VirtualList } from "react-window";
+import { List as VirtualList, type ListChildComponentProps } from "react-window";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
