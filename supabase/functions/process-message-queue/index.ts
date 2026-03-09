@@ -64,10 +64,12 @@ function buildMessageByType(
       );
     case "OVERDUE_30":
       return (
-        `Olá ${nome}! 💀\n\n` +
-        `Seu plano ${plano} venceu há 30 dias (${vencimento}).\n\n` +
-        `Sua conta será desativada. Entre em contato urgente.\n\n` +
-        `Suporte: ${SUPORTE_NUMERO}`
+        `Olá ${nome}! 🎁\n\n` +
+        `Já se passaram 30 dias desde o vencimento do seu plano.\n\n` +
+        `Para você voltar a utilizar a plataforma, liberamos uma condição especial de retorno.\n\n` +
+        `💸 Desconto exclusivo na renovação.\n\n` +
+        `Se quiser reativar sua conta, fale com nosso suporte.\n\n` +
+        `📞 ${SUPORTE_NUMERO}`
       );
     default:
       return `Olá ${nome}, esta é uma mensagem do DG CONTINGÊNCIA PRO. Suporte: ${SUPORTE_NUMERO}`;
