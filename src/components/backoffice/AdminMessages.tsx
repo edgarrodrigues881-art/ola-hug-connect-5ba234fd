@@ -809,7 +809,7 @@ const AdminMessages = () => {
     const vars = {
       nome: selectedClient.full_name || selectedClient.email,
       plano: selectedClient.plan_name || "Sem plano",
-      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—",
+      vencimento: selectedClient.plan_expires_at ? new Date(selectedClient.plan_expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—",
       dias_restantes: daysLeft !== null ? String(daysLeft) : "—",
       suporte_numero: SUPORTE_NUMERO,
     };
