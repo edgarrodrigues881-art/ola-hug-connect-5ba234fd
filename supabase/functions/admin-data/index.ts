@@ -1994,6 +1994,43 @@ Deno.serve(async (req) => {
 
     // (update-monitor-token handler is defined earlier in the file)
 
+    // ─── DELETE CLIENT ───
+    if (action === "delete-client" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      if (!target_user_id) throw new Error("target_user_id obrigatório");
+
+      // Prevent deleting yourself
+      if (target_user_id === user.id) throw new Error("Não é possível excluir sua própria conta");
+
+      // Delete in order to respect FK constraints
+      const tables = [
+        "warmup_logs", "warmup_audit_logs", "warmup_jobs", "warmup_instance_groups",
+        "warmup_community_membership", "warmup_unique_recipients", "warmup_cycles",
+        "warmup_sessions", "warmup_messages", "warmup_groups", "warmup_autosave_contacts",
+        "campaign_contacts", "campaign_device_locks", "campaigns",
+        "group_join_logs", "operation_logs", "notifications", "alerts",
+        "report_wa_logs", "report_wa_configs",
+        "user_api_tokens", "delay_profiles", "contacts", "devices",
+        "client_messages", "payments", "subscription_cycles", "subscriptions",
+        "admin_logs", "user_roles", "profiles",
+      ];
+
+      for (const table of tables) {
+        const { error } = await adminClient.from(table).delete().eq("user_id", target_user_id);
+        if (error) console.warn(`[delete-client] Error deleting from ${table}:`, error.message);
+      }
+
+      // Delete from auth.users
+      const { error: authError } = await adminClient.auth.admin.deleteUser(target_user_id);
+      if (authError) console.error("[delete-client] auth delete error:", authError.message);
+
+      await logAction(adminClient, user.id, target_user_id, "delete-client", "Cliente excluído permanentemente");
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

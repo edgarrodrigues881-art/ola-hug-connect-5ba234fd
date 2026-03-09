@@ -1,7 +1,11 @@
 import { useState, useMemo, useCallback, memo } from "react";
-import { Search, ChevronRight, Shield, ChevronDown } from "lucide-react";
+import { Search, ChevronRight, Shield, ChevronDown, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { AdminUser } from "@/hooks/useAdmin";
 
 interface Props {
@@ -40,6 +44,38 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const [filter, setFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=delete-client`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ target_user_id: deleteTarget.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Erro ao excluir");
+      toast.success("Cliente excluído com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir cliente");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, queryClient]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -225,7 +261,6 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Cliente</th>
                 <th className="text-left px-3 py-2.5">Telefone</th>
-                <th className="text-left px-3 py-2.5">Telefone</th>
                 <th className="text-left px-3 py-2.5">Plano</th>
                 <th className="text-left px-3 py-2.5">Instâncias</th>
                 <th className="text-left px-3 py-2.5">Conta</th>
@@ -236,7 +271,7 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
             </thead>
             <tbody className="divide-y divide-border">
               {paginatedItems.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
               ) : paginatedItems.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
@@ -284,9 +319,21 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
-                        Gerenciar <ChevronRight size={12} className="ml-1" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {!u.roles.includes("admin") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-xs px-2"
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
+                          Gerenciar <ChevronRight size={12} className="ml-1" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -311,6 +358,28 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os dados de <strong>{deleteTarget?.full_name || deleteTarget?.email}</strong> serão removidos permanentemente: instâncias, campanhas, contatos, assinatura, logs e a conta de autenticação. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir definitivamente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });
