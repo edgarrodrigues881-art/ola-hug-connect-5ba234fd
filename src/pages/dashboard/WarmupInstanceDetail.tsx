@@ -24,7 +24,7 @@ import {
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInCalendarDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 /* ── phase config ── */
