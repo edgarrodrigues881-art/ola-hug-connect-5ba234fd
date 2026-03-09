@@ -35,6 +35,8 @@ const Contacts = () => {
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
+  const [removeTagDialogOpen, setRemoveTagDialogOpen] = useState(false);
+  const [removeTagName, setRemoveTagName] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "" });
