@@ -23,7 +23,15 @@ const TEMPLATES = [
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 3);
       const trialVencimento = trialEnd.toLocaleDateString("pt-BR");
-      return `Olá ${v.nome}! 👋\n\nSeja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\nSeu plano Trial de 3 dias já está ativo.\nVencimento: ${trialVencimento}\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero}\n\nBons envios! 🚀`;
+      return (
+        `Olá ${v.nome}! 👋\n\n` +
+        `Seja bem-vindo ao DG CONTINGÊNCIA PRO.\n\n` +
+        `Seu teste gratuito de 3 dias já está ativo.\n\n` +
+        `📅 Vencimento: ${trialVencimento}\n\n` +
+        `Se precisar de ajuda, fale com nosso suporte:\n` +
+        `📞 ${v.suporte_numero}\n\n` +
+        `Bons envios! 🚀`
+      );
     },
   },
   {
@@ -35,7 +43,12 @@ const TEMPLATES = [
     bgActive: "bg-yellow-500 text-black",
     desc: "3 dias antes do vencimento",
     build: (v: any) =>
-      `Olá ${v.nome}!\n\nSeu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\nRenove agora para não perder o acesso às suas instâncias.\n\nSuporte: ${v.suporte_numero}`,
+      `Olá ${v.nome}! ⏳\n\n` +
+      `Seu plano ${v.plano} vence em 3 dias.\n\n` +
+      `Para evitar interrupção nas suas instâncias, recomendamos renovar antecipadamente.\n\n` +
+      `📅 Vencimento: ${v.vencimento}\n\n` +
+      `Se precisar de ajuda, fale com nosso suporte:\n` +
+      `📞 ${v.suporte_numero}`,
   },
   {
     type: "vence-hoje",
@@ -46,7 +59,13 @@ const TEMPLATES = [
     bgActive: "bg-orange-500 text-white",
     desc: "No dia do vencimento",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} vence HOJE (${v.vencimento})!\n\nSem renovação, suas instâncias serão bloqueadas.\n\nRenove agora → Suporte: ${v.suporte_numero}`,
+      `Olá ${v.nome}! ⚠️\n\n` +
+      `Seu plano ${v.plano} vence HOJE.\n\n` +
+      `Sem renovação, suas instâncias poderão ser bloqueadas automaticamente.\n\n` +
+      `📅 Vencimento: ${v.vencimento}\n\n` +
+      `Renove para continuar utilizando a plataforma normalmente.\n\n` +
+      `Suporte:\n` +
+      `📞 ${v.suporte_numero}`,
   },
   {
     type: "vencido-1-dia",
@@ -57,7 +76,12 @@ const TEMPLATES = [
     bgActive: "bg-destructive text-destructive-foreground",
     desc: "1 dia após o vencimento",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} está vencido desde ${v.vencimento}.\n\nSuas instâncias estão bloqueadas para novas criações.\n\nRenove para reativar → ${v.suporte_numero}`,
+      `Olá ${v.nome}! 🚫\n\n` +
+      `Seu plano ${v.plano} venceu ontem.\n\n` +
+      `Suas instâncias estão temporariamente bloqueadas.\n\n` +
+      `Renove para voltar a utilizá-las imediatamente.\n\n` +
+      `Suporte:\n` +
+      `📞 ${v.suporte_numero}`,
   },
   {
     type: "vencido-7-dias",
@@ -68,7 +92,11 @@ const TEMPLATES = [
     bgActive: "bg-destructive text-destructive-foreground",
     desc: "7 dias após o vencimento",
     build: (v: any) =>
-      `${v.nome}, já se passaram 7 dias desde o vencimento do seu plano ${v.plano}.\n\nSuas instâncias continuam bloqueadas.\n\nPrecisa de ajuda para renovar? → ${v.suporte_numero}`,
+      `Olá ${v.nome}! 📢\n\n` +
+      `Seu plano está vencido há 7 dias.\n\n` +
+      `Ainda é possível reativar sua conta e continuar utilizando suas instâncias normalmente.\n\n` +
+      `Se precisar de ajuda com a renovação, fale com nosso suporte.\n\n` +
+      `📞 ${v.suporte_numero}`,
   },
   {
     type: "vencido-30-dias",
@@ -79,7 +107,12 @@ const TEMPLATES = [
     bgActive: "bg-destructive text-destructive-foreground",
     desc: "30 dias após — remoção iminente",
     build: (v: any) =>
-      `${v.nome}, seu plano ${v.plano} está vencido há 30 dias.\n\nPor questões de segurança, suas instâncias poderão ser removidas em breve.\n\nEntre em contato: ${v.suporte_numero}`,
+      `Olá ${v.nome}! 🎁\n\n` +
+      `Já se passaram 30 dias desde o vencimento do seu plano.\n\n` +
+      `Para você voltar a utilizar a plataforma, liberamos uma condição especial de retorno.\n\n` +
+      `💸 Desconto exclusivo na renovação.\n\n` +
+      `Se quiser reativar sua conta, fale com nosso suporte.\n\n` +
+      `📞 ${v.suporte_numero}`,
   },
 ];
 
