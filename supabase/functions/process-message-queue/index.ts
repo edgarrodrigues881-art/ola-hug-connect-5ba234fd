@@ -56,10 +56,11 @@ function buildMessageByType(
       );
     case "OVERDUE_7":
       return (
-        `Olá ${nome}! 🔴\n\n` +
-        `Seu plano ${plano} está vencido há 7 dias (${vencimento}).\n\n` +
-        `Suas instâncias podem ser removidas em breve.\n\n` +
-        `Renove agora: ${SUPORTE_NUMERO}`
+        `Olá ${nome}! 📢\n\n` +
+        `Seu plano está vencido há 7 dias.\n\n` +
+        `Ainda é possível reativar sua conta e continuar utilizando suas instâncias normalmente.\n\n` +
+        `Se precisar de ajuda com a renovação, fale com nosso suporte.\n\n` +
+        `📞 ${SUPORTE_NUMERO}`
       );
     case "OVERDUE_30":
       return (
