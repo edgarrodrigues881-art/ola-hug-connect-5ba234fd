@@ -34,7 +34,7 @@ const TEMPLATES = [
     color: "text-yellow-500",
     desc: "Último dia do plano",
     build: (v: any) =>
-      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence AMANHÃ (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
+      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence HOJE (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vence-hoje",
