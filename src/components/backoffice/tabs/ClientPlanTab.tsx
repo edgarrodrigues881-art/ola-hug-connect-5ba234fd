@@ -63,7 +63,7 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   
   const autoExpiresAt = useMemo(() => isNoPlan ? startedAt : addDays(startedAt, cycleDays), [startedAt, isNoPlan, cycleDays]);
   const expiresAt = manualExpires || autoExpiresAt;
-  const { mutate, isPending } = useAdminAction();
+  const { mutate, isPending, invalidateClient, invalidateDashboard } = useAdminAction();
   const { toast } = useToast();
 
   const daysLeft = sub?.expires_at ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000) : null;
@@ -108,7 +108,12 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         action: "remove-subscription",
         body: { target_user_id: client.id },
       }, {
-        onSuccess: () => toast({ title: "Plano removido — cliente sem plano" }),
+        onSuccess: () => {
+          toast({ title: "Plano removido — cliente sem plano" });
+          // Force refresh client detail and dashboard
+          invalidateClient(client.id);
+          invalidateDashboard();
+        },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       });
       return;
@@ -157,6 +162,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
             if (prov?.unblocked > 0) desc += ` ${prov.unblocked} token(s) desbloqueados.`;
             if (prov?.errors?.length > 0) desc += ` ${prov.errors.length} erro(s).`;
             toast({ title: "Plano atualizado", description: desc });
+            invalidateClient(client.id);
+            invalidateDashboard();
           },
           onError: (e) => {
             setProvisioning(false);
