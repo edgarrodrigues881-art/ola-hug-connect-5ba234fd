@@ -374,123 +374,155 @@ const WarmupInstanceDetail = () => {
             </div>
           )}
 
-          {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* ── Metrics ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               {
-                icon: MessageSquare, label: "Budget Diário", color: "text-primary",
+                icon: MessageSquare, label: "Budget Diário", color: "text-primary", bg: "bg-primary/8",
                 value: cycle.daily_interaction_budget_used, max: cycle.daily_interaction_budget_target,
+                suffix: null,
               },
               {
-                icon: Shield, label: "Únicos Hoje", color: "text-emerald-400",
+                icon: Shield, label: "Únicos Hoje", color: "text-emerald-400", bg: "bg-emerald-500/8",
                 value: cycle.daily_unique_recipients_used, max: cycle.daily_unique_recipients_cap,
+                suffix: null,
               },
             ].map((m, i) => (
-              <Card key={i} className="border-border/30">
-                <CardContent className="p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2">
+              <div key={i} className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", m.bg)}>
                     <m.icon className={cn("w-3 h-3", m.color)} />
-                    <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">{m.label}</span>
                   </div>
-                  <p className="text-xl font-bold tabular-nums text-foreground leading-none">
-                    {m.value}
-                    <span className="text-xs text-muted-foreground/50 font-normal">/{m.max}</span>
-                  </p>
-                  <Progress value={(m.value / m.max) * 100} className="h-1 mt-2" />
-                </CardContent>
-              </Card>
+                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">{m.label}</span>
+                </div>
+                <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
+                  {m.value}
+                  <span className="text-sm text-muted-foreground/40 font-normal">/{m.max}</span>
+                </p>
+                <div className="w-full h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all duration-500", m.color === "text-primary" ? "bg-primary" : "bg-emerald-400")}
+                    style={{ width: `${Math.min((m.value / m.max) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
             ))}
 
             {/* Groups */}
-            <Card className="border-border/30">
-              <CardContent className="p-3.5">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Users className={cn("w-3 h-3 text-teal-400")} />
-                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Grupos</span>
+            <div className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-teal-500/8 flex items-center justify-center">
+                  <Users className="w-3 h-3 text-teal-400" />
                 </div>
-                <p className="text-xl font-bold tabular-nums text-foreground leading-none">
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Grupos</span>
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
                   {joinedGroups}
-                  <span className="text-xs text-muted-foreground/50 font-normal"> entrou</span>
+                  <span className="text-sm text-muted-foreground/40 font-normal"> entrou</span>
                 </p>
                 {pendingGroups > 0 && (
-                  <p className="text-[10px] text-amber-400 mt-1.5 font-medium">{pendingGroups} pendente{pendingGroups > 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-amber-400 mt-1.5 font-semibold flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+                    {pendingGroups} pendente{pendingGroups > 1 ? "s" : ""}
+                  </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Auto Save */}
-            <Card className="border-border/30">
-              <CardContent className="p-3.5">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Zap className={cn("w-3 h-3 text-emerald-400")} />
-                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Auto Save</span>
+            <div className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-emerald-500/8 flex items-center justify-center">
+                  <Zap className="w-3 h-3 text-emerald-400" />
                 </div>
-                <p className="text-xl font-bold tabular-nums text-foreground leading-none">
-                  {activeContacts}
-                  <span className="text-xs text-muted-foreground/50 font-normal"> contatos</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
-                  {["autosave_enabled", "community_enabled"].includes(cycle.phase) ? "Ativo" : "Bloqueado"}
-                </p>
-              </CardContent>
-            </Card>
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Auto Save</span>
+              </div>
+              <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
+                {activeContacts}
+                <span className="text-sm text-muted-foreground/40 font-normal"> contatos</span>
+              </p>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[9px] h-5 rounded-md font-semibold",
+                  ["autosave_enabled", "community_enabled"].includes(cycle.phase)
+                    ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5"
+                    : "text-muted-foreground border-border/30"
+                )}
+              >
+                {["autosave_enabled", "community_enabled"].includes(cycle.phase) ? "● Ativo" : "Bloqueado"}
+              </Badge>
+            </div>
           </div>
 
-          {/* Auto Save alert */}
+          {/* ── Auto Save alert ── */}
           {activeContacts === 0 && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-foreground">Sem contatos Auto Save</p>
-                <p className="text-[11px] text-muted-foreground">Adicione contatos para a próxima fase.</p>
+            <div className="rounded-xl border border-amber-500/15 bg-gradient-to-r from-amber-500/5 to-transparent p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
               </div>
-              <Button size="sm" variant="outline" className="text-xs shrink-0 rounded-lg" onClick={() => navigate("/dashboard/autosave")}>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-foreground">Sem contatos Auto Save</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Adicione contatos para habilitar essa camada.</p>
+              </div>
+              <Button size="sm" variant="outline" className="text-[11px] shrink-0 rounded-lg h-8 px-3 font-semibold" onClick={() => navigate("/dashboard/autosave")}>
                 Adicionar
               </Button>
             </div>
           )}
 
-          {/* Community */}
-          <div className="rounded-xl border border-border/30 bg-card p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Globe className="w-4 h-4 text-purple-400" />
+          {/* ── Community ── */}
+          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <Globe className="w-4.5 h-4.5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-foreground">Comunidade</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase)
+                      ? "Interação mútua entre contas do sistema"
+                      : "Desbloqueada após fase Auto Save"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[13px] font-semibold text-foreground">Comunidade</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase)
-                    ? "Interação mútua entre contas"
-                    : "Bloqueado até fase Auto Save"}
-                </p>
-              </div>
+              {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase) ? (
+                <div className="flex items-center gap-2.5">
+                  <span className={cn(
+                    "text-[10px] font-semibold",
+                    community?.is_enabled ? "text-purple-400" : "text-muted-foreground"
+                  )}>
+                    {community?.is_enabled ? "Ativa" : "Inativa"}
+                  </span>
+                  <Switch
+                    checked={community?.is_enabled ?? false}
+                    disabled={toggleCommunity.isPending}
+                    onCheckedChange={(checked) => {
+                      if (!deviceId) return;
+                      toggleCommunity.mutate(
+                        { deviceId, cycleId: cycle.id, enable: checked },
+                        { onSuccess: () => toast({ title: checked ? "Comunidade habilitada" : "Comunidade desabilitada" }) }
+                      );
+                    }}
+                  />
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-[10px] text-muted-foreground rounded-lg gap-1">
+                  🔒 Bloqueado
+                </Badge>
+              )}
             </div>
-            {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase) ? (
-              <Switch
-                checked={community?.is_enabled ?? false}
-                disabled={toggleCommunity.isPending}
-                onCheckedChange={(checked) => {
-                  if (!deviceId) return;
-                  toggleCommunity.mutate(
-                    { deviceId, cycleId: cycle.id, enable: checked },
-                    { onSuccess: () => toast({ title: checked ? "Comunidade habilitada" : "Comunidade desabilitada" }) }
-                  );
-                }}
-              />
-            ) : (
-              <Badge variant="outline" className="text-[10px] text-muted-foreground rounded-lg">
-                🔒 Bloqueado
-              </Badge>
-            )}
           </div>
 
-          {/* Encerrar ciclo */}
+          {/* ── Encerrar ciclo ── */}
           {cycle.phase !== "completed" && (
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-1">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-lg"
+                className="gap-1.5 text-[11px] text-destructive border-destructive/20 hover:bg-destructive/8 hover:border-destructive/30 rounded-lg h-8 px-3 font-semibold"
                 onClick={() => setShowFinishConfirm(true)}
               >
                 <Square className="w-3 h-3" /> Encerrar Ciclo
@@ -521,34 +553,62 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Audit Logs */}
-          <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-border/20 flex items-center gap-2">
-              <ScrollText className="w-4 h-4 text-muted-foreground" />
+          {/* ── Audit Logs ── */}
+          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-muted/30 flex items-center justify-center">
+                <ScrollText className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
               <span className="text-sm font-bold text-foreground">Logs Recentes</span>
+              {auditLogs.length > 0 && (
+                <Badge variant="secondary" className="text-[9px] h-4 ml-auto rounded-md font-bold">
+                  {auditLogs.length}
+                </Badge>
+              )}
             </div>
             {auditLogs.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-xs text-muted-foreground/60">Nenhum log registrado ainda</p>
+              <div className="p-10 text-center">
+                <ScrollText className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/50">Nenhum log registrado ainda</p>
               </div>
             ) : (
-              <div className="max-h-[380px] overflow-y-auto divide-y divide-border/10">
-                {auditLogs.map(log => (
-                  <div key={log.id} className="px-5 py-3 flex items-start gap-2.5 hover:bg-muted/5 transition-colors">
+              <div className="max-h-[400px] overflow-y-auto">
+                {auditLogs.map((log, idx) => (
+                  <div
+                    key={log.id}
+                    className={cn(
+                      "px-5 py-3.5 flex items-start gap-3 hover:bg-muted/5 transition-colors",
+                      idx !== auditLogs.length - 1 && "border-b border-border/8"
+                    )}
+                  >
                     <div className={cn(
-                      "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                      log.level === "error" ? "bg-destructive" : log.level === "warn" ? "bg-amber-400" : "bg-teal-400"
+                      "w-2 h-2 rounded-full mt-1.5 shrink-0 ring-2",
+                      log.level === "error"
+                        ? "bg-destructive ring-destructive/20"
+                        : log.level === "warn"
+                          ? "bg-amber-400 ring-amber-400/20"
+                          : "bg-teal-400 ring-teal-400/20"
                     )} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[8px] h-4 rounded">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[8px] h-[18px] rounded-md font-bold px-1.5",
+                            log.level === "error"
+                              ? "text-destructive border-destructive/20"
+                              : log.level === "warn"
+                                ? "text-amber-400 border-amber-400/20"
+                                : "text-teal-400 border-teal-400/20"
+                          )}
+                        >
                           {log.event_type}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground/40">
+                        <span className="text-[10px] text-muted-foreground/35 font-medium">
                           {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: ptBR })}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{log.message}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{log.message}</p>
                     </div>
                   </div>
                 ))}
