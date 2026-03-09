@@ -724,6 +724,51 @@ const CampaignDetail = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Export Dialog ──────────────────────────────────────── */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Exportar contatos (CSV)</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Selecione quais contatos deseja exportar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportSent} onCheckedChange={(v) => setExportSent(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Enviadas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos enviados com sucesso ({stats.sent})</p>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-primary/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportFailed} onCheckedChange={(v) => setExportFailed(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Falhas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam ({stats.failed})</p>
+              </div>
+              <XCircle className="w-4 h-4 text-destructive/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportPending} onCheckedChange={(v) => setExportPending(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Pendentes</p>
+                <p className="text-[10px] text-muted-foreground">Contatos não enviados ({stats.pending})</p>
+              </div>
+              <Clock className="w-4 h-4 text-yellow-400/60" />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setExportOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleExportConfirm} disabled={!exportSent && !exportFailed && !exportPending} className="gap-1.5 text-xs">
+              <Download className="w-3.5 h-3.5" />
+              Exportar ({(exportSent ? stats.sent : 0) + (exportFailed ? stats.failed : 0) + (exportPending ? stats.pending : 0)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
