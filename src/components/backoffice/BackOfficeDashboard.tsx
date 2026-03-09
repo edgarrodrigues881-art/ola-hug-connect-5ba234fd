@@ -39,7 +39,30 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
-const PendenciasTab = memo(() => {
+const NAV_ITEMS = [
+  { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
+  { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
+  { id: "messages", label: "Relatório WhatsApp", shortLabel: "Relatório", icon: MessageCircle, group: "principal", badge: false },
+  { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
+  { id: "logs", label: "Auditoria", shortLabel: "Logs", icon: ScrollText, group: "gestao", badge: false },
+  { id: "costs", label: "Custos", shortLabel: "Custos", icon: Wallet, group: "gestao", badge: false },
+  { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
+  { id: "warmup-cycles", label: "Ciclos", shortLabel: "Ciclos", icon: Flame, group: "operacao", badge: false },
+  { id: "warmup-jobs", label: "Jobs", shortLabel: "Jobs", icon: ListTodo, group: "operacao", badge: false },
+  { id: "infra", label: "Infraestrutura", shortLabel: "Infra", icon: Server, group: "sistema", badge: false },
+  { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
+  { id: "warmup-roadmap", label: "Roteiro de Aquecimento", shortLabel: "Roteiro", icon: BookOpen, group: "operacao", badge: false },
+] as const;
+
+const GROUP_LABELS: Record<string, string> = {
+  principal: "Principal",
+  gestao: "Gestão",
+  operacao: "Operação",
+  sistema: "Sistema",
+};
+
+const GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))];
+
   const { data: queueItems = [], isLoading } = useQuery({
     queryKey: ["message-queue-pending"],
     queryFn: async () => {
