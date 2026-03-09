@@ -226,6 +226,8 @@ const WarmupInstances = () => {
           {displayed.map(device => {
             const cycle = getDeviceCycle(device.id);
             const connected = isConnected(device.status);
+            const budgetUsed = cycle?.daily_interaction_budget_used ?? 0;
+            const budgetTarget = cycle?.daily_interaction_budget_target ?? 0;
 
             return (
               <div
