@@ -2257,7 +2257,44 @@ const Devices = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* WhatsApp Profile Edit Dialog */}
+      {/* Force delete confirmation (second stage) */}
+      <AlertDialog open={forceDeleteOpen} onOpenChange={setForceDeleteOpen}>
+        <AlertDialogContent className="bg-card border-border max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Atenção: Instâncias protegidas
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  As seguintes instâncias possuem processos ativos e foram protegidas automaticamente:
+                </p>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                  {forceDeleteWarnings.map((w, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <ShieldAlert className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+                      <span className="text-foreground/80">{w}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-destructive font-medium">
+                  Apagar essas instâncias pode interromper aquecimentos em andamento, campanhas agendadas ou disparos ativos. Deseja continuar mesmo assim?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setForceDeleteIds([]); setForceDeleteWarnings([]); }}>
+              Manter protegidas
+            </AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleForceDelete}>
+              Apagar mesmo assim ({forceDeleteIds.length})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
