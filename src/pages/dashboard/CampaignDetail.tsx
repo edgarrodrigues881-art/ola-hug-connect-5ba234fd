@@ -416,8 +416,8 @@ const CampaignDetail = () => {
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Total de contatos" value={stats.total} icon={Send} colorClass="bg-primary/10 text-primary" />
         <StatCard label="Enviadas" value={stats.sent} icon={CheckCircle2} colorClass="bg-primary/10 text-primary" />
-        <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
         <StatCard label="Pendentes" value={stats.pending} icon={Clock} colorClass="bg-yellow-500/10 text-yellow-400" />
+        <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
       </div>
 
       {/* ── Taxa de sucesso ──────────────────────────────────────── */}
