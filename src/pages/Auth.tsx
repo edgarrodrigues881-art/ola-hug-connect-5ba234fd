@@ -476,6 +476,18 @@ const Auth = () => {
                   isLogin ? "Entrar" : "Criar conta"
                 )}
               </Button>
+
+              {/* Resend confirmation email */}
+              {showResendConfirm && isLogin && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendLoading}
+                  className="w-full text-center text-sm font-semibold text-[#22C55E] hover:text-[#16A34A] transition-colors mt-2 py-2"
+                >
+                  {resendLoading ? "Reenviando..." : "📧 Reenviar e-mail de confirmação"}
+                </button>
+              )}
             </form>
 
             {/* Security microcopy */}
