@@ -125,6 +125,10 @@ const Devices = () => {
   const [deleteSingleOpen, setDeleteSingleOpen] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [deleteSingleDevice, setDeleteSingleDevice] = useState<Device | null>(null);
+  // Force delete confirmation (second stage)
+  const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
+  const [forceDeleteIds, setForceDeleteIds] = useState<string[]>([]);
+  const [forceDeleteWarnings, setForceDeleteWarnings] = useState<string[]>([]);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEditName, setInlineEditName] = useState("");
   const inlineInputRef = useRef<HTMLInputElement>(null);
