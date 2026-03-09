@@ -299,6 +299,17 @@ const AdminMessages = () => {
     enabled: view === "history",
   });
 
+  // Sent messages for selected client (to show "already sent" warnings)
+  const { data: clientSentMessages = [] } = useQuery({
+    queryKey: ["admin-wa-report-client-sent", selectedClient?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-history");
+      if (error) throw error;
+      return (data?.messages || []).filter((m: any) => m.user_id === selectedClient?.id);
+    },
+    enabled: view === "detail" && !!selectedClient?.id,
+  });
+
   // Open client detail
   const openClient = (u: AdminUser) => {
     const d = getDaysLeft(u.plan_expires_at);
@@ -842,6 +853,7 @@ const AdminMessages = () => {
           <div className="flex flex-wrap gap-1.5">
             {TEMPLATES.map(t => {
               const isActive = selectedTemplate === t.type;
+              const alreadySent = clientSentMessages.some((m: any) => m.template_type === t.type);
               return (
                 <button
                   key={t.type}
@@ -854,11 +866,32 @@ const AdminMessages = () => {
                 >
                   <t.icon size={12} className={isActive ? "" : t.color} />
                   {t.label}
+                  {alreadySent && <Check size={10} className={isActive ? "" : "text-emerald-500"} />}
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Already sent warning */}
+        {tpl && (() => {
+          const sentRecord = clientSentMessages.find((m: any) => m.template_type === selectedTemplate);
+          if (sentRecord) {
+            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+            return (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] font-semibold text-amber-500">Mensagem já enviada</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    "{tpl.label}" foi enviada em <span className="font-medium text-foreground">{sentDate}</span>. Enviar novamente irá duplicar a mensagem.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* Message preview */}
         {tpl && (
@@ -870,7 +903,7 @@ const AdminMessages = () => {
           </div>
         )}
 
-        {/* SEND BUTTON — big and obvious */}
+        {/* SEND BUTTON */}
         <Button
           onClick={sendToGroup}
           disabled={isSending || !isConfigured || !tpl}
@@ -881,7 +914,7 @@ const AdminMessages = () => {
           ) : (
             <Send size={16} />
           )}
-          {isSending ? "Enviando..." : "Enviar no PV + Notificar Grupo"}
+          {isSending ? "Enviando..." : "Enviar"}
         </Button>
 
         {!isConfigured && (
