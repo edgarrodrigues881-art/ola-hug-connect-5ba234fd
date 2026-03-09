@@ -1067,6 +1067,11 @@ const Devices = () => {
       setPlanGateOpen(true);
       return;
     }
+    // Block connection attempts on optimistic (temp) devices that haven't been persisted yet
+    if (device.id.startsWith("temp-")) {
+      toast({ title: "Aguarde", description: "A instância ainda está sendo criada. Tente novamente em instantes.", variant: "destructive" });
+      return;
+    }
     setConnectingDevice(device);
     setConnectStep("choose");
     setQrCodeBase64("");
