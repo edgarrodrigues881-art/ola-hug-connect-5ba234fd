@@ -179,6 +179,37 @@ export default function ReportWhatsApp() {
     }
   };
 
+  const handleRequestPairingCode = async () => {
+    if (!reportDevice?.id || !pairingPhone) return;
+    setPairingLoading(true);
+    setConnectError("");
+    setPairingCode("");
+    try {
+      const result = await callApi({ 
+        action: "requestPairingCode", 
+        deviceId: reportDevice.id, 
+        phoneNumber: pairingPhone 
+      });
+      if (result?.alreadyConnected) {
+        setQrConnected(true);
+        setConnectStep("done");
+        queryClient.invalidateQueries({ queryKey: ["report-device"] });
+        toast.success("Já conectado!");
+        return;
+      }
+      if (result?.pairingCode) {
+        setPairingCode(result.pairingCode);
+      } else {
+        setConnectError("Código não retornado. Verifique o número e tente novamente.");
+      }
+    } catch (err: any) {
+      const msg = err?.message || "Erro ao solicitar código";
+      setConnectError(msg);
+      toast.error(msg);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
   // QR auto-refresh every 30s
   useEffect(() => {
