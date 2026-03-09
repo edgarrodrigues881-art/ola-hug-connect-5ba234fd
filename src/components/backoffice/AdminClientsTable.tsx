@@ -276,7 +276,7 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
             </thead>
             <tbody className="divide-y divide-border">
               {paginatedItems.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
               ) : paginatedItems.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
