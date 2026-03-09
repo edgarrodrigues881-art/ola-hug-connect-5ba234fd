@@ -203,6 +203,7 @@ const AutoSave = () => {
     onDelete: handleDelete,
   }), [filtered, handleEditContact]);
 
+  const queryClient = useQueryClient();
   const handleDeleteAll = async () => {
     if (!contacts.length || !user) return;
     try {
