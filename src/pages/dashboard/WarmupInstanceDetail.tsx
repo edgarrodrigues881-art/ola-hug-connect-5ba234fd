@@ -247,21 +247,6 @@ const WarmupInstanceDetail = () => {
         )}
       </div>
 
-      {/* Connection warning */}
-      {!isConnected && (
-        <Card className="border-amber-500/20 bg-amber-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <QrCode className="w-5 h-5 text-amber-400 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Instância desconectada</p>
-              <p className="text-xs text-muted-foreground">Conecte o QR Code antes de iniciar o aquecimento.</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/devices")}>
-              Conectar QR
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── WIZARD (no active cycle) ── */}
       {!cycle && !cycleLoading && (
