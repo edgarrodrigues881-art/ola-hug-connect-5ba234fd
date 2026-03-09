@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -45,7 +46,10 @@ const Warmup = () => {
   const { user } = useAuth();
   const { isBlocked, planState } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
-  const [showWarning, setShowWarning] = useState(true);
+  const [showWarning, setShowWarning] = useState(() => {
+    return localStorage.getItem("warmup_warning_dismissed") !== "true";
+  });
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
@@ -405,8 +409,21 @@ const Warmup = () => {
               Recomendamos usar chips novos ou estáveis para melhores resultados.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="dontShowAgain"
+              checked={dontShowAgain}
+              onCheckedChange={(v) => setDontShowAgain(!!v)}
+            />
+            <label htmlFor="dontShowAgain" className="text-xs text-muted-foreground cursor-pointer select-none">
+              Não mostrar novamente
+            </label>
+          </div>
           <DialogFooter>
-            <Button onClick={() => setShowWarning(false)}>
+            <Button onClick={() => {
+              if (dontShowAgain) localStorage.setItem("warmup_warning_dismissed", "true");
+              setShowWarning(false);
+            }}>
               Entendi
             </Button>
           </DialogFooter>
