@@ -621,133 +621,175 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .single();
 
-      if (!config?.device_id || !config?.group_id) {
-        return json({ skipped: true, reason: "No device or group configured" });
+      if (!config?.device_id) {
+        return json({ skipped: true, reason: "No device configured" });
+      }
+
+      // Check if at least one group is configured
+      const hasAnyGroup = config.warmup_group_id || config.campaigns_group_id || config.connection_group_id || config.group_id;
+      if (!hasAnyGroup) {
+        return json({ skipped: true, reason: "No groups configured" });
       }
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
-      const pendingMessages: string[] = [];
 
-      // 1) Check device disconnections/reconnections (if alert_disconnect enabled)
-      if (config.alert_disconnect) {
-        const { data: allDevices } = await serviceClient
-          .from("devices")
-          .select("id, name, number, status")
-          .eq("user_id", userId);
+      const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-        for (const dev of (allDevices || [])) {
-          const isDisconnected = ["Disconnected", "disconnected"].includes(dev.status);
-          // Check if we already logged this recently (last 5 min)
-          const { data: recentLogs } = await serviceClient
-            .from("report_wa_logs")
-            .select("id")
-            .eq("user_id", userId)
-            .ilike("message", `%${dev.name}%desconect%`)
-            .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
-            .limit(1);
-
-          if (isDisconnected && (!recentLogs || recentLogs.length === 0)) {
-            pendingMessages.push(`⚠️ Instância "${dev.name}"${dev.number ? ` (${dev.number})` : ""} desconectada.`);
-            await serviceClient.from("report_wa_logs").insert({
-              user_id: userId,
-              level: "WARN",
-              message: `Instância "${dev.name}" desconectada — alerta enviado`,
-            });
-          }
+      async function sendToTargetGroup(groupId: string, message: string): Promise<boolean> {
+        if (!groupId) return false;
+        const sendAttempts = [
+          { path: "/send/text", body: { number: groupId, text: message } },
+          { path: "/message/sendText", body: { chatId: groupId, text: message } },
+          { path: "/message/sendText", body: { to: groupId, text: message } },
+        ];
+        for (const attempt of sendAttempts) {
+          try {
+            const res = await uazapiRequest(baseUrl, apiToken, attempt.path, "POST", attempt.body);
+            const data = await res.json();
+            if (res.status >= 200 && res.status < 300 && !data.error && data.code !== 404) return true;
+          } catch (_e) { /* try next */ }
         }
+        return false;
       }
 
-      // 2) Check campaigns finished/paused (if toggle_campaigns enabled)
-      if (config.toggle_campaigns) {
-        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-        const { data: recentCampaigns } = await serviceClient
-          .from("campaigns")
-          .select("id, name, status, sent_count, failed_count, completed_at, updated_at")
-          .eq("user_id", userId)
-          .in("status", ["completed", "paused", "failed"])
-          .gte("updated_at", fiveMinAgo);
-
-        for (const camp of (recentCampaigns || [])) {
-          const { data: recentLogs } = await serviceClient
-            .from("report_wa_logs")
-            .select("id")
-            .eq("user_id", userId)
-            .ilike("message", `%campanha%${camp.name}%`)
-            .gte("created_at", fiveMinAgo)
-            .limit(1);
-
-          if (!recentLogs || recentLogs.length === 0) {
-            const statusText = camp.status === "completed" ? "✅ finalizada" : camp.status === "paused" ? "⏸ pausada" : "❌ falhou";
-            pendingMessages.push(
-              `Campanha "${camp.name}" ${statusText}. Enviadas: ${camp.sent_count || 0}, Falhas: ${camp.failed_count || 0}.`
-            );
-            await serviceClient.from("report_wa_logs").insert({
-              user_id: userId,
-              level: "INFO",
-              message: `Campanha "${camp.name}" ${statusText} — alerta enviado`,
-            });
-          }
-        }
+      async function wasRecentlySent(pattern: string, minutesAgo = 5): Promise<boolean> {
+        const since = new Date(Date.now() - minutesAgo * 60 * 1000).toISOString();
+        const { data } = await serviceClient
+          .from("report_wa_logs").select("id").eq("user_id", userId)
+          .ilike("message", pattern).gte("created_at", since).limit(1);
+        return !!(data && data.length > 0);
       }
 
-      // 3) Warmup daily summary (if toggle_warmup enabled)
-      if (config.toggle_warmup) {
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        // Check if we already sent warmup summary in the last 23 hours
-        const { data: recentWarmupLog } = await serviceClient
-          .from("report_wa_logs")
-          .select("id")
-          .eq("user_id", userId)
-          .ilike("message", "%resumo aquecimento%")
-          .gte("created_at", new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString())
-          .limit(1);
-
-        if (!recentWarmupLog || recentWarmupLog.length === 0) {
-          const { data: warmupLogs } = await serviceClient
-            .from("warmup_logs")
-            .select("id, status")
-            .eq("user_id", userId)
-            .gte("created_at", oneDayAgo);
-
-          if (warmupLogs && warmupLogs.length > 0) {
-            const sent = warmupLogs.filter(l => l.status === "sent").length;
-            const failed = warmupLogs.filter(l => l.status !== "sent").length;
-            pendingMessages.push(
-              `🔥 Resumo aquecimento (24h): ${sent} enviadas, ${failed} falhas, ${warmupLogs.length} total.`
-            );
-            await serviceClient.from("report_wa_logs").insert({
-              user_id: userId,
-              level: "INFO",
-              message: `Resumo aquecimento enviado: ${sent} ok, ${failed} falhas`,
-            });
-          }
-        }
-      }
-
-      // Send messages with micro-delay (5-10s between each)
       let sentCount = 0;
-      for (const msg of pendingMessages) {
-        if (sentCount > 0) {
-          const delay = 5000 + Math.random() * 5000;
-          await new Promise(r => setTimeout(r, delay));
-        }
-        try {
-          await uazapiRequest(baseUrl, apiToken, "/send/text", "POST", {
-            number: config.group_id,
-            text: `[Relatório Automático]\n${msg}`,
-          });
-          sentCount++;
-        } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : "Erro";
-          await serviceClient.from("report_wa_logs").insert({
-            user_id: userId,
-            level: "ERROR",
-            message: `Falha ao enviar evento: ${errMsg}`,
-          });
+
+      // ═══ CONNECTION ALERTS → connection_group_id ═══
+      if (config.alert_disconnect) {
+        const connectionGroupId = config.connection_group_id || config.group_id;
+        if (connectionGroupId) {
+          const { data: allDevices } = await serviceClient
+            .from("devices").select("id, name, number, status, login_type")
+            .eq("user_id", userId).neq("login_type", "report_wa");
+
+          for (const dev of (allDevices || [])) {
+            if (["Disconnected", "disconnected"].includes(dev.status)) {
+              if (!(await wasRecentlySent(`%${dev.name}%desconect%alerta%`))) {
+                const msg = `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+                if (await sendToTargetGroup(connectionGroupId, msg)) sentCount++;
+                await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Instância "${dev.name}" desconectada — alerta enviado` });
+              }
+            }
+            if (dev.status === "Ready") {
+              if (!(await wasRecentlySent(`%${dev.name}%conectada%alerta%`))) {
+                const msg = `✅ INSTÂNCIA CONECTADA\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
+                if (await sendToTargetGroup(connectionGroupId, msg)) sentCount++;
+                await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Instância "${dev.name}" conectada — alerta enviado` });
+              }
+            }
+          }
         }
       }
 
-      return json({ success: true, eventsSent: sentCount, total: pendingMessages.length });
+      // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
+      if (config.toggle_campaigns) {
+        const campaignsGroupId = config.campaigns_group_id || config.group_id;
+        if (campaignsGroupId) {
+          // Started
+          const { data: startedCampaigns } = await serviceClient
+            .from("campaigns").select("id, name, total_contacts, started_at")
+            .eq("user_id", userId).eq("status", "sending").gte("started_at", fiveMinAgo);
+          for (const camp of (startedCampaigns || [])) {
+            if (!(await wasRecentlySent(`%campanha%${camp.name}%iniciada%`))) {
+              const msg = `📣 CAMPANHA INICIADA\n\nCampanha: ${camp.name}\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n⏱ Início: ${nowBRT}\n\nO envio de mensagens foi iniciado.`;
+              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" iniciada — alerta enviado` });
+            }
+          }
+
+          // Paused
+          const { data: pausedCampaigns } = await serviceClient
+            .from("campaigns").select("id, name, sent_count, total_contacts")
+            .eq("user_id", userId).eq("status", "paused").gte("updated_at", fiveMinAgo);
+          for (const camp of (pausedCampaigns || [])) {
+            if (!(await wasRecentlySent(`%campanha%${camp.name}%pausada%`))) {
+              const msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${camp.name}\n\n📊 Progresso:\n✅ Enviadas: ${camp.sent_count || 0}/${camp.total_contacts || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada pelo operador.`;
+              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" pausada — alerta enviado` });
+            }
+          }
+
+          // Completed/failed
+          const { data: finishedCampaigns } = await serviceClient
+            .from("campaigns").select("id, name, status, sent_count, delivered_count, failed_count, total_contacts, started_at, completed_at")
+            .eq("user_id", userId).in("status", ["completed", "failed"]).gte("updated_at", fiveMinAgo);
+          for (const camp of (finishedCampaigns || [])) {
+            const statusLabel = camp.status === "completed" ? "FINALIZADA" : "ERRO";
+            if (!(await wasRecentlySent(`%campanha%${camp.name}%${statusLabel.toLowerCase()}%`))) {
+              const pending = Math.max(0, (camp.total_contacts || 0) - (camp.sent_count || 0) - (camp.failed_count || 0));
+              let duration = "";
+              if (camp.started_at && camp.completed_at) {
+                const diffMs = new Date(camp.completed_at).getTime() - new Date(camp.started_at).getTime();
+                const mins = Math.floor(diffMs / 60000);
+                const secs = Math.floor((diffMs % 60000) / 1000);
+                duration = mins > 0 ? `${mins}min ${secs}s` : `${secs}s`;
+              }
+              const icon = camp.status === "completed" ? "📣" : "❌";
+              const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${camp.status === "completed" ? "Concluída" : "Erro"}`;
+              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" ${statusLabel.toLowerCase()} — alerta enviado` });
+            }
+          }
+
+          // High failure rate
+          if (config.alert_high_failures) {
+            const { data: activeCampaigns } = await serviceClient
+              .from("campaigns").select("id, name, sent_count, failed_count")
+              .eq("user_id", userId).eq("status", "sending");
+            for (const camp of (activeCampaigns || [])) {
+              const total = (camp.sent_count || 0) + (camp.failed_count || 0);
+              if (total >= 10 && (camp.failed_count || 0) / total > 0.3) {
+                if (!(await wasRecentlySent(`%${camp.name}%falhas detectadas%`, 15))) {
+                  const rate = Math.round(((camp.failed_count || 0) / total) * 100);
+                  const msg = `🚨 FALHAS DETECTADAS\n\nCampanha: ${camp.name}\n\n⚠️ Taxa de falha: ${rate}%\n❌ Falhas: ${camp.failed_count || 0}/${total}\n\n⏱ Horário: ${nowBRT}\n\nA taxa de falha está acima de 30%. Considere pausar a campanha para investigação.`;
+                  if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+                  await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Campanha "${camp.name}" falhas detectadas (${rate}%) — alerta enviado` });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // ═══ WARMUP ALERTS → warmup_group_id ═══
+      if (config.toggle_warmup) {
+        const warmupGroupId = config.warmup_group_id || config.group_id;
+        if (warmupGroupId) {
+          const { data: activeCycles } = await serviceClient
+            .from("warmup_cycles").select("id, device_id, day_index, days_total, phase, started_at")
+            .eq("user_id", userId).eq("is_running", true);
+
+          for (const cycle of (activeCycles || [])) {
+            if (await wasRecentlySent(`%aquecimento%${cycle.device_id.substring(0, 8)}%`, 60 * 23)) continue;
+
+            const { data: dev } = await serviceClient.from("devices").select("name, number, status").eq("id", cycle.device_id).maybeSingle();
+            if (!dev) continue;
+
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const { data: warmupLogs } = await serviceClient
+              .from("warmup_logs").select("id, status")
+              .eq("user_id", userId).eq("device_id", cycle.device_id).gte("created_at", oneDayAgo);
+            if (!warmupLogs || warmupLogs.length === 0) continue;
+
+            const sentMsgs = warmupLogs.filter(l => l.status === "sent").length;
+            const failed = warmupLogs.filter(l => l.status !== "sent").length;
+            const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sentMsgs}\n❌ Falhas: ${failed}\n📊 Total de interações: ${warmupLogs.length}\n\n🗓 Dia do ciclo: ${cycle.day_index}/${cycle.days_total}\n📍 Fase: ${cycle.phase}\n\n🔎 Status atual da instância:\n${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
+            if (await sendToTargetGroup(warmupGroupId, msg)) sentCount++;
+            await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sentMsgs} ok, ${failed} falhas` });
+          }
+        }
+      }
+
+      return json({ success: true, eventsSent: sentCount });
     }
 
     return json({ error: "Ação não reconhecida" }, 400);
