@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Smartphone, Plus, Flame, ChevronRight, Wifi, WifiOff, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,10 @@ const phaseLabels: Record<string, string> = {
 const WarmupInstances = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [showWarning, setShowWarning] = useState(true);
+  const [showWarning, setShowWarning] = useState(() => {
+    return localStorage.getItem("warmup_v2_warning_dismissed") !== "true";
+  });
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices-warmup-list", user?.id],
@@ -86,8 +90,21 @@ const WarmupInstances = () => {
               Recomendamos usar chips novos ou estáveis para melhores resultados.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="dontShowAgainV2"
+              checked={dontShowAgain}
+              onCheckedChange={(v) => setDontShowAgain(!!v)}
+            />
+            <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">
+              Não mostrar novamente
+            </label>
+          </div>
           <DialogFooter>
-            <Button onClick={() => setShowWarning(false)}>
+            <Button onClick={() => {
+              if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
+              setShowWarning(false);
+            }}>
               Entendi
             </Button>
           </DialogFooter>
