@@ -215,7 +215,7 @@ const CampaignList = () => {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5 flex-1 max-w-[160px]">
                         <Progress value={progress} className="h-1 flex-1" />
-                        <span className="text-[10px] text-muted-foreground/60 tabular-nums w-7 text-right">{progress}%</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums w-7 text-right">{progress}%</span>
                       </div>
                       <span className="text-[10px] text-muted-foreground/50 tabular-nums">
                         {c.sent_count || 0}/{c.total_contacts || 0}
