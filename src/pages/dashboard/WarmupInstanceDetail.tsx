@@ -565,111 +565,89 @@ const WarmupInstanceDetail = () => {
           </Dialog>
 
           {/* ── Audit Logs grouped by day ── */}
-          {(() => {
-            const startedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
-
-            // Group logs by day index
-            const dayGroups = useMemo(() => {
-              if (!startedAt || auditLogs.length === 0) return [];
-              const groups: Record<number, typeof auditLogs> = {};
-              auditLogs.forEach(log => {
-                const dayIdx = differenceInCalendarDays(new Date(log.created_at), startedAt) + 1;
-                const day = Math.max(1, dayIdx);
-                if (!groups[day]) groups[day] = [];
-                groups[day].push(log);
-              });
-              // Sort days descending (most recent first)
-              return Object.entries(groups)
-                .map(([day, logs]) => ({ day: Number(day), logs }))
-                .sort((a, b) => b.day - a.day);
-            }, [auditLogs, startedAt]);
-
-            return (
-              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-                <div className="px-5 py-4 border-b border-border/15 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-muted/30 flex items-center justify-center">
-                    <ScrollText className="w-3.5 h-3.5 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">Timeline do Aquecimento</span>
-                  {auditLogs.length > 0 && (
-                    <Badge variant="secondary" className="text-[9px] h-4 ml-auto rounded-md font-bold">
-                      {auditLogs.length}
-                    </Badge>
-                  )}
-                </div>
-                {auditLogs.length === 0 ? (
-                  <div className="p-10 text-center">
-                    <ScrollText className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                    <p className="text-xs text-muted-foreground/50">Nenhum log registrado ainda</p>
-                  </div>
-                ) : (
-                  <div className="max-h-[500px] overflow-y-auto">
-                    {dayGroups.map(({ day, logs }) => (
-                      <div key={day}>
-                        {/* Day header */}
-                        <div className="sticky top-0 z-10 px-5 py-2.5 bg-muted/20 backdrop-blur-sm border-b border-border/10 flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-[9px] font-bold text-primary">{day}</span>
+          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-muted/30 flex items-center justify-center">
+                <ScrollText className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+              <span className="text-sm font-bold text-foreground">Timeline do Aquecimento</span>
+              {auditLogs.length > 0 && (
+                <Badge variant="secondary" className="text-[9px] h-4 ml-auto rounded-md font-bold">
+                  {auditLogs.length}
+                </Badge>
+              )}
+            </div>
+            {auditLogs.length === 0 ? (
+              <div className="p-10 text-center">
+                <ScrollText className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/50">Nenhum log registrado ainda</p>
+              </div>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto">
+                {dayGroups.map(({ day, logs }) => (
+                  <div key={day}>
+                    {/* Day header */}
+                    <div className="sticky top-0 z-10 px-5 py-2.5 bg-muted/20 backdrop-blur-sm border-b border-border/10 flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-[9px] font-bold text-primary">{day}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
+                      <span className="text-[10px] text-muted-foreground/50 ml-1">
+                        {cycleStartedAt && format(
+                          new Date(cycleStartedAt.getTime() + (day - 1) * 86400000),
+                          "dd/MM",
+                          { locale: ptBR }
+                        )}
+                      </span>
+                      <Badge variant="outline" className="text-[8px] h-[16px] ml-auto rounded-md font-medium text-muted-foreground border-border/30">
+                        {logs.length} {logs.length === 1 ? "evento" : "eventos"}
+                      </Badge>
+                    </div>
+                    {/* Day logs */}
+                    {logs.map((log, idx) => (
+                      <div
+                        key={log.id}
+                        className={cn(
+                          "px-5 py-3 flex items-start gap-3 hover:bg-muted/5 transition-colors",
+                          idx !== logs.length - 1 && "border-b border-border/5"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-2 h-2 rounded-full mt-1.5 shrink-0 ring-2",
+                          log.level === "error"
+                            ? "bg-destructive ring-destructive/20"
+                            : log.level === "warn"
+                              ? "bg-amber-400 ring-amber-400/20"
+                              : "bg-teal-400 ring-teal-400/20"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[8px] h-[18px] rounded-md font-bold px-1.5",
+                                log.level === "error"
+                                  ? "text-destructive border-destructive/20"
+                                  : log.level === "warn"
+                                    ? "text-amber-400 border-amber-400/20"
+                                    : "text-teal-400 border-teal-400/20"
+                              )}
+                            >
+                              {log.event_type}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground/35 font-medium">
+                              {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
+                            </span>
                           </div>
-                          <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
-                          <span className="text-[10px] text-muted-foreground/50 ml-1">
-                            {startedAt && format(
-                              new Date(startedAt.getTime() + (day - 1) * 86400000),
-                              "dd/MM",
-                              { locale: ptBR }
-                            )}
-                          </span>
-                          <Badge variant="outline" className="text-[8px] h-[16px] ml-auto rounded-md font-medium text-muted-foreground border-border/30">
-                            {logs.length} {logs.length === 1 ? "evento" : "eventos"}
-                          </Badge>
+                          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{log.message}</p>
                         </div>
-                        {/* Day logs */}
-                        {logs.map((log, idx) => (
-                          <div
-                            key={log.id}
-                            className={cn(
-                              "px-5 py-3 flex items-start gap-3 hover:bg-muted/5 transition-colors",
-                              idx !== logs.length - 1 && "border-b border-border/5"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-2 h-2 rounded-full mt-1.5 shrink-0 ring-2",
-                              log.level === "error"
-                                ? "bg-destructive ring-destructive/20"
-                                : log.level === "warn"
-                                  ? "bg-amber-400 ring-amber-400/20"
-                                  : "bg-teal-400 ring-teal-400/20"
-                            )} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[8px] h-[18px] rounded-md font-bold px-1.5",
-                                    log.level === "error"
-                                      ? "text-destructive border-destructive/20"
-                                      : log.level === "warn"
-                                        ? "text-amber-400 border-amber-400/20"
-                                        : "text-teal-400 border-teal-400/20"
-                                  )}
-                                >
-                                  {log.event_type}
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground/35 font-medium">
-                                  {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{log.message}</p>
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     ))}
                   </div>
-                )}
+                ))}
               </div>
-            );
-          })()}
+            )}
+          </div>
         </div>
       )}
     </div>
