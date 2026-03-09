@@ -49,6 +49,9 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showNoPlan, setShowNoPlan] = useState(false);
   const [newName, setNewName] = useState("");
+  const [editingReportDevice, setEditingReportDevice] = useState<string | null>(null);
+  const [reportToken, setReportToken] = useState("");
+  const [reportBaseUrl, setReportBaseUrl] = useState("");
   
   const { mutate, isPending, invalidateClient, invalidateDashboard } = useAdminAction();
   const { toast } = useToast();
