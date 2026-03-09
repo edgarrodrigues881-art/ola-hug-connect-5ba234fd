@@ -684,11 +684,11 @@ function AlertCard({
       dot: "bg-orange-500",
       text: "text-orange-500",
     },
-    teal: {
-      bg: "bg-primary/8",
-      border: "border-primary/15",
-      dot: "bg-primary",
-      text: "text-primary",
+    sky: {
+      bg: "bg-sky-500/8",
+      border: "border-sky-500/15",
+      dot: "bg-sky-500",
+      text: "text-sky-500",
     },
     emerald: {
       bg: "bg-emerald-500/8",
