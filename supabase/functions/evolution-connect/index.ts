@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
     }
 
     // If no token, cannot proceed (except for connect and deleteInstance)
-    if (!instanceToken && action !== "connect" && action !== "deleteInstance") {
+    if (!instanceToken && action !== "connect" && action !== "deleteInstance" && action !== "logout") {
       return json({ error: "Instância sem token. Conecte primeiro." }, 400);
     }
 
@@ -683,8 +683,12 @@ Deno.serve(async (req) => {
     // ── logout ──
     if (action === "logout") {
       // Disconnect from WhatsApp session only — keep the token assigned
-      await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-      console.log("Logout: disconnected instance (token preserved for reuse).");
+      if (instanceToken && instanceUrl) {
+        const lr = await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
+        console.log("Logout: disconnect API result:", lr.status, JSON.stringify(lr.data).substring(0, 200));
+      } else {
+        console.log("Logout: no token/url configured, skipping API call, just updating DB status.");
+      }
       
       // Clear session data but KEEP uazapi_token and uazapi_base_url
       await svc.from("devices").update({ 
