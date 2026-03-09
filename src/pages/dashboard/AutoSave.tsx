@@ -473,7 +473,7 @@ const AutoSave = () => {
             overscanCount={8}
             style={{ height: "100%", width: "100%", overscrollBehavior: "contain" }}
             rowProps={rowProps}
-            rowComponent={AutoSaveRow}
+            rowComponent={AutoSaveRowInner}
           />
         </div>
       )}
