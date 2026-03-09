@@ -241,6 +241,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={handleSelectClient} />;
         case "pendencias": return <PendenciasTab />;
         case "messages": return <AdminMessages />;
+        case "conexao": return <AdminConexao />;
         case "logs": return <AdminLogs />;
         case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
         case "groups-pool": return <AdminGroupsPool />;
