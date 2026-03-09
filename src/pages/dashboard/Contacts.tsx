@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -15,11 +14,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown,
 } from "lucide-react";
 import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts } from "@/hooks/useContacts";
 
-const allTags = ["cliente", "lead", "vip", "novo"];
+const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 
 const Contacts = () => {
   const { toast } = useToast();
