@@ -240,6 +240,7 @@ const Contacts = () => {
     deleteContacts,
   }), [filtered, selected]);
 
+  const stats = {
     total: contacts.length,
     active: contacts.length,
     blocked: 0,
