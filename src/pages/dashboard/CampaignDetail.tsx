@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +86,10 @@ const CampaignDetail = () => {
   const [resendOpen, setResendOpen] = useState(false);
   const [resendFailed, setResendFailed] = useState(true);
   const [resendPending, setResendPending] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSent, setExportSent] = useState(true);
+  const [exportFailed, setExportFailed] = useState(true);
+  const [exportPending, setExportPending] = useState(true);
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -295,6 +299,38 @@ const CampaignDetail = () => {
     navigate("/dashboard/campaigns");
   };
 
+  const handleExportConfirm = () => {
+    const selected = contacts.filter(c => {
+      if (exportSent && (c.status === "sent" || c.status === "delivered")) return true;
+      if (exportFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (exportPending && c.status === "pending") return true;
+      return false;
+    });
+    if (selected.length === 0) {
+      toast({ title: "Nenhum contato selecionado", variant: "destructive" });
+      return;
+    }
+    const header = "Nome,Telefone,Status,Horário,Erro";
+    const rows = selected.map(c => {
+      const name = (c.name || "—").replace(/,/g, " ");
+      const phone = c.phone;
+      const status = contactStatusConfig[c.status]?.label || c.status;
+      const time = c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "";
+      const error = (c.error_message || "").replace(/,/g, " ").replace(/\n/g, " ");
+      return `${name},${phone},${status},${time},${error}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${campaign?.name || "campanha"}_export.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportOpen(false);
+    toast({ title: `✅ ${selected.length} contatos exportados` });
+  };
+
   const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
 
   if (campLoading) {
@@ -385,6 +421,11 @@ const CampaignDetail = () => {
             {isFinished && (stats.failed + stats.pending > 0) && (
               <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setResendFailed(true); setResendPending(true); setResendOpen(true); }}>
                 <RotateCcw className="w-3.5 h-3.5" /> Reenviar
+              </Button>
+            )}
+            {isFinished && stats.total > 0 && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setExportSent(true); setExportFailed(true); setExportPending(true); setExportOpen(true); }}>
+                <Download className="w-3.5 h-3.5" /> Exportar
               </Button>
             )}
           </div>
@@ -679,6 +720,51 @@ const CampaignDetail = () => {
             <Button size="sm" onClick={handleResendConfirm} disabled={!resendFailed && !resendPending} className="gap-1.5 text-xs">
               <RotateCcw className="w-3.5 h-3.5" />
               Reenviar ({(resendFailed ? stats.failed : 0) + (resendPending ? stats.pending : 0)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Export Dialog ──────────────────────────────────────── */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Exportar contatos (CSV)</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Selecione quais contatos deseja exportar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportSent} onCheckedChange={(v) => setExportSent(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Enviadas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos enviados com sucesso ({stats.sent})</p>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-primary/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportFailed} onCheckedChange={(v) => setExportFailed(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Falhas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam ({stats.failed})</p>
+              </div>
+              <XCircle className="w-4 h-4 text-destructive/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={exportPending} onCheckedChange={(v) => setExportPending(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Pendentes</p>
+                <p className="text-[10px] text-muted-foreground">Contatos não enviados ({stats.pending})</p>
+              </div>
+              <Clock className="w-4 h-4 text-yellow-400/60" />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setExportOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleExportConfirm} disabled={!exportSent && !exportFailed && !exportPending} className="gap-1.5 text-xs">
+              <Download className="w-3.5 h-3.5" />
+              Exportar ({(exportSent ? stats.sent : 0) + (exportFailed ? stats.failed : 0) + (exportPending ? stats.pending : 0)})
             </Button>
           </DialogFooter>
         </DialogContent>
