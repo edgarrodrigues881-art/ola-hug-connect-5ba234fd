@@ -136,10 +136,9 @@ export default function ReportWhatsApp() {
     setQrConnected(false);
     setConnectError("");
     setConnectMethod("qr");
-    setConnectStep("qr");
+    setConnectStep("choose");
     setPairingCode("");
     setPairingPhone("");
-    handleConnectQR();
   };
 
   const handleRequestPairingCode = async () => {
