@@ -643,8 +643,8 @@ const Templates = () => {
                 <div className="space-y-2">
                   {formMediaFiles.map((file, idx) => (
                     <div key={file.id} className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 overflow-hidden">
-                      {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-32 object-cover" />}
-                      {file.type === "video" && <video src={file.url} controls className="w-full max-h-32" />}
+                      {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-24 object-cover" loading="lazy" />}
+                      {file.type === "video" && <video src={file.url} controls className="w-full max-h-24" />}
                       {file.type === "audio" && (
                         <div className="p-3 flex items-center gap-2 bg-muted/10">
                           <Mic className="w-3.5 h-3.5 text-primary shrink-0" />
