@@ -28,13 +28,14 @@ const TEMPLATES = [
     },
   },
   {
-    type: "ultimo-dia",
-    label: "Último dia",
+    type: "faltam-3-dias",
+    label: "Faltam 3 dias",
     icon: Clock,
     color: "text-yellow-500",
-    desc: "Último dia do plano",
+    desc: "3 dias p/ vencer",
+    trialHidden: true,
     build: (v: any) =>
-      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence HOJE (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
+      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vence-hoje",
@@ -851,7 +852,7 @@ const AdminMessages = () => {
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground">Tipo de mensagem:</p>
           <div className="flex flex-wrap gap-1.5">
-            {TEMPLATES.map(t => {
+            {TEMPLATES.filter(t => !(t as any).trialHidden || selectedClient?.plan_name !== "Trial").map(t => {
               const isActive = selectedTemplate === t.type;
               const alreadySent = clientSentMessages.some((m: any) => m.template_type === t.type);
               return (
