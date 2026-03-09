@@ -222,121 +222,137 @@ const WarmupInstances = () => {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayed.map(device => {
             const cycle = getDeviceCycle(device.id);
             const connected = isConnected(device.status);
             const budgetUsed = cycle?.daily_interaction_budget_used ?? 0;
             const budgetTarget = cycle?.daily_interaction_budget_target ?? 0;
+            const budgetPct = budgetTarget > 0 ? Math.round((budgetUsed / budgetTarget) * 100) : 0;
+            const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
 
             return (
               <div
                 key={device.id}
-                className="group rounded-xl border border-border/30 bg-card/80 overflow-hidden cursor-pointer transition-all duration-150 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5"
+                className={cn(
+                  "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
+                  "bg-card shadow-sm hover:shadow-lg",
+                  connected
+                    ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+                    : "border-border/30 hover:border-border/50"
+                )}
                 onClick={() => navigate(`/dashboard/warmup-v2/${device.id}`)}
               >
-                {/* Status bar */}
-                <div className="px-3.5 pt-3 pb-0">
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[8px] font-bold uppercase tracking-widest px-2 py-0 h-4 gap-1.5 border-0",
-                      connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
-                    )}
-                  >
-                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", connected ? "bg-primary animate-pulse" : "bg-muted-foreground/40")} />
-                    STATUS: {connected ? "CONECTADO" : "DESCONECTADO"}
-                  </Badge>
+                {/* Top accent line */}
+                <div className={cn(
+                  "h-[2px] w-full",
+                  isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
+                )} />
+
+                {/* Status pill */}
+                <div className="px-4 pt-3.5">
+                  <div className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+                    connected
+                      ? "text-primary bg-primary/8"
+                      : "text-muted-foreground bg-muted/30"
+                  )}>
+                    <span className={cn(
+                      "w-[5px] h-[5px] rounded-full shrink-0",
+                      connected ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" : "bg-muted-foreground/40"
+                    )} />
+                    {connected ? "CONECTADO" : "DESCONECTADO"}
+                  </div>
                 </div>
 
-                {/* Content */}
-                <div className="px-3.5 pt-3 pb-2 flex items-center gap-3.5">
+                {/* Profile */}
+                <div className="px-4 pt-3.5 pb-3 flex items-center gap-4">
                   <div className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center shrink-0 ring-2",
-                    connected ? "bg-primary/10 ring-primary/30" : "bg-muted/20 ring-border/20"
+                    "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
+                    "ring-[2.5px] ring-offset-2 ring-offset-card",
+                    connected ? "ring-primary/40" : "ring-border/30"
                   )}>
                     {device.profile_picture ? (
-                      <img src={device.profile_picture} className="w-12 h-12 rounded-full object-cover" alt="" />
+                      <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" />
                     ) : (
-                      <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/50")} />
+                      <div className={cn(
+                        "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+                        connected ? "bg-primary/8" : "bg-muted/30"
+                      )}>
+                        <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/40")} />
+                      </div>
                     )}
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">
+                    <p className="text-[15px] font-bold text-foreground truncate leading-tight">
                       {device.profile_name || device.name}
                     </p>
                     {device.number && (
-                      <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                      <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
                         {formatPhone(device.number)}
                       </p>
                     )}
                     {cycle && (
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center gap-1">
+                        <Flame className="w-2.5 h-2.5 text-primary/60" />
                         Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
                       </p>
                     )}
                     {!cycle && connected && (
-                      <p className="text-[10px] text-muted-foreground/40 mt-0.5">Pronto para aquecer</p>
+                      <p className="text-[10px] text-muted-foreground/40 mt-1">Pronto para aquecer</p>
                     )}
                   </div>
                 </div>
 
-                {/* Metrics (when warming) */}
+                {/* Metrics strip */}
                 {cycle && cycle.is_running && (
-                  <div className="mx-3.5 mb-2 grid grid-cols-3 gap-1.5">
-                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
-                      <p className="text-[10px] font-bold tabular-nums text-foreground">
-                        {cycle.daily_interaction_budget_used}/{cycle.daily_interaction_budget_target}
-                      </p>
-                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Budget</p>
+                  <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg bg-muted/15 px-3 py-2">
+                    <div className="flex-1 text-center">
+                      <p className="text-[11px] font-bold tabular-nums text-foreground">{budgetUsed}<span className="text-muted-foreground/40 font-normal">/{budgetTarget}</span></p>
+                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Msgs</p>
                     </div>
-                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
-                      <p className="text-[10px] font-bold tabular-nums text-foreground">
-                        {cycle.daily_unique_recipients_used}/{cycle.daily_unique_recipients_cap}
-                      </p>
-                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Únicos</p>
+                    <div className="w-px h-6 bg-border/20" />
+                    <div className="flex-1 text-center">
+                      <p className="text-[11px] font-bold tabular-nums text-foreground">{cycle.daily_unique_recipients_used}<span className="text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span></p>
+                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Únicos</p>
                     </div>
-                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
-                      <p className="text-[10px] font-bold tabular-nums text-foreground">
-                        {budgetTarget > 0 ? Math.round((budgetUsed / budgetTarget) * 100) : 0}%
-                      </p>
-                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Uso</p>
+                    <div className="w-px h-6 bg-border/20" />
+                    <div className="flex-1 text-center">
+                      <p className={cn("text-[11px] font-bold tabular-nums", budgetPct >= 80 ? "text-primary" : "text-foreground")}>{budgetPct}%</p>
+                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Uso</p>
                     </div>
                   </div>
                 )}
 
                 {/* Actions */}
-                {cycle && (
-                  <div className="px-3.5 pb-3.5 space-y-1.5">
-                    {cycle.is_running && cycle.phase !== "completed" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-[11px] h-8 gap-1.5 border-primary/25 text-primary hover:bg-primary/10"
-                        onClick={(e) => handlePause(device.id, e)}
-                      >
-                        <Pause className="w-3 h-3" /> Parar aquecimento
-                      </Button>
-                    ) : cycle.phase === "paused" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-[11px] h-8 gap-1.5 border-primary/25 text-primary hover:bg-primary/10"
-                        onClick={(e) => handleResume(device.id, e)}
-                      >
-                        <Play className="w-3 h-3" /> Retomar aquecimento
-                      </Button>
-                    ) : null}
+                <div className="px-4 pb-4 space-y-2">
+                  {cycle && isWarming ? (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="w-full text-[10px] h-6 text-muted-foreground/50 hover:text-foreground"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
+                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+                      onClick={(e) => handlePause(device.id, e)}
                     >
-                      Editar
+                      <Pause className="w-3.5 h-3.5" /> Parar aquecimento
                     </Button>
-                  </div>
-                )}
+                  ) : cycle?.phase === "paused" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+                      onClick={(e) => handleResume(device.id, e)}
+                    >
+                      <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+                    </Button>
+                  ) : null}
+                  <button
+                    className="w-full text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors py-1"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
+                  >
+                    Editar
+                  </button>
+                </div>
               </div>
             );
           })}
