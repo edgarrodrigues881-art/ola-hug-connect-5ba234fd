@@ -645,40 +645,44 @@ const Templates = () => {
                 <div className="space-y-2">
                   {formMediaFiles.map((file, idx) => (
                     <div key={file.id} className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
-                      {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-28 object-cover" loading="lazy" />}
-                      {file.type === "video" && <video src={file.url} controls className="w-full max-h-28" />}
-                      {file.type === "audio" && (
-                        <div className="p-3 flex items-center gap-2 bg-muted/30">
-                          <Mic className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <audio src={file.url} controls className="w-full h-7" />
-                        </div>
-                      )}
-                      {file.type === "document" && (
-                        <div className="p-3 flex items-center gap-2 bg-muted/30">
-                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">{file.name}</a>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between px-3 py-2.5 border-t border-border/40 bg-muted/20">
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center gap-0.5 mr-1">
-                            <GripVertical className="w-3 h-3 text-muted-foreground/50" />
-                            <button className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 disabled:opacity-20" disabled={idx === 0} onClick={() => moveMediaFile(file.id, "up")}><ArrowUp className="w-3 h-3" /></button>
-                            <button className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 disabled:opacity-20" disabled={idx === formMediaFiles.length - 1} onClick={() => moveMediaFile(file.id, "down")}><ArrowDown className="w-3 h-3" /></button>
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        {/* Thumbnail */}
+                        {file.type === "image" && <img src={file.url} alt={file.name} className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />}
+                        {file.type === "video" && (
+                          <div className="w-12 h-12 rounded-lg bg-muted/40 flex items-center justify-center shrink-0">
+                            <Video className="w-5 h-5 text-muted-foreground/60" />
                           </div>
-                          <Badge variant="outline" className="text-[10px] border-border/60 bg-muted/30">
-                            {file.type === "image" && <><ImageIcon className="w-2.5 h-2.5 mr-0.5" /> Imagem</>}
-                            {file.type === "video" && <><Video className="w-2.5 h-2.5 mr-0.5" /> Vídeo</>}
-                            {file.type === "audio" && <><Mic className="w-2.5 h-2.5 mr-0.5" /> Áudio</>}
-                            {file.type === "document" && <><FileText className="w-2.5 h-2.5 mr-0.5" /> Doc</>}
-                          </Badge>
+                        )}
+                        {file.type === "audio" && (
+                          <div className="w-12 h-12 rounded-lg bg-muted/40 flex items-center justify-center shrink-0">
+                            <Mic className="w-5 h-5 text-primary" />
+                          </div>
+                        )}
+                        {file.type === "document" && (
+                          <div className="w-12 h-12 rounded-lg bg-muted/40 flex items-center justify-center shrink-0">
+                            <FileText className="w-5 h-5 text-primary" />
+                          </div>
+                        )}
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Badge variant="outline" className="text-[9px] h-4 border-border/60 bg-muted/30 px-1.5">
+                              {file.type === "image" ? "Imagem" : file.type === "video" ? "Vídeo" : file.type === "audio" ? "Áudio" : "Doc"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button className="text-muted-foreground/50 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 disabled:opacity-20" disabled={idx === 0} onClick={() => moveMediaFile(file.id, "up")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                          <button className="text-muted-foreground/50 hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted/50 disabled:opacity-20" disabled={idx === formMediaFiles.length - 1} onClick={() => moveMediaFile(file.id, "down")}><ArrowDown className="w-3.5 h-3.5" /></button>
                           <button
                             type="button"
                             onClick={() => cycleSendMode(file.id)}
                             className={cn(
-                              "h-7 px-2.5 rounded-lg text-[10px] font-medium transition-all border",
+                              "h-7 px-2.5 rounded-lg text-[10px] font-medium transition-all border ml-1",
                               file.sendMode === "before"
                                 ? "bg-primary text-primary-foreground border-primary"
                                 : file.sendMode === "with"
