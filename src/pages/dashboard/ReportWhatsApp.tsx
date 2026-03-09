@@ -24,12 +24,24 @@ export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBlocked, planState, canUseReports } = usePlanGate();
-  const navigate = useNavigate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
 
-  const canUseReport = canUseReports;
+  // Connection dialog state
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const [qrConnected, setQrConnected] = useState(false);
+  const [connectError, setConnectError] = useState("");
+  const [connectStep, setConnectStep] = useState<"qr" | "code" | "done">("qr");
+  const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["report-wa-config", user?.id],
