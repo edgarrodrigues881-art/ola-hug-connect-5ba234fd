@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,24 +11,24 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Megaphone, Search, Trash2, Plus,
+  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban,
 } from "lucide-react";
-import { useCampaigns, useDeleteCampaign, useCreateCampaign } from "@/hooks/useCampaigns";
+import { useCampaigns, useDeleteCampaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pendente", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
-  scheduled: { label: "Agendada", color: "bg-teal-500/15 text-teal-400 border-teal-500/30" },
-  queued: { label: "Na fila", color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-  running: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  processing: { label: "Enviando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  paused: { label: "Pausada", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30" },
-  completed: { label: "Concluída", color: "bg-teal-500/15 text-teal-400 border-teal-500/30" },
-  canceled: { label: "Cancelada", color: "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30" },
-  failed: { label: "Falhou", color: "bg-destructive/15 text-destructive border-destructive/30" },
+const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  pending:    { label: "Pendente",   color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: <Clock className="w-3 h-3" /> },
+  scheduled:  { label: "Agendada",   color: "bg-teal-500/10 text-teal-400 border-teal-500/20",      icon: <Clock className="w-3 h-3" /> },
+  queued:     { label: "Na fila",    color: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: <Clock className="w-3 h-3" /> },
+  running:    { label: "Enviando",   color: "bg-primary/10 text-primary border-primary/20",         icon: <Send className="w-3 h-3" /> },
+  processing: { label: "Enviando",   color: "bg-primary/10 text-primary border-primary/20",         icon: <Send className="w-3 h-3" /> },
+  paused:     { label: "Pausada",    color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: <Pause className="w-3 h-3" /> },
+  completed:  { label: "Concluída",  color: "bg-primary/10 text-primary border-primary/20",         icon: <CheckCircle2 className="w-3 h-3" /> },
+  canceled:   { label: "Cancelada",  color: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20", icon: <Ban className="w-3 h-3" /> },
+  failed:     { label: "Falhou",     color: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="w-3 h-3" /> },
 };
 
 const CampaignList = () => {
@@ -55,7 +54,7 @@ const CampaignList = () => {
     e.stopPropagation();
     const campaign = campaigns.find((c) => c.id === id);
     if (campaign && protectedStatuses.includes(campaign.status)) {
-      toast({ title: "Não é possível excluir", description: "Pause ou cancele a campanha antes de excluí-la.", variant: "destructive" });
+      toast({ title: "Não é possível excluir", description: "Pause ou cancele a campanha antes.", variant: "destructive" });
       return;
     }
     deleteCampaign.mutate(id, {
@@ -78,7 +77,7 @@ const CampaignList = () => {
       }
       const skipped = campaigns.length - deletable.length;
       setClearAllOpen(false);
-      toast({ title: `${deletable.length} campanhas excluídas${skipped > 0 ? `, ${skipped} protegidas (em envio/agendadas)` : ""}` });
+      toast({ title: `${deletable.length} campanhas excluídas${skipped > 0 ? `, ${skipped} protegidas` : ""}` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
@@ -90,146 +89,165 @@ const CampaignList = () => {
     return Math.round(((c.sent_count || 0) + (c.failed_count || 0)) / total * 100);
   };
 
+  // Stats
+  const stats = useMemo(() => {
+    const total = campaigns.length;
+    const active = campaigns.filter(c => ["running", "processing", "queued"].includes(c.status)).length;
+    const completed = campaigns.filter(c => c.status === "completed").length;
+    const failed = campaigns.filter(c => c.status === "failed").length;
+    return { total, active, completed, failed };
+  }, [campaigns]);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie e acompanhe seus envios</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {campaigns.length > 0 && (
+    <div className="flex flex-col h-full">
+      {/* Fixed header area */}
+      <div className="shrink-0 space-y-5 pb-4">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Campanhas</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Gerencie e acompanhe seus envios</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {campaigns.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setClearAllOpen(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Limpar todas
+              </Button>
+            )}
             <Button
-              variant="outline"
-              size="lg"
-              className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
-              onClick={() => setClearAllOpen(true)}
+              size="sm"
+              className="gap-1.5 text-xs bg-primary hover:bg-primary/90 shadow-sm"
+              onClick={() => navigate("/dashboard/campaigns")}
             >
-              <Trash2 className="w-4 h-4" /> Limpar todas
+              <Plus className="w-3.5 h-3.5" /> Nova Campanha
             </Button>
-          )}
-          <Button
-            size="lg"
-            className="gap-2 bg-primary hover:bg-primary/90 px-6"
-            onClick={() => navigate("/dashboard/campaigns")}
-          >
-            <Plus className="w-4 h-4" /> Nova Campanha
-          </Button>
+          </div>
+        </div>
+
+        {/* Mini stats */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "Total", value: stats.total, color: "text-foreground" },
+            { label: "Ativas", value: stats.active, color: "text-primary" },
+            { label: "Concluídas", value: stats.completed, color: "text-primary" },
+            { label: "Falhas", value: stats.failed, color: "text-destructive" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-lg border border-border/30 bg-card/50 px-3 py-2.5 text-center">
+              <p className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+            <Input
+              placeholder="Buscar..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-8 text-xs bg-card/50 border-border/30"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[130px] h-8 text-xs bg-card/50 border-border/30">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="queued">Na fila</SelectItem>
+              <SelectItem value="running">Enviando</SelectItem>
+              <SelectItem value="paused">Pausada</SelectItem>
+              <SelectItem value="completed">Concluída</SelectItem>
+              <SelectItem value="canceled">Cancelada</SelectItem>
+              <SelectItem value="failed">Falhou</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar campanha..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px] h-10">
-            <SelectValue placeholder="Filtrar status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="queued">Na fila</SelectItem>
-            <SelectItem value="running">Enviando</SelectItem>
-            <SelectItem value="paused">Pausada</SelectItem>
-            <SelectItem value="completed">Concluída</SelectItem>
-            <SelectItem value="canceled">Cancelada</SelectItem>
-            <SelectItem value="failed">Falhou</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/30">
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Nome</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">Progresso</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Total</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Enviadas</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-center">Falhas</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider hidden lg:table-cell">Criada em</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-12">
-                    <Megaphone className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                    Nenhuma campanha encontrada
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((c) => {
-                  const cfg = statusConfig[c.status] || statusConfig.pending;
-                  const progress = getProgress(c);
-                  return (
-                    <TableRow
-                      key={c.id}
-                      className="cursor-pointer hover:bg-muted/30 border-border/20"
-                      onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
-                    >
-                      <TableCell className="text-sm font-medium text-foreground">{c.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-[10px] font-semibold ${cfg.color}`}>
-                          {cfg.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 min-w-[120px]">
-                          <Progress value={progress} className="h-1.5 flex-1" />
-                          <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{progress}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-center text-muted-foreground tabular-nums">{c.total_contacts}</TableCell>
-                      <TableCell className="text-sm text-center text-muted-foreground tabular-nums">{c.sent_count}</TableCell>
-                      <TableCell className="text-sm text-center tabular-nums">
-                        <span className={c.failed_count > 0 ? "text-destructive" : "text-muted-foreground"}>
-                          {c.failed_count}
+      {/* Scrollable list area - optimized for 60fps */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-card/30"
+        style={{ contain: "layout style", willChange: "scroll-position" }}
+      >
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+              <Megaphone className="w-5 h-5 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm text-muted-foreground/60">Nenhuma campanha encontrada</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/20">
+            {filtered.map((c) => {
+              const cfg = statusConfig[c.status] || statusConfig.pending;
+              const progress = getProgress(c);
+              return (
+                <div
+                  key={c.id}
+                  className="group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100 hover:bg-muted/20"
+                  onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
+                >
+                  {/* Name + Status */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[13px] font-medium text-foreground truncate">{c.name}</p>
+                      <Badge variant="outline" className={`text-[9px] font-semibold shrink-0 gap-0.5 px-1.5 py-0 h-4 ${cfg.color}`}>
+                        {cfg.icon}
+                        {cfg.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 flex-1 max-w-[160px]">
+                        <Progress value={progress} className="h-1 flex-1" />
+                        <span className="text-[10px] text-muted-foreground/60 tabular-nums w-7 text-right">{progress}%</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+                        {c.sent_count || 0}/{c.total_contacts || 0}
+                      </span>
+                      {(c.failed_count || 0) > 0 && (
+                        <span className="text-[10px] text-destructive tabular-nums">
+                          {c.failed_count} falhas
                         </span>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
-                        {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => handleDelete(c.id, e)}
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <span className="text-[10px] text-muted-foreground/40 tabular-nums shrink-0 hidden sm:block">
+                    {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
+                  </span>
+
+                  {/* Delete */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-100 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => handleDelete(c.id, e)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Clear All Confirmation */}
@@ -238,7 +256,7 @@ const CampaignList = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Limpar todas as campanhas?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso excluirá permanentemente todas as {campaigns.length} campanhas e seus contatos. Esta ação não pode ser desfeita.
+              Isso excluirá permanentemente todas as {campaigns.length} campanhas e seus contatos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
