@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
-  AlertTriangle, XCircle, Skull, Check, Mail
+  AlertTriangle, XCircle, Skull, Check, Mail, Plug
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ const AdminInfra = lazy(() => import("./AdminInfra"));
 const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
+const AdminConexao = lazy(() => import("./AdminConexao"));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   WELCOME: { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
@@ -44,6 +45,7 @@ const NAV_ITEMS = [
   { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
   { id: "messages", label: "Relatório WhatsApp", shortLabel: "Relatório", icon: MessageCircle, group: "principal", badge: false },
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
+  { id: "conexao", label: "Conexão", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
   { id: "logs", label: "Auditoria", shortLabel: "Logs", icon: ScrollText, group: "gestao", badge: false },
   { id: "costs", label: "Custos", shortLabel: "Custos", icon: Wallet, group: "gestao", badge: false },
   { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
@@ -239,6 +241,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={handleSelectClient} />;
         case "pendencias": return <PendenciasTab />;
         case "messages": return <AdminMessages />;
+        case "conexao": return <AdminConexao />;
         case "logs": return <AdminLogs />;
         case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
         case "groups-pool": return <AdminGroupsPool />;
