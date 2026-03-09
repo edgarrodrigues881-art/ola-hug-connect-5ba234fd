@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback, memo, type CSSProperties, type ReactElement } from "react";
 import { List as VirtualList } from "react-window";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,23 +25,56 @@ import {
 } from "lucide-react";
 // XLSX is dynamically imported when needed to reduce initial bundle
 
-// ── E.164 parser ──
 function parseToE164(raw: string): { valid: boolean; phone: string; original: string } {
   const original = raw.trim();
   const digits = original.replace(/\D/g, "");
   if (!digits || digits.length < 10 || digits.length > 15) {
     return { valid: false, phone: "", original };
   }
-  // If already starts with country code
   if (digits.startsWith("55") && digits.length >= 12) {
     return { valid: true, phone: `+${digits}`, original };
   }
-  // Brazilian number without country code
   if (digits.length === 10 || digits.length === 11) {
     return { valid: true, phone: `+55${digits}`, original };
   }
-  // Other international
   return { valid: true, phone: `+${digits}`, original };
+}
+
+// ── Virtualized Row Component (stable reference) ──
+function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, ariaAttributes }: any): ReactElement | null {
+  const c = filtered[index];
+  if (!c) return null;
+  return (
+    <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }}>
+      <div className={cn(!c.is_active && "opacity-50", "h-[62px] rounded-lg border bg-card text-card-foreground shadow-sm")}>
+        <div className="p-3 flex items-center gap-3 h-full">
+          <div className={cn(
+            "w-2 h-2 rounded-full shrink-0",
+            c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
+          )} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-foreground truncate">
+                {c.contact_name || "Sem nome"}
+              </p>
+            </div>
+            <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onEdit(c)}>
+              <Edit2 className="w-3 h-3" />
+            </button>
+            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onToggle(c)}>
+              {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
+            </button>
+            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-destructive" onClick={() => onDelete(c.id)}>
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const AutoSave = () => {
@@ -49,6 +82,7 @@ const AutoSave = () => {
   const { user } = useAuth();
   const { data: contacts = [], isLoading } = useAutosaveContacts();
   const { createContact, updateContact, deleteContact, bulkCreate } = useAutosaveMutations();
+  const queryClient = useQueryClient();
 
   // Filters
   const [search, setSearch] = useState("");
@@ -109,6 +143,11 @@ const AutoSave = () => {
 
   const activeCount = contacts.filter(c => c.is_active).length;
 
+  const handleEditContact = useCallback((c: WarmupAutosaveContact) => {
+    setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || "");
+  }, []);
+
+
   // ── Handlers ──
   const handleAdd = () => {
     const parsed = parseToE164(addPhone);
@@ -158,7 +197,13 @@ const AutoSave = () => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
   };
 
-  const queryClient = useQueryClient();
+  const rowProps = useMemo(() => ({
+    filtered,
+    onEdit: handleEditContact,
+    onToggle: handleToggleActive,
+    onDelete: handleDelete,
+  }), [filtered, handleEditContact]);
+
   const handleDeleteAll = async () => {
     if (!contacts.length || !user) return;
     try {
@@ -426,51 +471,10 @@ const AutoSave = () => {
           <VirtualList
             rowCount={filtered.length}
             rowHeight={68}
-            overscanCount={5}
-            style={{ height: "100%", width: "100%" }}
-            rowProps={{
-              filtered,
-              onEdit: (c: WarmupAutosaveContact) => { setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || ""); },
-              onToggle: handleToggleActive,
-              onDelete: handleDelete,
-            }}
-            rowComponent={({ index, style, filtered: items, onEdit, onToggle, onDelete }: any) => {
-              const c = items[index];
-              return (
-                <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }}>
-                  <Card className={cn(!c.is_active && "opacity-50", "h-[62px]")}>
-                    <CardContent className="p-3 flex items-center gap-3 h-full">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
-                      )} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {c.contact_name || "Sem nome"}
-                          </p>
-                          {c.tags && c.tags.split(",").map((t: string) => t.trim()).filter(Boolean).slice(0, 2).map((tag: string) => (
-                            <Badge key={tag} variant="outline" className="text-[9px] h-4">{tag}</Badge>
-                          ))}
-                        </div>
-                        <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(c)}>
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onToggle(c)}>
-                          {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(c.id)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            }}
+            overscanCount={8}
+            style={{ height: "100%", width: "100%", overscrollBehavior: "contain" }}
+            rowProps={rowProps}
+            rowComponent={AutoSaveRowInner}
           />
         </div>
       )}
