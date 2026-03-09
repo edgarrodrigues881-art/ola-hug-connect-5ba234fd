@@ -583,8 +583,6 @@ const GroupCapture = () => {
               </div>
             </div>
           ) : (
-            </>
-          ) : (
             /* Progress View */
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
