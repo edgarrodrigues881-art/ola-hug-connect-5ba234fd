@@ -635,33 +635,16 @@ const Devices = () => {
     deleteMutation.mutate(id);
   };
 
-  const handleBulkDelete = async (ids: string[]) => {
-    // Filter out connected devices AND devices in warmup — never delete them
-    const connectedStatuses = ["Connected", "Ready", "authenticated"];
-    const safeToDel = ids.filter(id => {
-      const dev = devices.find(d => d.id === id);
-      if (!dev) return false;
-      if (connectedStatuses.includes(dev.status)) return false;
-      if (warmupDeviceIds.has(dev.id)) return false;
-      return true;
-    });
-    const skipped = ids.length - safeToDel.length;
-
-    if (safeToDel.length === 0) {
-      toast({ title: "Nenhuma instância removida", description: `${skipped} instância${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""} (conectadas ou em aquecimento).` });
-      return;
-    }
-
-    // Optimistic: remove from cache immediately
+  const executeDelete = async (ids: string[]) => {
     const previous = queryClient.getQueryData<Device[]>(["devices"]);
-    const idsSet = new Set(safeToDel);
+    const idsSet = new Set(ids);
     queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
       old ? old.filter(d => !idsSet.has(d.id)) : old
     );
     setSelectedDevices([]);
     try {
       await Promise.allSettled(
-        safeToDel.map(id =>
+        ids.map(id =>
           supabase.functions.invoke("manage-devices", {
             body: { action: "delete", deviceId: id },
           })
@@ -669,14 +652,63 @@ const Devices = () => {
       );
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      const msg = skipped > 0
-        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} protegida${skipped !== 1 ? "s" : ""} (conectadas/aquecimento).`
-        : `${safeToDel.length} instância${safeToDel.length !== 1 ? "s" : ""} removida${safeToDel.length !== 1 ? "s" : ""}`;
-      toast({ title: msg });
+      toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
       if (previous) queryClient.setQueryData(["devices"], previous);
       toast({ title: "Erro ao remover instâncias", variant: "destructive" });
     }
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    const connectedStatuses = ["Connected", "Ready", "authenticated"];
+
+    // Classify each device
+    const protectedIds: string[] = [];
+    const warnings: string[] = [];
+    const safeToDel: string[] = [];
+
+    for (const id of ids) {
+      const dev = devices.find(d => d.id === id);
+      if (!dev) continue;
+
+      const isConnected = connectedStatuses.includes(dev.status);
+      const isWarmup = warmupDeviceIds.has(id);
+      const isCampaign = campaignDeviceIds.has(id);
+
+      if (isConnected || isWarmup || isCampaign) {
+        protectedIds.push(id);
+        const reasons: string[] = [];
+        if (isConnected) reasons.push("conectada");
+        if (isWarmup) reasons.push("em aquecimento");
+        if (isCampaign) reasons.push("com campanha ativa/agendada");
+        warnings.push(`${dev.name}: ${reasons.join(", ")}`);
+      } else {
+        safeToDel.push(id);
+      }
+    }
+
+    // If there are protected devices, show force-confirm dialog
+    if (protectedIds.length > 0) {
+      // Delete safe ones first
+      if (safeToDel.length > 0) {
+        await executeDelete(safeToDel);
+      }
+      // Show warning for protected ones
+      setForceDeleteIds(protectedIds);
+      setForceDeleteWarnings(warnings);
+      setForceDeleteOpen(true);
+      return;
+    }
+
+    // No protected devices — delete all directly
+    await executeDelete(safeToDel);
+  };
+
+  const handleForceDelete = async () => {
+    setForceDeleteOpen(false);
+    await executeDelete(forceDeleteIds);
+    setForceDeleteIds([]);
+    setForceDeleteWarnings([]);
   };
 
   const toggleSelectDevice = (id: string) => {
