@@ -227,23 +227,25 @@ const Templates = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Modelos</h1>
-          <p className="text-sm text-muted-foreground">Gerencie seus templates de mensagem</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Modelos</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie seus templates de mensagem</p>
         </div>
-        <Button onClick={openCreate} size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
+        <Button onClick={openCreate} size="sm" className="gap-1.5 rounded-xl px-5 shadow-sm">
           <Plus className="w-4 h-4" /> Adicionar
         </Button>
       </div>
 
+      {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[140px] max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar" className="pl-8 h-9 text-sm w-full" />
+        <div className="relative flex-1 min-w-[160px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar modelo..." className="pl-9 h-10 text-sm rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-colors" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="h-9 w-36 sm:w-48 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectTrigger className="h-10 w-36 sm:w-44 text-sm rounded-xl bg-muted/30 border-border/50"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="text">Texto</SelectItem>
@@ -254,62 +256,99 @@ const Templates = () => {
         </Select>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="text-xs w-12 hidden sm:table-cell">SN</TableHead>
-                <TableHead className="text-xs">Nome</TableHead>
-                <TableHead className="text-xs hidden sm:table-cell">Tipo</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Mensagem</TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">Criado em</TableHead>
-                <TableHead className="text-xs">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : paginated.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Nenhum modelo encontrado</TableCell></TableRow>
-              ) : (
-                paginated.map((t, idx) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{(currentPage - 1) * perPage + idx + 1}</TableCell>
-                    <TableCell className="text-sm font-medium">{t.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{typeLabel(t.type)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate hidden md:table-cell">{t.content}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }} title="Pré-visualizar">
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(t)} title="Editar">
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(t.id)} title="Excluir">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+      {/* Templates List */}
+      {isLoading ? (
+        <div className="flex justify-center py-16 text-sm text-muted-foreground">Carregando...</div>
+      ) : paginated.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-2">
+          <FileText className="w-10 h-10 text-muted-foreground/20" />
+          <p className="text-sm text-muted-foreground">Nenhum modelo encontrado</p>
         </div>
-        <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-border text-xs text-muted-foreground">
-          <span>{(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} de {filtered.length}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </Button>
-          <span className="w-7 h-7 flex items-center justify-center rounded border border-primary text-primary text-xs font-medium">{currentPage}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
+      ) : (
+        <div className="space-y-2.5">
+          {paginated.map((t, idx) => (
+            <div
+              key={t.id}
+              className="group flex items-center gap-4 px-4 py-3.5 rounded-xl border border-border/40 bg-card hover:border-primary/20 hover:shadow-[0_2px_12px_-4px_hsl(var(--primary)/0.08)] transition-all duration-200"
+            >
+              {/* Number */}
+              <span className="text-xs font-mono text-muted-foreground/40 w-6 text-right tabular-nums shrink-0">
+                {(currentPage - 1) * perPage + idx + 1}
+              </span>
+
+              {/* Type badge */}
+              <Badge
+                variant="outline"
+                className="text-[10px] font-medium shrink-0 rounded-lg px-2 py-0.5 border-border/60 bg-muted/40 hidden sm:flex"
+              >
+                {typeLabel(t.type)}
+              </Badge>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{t.name}</p>
+                <p className="text-xs text-muted-foreground/60 truncate mt-0.5 max-w-[300px]">{t.content}</p>
+              </div>
+
+              {/* Date */}
+              <span className="text-[11px] text-muted-foreground/40 shrink-0 hidden lg:block tabular-nums">
+                {new Date(t.created_at).toLocaleDateString("pt-BR")}
+              </span>
+
+              {/* Actions */}
+              <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                <button
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
+                  onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }}
+                  title="Pré-visualizar"
+                >
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
+                  onClick={() => openEdit(t)}
+                  title="Editar"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-destructive/10 transition-colors"
+                  onClick={() => handleDelete(t.id)}
+                  title="Excluir"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive/70" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* Pagination */}
+      {filtered.length > perPage && (
+        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground pt-1">
+          <span className="text-muted-foreground/50">
+            {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} de {filtered.length}
+          </span>
+          <div className="flex items-center gap-1 ml-2">
+            <button
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border/40 hover:bg-muted/40 disabled:opacity-30 transition-colors"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">{currentPage}</span>
+            <button
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border/40 hover:bg-muted/40 disabled:opacity-30 transition-colors"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
