@@ -74,6 +74,13 @@ const Templates = () => {
     setDialogOpen(true);
   };
 
+  // Auto-detect type based on what was added
+  const getAutoType = () => {
+    if (formButtons.length > 0) return "buttons";
+    if (formMediaFiles.length > 0) return "text-media";
+    return "text";
+  };
+
   const parseMediaFiles = (mediaUrl: string | null): MediaFile[] => {
     if (!mediaUrl) return [];
     try {
@@ -169,12 +176,13 @@ const Templates = () => {
 
   const handleSave = () => {
     if (!formName.trim() || !formContent.trim()) return;
+    const autoType = getAutoType();
     const mediaValue = formMediaFiles.length > 0
       ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
       : formMediaUrl || undefined;
     const payload = {
       name: formName,
-      type: formType,
+      type: autoType,
       content: formContent,
       media_url: mediaValue,
       buttons: formButtons.map(b => ({ type: b.type, text: b.text, value: b.value })),
@@ -354,198 +362,155 @@ const Templates = () => {
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar modelo" : "Adicionar modelo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Name */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nome</Label>
+              <Label className="text-xs font-medium">Nome</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome do modelo" className="h-9 text-sm" />
             </div>
+
+            {/* Message */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Tipo de mensagem</Label>
-              <Select value={formType} onValueChange={(v) => { setFormType(v); if (v !== "buttons") setFormButtons([]); }}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Texto</SelectItem>
-                  <SelectItem value="text-media">Texto com mídia</SelectItem>
-                  <SelectItem value="buttons">Botões</SelectItem>
-                  <SelectItem value="list">Lista</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mensagem</Label>
+              <Label className="text-xs font-medium">Mensagem</Label>
               <Textarea value={formContent} onChange={e => setFormContent(e.target.value)} placeholder="Conteúdo da mensagem" rows={4} className="text-sm" />
             </div>
 
-            {showMedia && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Mídias</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => mediaFileRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                    Adicionar mídia
-                  </Button>
-                </div>
+            {/* Media — always visible */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Mídias <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => mediaFileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  Adicionar
+                </Button>
+              </div>
 
-                {formMediaFiles.length === 0 && (
-                  <div
-                    className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => mediaFileRef.current?.click()}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-[10px] text-muted-foreground">Clique para enviar arquivos</p>
-                      <p className="text-[9px] text-muted-foreground/60">Imagens, vídeos, áudios, PDFs — até 20MB</p>
-                    </div>
+              {formMediaFiles.length === 0 && (
+                <div
+                  className="border-2 border-dashed border-border/50 rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => mediaFileRef.current?.click()}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Upload className="w-4 h-4 text-muted-foreground/40" />
+                    <p className="text-[10px] text-muted-foreground/60">Imagens, vídeos, áudios, PDFs — até 20MB</p>
                   </div>
-                )}
+                </div>
+              )}
 
-                <div className="space-y-2">
-                  {formMediaFiles.map((file, idx) => (
-                    <div key={file.id} className="border border-border rounded-lg overflow-hidden">
-                      {file.type === "image" && (
-                        <img src={file.url} alt={file.name} className="w-full max-h-20 object-cover" />
-                      )}
-                      {file.type === "video" && (
-                        <video src={file.url} controls className="w-full max-h-20" />
-                      )}
-                      {file.type === "audio" && (
-                        <div className="p-2 flex items-center gap-2 bg-muted/30">
-                          <Mic className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <audio src={file.url} controls className="w-full h-7" />
+              <div className="space-y-2">
+                {formMediaFiles.map((file, idx) => (
+                  <div key={file.id} className="border border-border/50 rounded-xl overflow-hidden">
+                    {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-20 object-cover" />}
+                    {file.type === "video" && <video src={file.url} controls className="w-full max-h-20" />}
+                    {file.type === "audio" && (
+                      <div className="p-2 flex items-center gap-2 bg-muted/30">
+                        <Mic className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <audio src={file.url} controls className="w-full h-7" />
+                      </div>
+                    )}
+                    {file.type === "document" && (
+                      <div className="p-2 flex items-center gap-2 bg-muted/30">
+                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate">{file.name}</a>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/30 bg-muted/10">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-0.5 mr-1">
+                          <GripVertical className="w-3 h-3 text-muted-foreground/50" />
+                          <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => moveMediaFile(file.id, "up")}><ArrowUp className="w-3 h-3" /></Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === formMediaFiles.length - 1} onClick={() => moveMediaFile(file.id, "down")}><ArrowDown className="w-3 h-3" /></Button>
                         </div>
-                      )}
-                      {file.type === "document" && (
-                        <div className="p-2 flex items-center gap-2 bg-muted/30">
-                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate">{file.name}</a>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between px-3 py-1.5 border-t border-border bg-muted/10">
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center gap-0.5 mr-1">
-                            <GripVertical className="w-3 h-3 text-muted-foreground/50" />
-                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => moveMediaFile(file.id, "up")}>
-                              <ArrowUp className="w-3 h-3" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5" disabled={idx === formMediaFiles.length - 1} onClick={() => moveMediaFile(file.id, "down")}>
-                              <ArrowDown className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <Badge variant="outline" className="text-[10px]">
-                            {file.type === "image" && <><Image className="w-2.5 h-2.5 mr-0.5" /> Imagem</>}
-                            {file.type === "video" && <><Video className="w-2.5 h-2.5 mr-0.5" /> Vídeo</>}
-                            {file.type === "audio" && <><Mic className="w-2.5 h-2.5 mr-0.5" /> Áudio</>}
-                            {file.type === "document" && <><FileText className="w-2.5 h-2.5 mr-0.5" /> Documento</>}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{file.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant={file.sendMode === "before" ? "default" : "outline"}
-                            size="sm"
-                            className="h-5 text-[9px] px-1.5"
-                            onClick={() => toggleSendMode(file.id)}
-                          >
-                            {file.sendMode === "before" ? "Antes da msg" : "Com a msg"}
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeMediaFile(file.id)}>
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {file.type === "image" && <><Image className="w-2.5 h-2.5 mr-0.5" /> Imagem</>}
+                          {file.type === "video" && <><Video className="w-2.5 h-2.5 mr-0.5" /> Vídeo</>}
+                          {file.type === "audio" && <><Mic className="w-2.5 h-2.5 mr-0.5" /> Áudio</>}
+                          {file.type === "document" && <><FileText className="w-2.5 h-2.5 mr-0.5" /> Doc</>}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button type="button" variant={file.sendMode === "before" ? "default" : "outline"} size="sm" className="h-5 text-[9px] px-1.5" onClick={() => toggleSendMode(file.id)}>
+                          {file.sendMode === "before" ? "Antes da msg" : "Com a msg"}
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeMediaFile(file.id)}>
+                          <X className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                <input
-                  ref={mediaFileRef}
-                  type="file"
-                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    await handleMediaUpload(file);
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-            )}
-
-            {showButtons && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Botões</Label>
-                  <div className="flex items-center gap-1.5">
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("reply")}>
-                      <MessageSquare className="w-3 h-3" /> Resposta
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("url")}>
-                      <Link className="w-3 h-3" /> Link
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("phone")}>
-                      <Phone className="w-3 h-3" /> Telefone
-                    </Button>
-                  </div>
-                </div>
-
-                {formButtons.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-3 border border-dashed border-border rounded-lg">
-                    Nenhum botão adicionado. Clique acima para adicionar.
-                  </p>
-                )}
-
-                {formButtons.map((btn) => (
-                  <div key={btn.id} className="border border-border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-[10px] gap-1">
-                        {buttonTypeIcon(btn.type)} {buttonTypeLabel(btn.type)}
-                      </Badge>
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeButton(btn.id)}>
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <Input
-                      value={btn.text}
-                      onChange={e => updateButton(btn.id, "text", e.target.value)}
-                      placeholder="Texto do botão"
-                      className="h-8 text-xs"
-                    />
-                    {btn.type === "url" && (
-                      <Input
-                        value={btn.value}
-                        onChange={e => updateButton(btn.id, "value", e.target.value)}
-                        placeholder="https://exemplo.com"
-                        className="h-8 text-xs font-mono"
-                      />
-                    )}
-                    {btn.type === "phone" && (
-                      <Input
-                        value={btn.value}
-                        onChange={e => updateButton(btn.id, "value", e.target.value)}
-                        placeholder="5511999999999"
-                        className="h-8 text-xs font-mono"
-                      />
-                    )}
                   </div>
                 ))}
               </div>
-            )}
+
+              <input
+                ref={mediaFileRef}
+                type="file"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await handleMediaUpload(file);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+
+            {/* Buttons — always visible */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Botões <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <div className="flex items-center gap-1.5">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("reply")}>
+                    <MessageSquare className="w-3 h-3" /> Resposta
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("url")}>
+                    <Link className="w-3 h-3" /> Link
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addButton("phone")}>
+                    <Phone className="w-3 h-3" /> Tel
+                  </Button>
+                </div>
+              </div>
+
+              {formButtons.length === 0 && (
+                <p className="text-[10px] text-muted-foreground/50 text-center py-2">
+                  Adicione botões interativos se desejar
+                </p>
+              )}
+
+              {formButtons.map((btn) => (
+                <div key={btn.id} className="border border-border/50 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-[10px] gap-1">
+                      {buttonTypeIcon(btn.type)} {buttonTypeLabel(btn.type)}
+                    </Badge>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeButton(btn.id)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <Input value={btn.text} onChange={e => updateButton(btn.id, "text", e.target.value)} placeholder="Texto do botão" className="h-8 text-xs" />
+                  {btn.type === "url" && (
+                    <Input value={btn.value} onChange={e => updateButton(btn.id, "value", e.target.value)} placeholder="https://exemplo.com" className="h-8 text-xs font-mono" />
+                  )}
+                  {btn.type === "phone" && (
+                    <Input value={btn.value} onChange={e => updateButton(btn.id, "value", e.target.value)} placeholder="5511999999999" className="h-8 text-xs font-mono" />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending} className="bg-primary hover:bg-primary/90">Salvar</Button>
+            <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="sm:max-w-[380px] max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
 
