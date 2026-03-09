@@ -563,7 +563,7 @@ const WarmupInstanceDetail = () => {
                   onClick={handleFinish}
                   disabled={engine.isPending}
                 >
-                  {engine.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
+                  {engine.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Encerrar
                 </Button>
               </DialogFooter>
