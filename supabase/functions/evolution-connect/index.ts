@@ -811,9 +811,50 @@ Deno.serve(async (req) => {
 
     // ── listGroups ──
     if (action === "listGroups") {
-      const r = await uazapi(instanceUrl, "/group/list", instanceToken, "GET");
-      if (!r.ok) return json({ error: "Falha ao listar grupos" }, r.status);
-      return json({ success: true, groups: r.data?.groups || r.data || [] });
+      const allGroups: any[] = [];
+      const seenIds = new Set<string>();
+
+      // Paginated fetch
+      for (let page = 0; page < 10; page++) {
+        const r = await uazapi(instanceUrl, `/group/list?GetParticipants=false&page=${page}&count=200`, instanceToken, "GET");
+        if (!r.ok) break;
+        const arr = Array.isArray(r.data) ? r.data : r.data?.groups || r.data?.data || [];
+        if (!Array.isArray(arr) || arr.length === 0) break;
+        for (const g of arr) {
+          const gid = g.id || g.jid || "";
+          if (gid && !seenIds.has(gid)) {
+            seenIds.add(gid);
+            allGroups.push({
+              id: gid,
+              name: g.subject || g.name || g.groupName || "Sem nome",
+              participants: g.participants?.length || g.size || 0,
+            });
+          }
+        }
+        if (arr.length < 200) break;
+      }
+
+      // Fallback: try /group/listAll
+      if (allGroups.length === 0) {
+        const r2 = await uazapi(instanceUrl, "/group/listAll", instanceToken, "GET");
+        if (r2.ok) {
+          const arr2 = Array.isArray(r2.data) ? r2.data : r2.data?.groups || [];
+          for (const g of arr2) {
+            const gid = g.id || g.jid || "";
+            if (gid && !seenIds.has(gid)) {
+              seenIds.add(gid);
+              allGroups.push({
+                id: gid,
+                name: g.subject || g.name || g.groupName || "Sem nome",
+                participants: g.participants?.length || g.size || 0,
+              });
+            }
+          }
+        }
+      }
+
+      console.log(`listGroups: found ${allGroups.length} groups`);
+      return json({ success: true, groups: allGroups });
     }
 
     // ── sendMedia ──
