@@ -305,25 +305,6 @@ const WarmupInstances = () => {
                   </div>
                 </div>
 
-                {/* Metrics strip */}
-                {cycle && cycle.is_running && (
-                  <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg bg-muted/15 px-3 py-2">
-                    <div className="flex-1 text-center">
-                      <p className="text-[11px] font-bold tabular-nums text-foreground">{budgetUsed}<span className="text-muted-foreground/40 font-normal">/{budgetTarget}</span></p>
-                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Msgs</p>
-                    </div>
-                    <div className="w-px h-6 bg-border/20" />
-                    <div className="flex-1 text-center">
-                      <p className="text-[11px] font-bold tabular-nums text-foreground">{cycle.daily_unique_recipients_used}<span className="text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span></p>
-                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Únicos</p>
-                    </div>
-                    <div className="w-px h-6 bg-border/20" />
-                    <div className="flex-1 text-center">
-                      <p className={cn("text-[11px] font-bold tabular-nums", budgetPct >= 80 ? "text-primary" : "text-foreground")}>{budgetPct}%</p>
-                      <p className="text-[7px] text-muted-foreground/40 uppercase tracking-widest mt-0.5">Uso</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* Actions */}
                 <div className="px-4 pb-4 space-y-2">
