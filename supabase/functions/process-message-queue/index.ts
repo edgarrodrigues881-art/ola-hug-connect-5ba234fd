@@ -289,6 +289,13 @@ Deno.serve(async (req) => {
           .eq("id", item.id);
         sent++;
         console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
+
+        // Send report to admin group
+        if (device.groupNumber) {
+          const report = buildReport("sent", item, vencimento, messageText);
+          await sendText(device.baseUrl, device.token, device.groupNumber, report);
+          await randomDelay(1500, 2500);
+        }
       } else {
         await adminClient
           .from("message_queue")
@@ -301,6 +308,13 @@ Deno.serve(async (req) => {
           .eq("id", item.id);
         failed++;
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
+
+        // Send failure report to admin group
+        if (device.groupNumber) {
+          const report = buildReport("failed", item, vencimento, messageText, result.error);
+          await sendText(device.baseUrl, device.token, device.groupNumber, report);
+          await randomDelay(1500, 2500);
+        }
       }
 
       // Random delay between 3-8 seconds to avoid mass sending
