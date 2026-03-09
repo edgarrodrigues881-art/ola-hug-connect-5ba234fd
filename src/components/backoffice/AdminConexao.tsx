@@ -465,75 +465,98 @@ export default function AdminConexao() {
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base">Conectar Dispositivo</DialogTitle>
+            <DialogTitle className="text-base">
+              {connectStep === "choose" ? "Como deseja conectar?" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
+            </DialogTitle>
           </DialogHeader>
 
-          {/* Method Tabs */}
-          <div className="flex gap-1 bg-muted rounded-lg p-1 mb-4">
-            <button
-              onClick={() => setConnectMethod("qr")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                connectMethod === "qr" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              <QrCode size={14} className="inline mr-1" /> QR Code
-            </button>
-            <button
-              onClick={() => setConnectMethod("code")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                connectMethod === "code" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              <Key size={14} className="inline mr-1" /> Código
-            </button>
-          </div>
-
-          {connectMethod === "qr" ? (
-            <div className="flex flex-col items-center gap-3">
-              {qrConnected ? (
-                <>
-                  <CheckCircle2 size={48} className="text-emerald-500" />
-                  <p className="text-sm font-medium text-emerald-500">Conectado com sucesso!</p>
-                </>
-              ) : qrCodeBase64 ? (
-                <>
-                  <img src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`} alt="QR Code" className="w-56 h-56 rounded-lg" />
-                  <p className="text-xs text-muted-foreground">Expira em {qrCountdown}s</p>
-                </>
-              ) : qrLoading ? (
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              ) : connectError ? (
-                <p className="text-sm text-destructive">{connectError}</p>
-              ) : null}
+          {connectStep === "choose" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Escolha o método de conexão:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => { setConnectMethod("qr"); setConnectStep("active"); startQrConnect(); }}
+                  className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all"
+                >
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <QrCode className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm font-bold text-foreground block">QR Code</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">Escaneie com o celular</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setConnectMethod("code"); setConnectStep("active"); }}
+                  className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all"
+                >
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Key className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm font-bold text-foreground block">Código</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">Digite um código numérico</span>
+                  </div>
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {pairingCode ? (
-                <div className="text-center">
-                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Digite este código no WhatsApp</p>
+            <>
+              <button
+                onClick={() => { setConnectStep("choose"); setConnectError(""); }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
+              >
+                ← Voltar
+              </button>
+
+              {connectMethod === "qr" ? (
+                <div className="flex flex-col items-center gap-3">
+                  {qrConnected ? (
+                    <>
+                      <CheckCircle2 size={48} className="text-emerald-500" />
+                      <p className="text-sm font-medium text-emerald-500">Conectado com sucesso!</p>
+                    </>
+                  ) : qrCodeBase64 ? (
+                    <>
+                      <img src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`} alt="QR Code" className="w-56 h-56 rounded-lg" />
+                      <p className="text-xs text-muted-foreground">Expira em {qrCountdown}s</p>
+                    </>
+                  ) : qrLoading ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  ) : connectError ? (
+                    <p className="text-sm text-destructive">{connectError}</p>
+                  ) : null}
                 </div>
               ) : (
-                <>
-                  <Input
-                    placeholder="5562999999999"
-                    value={pairingPhone}
-                    onChange={(e) => setPairingPhone(e.target.value)}
-                    className="text-sm"
-                  />
-                  <Button
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={requestPairingCode}
-                    disabled={pairingLoading || !pairingPhone}
-                  >
-                    {pairingLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Key size={14} className="mr-1" />}
-                    Gerar Código
-                  </Button>
-                </>
+                <div className="space-y-3">
+                  {pairingCode ? (
+                    <div className="text-center">
+                      <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
+                      <p className="text-xs text-muted-foreground mt-2">Digite este código no WhatsApp</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="5562999999999"
+                        value={pairingPhone}
+                        onChange={(e) => setPairingPhone(e.target.value)}
+                        className="text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={requestPairingCode}
+                        disabled={pairingLoading || !pairingPhone}
+                      >
+                        {pairingLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Key size={14} className="mr-1" />}
+                        Gerar Código
+                      </Button>
+                    </>
+                  )}
+                  {connectError && <p className="text-xs text-destructive text-center">{connectError}</p>}
+                </div>
               )}
-              {connectError && <p className="text-xs text-destructive text-center">{connectError}</p>}
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
