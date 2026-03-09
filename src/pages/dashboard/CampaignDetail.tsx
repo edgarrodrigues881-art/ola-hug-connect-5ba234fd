@@ -299,6 +299,38 @@ const CampaignDetail = () => {
     navigate("/dashboard/campaigns");
   };
 
+  const handleExportConfirm = () => {
+    const selected = contacts.filter(c => {
+      if (exportSent && (c.status === "sent" || c.status === "delivered")) return true;
+      if (exportFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (exportPending && c.status === "pending") return true;
+      return false;
+    });
+    if (selected.length === 0) {
+      toast({ title: "Nenhum contato selecionado", variant: "destructive" });
+      return;
+    }
+    const header = "Nome,Telefone,Status,Horário,Erro";
+    const rows = selected.map(c => {
+      const name = (c.name || "—").replace(/,/g, " ");
+      const phone = c.phone;
+      const status = contactStatusConfig[c.status]?.label || c.status;
+      const time = c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "";
+      const error = (c.error_message || "").replace(/,/g, " ").replace(/\n/g, " ");
+      return `${name},${phone},${status},${time},${error}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${campaign?.name || "campanha"}_export.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportOpen(false);
+    toast({ title: `✅ ${selected.length} contatos exportados` });
+  };
+
   const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
 
   if (campLoading) {
