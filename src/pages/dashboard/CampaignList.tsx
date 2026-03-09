@@ -229,7 +229,7 @@ const CampaignList = () => {
                   </div>
 
                   {/* Date */}
-                  <span className="text-[10px] text-muted-foreground/40 tabular-nums shrink-0 hidden sm:block">
+                  <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 hidden sm:block">
                     {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
                   </span>
 
