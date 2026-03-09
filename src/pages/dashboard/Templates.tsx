@@ -74,6 +74,13 @@ const Templates = () => {
     setDialogOpen(true);
   };
 
+  // Auto-detect type based on what was added
+  const getAutoType = () => {
+    if (formButtons.length > 0) return "buttons";
+    if (formMediaFiles.length > 0) return "text-media";
+    return "text";
+  };
+
   const parseMediaFiles = (mediaUrl: string | null): MediaFile[] => {
     if (!mediaUrl) return [];
     try {
