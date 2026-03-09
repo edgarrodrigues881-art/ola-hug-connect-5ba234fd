@@ -264,14 +264,13 @@ const Templates = () => {
       const current = prev.find(f => f.id === id);
       if (!current) return prev;
       const order: Array<MediaFile["sendMode"]> = ["before", "with", "after"];
-      const nextIdx = (order.indexOf(current.sendMode) + 1) % order.length;
-      const nextMode = order[nextIdx];
-      return prev.map(f => {
-        if (f.id === id) return { ...f, sendMode: nextMode };
-        // Only one can be "with" — bump others to "before"
-        if (nextMode === "with" && f.sendMode === "with") return { ...f, sendMode: "before" };
-        return f;
-      });
+      let nextIdx = (order.indexOf(current.sendMode) + 1) % order.length;
+      let nextMode = order[nextIdx];
+      // If trying to set "with" but another already has it, skip to "after"
+      if (nextMode === "with" && prev.some(f => f.id !== id && f.sendMode === "with")) {
+        nextMode = "after";
+      }
+      return prev.map(f => f.id === id ? { ...f, sendMode: nextMode } : f);
     });
   };
 
