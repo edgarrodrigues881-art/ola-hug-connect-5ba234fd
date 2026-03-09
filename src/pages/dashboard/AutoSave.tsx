@@ -196,7 +196,13 @@ const AutoSave = () => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
   };
 
-  const queryClient = useQueryClient();
+  const rowProps = useMemo(() => ({
+    filtered,
+    onEdit: handleEditContact,
+    onToggle: handleToggleActive,
+    onDelete: handleDelete,
+  }), [filtered, handleEditContact]);
+
   const handleDeleteAll = async () => {
     if (!contacts.length || !user) return;
     try {
