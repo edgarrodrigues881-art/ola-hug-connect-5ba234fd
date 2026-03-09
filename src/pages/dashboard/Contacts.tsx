@@ -219,11 +219,9 @@ const Contacts = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {[
           { label: "Total", value: stats.total, icon: Users },
-          { label: "Ativos", value: stats.active, icon: Send },
-          { label: "Bloqueados", value: stats.blocked, icon: Trash2 },
           { label: "Com Tags", value: stats.tagged, icon: Tag },
         ].map((s) => (
           <Card key={s.label} className="glass-card">
