@@ -269,14 +269,18 @@ const CampaignDetail = () => {
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
-  const handleResendFailed = () => {
-    const failedContacts = contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending");
-    if (failedContacts.length === 0) {
-      toast({ title: "Sem contatos para reenviar", variant: "destructive" });
+  const handleResendConfirm = () => {
+    const selectedContacts = contacts.filter(c => {
+      if (resendFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (resendPending && c.status === "pending") return true;
+      return false;
+    });
+    if (selectedContacts.length === 0) {
+      toast({ title: "Nenhum contato selecionado para reenviar", variant: "destructive" });
       return;
     }
     const resendData = {
-      contacts: failedContacts.map((c, i) => ({
+      contacts: selectedContacts.map((c, i) => ({
         id: i + 1, nome: c.name || "", numero: c.phone,
         var1: "", var2: "", var3: "", var4: "", var5: "",
         var6: "", var7: "", var8: "", var9: "", var10: "",
@@ -287,6 +291,7 @@ const CampaignDetail = () => {
       campaignName: `${campaign?.name} (Reenvio)`,
     };
     sessionStorage.setItem("resend_campaign_data", JSON.stringify(resendData));
+    setResendOpen(false);
     navigate("/dashboard/campaigns");
   };
 
