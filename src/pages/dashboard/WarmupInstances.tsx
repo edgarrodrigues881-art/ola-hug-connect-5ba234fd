@@ -248,41 +248,60 @@ const WarmupInstances = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-3.5 flex items-center gap-3">
-                  {/* Phone icon / avatar */}
+                <div className="px-3.5 pt-3 pb-2 flex items-center gap-3.5">
                   <div className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center shrink-0 ring-2",
+                    "w-12 h-12 rounded-full flex items-center justify-center shrink-0 ring-2",
                     connected ? "bg-primary/10 ring-primary/30" : "bg-muted/20 ring-border/20"
                   )}>
                     {device.profile_picture ? (
-                      <img src={device.profile_picture} className="w-11 h-11 rounded-full object-cover" alt="" />
+                      <img src={device.profile_picture} className="w-12 h-12 rounded-full object-cover" alt="" />
                     ) : (
-                      <Phone className={cn("w-4.5 h-4.5", connected ? "text-primary" : "text-muted-foreground/50")} />
+                      <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/50")} />
                     )}
                   </div>
-
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-foreground truncate">
+                    <p className="text-sm font-bold text-foreground truncate">
                       {device.profile_name || device.name}
                     </p>
                     {device.number && (
-                      <p className="text-[11px] font-mono text-muted-foreground mt-0.5">{device.number}</p>
+                      <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                        {formatPhone(device.number)}
+                      </p>
                     )}
                     {cycle && (
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                         Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
                       </p>
                     )}
                     {!cycle && connected && (
-                      <p className="text-[10px] text-muted-foreground/50 mt-0.5">Pronto para aquecer</p>
+                      <p className="text-[10px] text-muted-foreground/40 mt-0.5">Pronto para aquecer</p>
                     )}
                   </div>
                 </div>
 
-                {/* Actions */}
-                {cycle && (
-                  <div className="px-3.5 pb-3 space-y-1.5">
-                    {cycle.is_running && cycle.phase !== "completed" ? (
+                {/* Metrics (when warming) */}
+                {cycle && cycle.is_running && (
+                  <div className="mx-3.5 mb-2 grid grid-cols-3 gap-1.5">
+                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
+                      <p className="text-[10px] font-bold tabular-nums text-foreground">
+                        {cycle.daily_interaction_budget_used}/{cycle.daily_interaction_budget_target}
+                      </p>
+                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Budget</p>
+                    </div>
+                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
+                      <p className="text-[10px] font-bold tabular-nums text-foreground">
+                        {cycle.daily_unique_recipients_used}/{cycle.daily_unique_recipients_cap}
+                      </p>
+                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Únicos</p>
+                    </div>
+                    <div className="rounded-md bg-muted/20 px-2 py-1.5 text-center">
+                      <p className="text-[10px] font-bold tabular-nums text-foreground">
+                        {budgetTarget > 0 ? Math.round((budgetUsed / budgetTarget) * 100) : 0}%
+                      </p>
+                      <p className="text-[8px] text-muted-foreground/50 uppercase tracking-wider">Uso</p>
+                    </div>
+                  </div>
+                )}
                       <Button
                         variant="outline"
                         size="sm"
