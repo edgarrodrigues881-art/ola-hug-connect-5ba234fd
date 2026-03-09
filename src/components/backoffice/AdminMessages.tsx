@@ -28,13 +28,13 @@ const TEMPLATES = [
     },
   },
   {
-    type: "faltam-3-dias",
-    label: "Faltam 3 dias",
+    type: "ultimo-dia",
+    label: "Último dia",
     icon: Clock,
     color: "text-yellow-500",
-    desc: "3 dias p/ vencer",
+    desc: "Último dia do plano",
     build: (v: any) =>
-      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence em ${v.dias_restantes} dias (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
+      `Olá ${v.nome}! ⏳\n\n📦 Seu plano ${v.plano} vence AMANHÃ (${v.vencimento}).\n\n🔄 Renove agora para não perder o acesso.\n\nQualquer dúvida, fale com nosso suporte: ${v.suporte_numero} 📞`,
   },
   {
     type: "vence-hoje",
