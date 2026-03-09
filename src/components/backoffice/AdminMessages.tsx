@@ -873,6 +873,26 @@ const AdminMessages = () => {
           </div>
         </div>
 
+        {/* Already sent warning */}
+        {tpl && (() => {
+          const sentRecord = clientSentMessages.find((m: any) => m.template_type === selectedTemplate);
+          if (sentRecord) {
+            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+            return (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] font-semibold text-amber-500">Mensagem já enviada</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    "{tpl.label}" foi enviada em <span className="font-medium text-foreground">{sentDate}</span>. Enviar novamente irá duplicar a mensagem.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {/* Message preview */}
         {tpl && (
           <div className="space-y-2">
@@ -883,7 +903,7 @@ const AdminMessages = () => {
           </div>
         )}
 
-        {/* SEND BUTTON — big and obvious */}
+        {/* SEND BUTTON */}
         <Button
           onClick={sendToGroup}
           disabled={isSending || !isConfigured || !tpl}
@@ -894,7 +914,7 @@ const AdminMessages = () => {
           ) : (
             <Send size={16} />
           )}
-          {isSending ? "Enviando..." : "Enviar no PV + Notificar Grupo"}
+          {isSending ? "Enviando..." : "Enviar"}
         </Button>
 
         {!isConfigured && (
