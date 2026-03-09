@@ -1,12 +1,15 @@
 import { useState, useMemo, useCallback, lazy, Suspense, memo } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
-  Copy, Check, ChevronRight, Menu, X, BookOpen, MessageCircle
+  ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
+  AlertTriangle, XCircle, Skull, Check, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 // Lazy load all tab components
 const AdminOverview = lazy(() => import("./AdminOverview"));
@@ -22,120 +25,123 @@ const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
 
-const SUPORTE_NUMERO = "(11) 99999-9999";
+const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
+  WELCOME: { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
+  DUE_3_DAYS: { label: "Faltam 3 dias", icon: Clock, color: "text-yellow-500" },
+  DUE_TODAY: { label: "Vence hoje", icon: AlertTriangle, color: "text-orange-500" },
+  OVERDUE_1: { label: "Vencido 1 dia", icon: XCircle, color: "text-destructive" },
+  OVERDUE_7: { label: "Vencido 7 dias", icon: XCircle, color: "text-destructive" },
+  OVERDUE_30: { label: "Vencido 30 dias", icon: Skull, color: "text-destructive" },
+};
 
 function getDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
-const NAV_ITEMS = [
-  { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
-  { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
-  { id: "messages", label: "Relatório WhatsApp", shortLabel: "Relatório", icon: MessageCircle, group: "principal", badge: false },
-  { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
-  { id: "logs", label: "Auditoria", shortLabel: "Logs", icon: ScrollText, group: "gestao", badge: false },
-  { id: "costs", label: "Custos", shortLabel: "Custos", icon: Wallet, group: "gestao", badge: false },
-  { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
-  { id: "warmup-cycles", label: "Ciclos", shortLabel: "Ciclos", icon: Flame, group: "operacao", badge: false },
-  { id: "warmup-jobs", label: "Jobs", shortLabel: "Jobs", icon: ListTodo, group: "operacao", badge: false },
-  { id: "infra", label: "Infraestrutura", shortLabel: "Infra", icon: Server, group: "sistema", badge: false },
-  { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
-  { id: "warmup-roadmap", label: "Roteiro de Aquecimento", shortLabel: "Roteiro", icon: BookOpen, group: "operacao", badge: false },
-] as const;
+const PendenciasTab = memo(() => {
+  const { data: queueItems = [], isLoading } = useQuery({
+    queryKey: ["message-queue-pending"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("message_queue" as any)
+        .select("id, user_id, client_name, client_email, client_phone, plan_name, expires_at, message_type, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 30000,
+  });
 
-const GROUP_LABELS: Record<string, string> = {
-  principal: "Principal",
-  gestao: "Gestão",
-  operacao: "Operação",
-  sistema: "Sistema",
-};
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-const GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))];
+  if (queueItems.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+          <Check size={20} className="text-primary" />
+        </div>
+        <p className="text-muted-foreground text-sm">Nenhuma mensagem pendente na fila</p>
+        <p className="text-muted-foreground/60 text-xs mt-1">As mensagens são geradas automaticamente pelo sistema</p>
+      </div>
+    );
+  }
 
-const PENDENCIA_CATEGORIES = [
-  { label: "Vencendo em 3 dias", filter: (d: number) => d >= 1 && d <= 3, color: "bg-amber-500/10 border-amber-500/30" },
-  { label: "Vence hoje", filter: (d: number) => d === 0, color: "bg-red-500/10 border-red-500/30" },
-  { label: "Vencido 1 dia", filter: (d: number) => d === -1, color: "bg-red-500/10 border-red-500/30" },
-  { label: "Vencido 2-7 dias", filter: (d: number) => d <= -2 && d >= -7, color: "bg-red-500/5 border-red-500/20" },
-  { label: "Vencido 8-30 dias", filter: (d: number) => d <= -8 && d >= -30, color: "bg-muted/50 border-border" },
-  { label: "Vencido +30 dias", filter: (d: number) => d < -30, color: "bg-muted/50 border-border" },
-];
-
-const PendenciasTab = memo(({ users, onSelectClient }: { users: AdminUser[]; onSelectClient: (u: AdminUser) => void }) => {
-  const { toast } = useToast();
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const buildMessage = (u: AdminUser, days: number) => {
-    const nome = u.full_name || u.email;
-    const plano = u.plan_name || "Sem plano";
-    const venc = u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—";
-    if (days > 0) return `Olá ${nome}! Seu plano ${plano} vence em ${days} dia(s) (${venc}). Renove para não perder acesso. Suporte: ${SUPORTE_NUMERO}`;
-    if (days === 0) return `${nome}, seu plano ${plano} vence HOJE (${venc})! Renove agora → ${SUPORTE_NUMERO}`;
-    return `${nome}, seu plano ${plano} está vencido desde ${venc} (${Math.abs(days)} dias). Suas instâncias estão bloqueadas. Suporte: ${SUPORTE_NUMERO}`;
-  };
-
-  const copyMsg = (u: AdminUser, days: number) => {
-    navigator.clipboard.writeText(buildMessage(u, days));
-    setCopiedId(u.id);
-    setTimeout(() => setCopiedId(null), 2000);
-    toast({ title: "Mensagem copiada!" });
-  };
-
-  const categorizedUsers = useMemo(() => {
-    return PENDENCIA_CATEGORIES.map(cat => {
-      const items = users.filter(u => {
-        const d = getDaysLeft(u.plan_expires_at);
-        return d !== null && cat.filter(d);
-      });
-      return { ...cat, items };
+  // Group by message_type
+  const grouped = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    for (const item of queueItems) {
+      const type = item.message_type as string;
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(item);
+    }
+    return Object.entries(groups).sort(([a], [b]) => {
+      const order = ["WELCOME", "DUE_3_DAYS", "DUE_TODAY", "OVERDUE_1", "OVERDUE_7", "OVERDUE_30"];
+      return order.indexOf(a) - order.indexOf(b);
     });
-  }, [users]);
-
-  const hasAny = categorizedUsers.some(c => c.items.length > 0);
+  }, [queueItems]);
 
   return (
     <div className="space-y-4">
-      {categorizedUsers.map(cat => {
-        if (cat.items.length === 0) return null;
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5">
+          {queueItems.length} pendente{queueItems.length !== 1 ? "s" : ""}
+        </Badge>
+        <span className="text-[10px] text-muted-foreground">Atualiza automaticamente a cada 30s</span>
+      </div>
+
+      {grouped.map(([type, items]) => {
+        const config = MESSAGE_TYPE_CONFIG[type] || { label: type, icon: Mail, color: "text-muted-foreground" };
+        const Icon = config.icon;
         return (
-          <div key={cat.label} className={`border rounded-xl p-4 ${cat.color}`}>
-            <h3 className="text-sm font-semibold text-foreground mb-3">{cat.label} ({cat.items.length})</h3>
+          <div key={type} className="border border-border rounded-xl p-4 bg-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Icon size={16} className={config.color} />
+              <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
+              <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge>
+            </div>
             <div className="space-y-2">
-              {cat.items.map(u => {
-                const days = getDaysLeft(u.plan_expires_at)!;
-                return (
-                  <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-card/80 rounded-lg px-3 py-2.5 border border-border/60">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground font-medium truncate">{u.full_name || u.email}</p>
-                      <p className="text-xs text-muted-foreground truncate">{u.phone || "—"} · {u.plan_name || "Sem plano"}</p>
-                    </div>
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <span className={`text-xs font-semibold ${days <= 0 ? "text-red-500" : "text-amber-500"}`}>
-                        {days <= 0 ? `${Math.abs(days)}d vencido` : `${days}d`}
-                      </span>
-                      <Button variant="ghost" size="sm" onClick={() => copyMsg(u, days)} className="text-muted-foreground hover:text-foreground h-8 w-8 p-0">
-                        {copiedId === u.id ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onSelectClient(u)} className="text-primary hover:text-primary/80 h-8 px-2 text-xs font-medium">
-                        <ChevronRight size={14} />
-                      </Button>
+              {items.map((item: any) => (
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground font-medium truncate">{item.client_name || item.client_email}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-[11px] text-muted-foreground">{item.client_email}</span>
+                      {item.client_phone && (
+                        <>
+                          <span className="text-[11px] text-muted-foreground/40">·</span>
+                          <span className="text-[11px] text-muted-foreground">{item.client_phone}</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <span className="text-[11px] text-muted-foreground">{item.plan_name || "—"}</span>
+                    {item.expires_at && (
+                      <>
+                        <span className="text-[11px] text-muted-foreground/40">·</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {new Date(item.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        </span>
+                      </>
+                    )}
+                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500 bg-amber-500/5 ml-1">
+                      <Clock size={8} className="mr-0.5" /> Aguardando
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         );
       })}
-      {!hasAny && (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
-            <Check size={20} className="text-primary" />
-          </div>
-          <p className="text-muted-foreground text-sm">Nenhuma pendência no momento</p>
-        </div>
-      )}
     </div>
   );
 });
