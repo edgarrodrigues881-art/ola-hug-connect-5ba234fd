@@ -38,6 +38,42 @@ const Contacts = () => {
   const [newTagName, setNewTagName] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "" });
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [createTagInput, setCreateTagInput] = useState("");
+
+  // Load tags from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("contactCustomTags");
+    if (stored) {
+      setCustomTags(JSON.parse(stored));
+    } else {
+      setCustomTags(DEFAULT_TAGS);
+      localStorage.setItem("contactCustomTags", JSON.stringify(DEFAULT_TAGS));
+    }
+  }, []);
+
+  const handleCreateTag = () => {
+    const tag = createTagInput.trim().toLowerCase();
+    if (!tag) return;
+    if (customTags.includes(tag)) {
+      toast({ title: "Tag já existe", variant: "destructive" });
+      return;
+    }
+    const newList = [...customTags, tag];
+    setCustomTags(newList);
+    localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    setCreateTagInput("");
+    toast({ title: `Tag "${tag}" criada` });
+  };
+
+  const handleDeleteTag = (tag: string) => {
+    const newList = customTags.filter(t => t !== tag);
+    setCustomTags(newList);
+    localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    if (tagFilter === tag) setTagFilter("all");
+    toast({ title: `Tag "${tag}" removida` });
+  };
 
   const filtered = contacts.filter((c) => {
     const matchesSearch = (c.name || "").toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search);
