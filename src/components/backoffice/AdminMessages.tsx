@@ -683,7 +683,6 @@ const AdminMessages = () => {
                 );
                 })}
               </div>
-              </div>
             )}
           </div>
 
