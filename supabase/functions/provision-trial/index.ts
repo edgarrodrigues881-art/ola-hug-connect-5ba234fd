@@ -143,10 +143,11 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           }).eq("id", user.id);
 
-          // Create report_wa device
+          // Create report_wa device with identifiable name
+          const deviceDisplayName = `Relatório WA - ${clientName} (${monitorInstanceName})`;
           const { data: newDevice, error: devErr } = await adminClient.from("devices").insert({
             user_id: user.id,
-            name: `Relatório WA - ${clientName}`,
+            name: deviceDisplayName,
             login_type: "report_wa",
             instance_type: "report_wa",
             status: "Disconnected",
