@@ -424,7 +424,7 @@ export default function ReportWhatsApp() {
               )}
               {isConnected && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
+                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id, true)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
                     {loadingGroups ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                     Sincronizar
                   </Button>
