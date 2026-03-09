@@ -546,15 +546,13 @@ export default function ReportWhatsApp() {
         if (!open) { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } setQrDialogOpen(false); }
       }}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-          {/* Header com gradiente */}
+          {/* Header */}
           <div className="relative px-6 pt-6 pb-4">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 {connectStep === "done" ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                ) : connectStep === "qr" || connectStep === "code" ? (
-                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
                 ) : (
                   <Smartphone className="w-5 h-5 text-primary" />
                 )}
@@ -564,104 +562,247 @@ export default function ReportWhatsApp() {
                   {connectStep === "done" ? "Conectado!" : "Conectar instância"}
                 </DialogTitle>
                 {reportDevice && connectStep !== "done" && (
-                  <div>
-                    <p className="text-[11px] text-muted-foreground/50">{reportDevice.name}</p>
-                    {reportDevice.number && (
-                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-0.5">{reportDevice.number}</p>
-                    )}
-                  </div>
+                  <p className="text-[11px] text-muted-foreground/50">{reportDevice.name}</p>
                 )}
               </div>
             </div>
           </div>
 
           <div className="px-6 pb-6">
-            {/* QR Code display */}
-            {connectStep === "qr" && (
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  {qrCodeBase64 ? (
-                    <div className="relative p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
-                      <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
-                    </div>
-                  ) : connectError ? (
-                    <div className="w-52 h-52 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-4">
-                      <XCircle className="w-8 h-8 text-destructive mb-2" />
-                      <p className="text-[11px] text-destructive text-center leading-relaxed">{connectError}</p>
-                    </div>
-                  ) : (
-                    <div className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02] relative overflow-hidden">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                        <QrCode className="w-6 h-6 text-primary animate-pulse" />
-                      </div>
-                      <p className="text-xs font-medium text-foreground">Preparando QR Code</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-1">Isso pode levar alguns segundos...</p>
-                      <div className="flex items-center gap-1 mt-3">
-                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </div>
-                    </div>
-                  )}
+            {connectStep !== "done" && (
+              <>
+                {/* Method tabs */}
+                <div className="flex rounded-lg border border-border/30 bg-muted/20 p-0.5 mb-5">
+                  <button
+                    onClick={() => {
+                      setConnectMethod("qr");
+                      setConnectStep("qr");
+                      setConnectError("");
+                      if (!qrCodeBase64 && !qrLoading) handleConnectQR();
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                      connectMethod === "qr"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    QR Code
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConnectMethod("code");
+                      setConnectStep("code");
+                      setConnectError("");
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                      connectMethod === "code"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Código
+                  </button>
                 </div>
-                <div className="text-center space-y-1.5">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-medium text-foreground">Aguardando leitura</span>
-                  </div>
-                  {qrCodeBase64 && (
-                    <div className="flex items-center justify-center gap-1.5 mt-1">
-                      <div className="relative w-6 h-6">
-                        <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--muted))" strokeWidth="2" />
-                          <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
-                            strokeDasharray={`${(qrCountdown / 30) * 62.83} 62.83`}
-                            strokeLinecap="round"
-                            className="transition-all duration-1000 ease-linear"
-                          />
-                        </svg>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground/60 tabular-nums">
-                        Atualiza em {qrCountdown}s
-                      </span>
+
+                {/* QR Code tab */}
+                {connectMethod === "qr" && (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      {qrCodeBase64 ? (
+                        <div className="relative p-3 rounded-2xl bg-card border-2 border-border/20 shadow-lg">
+                          <img src={qrCodeBase64} alt="QR Code" className="w-52 h-52 rounded-lg" />
+                        </div>
+                      ) : connectError ? (
+                        <div className="w-52 h-52 bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-4">
+                          <XCircle className="w-8 h-8 text-destructive mb-2" />
+                          <p className="text-[11px] text-destructive text-center leading-relaxed">{connectError}</p>
+                          <Button size="sm" variant="outline" className="mt-3 h-7 text-[10px] gap-1" onClick={handleConnectQR}>
+                            <RefreshCw className="w-3 h-3" /> Tentar novamente
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center border-2 border-primary/20 bg-primary/[0.02]">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                            <QrCode className="w-6 h-6 text-primary animate-pulse" />
+                          </div>
+                          <p className="text-xs font-medium text-foreground">Preparando QR Code</p>
+                          <p className="text-[10px] text-muted-foreground/50 mt-1">Aguarde...</p>
+                          <div className="flex items-center gap-1 mt-3">
+                            <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <div className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
-                    Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-xs h-8"
-                  onClick={async () => {
-                    try {
-                      const result = await callApi({ action: "status", deviceId: reportDevice!.id });
-                      const state = result?.status;
-                      if (state === "authenticated" || state === "connected") {
-                        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-                        setQrConnected(true);
-                        setConnectStep("done");
-                        queryClient.invalidateQueries({ queryKey: ["report-device"] });
-                        toast.success("Conectado!");
+                    <div className="text-center space-y-1.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-xs font-medium text-foreground">Aguardando leitura</span>
+                      </div>
+                      {qrCodeBase64 && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1">
+                          <div className="relative w-6 h-6">
+                            <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--muted))" strokeWidth="2" />
+                              <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
+                                strokeDasharray={`${(qrCountdown / 30) * 62.83} 62.83`}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-linear"
+                              />
+                            </svg>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+                            Atualiza em {qrCountdown}s
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/40 leading-relaxed max-w-[240px]">
+                        Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs h-8"
+                      onClick={async () => {
                         try {
-                          const { data: { session: s } } = await supabase.auth.getSession();
-                          if (s) {
-                            await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
+                          const result = await callApi({ action: "status", deviceId: reportDevice!.id });
+                          const state = result?.status;
+                          if (state === "authenticated" || state === "connected") {
+                            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+                            setQrConnected(true);
+                            setConnectStep("done");
                             queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                            toast.success("Conectado!");
+                            try {
+                              const { data: { session: s } } = await supabase.auth.getSession();
+                              if (s) {
+                                await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
+                                queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                              }
+                            } catch {}
+                          } else {
+                            toast.info("QR Code ainda não foi escaneado.");
                           }
-                        } catch {}
-                      } else {
-                        toast.info("QR Code ainda não foi escaneado. Escaneie e tente novamente.");
-                      }
-                    } catch {
-                      toast.error("Erro ao verificar conexão");
-                    }
-                  }}
-                >
-                  <RefreshCw className="w-3 h-3" /> Já escaneei, sincronizar
-                </Button>
-              </div>
+                        } catch {
+                          toast.error("Erro ao verificar conexão");
+                        }
+                      }}
+                    >
+                      <RefreshCw className="w-3 h-3" /> Já escaneei, sincronizar
+                    </Button>
+                  </div>
+                )}
+
+                {/* Pairing Code tab */}
+                {connectMethod === "code" && (
+                  <div className="flex flex-col items-center gap-4">
+                    {!pairingCode ? (
+                      <div className="w-full space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-foreground">Número do WhatsApp</label>
+                          <p className="text-[10px] text-muted-foreground/50">
+                            Informe o número com DDD e código do país (ex: 5562999999999)
+                          </p>
+                          <Input
+                            placeholder="5562999999999"
+                            value={pairingPhone}
+                            onChange={(e) => setPairingPhone(e.target.value.replace(/\D/g, ""))}
+                            className="h-10 font-mono text-sm tracking-wider"
+                            maxLength={15}
+                          />
+                        </div>
+                        {connectError && (
+                          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                            <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-destructive leading-relaxed">{connectError}</p>
+                          </div>
+                        )}
+                        <Button
+                          className="w-full h-10 gap-2"
+                          disabled={pairingLoading || pairingPhone.length < 10}
+                          onClick={handleRequestPairingCode}
+                        >
+                          {pairingLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Zap className="w-4 h-4" />
+                          )}
+                          Gerar código de pareamento
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+                          O código será exibido aqui. Digite-o no WhatsApp → Aparelhos conectados → Conectar por número de telefone.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="w-full space-y-4">
+                        <div className="flex flex-col items-center gap-3 py-4">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Zap className="w-6 h-6 text-primary" />
+                          </div>
+                          <p className="text-xs font-medium text-foreground">Seu código de pareamento</p>
+                          <div className="px-6 py-4 rounded-xl bg-muted/30 border border-border/30">
+                            <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground text-center select-all">
+                              {pairingCode}
+                            </p>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground/50 text-center max-w-[260px] leading-relaxed">
+                            Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar por número de telefone → Digite este código
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-xs font-medium text-foreground">Aguardando pareamento</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1.5 text-xs h-8"
+                            onClick={() => { setPairingCode(""); setConnectError(""); }}
+                          >
+                            <RefreshCw className="w-3 h-3" /> Novo código
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1.5 text-xs h-8"
+                            onClick={async () => {
+                              try {
+                                const result = await callApi({ action: "status", deviceId: reportDevice!.id });
+                                const state = result?.status;
+                                if (state === "authenticated" || state === "connected") {
+                                  if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+                                  setQrConnected(true);
+                                  setConnectStep("done");
+                                  queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                                  toast.success("Conectado!");
+                                  try {
+                                    const { data: { session: s } } = await supabase.auth.getSession();
+                                    if (s) {
+                                      await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
+                                      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+                                    }
+                                  } catch {}
+                                } else {
+                                  toast.info("Código ainda não foi digitado. Tente novamente.");
+                                }
+                              } catch {
+                                toast.error("Erro ao verificar conexão");
+                              }
+                            }}
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Já pareei
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Done */}
