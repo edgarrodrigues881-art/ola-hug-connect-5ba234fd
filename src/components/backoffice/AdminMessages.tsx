@@ -853,6 +853,7 @@ const AdminMessages = () => {
           <div className="flex flex-wrap gap-1.5">
             {TEMPLATES.map(t => {
               const isActive = selectedTemplate === t.type;
+              const alreadySent = clientSentMessages.some((m: any) => m.template_type === t.type);
               return (
                 <button
                   key={t.type}
@@ -865,6 +866,7 @@ const AdminMessages = () => {
                 >
                   <t.icon size={12} className={isActive ? "" : t.color} />
                   {t.label}
+                  {alreadySent && <Check size={10} className={isActive ? "" : "text-emerald-500"} />}
                 </button>
               );
             })}
