@@ -53,11 +53,6 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
     setDeleting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("admin-data", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: { target_user_id: deleteTarget.id },
-      });
-      // Use query param for action
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=delete-client`,
         {
