@@ -159,9 +159,9 @@ export default function ReportWhatsApp() {
         </div>
         {canUseReport && (
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            className="gap-2 shrink-0"
+            className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => navigate("/dashboard/report-connection")}
           >
             <Plug className="w-4 h-4" />
