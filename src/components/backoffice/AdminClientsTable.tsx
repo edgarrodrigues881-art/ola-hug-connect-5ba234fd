@@ -1,7 +1,11 @@
 import { useState, useMemo, useCallback, memo } from "react";
-import { Search, ChevronRight, Shield, ChevronDown } from "lucide-react";
+import { Search, ChevronRight, Shield, ChevronDown, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { AdminUser } from "@/hooks/useAdmin";
 
 interface Props {
