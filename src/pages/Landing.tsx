@@ -129,7 +129,7 @@ const Benefits = () => (
   <Section id="beneficios">
     <div className="text-center mb-10">
       <SectionLabel>Benefícios</SectionLabel>
-      <SectionTitle>Por que escolher a DG?</SectionTitle>
+      <SectionTitle>Por que escolher nossa ferramenta?</SectionTitle>
       <SectionSub>Infraestrutura pensada para quem opera em grande escala.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
