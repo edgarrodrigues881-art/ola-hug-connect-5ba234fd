@@ -134,13 +134,28 @@ const Auth = () => {
         }
         navigate(`/welcome?to=${encodeURIComponent(redirectTo)}`);
       } else {
+        // Check if phone is already registered
+        const trimmedPhone = phone.trim().replace(/\D/g, "");
+        if (trimmedPhone) {
+          const { data: phoneAvailable } = await supabase.rpc("check_phone_available", { _phone: trimmedPhone });
+          if (phoneAvailable === false) {
+            toast({
+              title: "Telefone já cadastrado",
+              description: "Este número de telefone já está vinculado a outra conta.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
             data: {
               full_name: fullName.trim(),
-              phone: phone.trim(),
+              phone: trimmedPhone,
               company: company.trim(),
             },
             emailRedirectTo: window.location.origin,
