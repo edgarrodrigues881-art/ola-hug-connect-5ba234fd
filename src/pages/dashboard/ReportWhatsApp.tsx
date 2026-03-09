@@ -106,30 +106,6 @@ export default function ReportWhatsApp() {
 
   const isConnected = reportDevice?.status === "Ready";
 
-  const handleCreateReportInstance = async () => {
-    if (!canUseReport) { setPlanGateOpen(true); return; }
-    if (!user) return;
-    setCreatingInstance(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("manage-devices", {
-        body: { action: "create-report" },
-      });
-      if (error) throw new Error(error.message || "Erro ao criar instância");
-      if (data?.error) throw new Error(data.error);
-      
-      // Link to config
-      if (data?.device) {
-        await upsertConfig.mutateAsync({ device_id: data.device.id });
-      }
-      queryClient.invalidateQueries({ queryKey: ["report-device"] });
-      toast.success("Instância de relatório criada");
-    } catch (err: any) {
-      console.error("Error creating report instance:", err);
-      toast.error(err.message || "Erro ao criar instância");
-    } finally {
-      setCreatingInstance(false);
-    }
-  };
 
   const handleDisconnect = async () => {
     if (!reportDevice?.id) return;
