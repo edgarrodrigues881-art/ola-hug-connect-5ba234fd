@@ -55,6 +55,7 @@ const WarmupInstances = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const engine = useWarmupEngine();
+  const qc = useQueryClient();
 
   const [showWarning, setShowWarning] = useState(() =>
     localStorage.getItem("warmup_v2_warning_dismissed") !== "true"
