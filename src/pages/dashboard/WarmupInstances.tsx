@@ -90,8 +90,21 @@ const WarmupInstances = () => {
               Recomendamos usar chips novos ou estáveis para melhores resultados.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="dontShowAgainV2"
+              checked={dontShowAgain}
+              onCheckedChange={(v) => setDontShowAgain(!!v)}
+            />
+            <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">
+              Não mostrar novamente
+            </label>
+          </div>
           <DialogFooter>
-            <Button onClick={() => setShowWarning(false)}>
+            <Button onClick={() => {
+              if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
+              setShowWarning(false);
+            }}>
               Entendi
             </Button>
           </DialogFooter>
