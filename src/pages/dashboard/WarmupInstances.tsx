@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWarmupCycles } from "@/hooks/useWarmupV2";
@@ -55,6 +55,7 @@ const WarmupInstances = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const engine = useWarmupEngine();
+  const qc = useQueryClient();
 
   const [showWarning, setShowWarning] = useState(() =>
     localStorage.getItem("warmup_v2_warning_dismissed") !== "true"
@@ -105,17 +106,27 @@ const WarmupInstances = () => {
 
   const handlePause = (deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    // Optimistic: instantly update UI
+    qc.setQueryData(["warmup_cycles"], (old: any[]) =>
+      old?.map((c: any) => c.device_id === deviceId && c.is_running ? { ...c, is_running: false, phase: "paused", previous_phase: c.phase } : c)
+    );
+    toast({ title: "Aquecimento pausado" });
     engine.mutate(
       { action: "pause", device_id: deviceId },
-      { onSuccess: () => toast({ title: "Aquecimento pausado" }) }
+      { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao pausar", variant: "destructive" }); } }
     );
   };
 
   const handleResume = (deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    // Optimistic: instantly update UI
+    qc.setQueryData(["warmup_cycles"], (old: any[]) =>
+      old?.map((c: any) => c.device_id === deviceId && c.phase === "paused" ? { ...c, is_running: true, phase: c.previous_phase || "groups_only" } : c)
+    );
+    toast({ title: "Aquecimento retomado" });
     engine.mutate(
       { action: "resume", device_id: deviceId },
-      { onSuccess: () => toast({ title: "Aquecimento retomado" }) }
+      { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao retomar", variant: "destructive" }); } }
     );
   };
 
