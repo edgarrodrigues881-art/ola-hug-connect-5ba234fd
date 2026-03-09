@@ -86,6 +86,10 @@ const CampaignDetail = () => {
   const [resendOpen, setResendOpen] = useState(false);
   const [resendFailed, setResendFailed] = useState(true);
   const [resendPending, setResendPending] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSent, setExportSent] = useState(true);
+  const [exportFailed, setExportFailed] = useState(true);
+  const [exportPending, setExportPending] = useState(true);
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
