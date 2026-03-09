@@ -1,17 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Send, CheckCircle2, Eye, Smartphone, Users, Clock, Zap, QrCode, XCircle, LogOut, X, Ban, Key, Lock } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Eye, Smartphone, Users, X, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { usePlanGate } from "@/hooks/usePlanGate";
@@ -27,27 +23,10 @@ interface WhatsAppGroup {
 export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { isBlocked, planState, profile, canUseReports } = usePlanGate();
+  const { isBlocked, planState, canUseReports } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
-  const [sendingTest, setSendingTest] = useState(false);
-  const [creatingInstance, setCreatingInstance] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [qrCodeBase64, setQrCodeBase64] = useState("");
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrCountdown, setQrCountdown] = useState(30);
-  const [qrConnected, setQrConnected] = useState(false);
-  const [connectError, setConnectError] = useState("");
-  const [connectStep, setConnectStep] = useState<"qr" | "code" | "done">("qr");
-  const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
-  const [pairingPhone, setPairingPhone] = useState("");
-  const [pairingCode, setPairingCode] = useState("");
-  const [pairingLoading, setPairingLoading] = useState(false);
-
-  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Access allowed when plan includes reports (Scale/Elite), addon active, or admin override
   const canUseReport = canUseReports;
