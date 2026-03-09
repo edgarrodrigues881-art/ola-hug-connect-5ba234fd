@@ -78,6 +78,7 @@ const PendenciasTab = memo(() => {
   }
 
   if (queueItems.length === 0) {
+    return (
       <div className="text-center py-16">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
           <Check size={20} className="text-primary" />
