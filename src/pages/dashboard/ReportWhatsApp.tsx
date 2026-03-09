@@ -681,31 +681,38 @@ function AlertCard({
     .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-  const iconGlow = {
-    orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
-    teal: "bg-teal-500/10 shadow-[0_0_14px_rgba(20,184,166,0.15)] border-teal-500/20",
-    emerald: "bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.15)] border-emerald-500/20",
+  const iconBg = {
+    orange: "bg-orange-500/10",
+    teal: "bg-teal-500/10",
+    emerald: "bg-emerald-500/10",
   }[iconColor];
 
   return (
     <>
-      <Card className="flex flex-col border-border/60 relative overflow-hidden">
-        <CardHeader className="pb-3 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${iconGlow}`}>
+      <div className="flex flex-col rounded-xl border border-border/20 bg-card/50 overflow-hidden">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
               {icon}
             </div>
-            <CardTitle className="text-sm font-bold text-foreground">{title}</CardTitle>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-foreground">{title}</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5">{description}</p>
+            </div>
+            <Switch checked={enabled} onCheckedChange={onToggle} />
           </div>
-          <CardDescription className="text-xs leading-relaxed text-muted-foreground/80">{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 flex-1 pt-0">
+        </div>
+
+        <div className="px-4 pb-4 space-y-3 flex-1 flex flex-col">
           {/* Group selector */}
           <div>
-            <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
+            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-1.5 block">
+              Grupo de destino
+            </label>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between h-9 text-xs font-normal">
+                <Button variant="outline" size="sm" className="w-full justify-between h-8 text-[11px] font-normal border-border/15">
                   <span className="truncate">{selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}</span>
                   <div className="flex items-center gap-1 ml-2 shrink-0">
                     {selectedGroup && (
@@ -714,44 +721,44 @@ function AlertCard({
                         className="text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); onGroupSelect(""); }}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </span>
                     )}
-                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Users className="w-3 h-3 text-muted-foreground/40" />
                   </div>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <div className="p-2 border-b border-border/40 flex gap-1.5">
+                <div className="p-2 border-b border-border/20 flex gap-1.5">
                   <Input
                     placeholder="Pesquisar grupo..."
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
-                    className="h-8 text-xs flex-1"
+                    className="h-7 text-[11px] flex-1"
                     autoFocus
                   />
                   {onRefreshGroups && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
-                      <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
+                      <RefreshCw className={`w-3 h-3 ${loadingGroups ? "animate-spin" : ""}`} />
                     </Button>
                   )}
                 </div>
-                <div className="max-h-[200px] overflow-y-auto p-1">
+                <div className="max-h-[180px] overflow-y-auto p-1">
                   {filteredGroups.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-3">
+                    <p className="text-[11px] text-muted-foreground text-center py-3">
                       {loadingGroups ? "Carregando..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância"}
                     </p>
                   ) : (
                     filteredGroups.map((g) => (
                       <button
                         key={g.id}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
+                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
                         onClick={() => { onGroupSelect(g.id); setGroupSearch(""); setPopoverOpen(false); }}
                       >
                         <span className="truncate">{g.name}</span>
                         {g.participants && (
-                          <span className="text-muted-foreground flex items-center gap-0.5 shrink-0">
-                            <Users className="w-3 h-3" />{g.participants}
+                          <span className="text-muted-foreground/40 flex items-center gap-0.5 shrink-0 text-[10px]">
+                            <Users className="w-2.5 h-2.5" />{g.participants}
                           </span>
                         )}
                       </button>
@@ -760,70 +767,34 @@ function AlertCard({
                 </div>
               </PopoverContent>
             </Popover>
-            {selectedGroup && (
-              <div className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-md bg-emerald-500/[0.04] border border-emerald-500/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <p className="text-[11px] text-foreground/80 font-medium truncate">{selectedGroup.name}</p>
-                {selectedGroup.participants && (
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5 ml-auto shrink-0">
-                    <Users className="w-2.5 h-2.5" />{selectedGroup.participants}
-                  </Badge>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Toggle */}
-          <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors duration-300 ${enabled ? "bg-emerald-500/[0.04] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
-            <div>
-              <Label className="text-xs font-semibold block text-foreground/90">Ativar envio para WhatsApp</Label>
-              <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${enabled ? "text-emerald-500/70" : "text-muted-foreground/50"}`}>{enabled ? "Notificações ativas" : "Notificações desativadas"}</p>
-            </div>
-            <Switch checked={enabled} onCheckedChange={onToggle} className="transition-all duration-300" />
-          </div>
-
-          {/* Info items */}
-          {infoItems.length > 0 && (
-            <div className="space-y-2">
-              {infoItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/[0.04] border border-primary/10">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <div className="text-primary">{item.icon}</div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold">{item.label}</p>
-                    <p className="text-xs font-bold text-foreground mt-0.5">{item.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Monitored events */}
-          <div>
-            <Label className="text-[10px] font-bold text-muted-foreground/60 mb-2 block uppercase tracking-widest">Eventos monitorados</Label>
-            <div className="space-y-1.5">
+          {/* Monitored events — compact */}
+          <div className="space-y-1 mt-auto">
+            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider block">
+              Eventos
+            </label>
+            <div className="flex flex-wrap gap-1">
               {monitoredEvents.map((evt) => (
-                <div key={evt} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/80 shrink-0" />
-                  <span className="text-foreground/70">{evt}</span>
-                </div>
+                <Badge key={evt} variant="secondary" className="text-[9px] h-5 px-1.5 font-normal bg-muted/30 text-muted-foreground/70">
+                  {evt}
+                </Badge>
               ))}
             </div>
           </div>
 
           {/* Preview button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full text-xs gap-2 mt-auto h-9 border-border/50 hover:bg-primary/[0.04] hover:border-primary/20 transition-all duration-200"
+            className="w-full text-[11px] gap-1.5 h-7 text-muted-foreground hover:text-foreground"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3 h-3" />
             Ver mensagem
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
