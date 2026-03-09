@@ -250,36 +250,95 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-[9px] uppercase tracking-wider">
                   <th className="text-left px-3 py-2">Nome</th>
-                  <th className="text-left px-3 py-2">Tipo</th>
                   <th className="text-left px-3 py-2">Número</th>
                   <th className="text-left px-3 py-2">Status</th>
+                  <th className="text-left px-3 py-2">API</th>
                   <th className="text-left px-3 py-2">Criada em</th>
-                  <th className="text-right px-3 py-2">Ação</th>
+                  <th className="text-right px-3 py-2">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {reportDevices.map((d: any) => {
                   const st = statusConfig[d.status] || statusConfig.Disconnected;
-                  const tp = typeLabels[getDeviceType(d)] || typeLabels.principal;
+                  const hasCredentials = !!d.uazapi_token && !!d.uazapi_base_url;
                   return (
-                    <tr key={d.id} className="hover:bg-muted/20">
-                      <td className="px-3 py-2 text-foreground font-medium">{d.name}</td>
-                      <td className="px-3 py-2"><span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${tp.color}`}>{tp.label}</span></td>
-                      <td className="px-3 py-2 text-muted-foreground">{d.number || "—"}</td>
-                      <td className="px-3 py-2"><span className={`text-[10px] font-semibold flex items-center gap-1 ${st.color}`}><span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />{st.label}</span></td>
-                      <td className="px-3 py-2 text-muted-foreground">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
-                      <td className="px-3 py-2 text-right">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"><Trash2 size={13} /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-card border-border">
-                            <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </td>
-                    </tr>
+                    <>
+                      <tr key={d.id} className="hover:bg-muted/20">
+                        <td className="px-3 py-2 text-foreground font-medium">{d.name}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{d.number || "—"}</td>
+                        <td className="px-3 py-2"><span className={`text-[10px] font-semibold flex items-center gap-1 ${st.color}`}><span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />{st.label}</span></td>
+                        <td className="px-3 py-2">
+                          {hasCredentials ? (
+                            <span className="text-[10px] font-semibold text-primary flex items-center gap-1"><Key size={10} />Configurada</span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-destructive/70 flex items-center gap-1"><AlertTriangle size={10} />Pendente</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{new Date(d.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2 text-right flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-primary/60 hover:text-primary hover:bg-primary/10 h-7 w-7 rounded-lg"
+                            onClick={() => {
+                              if (editingReportDevice === d.id) {
+                                setEditingReportDevice(null);
+                              } else {
+                                setEditingReportDevice(d.id);
+                                setReportToken(d.uazapi_token || "");
+                                setReportBaseUrl(d.uazapi_base_url || "");
+                              }
+                            }}
+                          >
+                            <Key size={13} />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"><Trash2 size={13} /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-card border-border">
+                              <AlertDialogHeader><AlertDialogTitle>Remover "{d.name}"?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground">Ação permanente.</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteDevice(d.id, d.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction></AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </td>
+                      </tr>
+                      {editingReportDevice === d.id && (
+                        <tr key={`${d.id}-creds`}>
+                          <td colSpan={6} className="px-3 py-3 bg-muted/10">
+                            <div className="flex flex-col sm:flex-row gap-2 items-end">
+                              <div className="flex-1 space-y-1">
+                                <Label className="text-[9px] text-muted-foreground uppercase font-medium">Token API</Label>
+                                <Input
+                                  placeholder="Token da instância"
+                                  value={reportToken}
+                                  onChange={(e) => setReportToken(e.target.value)}
+                                  className="h-8 text-[11px] bg-card border-border rounded-lg font-mono"
+                                />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <Label className="text-[9px] text-muted-foreground uppercase font-medium">URL Base</Label>
+                                <Input
+                                  placeholder="https://api.exemplo.com"
+                                  value={reportBaseUrl}
+                                  onChange={(e) => setReportBaseUrl(e.target.value)}
+                                  className="h-8 text-[11px] bg-card border-border rounded-lg font-mono"
+                                />
+                              </div>
+                              <Button
+                                size="sm"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 px-4"
+                                onClick={() => saveReportCredentials(d.id)}
+                                disabled={isPending}
+                              >
+                                {isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : <Save size={12} className="mr-1" />}
+                                Salvar
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>
