@@ -38,9 +38,12 @@ function buildMessageByType(
     case "DUE_TODAY":
       return (
         `Olá ${nome}! ⚠️\n\n` +
-        `Seu plano ${plano} vence *HOJE* (${vencimento}).\n\n` +
-        `Renove agora para não perder o acesso.\n\n` +
-        `Suporte: ${SUPORTE_NUMERO}`
+        `Seu plano ${plano} vence HOJE.\n\n` +
+        `Sem renovação, suas instâncias poderão ser bloqueadas automaticamente.\n\n` +
+        `📅 Vencimento: ${vencimento}\n\n` +
+        `Renove para continuar utilizando a plataforma normalmente.\n\n` +
+        `Suporte:\n` +
+        `📞 ${SUPORTE_NUMERO}`
       );
     case "OVERDUE_1":
       return (
