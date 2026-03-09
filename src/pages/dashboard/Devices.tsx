@@ -588,16 +588,19 @@ const Devices = () => {
   };
 
   const handleBulkDelete = async (ids: string[]) => {
-    // Filter out connected devices — never delete them
+    // Filter out connected devices AND devices in warmup — never delete them
     const connectedStatuses = ["Connected", "Ready", "authenticated"];
     const safeToDel = ids.filter(id => {
       const dev = devices.find(d => d.id === id);
-      return dev && !connectedStatuses.includes(dev.status);
+      if (!dev) return false;
+      if (connectedStatuses.includes(dev.status)) return false;
+      if (warmupDeviceIds.has(dev.id)) return false;
+      return true;
     });
     const skipped = ids.length - safeToDel.length;
 
     if (safeToDel.length === 0) {
-      toast({ title: "Nenhuma instância removida", description: `${skipped} instância${skipped !== 1 ? "s" : ""} conectada${skipped !== 1 ? "s" : ""} foram protegida${skipped !== 1 ? "s" : ""}.` });
+      toast({ title: "Nenhuma instância removida", description: `${skipped} instância${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""} (conectadas ou em aquecimento).` });
       return;
     }
 
@@ -619,7 +622,7 @@ const Devices = () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
       const msg = skipped > 0
-        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} conectada${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""}.`
+        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} protegida${skipped !== 1 ? "s" : ""} (conectadas/aquecimento).`
         : `${safeToDel.length} instância${safeToDel.length !== 1 ? "s" : ""} removida${safeToDel.length !== 1 ? "s" : ""}`;
       toast({ title: msg });
     } catch {
