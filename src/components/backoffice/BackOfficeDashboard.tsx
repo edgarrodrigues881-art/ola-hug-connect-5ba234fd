@@ -63,6 +63,7 @@ const GROUP_LABELS: Record<string, string> = {
 
 const GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))];
 
+const PendenciasTab = memo(() => {
   const { data: queueItems = [], isLoading } = useQuery({
     queryKey: ["message-queue-pending"],
     queryFn: async () => {
