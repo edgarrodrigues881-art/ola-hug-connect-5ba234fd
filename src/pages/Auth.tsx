@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,7 +208,11 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0F1115 0%, #0d1a12 50%, #0a1f0f 100%)' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0F1115 0%, #0d1a12 50%, #0a1f0f 100%)' }}>
       {/* Back button */}
       <div className="absolute top-6 left-6 z-10">
         <button
@@ -530,7 +535,7 @@ const Auth = () => {
       </a>
 
       </div>
-    </div>
+    </motion.div>
   );
 };
 
