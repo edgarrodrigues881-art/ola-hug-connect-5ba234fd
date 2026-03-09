@@ -355,14 +355,14 @@ export default function ReportWhatsApp() {
 
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Plan gate banner */}
       {!canUseReport && (
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5">
-          <Ban className="w-5 h-5 text-destructive shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-destructive/20 bg-destructive/5">
+          <Ban className="w-4 h-4 text-destructive shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Funcionalidade bloqueada</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[13px] font-medium text-foreground">Funcionalidade bloqueada</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               {isBlocked ? "Ative ou renove seu plano para usar notificações via WhatsApp." : "Solicite ao administrador a liberação desta funcionalidade."}
             </p>
           </div>
@@ -370,134 +370,87 @@ export default function ReportWhatsApp() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary" />
-            </div>
-            Relatório Via WhatsApp
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1.5 ml-[46px]">
-            Painel de monitoramento e configuração de notificações via WhatsApp.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Radio className="w-4 h-4 text-primary" />
+          </div>
+          Relatório Via WhatsApp
+        </h1>
+        <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
+          Configure notificações automáticas para grupos do WhatsApp.
+        </p>
       </div>
 
-      {/* Instância de Notificação — Status Panel */}
-      <Card className={`border-border/60 relative overflow-hidden ${isConnected ? "shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)]" : ""}`}>
-        {/* Top status strip */}
-        <div className={`h-1 w-full ${isConnected ? "bg-gradient-to-r from-emerald-500/60 via-emerald-400/40 to-emerald-500/60" : "bg-gradient-to-r from-destructive/40 via-destructive/20 to-destructive/40"}`} />
-        <CardHeader className="pb-4">
+      {/* Instância — compact panel */}
+      <div className={`rounded-xl border overflow-hidden ${isConnected ? "border-emerald-500/15" : "border-border/30"}`}>
+        <div className={`h-0.5 w-full ${isConnected ? "bg-emerald-500/50" : "bg-muted-foreground/10"}`} />
+        <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2.5">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isConnected ? "bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.2)]" : "bg-destructive/10"}`}>
-                <Smartphone className={`w-4.5 h-4.5 ${isConnected ? "text-emerald-500" : "text-destructive"}`} />
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConnected ? "bg-emerald-500/10" : "bg-muted/30"}`}>
+                <Smartphone className={`w-4 h-4 ${isConnected ? "text-emerald-500" : "text-muted-foreground"}`} />
               </div>
-              Instância de Notificação
-            </CardTitle>
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">Instância de Notificação</p>
+                {reportDevice && (
+                  <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
+                    {reportDevice.number || reportDevice.name}
+                  </p>
+                )}
+              </div>
+            </div>
             {reportDevice && (
-              isConnected ? (
-                <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-3 py-1 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" /> Online
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="gap-1.5 text-xs border-destructive/30 text-destructive bg-destructive/10 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" /> Offline
-                </Badge>
-              )
+              <Badge variant="outline" className={`text-[10px] gap-1 px-2 py-0.5 ${isConnected ? "border-emerald-500/20 text-emerald-400 bg-emerald-500/5" : "border-destructive/20 text-destructive bg-destructive/5"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />
+                {isConnected ? "Online" : "Offline"}
+              </Badge>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
+
           {!reportDevice ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/40 flex items-center justify-center">
-                <Smartphone className="w-8 h-8 text-muted-foreground/40" />
+            <div className="flex flex-col items-center py-8 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-muted/20 border border-border/20 flex items-center justify-center">
+                <Smartphone className="w-6 h-6 text-muted-foreground/30" />
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground/70">Nenhuma instância configurada</p>
-                <p className="text-xs text-muted-foreground/60">Crie uma instância para começar a receber alertas.</p>
-              </div>
-              <Button
-                onClick={handleCreateReportInstance}
-                disabled={creatingInstance}
-                className="gap-1.5"
-              >
-                {creatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              <p className="text-xs text-muted-foreground/60">Nenhuma instância configurada</p>
+              <Button onClick={handleCreateReportInstance} disabled={creatingInstance} size="sm" className="gap-1.5 h-8 text-xs">
+                {creatingInstance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 Criar instância
               </Button>
             </div>
           ) : (
-            <div className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border ${isConnected ? "bg-emerald-500/[0.03] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
-              <div className="flex-1 space-y-2.5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Número</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5 font-mono">{reportDevice.number || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Instância</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5">{reportDevice.name}</p>
-                  </div>
-                </div>
-                {groups.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{groups.length} grupos disponíveis</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {!isConnected && (
-                  <Button
-                    size="sm"
-                    onClick={openConnectDialog}
-                    className="gap-1.5"
-                  >
-                    <Plug className="w-3.5 h-3.5" />
-                    Conectar
+            <div className="flex flex-wrap gap-1.5">
+              {!isConnected && (
+                <Button size="sm" onClick={openConnectDialog} className="gap-1.5 h-7 text-[11px]">
+                  <Plug className="w-3 h-3" /> Conectar
+                </Button>
+              )}
+              {isConnected && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
+                    {loadingGroups ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Sincronizar
                   </Button>
-                )}
-                {isConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
-                    disabled={loadingGroups}
-                    className="gap-1.5"
-                  >
-                    {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    Sincronizar grupos
+                  <Button variant="outline" size="sm" onClick={sendTestMessage} disabled={sendingTest || !reportDevice?.id} className="gap-1.5 h-7 text-[11px]">
+                    {sendingTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    Teste
                   </Button>
-                )}
-                {isConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDisconnect}
-                    disabled={disconnecting}
-                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                  >
-                    {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                  <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting} className="gap-1.5 h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20">
+                    {disconnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogOut className="w-3 h-3" />}
                     Desconectar
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={sendTestMessage}
-                  disabled={sendingTest || !reportDevice?.id || !isConnected}
-                  className="gap-1.5"
-                >
-                  {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Enviar teste
-                </Button>
-              </div>
+                </>
+              )}
+              {groups.length > 0 && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/40 ml-auto self-center">
+                  <Users className="w-3 h-3" /> {groups.length} grupos
+                </span>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
