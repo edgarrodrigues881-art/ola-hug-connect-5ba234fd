@@ -125,6 +125,10 @@ const Devices = () => {
   const [deleteSingleOpen, setDeleteSingleOpen] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [deleteSingleDevice, setDeleteSingleDevice] = useState<Device | null>(null);
+  // Force delete confirmation (second stage)
+  const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
+  const [forceDeleteIds, setForceDeleteIds] = useState<string[]>([]);
+  const [forceDeleteWarnings, setForceDeleteWarnings] = useState<string[]>([]);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEditName, setInlineEditName] = useState("");
   const inlineInputRef = useRef<HTMLInputElement>(null);
@@ -207,7 +211,51 @@ const Devices = () => {
     enabled: !!session,
   });
 
-  const warmupDeviceIds = useMemo(() => new Set(warmupSessions.map(s => s.device_id)), [warmupSessions]);
+  // Fetch warmup cycles (V2)
+  const { data: warmupCycles = [] } = useQuery({
+    queryKey: ["warmup_cycles_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_cycles")
+        .select("device_id, phase, is_running")
+        .eq("is_running", true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  // Fetch campaigns with active states (sending, scheduled, paused)
+  const { data: activeCampaigns = [] } = useQuery({
+    queryKey: ["active_campaigns_for_devices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("id, name, status, device_id, device_ids")
+        .in("status", ["sending", "scheduled", "paused", "processing"]);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  const warmupDeviceIds = useMemo(() => {
+    const ids = new Set(warmupSessions.map(s => s.device_id));
+    warmupCycles.forEach(c => ids.add(c.device_id));
+    return ids;
+  }, [warmupSessions, warmupCycles]);
+
+  // Devices with active campaigns
+  const campaignDeviceIds = useMemo(() => {
+    const ids = new Set<string>();
+    activeCampaigns.forEach(c => {
+      if (c.device_id) ids.add(c.device_id);
+      if (Array.isArray(c.device_ids)) {
+        (c.device_ids as string[]).forEach(id => ids.add(id));
+      }
+    });
+    return ids;
+  }, [activeCampaigns]);
 
   // Fetch user subscription for plan gating
   const { data: subscription } = useQuery({
@@ -587,33 +635,16 @@ const Devices = () => {
     deleteMutation.mutate(id);
   };
 
-  const handleBulkDelete = async (ids: string[]) => {
-    // Filter out connected devices AND devices in warmup — never delete them
-    const connectedStatuses = ["Connected", "Ready", "authenticated"];
-    const safeToDel = ids.filter(id => {
-      const dev = devices.find(d => d.id === id);
-      if (!dev) return false;
-      if (connectedStatuses.includes(dev.status)) return false;
-      if (warmupDeviceIds.has(dev.id)) return false;
-      return true;
-    });
-    const skipped = ids.length - safeToDel.length;
-
-    if (safeToDel.length === 0) {
-      toast({ title: "Nenhuma instância removida", description: `${skipped} instância${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""} (conectadas ou em aquecimento).` });
-      return;
-    }
-
-    // Optimistic: remove from cache immediately
+  const executeDelete = async (ids: string[]) => {
     const previous = queryClient.getQueryData<Device[]>(["devices"]);
-    const idsSet = new Set(safeToDel);
+    const idsSet = new Set(ids);
     queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
       old ? old.filter(d => !idsSet.has(d.id)) : old
     );
     setSelectedDevices([]);
     try {
       await Promise.allSettled(
-        safeToDel.map(id =>
+        ids.map(id =>
           supabase.functions.invoke("manage-devices", {
             body: { action: "delete", deviceId: id },
           })
@@ -621,14 +652,63 @@ const Devices = () => {
       );
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      const msg = skipped > 0
-        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} protegida${skipped !== 1 ? "s" : ""} (conectadas/aquecimento).`
-        : `${safeToDel.length} instância${safeToDel.length !== 1 ? "s" : ""} removida${safeToDel.length !== 1 ? "s" : ""}`;
-      toast({ title: msg });
+      toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
     } catch {
       if (previous) queryClient.setQueryData(["devices"], previous);
       toast({ title: "Erro ao remover instâncias", variant: "destructive" });
     }
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    const connectedStatuses = ["Connected", "Ready", "authenticated"];
+
+    // Classify each device
+    const protectedIds: string[] = [];
+    const warnings: string[] = [];
+    const safeToDel: string[] = [];
+
+    for (const id of ids) {
+      const dev = devices.find(d => d.id === id);
+      if (!dev) continue;
+
+      const isConnected = connectedStatuses.includes(dev.status);
+      const isWarmup = warmupDeviceIds.has(id);
+      const isCampaign = campaignDeviceIds.has(id);
+
+      if (isConnected || isWarmup || isCampaign) {
+        protectedIds.push(id);
+        const reasons: string[] = [];
+        if (isConnected) reasons.push("conectada");
+        if (isWarmup) reasons.push("em aquecimento");
+        if (isCampaign) reasons.push("com campanha ativa/agendada");
+        warnings.push(`${dev.name}: ${reasons.join(", ")}`);
+      } else {
+        safeToDel.push(id);
+      }
+    }
+
+    // If there are protected devices, show force-confirm dialog
+    if (protectedIds.length > 0) {
+      // Delete safe ones first
+      if (safeToDel.length > 0) {
+        await executeDelete(safeToDel);
+      }
+      // Show warning for protected ones
+      setForceDeleteIds(protectedIds);
+      setForceDeleteWarnings(warnings);
+      setForceDeleteOpen(true);
+      return;
+    }
+
+    // No protected devices — delete all directly
+    await executeDelete(safeToDel);
+  };
+
+  const handleForceDelete = async () => {
+    setForceDeleteOpen(false);
+    await executeDelete(forceDeleteIds);
+    setForceDeleteIds([]);
+    setForceDeleteWarnings([]);
   };
 
   const toggleSelectDevice = (id: string) => {
@@ -2177,7 +2257,44 @@ const Devices = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* WhatsApp Profile Edit Dialog */}
+      {/* Force delete confirmation (second stage) */}
+      <AlertDialog open={forceDeleteOpen} onOpenChange={setForceDeleteOpen}>
+        <AlertDialogContent className="bg-card border-border max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Atenção: Instâncias protegidas
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  As seguintes instâncias possuem processos ativos e foram protegidas automaticamente:
+                </p>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                  {forceDeleteWarnings.map((w, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <ShieldAlert className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+                      <span className="text-foreground/80">{w}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-destructive font-medium">
+                  Apagar essas instâncias pode interromper aquecimentos em andamento, campanhas agendadas ou disparos ativos. Deseja continuar mesmo assim?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setForceDeleteIds([]); setForceDeleteWarnings([]); }}>
+              Manter protegidas
+            </AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleForceDelete}>
+              Apagar mesmo assim ({forceDeleteIds.length})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
