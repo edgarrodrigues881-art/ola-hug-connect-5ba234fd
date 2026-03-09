@@ -27,6 +27,7 @@ export default function AdminConexao() {
   const [qrConnected, setQrConnected] = useState(false);
   const [connectError, setConnectError] = useState("");
   const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
+  const [connectStep, setConnectStep] = useState<"choose" | "active">("choose");
   const [pairingPhone, setPairingPhone] = useState("");
   const [pairingCode, setPairingCode] = useState("");
   const [pairingLoading, setPairingLoading] = useState(false);
