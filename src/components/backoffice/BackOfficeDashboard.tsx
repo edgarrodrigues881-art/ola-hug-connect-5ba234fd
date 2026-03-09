@@ -88,20 +88,6 @@ const PendenciasTab = memo(() => {
     );
   }
 
-  // Group by message_type
-  const grouped = useMemo(() => {
-    const groups: Record<string, any[]> = {};
-    for (const item of queueItems) {
-      const type = item.message_type as string;
-      if (!groups[type]) groups[type] = [];
-      groups[type].push(item);
-    }
-    return Object.entries(groups).sort(([a], [b]) => {
-      const order = ["WELCOME", "DUE_3_DAYS", "DUE_TODAY", "OVERDUE_1", "OVERDUE_7", "OVERDUE_30"];
-      return order.indexOf(a) - order.indexOf(b);
-    });
-  }, [queueItems]);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
