@@ -852,7 +852,7 @@ const AdminMessages = () => {
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground">Tipo de mensagem:</p>
           <div className="flex flex-wrap gap-1.5">
-            {TEMPLATES.map(t => {
+            {TEMPLATES.filter(t => !(t as any).trialHidden || selectedClient?.plan_name !== "Trial").map(t => {
               const isActive = selectedTemplate === t.type;
               const alreadySent = clientSentMessages.some((m: any) => m.template_type === t.type);
               return (
