@@ -1187,9 +1187,11 @@ const Campaigns = () => {
                         if (file.size > 20 * 1024 * 1024) { toast({ title: "Arquivo muito grande", description: "Máximo 20MB.", variant: "destructive" }); return; }
                         setMediaUploading(true);
                         try {
-                          const ext = file.name.split(".").pop() || "bin";
+                          // Compress images before uploading
+                          const optimized = await compressImage(file);
+                          const ext = optimized.name.split(".").pop() || "bin";
                           const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-                          const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+                          const { error: uploadError } = await supabase.storage.from("media").upload(path, optimized);
                           if (uploadError) throw uploadError;
                           const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
                           setMediaUrl(urlData.publicUrl);
@@ -1209,13 +1211,13 @@ const Campaigns = () => {
                     </button>
                   </>
                 ) : (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/15 dark:bg-muted/8 border border-border/15">
-                    <img src={mediaUrl} alt="preview" className="w-14 h-14 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/60 shadow-sm">
+                    <img src={mediaUrl} alt="preview" className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-foreground truncate">{mediaFileName || "Mídia"}</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-0.5">Anexado</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">Anexado</p>
                     </div>
-                    <button onClick={() => { setMediaUrl(""); setMediaFileName(""); }} className="text-muted-foreground/30 hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10">
+                    <button onClick={() => { setMediaUrl(""); setMediaFileName(""); }} className="text-muted-foreground/50 hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
