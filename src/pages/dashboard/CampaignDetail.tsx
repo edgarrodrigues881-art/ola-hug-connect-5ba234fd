@@ -2,11 +2,15 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
   Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown,
@@ -79,6 +83,9 @@ const CampaignDetail = () => {
 
   const [countdown, setCountdown] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
+  const [resendOpen, setResendOpen] = useState(false);
+  const [resendFailed, setResendFailed] = useState(true);
+  const [resendPending, setResendPending] = useState(true);
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -262,14 +269,18 @@ const CampaignDetail = () => {
   const isScheduled = campaign && ["scheduled", "pending"].includes(campaign.status);
   const isFinished = campaign && ["completed", "canceled", "failed"].includes(campaign.status);
 
-  const handleResendFailed = () => {
-    const failedContacts = contacts.filter(c => c.status === "failed" || c.status === "error" || c.status === "pending");
-    if (failedContacts.length === 0) {
-      toast({ title: "Sem contatos para reenviar", variant: "destructive" });
+  const handleResendConfirm = () => {
+    const selectedContacts = contacts.filter(c => {
+      if (resendFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (resendPending && c.status === "pending") return true;
+      return false;
+    });
+    if (selectedContacts.length === 0) {
+      toast({ title: "Nenhum contato selecionado para reenviar", variant: "destructive" });
       return;
     }
     const resendData = {
-      contacts: failedContacts.map((c, i) => ({
+      contacts: selectedContacts.map((c, i) => ({
         id: i + 1, nome: c.name || "", numero: c.phone,
         var1: "", var2: "", var3: "", var4: "", var5: "",
         var6: "", var7: "", var8: "", var9: "", var10: "",
@@ -280,6 +291,7 @@ const CampaignDetail = () => {
       campaignName: `${campaign?.name} (Reenvio)`,
     };
     sessionStorage.setItem("resend_campaign_data", JSON.stringify(resendData));
+    setResendOpen(false);
     navigate("/dashboard/campaigns");
   };
 
@@ -370,9 +382,9 @@ const CampaignDetail = () => {
                 </Button>
               </>
             )}
-            {isFinished && stats.failed + stats.pending > 0 && (
-              <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg" onClick={handleResendFailed}>
-                <RotateCcw className="w-3.5 h-3.5" /> Reenviar falhas ({stats.failed + stats.pending})
+            {isFinished && (stats.failed + stats.pending > 0) && (
+              <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setResendFailed(true); setResendPending(true); setResendOpen(true); }}>
+                <RotateCcw className="w-3.5 h-3.5" /> Reenviar
               </Button>
             )}
           </div>
@@ -404,8 +416,8 @@ const CampaignDetail = () => {
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Total de contatos" value={stats.total} icon={Send} colorClass="bg-primary/10 text-primary" />
         <StatCard label="Enviadas" value={stats.sent} icon={CheckCircle2} colorClass="bg-primary/10 text-primary" />
-        <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
         <StatCard label="Pendentes" value={stats.pending} icon={Clock} colorClass="bg-yellow-500/10 text-yellow-400" />
+        <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
       </div>
 
       {/* ── Taxa de sucesso ──────────────────────────────────────── */}
@@ -634,6 +646,43 @@ const CampaignDetail = () => {
           )}
         </div>
       </div>
+
+      {/* ── Resend Dialog ──────────────────────────────────────── */}
+      <Dialog open={resendOpen} onOpenChange={setResendOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Reenviar contatos</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Selecione quais contatos deseja importar para um novo envio.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={resendFailed} onCheckedChange={(v) => setResendFailed(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Falhas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam no envio ({stats.failed})</p>
+              </div>
+              <XCircle className="w-4 h-4 text-destructive/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={resendPending} onCheckedChange={(v) => setResendPending(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Pendentes</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que não foram enviados ({stats.pending})</p>
+              </div>
+              <Clock className="w-4 h-4 text-yellow-400/60" />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setResendOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleResendConfirm} disabled={!resendFailed && !resendPending} className="gap-1.5 text-xs">
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reenviar ({(resendFailed ? stats.failed : 0) + (resendPending ? stats.pending : 0)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
