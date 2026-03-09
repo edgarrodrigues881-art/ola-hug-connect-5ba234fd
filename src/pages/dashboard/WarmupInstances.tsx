@@ -308,7 +308,15 @@ const WarmupInstances = () => {
 
                 {/* Actions */}
                 <div className="px-4 pb-4 space-y-2">
-                  {cycle && isWarming ? (
+                  {!connected ? (
+                    <Button
+                      size="sm"
+                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/devices`); }}
+                    >
+                      <Wifi className="w-3.5 h-3.5" /> Conectar
+                    </Button>
+                  ) : cycle && isWarming ? (
                     <Button
                       variant="outline"
                       size="sm"
