@@ -371,8 +371,28 @@ const GroupCapture = () => {
     return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
   };
 
+  const renderGroupCard = (key: string, name: string, link: string, isDG: boolean) => (
+    <div
+      key={key}
+      className="group flex items-center gap-3 px-3.5 py-3 rounded-xl bg-card/60 border border-border/10 hover:border-border/25 hover:bg-card/80 transition-all duration-200"
+    >
+      {isDG ? (
+        <img src={dgLogo} alt={name} className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-border/20" />
+      ) : (
+        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/20">
+          <UsersRound className="w-4 h-4 text-primary" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-foreground leading-tight">{name}</p>
+        <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5 font-mono">{link}</p>
+      </div>
+      <CopyButton text={link} />
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Grupos de Aquecimento</h1>
@@ -383,52 +403,34 @@ const GroupCapture = () => {
         </Button>
       </div>
 
+      {/* Group count badge */}
+      {!isLoading && (groups.length > 0 || SUGGESTED_GROUPS.length > 0) && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0.5">
+            {groups.length + SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).length} grupos
+          </Badge>
+        </div>
+      )}
+
       {/* Group list */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <>
-            {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) => (
-              <Card key={sg.link} className="border-border/15">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
-                    <img src={dgLogo} alt={sg.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-foreground">{sg.name}</p>
-                      <p className="text-[11px] text-muted-foreground/50 truncate">{sg.link}</p>
-                    </div>
-                    <CopyButton text={sg.link} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {SUGGESTED_GROUPS.filter(sg => !groups.some((g: any) => g.link === sg.link)).map((sg) =>
+              renderGroupCard(sg.link, sg.name, sg.link, true)
+            )}
 
-            {groups.map((g: any) => (
-              <Card key={g.id} className="border-border/15">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
-                    {g.name?.includes("DG CONTINGÊNCIA") ? (
-                      <img src={dgLogo} alt={g.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <UsersRound className="w-4 h-4 text-primary" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-foreground">{g.name}</p>
-                      <p className="text-[11px] text-muted-foreground/50 truncate">{g.link}</p>
-                    </div>
-                    <CopyButton text={g.link} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {groups.map((g: any) =>
+              renderGroupCard(g.id, g.name, g.link, g.name?.includes("DG CONTINGÊNCIA"))
+            )}
 
             {groups.length === 0 && SUGGESTED_GROUPS.length === 0 && (
-              <div className="text-center py-12 text-sm text-muted-foreground">
+              <div className="text-center py-16 text-sm text-muted-foreground/60">
+                <UsersRound className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 Nenhum grupo cadastrado
               </div>
             )}
