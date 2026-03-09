@@ -330,6 +330,30 @@ const Contacts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Tag Dialog */}
+      <Dialog open={removeTagDialogOpen} onOpenChange={setRemoveTagDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Remover tag</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-xs">Selecione a tag para remover dos {selected.size} contatos selecionados</Label>
+            <Select value={removeTagName} onValueChange={setRemoveTagName}>
+              <SelectTrigger><SelectValue placeholder="Escolha uma tag" /></SelectTrigger>
+              <SelectContent>
+                {Array.from(new Set(
+                  contacts.filter(c => selected.has(c.id)).flatMap(c => c.tags || [])
+                )).map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveTagDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={removeTagFromSelected} disabled={!removeTagName}>Remover</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
