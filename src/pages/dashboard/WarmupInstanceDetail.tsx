@@ -152,21 +152,99 @@ const WarmupInstanceDetail = () => {
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
-      {/* Back + Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard/warmup-v2")}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-foreground truncate">{device.name}</h1>
-            <Badge variant="outline" className={cn("text-[9px] h-5", isConnected ? "text-emerald-400" : "text-muted-foreground")}>
-              {isConnected ? <Wifi className="w-2.5 h-2.5 mr-1" /> : <WifiOff className="w-2.5 h-2.5 mr-1" />}
-              {isConnected ? "Conectado" : "Desconectado"}
-            </Badge>
-          </div>
-          {device.number && <p className="text-[11px] font-mono text-muted-foreground/60">{device.number}</p>}
+      {/* ── Hero Card (inspired by reference) ── */}
+      <div className="rounded-2xl border border-border/40 bg-card overflow-hidden shadow-sm">
+        {/* Status bar */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 gap-1.5",
+              isConnected
+                ? "text-primary border-primary/30 bg-primary/5"
+                : "text-muted-foreground border-muted-foreground/20 bg-muted/10"
+            )}
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-primary animate-pulse" : "bg-muted-foreground")} />
+            STATUS: {isConnected ? "CONECTADO" : "DESCONECTADO"}
+          </Badge>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => navigate("/dashboard/warmup-v2")}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
         </div>
+
+        {/* Instance info */}
+        <div className="p-4 flex items-center gap-4">
+          {/* Avatar / Phone icon */}
+          <div className={cn(
+            "w-12 h-12 rounded-full flex items-center justify-center shrink-0 ring-2",
+            isConnected ? "bg-primary/10 ring-primary/30" : "bg-muted/30 ring-border/30"
+          )}>
+            {device.profile_picture ? (
+              <img src={device.profile_picture} className="w-12 h-12 rounded-full object-cover" alt="" />
+            ) : (
+              <Flame className={cn("w-5 h-5", isConnected ? "text-primary" : "text-muted-foreground")} />
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold text-foreground truncate">{device.profile_name || device.name}</h1>
+            {device.number && (
+              <p className="text-xs font-mono text-muted-foreground">{device.number}</p>
+            )}
+            {cycle && pc && (
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                Dia {cycle.day_index} · <span className={pc.color}>{pc.label.toLowerCase()}</span> · {cycle.day_index}-{cycle.days_total}d
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        {cycle && (
+          <div className="px-4 pb-4 flex flex-col gap-2">
+            {cycle.is_running && cycle.phase !== "completed" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 text-xs h-9 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={handlePause}
+              >
+                <Pause className="w-3.5 h-3.5" /> Parar aquecimento
+              </Button>
+            ) : cycle.phase === "paused" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 text-xs h-9 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={handleResume}
+              >
+                <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs h-8 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate("/dashboard/devices")}
+            >
+              Editar
+            </Button>
+          </div>
+        )}
+
+        {!cycle && !cycleLoading && (
+          <div className="px-4 pb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs h-8 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate("/dashboard/devices")}
+            >
+              Editar instância
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Connection warning */}
