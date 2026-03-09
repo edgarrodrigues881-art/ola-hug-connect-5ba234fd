@@ -108,7 +108,12 @@ const ClientPlanTab = ({ client, detail }: Props) => {
         action: "remove-subscription",
         body: { target_user_id: client.id },
       }, {
-        onSuccess: () => toast({ title: "Plano removido — cliente sem plano" }),
+        onSuccess: () => {
+          toast({ title: "Plano removido — cliente sem plano" });
+          // Force refresh client detail and dashboard
+          invalidateClient(client.id);
+          invalidateDashboard();
+        },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       });
       return;
