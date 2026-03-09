@@ -54,6 +54,21 @@ const PendenciasTab = memo(() => {
     refetchInterval: 30000,
   });
 
+  // Group by message_type
+  const grouped = useMemo(() => {
+    if (queueItems.length === 0) return [];
+    const groups: Record<string, any[]> = {};
+    for (const item of queueItems) {
+      const type = item.message_type as string;
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(item);
+    }
+    return Object.entries(groups).sort(([a], [b]) => {
+      const order = ["WELCOME", "DUE_3_DAYS", "DUE_TODAY", "OVERDUE_1", "OVERDUE_7", "OVERDUE_30"];
+      return order.indexOf(a) - order.indexOf(b);
+    });
+  }, [queueItems]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -63,7 +78,6 @@ const PendenciasTab = memo(() => {
   }
 
   if (queueItems.length === 0) {
-    return (
       <div className="text-center py-16">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
           <Check size={20} className="text-primary" />
