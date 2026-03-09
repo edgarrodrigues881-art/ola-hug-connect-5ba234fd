@@ -299,6 +299,17 @@ const AdminMessages = () => {
     enabled: view === "history",
   });
 
+  // Sent messages for selected client (to show "already sent" warnings)
+  const { data: clientSentMessages = [] } = useQuery({
+    queryKey: ["admin-wa-report-client-sent", selectedClient?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-history");
+      if (error) throw error;
+      return (data?.messages || []).filter((m: any) => m.user_id === selectedClient?.id);
+    },
+    enabled: view === "detail" && !!selectedClient?.id,
+  });
+
   // Open client detail
   const openClient = (u: AdminUser) => {
     const d = getDaysLeft(u.plan_expires_at);
