@@ -557,7 +557,8 @@ const AdminMessages = () => {
                   const isConnected = d.status === "Connected" || d.status === "Ready";
                   const isSelected = configDeviceId === d.id;
                   return (
-                    <div key={d.id} className={`flex items-center gap-2 rounded-xl border transition-all ${
+                    <div key={d.id} className="space-y-0">
+                    <div className={`flex items-center gap-2 rounded-xl border transition-all ${
                       isSelected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/10 hover:border-primary/20"
                     }`}>
                       <button
