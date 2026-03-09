@@ -1531,6 +1531,7 @@ Deno.serve(async (req) => {
       const { data: devices } = await adminClient.from("devices")
         .select("id, name, number, status")
         .eq("user_id", user.id)
+        .eq("login_type", "report_wa")
         .order("created_at", { ascending: false });
 
       return new Response(JSON.stringify({ devices: devices || [] }), {
