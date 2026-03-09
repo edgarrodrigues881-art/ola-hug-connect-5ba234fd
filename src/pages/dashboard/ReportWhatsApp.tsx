@@ -28,11 +28,7 @@ export default function ReportWhatsApp() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
 
-  // Access allowed when plan includes reports (Scale/Elite), addon active, or admin override
   const canUseReport = canUseReports;
-
-
-
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["report-wa-config", user?.id],
@@ -48,8 +44,7 @@ export default function ReportWhatsApp() {
     enabled: !!user,
   });
 
-  // Dedicated report device — auto-provision if missing
-  const { data: reportDevice, isLoading: loadingDevice } = useQuery({
+  const { data: reportDevice } = useQuery({
     queryKey: ["report-device", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -58,221 +53,12 @@ export default function ReportWhatsApp() {
         .eq("user_id", user!.id)
         .eq("login_type", "report_wa")
         .maybeSingle();
-      
-      if (data) return data;
-
-      // Auto-create if not exists
-      const { data: created, error } = await supabase.functions.invoke("manage-devices", {
-        body: { action: "create-report" },
-      });
-      if (error || created?.error) {
-        console.error("Auto-provision report instance failed:", error || created?.error);
-        return null;
-      }
-      if (created?.device) {
-        // Link to config
-        await supabase.from("report_wa_configs").upsert({
-          user_id: user!.id,
-          device_id: created.device.id,
-        }, { onConflict: "user_id" }).select().maybeSingle();
-      }
-      // Re-fetch the device
-      const { data: refetched } = await supabase
-        .from("devices")
-        .select("id, name, number, status, login_type")
-        .eq("user_id", user!.id)
-        .eq("login_type", "report_wa")
-        .maybeSingle();
-      return refetched;
+      return data;
     },
     enabled: !!user && canUseReport,
   });
 
   const isConnected = reportDevice?.status === "Ready";
-
-
-  const handleDisconnect = async () => {
-    if (!reportDevice?.id) return;
-    setDisconnecting(true);
-    try {
-      await callApi({ action: "logout", deviceId: reportDevice.id });
-      queryClient.invalidateQueries({ queryKey: ["report-device"] });
-      setGroups([]);
-      toast.success("Instância desconectada");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao desconectar");
-    } finally {
-      setDisconnecting(false);
-    }
-  };
-
-  const callApi = async (body: Record<string, any>) => {
-    const { data: { session: s } } = await supabase.auth.getSession();
-    if (!s) throw new Error("Não autenticado");
-    const response = await supabase.functions.invoke("evolution-connect", {
-      body,
-      headers: { Authorization: `Bearer ${s.access_token}` },
-    });
-    if (response.error) {
-      // Try to extract backend error message
-      let backendMsg = "";
-      if (response.data?.error) backendMsg = response.data.error;
-      if (!backendMsg) {
-        try {
-          const ctx = (response.error as any)?.context;
-          if (ctx?.body) {
-            const parsed = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body;
-            if (parsed?.error) backendMsg = parsed.error;
-          }
-        } catch {}
-      }
-      throw new Error(backendMsg || response.error.message || "Erro na operação");
-    }
-    if (response.data?.error) throw new Error(response.data.error);
-    return response.data;
-  };
-
-  const openConnectDialog = () => {
-    if (!canUseReport) { setPlanGateOpen(true); return; }
-    setQrDialogOpen(true);
-    setQrCodeBase64("");
-    setQrConnected(false);
-    setConnectError("");
-    setConnectMethod("qr");
-    setConnectStep("qr");
-    setPairingCode("");
-    setPairingPhone("");
-    // Start QR flow immediately
-    handleConnectQR();
-  };
-
-  const handleConnectQR = async () => {
-    if (!reportDevice?.id) return;
-    setConnectStep("qr");
-    setQrLoading(true);
-    setQrCodeBase64("");
-    setConnectError("");
-    try {
-      // Token must be pre-assigned by admin — no auto-creation
-      const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
-      if (result?.alreadyConnected) {
-        setQrConnected(true);
-        setConnectStep("done");
-        queryClient.invalidateQueries({ queryKey: ["report-device"] });
-        toast.success("Já conectado!");
-        return;
-      }
-      const b64 = result?.base64 || result?.qr;
-      if (b64) {
-        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-      }
-    } catch (err: any) {
-      // Parse specific error from edge function response
-      let msg = "Erro ao gerar QR Code";
-      try {
-        const parsed = err?.message ? JSON.parse(err.message) : null;
-        if (parsed?.error) msg = parsed.error;
-        else if (err?.message) msg = err.message;
-      } catch {
-        if (err?.message) msg = err.message;
-      }
-      // Check for FunctionsHttpError body
-      if (err?.context?.body) {
-        try {
-          const body = typeof err.context.body === 'string' ? JSON.parse(err.context.body) : err.context.body;
-          if (body?.error) msg = body.error;
-        } catch {}
-      }
-      setConnectError(msg);
-      toast.error(msg);
-    } finally {
-      setQrLoading(false);
-    }
-  };
-
-  const handleRequestPairingCode = async () => {
-    if (!reportDevice?.id || !pairingPhone) return;
-    setPairingLoading(true);
-    setConnectError("");
-    setPairingCode("");
-    try {
-      const result = await callApi({ 
-        action: "requestPairingCode", 
-        deviceId: reportDevice.id, 
-        phoneNumber: pairingPhone 
-      });
-      if (result?.alreadyConnected) {
-        setQrConnected(true);
-        setConnectStep("done");
-        queryClient.invalidateQueries({ queryKey: ["report-device"] });
-        toast.success("Já conectado!");
-        return;
-      }
-      if (result?.pairingCode) {
-        setPairingCode(result.pairingCode);
-      } else {
-        setConnectError("Código não retornado. Verifique o número e tente novamente.");
-      }
-    } catch (err: any) {
-      const msg = err?.message || "Erro ao solicitar código";
-      setConnectError(msg);
-      toast.error(msg);
-    } finally {
-      setPairingLoading(false);
-    }
-  };
-
-  // QR auto-refresh every 30s
-  useEffect(() => {
-    if (connectStep === "qr" && qrCodeBase64) {
-      setQrCountdown(30);
-      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
-      qrCountdownRef.current = setInterval(() => {
-        setQrCountdown(prev => {
-          if (prev <= 1) {
-            setQrCodeBase64("");
-            if (reportDevice?.id) {
-              // Use refreshQr to avoid recreating the instance
-              callApi({ action: "refreshQr", deviceId: reportDevice.id }).then(result => {
-                if (result?.alreadyConnected) {
-                  setQrConnected(true);
-                  setConnectStep("done");
-                  queryClient.invalidateQueries({ queryKey: ["report-device"] });
-                  return;
-                }
-                const b64 = result?.base64 || result?.qr;
-                if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
-              }).catch(() => {});
-            }
-            return 30;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
-    }
-    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
-  }, [connectStep, qrCodeBase64, reportDevice?.id]);
-
-  // Poll connection status while QR dialog open
-  useEffect(() => {
-    if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
-    pollRef.current = setInterval(async () => {
-      try {
-        const result = await callApi({ action: "status", deviceId: reportDevice.id });
-        if (result?.status === "authenticated" || result?.status === "connected") {
-          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-          setQrConnected(true);
-          setConnectStep("done");
-          queryClient.invalidateQueries({ queryKey: ["report-device"] });
-          toast.success("Instância conectada com sucesso!");
-          setTimeout(() => setQrDialogOpen(false), 2000);
-        }
-      } catch {}
-    }, 3000);
-    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [qrDialogOpen, reportDevice?.id, qrConnected, connectStep]);
 
   const fetchGroups = async (deviceId: string, forceRefresh = false) => {
     setLoadingGroups(true);
@@ -284,9 +70,7 @@ export default function ReportWhatsApp() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
-      if (!res.ok) {
-        throw new Error(`Erro ${res.status}: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
       const json = await res.json();
       const chats = json.chats || [];
       const groupChats: WhatsAppGroup[] = chats.map((c: any) => ({
@@ -295,70 +79,10 @@ export default function ReportWhatsApp() {
         participants: c.participants?.length || c.participantsCount || c.size || undefined,
       }));
       setGroups(groupChats);
-      if (groupChats.length === 0) {
-        toast.info("Nenhum grupo encontrado neste WhatsApp");
-      } else {
-        toast.success(`${groupChats.length} grupos carregados`);
-      }
     } catch (err) {
       console.error("Error fetching groups:", err);
-      toast.error("Erro ao buscar grupos do WhatsApp");
     } finally {
       setLoadingGroups(false);
-    }
-  };
-
-  const sendTestMessage = async () => {
-    if (!config?.device_id) return;
-    setSendingTest(true);
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-      const testGroupId = config?.warmup_group_id || config?.campaigns_group_id || config?.connection_group_id;
-      if (!testGroupId) {
-        toast.error("Selecione ao menos um grupo antes de enviar teste");
-        setSendingTest(false);
-        return;
-      }
-      const testGroupName = groups.find(g => g.id === testGroupId)?.name || testGroupId;
-      const message = `[TESTE DE MONITORAMENTO]\n\nSistema de alertas ativo.\n\nInstância: ${reportDevice?.name || "—"}\nNúmero: ${reportDevice?.number || "—"}\n\nGrupo configurado: ${testGroupName}\n\nCentral de monitoramento funcionando corretamente.`;
-
-      let whatsappSent = false;
-      let whatsappError: string | null = null;
-      try {
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=send_message&device_id=${config.device_id}`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ to: testGroupId, message }),
-          }
-        );
-        whatsappSent = true;
-      } catch (e: any) {
-        whatsappError = e?.message || "Erro ao enviar";
-      }
-
-      // Register alert in cockpit
-      await supabase.from("alerts").insert({
-        user_id: user!.id,
-        type: "TEST_ALERT" as any,
-        severity: "INFO" as any,
-        instance_name: reportDevice?.name || null,
-        phone_number: reportDevice?.number || null,
-        instance_id: config.device_id,
-        message_rendered: message,
-        whatsapp_sent: whatsappSent,
-        whatsapp_group_id: testGroupId,
-        whatsapp_sent_at: whatsappSent ? new Date().toISOString() : null,
-        whatsapp_error: whatsappError,
-      });
-
-      toast.success(whatsappSent ? "Alerta de teste enviado!" : "Alerta registrado (WhatsApp falhou)");
-    } catch {
-      toast.error("Erro ao enviar alerta de teste");
-    } finally {
-      setSendingTest(false);
     }
   };
 
@@ -391,9 +115,6 @@ export default function ReportWhatsApp() {
     const group = groups.find((g) => g.id === groupId);
     upsertConfig.mutate({ [field]: groupId, [nameField]: group?.name || "" });
   };
-
-
-
 
   if (loadingConfig) {
     return (
