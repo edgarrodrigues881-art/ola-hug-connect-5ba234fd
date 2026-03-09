@@ -99,7 +99,7 @@ const CampaignList = () => {
   }, [campaigns]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ height: "calc(100vh - 5rem)" }}>
       {/* Fixed header area */}
       <div className="shrink-0 space-y-5 pb-4">
         {/* Header */}
