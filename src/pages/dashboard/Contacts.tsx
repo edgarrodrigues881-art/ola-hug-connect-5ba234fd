@@ -35,6 +35,8 @@ const Contacts = () => {
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
+  const [removeTagDialogOpen, setRemoveTagDialogOpen] = useState(false);
+  const [removeTagName, setRemoveTagName] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "" });
@@ -122,6 +124,17 @@ const Contacts = () => {
     toast({ title: "Tag adicionada", description: `Tag "${tag}" adicionada a ${selected.size} contatos.` });
     setNewTagName("");
     setAddTagDialogOpen(false);
+  };
+
+  const removeTagFromSelected = () => {
+    if (!removeTagName) return;
+    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).includes(removeTagName));
+    toUpdate.forEach(c => {
+      updateContact.mutate({ id: c.id, tags: (c.tags || []).filter(t => t !== removeTagName) });
+    });
+    toast({ title: "Tag removida", description: `Tag "${removeTagName}" removida de ${toUpdate.length} contatos.` });
+    setRemoveTagName("");
+    setRemoveTagDialogOpen(false);
   };
 
   const handleAddContact = () => {
@@ -213,6 +226,9 @@ const Contacts = () => {
               <span className="text-xs text-muted-foreground">{selected.size} selecionado(s)</span>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setAddTagDialogOpen(true)}>
                 <Tag className="w-3 h-3" /> Adicionar Tag
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setRemoveTagDialogOpen(true)}>
+                <X className="w-3 h-3" /> Remover Tag
               </Button>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={handleDeleteSelected}>
                 <Trash2 className="w-3 h-3" /> Excluir
@@ -311,6 +327,30 @@ const Contacts = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddTagDialogOpen(false)}>Cancelar</Button>
             <Button onClick={addTagToSelected}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Tag Dialog */}
+      <Dialog open={removeTagDialogOpen} onOpenChange={setRemoveTagDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Remover tag</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-xs">Selecione a tag para remover dos {selected.size} contatos selecionados</Label>
+            <Select value={removeTagName} onValueChange={setRemoveTagName}>
+              <SelectTrigger><SelectValue placeholder="Escolha uma tag" /></SelectTrigger>
+              <SelectContent>
+                {Array.from(new Set(
+                  contacts.filter(c => selected.has(c.id)).flatMap(c => c.tags || [])
+                )).map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveTagDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={removeTagFromSelected} disabled={!removeTagName}>Remover</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
