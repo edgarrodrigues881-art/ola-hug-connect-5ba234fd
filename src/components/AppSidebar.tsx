@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Smartphone,
   Send,
+  BookUser,
   SaveAll,
   Megaphone,
   FileText,
@@ -61,6 +62,7 @@ const menuGroups = [
     items: [
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Meus Contatos", url: "/dashboard/contacts", icon: BookUser },
     ],
   },
   {
