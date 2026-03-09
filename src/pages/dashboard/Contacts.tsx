@@ -22,6 +22,41 @@ import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, use
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 
+// Virtualized row for contacts list
+function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
+  const contact = filtered[index];
+  if (!contact) return null;
+  return (
+    <div style={style} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+      <div className="p-3 w-10"><Checkbox checked={selected.has(contact.id)} onCheckedChange={() => onToggleSelect(contact.id)} /></div>
+      <div className="p-3 flex-[2] font-medium text-foreground truncate">{contact.name}</div>
+      <div className="p-3 flex-[2] text-muted-foreground font-mono text-xs">{contact.phone}</div>
+      <div className="p-3 flex-[2] hidden md:flex gap-1 flex-wrap">
+        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => (
+          <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
+            {tag}
+            <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Badge>
+        )) : <span className="text-[11px] text-muted-foreground">—</span>}
+      </div>
+      <div className="p-3 w-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent"><MoreVertical className="w-3.5 h-3.5" /></button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => {
+              onDelete([contact.id]);
+            }}>
+              <Trash2 className="w-3 h-3" /> Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
 const Contacts = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
