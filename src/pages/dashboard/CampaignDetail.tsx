@@ -423,6 +423,11 @@ const CampaignDetail = () => {
                 <RotateCcw className="w-3.5 h-3.5" /> Reenviar
               </Button>
             )}
+            {isFinished && stats.total > 0 && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setExportSent(true); setExportFailed(true); setExportPending(true); setExportOpen(true); }}>
+                <Download className="w-3.5 h-3.5" /> Exportar
+              </Button>
+            )}
           </div>
         </div>
 
