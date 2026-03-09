@@ -145,16 +145,29 @@ export default function ReportWhatsApp() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Radio className="w-4 h-4 text-primary" />
-          </div>
-          Relatório Via WhatsApp
-        </h1>
-        <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
-          Configure notificações automáticas para grupos do WhatsApp.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Radio className="w-4 h-4 text-primary" />
+            </div>
+            Relatório Via WhatsApp
+          </h1>
+          <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
+            Configure notificações automáticas para grupos do WhatsApp.
+          </p>
+        </div>
+        {canUseReport && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 shrink-0"
+            onClick={() => navigate("/dashboard/report-connection")}
+          >
+            <Plug className="w-4 h-4" />
+            Conexão
+          </Button>
+        )}
       </div>
 
       {/* 3 Cards */}
@@ -210,20 +223,6 @@ export default function ReportWhatsApp() {
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
-
-      {/* Botão Conexão */}
-      {canUseReport && (
-        <div className="flex justify-center">
-          <Button
-            variant={isConnected ? "outline" : "default"}
-            className="gap-2"
-            onClick={() => navigate("/dashboard/report-connection")}
-          >
-            <Plug className="w-4 h-4" />
-            {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conectar Instância de Relatório"}
-          </Button>
-        </div>
-      )}
 
       <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} context="notifications" />
     </div>
