@@ -176,12 +176,13 @@ const Templates = () => {
 
   const handleSave = () => {
     if (!formName.trim() || !formContent.trim()) return;
+    const autoType = getAutoType();
     const mediaValue = formMediaFiles.length > 0
       ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
       : formMediaUrl || undefined;
     const payload = {
       name: formName,
-      type: formType,
+      type: autoType,
       content: formContent,
       media_url: mediaValue,
       buttons: formButtons.map(b => ({ type: b.type, text: b.text, value: b.value })),
