@@ -47,10 +47,12 @@ function buildMessageByType(
       );
     case "OVERDUE_1":
       return (
-        `Olá ${nome}! ❌\n\n` +
-        `Seu plano ${plano} venceu ontem (${vencimento}).\n\n` +
-        `Renove o quanto antes para restaurar o acesso.\n\n` +
-        `Suporte: ${SUPORTE_NUMERO}`
+        `Olá ${nome}! 🚫\n\n` +
+        `Seu plano ${plano} venceu ontem.\n\n` +
+        `Suas instâncias estão temporariamente bloqueadas.\n\n` +
+        `Renove para voltar a utilizá-las imediatamente.\n\n` +
+        `Suporte:\n` +
+        `📞 ${SUPORTE_NUMERO}`
       );
     case "OVERDUE_7":
       return (
