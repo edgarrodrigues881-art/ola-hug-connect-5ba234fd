@@ -355,14 +355,14 @@ export default function ReportWhatsApp() {
 
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Plan gate banner */}
       {!canUseReport && (
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5">
-          <Ban className="w-5 h-5 text-destructive shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-destructive/20 bg-destructive/5">
+          <Ban className="w-4 h-4 text-destructive shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Funcionalidade bloqueada</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[13px] font-medium text-foreground">Funcionalidade bloqueada</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               {isBlocked ? "Ative ou renove seu plano para usar notificações via WhatsApp." : "Solicite ao administrador a liberação desta funcionalidade."}
             </p>
           </div>
@@ -370,143 +370,95 @@ export default function ReportWhatsApp() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary" />
-            </div>
-            Relatório Via WhatsApp
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1.5 ml-[46px]">
-            Painel de monitoramento e configuração de notificações via WhatsApp.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Radio className="w-4 h-4 text-primary" />
+          </div>
+          Relatório Via WhatsApp
+        </h1>
+        <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
+          Configure notificações automáticas para grupos do WhatsApp.
+        </p>
       </div>
 
-      {/* Instância de Notificação — Status Panel */}
-      <Card className={`border-border/60 relative overflow-hidden ${isConnected ? "shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)]" : ""}`}>
-        {/* Top status strip */}
-        <div className={`h-1 w-full ${isConnected ? "bg-gradient-to-r from-emerald-500/60 via-emerald-400/40 to-emerald-500/60" : "bg-gradient-to-r from-destructive/40 via-destructive/20 to-destructive/40"}`} />
-        <CardHeader className="pb-4">
+      {/* Instância — compact panel */}
+      <div className={`rounded-xl border overflow-hidden ${isConnected ? "border-emerald-500/15" : "border-border/30"}`}>
+        <div className={`h-0.5 w-full ${isConnected ? "bg-emerald-500/50" : "bg-muted-foreground/10"}`} />
+        <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2.5">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isConnected ? "bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.2)]" : "bg-destructive/10"}`}>
-                <Smartphone className={`w-4.5 h-4.5 ${isConnected ? "text-emerald-500" : "text-destructive"}`} />
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConnected ? "bg-emerald-500/10" : "bg-muted/30"}`}>
+                <Smartphone className={`w-4 h-4 ${isConnected ? "text-emerald-500" : "text-muted-foreground"}`} />
               </div>
-              Instância de Notificação
-            </CardTitle>
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">Instância de Notificação</p>
+                {reportDevice && (
+                  <p className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
+                    {reportDevice.number || reportDevice.name}
+                  </p>
+                )}
+              </div>
+            </div>
             {reportDevice && (
-              isConnected ? (
-                <Badge variant="outline" className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-3 py-1 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" /> Online
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="gap-1.5 text-xs border-destructive/30 text-destructive bg-destructive/10 px-3 py-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" /> Offline
-                </Badge>
-              )
+              <Badge variant="outline" className={`text-[10px] gap-1 px-2 py-0.5 ${isConnected ? "border-emerald-500/20 text-emerald-400 bg-emerald-500/5" : "border-destructive/20 text-destructive bg-destructive/5"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />
+                {isConnected ? "Online" : "Offline"}
+              </Badge>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
+
           {!reportDevice ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/40 flex items-center justify-center">
-                <Smartphone className="w-8 h-8 text-muted-foreground/40" />
+            <div className="flex flex-col items-center py-8 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-muted/20 border border-border/20 flex items-center justify-center">
+                <Smartphone className="w-6 h-6 text-muted-foreground/30" />
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground/70">Nenhuma instância configurada</p>
-                <p className="text-xs text-muted-foreground/60">Crie uma instância para começar a receber alertas.</p>
-              </div>
-              <Button
-                onClick={handleCreateReportInstance}
-                disabled={creatingInstance}
-                className="gap-1.5"
-              >
-                {creatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              <p className="text-xs text-muted-foreground/60">Nenhuma instância configurada</p>
+              <Button onClick={handleCreateReportInstance} disabled={creatingInstance} size="sm" className="gap-1.5 h-8 text-xs">
+                {creatingInstance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 Criar instância
               </Button>
             </div>
           ) : (
-            <div className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border ${isConnected ? "bg-emerald-500/[0.03] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
-              <div className="flex-1 space-y-2.5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Número</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5 font-mono">{reportDevice.number || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold">Instância</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5">{reportDevice.name}</p>
-                  </div>
-                </div>
-                {groups.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{groups.length} grupos disponíveis</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {!isConnected && (
-                  <Button
-                    size="sm"
-                    onClick={openConnectDialog}
-                    className="gap-1.5"
-                  >
-                    <Plug className="w-3.5 h-3.5" />
-                    Conectar
+            <div className="flex flex-wrap gap-1.5">
+              {!isConnected && (
+                <Button size="sm" onClick={openConnectDialog} className="gap-1.5 h-7 text-[11px]">
+                  <Plug className="w-3 h-3" /> Conectar
+                </Button>
+              )}
+              {isConnected && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
+                    {loadingGroups ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Sincronizar
                   </Button>
-                )}
-                {isConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)}
-                    disabled={loadingGroups}
-                    className="gap-1.5"
-                  >
-                    {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    Sincronizar grupos
+                  <Button variant="outline" size="sm" onClick={sendTestMessage} disabled={sendingTest || !reportDevice?.id} className="gap-1.5 h-7 text-[11px]">
+                    {sendingTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    Teste
                   </Button>
-                )}
-                {isConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDisconnect}
-                    disabled={disconnecting}
-                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                  >
-                    {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                  <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting} className="gap-1.5 h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20">
+                    {disconnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogOut className="w-3 h-3" />}
                     Desconectar
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={sendTestMessage}
-                  disabled={sendingTest || !reportDevice?.id || !isConnected}
-                  className="gap-1.5"
-                >
-                  {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Enviar teste
-                </Button>
-              </div>
+                </>
+              )}
+              {groups.length > 0 && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/40 ml-auto self-center">
+                  <Users className="w-3 h-3" /> {groups.length} grupos
+                </span>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* 3 Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <AlertCard
-          icon={<Flame className="w-7 h-7 text-orange-500" />}
+          icon={<Flame className="w-5 h-5 text-orange-500" />}
           iconColor="orange"
-          title="Relatórios de Aquecimento"
-          description="Relatórios enviados automaticamente após cada ciclo de aquecimento (24h)."
-          
+          title="Aquecimento"
+          description="Relatórios após cada ciclo de 24h."
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
@@ -520,11 +472,10 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-7 h-7 text-teal-500" />}
+          icon={<Megaphone className="w-5 h-5 text-teal-500" />}
           iconColor="teal"
-          title="Relatórios de Campanhas"
-          description="Alertas enviados automaticamente quando eventos da campanha ocorrem."
-          
+          title="Campanhas"
+          description="Alertas de eventos de campanha."
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
@@ -538,11 +489,10 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Plug className="w-7 h-7 text-emerald-500" />}
+          icon={<Plug className="w-5 h-5 text-emerald-500" />}
           iconColor="emerald"
-          title="Alertas de Conexão"
-          description="Alertas enviados automaticamente quando o status da instância muda."
-          
+          title="Conexão"
+          description="Alertas de mudança de status."
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
@@ -731,31 +681,38 @@ function AlertCard({
     .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-  const iconGlow = {
-    orange: "bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.15)] border-orange-500/20",
-    teal: "bg-teal-500/10 shadow-[0_0_14px_rgba(20,184,166,0.15)] border-teal-500/20",
-    emerald: "bg-emerald-500/10 shadow-[0_0_14px_rgba(16,185,129,0.15)] border-emerald-500/20",
+  const iconBg = {
+    orange: "bg-orange-500/10",
+    teal: "bg-teal-500/10",
+    emerald: "bg-emerald-500/10",
   }[iconColor];
 
   return (
     <>
-      <Card className="flex flex-col border-border/60 relative overflow-hidden">
-        <CardHeader className="pb-3 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${iconGlow}`}>
+      <div className="flex flex-col rounded-xl border border-border/20 bg-card/50 overflow-hidden">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
               {icon}
             </div>
-            <CardTitle className="text-sm font-bold text-foreground">{title}</CardTitle>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-foreground">{title}</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5">{description}</p>
+            </div>
+            <Switch checked={enabled} onCheckedChange={onToggle} />
           </div>
-          <CardDescription className="text-xs leading-relaxed text-muted-foreground/80">{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 flex-1 pt-0">
+        </div>
+
+        <div className="px-4 pb-4 space-y-3 flex-1 flex flex-col">
           {/* Group selector */}
           <div>
-            <Label className="text-[10px] font-bold mb-2 block text-muted-foreground/60 uppercase tracking-widest">Grupo de destino</Label>
+            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-1.5 block">
+              Grupo de destino
+            </label>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between h-9 text-xs font-normal">
+                <Button variant="outline" size="sm" className="w-full justify-between h-8 text-[11px] font-normal border-border/15">
                   <span className="truncate">{selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}</span>
                   <div className="flex items-center gap-1 ml-2 shrink-0">
                     {selectedGroup && (
@@ -764,44 +721,44 @@ function AlertCard({
                         className="text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); onGroupSelect(""); }}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </span>
                     )}
-                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Users className="w-3 h-3 text-muted-foreground/40" />
                   </div>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <div className="p-2 border-b border-border/40 flex gap-1.5">
+                <div className="p-2 border-b border-border/20 flex gap-1.5">
                   <Input
                     placeholder="Pesquisar grupo..."
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
-                    className="h-8 text-xs flex-1"
+                    className="h-7 text-[11px] flex-1"
                     autoFocus
                   />
                   {onRefreshGroups && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
-                      <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
+                      <RefreshCw className={`w-3 h-3 ${loadingGroups ? "animate-spin" : ""}`} />
                     </Button>
                   )}
                 </div>
-                <div className="max-h-[200px] overflow-y-auto p-1">
+                <div className="max-h-[180px] overflow-y-auto p-1">
                   {filteredGroups.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-3">
+                    <p className="text-[11px] text-muted-foreground text-center py-3">
                       {loadingGroups ? "Carregando..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância"}
                     </p>
                   ) : (
                     filteredGroups.map((g) => (
                       <button
                         key={g.id}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
+                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
                         onClick={() => { onGroupSelect(g.id); setGroupSearch(""); setPopoverOpen(false); }}
                       >
                         <span className="truncate">{g.name}</span>
                         {g.participants && (
-                          <span className="text-muted-foreground flex items-center gap-0.5 shrink-0">
-                            <Users className="w-3 h-3" />{g.participants}
+                          <span className="text-muted-foreground/40 flex items-center gap-0.5 shrink-0 text-[10px]">
+                            <Users className="w-2.5 h-2.5" />{g.participants}
                           </span>
                         )}
                       </button>
@@ -810,70 +767,34 @@ function AlertCard({
                 </div>
               </PopoverContent>
             </Popover>
-            {selectedGroup && (
-              <div className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-md bg-emerald-500/[0.04] border border-emerald-500/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <p className="text-[11px] text-foreground/80 font-medium truncate">{selectedGroup.name}</p>
-                {selectedGroup.participants && (
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-0.5 ml-auto shrink-0">
-                    <Users className="w-2.5 h-2.5" />{selectedGroup.participants}
-                  </Badge>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Toggle */}
-          <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors duration-300 ${enabled ? "bg-emerald-500/[0.04] border-emerald-500/15" : "bg-muted/20 border-border/40"}`}>
-            <div>
-              <Label className="text-xs font-semibold block text-foreground/90">Ativar envio para WhatsApp</Label>
-              <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${enabled ? "text-emerald-500/70" : "text-muted-foreground/50"}`}>{enabled ? "Notificações ativas" : "Notificações desativadas"}</p>
-            </div>
-            <Switch checked={enabled} onCheckedChange={onToggle} className="transition-all duration-300" />
-          </div>
-
-          {/* Info items */}
-          {infoItems.length > 0 && (
-            <div className="space-y-2">
-              {infoItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/[0.04] border border-primary/10">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <div className="text-primary">{item.icon}</div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold">{item.label}</p>
-                    <p className="text-xs font-bold text-foreground mt-0.5">{item.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Monitored events */}
-          <div>
-            <Label className="text-[10px] font-bold text-muted-foreground/60 mb-2 block uppercase tracking-widest">Eventos monitorados</Label>
-            <div className="space-y-1.5">
+          {/* Monitored events — compact */}
+          <div className="space-y-1 mt-auto">
+            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider block">
+              Eventos
+            </label>
+            <div className="flex flex-wrap gap-1">
               {monitoredEvents.map((evt) => (
-                <div key={evt} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/80 shrink-0" />
-                  <span className="text-foreground/70">{evt}</span>
-                </div>
+                <Badge key={evt} variant="secondary" className="text-[9px] h-5 px-1.5 font-normal bg-muted/30 text-muted-foreground/70">
+                  {evt}
+                </Badge>
               ))}
             </div>
           </div>
 
           {/* Preview button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full text-xs gap-2 mt-auto h-9 border-border/50 hover:bg-primary/[0.04] hover:border-primary/20 transition-all duration-200"
+            className="w-full text-[11px] gap-1.5 h-7 text-muted-foreground hover:text-foreground"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3 h-3" />
             Ver mensagem
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
