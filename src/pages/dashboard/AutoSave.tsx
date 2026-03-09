@@ -422,48 +422,61 @@ const AutoSave = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1.5 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 scrollbar-thin">
-          {filtered.map(c => (
-            <Card key={c.id} className={cn(!c.is_active && "opacity-50")}>
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className={cn(
-                  "w-2 h-2 rounded-full shrink-0",
-                  c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
-                )} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {c.contact_name || "Sem nome"}
-                    </p>
-                    {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
-                      <Badge key={tag} variant="outline" className="text-[9px] h-4">{tag}</Badge>
-                    ))}
-                  </div>
-                  <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
+        <div style={{ contain: "layout style", willChange: "scroll-position" }}>
+          <VirtualList
+            height={Math.min(filtered.length * 68, window.innerHeight - 320)}
+            itemCount={filtered.length}
+            itemSize={68}
+            width="100%"
+            overscanCount={5}
+          >
+            {({ index, style }: { index: number; style: React.CSSProperties }) => {
+              const c = filtered[index];
+              return (
+                <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }} key={c.id}>
+                  <Card className={cn(!c.is_active && "opacity-50", "h-[62px]")}>
+                    <CardContent className="p-3 flex items-center gap-3 h-full">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {c.contact_name || "Sem nome"}
+                          </p>
+                          {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 2).map(tag => (
+                            <Badge key={tag} variant="outline" className="text-[9px] h-4">{tag}</Badge>
+                          ))}
+                        </div>
+                        <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => { setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || ""); }}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => handleToggleActive(c)}
+                        >
+                          {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                          onClick={() => handleDelete(c.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => { setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || ""); }}
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => handleToggleActive(c)}
-                  >
-                    {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                    onClick={() => handleDelete(c.id)}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              );
+            }}
+          </VirtualList>
         </div>
       )}
 
