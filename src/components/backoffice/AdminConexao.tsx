@@ -273,20 +273,28 @@ export default function AdminConexao() {
 
   // ─── Send Test ───
   const sendTest = async () => {
-    if (!device?.uazapi_base_url || !device?.uazapi_token || !groupId) return;
+    if (!deviceId || !groupId) return;
     setSendingTest(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
       const groupNumber = groupId.replace(/@g\.us$/, "");
-      const res = await fetch(`${device.uazapi_base_url}/send/text`, {
-        method: "POST",
-        headers: { token: device.uazapi_token, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          number: groupNumber,
-          text: "✅ Teste de conexão — DG Contingência PRO\n\nSe você recebeu esta mensagem, a conexão está funcionando.",
-        }),
-      });
-      if (res.ok) toast.success("Mensagem de teste enviada!");
-      else toast.error("Falha ao enviar teste");
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "sendText",
+            deviceId,
+            number: groupNumber,
+            text: "✅ Teste de conexão — DG Contingência PRO\n\nSe você recebeu esta mensagem, a conexão está funcionando.",
+          }),
+        }
+      );
+      const result = await res.json();
+      if (result.success) toast.success("Mensagem de teste enviada!");
+      else toast.error(result.error || "Falha ao enviar teste");
     } catch (e) {
       toast.error("Erro de conexão");
     } finally {
