@@ -327,12 +327,14 @@ const WarmupInstances = () => {
                       <Play className="w-3.5 h-3.5" /> Retomar aquecimento
                     </Button>
                   ) : null}
-                  <button
-                    className="w-full text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors py-1"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
                     onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
                   >
-                    Editar
-                  </button>
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </Button>
                 </div>
               </div>
             );
