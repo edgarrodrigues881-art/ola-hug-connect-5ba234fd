@@ -217,7 +217,7 @@ const CampaignList = () => {
                         <Progress value={progress} className="h-1 flex-1" />
                         <span className="text-[10px] text-muted-foreground tabular-nums w-7 text-right">{progress}%</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
                         {c.sent_count || 0}/{c.total_contacts || 0}
                       </span>
                       {(c.failed_count || 0) > 0 && (
