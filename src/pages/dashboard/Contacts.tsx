@@ -126,6 +126,17 @@ const Contacts = () => {
     setAddTagDialogOpen(false);
   };
 
+  const removeTagFromSelected = () => {
+    if (!removeTagName) return;
+    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).includes(removeTagName));
+    toUpdate.forEach(c => {
+      updateContact.mutate({ id: c.id, tags: (c.tags || []).filter(t => t !== removeTagName) });
+    });
+    toast({ title: "Tag removida", description: `Tag "${removeTagName}" removida de ${toUpdate.length} contatos.` });
+    setRemoveTagName("");
+    setRemoveTagDialogOpen(false);
+  };
+
   const handleAddContact = () => {
     if (!newContact.phone.trim()) return;
     createContact.mutate({ name: newContact.name || "Sem nome", phone: newContact.phone }, {
