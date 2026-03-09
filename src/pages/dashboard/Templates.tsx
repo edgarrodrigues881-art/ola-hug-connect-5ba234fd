@@ -547,49 +547,60 @@ const Templates = () => {
       </Dialog>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-sm max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none">
-          
+        <DialogContent className="sm:max-w-[380px] max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+
           {/* WhatsApp Preview Container */}
-          <div className="rounded-2xl overflow-hidden border border-border/30 shadow-2xl bg-[#0b141a]">
-            
+          <div className="rounded-2xl overflow-hidden border border-[#ffffff0a] shadow-[0_8px_30px_rgba(0,0,0,0.4)]" style={{ background: "#0b141a" }}>
+
             {/* Header */}
-            <div className="px-4 py-3 flex items-center justify-between bg-[#1f2c34] border-b border-[#ffffff0a]">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-[#ffffff08]" style={{ background: "#1f2c34" }}>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#2a3942] flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-[#aebac1]" />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#2a3942" }}>
+                  <MessageSquare className="w-4.5 h-4.5" style={{ color: "#aebac1" }} />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-[#e9edef] leading-tight">Destinatário</p>
-                  <p className="text-[10px] text-[#8696a0]">online</p>
+                  <p className="text-[13px] font-semibold leading-tight" style={{ color: "#e9edef" }}>Destinatário</p>
+                  <p className="text-[10px]" style={{ color: "#8696a0" }}>online</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {(["Enviada", "Recebida"] as const).map((mode) => (
+              <div className="flex items-center gap-1">
+                {(["sent", "received"] as const).map((mode) => (
                   <button
                     key={mode}
-                    onClick={() => setPreviewMode?.(mode === "Enviada" ? "sent" : "received")}
-                    className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
-                      (previewMode === "sent" && mode === "Enviada") || (previewMode === "received" && mode === "Recebida")
-                        ? "bg-primary/20 text-primary"
-                        : "text-[#8696a0] hover:text-[#e9edef]"
-                    }`}
+                    onClick={() => setPreviewMode(mode)}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-150"
+                    style={{
+                      background: previewMode === mode ? "hsl(var(--primary) / 0.15)" : "transparent",
+                      color: previewMode === mode ? "hsl(var(--primary))" : "#8696a0",
+                      border: previewMode === mode ? "1px solid hsl(var(--primary) / 0.3)" : "1px solid transparent",
+                    }}
                   >
-                    {mode}
+                    {mode === "sent" ? "Enviada" : "Recebida"}
                   </button>
                 ))}
+                <button
+                  onClick={() => setPreviewOpen(false)}
+                  className="ml-1 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[#ffffff10] transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" style={{ color: "#8696a0" }} />
+                </button>
               </div>
             </div>
 
             {/* Chat area */}
-            <div className="px-4 py-6 min-h-[300px] flex flex-col justify-end gap-1.5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'1\' fill=\'%23ffffff08\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill=\'url(%23p)\' width=\'200\' height=\'200\'/%3E%3C/svg%3E")' }}>
-              
+            <div
+              className="px-5 py-8 min-h-[320px] flex flex-col justify-end gap-2"
+              style={{
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'0.8\' fill=\'%23ffffff06\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill=\'url(%23p)\' width=\'200\' height=\'200\'/%3E%3C/svg%3E")',
+              }}
+            >
               {previewTemplate && (() => {
                 const files = parseMediaFiles(previewTemplate.media_url);
                 const beforeFiles = files.filter((f: MediaFile) => f.sendMode === "before");
                 const withFile = files.find((f: MediaFile) => f.sendMode === "with");
                 const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
                 const isSent = previewMode === "sent";
-                const bubbleBg = isSent ? "bg-[#005c4b]" : "bg-[#1f2c34]";
+                const bubbleBg = isSent ? "#005c4b" : "#1f2c34";
                 const align = isSent ? "self-end" : "self-start";
                 const buttons = previewTemplate.buttons || [];
 
@@ -597,61 +608,67 @@ const Templates = () => {
                   <>
                     {/* Files sent BEFORE */}
                     {beforeFiles.map((file: MediaFile, i: number) => (
-                      <div key={`before-${i}`} className={`${align} max-w-[85%]`}>
-                        <div className={`${bubbleBg} rounded-lg overflow-hidden shadow-sm`}>
+                      <div key={`before-${i}`} className={`${align} max-w-[82%]`}>
+                        <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: bubbleBg }}>
                           {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-48 object-cover" />}
                           {file.type === "video" && <video src={file.url} controls className="w-full max-h-48" />}
                           {file.type === "audio" && (
-                            <div className="px-3 py-2 flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-[#00a884] flex items-center justify-center shrink-0">
+                            <div className="px-3 py-2.5 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "#00a884" }}>
                                 <Mic className="w-4 h-4 text-white" />
                               </div>
                               <audio src={file.url} controls className="w-full h-7 [&::-webkit-media-controls-panel]:bg-transparent" />
                             </div>
                           )}
                           {file.type === "document" && (
-                            <div className="px-3 py-2 flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-md bg-[#00a884]/20 flex items-center justify-center shrink-0">
-                                <FileText className="w-4 h-4 text-[#00a884]" />
+                            <div className="px-3 py-2.5 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(0,168,132,0.15)" }}>
+                                <FileText className="w-4 h-4" style={{ color: "#00a884" }} />
                               </div>
-                              <span className="text-[11px] text-[#e9edef] truncate">{file.name}</span>
+                              <span className="text-[11px] truncate" style={{ color: "#e9edef" }}>{file.name}</span>
                             </div>
                           )}
-                          <div className="flex justify-end px-2 pb-1">
-                            <span className="text-[10px] text-[#ffffff99]">{time} {isSent && "✓✓"}</span>
+                          <div className="flex justify-end px-2.5 pb-1.5">
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>{time} {isSent && "✓✓"}</span>
                           </div>
                         </div>
                       </div>
                     ))}
 
-                    {/* Main bubble with integrated buttons */}
-                    <div className={`${align} max-w-[85%]`}>
-                      <div className={`${bubbleBg} rounded-lg overflow-hidden shadow-sm`}>
+                    {/* Main bubble */}
+                    <div className={`${align} max-w-[82%]`}>
+                      <div className="rounded-xl overflow-hidden shadow-md" style={{ background: bubbleBg }}>
                         {withFile && (
                           <>
                             {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-48 object-cover" />}
                             {withFile.type === "video" && <video src={withFile.url} controls className="w-full max-h-48" />}
                           </>
                         )}
-                        <div className="px-2.5 py-1.5">
-                          <p className="text-[13px] text-[#e9edef] whitespace-pre-wrap leading-snug">{previewTemplate.content}</p>
-                          <div className="flex justify-end mt-0.5">
-                            <span className="text-[10px] text-[#ffffff99]">{time} {isSent && "✓✓"}</span>
+                        <div className="px-3 py-2">
+                          <p className="text-[13px] whitespace-pre-wrap leading-[1.4]" style={{ color: "#e9edef" }}>
+                            {previewTemplate.content}
+                          </p>
+                          <div className="flex justify-end mt-1 gap-1 items-center">
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{time}</span>
+                            {isSent && <span className="text-[10px]" style={{ color: "#53bdeb" }}>✓✓</span>}
                           </div>
                         </div>
 
-                        {/* Integrated buttons inside bubble */}
+                        {/* Buttons */}
                         {buttons.length > 0 && (
-                          <div className="border-t border-[#ffffff12]">
+                          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                             {buttons.map((btn: any, i: number) => (
                               <div
                                 key={i}
-                                className={`px-3 py-2.5 flex items-center justify-center gap-1.5 text-center ${
-                                  i < buttons.length - 1 ? "border-b border-[#ffffff0a]" : ""
-                                }`}
+                                className="px-3 py-2.5 flex items-center justify-center gap-1.5 text-center cursor-pointer transition-colors"
+                                style={{
+                                  borderBottom: i < buttons.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                               >
-                                {btn.type === "url" ? <Link className="w-3.5 h-3.5 text-[#00a884]" /> : btn.type === "phone" ? <Phone className="w-3.5 h-3.5 text-[#00a884]" /> : <MessageSquare className="w-3.5 h-3.5 text-[#00a884]" />}
-                                <span className="text-[13px] text-[#00a884] font-medium">{btn.text}</span>
+                                {btn.type === "url" ? <Link className="w-3.5 h-3.5" style={{ color: "#00a884" }} /> : btn.type === "phone" ? <Phone className="w-3.5 h-3.5" style={{ color: "#00a884" }} /> : <MessageSquare className="w-3.5 h-3.5" style={{ color: "#00a884" }} />}
+                                <span className="text-[13px] font-medium" style={{ color: "#00a884" }}>{btn.text}</span>
                               </div>
                             ))}
                           </div>
