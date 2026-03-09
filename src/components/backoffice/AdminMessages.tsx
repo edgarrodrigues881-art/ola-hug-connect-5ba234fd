@@ -877,7 +877,7 @@ const AdminMessages = () => {
         {tpl && (() => {
           const sentRecord = clientSentMessages.find((m: any) => m.template_type === selectedTemplate);
           if (sentRecord) {
-            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+            const sentDate = new Date(sentRecord.sent_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
             return (
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
                 <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
