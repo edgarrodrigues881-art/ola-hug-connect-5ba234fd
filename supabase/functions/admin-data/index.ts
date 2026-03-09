@@ -1529,7 +1529,7 @@ Deno.serve(async (req) => {
     // ─── WA REPORT: LIST ADMIN DEVICES ───
     if (action === "wa-report-devices") {
       const { data: devices } = await adminClient.from("devices")
-        .select("id, name, number, status")
+        .select("id, name, number, status, login_type")
         .eq("user_id", user.id)
         .eq("login_type", "report_wa")
         .order("created_at", { ascending: false });
@@ -1571,7 +1571,8 @@ Deno.serve(async (req) => {
         token = poolToken?.token || null;
       }
       if (!baseUrl) {
-        baseUrl = Deno.env.get("UAZAPI_BASE_URL") || "";
+        // No fallback to global env — only device-specific credentials
+        baseUrl = null;
       }
 
       if (!token || !baseUrl) {

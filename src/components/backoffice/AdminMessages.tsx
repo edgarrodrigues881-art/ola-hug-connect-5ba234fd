@@ -152,7 +152,9 @@ const AdminMessages = () => {
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("admin-data?action=wa-report-devices");
       if (error) throw error;
-      return data?.devices || [];
+      // Extra safety: only show report_wa devices
+      const devices = data?.devices || [];
+      return devices.filter((d: any) => d.login_type === "report_wa" || d.name?.toLowerCase().includes("relat"));
     },
   });
 
