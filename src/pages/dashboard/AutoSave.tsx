@@ -142,6 +142,17 @@ const AutoSave = () => {
 
   const activeCount = contacts.filter(c => c.is_active).length;
 
+  const handleEditContact = useCallback((c: WarmupAutosaveContact) => {
+    setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || "");
+  }, []);
+
+  const rowProps = useMemo(() => ({
+    filtered,
+    onEdit: handleEditContact,
+    onToggle: handleToggleActive,
+    onDelete: handleDelete,
+  }), [filtered, handleEditContact, handleToggleActive, handleDelete]);
+
   // ── Handlers ──
   const handleAdd = () => {
     const parsed = parseToE164(addPhone);
