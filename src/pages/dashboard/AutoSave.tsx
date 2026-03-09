@@ -58,7 +58,7 @@ function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, 
                 {c.contact_name || "Sem nome"}
               </p>
             </div>
-            <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
+            <p className="text-[11px] font-mono text-muted-foreground">{c.phone_e164}</p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onEdit(c)}>
@@ -467,12 +467,18 @@ const AutoSave = () => {
           </CardContent>
         </Card>
       ) : (
-        <div style={{ contain: "layout style", height: Math.min(filtered.length * 68, window.innerHeight - 320) }}>
+        <div
+          className="rounded-xl border border-border/30 overflow-hidden"
+          style={{
+            contain: "layout style",
+            height: Math.min(filtered.length * 68, 520),
+          }}
+        >
           <VirtualList
             rowCount={filtered.length}
             rowHeight={68}
-            overscanCount={8}
-            style={{ height: "100%", width: "100%", overscrollBehavior: "contain" }}
+            overscanCount={10}
+            style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
             rowProps={rowProps}
             rowComponent={AutoSaveRowInner}
           />
