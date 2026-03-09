@@ -312,7 +312,7 @@ const WarmupInstanceDetail = () => {
 
             {/* CTA */}
             <Button
-              className="w-full gap-2"
+              className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
               onClick={handleStartWarmup}
               disabled={!isConnected || engine.isPending}
             >
