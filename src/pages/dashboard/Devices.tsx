@@ -588,17 +588,29 @@ const Devices = () => {
   };
 
   const handleBulkDelete = async (ids: string[]) => {
+    // Filter out connected devices — never delete them
+    const connectedStatuses = ["Connected", "Ready", "authenticated"];
+    const safeToDel = ids.filter(id => {
+      const dev = devices.find(d => d.id === id);
+      return dev && !connectedStatuses.includes(dev.status);
+    });
+    const skipped = ids.length - safeToDel.length;
+
+    if (safeToDel.length === 0) {
+      toast({ title: "Nenhuma instância removida", description: `${skipped} instância${skipped !== 1 ? "s" : ""} conectada${skipped !== 1 ? "s" : ""} foram protegida${skipped !== 1 ? "s" : ""}.` });
+      return;
+    }
+
     // Optimistic: remove from cache immediately
     const previous = queryClient.getQueryData<Device[]>(["devices"]);
-    const idsSet = new Set(ids);
+    const idsSet = new Set(safeToDel);
     queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
       old ? old.filter(d => !idsSet.has(d.id)) : old
     );
     setSelectedDevices([]);
     try {
-      // Delete all in parallel via edge function
       await Promise.allSettled(
-        ids.map(id =>
+        safeToDel.map(id =>
           supabase.functions.invoke("manage-devices", {
             body: { action: "delete", deviceId: id },
           })
@@ -606,9 +618,11 @@ const Devices = () => {
       );
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
-      toast({ title: `${ids.length} instância${ids.length !== 1 ? "s" : ""} removida${ids.length !== 1 ? "s" : ""}` });
+      const msg = skipped > 0
+        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} conectada${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""}.`
+        : `${safeToDel.length} instância${safeToDel.length !== 1 ? "s" : ""} removida${safeToDel.length !== 1 ? "s" : ""}`;
+      toast({ title: msg });
     } catch {
-      // Rollback on error
       if (previous) queryClient.setQueryData(["devices"], previous);
       toast({ title: "Erro ao remover instâncias", variant: "destructive" });
     }
