@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,9 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
+/* ── Status configs ─────────────────────────────────────────── */
 const statusConfig: Record<string, { label: string; dotClass: string; badgeClass: string }> = {
   pending:    { label: "Pendente",   dotClass: "bg-yellow-400",    badgeClass: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
   scheduled:  { label: "Agendada",   dotClass: "bg-sky-400",       badgeClass: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
@@ -44,6 +46,30 @@ function translateError(msg: string | null): string | null {
   return msg;
 }
 
+function formatPhoneDisplay(phone: string): string {
+  const d = phone.replace(/\D/g, "");
+  if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+  if (d.length === 12) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,8)}-${d.slice(8)}`;
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  return phone;
+}
+
+/* ── Stat Card Component ─────────────────────────────────────── */
+function StatCard({ label, value, icon: Icon, colorClass }: { label: string; value: number; icon: typeof Send; colorClass: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/50 px-4 py-3">
+      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colorClass)}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div>
+        <p className="text-lg font-bold text-foreground leading-none">{value}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Component ──────────────────────────────────────────── */
 const CampaignDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -52,6 +78,7 @@ const CampaignDetail = () => {
   const queryClient = useQueryClient();
 
   const [countdown, setCountdown] = useState("");
+  const [configOpen, setConfigOpen] = useState(false);
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -122,7 +149,7 @@ const CampaignDetail = () => {
 
   useEffect(() => {
     if (!id) return;
-    const campaignChannel = supabase
+    const ch = supabase
       .channel(`campaign-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns', filter: `id=eq.${id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["campaign", id] });
@@ -131,7 +158,7 @@ const CampaignDetail = () => {
         queryClient.invalidateQueries({ queryKey: ["campaign-contacts", id] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(campaignChannel); };
+    return () => { supabase.removeChannel(ch); };
   }, [id, queryClient]);
 
   const [minDelay, setMinDelay] = useState(8);
@@ -155,15 +182,12 @@ const CampaignDetail = () => {
   const saveDelayConfig = useCallback(async () => {
     if (!id) return;
     await supabase.from("campaigns").update({
-      min_delay_seconds: minDelay,
-      max_delay_seconds: maxDelay,
-      pause_every_min: pauseEveryMin,
-      pause_every_max: pauseEveryMax,
-      pause_duration_min: pauseDurationMin,
-      pause_duration_max: pauseDurationMax,
+      min_delay_seconds: minDelay, max_delay_seconds: maxDelay,
+      pause_every_min: pauseEveryMin, pause_every_max: pauseEveryMax,
+      pause_duration_min: pauseDurationMin, pause_duration_max: pauseDurationMax,
     }).eq("id", id);
     setDelayDirty(false);
-    toast({ title: "Configuração salva" });
+    toast({ title: "✅ Configuração salva" });
   }, [id, minDelay, maxDelay, pauseEveryMin, pauseEveryMax, pauseDurationMin, pauseDurationMax, toast]);
 
   const [logSearch, setLogSearch] = useState("");
@@ -187,6 +211,7 @@ const CampaignDetail = () => {
     pending: contacts.filter(c => c.status === "pending").length,
   }), [contacts]);
 
+  // Auto-detect stuck campaigns
   useEffect(() => {
     if (!campaign || !id || !user) return;
     if (!["running", "processing"].includes(campaign.status)) return;
@@ -210,9 +235,7 @@ const CampaignDetail = () => {
   const handleAction = async (action: "pause" | "resume" | "cancel" | "start") => {
     if (!id) return;
     try {
-      const { data, error } = await supabase.functions.invoke("process-campaign", {
-        body: { action, campaignId: id },
-      });
+      const { data, error } = await supabase.functions.invoke("process-campaign", { body: { action, campaignId: id } });
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -225,10 +248,9 @@ const CampaignDetail = () => {
 
   const remainingTime = useMemo(() => {
     if (!campaign || !["running", "processing"].includes(campaign.status)) return null;
-    const remaining = stats.pending;
-    if (remaining === 0) return null;
+    if (stats.pending === 0) return null;
     const avgDelay = (minDelay + maxDelay) / 2;
-    const totalSeconds = remaining * avgDelay;
+    const totalSeconds = stats.pending * avgDelay;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     if (hours > 0) return `≈ ${hours}h ${minutes}min restantes`;
@@ -261,12 +283,16 @@ const CampaignDetail = () => {
     navigate("/dashboard/campaigns");
   };
 
+  const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
+
   if (campLoading) {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
+      <div className="space-y-5 max-w-5xl">
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="h-36 w-full rounded-2xl" />
+        <div className="grid grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
         <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
@@ -284,36 +310,28 @@ const CampaignDetail = () => {
   const cfg = statusConfig[campaign.status] || statusConfig.pending;
 
   return (
-    <div className="space-y-5 max-w-5xl">
+    <div className="space-y-4 max-w-5xl">
       {/* Back */}
       <button
         onClick={() => navigate("/dashboard/campaign-list")}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Campanhas
+        <ArrowLeft className="w-3.5 h-3.5" /> Campanhas
       </button>
 
-      {/* ── Header Card ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/40 bg-card p-5 space-y-4">
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div className="space-y-1.5">
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-border/30 bg-card p-5 space-y-4">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <h1 className="text-lg font-bold tracking-tight text-foreground">{campaign.name}</h1>
               <Badge variant="outline" className={cn("text-[10px] font-semibold gap-1.5 px-2 py-0.5", cfg.badgeClass)}>
-                <span className={cn("w-1.5 h-1.5 rounded-full", cfg.dotClass)} />
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dotClass)} />
                 {cfg.label}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{stats.sent}/{stats.total}</span>
-              <span>enviadas</span>
-              <span className="text-border">·</span>
-              {stats.failed > 0 && <span className="text-destructive font-medium">{stats.failed} falhas</span>}
-              {stats.failed > 0 && <span className="text-border">·</span>}
-              <span>{stats.pending} pendentes</span>
-            </div>
             {countdown && isScheduled && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-primary animate-pulse" />
                 <span className="text-xs font-mono font-bold text-primary">{countdown}</span>
                 <span className="text-[10px] text-muted-foreground">para iniciar</span>
@@ -321,7 +339,6 @@ const CampaignDetail = () => {
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="flex items-center gap-2">
             {isScheduled && (
               <>
@@ -358,107 +375,159 @@ const CampaignDetail = () => {
                 <RotateCcw className="w-3.5 h-3.5" /> Reenviar falhas ({stats.failed + stats.pending})
               </Button>
             )}
-            {isFinished && (
-              <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide uppercase">Finalizada</span>
-            )}
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="space-y-2">
+        {/* Progress bar */}
+        <div className="space-y-1.5">
           <Progress value={progress} className="h-1.5" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-medium">{progress}% concluído</span>
-            {remainingTime && <span className="text-[10px] text-primary font-medium">{remainingTime}</span>}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground">{progress}%</span>
+              {remainingTime && <span className="text-[10px] text-primary/80 font-medium">{remainingTime}</span>}
+            </div>
             <button
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ["campaign", id] });
                 queryClient.invalidateQueries({ queryKey: ["campaign-contacts", id] });
                 toast({ title: "Sincronizado" });
               }}
-              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors"
             >
-              <RefreshCw className="w-3 h-3" /> Sincronizar
+              <RefreshCw className="w-2.5 h-2.5" /> Atualizar
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Delay Config ────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Configuração de envio</h2>
-          {delayDirty && (
-            <Button size="sm" onClick={saveDelayConfig} className="h-7 text-[10px] rounded-lg gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Salvar
-            </Button>
+      {/* ── Stat Cards ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Total de contatos" value={stats.total} icon={Send} colorClass="bg-primary/10 text-primary" />
+        <StatCard label="Enviadas" value={stats.sent} icon={CheckCircle2} colorClass="bg-primary/10 text-primary" />
+        <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
+        <StatCard label="Pendentes" value={stats.pending} icon={Clock} colorClass="bg-yellow-500/10 text-yellow-400" />
+      </div>
+
+      {/* ── Taxa de sucesso ──────────────────────────────────────── */}
+      {isFinished && stats.total > 0 && (
+        <div className="rounded-xl border border-border/30 bg-card/50 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold",
+              successRate >= 80 ? "bg-primary/10 text-primary" : successRate >= 50 ? "bg-yellow-500/10 text-yellow-400" : "bg-destructive/10 text-destructive"
+            )}>
+              {successRate}%
+            </div>
+            <div>
+              <p className="text-xs font-medium text-foreground">Taxa de sucesso</p>
+              <p className="text-[10px] text-muted-foreground">{stats.sent} de {stats.total} entregues com sucesso</p>
+            </div>
+          </div>
+          {campaign.completed_at && (
+            <span className="text-[10px] text-muted-foreground/60">
+              Finalizada em {format(new Date(campaign.completed_at), "dd/MM/yyyy 'às' HH:mm")}
+            </span>
           )}
         </div>
+      )}
 
-        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity", isActive && "opacity-30 pointer-events-none select-none")}>
-          {/* Card helper */}
-          {[
-            {
-              icon: Timer, title: "Intervalo entre mensagens", hint: "Tempo entre cada envio",
-              fields: [
-                { label: "MIN (S)", value: minDelay, set: setMinDelay, blur: () => { const v = minDelay || 1; setMinDelay(v); if (v > maxDelay) setMaxDelay(v); } },
-                { label: "MAX (S)", value: maxDelay, set: setMaxDelay, blur: () => { const v = maxDelay || 1; setMaxDelay(v); if (v < minDelay) setMaxDelay(minDelay); } },
-              ],
-            },
-            {
-              icon: Hash, title: "Pausa a cada X mensagens", hint: "Quantidade antes de pausar",
-              fields: [
-                { label: "MIN", value: pauseEveryMin, set: setPauseEveryMin, blur: () => { const v = pauseEveryMin || 1; setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); } },
-                { label: "MAX", value: pauseEveryMax, set: setPauseEveryMax, blur: () => { const v = pauseEveryMax || 1; setPauseEveryMax(v); if (v < pauseEveryMin) setPauseEveryMax(pauseEveryMin); } },
-              ],
-            },
-            {
-              icon: Zap, title: "Duração da pausa", hint: "Tempo de pausa",
-              fields: [
-                { label: "MIN (S)", value: pauseDurationMin, set: setPauseDurationMin, blur: () => { const v = pauseDurationMin || 1; setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); } },
-                { label: "MAX (S)", value: pauseDurationMax, set: setPauseDurationMax, blur: () => { const v = pauseDurationMax || 1; setPauseDurationMax(v); if (v < pauseDurationMin) setPauseDurationMax(pauseDurationMin); } },
-              ],
-            },
-          ].map((card) => (
-            <div key={card.title} className="rounded-xl border border-border/30 bg-card/50 p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <card.icon className="w-3.5 h-3.5 text-primary" />
-                </div>
-                <span className="text-xs font-medium text-foreground">{card.title}</span>
-              </div>
-              <div className="flex gap-2">
-                {card.fields.map(f => (
-                  <div key={f.label} className="flex-1 space-y-1">
-                    <label className="text-[9px] text-muted-foreground/70 uppercase tracking-widest font-medium">{f.label}</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={f.value || ""}
-                      disabled={!!isActive}
-                      onChange={e => { f.set(Number(e.target.value)); setDelayDirty(true); }}
-                      onBlur={f.blur}
-                      className="h-8 text-sm font-medium bg-background/50"
-                    />
+      {/* ── Delay Config (collapsible) ───────────────────────────── */}
+      <div className="rounded-xl border border-border/30 bg-card/50 overflow-hidden">
+        <button
+          onClick={() => setConfigOpen(!configOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-foreground">Configuração de envio</span>
+            {delayDirty && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+          </div>
+          <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", configOpen && "rotate-180")} />
+        </button>
+
+        <AnimatePresence>
+          {configOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 pb-4 space-y-3">
+                {delayDirty && (
+                  <div className="flex justify-end">
+                    <Button size="sm" onClick={saveDelayConfig} className="h-7 text-[10px] rounded-lg gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Salvar alterações
+                    </Button>
                   </div>
-                ))}
-              </div>
-              <p className="text-[10px] text-muted-foreground/50">{card.hint}</p>
-            </div>
-          ))}
-        </div>
+                )}
 
-        {isActive && (
-          <p className="text-[10px] text-muted-foreground/40 italic">Pause a campanha para editar.</p>
-        )}
+                <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity", isActive && "opacity-30 pointer-events-none select-none")}>
+                  {[
+                    {
+                      icon: Timer, title: "Intervalo", hint: "Tempo entre cada envio",
+                      fields: [
+                        { label: "MIN (S)", value: minDelay, set: setMinDelay, blur: () => { const v = minDelay || 1; setMinDelay(v); if (v > maxDelay) setMaxDelay(v); } },
+                        { label: "MAX (S)", value: maxDelay, set: setMaxDelay, blur: () => { const v = maxDelay || 1; setMaxDelay(v); if (v < minDelay) setMaxDelay(minDelay); } },
+                      ],
+                    },
+                    {
+                      icon: Hash, title: "Pausa a cada", hint: "Msgs antes de pausar",
+                      fields: [
+                        { label: "MIN", value: pauseEveryMin, set: setPauseEveryMin, blur: () => { const v = pauseEveryMin || 1; setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); } },
+                        { label: "MAX", value: pauseEveryMax, set: setPauseEveryMax, blur: () => { const v = pauseEveryMax || 1; setPauseEveryMax(v); if (v < pauseEveryMin) setPauseEveryMax(pauseEveryMin); } },
+                      ],
+                    },
+                    {
+                      icon: Zap, title: "Duração da pausa", hint: "Tempo de descanso",
+                      fields: [
+                        { label: "MIN (S)", value: pauseDurationMin, set: setPauseDurationMin, blur: () => { const v = pauseDurationMin || 1; setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); } },
+                        { label: "MAX (S)", value: pauseDurationMax, set: setPauseDurationMax, blur: () => { const v = pauseDurationMax || 1; setPauseDurationMax(v); if (v < pauseDurationMin) setPauseDurationMax(pauseDurationMin); } },
+                      ],
+                    },
+                  ].map((card) => (
+                    <div key={card.title} className="rounded-lg border border-border/20 bg-background/30 p-3 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <card.icon className="w-3.5 h-3.5 text-primary/70" />
+                        <span className="text-[11px] font-medium text-foreground">{card.title}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {card.fields.map(f => (
+                          <div key={f.label} className="flex-1 space-y-1">
+                            <label className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-medium">{f.label}</label>
+                            <Input
+                              type="number" min={1} value={f.value || ""} disabled={!!isActive}
+                              onChange={e => { f.set(Number(e.target.value)); setDelayDirty(true); }}
+                              onBlur={f.blur}
+                              className="h-8 text-sm font-medium bg-background/50"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground/40">{card.hint}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {isActive && (
+                  <p className="text-[10px] text-muted-foreground/40 italic">Pause a campanha para editar.</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Logs ────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Logs de envio</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Logs de envio</h2>
+          <span className="text-[10px] text-muted-foreground/50">{filteredContacts.length} registros</span>
+        </div>
 
-        {/* Filters row */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Filters */}
+        <div className="flex items-center gap-1.5 flex-wrap">
           {[
             { key: "all", label: "Todos", count: stats.total },
             { key: "sent", label: "Enviadas", count: stats.sent },
@@ -469,38 +538,38 @@ const CampaignDetail = () => {
               key={f.key}
               onClick={() => setLogFilter(f.key)}
               className={cn(
-                "px-3 py-1 rounded-lg text-[11px] font-medium border transition-all duration-150",
+                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-150",
                 logFilter === f.key
-                  ? "border-primary/40 bg-primary/10 text-primary shadow-sm shadow-primary/5"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/30"
               )}
             >
               {f.label} ({f.count})
             </button>
           ))}
 
-          <div className="relative flex-1 min-w-[160px] ml-auto max-w-[240px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+          <div className="relative flex-1 min-w-[140px] ml-auto max-w-[220px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
             <Input
               placeholder="Buscar..."
               value={logSearch}
               onChange={e => setLogSearch(e.target.value)}
-              className="pl-8 h-7 text-xs bg-background/50 border-border/30"
+              className="pl-7 h-7 text-[11px] bg-background/50 border-border/20"
             />
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-border/30 bg-card/50 overflow-hidden">
-          <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
+        <div className="rounded-xl border border-border/20 bg-card/30 overflow-hidden">
+          <div className="max-h-[440px] overflow-y-auto overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border/20 hover:bg-transparent">
-                  <TableHead className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Contato</TableHead>
-                  <TableHead className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Número</TableHead>
-                  <TableHead className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest text-center">Status</TableHead>
-                  <TableHead className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Horário</TableHead>
-                  <TableHead className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Erro</TableHead>
+                <TableRow className="border-border/10 hover:bg-transparent">
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[140px]">Contato</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest">Número</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest text-center w-[100px]">Status</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[120px]">Horário</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest">Erro</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -508,13 +577,13 @@ const CampaignDetail = () => {
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                        <TableCell key={j}><Skeleton className="h-3.5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filteredContacts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-12">
+                    <TableCell colSpan={5} className="text-center text-[11px] text-muted-foreground/50 py-14">
                       Nenhum registro encontrado
                     </TableCell>
                   </TableRow>
@@ -522,30 +591,34 @@ const CampaignDetail = () => {
                   filteredContacts.slice(0, 200).map(c => {
                     const ccfg = contactStatusConfig[c.status] || contactStatusConfig.pending;
                     const Icon = ccfg.icon;
+                    const errCount = c.error_message?.match(/\((\d+) tentativa/)?.[1];
                     return (
-                      <TableRow key={c.id} className="border-border/10 hover:bg-muted/20 transition-colors">
-                        <TableCell className="text-xs font-medium text-foreground py-3">{c.name || "—"}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground font-mono tracking-tight">{c.phone}</TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className={cn("inline-flex items-center gap-1.5", ccfg.className)}>
-                            <Icon className="w-3.5 h-3.5" />
-                            <span className="text-[11px] font-medium">{ccfg.label}</span>
-                          </div>
+                      <TableRow key={c.id} className="border-border/5 hover:bg-muted/10 transition-colors">
+                        <TableCell className="text-[11px] font-medium text-foreground/80 py-2.5">{c.name || "—"}</TableCell>
+                        <TableCell className="text-[11px] text-muted-foreground font-mono tracking-tight py-2.5">{formatPhoneDisplay(c.phone)}</TableCell>
+                        <TableCell className="text-center py-2.5">
+                          <span className={cn("inline-flex items-center gap-1", ccfg.className)}>
+                            <Icon className="w-3 h-3" />
+                            <span className="text-[10px] font-medium">{ccfg.label}</span>
+                          </span>
                         </TableCell>
-                        <TableCell className="text-[11px] text-muted-foreground py-3">
+                        <TableCell className="text-[10px] text-muted-foreground/60 py-2.5 tabular-nums">
                           {c.sent_at ? format(new Date(c.sent_at), "dd/MM HH:mm:ss") : "—"}
                         </TableCell>
-                        <TableCell className="text-[11px] max-w-[200px] py-3">
+                        <TableCell className="text-[10px] max-w-[200px] py-2.5">
                           {c.error_message ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="text-destructive/80 truncate block cursor-help">{translateError(c.error_message)}</span>
+                                <span className="text-destructive/70 truncate block cursor-help">
+                                  {translateError(c.error_message)}
+                                  {errCount && <span className="text-muted-foreground/40 ml-1">({errCount}x)</span>}
+                                </span>
                               </TooltipTrigger>
                               <TooltipContent side="left" className="max-w-sm">
-                                <p className="text-xs">{translateError(c.error_message)}</p>
+                                <p className="text-xs">{c.error_message}</p>
                               </TooltipContent>
                             </Tooltip>
-                          ) : "—"}
+                          ) : <span className="text-muted-foreground/20">—</span>}
                         </TableCell>
                       </TableRow>
                     );
@@ -555,7 +628,7 @@ const CampaignDetail = () => {
             </Table>
           </div>
           {filteredContacts.length > 200 && (
-            <div className="px-4 py-2 text-[10px] text-muted-foreground/50 border-t border-border/20">
+            <div className="px-4 py-2 text-[9px] text-muted-foreground/40 border-t border-border/10 text-center">
               Mostrando 200 de {filteredContacts.length} registros
             </div>
           )}
