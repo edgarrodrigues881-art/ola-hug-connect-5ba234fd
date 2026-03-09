@@ -226,7 +226,20 @@ const Contacts = () => {
     }
   };
 
-  const stats = {
+  const handleDeleteIds = useCallback((ids: string[]) => {
+    deleteContacts.mutate(ids, { onSuccess: () => toast({ title: "Contato removido" }) });
+  }, [deleteContacts, toast]);
+
+  const contactRowProps = useMemo(() => ({
+    filtered,
+    selected,
+    onToggleSelect: toggleSelect,
+    onRemoveTag: removeTag,
+    onDelete: handleDeleteIds,
+    toast,
+    deleteContacts,
+  }), [filtered, selected]);
+
     total: contacts.length,
     active: contacts.length,
     blocked: 0,
