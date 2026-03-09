@@ -146,12 +146,6 @@ const AutoSave = () => {
     setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || "");
   }, []);
 
-  const rowProps = useMemo(() => ({
-    filtered,
-    onEdit: handleEditContact,
-    onToggle: handleToggleActive,
-    onDelete: handleDelete,
-  }), [filtered, handleEditContact, handleToggleActive, handleDelete]);
 
   // ── Handlers ──
   const handleAdd = () => {
