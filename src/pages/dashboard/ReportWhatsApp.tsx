@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ export default function ReportWhatsApp() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBlocked, planState, canUseReports } = usePlanGate();
+  const navigate = useNavigate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
@@ -208,6 +210,20 @@ export default function ReportWhatsApp() {
           previewMessage={`⚠️ ALERTA DE CONEXÃO\n\nInstância: ${reportDevice?.name || "{nome_instancia}"}\nNúmero: ${reportDevice?.number || "{numero}"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`}
         />
       </div>
+
+      {/* Botão Conexão */}
+      {canUseReport && (
+        <div className="flex justify-center">
+          <Button
+            variant={isConnected ? "outline" : "default"}
+            className="gap-2"
+            onClick={() => navigate("/dashboard/report-connection")}
+          >
+            <Plug className="w-4 h-4" />
+            {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conectar Instância de Relatório"}
+          </Button>
+        </div>
+      )}
 
       <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} context="notifications" />
     </div>
