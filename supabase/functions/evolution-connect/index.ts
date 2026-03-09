@@ -265,13 +265,14 @@ Deno.serve(async (req) => {
 
     const { data: device } = await svc
       .from("devices")
-      .select("name, uazapi_token, uazapi_base_url")
+      .select("name, uazapi_token, uazapi_base_url, login_type")
       .eq("id", deviceId)
       .single();
 
     let instanceUrl = (device?.uazapi_base_url || "").replace(/\/+$/, "");
     let instanceToken = device?.uazapi_token || "";
     const deviceName = device?.name || "instance";
+    const isReportDevice = device?.login_type === "report_wa";
 
     // ── PLAN CHECK for all device operations (except deleteInstance and status) ──
     if (action !== "deleteInstance" && action !== "status" && action !== "getBaseUrl" && action !== "logout") {
@@ -341,9 +342,40 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Device MUST have a valid token assigned from the admin pool
+      // Auto-assign token from pool for report_wa devices
+      if (!instanceToken && isReportDevice) {
+        console.log("Report device has no token — auto-assigning from pool...");
+        const { data: poolToken } = await svc.from("user_api_tokens")
+          .select("id, token")
+          .eq("user_id", user.id)
+          .eq("status", "available")
+          .is("device_id", null)
+          .limit(1)
+          .maybeSingle();
+        
+        if (poolToken) {
+          // Assign token to this device
+          await svc.from("user_api_tokens").update({
+            device_id: deviceId,
+            status: "in_use",
+            assigned_at: new Date().toISOString(),
+          }).eq("id", poolToken.id);
+
+          // Also set on the device itself
+          await svc.from("devices").update({
+            uazapi_token: poolToken.token,
+            uazapi_base_url: BASE_URL,
+          }).eq("id", deviceId);
+
+          instanceToken = poolToken.token;
+          instanceUrl = BASE_URL;
+          console.log("Auto-assigned token to report device:", poolToken.id);
+        }
+      }
+
+      // Device MUST have a valid token
       if (!instanceToken) {
-        return json({ error: "Esta instância não possui token configurado. Solicite ao administrador a atribuição de um token.", code: "NO_TOKEN" }, 400);
+        return json({ error: "Nenhum token disponível no pool. Adicione tokens primeiro.", code: "NO_TOKEN" }, 400);
       }
 
       // Check if existing token is valid
