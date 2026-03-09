@@ -468,8 +468,8 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-4 h-4 text-primary" />}
-          iconColor="teal"
+          icon={<Megaphone className="w-4 h-4 text-sky-500" />}
+          iconColor="sky"
           title="Campanhas"
           description="Alertas de eventos de campanha."
           groups={groups}
@@ -649,7 +649,7 @@ export default function ReportWhatsApp() {
 // ─── Alert Card ───
 interface AlertCardProps {
   icon: React.ReactNode;
-  iconColor: "orange" | "teal" | "emerald";
+  iconColor: "orange" | "sky" | "emerald";
   title: string;
   description: string;
   
@@ -684,11 +684,11 @@ function AlertCard({
       dot: "bg-orange-500",
       text: "text-orange-500",
     },
-    teal: {
-      bg: "bg-primary/8",
-      border: "border-primary/15",
-      dot: "bg-primary",
-      text: "text-primary",
+    sky: {
+      bg: "bg-sky-500/8",
+      border: "border-sky-500/15",
+      dot: "bg-sky-500",
+      text: "text-sky-500",
     },
     emerald: {
       bg: "bg-emerald-500/8",
