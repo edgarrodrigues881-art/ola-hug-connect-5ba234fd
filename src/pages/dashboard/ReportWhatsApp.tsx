@@ -419,6 +419,8 @@ export default function ReportWhatsApp() {
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${connectStep === "done" ? "bg-emerald-500/15" : "bg-primary/10"}`}>
                 {connectStep === "done" ? (
                   <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                ) : connectStep === "choose" ? (
+                  <Plug className="w-6 h-6 text-primary" />
                 ) : connectMethod === "qr" ? (
                   <QrCode className="w-6 h-6 text-primary" />
                 ) : (
@@ -427,9 +429,9 @@ export default function ReportWhatsApp() {
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold">
-                  {connectStep === "done" ? "Conectado com sucesso!" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
+                  {connectStep === "done" ? "Conectado com sucesso!" : connectStep === "choose" ? "Como deseja conectar?" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
                 </DialogTitle>
-                {reportDevice && connectStep !== "done" && (
+                {reportDevice && connectStep !== "done" && connectStep !== "choose" && (
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {reportDevice.name}{reportDevice.number ? ` · ${reportDevice.number}` : ""}
                   </p>
