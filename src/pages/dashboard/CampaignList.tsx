@@ -161,6 +161,7 @@ const CampaignList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="scheduled">Agendada</SelectItem>
               <SelectItem value="queued">Na fila</SelectItem>
               <SelectItem value="running">Enviando</SelectItem>
               <SelectItem value="paused">Pausada</SelectItem>
