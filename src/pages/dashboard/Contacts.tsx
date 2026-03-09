@@ -317,59 +317,30 @@ const Contacts = () => {
 
       {/* Contact Table */}
       <Card className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="p-3 text-left w-10"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></th>
-                <th className="p-3 text-left font-medium text-muted-foreground text-xs">Nome</th>
-                <th className="p-3 text-left font-medium text-muted-foreground text-xs">Telefone</th>
-                <th className="p-3 text-left font-medium text-muted-foreground text-xs hidden md:table-cell">Tags</th>
-                <th className="p-3 w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">Carregando...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</td></tr>
-              ) : (
-                filtered.map((contact) => (
-                  <tr key={contact.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="p-3"><Checkbox checked={selected.has(contact.id)} onCheckedChange={() => toggleSelect(contact.id)} /></td>
-                    <td className="p-3 font-medium text-foreground">{contact.name}</td>
-                    <td className="p-3 text-muted-foreground font-mono text-xs">{contact.phone}</td>
-                    <td className="p-3 hidden md:table-cell">
-                      <div className="flex gap-1 flex-wrap">
-                        {(contact.tags || []).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => removeTag(contact.id, tag)}>
-                            {tag}
-                            <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </Badge>
-                        ))}
-                        {(contact.tags || []).length === 0 && <span className="text-[11px] text-muted-foreground">—</span>}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="w-3.5 h-3.5" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => {
-                            deleteContacts.mutate([contact.id], { onSuccess: () => toast({ title: "Contato removido" }) });
-                          }}>
-                            <Trash2 className="w-3 h-3" /> Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Header row */}
+        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
+          <div className="p-3 w-10"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
+          <div className="p-3 flex-[2]">Nome</div>
+          <div className="p-3 flex-[2]">Telefone</div>
+          <div className="p-3 flex-[2] hidden md:block">Tags</div>
+          <div className="p-3 w-10"></div>
         </div>
+        {isLoading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
+        ) : (
+          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), contain: "layout style" }}>
+            <VirtualList
+              rowCount={filtered.length}
+              rowHeight={48}
+              overscanCount={10}
+              style={{ height: "100%", width: "100%" }}
+              rowProps={contactRowProps}
+              rowComponent={ContactRow}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Add Contact Dialog */}
