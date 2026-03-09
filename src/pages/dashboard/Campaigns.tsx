@@ -950,7 +950,7 @@ const Campaigns = () => {
   };
 
   return (
-    <div className="w-full pb-16 max-w-6xl mx-auto">
+    <div className="w-full pb-16">
       {/* ═══ Header ═══ */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
