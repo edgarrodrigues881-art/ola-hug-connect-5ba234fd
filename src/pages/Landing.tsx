@@ -107,7 +107,7 @@ const Hero = () => {
             <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm font-semibold px-8 h-12 gap-2 shadow-lg shadow-[hsl(var(--primary))]/20">
               Começar agora <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })} className="border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm font-semibold px-8 h-12">
+            <Button size="lg" variant="outline" onClick={() => document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" })} className="bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm font-semibold px-8 h-12">
               Ver planos
             </Button>
           </motion.div>
