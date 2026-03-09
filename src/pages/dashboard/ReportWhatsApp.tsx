@@ -172,8 +172,24 @@ export default function ReportWhatsApp() {
         setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
       }
     } catch (err: any) {
-      setConnectError(err?.message || "Erro ao gerar QR Code");
-      toast.error("Erro ao gerar QR Code");
+      // Parse specific error from edge function response
+      let msg = "Erro ao gerar QR Code";
+      try {
+        const parsed = err?.message ? JSON.parse(err.message) : null;
+        if (parsed?.error) msg = parsed.error;
+        else if (err?.message) msg = err.message;
+      } catch {
+        if (err?.message) msg = err.message;
+      }
+      // Check for FunctionsHttpError body
+      if (err?.context?.body) {
+        try {
+          const body = typeof err.context.body === 'string' ? JSON.parse(err.context.body) : err.context.body;
+          if (body?.error) msg = body.error;
+        } catch {}
+      }
+      setConnectError(msg);
+      toast.error(msg);
     } finally {
       setQrLoading(false);
     }
