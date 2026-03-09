@@ -82,6 +82,7 @@ const AutoSave = () => {
   const { user } = useAuth();
   const { data: contacts = [], isLoading } = useAutosaveContacts();
   const { createContact, updateContact, deleteContact, bulkCreate } = useAutosaveMutations();
+  const queryClient = useQueryClient();
 
   // Filters
   const [search, setSearch] = useState("");
