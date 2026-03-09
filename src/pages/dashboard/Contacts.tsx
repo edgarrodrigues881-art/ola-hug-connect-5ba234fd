@@ -1,12 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -16,11 +15,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown,
 } from "lucide-react";
 import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts } from "@/hooks/useContacts";
 
-const allTags = ["cliente", "lead", "vip", "novo"];
+const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 
 const Contacts = () => {
   const { toast } = useToast();
@@ -40,6 +39,42 @@ const Contacts = () => {
   const [newTagName, setNewTagName] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "" });
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [createTagInput, setCreateTagInput] = useState("");
+
+  // Load tags from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("contactCustomTags");
+    if (stored) {
+      setCustomTags(JSON.parse(stored));
+    } else {
+      setCustomTags(DEFAULT_TAGS);
+      localStorage.setItem("contactCustomTags", JSON.stringify(DEFAULT_TAGS));
+    }
+  }, []);
+
+  const handleCreateTag = () => {
+    const tag = createTagInput.trim().toLowerCase();
+    if (!tag) return;
+    if (customTags.includes(tag)) {
+      toast({ title: "Tag já existe", variant: "destructive" });
+      return;
+    }
+    const newList = [...customTags, tag];
+    setCustomTags(newList);
+    localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    setCreateTagInput("");
+    toast({ title: `Tag "${tag}" criada` });
+  };
+
+  const handleDeleteTag = (tag: string) => {
+    const newList = customTags.filter(t => t !== tag);
+    setCustomTags(newList);
+    localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    if (tagFilter === tag) setTagFilter("all");
+    toast({ title: `Tag "${tag}" removida` });
+  };
 
   const filtered = contacts.filter((c) => {
     const matchesSearch = (c.name || "").toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search);
@@ -213,13 +248,56 @@ const Contacts = () => {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
-            <Select value={tagFilter} onValueChange={setTagFilter}>
-              <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tag" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as tags</SelectItem>
-                {allTags.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full md:w-40 justify-between h-9 text-xs">
+                  {tagFilter === "all" ? "Todas as tags" : tagFilter}
+                  <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => { setTagFilter("all"); setTagPopoverOpen(false); }}
+                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === "all" ? "bg-muted font-medium" : ""}`}
+                  >
+                    ✓ Todas as tags
+                  </button>
+                  {customTags.map(tag => (
+                    <div key={tag} className="flex items-center gap-1 group">
+                      <button
+                        onClick={() => { setTagFilter(tag); setTagPopoverOpen(false); }}
+                        className={`flex-1 text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === tag ? "bg-muted font-medium" : ""}`}
+                      >
+                        {tag}
+                      </button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="border-t border-border pt-2 mt-2">
+                    <div className="flex gap-1">
+                      <Input
+                        placeholder="Nova tag..."
+                        value={createTagInput}
+                        onChange={e => setCreateTagInput(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleCreateTag()}
+                        className="h-7 text-xs"
+                      />
+                      <Button size="sm" onClick={handleCreateTag} className="h-7 px-2">
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           {selected.size > 0 && (
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border flex-wrap">
