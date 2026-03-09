@@ -649,6 +649,57 @@ export type Database = {
         }
         Relationships: []
       }
+      message_queue: {
+        Row: {
+          client_email: string
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          message_content: string | null
+          message_type: Database["public"]["Enums"]["message_queue_type"]
+          plan_name: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_queue_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          message_content?: string | null
+          message_type: Database["public"]["Enums"]["message_queue_type"]
+          plan_name?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_queue_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          message_content?: string | null
+          message_type?: Database["public"]["Enums"]["message_queue_type"]
+          plan_name?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_queue_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1835,6 +1886,14 @@ export type Database = {
         | "WARMUP_REPORT_24H"
         | "TEST_ALERT"
       app_role: "admin" | "moderator" | "user"
+      message_queue_status: "pending" | "sent" | "failed"
+      message_queue_type:
+        | "WELCOME"
+        | "DUE_3_DAYS"
+        | "DUE_TODAY"
+        | "OVERDUE_1"
+        | "OVERDUE_7"
+        | "OVERDUE_30"
       warmup_chip_state: "new" | "recovered" | "unstable"
       warmup_group_join_status: "pending" | "joined" | "failed" | "left"
       warmup_job_status:
@@ -2002,6 +2061,15 @@ export const Constants = {
         "TEST_ALERT",
       ],
       app_role: ["admin", "moderator", "user"],
+      message_queue_status: ["pending", "sent", "failed"],
+      message_queue_type: [
+        "WELCOME",
+        "DUE_3_DAYS",
+        "DUE_TODAY",
+        "OVERDUE_1",
+        "OVERDUE_7",
+        "OVERDUE_30",
+      ],
       warmup_chip_state: ["new", "recovered", "unstable"],
       warmup_group_join_status: ["pending", "joined", "failed", "left"],
       warmup_job_status: [
