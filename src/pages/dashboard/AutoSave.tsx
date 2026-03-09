@@ -75,8 +75,7 @@ function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, 
       </div>
     </div>
   );
-});
-AutoSaveRow.displayName = "AutoSaveRow";
+}
 
 const AutoSave = () => {
   const { toast } = useToast();
