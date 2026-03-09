@@ -366,7 +366,7 @@ const CampaignDetail = () => {
   const cfg = statusConfig[campaign.status] || statusConfig.pending;
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4 w-full">
       {/* Back */}
       <button
         onClick={() => navigate("/dashboard/campaign-list")}
