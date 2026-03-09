@@ -31,6 +31,7 @@ const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
 const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
 const CampaignDetail = lazy(() => import("./pages/dashboard/CampaignDetail"));
 const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
+const ReportConnection = lazy(() => import("./pages/dashboard/ReportConnection"));
 const WarmupInstances = lazy(() => import("./pages/dashboard/WarmupInstances"));
 const WarmupInstanceDetail = lazy(() => import("./pages/dashboard/WarmupInstanceDetail"));
 const AutoSave = lazy(() => import("./pages/dashboard/AutoSave"));
