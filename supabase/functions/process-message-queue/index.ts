@@ -241,13 +241,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch pending messages (limit 50 per run)
-    const { data: pendingItems, error: fetchErr } = await adminClient
+    // Fetch pending messages (limit 50 per run) — deduplicate by user+type, keep oldest
+    const { data: allPending, error: fetchErr } = await adminClient
       .from("message_queue")
       .select("id, user_id, client_name, client_email, client_phone, plan_name, expires_at, message_type, status")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(50);
+
+    // Deduplicate: only process first message per user+type, mark rest as failed
+    const seen = new Set<string>();
+    const pendingItems: typeof allPending = [];
+    const duplicateIds: string[] = [];
+    for (const item of (allPending || [])) {
+      const key = `${item.user_id}:${item.message_type}`;
+      if (seen.has(key)) {
+        duplicateIds.push(item.id);
+      } else {
+        seen.add(key);
+        pendingItems.push(item);
+      }
+    }
+    // Mark duplicates as failed
+    if (duplicateIds.length > 0) {
+      await adminClient
+        .from("message_queue")
+        .update({ status: "failed", error_message: "Duplicata removida automaticamente", updated_at: new Date().toISOString() })
+        .in("id", duplicateIds);
+      console.log(`[process-mq] Removed ${duplicateIds.length} duplicate messages`);
+    }
 
     if (fetchErr) {
       console.error("[process-mq] Fetch error:", fetchErr.message);
