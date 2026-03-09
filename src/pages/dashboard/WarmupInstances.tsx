@@ -39,6 +39,18 @@ const phaseShort: Record<string, string> = {
 };
 
 const WarmupInstances = () => {
+  // Format phone number for display
+  const formatPhone = (num: string) => {
+    const digits = num.replace(/\D/g, "");
+    if (digits.length >= 12 && digits.startsWith("55")) {
+      const ddd = digits.slice(2, 4);
+      const rest = digits.slice(4);
+      const hyphenAt = rest.length - 4;
+      return `+55 ${ddd} ${rest.slice(0, hyphenAt)}-${rest.slice(hyphenAt)}`;
+    }
+    return num;
+  };
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
