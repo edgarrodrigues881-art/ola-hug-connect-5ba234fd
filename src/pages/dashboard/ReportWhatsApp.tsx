@@ -207,6 +207,7 @@ export default function ReportWhatsApp() {
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   }, [qrDialogOpen, reportDevice?.id, qrConnected]);
 
+  const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["report-wa-config", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
