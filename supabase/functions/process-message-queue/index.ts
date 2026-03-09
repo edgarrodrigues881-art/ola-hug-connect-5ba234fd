@@ -193,20 +193,15 @@ function formatDateBR(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
-// ─── VALIDATE MOBILE NUMBER (BR) ───
-function isValidMobileNumber(phone: string): boolean {
-  // Remove non-digits
+// ─── VALIDATE PHONE NUMBER (BR) ───
+function isValidPhoneNumber(phone: string): boolean {
   const digits = phone.replace(/\D/g, "");
-  // Expected formats: 55DDNNNNNNNNN (13 digits) or DDNNNNNNNNN (11 digits)
-  // Mobile numbers in Brazil: DDD (2 digits) + 9 (mandatory) + 8 digits = 11 digits
-  // With country code: 55 + 11 = 13 digits
   const local = digits.startsWith("55") ? digits.slice(2) : digits;
-  // Must be 10-11 digits (DDD + number)
+  // DDD (2 digits) + number (8-9 digits) = 10-11 digits
   if (local.length < 10 || local.length > 11) return false;
-  // If 11 digits, 3rd digit must be 9 (mobile)
-  if (local.length === 11 && local[2] !== "9") return false;
-  // If 10 digits, it's a landline — reject
-  if (local.length === 10) return false;
+  // DDD must be 11-99
+  const ddd = parseInt(local.slice(0, 2), 10);
+  if (ddd < 11 || ddd > 99) return false;
   return true;
 }
 
@@ -292,19 +287,19 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Validate mobile number (reject landlines)
-      if (!isValidMobileNumber(phone)) {
+      // Validate phone number format (DDD + 8-9 digits)
+      if (!isValidPhoneNumber(phone)) {
         await adminClient
           .from("message_queue")
           .update({
             status: "failed",
-            error_message: `Número fixo ou inválido: ${phone} — WhatsApp requer celular`,
+            error_message: `Número inválido: ${phone} — formato esperado: DDD + 8-9 dígitos`,
             sent_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq("id", item.id);
         failed++;
-        console.log(`[process-mq] ⚠️ Skipped landline/invalid: ${phone} for ${item.client_name}`);
+        console.log(`[process-mq] ⚠️ Invalid number: ${phone} for ${item.client_name}`);
         continue;
       }
 
