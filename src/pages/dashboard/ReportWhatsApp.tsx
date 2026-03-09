@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -911,17 +912,33 @@ function AlertCard({
 
   return (
     <>
-      <div className={`flex flex-col rounded-2xl border bg-card/30 backdrop-blur-sm overflow-hidden transition-all duration-200 ${enabled ? accentMap.border : "border-border/10"}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        whileHover={{ y: -2, boxShadow: enabled ? "0 8px 30px -12px rgba(0,0,0,0.25)" : "0 4px 20px -8px rgba(0,0,0,0.1)" }}
+        className={`flex flex-col rounded-2xl border bg-card/30 backdrop-blur-sm overflow-hidden transition-colors duration-200 ${enabled ? accentMap.border : "border-border/10"}`}
+      >
         {/* Accent line */}
-        <div className={`h-[2px] w-full transition-colors duration-300 ${enabled ? accentMap.dot : "bg-muted/15"}`} />
+        <motion.div
+          animate={{ scaleX: enabled ? 1 : 0.3, opacity: enabled ? 1 : 0.3 }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          style={{ originX: 0 }}
+          className={`h-[2px] w-full ${enabled ? accentMap.dot : "bg-muted/15"}`}
+        />
 
         {/* Header */}
         <div className="px-5 pt-5 pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${enabled ? accentMap.bg : "bg-muted/15"}`}>
+              <motion.div
+                animate={{ scale: enabled ? 1 : 0.9, rotate: enabled ? 0 : -5 }}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${enabled ? accentMap.bg : "bg-muted/15"}`}
+              >
                 {icon}
-              </div>
+              </motion.div>
               <div>
                 <p className="text-sm font-semibold text-foreground">{title}</p>
                 <p className="text-[11px] text-muted-foreground/50 mt-0.5 leading-tight">{description}</p>
@@ -1031,7 +1048,7 @@ function AlertCard({
             Ver mensagem
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
