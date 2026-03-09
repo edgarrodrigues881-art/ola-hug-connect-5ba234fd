@@ -18,24 +18,42 @@ async function verifyAdmin(req: Request) {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: { user: authUser }, error: userError } = await userClient.auth.getUser();
-  
-  if (userError || !authUser) {
-    console.error("[admin-data] getUser failed:", userError?.message);
-    throw new Error("Não autorizado");
+  // Try getClaims first (works with signing-keys), fall back to getUser
+  const token = authHeader.replace("Bearer ", "");
+  let userId: string | null = null;
+  let userEmail: string | null = null;
+
+  try {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (!claimsError && claimsData?.claims?.sub) {
+      userId = claimsData.claims.sub;
+      userEmail = claimsData.claims.email as string || null;
+    }
+  } catch (_) {
+    // getClaims not available, fall back
+  }
+
+  if (!userId) {
+    const { data: { user: authUser }, error: userError } = await userClient.auth.getUser();
+    if (userError || !authUser) {
+      console.error("[admin-data] Auth failed:", userError?.message);
+      throw new Error("Não autorizado");
+    }
+    userId = authUser.id;
+    userEmail = authUser.email || null;
   }
 
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
   const { data: roleData } = await adminClient
     .from("user_roles")
     .select("role")
-    .eq("user_id", authUser.id)
+    .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
 
   if (!roleData) throw new Error("Acesso negado: não é admin");
 
-  return { user: { id: authUser.id, email: authUser.email }, adminClient };
+  return { user: { id: userId, email: userEmail }, adminClient };
 }
 
 async function logAction(adminClient: any, adminId: string, targetUserId: string | null, action: string, details: string) {
