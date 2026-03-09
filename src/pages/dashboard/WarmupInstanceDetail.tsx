@@ -77,7 +77,7 @@ const WarmupInstanceDetail = () => {
   const { data: plans = [] } = useWarmupPlans();
 
   // Wizard state
-  const [chipState, setChipState] = useState<"new" | "recovered">("new");
+  const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("14");
 
   // Countdown
