@@ -224,13 +224,14 @@ export default function ReportWhatsApp() {
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   }, [qrDialogOpen, reportDevice?.id, qrConnected, connectStep]);
 
-  const fetchGroups = async (deviceId: string) => {
+  const fetchGroups = async (deviceId: string, forceRefresh = false) => {
     setLoadingGroups(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
+      const refreshParam = forceRefresh ? "&refresh=true" : "";
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       if (!res.ok) {
