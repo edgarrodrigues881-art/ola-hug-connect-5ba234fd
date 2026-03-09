@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
     }
 
     // If no token, cannot proceed (except for connect and deleteInstance)
-    if (!instanceToken && action !== "connect" && action !== "deleteInstance") {
+    if (!instanceToken && action !== "connect" && action !== "deleteInstance" && action !== "logout") {
       return json({ error: "Instância sem token. Conecte primeiro." }, 400);
     }
 
