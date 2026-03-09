@@ -211,7 +211,51 @@ const Devices = () => {
     enabled: !!session,
   });
 
-  const warmupDeviceIds = useMemo(() => new Set(warmupSessions.map(s => s.device_id)), [warmupSessions]);
+  // Fetch warmup cycles (V2)
+  const { data: warmupCycles = [] } = useQuery({
+    queryKey: ["warmup_cycles_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_cycles")
+        .select("device_id, phase, is_running")
+        .eq("is_running", true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  // Fetch campaigns with active states (sending, scheduled, paused)
+  const { data: activeCampaigns = [] } = useQuery({
+    queryKey: ["active_campaigns_for_devices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("id, name, status, device_id, device_ids")
+        .in("status", ["sending", "scheduled", "paused", "processing"]);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!session,
+  });
+
+  const warmupDeviceIds = useMemo(() => {
+    const ids = new Set(warmupSessions.map(s => s.device_id));
+    warmupCycles.forEach(c => ids.add(c.device_id));
+    return ids;
+  }, [warmupSessions, warmupCycles]);
+
+  // Devices with active campaigns
+  const campaignDeviceIds = useMemo(() => {
+    const ids = new Set<string>();
+    activeCampaigns.forEach(c => {
+      if (c.device_id) ids.add(c.device_id);
+      if (Array.isArray(c.device_ids)) {
+        (c.device_ids as string[]).forEach(id => ids.add(id));
+      }
+    });
+    return ids;
+  }, [activeCampaigns]);
 
   // Fetch user subscription for plan gating
   const { data: subscription } = useQuery({
