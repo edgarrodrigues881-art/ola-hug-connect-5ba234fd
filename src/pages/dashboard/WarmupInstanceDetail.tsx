@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft, Flame, Wifi, WifiOff, QrCode, Play, Pause, Square,
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
-  AlertTriangle, CheckCircle2, XCircle, Info, Zap, Timer,
+  AlertTriangle, CheckCircle2, XCircle, Info, Zap, Timer, Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
