@@ -187,12 +187,19 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const handleSelectClient = useCallback((u: AdminUser) => setSelectedClient(u), []);
   const handleBack = useCallback(() => setSelectedClient(null), []);
 
-  const pendingCount = useMemo(() =>
-    (data?.users || []).filter(u => {
-      const d = getDaysLeft(u.plan_expires_at);
-      return d !== null && d <= 3;
-    }).length,
-  [data?.users]);
+  const { data: pendingQueueCount = 0 } = useQuery({
+    queryKey: ["message-queue-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("message_queue" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count || 0;
+    },
+    refetchInterval: 30000,
+  });
+  const pendingCount = pendingQueueCount;
 
   if (isLoading) {
     return (
