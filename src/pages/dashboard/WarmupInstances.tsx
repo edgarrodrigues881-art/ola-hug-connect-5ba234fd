@@ -234,25 +234,17 @@ const WarmupInstances = () => {
                 onClick={() => navigate(`/dashboard/warmup-v2/${device.id}`)}
               >
                 {/* Status bar */}
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/15">
+                <div className="px-3.5 pt-3 pb-0">
                   <Badge
                     variant="outline"
                     className={cn(
-                      "text-[8px] font-bold uppercase tracking-widest px-2 py-0 h-4 gap-1 border-0",
-                      connected
-                        ? "text-primary bg-primary/8"
-                        : "text-muted-foreground bg-muted/30"
+                      "text-[8px] font-bold uppercase tracking-widest px-2 py-0 h-4 gap-1.5 border-0",
+                      connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
                     )}
                   >
-                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", connected ? "bg-primary" : "bg-muted-foreground/40")} />
+                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", connected ? "bg-primary animate-pulse" : "bg-muted-foreground/40")} />
                     STATUS: {connected ? "CONECTADO" : "DESCONECTADO"}
                   </Badge>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-foreground p-0.5"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
                 </div>
 
                 {/* Content */}
