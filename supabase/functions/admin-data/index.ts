@@ -844,8 +844,27 @@ Deno.serve(async (req) => {
     // ─── REMOVE SUBSCRIPTION (sem plano) ───
     if (action === "remove-subscription" && req.method === "POST") {
       const { target_user_id } = await req.json();
+      
+      // Delete subscription
       await adminClient.from("subscriptions").delete().eq("user_id", target_user_id);
-      await logAction(adminClient, user.id, target_user_id, "remove-subscription", "Plano removido — cliente sem plano");
+      
+      // Block all tokens for this user
+      await adminClient.from("user_api_tokens")
+        .update({ status: "blocked" })
+        .eq("user_id", target_user_id)
+        .neq("status", "blocked");
+      
+      // Update profile instance_override to 0
+      await adminClient.from("profiles")
+        .update({ instance_override: 0 })
+        .eq("id", target_user_id);
+      
+      // Delete all subscription cycles
+      await adminClient.from("subscription_cycles")
+        .delete()
+        .eq("user_id", target_user_id);
+      
+      await logAction(adminClient, user.id, target_user_id, "remove-subscription", "Plano removido — cliente sem plano, tokens bloqueados, ciclos removidos");
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
