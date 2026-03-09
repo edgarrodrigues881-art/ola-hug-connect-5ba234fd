@@ -255,7 +255,7 @@ const WarmupInstanceDetail = () => {
                 {([
                   { value: "new" as const, label: "Chip Novo", desc: "Nunca foi banido, progressão conservadora" },
                   { value: "recovered" as const, label: "Chip Recuperado", desc: "Já sofreu ban, progressão extra cautelosa" },
-                  { value: "unstable" as const, label: "Chip Instável", desc: "Chip fraco ou com restrições frequentes" },
+                  { value: "unstable" as const, label: "Chip Fraco", desc: "Não aguenta enviar 1 mensagem sem cair ou ser restringido" },
                 ]).map(opt => (
                   <button
                     key={opt.value}
