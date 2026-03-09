@@ -45,7 +45,10 @@ const Warmup = () => {
   const { user } = useAuth();
   const { isBlocked, planState } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
-  const [showWarning, setShowWarning] = useState(true);
+  const [showWarning, setShowWarning] = useState(() => {
+    return localStorage.getItem("warmup_warning_dismissed") !== "true";
+  });
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const { data: sessions = [], isLoading } = useWarmupSessions();
   const createWarmup = useCreateWarmup();
   const updateWarmup = useUpdateWarmup();
