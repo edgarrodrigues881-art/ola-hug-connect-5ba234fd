@@ -119,6 +119,10 @@ const AdminMessages = () => {
   const [newBaseUrl, setNewBaseUrl] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("Relatório WA");
   const [creatingDevice, setCreatingDevice] = useState(false);
+  const [editingTokenDeviceId, setEditingTokenDeviceId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState("");
+  const [editBaseUrl, setEditBaseUrl] = useState("");
+  const [savingToken, setSavingToken] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
   const [deviceGroups, setDeviceGroups] = useState<any[]>([]);
@@ -553,7 +557,8 @@ const AdminMessages = () => {
                   const isConnected = d.status === "Connected" || d.status === "Ready";
                   const isSelected = configDeviceId === d.id;
                   return (
-                    <div key={d.id} className={`flex items-center gap-2 rounded-xl border transition-all ${
+                    <div key={d.id} className="space-y-0">
+                    <div className={`flex items-center gap-2 rounded-xl border transition-all ${
                       isSelected ? "border-primary/40 bg-primary/5" : "border-border bg-muted/10 hover:border-primary/20"
                     }`}>
                       <button
@@ -609,7 +614,72 @@ const AdminMessages = () => {
                           <QrCode size={14} />
                           <span className="text-[10px]">{isConnected ? "Reconectar" : "Conectar"}</span>
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (editingTokenDeviceId === d.id) {
+                              setEditingTokenDeviceId(null);
+                            } else {
+                              setEditingTokenDeviceId(d.id);
+                              setEditToken("");
+                              setEditBaseUrl("");
+                            }
+                          }}
+                          className="h-9 px-3 gap-1.5 shrink-0 border-border text-muted-foreground hover:text-foreground"
+                        >
+                          <Settings2 size={14} />
+                          <span className="text-[10px]">Token</span>
+                        </Button>
                       </div>
+                    </div>
+                    {editingTokenDeviceId === d.id && (
+                      <div className="px-4 pb-3 space-y-2 border-t border-border/30 pt-3 mx-2">
+                        <p className="text-[10px] text-muted-foreground font-medium">Configurar token manualmente:</p>
+                        <Input
+                          placeholder="URL base (ex: https://xxx.uazapi.com)"
+                          value={editBaseUrl}
+                          onChange={e => setEditBaseUrl(e.target.value)}
+                          className="h-8 text-xs bg-background border-border/60"
+                        />
+                        <Input
+                          placeholder="Instance Token (UUID)"
+                          value={editToken}
+                          onChange={e => setEditToken(e.target.value)}
+                          className="h-8 text-xs bg-background border-border/60 font-mono"
+                        />
+                        <Button
+                          size="sm"
+                          disabled={!editToken.trim() || !editBaseUrl.trim() || savingToken}
+                          onClick={async () => {
+                            setSavingToken(true);
+                            try {
+                              const { error } = await supabase.functions.invoke("admin-data?action=wa-report-update-token", {
+                                body: {
+                                  device_id: d.id,
+                                  base_url: editBaseUrl.trim(),
+                                  token: editToken.trim(),
+                                },
+                              });
+                              if (error) throw error;
+                              toast({ title: "✅ Token atualizado!" });
+                              setEditingTokenDeviceId(null);
+                              setEditToken("");
+                              setEditBaseUrl("");
+                              queryClient.invalidateQueries({ queryKey: ["admin-wa-report-devices"] });
+                            } catch (e: any) {
+                              toast({ title: "Erro", description: e.message, variant: "destructive" });
+                            } finally {
+                              setSavingToken(false);
+                            }
+                          }}
+                          className="w-full h-8 text-xs gap-1.5"
+                        >
+                          {savingToken ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                          Salvar Token
+                        </Button>
+                      </div>
+                    )}
                     </div>
                   );
                 })}

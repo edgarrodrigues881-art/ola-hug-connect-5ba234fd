@@ -1545,6 +1545,61 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── WA REPORT: UPDATE TOKEN MANUALLY ───
+    if (action === "wa-report-update-token" && req.method === "POST") {
+      const { device_id, base_url, token } = await req.json();
+      if (!device_id || !token || !base_url) {
+        return new Response(JSON.stringify({ error: "device_id, token e base_url obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update device credentials
+      const { error: devErr } = await adminClient.from("devices").update({
+        uazapi_base_url: base_url,
+        uazapi_token: token,
+        updated_at: new Date().toISOString(),
+      }).eq("id", device_id);
+
+      if (devErr) {
+        return new Response(JSON.stringify({ error: devErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update or create token record
+      const { data: existingToken } = await adminClient.from("user_api_tokens")
+        .select("id")
+        .eq("device_id", device_id)
+        .maybeSingle();
+
+      if (existingToken) {
+        await adminClient.from("user_api_tokens").update({
+          token: token,
+          status: "in_use",
+        }).eq("id", existingToken.id);
+      } else {
+        // Get device owner
+        const { data: dev } = await adminClient.from("devices").select("user_id").eq("id", device_id).single();
+        if (dev) {
+          await adminClient.from("user_api_tokens").insert({
+            user_id: dev.user_id,
+            admin_id: user.id,
+            token: token,
+            device_id: device_id,
+            label: "Relatório WA (manual)",
+            status: "in_use",
+          });
+        }
+      }
+
+      await logAction(adminClient, user.id, null, "wa-report-update-token", `Token manual atualizado para device ${device_id}`);
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── WA REPORT: LIST ADMIN DEVICES ───
     if (action === "wa-report-devices") {
       const { data: devices } = await adminClient.from("devices")
