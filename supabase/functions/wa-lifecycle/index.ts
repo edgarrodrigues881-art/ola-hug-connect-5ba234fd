@@ -173,31 +173,59 @@ Deno.serve(async (req) => {
       const vencimento = formatDateUTC(sub.expires_at);
       const clientPhone = (profile.phone || "").replace(/\D/g, "");
 
-      // 1) Send PV to client
-      let pvResult = { ok: false, error: "Sem telefone" };
-      if (clientPhone) {
-        const pvNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
-        const welcomeMsg = buildWelcomeMessage(nome, plano, vencimento);
-        pvResult = await sendText(config.baseUrl, config.token, pvNumber, welcomeMsg);
-        console.log("[wa-lifecycle] PV result:", pvResult.ok ? "OK" : pvResult.error);
-      }
-
-      // 2) Notify admin group
+      // Get email
       const { data: authUser } = await adminClient.auth.admin.getUserById(user_id);
       const email = authUser?.user?.email || "—";
 
+      // 1) Insert into message_queue for automatic PV sending
+      let pvQueued = false;
+      if (clientPhone) {
+        const phoneNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
+        await adminClient.from("message_queue").insert({
+          user_id,
+          client_name: nome,
+          client_email: email,
+          client_phone: phoneNumber,
+          plan_name: plano,
+          expires_at: sub.expires_at,
+          message_type: "WELCOME" as any,
+          status: "pending" as any,
+        });
+        pvQueued = true;
+        console.log("[wa-lifecycle] WELCOME queued for processing");
+      }
+
+      // 2) Notify admin group
       const groupMsg =
         `🎉 *NOVO CLIENTE CADASTRADO*\n\n` +
-        `✅ Boas-vindas ${pvResult.ok ? "enviada com sucesso" : `falhou: ${pvResult.error}`}\n\n` +
         `👤 *Nome:* ${nome}\n` +
         `📧 *Email:* ${email}\n` +
         `📱 *Telefone:* ${clientPhone || "—"}\n` +
         `🏢 *Empresa:* ${profile.company || "—"}\n` +
         `📦 *Plano:* ${plano}\n` +
-        `📅 *Vencimento:* ${vencimento}`;
+        `📅 *Vencimento:* ${vencimento}\n\n` +
+        (pvQueued ? `✅ Mensagem de boas-vindas enfileirada para envio automático` : `⚠️ Sem telefone — boas-vindas não será enviada`);
 
-      const groupResult = await sendText(config.baseUrl, config.token, config.groupNumber, groupMsg);
-      console.log("[wa-lifecycle] Group result:", groupResult.ok ? "OK" : groupResult.error);
+      let groupResult = { ok: false, error: "No config" };
+      if (config) {
+        groupResult = await sendText(config.baseUrl, config.token, config.groupNumber, groupMsg);
+        console.log("[wa-lifecycle] Group result:", groupResult.ok ? "OK" : groupResult.error);
+      }
+
+      // 3) Trigger process-message-queue to send immediately
+      if (pvQueued) {
+        try {
+          const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
+          const processUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-message-queue`;
+          await fetch(processUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-cron-secret": tickSecret },
+          });
+          console.log("[wa-lifecycle] Triggered process-message-queue");
+        } catch (e) {
+          console.error("[wa-lifecycle] Failed to trigger process-mq:", e.message);
+        }
+      }
 
       // Save to client_messages history
       await adminClient.from("client_messages").insert({
@@ -205,10 +233,10 @@ Deno.serve(async (req) => {
         admin_id: user_id,
         template_type: "boas-vindas",
         message_content: buildWelcomeMessage(nome, plano, vencimento),
-        observation: `AUTO | PV: ${pvResult.ok ? "✅" : "❌ " + pvResult.error} | Grupo: ${groupResult.ok ? "✅" : "❌ " + groupResult.error}`,
+        observation: `AUTO | PV: ${pvQueued ? "enfileirado" : "sem telefone"} | Grupo: ${groupResult.ok ? "✅" : "❌ " + groupResult.error}`,
       });
 
-      return new Response(JSON.stringify({ success: true, pv: pvResult.ok, group: groupResult.ok }), {
+      return new Response(JSON.stringify({ success: true, pvQueued, group: groupResult.ok }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
