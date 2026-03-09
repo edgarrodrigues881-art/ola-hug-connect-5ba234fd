@@ -28,10 +28,12 @@ function buildMessageByType(
       );
     case "DUE_3_DAYS":
       return (
-        `Olá ${nome}! ⏰\n\n` +
-        `Seu plano ${plano} vence em *3 dias* (${vencimento}).\n\n` +
-        `Renove para continuar usando o sistema sem interrupção.\n\n` +
-        `Suporte: ${SUPORTE_NUMERO}`
+        `Olá ${nome}! ⏳\n\n` +
+        `Seu plano ${plano} vence em 3 dias.\n\n` +
+        `Para evitar interrupção nas suas instâncias, recomendamos renovar antecipadamente.\n\n` +
+        `📅 Vencimento: ${vencimento}\n\n` +
+        `Se precisar de ajuda, fale com nosso suporte:\n` +
+        `📞 ${SUPORTE_NUMERO}`
       );
     case "DUE_TODAY":
       return (
