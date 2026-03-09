@@ -343,7 +343,7 @@ const CampaignDetail = () => {
 
   if (campLoading) {
     return (
-      <div className="space-y-5 max-w-5xl">
+      <div className="space-y-5 w-full">
         <Skeleton className="h-6 w-36" />
         <Skeleton className="h-36 w-full rounded-2xl" />
         <div className="grid grid-cols-4 gap-3">
@@ -366,7 +366,7 @@ const CampaignDetail = () => {
   const cfg = statusConfig[campaign.status] || statusConfig.pending;
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4 w-full">
       {/* Back */}
       <button
         onClick={() => navigate("/dashboard/campaign-list")}
