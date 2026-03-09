@@ -1048,7 +1048,7 @@ function AlertCard({
             Ver mensagem
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
