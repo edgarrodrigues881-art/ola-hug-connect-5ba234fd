@@ -299,36 +299,44 @@ const CampaignDetail = () => {
     navigate("/dashboard/campaigns");
   };
 
-  const handleExportConfirm = () => {
-    const selected = contacts.filter(c => {
-      if (exportSent && (c.status === "sent" || c.status === "delivered")) return true;
-      if (exportFailed && (c.status === "failed" || c.status === "error")) return true;
-      if (exportPending && c.status === "pending") return true;
-      return false;
-    });
-    if (selected.length === 0) {
+  const handleExportConfirm = async () => {
+    const XLSX = await import("xlsx");
+    const toRows = (list: typeof contacts) =>
+      list.map(c => ({
+        Nome: c.name || "—",
+        Telefone: c.phone,
+        Status: contactStatusConfig[c.status]?.label || c.status,
+        Horário: c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "",
+        Erro: c.error_message || "",
+      }));
+
+    const wb = XLSX.utils.book_new();
+    let total = 0;
+
+    if (exportSent) {
+      const rows = toRows(contacts.filter(c => c.status === "sent" || c.status === "delivered"));
+      total += rows.length;
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Enviadas");
+    }
+    if (exportFailed) {
+      const rows = toRows(contacts.filter(c => c.status === "failed" || c.status === "error"));
+      total += rows.length;
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Falhas");
+    }
+    if (exportPending) {
+      const rows = toRows(contacts.filter(c => c.status === "pending"));
+      total += rows.length;
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Pendentes");
+    }
+
+    if (total === 0) {
       toast({ title: "Nenhum contato selecionado", variant: "destructive" });
       return;
     }
-    const header = "Nome,Telefone,Status,Horário,Erro";
-    const rows = selected.map(c => {
-      const name = (c.name || "—").replace(/,/g, " ");
-      const phone = c.phone;
-      const status = contactStatusConfig[c.status]?.label || c.status;
-      const time = c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "";
-      const error = (c.error_message || "").replace(/,/g, " ").replace(/\n/g, " ");
-      return `${name},${phone},${status},${time},${error}`;
-    });
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${campaign?.name || "campanha"}_export.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    XLSX.writeFile(wb, `${campaign?.name || "campanha"}_export.xlsx`);
     setExportOpen(false);
-    toast({ title: `✅ ${selected.length} contatos exportados` });
+    toast({ title: `✅ ${total} contatos exportados em ${wb.SheetNames.length} planilha(s)` });
   };
 
   const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
