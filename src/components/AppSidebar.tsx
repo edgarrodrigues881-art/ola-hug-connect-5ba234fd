@@ -83,7 +83,6 @@ const menuGroups = [
   {
     label: "Relatórios",
     items: [
-      { title: "Relatório de Aquecimento", url: "/dashboard/reports", icon: Activity, exact: true },
       { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText, exact: true },
     ],
   },
