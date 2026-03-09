@@ -721,19 +721,157 @@ export default function ReportWhatsApp() {
 }
 
 // ─── Alert Card ───
-const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, infoItems, monitoredEvents, previewMessage }) => {
+interface AlertCardProps {
+  icon: React.ReactNode;
+  iconColor: string;
+  title: string;
+  description: string;
+  groups: WhatsAppGroup[];
+  selectedGroupId: string;
+  onGroupSelect: (id: string) => void;
+  onRefreshGroups: () => void;
+  enabled: boolean;
+  onToggle: (v: boolean) => void;
+  loadingGroups: boolean;
+  infoItems: string[];
+  monitoredEvents: string[];
+  previewMessage: string;
+}
+
+const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, monitoredEvents, previewMessage }: AlertCardProps) => {
+  const [showPreview, setShowPreview] = useState(false);
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
+
+  const colorMap: Record<string, { border: string; bg: string; iconBg: string }> = {
+    orange: { border: "border-orange-500/40", bg: "bg-orange-500/5", iconBg: "bg-orange-500/10" },
+    sky: { border: "border-sky-500/40", bg: "bg-sky-500/5", iconBg: "bg-sky-500/10" },
+    emerald: { border: "border-emerald-500/40", bg: "bg-emerald-500/5", iconBg: "bg-emerald-500/10" },
+  };
+  const colors = colorMap[iconColor] || colorMap.emerald;
+
   return (
-    <div className={`p-4 border rounded-lg ${enabled ? "border-primary" : "border-muted"}`}>
-      <div className="flex items-center">
-        <div className={`flex items-center justify-center w-10 h-10 rounded-full bg-${iconColor}/10`}>
-          {icon}
-        </div>
-        <div className="ml-3">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
+    <div className={`rounded-xl border-2 transition-all duration-300 overflow-hidden ${enabled ? colors.border : "border-border"} ${enabled ? colors.bg : "bg-card"}`}>
+      {/* Header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl ${colors.iconBg} flex items-center justify-center shrink-0`}>
+              {icon}
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">{title}</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+            </div>
+          </div>
+          <Switch checked={enabled} onCheckedChange={onToggle} />
         </div>
       </div>
-      {/* Additional content can be added here */}
+
+      {/* Group selector */}
+      {enabled && (
+        <div className="px-4 pb-4 space-y-3">
+          {/* Group dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+              Grupo de destino
+            </label>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 justify-start text-xs h-9 font-normal border-border/60 bg-background/50"
+                  >
+                    <Users className="w-3.5 h-3.5 mr-2 text-muted-foreground shrink-0" />
+                    {selectedGroup ? (
+                      <span className="truncate">{selectedGroup.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Selecionar grupo...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0 max-h-64 overflow-y-auto" align="start">
+                  {groups.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <Users className="w-6 h-6 mx-auto text-muted-foreground/30 mb-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {loadingGroups ? "Carregando grupos..." : "Nenhum grupo encontrado. Conecte a instância primeiro."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-1">
+                      {/* Option to clear */}
+                      {selectedGroupId && (
+                        <button
+                          onClick={() => onGroupSelect("")}
+                          className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 transition-colors border-b border-border/50"
+                        >
+                          ✕ Remover grupo
+                        </button>
+                      )}
+                      {groups.map(g => (
+                        <button
+                          key={g.id}
+                          onClick={() => onGroupSelect(g.id)}
+                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 ${
+                            g.id === selectedGroupId ? "bg-primary/5 text-primary font-medium" : "text-foreground"
+                          }`}
+                        >
+                          <span className="truncate">{g.name}</span>
+                          {g.participants && (
+                            <span className="text-[10px] text-muted-foreground shrink-0">{g.participants} membros</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={onRefreshGroups}
+                disabled={loadingGroups}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Monitored events */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+              Eventos monitorados
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {monitoredEvents.map((evt, i) => (
+                <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-muted/50 text-muted-foreground border border-border/40">
+                  {evt}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview toggle */}
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="text-[11px] text-primary hover:underline flex items-center gap-1"
+          >
+            <Eye className="w-3 h-3" />
+            {showPreview ? "Ocultar preview" : "Ver preview da mensagem"}
+          </button>
+
+          {showPreview && (
+            <div className="bg-background/80 border border-border/40 rounded-lg p-3 max-h-48 overflow-y-auto">
+              <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                {previewMessage.replace(/\\n/g, "\n")}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
