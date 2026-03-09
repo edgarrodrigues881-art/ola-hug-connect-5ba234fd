@@ -904,25 +904,10 @@ const AdminMessages = () => {
           </div>
         )}
 
-        {/* SEND BUTTON */}
-        <Button
-          onClick={sendToGroup}
-          disabled={isSending || !isConfigured || !tpl}
-          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold gap-2"
-        >
-          {isSending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send size={16} />
-          )}
-          {isSending ? "Enviando..." : "Enviar"}
-        </Button>
-
-        {!isConfigured && (
-          <button onClick={() => setView("config")} className="w-full text-center text-xs text-primary hover:underline">
-            ⚠️ Configure a instância e grupo primeiro →
-          </button>
-        )}
+        {/* Info: envio automático */}
+        <div className="w-full text-center text-xs text-muted-foreground py-2">
+          ℹ️ As mensagens são enviadas automaticamente pelo sistema com base no ciclo de vida do plano.
+        </div>
       </div>
     );
   }
