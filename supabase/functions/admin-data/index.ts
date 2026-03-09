@@ -200,9 +200,16 @@ Deno.serve(async (req) => {
         return { ...t, device_name: dev?.name || null };
       });
 
+      // If profile has no monitor token but device report_wa does, use device token as fallback
+      const reportDevice = (devices || []).find((d: any) => d.login_type === "report_wa");
+      const effectiveProfile = profile ? { ...profile } : null;
+      if (effectiveProfile && !effectiveProfile.whatsapp_monitor_token && reportDevice?.uazapi_token) {
+        effectiveProfile.whatsapp_monitor_token = reportDevice.uazapi_token;
+      }
+
       return new Response(JSON.stringify({
         user: authUser?.user || null,
-        profile,
+        profile: effectiveProfile,
         subscription: sub,
         devices: devices || [],
         campaigns: campaigns || [],
