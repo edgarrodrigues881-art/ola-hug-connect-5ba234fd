@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Smartphone,
   Send,
+  BookUser,
   SaveAll,
   Megaphone,
   FileText,
