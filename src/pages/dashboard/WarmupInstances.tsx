@@ -239,6 +239,10 @@ const WarmupInstances = () => {
   }, [connectStep, qrCodeBase64, connectingDevice]);
 
   const openConnect = (device: any) => {
+    if (device.id.startsWith("temp-")) {
+      toast({ title: "Aguarde", description: "A instância ainda está sendo criada.", variant: "destructive" });
+      return;
+    }
     setConnectingDevice(device);
     setConnectStep("choose");
     setQrCodeBase64("");
