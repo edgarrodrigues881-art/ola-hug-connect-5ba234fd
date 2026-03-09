@@ -259,10 +259,12 @@ const Templates = () => {
     });
   };
 
-  const toggleSendMode = (id: number) => {
+  const cycleSendMode = (id: number) => {
     setFormMediaFiles(prev => prev.map(f => {
-      if (f.id === id) return { ...f, sendMode: f.sendMode === "with" ? "before" : "with" };
-      return { ...f, sendMode: f.sendMode === "with" ? "before" : f.sendMode };
+      if (f.id !== id) return f;
+      const order: Array<MediaFile["sendMode"]> = ["before", "with", "after"];
+      const nextIdx = (order.indexOf(f.sendMode) + 1) % order.length;
+      return { ...f, sendMode: order[nextIdx] };
     }));
   };
 
