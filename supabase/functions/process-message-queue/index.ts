@@ -292,6 +292,22 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Validate mobile number (reject landlines)
+      if (!isValidMobileNumber(phone)) {
+        await adminClient
+          .from("message_queue")
+          .update({
+            status: "failed",
+            error_message: `Número fixo ou inválido: ${phone} — WhatsApp requer celular`,
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id);
+        failed++;
+        console.log(`[process-mq] ⚠️ Skipped landline/invalid: ${phone} for ${item.client_name}`);
+        continue;
+      }
+
       const number = phone.startsWith("55") ? phone : `55${phone}`;
       const vencimento = item.expires_at ? formatDateBR(item.expires_at) : "—";
       const messageText = buildMessageByType(
