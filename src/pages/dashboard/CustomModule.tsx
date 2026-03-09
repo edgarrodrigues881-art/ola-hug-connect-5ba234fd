@@ -51,7 +51,7 @@ const CustomModule = () => {
         <StatusIndicator color="red" label="Conta Crítica" description="Risco alto — estabilizar antes de agir" />
       </div>
 
-      <Accordion type="multiple" defaultValue={["prep"]} className="space-y-4">
+      <Accordion type="multiple" className="space-y-4">
         {/* ───── 1. Preparação do Aparelho ───── */}
         <AccordionItem value="prep" className="border-0">
             <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
