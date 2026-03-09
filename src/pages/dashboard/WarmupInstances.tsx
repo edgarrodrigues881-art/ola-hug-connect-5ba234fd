@@ -302,10 +302,15 @@ const WarmupInstances = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Actions */}
+                {cycle && (
+                  <div className="px-3.5 pb-3.5 space-y-1.5">
+                    {cycle.is_running && cycle.phase !== "completed" ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-[11px] h-7 gap-1 border-primary/25 text-primary hover:bg-primary/10"
+                        className="w-full text-[11px] h-8 gap-1.5 border-primary/25 text-primary hover:bg-primary/10"
                         onClick={(e) => handlePause(device.id, e)}
                       >
                         <Pause className="w-3 h-3" /> Parar aquecimento
@@ -314,7 +319,7 @@ const WarmupInstances = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-[11px] h-7 gap-1 border-primary/25 text-primary hover:bg-primary/10"
+                        className="w-full text-[11px] h-8 gap-1.5 border-primary/25 text-primary hover:bg-primary/10"
                         onClick={(e) => handleResume(device.id, e)}
                       >
                         <Play className="w-3 h-3" /> Retomar aquecimento
@@ -323,7 +328,7 @@ const WarmupInstances = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-[10px] h-6 text-muted-foreground/60 hover:text-foreground"
+                      className="w-full text-[10px] h-6 text-muted-foreground/50 hover:text-foreground"
                       onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
                     >
                       Editar
