@@ -45,7 +45,7 @@ export default function AdminConexao() {
       const { data } = await supabase
         .from("community_settings")
         .select("key, value")
-        .in("key", ["wa_report_device_id", "wa_report_group_id"]);
+        .in("key", ["wa_report_device_id", "wa_report_group_id", "wa_report_group_name"]);
       const map: Record<string, string> = {};
       for (const r of data || []) map[r.key] = r.value;
       return map;
