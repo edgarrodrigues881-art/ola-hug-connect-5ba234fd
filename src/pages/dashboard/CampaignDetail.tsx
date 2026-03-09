@@ -646,6 +646,43 @@ const CampaignDetail = () => {
           )}
         </div>
       </div>
+
+      {/* ── Resend Dialog ──────────────────────────────────────── */}
+      <Dialog open={resendOpen} onOpenChange={setResendOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Reenviar contatos</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Selecione quais contatos deseja importar para um novo envio.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={resendFailed} onCheckedChange={(v) => setResendFailed(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Falhas</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam no envio ({stats.failed})</p>
+              </div>
+              <XCircle className="w-4 h-4 text-destructive/60" />
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+              <Checkbox checked={resendPending} onCheckedChange={(v) => setResendPending(!!v)} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Pendentes</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que não foram enviados ({stats.pending})</p>
+              </div>
+              <Clock className="w-4 h-4 text-yellow-400/60" />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setResendOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleResendConfirm} disabled={!resendFailed && !resendPending} className="gap-1.5 text-xs">
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reenviar ({(resendFailed ? stats.failed : 0) + (resendPending ? stats.pending : 0)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
