@@ -364,10 +364,10 @@ const WarmupInstanceDetail = () => {
           {/* Countdown for pre_24h */}
           {cycle.phase === "pre_24h" && (
             <Card className="border-amber-500/15 bg-amber-500/5">
-              <CardContent className="p-4 text-center">
-                <Timer className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground mb-1">Tempo decorrido — adaptação (24h)</p>
-                <p className="text-3xl font-bold text-foreground font-mono tabular-nums">{countdown} <span className="text-sm font-normal text-muted-foreground">/ 24:00:00</span></p>
+              <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+                <Timer className="w-6 h-6 text-amber-400 mb-2" />
+                <p className="text-xs text-muted-foreground mb-1">Tempo decorrido</p>
+                <p className="text-3xl font-bold text-foreground font-mono tabular-nums">{countdown}</p>
                 <p className="text-[11px] text-muted-foreground mt-2">
                   Sem envio de mensagens. Entrada gradual em grupos em andamento.
                 </p>
