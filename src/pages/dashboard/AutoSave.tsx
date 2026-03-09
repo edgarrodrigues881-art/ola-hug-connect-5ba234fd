@@ -40,8 +40,8 @@ function parseToE164(raw: string): { valid: boolean; phone: string; original: st
   return { valid: true, phone: `+${digits}`, original };
 }
 
-// ── Virtualized Row Component (stable reference, outside main component) ──
-const AutoSaveRow = memo(({ index, style, filtered, onEdit, onToggle, onDelete, ariaAttributes }: any): ReactElement | null => {
+// ── Virtualized Row Component (stable reference) ──
+function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, ariaAttributes }: any): ReactElement | null {
   const c = filtered[index];
   if (!c) return null;
   return (
