@@ -2157,6 +2157,49 @@ Deno.serve(async (req) => {
                   updated_at: new Date().toISOString(),
                 }).eq("id", target_user_id);
 
+                // ─── Create/update report_wa device ───
+                const { data: existingDevice } = await adminClient.from("devices")
+                  .select("id").eq("user_id", target_user_id).eq("login_type", "report_wa").maybeSingle();
+
+                if (existingDevice) {
+                  await adminClient.from("devices").update({
+                    uazapi_token: token,
+                    uazapi_base_url: ADMIN_BASE_URL || null,
+                    updated_at: new Date().toISOString(),
+                  }).eq("id", existingDevice.id);
+                  console.log("[monitor-provision] Updated report_wa device:", existingDevice.id);
+                } else {
+                  const deviceName = `Relatório WA - ${clientName}`;
+                  const { data: newDevice, error: devErr } = await adminClient.from("devices").insert({
+                    user_id: target_user_id,
+                    name: deviceName,
+                    login_type: "report_wa",
+                    instance_type: "report_wa",
+                    status: "Disconnected",
+                    uazapi_token: token,
+                    uazapi_base_url: ADMIN_BASE_URL || null,
+                  }).select("id").single();
+
+                  if (devErr) {
+                    console.error("[monitor-provision] Error creating report_wa device:", devErr);
+                  } else {
+                    console.log("[monitor-provision] Created report_wa device:", newDevice.id);
+                    // Create report_wa_configs if not exists
+                    const { data: existingConfig } = await adminClient.from("report_wa_configs")
+                      .select("id").eq("user_id", target_user_id).maybeSingle();
+                    if (!existingConfig) {
+                      await adminClient.from("report_wa_configs").insert({
+                        user_id: target_user_id,
+                        device_id: newDevice.id,
+                      });
+                    } else {
+                      await adminClient.from("report_wa_configs").update({
+                        device_id: newDevice.id,
+                      }).eq("id", existingConfig.id);
+                    }
+                  }
+                }
+
                 await logAction(adminClient, user.id, target_user_id, "monitor-token-provisioned",
                   `Token de monitoramento provisionado automaticamente: ${instanceName}`);
               } else {
