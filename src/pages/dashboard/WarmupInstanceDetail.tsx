@@ -222,14 +222,6 @@ const WarmupInstanceDetail = () => {
                 <Play className="w-3.5 h-3.5" /> Retomar aquecimento
               </Button>
             ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs h-8 text-muted-foreground hover:text-foreground"
-              onClick={() => navigate("/dashboard/devices")}
-            >
-              Editar
-            </Button>
           </div>
         )}
 
