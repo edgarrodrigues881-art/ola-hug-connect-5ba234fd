@@ -105,7 +105,7 @@ const WarmupInstanceDetail = () => {
     engine.mutate(
       { action: "start", device_id: deviceId, chip_state: chipState, days_total: Number(daysTotal), plan_id: plan?.id },
       {
-        onSuccess: () => toast({ title: "Aquecimento iniciado!", description: "O ciclo começou. As primeiras 24h são de adaptação." }),
+        onSuccess: () => toast({ title: "🔥 Aquecimento iniciado!", description: "Seu chip está sendo aquecido. Acompanhe o progresso aqui." }),
         onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
       }
     );
