@@ -251,10 +251,11 @@ const WarmupInstanceDetail = () => {
             {/* Chip state */}
             <div className="space-y-2">
               <label className="text-xs font-medium text-foreground">Estado do chip</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {([
                   { value: "new" as const, label: "Chip Novo", desc: "Nunca foi banido, progressão conservadora" },
                   { value: "recovered" as const, label: "Chip Recuperado", desc: "Já sofreu ban, progressão extra cautelosa" },
+                  { value: "unstable" as const, label: "Chip Instável", desc: "Chip fraco ou com restrições frequentes" },
                 ]).map(opt => (
                   <button
                     key={opt.value}
