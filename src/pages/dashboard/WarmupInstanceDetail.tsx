@@ -572,83 +572,103 @@ const WarmupInstanceDetail = () => {
 
           {/* ── Audit Logs grouped by day ── */}
           <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-muted/30 flex items-center justify-center">
-                <ScrollText className="w-3.5 h-3.5 text-muted-foreground" />
+            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                <ScrollText className="w-4 h-4 text-primary" />
               </div>
-              <span className="text-sm font-bold text-foreground">Timeline do Aquecimento</span>
-              {auditLogs.length > 0 && (
-                <Badge variant="secondary" className="text-[9px] h-4 ml-auto rounded-md font-bold">
-                  {auditLogs.length}
+              <div className="flex-1">
+                <span className="text-sm font-bold text-foreground">Timeline do Aquecimento</span>
+                {auditLogs.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground">{auditLogs.length} evento{auditLogs.length !== 1 ? "s" : ""} registrado{auditLogs.length !== 1 ? "s" : ""}</p>
+                )}
+              </div>
+              {dayGroups.length > 0 && (
+                <Badge className="text-[9px] h-5 rounded-lg font-bold bg-primary/10 text-primary border-0 hover:bg-primary/10">
+                  {dayGroups.length} dia{dayGroups.length !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
             {auditLogs.length === 0 ? (
-              <div className="p-10 text-center">
-                <ScrollText className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground/50">Nenhum log registrado ainda</p>
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-muted/10 flex items-center justify-center mx-auto mb-3">
+                  <ScrollText className="w-5 h-5 text-muted-foreground/25" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground/40">Nenhum log registrado ainda</p>
+                <p className="text-[10px] text-muted-foreground/25 mt-1">Os eventos aparecerão aqui conforme o ciclo avança</p>
               </div>
             ) : (
               <div className="max-h-[500px] overflow-y-auto">
-                {dayGroups.map(({ day, logs }) => (
+                {dayGroups.map(({ day, logs }, groupIdx) => (
                   <div key={day}>
                     {/* Day header */}
-                    <div className="sticky top-0 z-10 px-5 py-2.5 bg-muted/20 backdrop-blur-sm border-b border-border/10 flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-[9px] font-bold text-primary">{day}</span>
+                    <div className="sticky top-0 z-10 px-5 py-2.5 bg-card/95 backdrop-blur-md border-b border-border/10 flex items-center gap-2.5">
+                      <div className={cn(
+                        "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-extrabold",
+                        groupIdx === 0
+                          ? "bg-primary/15 text-primary"
+                          : "bg-muted/20 text-muted-foreground"
+                      )}>
+                        {day}
                       </div>
-                      <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
-                      <span className="text-[10px] text-muted-foreground/50 ml-1">
-                        {cycleStartedAt && format(
-                          new Date(cycleStartedAt.getTime() + (day - 1) * 86400000),
-                          "dd/MM",
-                          { locale: ptBR }
-                        )}
-                      </span>
-                      <Badge variant="outline" className="text-[8px] h-[16px] ml-auto rounded-md font-medium text-muted-foreground border-border/30">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
+                        <span className="text-[10px] text-muted-foreground/40">
+                          {cycleStartedAt && format(
+                            new Date(cycleStartedAt.getTime() + (day - 1) * 86400000),
+                            "dd/MM",
+                            { locale: ptBR }
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground/40 ml-auto font-medium">
                         {logs.length} {logs.length === 1 ? "evento" : "eventos"}
-                      </Badge>
+                      </span>
                     </div>
-                    {/* Day logs */}
-                    {logs.map((log, idx) => (
-                      <div
-                        key={log.id}
-                        className={cn(
-                          "px-5 py-3 flex items-start gap-3 hover:bg-muted/5 transition-colors",
-                          idx !== logs.length - 1 && "border-b border-border/5"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-2 h-2 rounded-full mt-1.5 shrink-0 ring-2",
-                          log.level === "error"
-                            ? "bg-destructive ring-destructive/20"
-                            : log.level === "warn"
-                              ? "bg-amber-400 ring-amber-400/20"
-                              : "bg-teal-400 ring-teal-400/20"
-                        )} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[8px] h-[18px] rounded-md font-bold px-1.5",
-                                log.level === "error"
-                                  ? "text-destructive border-destructive/20"
-                                  : log.level === "warn"
-                                    ? "text-amber-400 border-amber-400/20"
-                                    : "text-teal-400 border-teal-400/20"
-                              )}
-                            >
-                              {log.event_type}
-                            </Badge>
-                            <span className="text-[10px] text-muted-foreground/35 font-medium">
-                              {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
-                            </span>
+                    {/* Day logs with timeline line */}
+                    <div className="relative">
+                      {/* vertical timeline line */}
+                      <div className="absolute left-[29px] top-0 bottom-0 w-px bg-border/10" />
+                      {logs.map((log, idx) => (
+                        <div
+                          key={log.id}
+                          className={cn(
+                            "relative px-5 py-3.5 flex items-start gap-3.5 hover:bg-muted/5 transition-colors group",
+                          )}
+                        >
+                          {/* timeline dot */}
+                          <div className="relative z-[1] mt-1 shrink-0 w-[18px] flex items-center justify-center">
+                            <div className={cn(
+                              "w-2.5 h-2.5 rounded-full ring-[3px] ring-card transition-all",
+                              log.level === "error"
+                                ? "bg-destructive shadow-[0_0_8px_hsl(var(--destructive)/0.4)]"
+                                : log.level === "warn"
+                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.3)]"
+                                  : "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.2)]"
+                            )} />
                           </div>
-                          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{log.message}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold px-2 py-0.5 rounded-md",
+                                  log.level === "error"
+                                    ? "text-destructive bg-destructive/10"
+                                    : log.level === "warn"
+                                      ? "text-amber-400 bg-amber-400/10"
+                                      : "text-emerald-400 bg-emerald-400/10"
+                                )}
+                              >
+                                {log.event_type}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/30 font-mono">
+                                {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-relaxed group-hover:text-muted-foreground transition-colors">{log.message}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
