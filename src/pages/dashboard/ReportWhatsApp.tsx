@@ -451,14 +451,14 @@ export default function ReportWhatsApp() {
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <AlertCard
-          icon={<Flame className="w-5 h-5 text-orange-500" />}
+          icon={<Flame className="w-4 h-4 text-orange-500" />}
           iconColor="orange"
           title="Aquecimento"
           description="Relatórios após cada ciclo de 24h."
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
@@ -468,14 +468,14 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-5 h-5 text-teal-500" />}
+          icon={<Megaphone className="w-4 h-4 text-primary" />}
           iconColor="teal"
           title="Campanhas"
           description="Alertas de eventos de campanha."
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
@@ -485,14 +485,14 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Plug className="w-5 h-5 text-emerald-500" />}
+          icon={<Plug className="w-4 h-4 text-emerald-500" />}
           iconColor="emerald"
           title="Conexão"
           description="Alertas de mudança de status."
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
