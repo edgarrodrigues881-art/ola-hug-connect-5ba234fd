@@ -1571,7 +1571,8 @@ Deno.serve(async (req) => {
         token = poolToken?.token || null;
       }
       if (!baseUrl) {
-        baseUrl = Deno.env.get("UAZAPI_BASE_URL") || "";
+        // No fallback to global env — only device-specific credentials
+        baseUrl = null;
       }
 
       if (!token || !baseUrl) {
