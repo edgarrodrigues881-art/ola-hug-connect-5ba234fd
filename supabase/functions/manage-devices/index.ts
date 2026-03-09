@@ -311,8 +311,14 @@ Deno.serve(async (req) => {
         .select("id, proxy_id, user_id")
         .eq("id", deviceId)
         .eq("user_id", user.id)
-        .single();
-      if (!device) throw new Error("Instância não encontrada.");
+        .maybeSingle();
+      if (!device) {
+        // Already deleted — return success (idempotent)
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       // 1. Delete instance from UaZapi server (non-blocking)
       try {
