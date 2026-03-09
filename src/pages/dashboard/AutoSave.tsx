@@ -422,18 +422,22 @@ const AutoSave = () => {
           </CardContent>
         </Card>
       ) : (
-        <div style={{ contain: "layout style", willChange: "scroll-position" }}>
+        <div style={{ contain: "layout style", height: Math.min(filtered.length * 68, window.innerHeight - 320) }}>
           <VirtualList
-            height={Math.min(filtered.length * 68, window.innerHeight - 320)}
-            itemCount={filtered.length}
-            itemSize={68}
-            width="100%"
+            rowCount={filtered.length}
+            rowHeight={68}
             overscanCount={5}
-          >
-            {({ index, style }: { index: number; style: React.CSSProperties }) => {
-              const c = filtered[index];
+            style={{ height: "100%", width: "100%" }}
+            rowProps={{
+              filtered,
+              onEdit: (c: WarmupAutosaveContact) => { setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || ""); },
+              onToggle: handleToggleActive,
+              onDelete: handleDelete,
+            }}
+            rowComponent={({ index, style, filtered: items, onEdit, onToggle, onDelete }: any) => {
+              const c = items[index];
               return (
-                <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }} key={c.id}>
+                <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }}>
                   <Card className={cn(!c.is_active && "opacity-50", "h-[62px]")}>
                     <CardContent className="p-3 flex items-center gap-3 h-full">
                       <div className={cn(
@@ -445,29 +449,20 @@ const AutoSave = () => {
                           <p className="text-sm font-medium text-foreground truncate">
                             {c.contact_name || "Sem nome"}
                           </p>
-                          {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 2).map(tag => (
+                          {c.tags && c.tags.split(",").map((t: string) => t.trim()).filter(Boolean).slice(0, 2).map((tag: string) => (
                             <Badge key={tag} variant="outline" className="text-[9px] h-4">{tag}</Badge>
                           ))}
                         </div>
                         <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => { setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || ""); }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(c)}>
                           <Edit2 className="w-3 h-3" />
                         </Button>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => handleToggleActive(c)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onToggle(c)}>
                           {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
                         </Button>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                          onClick={() => handleDelete(c.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(c.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
@@ -476,7 +471,7 @@ const AutoSave = () => {
                 </div>
               );
             }}
-          </VirtualList>
+          />
         </div>
       )}
 
