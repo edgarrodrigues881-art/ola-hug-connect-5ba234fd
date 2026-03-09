@@ -171,8 +171,8 @@ export default function AdminConexao() {
       );
       const result = await res.json();
 
-      if (result.pairing_code || result.code) {
-        setPairingCode(result.pairing_code || result.code);
+      if (result.pairingCode || result.pairing_code) {
+        setPairingCode(result.pairingCode || result.pairing_code);
         startCountdownAndPoll(deviceId);
       } else {
         setConnectError(result.error || "Erro ao gerar código");
