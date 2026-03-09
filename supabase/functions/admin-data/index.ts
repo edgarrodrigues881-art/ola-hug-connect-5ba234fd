@@ -675,7 +675,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── LIST PAYMENTS ───
+    // ─── SET REPORT DEVICE CREDENTIALS (admin manually configures token+url for client's report_wa instance) ───
+    if (action === "set-report-credentials" && req.method === "POST") {
+      const { target_user_id, device_id, uazapi_token, uazapi_base_url } = await req.json();
+      if (!device_id || !uazapi_token || !uazapi_base_url) {
+        return new Response(JSON.stringify({ error: "device_id, uazapi_token e uazapi_base_url são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify the device belongs to the target user and is report_wa
+      const { data: dev } = await adminClient.from("devices").select("id, login_type, user_id, name").eq("id", device_id).single();
+      if (!dev || dev.user_id !== target_user_id || dev.login_type !== "report_wa") {
+        return new Response(JSON.stringify({ error: "Dispositivo não encontrado ou não é instância de relatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await adminClient.from("devices").update({
+        uazapi_token: uazapi_token.trim(),
+        uazapi_base_url: uazapi_base_url.trim().replace(/\/+$/, ""),
+      }).eq("id", device_id);
+
+      await logAction(adminClient, user.id, target_user_id, "set-report-credentials", `Credenciais de relatório configuradas para "${dev.name}"`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "list-payments" && req.method === "POST") {
       const { target_user_id } = await req.json();
       const { data: payments } = await adminClient.from("payments").select("id, user_id, admin_id, amount, discount, fee, method, notes, paid_at, created_at").eq("user_id", target_user_id).order("paid_at", { ascending: false });
