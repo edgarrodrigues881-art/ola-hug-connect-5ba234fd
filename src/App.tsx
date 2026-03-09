@@ -94,6 +94,7 @@ const App = () => (
                           <Route path="proxy" element={<Proxy />} />
                           <Route path="groups" element={<Groups />} />
                           <Route path="reports" element={<Reports />} />
+                          <Route path="reports/connection" element={<ReportConnection />} />
                           <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
                           <Route path="custom-module" element={<CustomModule />} />
                           <Route path="notifications" element={<Notifications />} />
