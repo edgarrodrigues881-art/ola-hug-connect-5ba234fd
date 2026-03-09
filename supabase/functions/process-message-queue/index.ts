@@ -241,19 +241,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch pending messages (limit 50 per run) — deduplicate by user+type, keep oldest
-    const { data: allPending, error: fetchErr } = await adminClient
-      .from("message_queue")
-      .select("id, user_id, client_name, client_email, client_phone, plan_name, expires_at, message_type, status")
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(50);
+    // Atomically claim pending messages using FOR UPDATE SKIP LOCKED
+    // This prevents parallel process-message-queue calls from processing the same messages
+    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 50 });
 
-    // Deduplicate: only process first message per user+type, mark rest as failed
+    if (claimErr) {
+      console.error("[process-mq] Claim error:", claimErr.message);
+      return new Response(JSON.stringify({ error: claimErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Deduplicate: only process first message per user+type, revert rest
     const seen = new Set<string>();
-    const pendingItems: typeof allPending = [];
+    const pendingItems: any[] = [];
     const duplicateIds: string[] = [];
-    for (const item of (allPending || [])) {
+    for (const item of (claimed || [])) {
       const key = `${item.user_id}:${item.message_type}`;
       if (seen.has(key)) {
         duplicateIds.push(item.id);
@@ -262,21 +266,13 @@ Deno.serve(async (req) => {
         pendingItems.push(item);
       }
     }
-    // Mark duplicates as failed
+    // Mark duplicates as failed (they were already claimed as 'sent', update to 'failed')
     if (duplicateIds.length > 0) {
       await adminClient
         .from("message_queue")
-        .update({ status: "failed", error_message: "Duplicata removida automaticamente", updated_at: new Date().toISOString() })
+        .update({ status: "failed" as any, error_message: "Duplicata removida automaticamente", updated_at: new Date().toISOString() })
         .in("id", duplicateIds);
       console.log(`[process-mq] Removed ${duplicateIds.length} duplicate messages`);
-    }
-
-    if (fetchErr) {
-      console.error("[process-mq] Fetch error:", fetchErr.message);
-      return new Response(JSON.stringify({ error: fetchErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     if (!pendingItems || pendingItems.length === 0) {
@@ -286,7 +282,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[process-mq] Found ${pendingItems.length} pending messages`);
+    console.log(`[process-mq] Claimed ${pendingItems.length} messages (${duplicateIds.length} duplicates removed)`);
 
     let sent = 0;
     let failed = 0;
@@ -295,33 +291,20 @@ Deno.serve(async (req) => {
       const phone = (item.client_phone || "").replace(/\D/g, "");
 
       if (!phone) {
-        // No phone — mark as failed
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: "Telefone não informado",
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await adminClient.from("message_queue").update({
+          status: "failed" as any, error_message: "Telefone não informado",
+          sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
         continue;
       }
 
-      // Validate phone number format (DDD + 8-9 digits)
       if (!isValidPhoneNumber(phone)) {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: `Número inválido: ${phone} — formato esperado: DDD + 8-9 dígitos`,
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await adminClient.from("message_queue").update({
+          status: "failed" as any, error_message: `Número inválido: ${phone}`,
+          sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
-        console.log(`[process-mq] ⚠️ Invalid number: ${phone} for ${item.client_name}`);
         continue;
       }
 
@@ -338,38 +321,31 @@ Deno.serve(async (req) => {
       const result = await sendText(device.baseUrl, device.token, number, messageText);
 
       if (result.ok) {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "sent",
-            message_content: messageText,
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        // Already claimed as 'sent', just update content + timestamp
+        await adminClient.from("message_queue").update({
+          message_content: messageText,
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         sent++;
         console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
 
-        // Send report to admin group
         if (device.groupNumber) {
           const report = buildReport("sent", item, vencimento, messageText);
           await sendText(device.baseUrl, device.token, device.groupNumber, report);
           await randomDelay(1500, 2500);
         }
       } else {
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: result.error || "Erro desconhecido",
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        // Revert to failed
+        await adminClient.from("message_queue").update({
+          status: "failed" as any,
+          error_message: result.error || "Erro desconhecido",
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
 
-        // Send failure report to admin group
         if (device.groupNumber) {
           const report = buildReport("failed", item, vencimento, messageText, result.error);
           await sendText(device.baseUrl, device.token, device.groupNumber, report);

@@ -1825,6 +1825,31 @@ export type Database = {
         Returns: boolean
       }
       check_phone_available: { Args: { _phone: string }; Returns: boolean }
+      claim_pending_messages: {
+        Args: { _limit?: number }
+        Returns: {
+          client_email: string
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          message_content: string | null
+          message_type: Database["public"]["Enums"]["message_queue_type"]
+          plan_name: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_queue_status"]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "message_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_old_logs: { Args: { _retention_days?: number }; Returns: Json }
       cleanup_stale_locks: {
         Args: { _stale_seconds?: number }
