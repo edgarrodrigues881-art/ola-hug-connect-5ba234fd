@@ -536,7 +536,7 @@ const WarmupInstanceDetail = () => {
                 className="gap-1.5 text-xs rounded-lg h-9 px-4 font-medium border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setShowFinishConfirm(true)}
               >
-                <Square className="w-3.5 h-3.5" /> Encerrar Ciclo
+                Encerrar Ciclo
               </Button>
             </div>
           )}
@@ -563,7 +563,7 @@ const WarmupInstanceDetail = () => {
                   onClick={handleFinish}
                   disabled={engine.isPending}
                 >
-                  {engine.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
+                  {engine.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Encerrar
                 </Button>
               </DialogFooter>
