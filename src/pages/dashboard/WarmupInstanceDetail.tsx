@@ -85,12 +85,14 @@ const WarmupInstanceDetail = () => {
     if (!cycle || cycle.phase !== "pre_24h") return;
     const tick = () => {
       const end = new Date(cycle.first_24h_ends_at).getTime();
+      const start = end - 24 * 3600000; // 24h before end = start time
       const now = Date.now();
-      const diff = end - now;
-      if (diff <= 0) { setCountdown("Concluído"); return; }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
+      const elapsed = now - start;
+      if (elapsed >= 24 * 3600000) { setCountdown("24:00:00"); return; }
+      if (elapsed < 0) { setCountdown("00:00:00"); return; }
+      const h = Math.floor(elapsed / 3600000);
+      const m = Math.floor((elapsed % 3600000) / 60000);
+      const s = Math.floor((elapsed % 60000) / 1000);
       setCountdown(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
     };
     tick();
