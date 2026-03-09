@@ -117,14 +117,73 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── AUTO-PROVISION REPORT_WA (MONITORING) INSTANCE ───
+    let monitorCreated = false;
+    try {
+      // Check if report_wa device already exists
+      const { data: existingReportDevice } = await adminClient.from("devices")
+        .select("id").eq("user_id", user.id).eq("login_type", "report_wa").maybeSingle();
+
+      if (!existingReportDevice) {
+        const monitorInstanceName = `${sanitizedName}_monitor`;
+        const monitorRes = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
+          method: "POST",
+          headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ name: monitorInstanceName }),
+        });
+        const monitorBody = await monitorRes.json();
+        console.log(`[provision-trial] monitor ${monitorInstanceName}: status=${monitorRes.status}`, JSON.stringify(monitorBody));
+
+        const monitorToken = monitorBody?.token || monitorBody?.data?.token || monitorBody?.instance?.token;
+        if (monitorToken) {
+          // Save to profile
+          await adminClient.from("profiles").update({
+            whatsapp_monitor_token: monitorToken,
+            notificacao_liberada: true,
+            updated_at: new Date().toISOString(),
+          }).eq("id", user.id);
+
+          // Create report_wa device
+          const { data: newDevice, error: devErr } = await adminClient.from("devices").insert({
+            user_id: user.id,
+            name: `Relatório WA - ${clientName}`,
+            login_type: "report_wa",
+            instance_type: "report_wa",
+            status: "Disconnected",
+            uazapi_token: monitorToken,
+            uazapi_base_url: ADMIN_BASE_URL,
+          }).select("id").single();
+
+          if (!devErr && newDevice) {
+            // Create report_wa_configs
+            await adminClient.from("report_wa_configs").insert({
+              user_id: user.id,
+              device_id: newDevice.id,
+            });
+            monitorCreated = true;
+            console.log(`[provision-trial] report_wa device created: ${newDevice.id}`);
+          } else {
+            console.error("[provision-trial] Error creating report_wa device:", devErr);
+          }
+        } else {
+          console.warn(`[provision-trial] No token in monitor response for ${monitorInstanceName}`);
+        }
+      } else {
+        monitorCreated = true; // already exists
+        console.log("[provision-trial] report_wa device already exists, skipping");
+      }
+    } catch (e) {
+      console.error("[provision-trial] Monitor provision error (non-blocking):", e.message);
+    }
+
     // Log
     await adminClient.from("admin_logs").insert({
       admin_id: user.id, target_user_id: user.id,
       action: "auto-trial-provision",
-      details: `Trial: ${created}/${maxInstances} tokens provisionados${errors.length ? `. Erros: ${errors.join("; ")}` : ""}`,
+      details: `Trial: ${created}/${maxInstances} tokens provisionados${monitorCreated ? " + monitor" : ""}${errors.length ? `. Erros: ${errors.join("; ")}` : ""}`,
     });
 
-    console.log(`[provision-trial] user=${user.id} created=${created} errors=${errors.length}`);
+    console.log(`[provision-trial] user=${user.id} created=${created} monitor=${monitorCreated} errors=${errors.length}`);
 
     // ─── TRIGGER AUTOMATIC WELCOME MESSAGE ───
     try {
