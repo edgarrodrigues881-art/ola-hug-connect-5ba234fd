@@ -31,7 +31,7 @@ interface MediaFile {
   url: string;
   type: "image" | "video" | "audio" | "document";
   name: string;
-  sendMode: "before" | "with";
+  sendMode: "before" | "with" | "after";
 }
 
 // ─── Surface Card wrapper ───
