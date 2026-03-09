@@ -266,7 +266,6 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Cliente</th>
                 <th className="text-left px-3 py-2.5">Telefone</th>
-                <th className="text-left px-3 py-2.5">Telefone</th>
                 <th className="text-left px-3 py-2.5">Plano</th>
                 <th className="text-left px-3 py-2.5">Instâncias</th>
                 <th className="text-left px-3 py-2.5">Conta</th>
