@@ -244,26 +244,25 @@ export default function AdminConexao() {
   };
 
   // ─── Select Group ───
+  const upsertSetting = async (key: string, value: string) => {
+    const { data: existing } = await supabase
+      .from("community_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("community_settings").update({ value }).eq("key", key);
+    } else {
+      await supabase.from("community_settings").insert({ key, value });
+    }
+  };
+
   const selectGroup = async (group: WhatsAppGroup) => {
     try {
-      // Upsert wa_report_group_id
-      const { data: existing } = await supabase
-        .from("community_settings")
-        .select("id")
-        .eq("key", "wa_report_group_id")
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from("community_settings")
-          .update({ value: group.id })
-          .eq("key", "wa_report_group_id");
-      } else {
-        await supabase
-          .from("community_settings")
-          .insert({ key: "wa_report_group_id", value: group.id });
-      }
-
+      await Promise.all([
+        upsertSetting("wa_report_group_id", group.id),
+        upsertSetting("wa_report_group_name", group.name),
+      ]);
       queryClient.invalidateQueries({ queryKey: ["admin-conexao-settings"] });
       toast.success(`Grupo "${group.name}" selecionado`);
       setGroups([]);
