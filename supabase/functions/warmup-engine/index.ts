@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
           user_id: callerUserId,
           device_id,
           chip_state: chip_state || "new",
-          days_total: days_total || 14,
+          days_total: days_total || 3,
           plan_id: plan_id || null,
           phase: "pre_24h",
           is_running: true,
