@@ -298,7 +298,7 @@ export async function createPairsForDay(cycleId: string): Promise<{ wouldCreate:
 }
 
 // ── Audit Logs ──
-export function useWarmupAuditLogs(cycleId?: string, limit = 30) {
+export function useWarmupAuditLogs(cycleId?: string, limit = 200) {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["warmup_audit_logs", cycleId, limit],
@@ -306,7 +306,7 @@ export function useWarmupAuditLogs(cycleId?: string, limit = 30) {
       let query = supabase
         .from("warmup_audit_logs" as any)
         .select("id, device_id, cycle_id, level, event_type, message, meta, created_at")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(limit);
       if (cycleId) query = query.eq("cycle_id", cycleId);
       const { data, error } = await query;
