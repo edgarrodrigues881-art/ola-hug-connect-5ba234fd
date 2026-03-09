@@ -133,7 +133,22 @@ export default function ReportWhatsApp() {
       body,
       headers: { Authorization: `Bearer ${s.access_token}` },
     });
-    if (response.error) throw response.error;
+    if (response.error) {
+      // Try to extract backend error message
+      let backendMsg = "";
+      if (response.data?.error) backendMsg = response.data.error;
+      if (!backendMsg) {
+        try {
+          const ctx = (response.error as any)?.context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) backendMsg = parsed.error;
+          }
+        } catch {}
+      }
+      throw new Error(backendMsg || response.error.message || "Erro na operação");
+    }
+    if (response.data?.error) throw new Error(response.data.error);
     return response.data;
   };
 
