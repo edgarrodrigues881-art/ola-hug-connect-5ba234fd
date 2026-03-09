@@ -531,9 +531,9 @@ const WarmupInstanceDetail = () => {
           {cycle.phase !== "completed" && (
             <div className="flex justify-end pt-1">
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs rounded-lg h-9 px-4 font-semibold shadow-sm"
+                className="gap-1.5 text-xs rounded-lg h-9 px-4 font-medium border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setShowFinishConfirm(true)}
               >
                 <Square className="w-3.5 h-3.5" /> Encerrar Ciclo
