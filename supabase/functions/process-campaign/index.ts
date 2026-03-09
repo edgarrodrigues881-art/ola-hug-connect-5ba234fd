@@ -893,10 +893,15 @@ Deno.serve(async (req) => {
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
               console.log(`⚠️ Device ${activeDevice.name} is ${deviceStatus.status}, pausing campaign`);
-              // Revert this contact back to pending
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
               await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
+              await serviceClient.from("notifications").insert({
+                user_id: campaign.user_id,
+                title: "⏸️ Campanha pausada automaticamente",
+                message: `A campanha "${campaign.name}" foi pausada porque a instância "${activeDevice.name}" desconectou. Reconecte e retome.`,
+                type: "warning",
+              });
               break;
             }
 
