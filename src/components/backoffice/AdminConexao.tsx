@@ -54,6 +54,7 @@ export default function AdminConexao() {
 
   const deviceId = settings?.wa_report_device_id || null;
   const groupId = settings?.wa_report_group_id || null;
+  const groupName = settings?.wa_report_group_name || null;
 
   // Get device info
   const { data: device, isLoading: deviceLoading } = useQuery({
