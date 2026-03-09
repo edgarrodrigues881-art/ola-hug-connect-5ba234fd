@@ -342,9 +342,9 @@ Deno.serve(async (req) => {
 
     // ── connect ──
     if (action === "connect") {
-      // Auto-assign token from pool for report_wa devices
-      if (!instanceToken && isReportDevice) {
-        console.log("Report device has no token — auto-assigning from pool...");
+      // Auto-assign token from pool for ANY device without a token
+      if (!instanceToken) {
+        console.log(`Device "${deviceName}" has no token — auto-assigning from pool...`);
         const { data: poolToken } = await svc.from("user_api_tokens")
           .select("id, token")
           .eq("user_id", user.id)
@@ -369,7 +369,8 @@ Deno.serve(async (req) => {
 
           instanceToken = poolToken.token;
           instanceUrl = BASE_URL;
-          console.log("Auto-assigned token to report device:", poolToken.id);
+          console.log("Auto-assigned token from pool:", poolToken.id, "to device:", deviceName);
+          await oplog(svc, user.id, "token_auto_assigned", `Token auto-atribuído do pool para "${deviceName}"`, deviceId, { tokenId: poolToken.id });
         }
       }
 
