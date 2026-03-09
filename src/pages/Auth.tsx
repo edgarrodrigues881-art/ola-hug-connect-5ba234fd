@@ -189,6 +189,10 @@ const Auth = () => {
       }
     } catch (error: any) {
       const msg = translateAuthError(error.message);
+      // Show resend button if email not confirmed
+      if (error.message?.includes("Email not confirmed")) {
+        setShowResendConfirm(true);
+      }
       toast({
         title: "Erro",
         description: msg,
