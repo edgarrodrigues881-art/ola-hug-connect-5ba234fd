@@ -622,7 +622,7 @@ const Devices = () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
       const msg = skipped > 0
-        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} conectada${skipped !== 1 ? "s" : ""} protegida${skipped !== 1 ? "s" : ""}.`
+        ? `${safeToDel.length} removida${safeToDel.length !== 1 ? "s" : ""}. ${skipped} protegida${skipped !== 1 ? "s" : ""} (conectadas/aquecimento).`
         : `${safeToDel.length} instância${safeToDel.length !== 1 ? "s" : ""} removida${safeToDel.length !== 1 ? "s" : ""}`;
       toast({ title: msg });
     } catch {
