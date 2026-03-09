@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -12,9 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Flame, Wifi, WifiOff, AlertTriangle, Loader2,
   Phone, Search, Filter, Pause, Play, Pencil, X,
+  QrCode, Key, Shield, Ban, CheckCircle2, XCircle,
+  Smartphone, RefreshCw, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,10 +68,24 @@ const WarmupInstances = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Connect dialog states
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectingDevice, setConnectingDevice] = useState<any>(null);
+  const [connectStep, setConnectStep] = useState<"choose" | "proxy" | "qr" | "code_phone" | "code" | "done">("choose");
+  const [connectMethod, setConnectMethod] = useState<"qr" | "code">("qr");
+  const [selectedProxy, setSelectedProxy] = useState("none");
+  const [qrCodeBase64, setQrCodeBase64] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [connectError, setConnectError] = useState("");
+  const [codePhone, setCodePhone] = useState("");
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices-warmup-list", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type");
+      const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id");
       if (error) throw error;
       return data;
     },
@@ -77,6 +94,31 @@ const WarmupInstances = () => {
 
   const { data: cycles = [], isLoading: cyclesLoading } = useWarmupCycles();
   const isLoading = devicesLoading || cyclesLoading;
+
+  // Proxies
+  const { data: dbProxies = [] } = useQuery({
+    queryKey: ["proxies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proxies")
+        .select("id, host, port, username, password, type, status, display_id, active")
+        .eq("active", true)
+        .order("display_id", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const availableProxies = dbProxies.map((p, index) => ({
+    id: p.id,
+    label: `#${index + 1} - ${p.host}:${p.port}`,
+    host: p.host,
+    port: p.port,
+    username: p.username,
+    password: p.password,
+    type: p.type,
+    status: p.status || "NOVA",
+  }));
 
   const filteredDevices = devices.filter(d => d.login_type !== "report_wa");
 
@@ -104,9 +146,189 @@ const WarmupInstances = () => {
     });
   }, [filteredDevices, search, statusFilter, cycles]);
 
+  // --- Connect logic ---
+  const callApi = async (body: Record<string, any>) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) throw new Error("Not authenticated");
+    const response = await supabase.functions.invoke("evolution-connect", {
+      body,
+      headers: { Authorization: `Bearer ${s.access_token}` },
+    });
+    if (response.error) {
+      const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
+      const code = response.data?.code;
+      return { error: realError, code };
+    }
+    return response.data;
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  };
+
+  const startPolling = (deviceId: string, proxyId: string | null) => {
+    stopPolling();
+    const interval = setInterval(async () => {
+      try {
+        const result = await callApi({ action: "status", deviceId });
+        if (result?.error && result?.code === "DUPLICATE_PHONE") {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setConnectError(result.error);
+          setQrCodeBase64("");
+          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          return;
+        }
+        if (result?.status === "authenticated") {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setConnectStep("done");
+          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
+          try {
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s) {
+              await supabase.functions.invoke("sync-devices", {
+                headers: { Authorization: `Bearer ${s.access_token}` },
+              });
+              qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+            }
+          } catch {}
+        }
+      } catch {}
+    }, 3000);
+    setPollingInterval(interval);
+  };
+
+  // QR countdown timer
+  useEffect(() => {
+    if (connectStep === "qr" && qrCodeBase64) {
+      setQrCountdown(30);
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+      qrCountdownRef.current = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            if (connectingDevice) {
+              callApi({ action: "refreshQr", deviceId: connectingDevice.id }).then(result => {
+                if (result?.alreadyConnected) {
+                  setConnectStep("done");
+                  qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                  return;
+                }
+                const b64 = result?.base64 || result?.qr;
+                if (b64) setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+              }).catch(() => {});
+            }
+            return 30;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; }
+    }
+    return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
+  }, [connectStep, qrCodeBase64, connectingDevice]);
+
+  const openConnect = (device: any) => {
+    setConnectingDevice(device);
+    setConnectStep("choose");
+    setQrCodeBase64("");
+    setPairingCode("");
+    setConnectError("");
+    setCodePhone("");
+    stopPolling();
+    setSelectedProxy(device.proxy_id || "none");
+    setConnectOpen(true);
+  };
+
+  const handleConnect = (method: "qr" | "code") => {
+    setConnectMethod(method);
+    setSelectedProxy(connectingDevice?.proxy_id || "none");
+    setConnectStep("proxy");
+  };
+
+  const handleConfirmProxy = async () => {
+    if (!connectingDevice) return;
+    const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
+
+    if (proxyId) {
+      await supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id);
+      await supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId);
+      qc.invalidateQueries({ queryKey: ["proxies"] });
+    } else if (selectedProxy === "none" && connectingDevice.proxy_id) {
+      await supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id);
+      await supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id);
+      qc.invalidateQueries({ queryKey: ["proxies"] });
+    }
+
+    setConnectError("");
+    if (connectMethod === "code") {
+      setConnectStep("code_phone");
+      return;
+    }
+    setConnectStep("qr");
+
+    try {
+      const selectedProxyData = proxyId ? availableProxies.find(p => p.id === proxyId) : null;
+      const proxyPayload = selectedProxyData ? {
+        host: selectedProxyData.host,
+        port: selectedProxyData.port,
+        username: selectedProxyData.username,
+        password: selectedProxyData.password,
+        type: selectedProxyData.type,
+      } : undefined;
+
+      const connectResult = await callApi({
+        action: "connect",
+        deviceId: connectingDevice.id,
+        proxyConfig: proxyPayload,
+        proxyId: proxyId || undefined,
+      });
+
+      if (connectResult?.error) {
+        setConnectError(connectResult.error);
+        if (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE") {
+          setConnectStep("proxy");
+        }
+        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
+        return;
+      }
+
+      if (connectResult.alreadyConnected) {
+        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        setConnectStep("done");
+        toast({ title: "Já conectado!" });
+        return;
+      }
+
+      const b64 = connectResult.base64 || connectResult.qr;
+      if (b64) {
+        setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
+      } else {
+        throw new Error("QR Code não retornado. Tente novamente.");
+      }
+
+      startPolling(connectingDevice.id, proxyId);
+    } catch (err: any) {
+      setConnectError(err?.message || "Erro ao conectar");
+      toast({ title: "Erro ao gerar QR Code", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const closeConnect = () => {
+    stopPolling();
+    setConnectStep("choose");
+    setConnectOpen(false);
+  };
+
+  // Warmup actions
   const handlePause = (deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Optimistic: instantly update UI
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.is_running ? { ...c, is_running: false, phase: "paused", previous_phase: c.phase } : c)
     );
@@ -119,7 +341,6 @@ const WarmupInstances = () => {
 
   const handleResume = (deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Optimistic: instantly update UI
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.phase === "paused" ? { ...c, is_running: true, phase: c.previous_phase || "groups_only" } : c)
     );
@@ -157,6 +378,350 @@ const WarmupInstances = () => {
               setShowWarning(false);
             }}>Entendi</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Connect dialog */}
+      <Dialog open={connectOpen} onOpenChange={(open) => { if (!open) closeConnect(); }}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+          {/* Header */}
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
+                connectStep === "done" ? "bg-emerald-500/15" : "bg-primary/10"
+              )}>
+                {connectStep === "done" ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                ) : connectStep === "qr" || connectStep === "code" ? (
+                  <QrCode className="w-6 h-6 text-primary" />
+                ) : (
+                  <Smartphone className="w-6 h-6 text-primary" />
+                )}
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">
+                  {connectStep === "done" ? "Conectado com sucesso!" : connectStep === "qr" ? "Escaneie o QR Code" : connectStep === "code" ? "Código de pareamento" : "Conectar WhatsApp"}
+                </DialogTitle>
+                {connectingDevice && connectStep !== "done" && (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {connectingDevice.profile_name || connectingDevice.name}{connectingDevice.number ? ` · ${formatPhone(connectingDevice.number)}` : ""}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-6 pt-5 overflow-hidden">
+            <AnimatePresence mode="wait">
+              {connectStep === "choose" && (
+                <motion.div key="choose" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-5">
+                  <p className="text-sm text-muted-foreground">Como deseja conectar seu WhatsApp?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleConnect("qr")}
+                      className="group relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                        <QrCode className="w-7 h-7 text-primary" />
+                      </div>
+                      <div className="text-center">
+                        <span className="text-sm font-bold text-foreground block">QR Code</span>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 block">Escaneie com o celular</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleConnect("code")}
+                      className="group relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all duration-200"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                        <Key className="w-7 h-7 text-primary" />
+                      </div>
+                      <div className="text-center">
+                        <span className="text-sm font-bold text-foreground block">Código</span>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 block">Digite um código numérico</span>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {connectStep === "proxy" && (
+                <motion.div key="proxy" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-5">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-medium text-foreground">Configurar proxy</p>
+                      <p className="text-xs text-muted-foreground">Proteja sua conexão com um proxy <span className="text-muted-foreground/50">(opcional)</span></p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Select value={selectedProxy} onValueChange={setSelectedProxy}>
+                      <SelectTrigger className="h-12 text-sm bg-muted/30 border-border/50">
+                        <SelectValue placeholder="Sem proxy" />
+                      </SelectTrigger>
+                      <SelectContent side="bottom" align="start" className="max-h-[250px]">
+                        <SelectItem value="none">
+                          <div className="flex items-center gap-2">
+                            <Ban className="w-3.5 h-3.5 text-muted-foreground/50" />
+                            <span className="text-sm text-muted-foreground">Sem proxy</span>
+                          </div>
+                        </SelectItem>
+                        {availableProxies.map(p => {
+                          const cls = p.status === "USANDO" ? "text-amber-500 border-amber-500/20 bg-amber-500/10" : p.status === "USADA" ? "text-red-400 border-red-500/20 bg-red-500/10" : "text-emerald-500 border-emerald-500/20 bg-emerald-500/10";
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{p.label}</span>
+                                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-semibold", cls)}>{p.status}</Badge>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {selectedProxy !== "none" && (
+                      <p className="text-[11px] text-primary/70 text-center flex items-center justify-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Proxy será testada antes de conectar
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button variant="outline" className="flex-1 h-11 text-sm" onClick={closeConnect}>
+                      Cancelar
+                    </Button>
+                    <Button className="flex-1 h-11 text-sm font-semibold" onClick={handleConfirmProxy}>
+                      Conectar
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {connectStep === "qr" && (
+                <motion.div key="qr" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-5">
+                  <div className="relative w-[272px] h-[272px]">
+                    {/* Loading */}
+                    <div className={cn(
+                      "absolute inset-0 w-64 h-64 m-auto rounded-2xl flex flex-col items-center justify-center border border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent overflow-hidden transition-all duration-500",
+                      !qrCodeBase64 && !connectError ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    )}>
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 animate-pulse">
+                        <QrCode className="w-8 h-8 text-primary" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">Gerando QR Code...</p>
+                      <p className="text-xs text-muted-foreground/50 mt-1">Aguarde alguns segundos</p>
+                    </div>
+                    {/* Error */}
+                    <div className={cn(
+                      "absolute inset-0 w-64 h-64 m-auto bg-destructive/5 rounded-2xl flex flex-col items-center justify-center border-2 border-destructive/20 p-6 transition-all duration-500",
+                      connectError ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    )}>
+                      <XCircle className="w-10 h-10 text-destructive mb-3" />
+                      <p className="text-sm text-destructive text-center leading-relaxed">{connectError}</p>
+                    </div>
+                    {/* QR Code */}
+                    <div className={cn(
+                      "absolute inset-0 flex items-center justify-center transition-all duration-500",
+                      qrCodeBase64 ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                    )}>
+                      <div className="relative p-4 rounded-2xl bg-white dark:bg-white shadow-lg">
+                        <img src={qrCodeBase64} alt="QR Code" className="w-64 h-64 rounded-lg" />
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border border-border/30 rounded-full px-3 py-1 shadow-sm">
+                          <svg className="w-4 h-4 -rotate-90" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--muted))" strokeWidth="2" />
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
+                              strokeDasharray={`${(qrCountdown / 30) * 62.83} 62.83`}
+                              strokeLinecap="round"
+                              className="transition-all duration-1000 ease-linear"
+                            />
+                          </svg>
+                          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">{qrCountdown}s</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-muted/30 rounded-xl p-4 space-y-2.5">
+                    <p className="text-xs font-semibold text-foreground mb-2">Como conectar:</p>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <p className="text-xs text-muted-foreground">Abra o <span className="font-medium text-foreground">WhatsApp</span> no celular</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <p className="text-xs text-muted-foreground">Toque em <span className="font-medium text-foreground">Configurações → Aparelhos conectados</span></p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      <p className="text-xs text-muted-foreground">Toque em <span className="font-medium text-foreground">Conectar um aparelho</span> e escaneie o código</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="gap-2 h-9 text-sm w-full"
+                    onClick={async () => {
+                      try {
+                        const result = await callApi({ action: "status", deviceId: connectingDevice!.id });
+                        if (result?.status === "authenticated") {
+                          stopPolling();
+                          setConnectStep("done");
+                          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                          toast({ title: "Conectado!" });
+                          try {
+                            const { data: { session: s } } = await supabase.auth.getSession();
+                            if (s) {
+                              await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
+                              qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                            }
+                          } catch {}
+                        } else {
+                          toast({ title: "⏳ QR Code ainda não foi escaneado", description: "Escaneie o QR Code acima e aguarde a conexão." });
+                        }
+                      } catch {
+                        toast({ title: "Erro ao verificar", description: "Tente novamente." });
+                      }
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Já escaneei, sincronizar
+                  </Button>
+                </motion.div>
+              )}
+
+              {connectStep === "code_phone" && (() => {
+                const rawDigits = codePhone.replace(/\D/g, "");
+                const isValid = rawDigits.length >= 12;
+                const handleRequestCode = async () => {
+                  if (!connectingDevice || !isValid) return;
+                  setConnectStep("code");
+                  try {
+                    const pd = connectingDevice.proxy_id ? availableProxies.find(p => p.id === connectingDevice.proxy_id) : null;
+                    const pp = pd ? { host: pd.host, port: pd.port, username: pd.username, password: pd.password, type: pd.type } : undefined;
+                    const result = await callApi({ action: "requestPairingCode", deviceId: connectingDevice.id, phoneNumber: rawDigits, proxyConfig: pp, proxyId: connectingDevice.proxy_id || undefined });
+                    if (result?.error && result?.code === "PROXY_FAILED") {
+                      setConnectError(result.error);
+                      setConnectStep("proxy");
+                      qc.invalidateQueries({ queryKey: ["proxies"] });
+                      toast({ title: "Proxy inválida", description: result.error, variant: "destructive" });
+                      return;
+                    }
+                    if (result.alreadyConnected) { setConnectStep("done"); toast({ title: "Já conectado!" }); return; }
+                    const code = result.pairingCode || result.pairing_code;
+                    if (code) { setPairingCode(code); startPolling(connectingDevice.id, null); }
+                    else { toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" }); setConnectStep("choose"); }
+                  } catch {
+                    toast({ title: "Código não disponível", description: "Conecte via QR Code.", variant: "destructive" });
+                    setConnectStep("choose");
+                  }
+                };
+                return (
+                  <motion.div key="code_phone" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-5">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Smartphone className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <p className="text-sm font-medium text-foreground">Conectar via código</p>
+                        <p className="text-xs text-muted-foreground">Insira o número completo com código do país</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                          <span className="text-base">🇧🇷</span>
+                        </div>
+                        <Input
+                          value={codePhone}
+                          onChange={e => {
+                            const raw = e.target.value.replace(/\D/g, "").slice(0, 13);
+                            let f = raw;
+                            if (raw.length > 2) f = `+${raw.slice(0, 2)} ${raw.slice(2)}`;
+                            if (raw.length > 4) f = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4)}`;
+                            if (raw.length > 9) f = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
+                            setCodePhone(f);
+                          }}
+                          placeholder="+55 11 99999-9999"
+                          className="h-14 pl-10 text-lg font-mono tracking-wider bg-muted/30 border-border/50 focus-visible:border-primary/60 focus-visible:ring-primary/20 transition-all"
+                          autoFocus
+                          onKeyDown={e => { if (e.key === "Enter" && isValid) handleRequestCode(); }}
+                        />
+                        {isValid && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <CheckCircle2 className="w-5 h-5 text-primary" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/60 text-center flex items-center justify-center gap-1">
+                        <span>Ex:</span> <span className="font-mono">+55 63 91234-5678</span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => setConnectStep("proxy")}>Voltar</Button>
+                      <Button className="flex-1 h-11 text-sm font-semibold" disabled={!isValid} onClick={handleRequestCode}>Gerar código</Button>
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
+              {connectStep === "code" && (
+                <motion.div key="code" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-5">
+                  {pairingCode ? (
+                    <div className="relative px-10 py-6 rounded-2xl bg-card border-2 border-primary/20 shadow-lg">
+                      <p className="text-3xl font-mono font-bold tracking-[0.5em] text-foreground">{pairingCode}</p>
+                      <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <Lock className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    </div>
+                  ) : connectError ? (
+                    <div className="px-8 py-5 rounded-2xl bg-destructive/5 border-2 border-destructive/20">
+                      <p className="text-sm text-destructive text-center">{connectError}</p>
+                    </div>
+                  ) : (
+                    <div className="w-64 py-8 rounded-2xl flex flex-col items-center justify-center border-2 border-border/20 bg-muted/10">
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                        <Key className="w-7 h-7 text-primary animate-pulse" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Gerando código...</p>
+                      <div className="flex items-center gap-1.5 mt-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  )}
+                  <div className="w-full bg-muted/30 rounded-xl p-4 space-y-2.5">
+                    <p className="text-xs font-semibold text-foreground mb-2">Como conectar:</p>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <p className="text-xs text-muted-foreground">Abra o <span className="font-medium text-foreground">WhatsApp</span> no celular</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <p className="text-xs text-muted-foreground">Vá em <span className="font-medium text-foreground">Aparelhos conectados → Conectar com número</span></p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      <p className="text-xs text-muted-foreground">Digite o código acima</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {connectStep === "done" && (
+                <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }} className="flex flex-col items-center gap-5 py-8">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                    <CheckCircle2 className="w-9 h-9 text-emerald-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-foreground">Conectado com sucesso!</p>
+                    <p className="text-sm text-muted-foreground mt-1">Sua instância está pronta para uso</p>
+                  </div>
+                  <Button className="h-10 px-8" onClick={closeConnect}>Fechar</Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -237,9 +802,6 @@ const WarmupInstances = () => {
           {displayed.map(device => {
             const cycle = getDeviceCycle(device.id);
             const connected = isConnected(device.status);
-            const budgetUsed = cycle?.daily_interaction_budget_used ?? 0;
-            const budgetTarget = cycle?.daily_interaction_budget_target ?? 0;
-            const budgetPct = budgetTarget > 0 ? Math.round((budgetUsed / budgetTarget) * 100) : 0;
             const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
 
             return (
@@ -316,14 +878,13 @@ const WarmupInstances = () => {
                   </div>
                 </div>
 
-
                 {/* Actions */}
                 <div className="px-4 pb-4 space-y-2">
                   {!connected ? (
                     <Button
                       size="sm"
                       className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/devices`); }}
+                      onClick={(e) => { e.stopPropagation(); openConnect(device); }}
                     >
                       <Wifi className="w-3.5 h-3.5" /> Conectar
                     </Button>
