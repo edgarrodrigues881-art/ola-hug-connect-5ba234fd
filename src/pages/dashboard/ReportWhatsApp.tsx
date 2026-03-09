@@ -143,6 +143,10 @@ export default function ReportWhatsApp() {
     setQrCodeBase64("");
     setQrConnected(false);
     setConnectError("");
+    setConnectMethod("qr");
+    setConnectStep("qr");
+    setPairingCode("");
+    setPairingPhone("");
     // Start QR flow immediately
     handleConnectQR();
   };
