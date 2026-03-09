@@ -273,26 +273,14 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* protections */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-3">
+          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-2">
             <p className="text-xs font-bold text-foreground flex items-center gap-2">
               <Shield className="w-4 h-4 text-primary" />
               Proteções automáticas
             </p>
-            <div className="grid gap-2">
-              {[
-                { icon: Timer, text: "Primeiras 24h sem mensagens — apenas entrada gradual em grupos." },
-                { icon: Users, text: "Entrada automática em 3 a 5 grupos (pool de 8), delay aleatório." },
-                { icon: Zap, text: "Após 24h: ativação progressiva → Grupos → Auto Save → Comunidade." },
-                { icon: MessageSquare, text: "Orçamento diário de 20 a 30 interações PV/Auto Save." },
-                { icon: Shield, text: "Limite de 55 destinatários únicos por dia (editável)." },
-                { icon: ScrollText, text: "Tudo registrado em logs para auditoria completa." },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <item.icon className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{item.text}</p>
-                </div>
-              ))}
-            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              O sistema aplica limites diários, delays aleatórios e evolução progressiva automaticamente para proteger seu chip.
+            </p>
           </div>
 
           {/* CTA */}
