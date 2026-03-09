@@ -421,7 +421,7 @@ const AutoSave = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 scrollbar-thin">
           {filtered.map(c => (
             <Card key={c.id} className={cn(!c.is_active && "opacity-50")}>
               <CardContent className="p-3 flex items-center gap-3">
