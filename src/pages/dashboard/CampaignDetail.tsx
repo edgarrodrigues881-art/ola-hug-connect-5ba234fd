@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
