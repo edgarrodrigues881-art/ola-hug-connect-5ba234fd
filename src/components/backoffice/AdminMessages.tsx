@@ -824,7 +824,7 @@ const AdminMessages = () => {
           <button onClick={() => { setView("list"); setSelectedClient(null); }} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowLeft size={18} className="text-muted-foreground" />
           </button>
-          <h2 className="text-lg font-bold text-foreground">Enviar Relatório</h2>
+          <h2 className="text-lg font-bold text-foreground">Detalhes do Cliente</h2>
         </div>
 
         {/* Client info card */}
