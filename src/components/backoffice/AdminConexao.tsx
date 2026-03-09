@@ -45,7 +45,7 @@ export default function AdminConexao() {
       const { data } = await supabase
         .from("community_settings")
         .select("key, value")
-        .in("key", ["wa_report_device_id", "wa_report_group_id"]);
+        .in("key", ["wa_report_device_id", "wa_report_group_id", "wa_report_group_name"]);
       const map: Record<string, string> = {};
       for (const r of data || []) map[r.key] = r.value;
       return map;
@@ -54,6 +54,7 @@ export default function AdminConexao() {
 
   const deviceId = settings?.wa_report_device_id || null;
   const groupId = settings?.wa_report_group_id || null;
+  const groupName = settings?.wa_report_group_name || null;
 
   // Get device info
   const { data: device, isLoading: deviceLoading } = useQuery({
@@ -95,13 +96,13 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "connect", device_id: deviceId }),
+          body: JSON.stringify({ action: "connect", deviceId }),
         }
       );
       const result = await res.json();
 
-      if (result.qr_base64) {
-        setQrCodeBase64(result.qr_base64);
+      if (result.base64 || result.qr) {
+        setQrCodeBase64(result.base64 || result.qr);
         startCountdownAndPoll(deviceId);
       } else if (result.pairing_code) {
         setPairingCode(result.pairing_code);
@@ -165,13 +166,13 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "pairing-code", device_id: deviceId, phone: pairingPhone.replace(/\D/g, "") }),
+          body: JSON.stringify({ action: "requestPairingCode", deviceId, phoneNumber: pairingPhone.replace(/\D/g, "") }),
         }
       );
       const result = await res.json();
 
-      if (result.pairing_code || result.code) {
-        setPairingCode(result.pairing_code || result.code);
+      if (result.pairingCode || result.pairing_code) {
+        setPairingCode(result.pairingCode || result.pairing_code);
         startCountdownAndPoll(deviceId);
       } else {
         setConnectError(result.error || "Erro ao gerar código");
@@ -199,7 +200,7 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "logout", device_id: deviceId }),
+          body: JSON.stringify({ action: "logout", deviceId }),
         }
       );
 
@@ -214,14 +215,22 @@ export default function AdminConexao() {
 
   // ─── Load Groups ───
   const loadGroups = async () => {
-    if (!device?.uazapi_base_url || !device?.uazapi_token) return;
+    if (!deviceId) return;
     setLoadingGroups(true);
     try {
-      const res = await fetch(`${device.uazapi_base_url}/chats/groups`, {
-        headers: { token: device.uazapi_token },
-      });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "listGroups", deviceId }),
+        }
+      );
       const data = await res.json();
-      const list = (Array.isArray(data) ? data : data?.groups || []).map((g: any) => ({
+      const raw = Array.isArray(data?.groups) ? data.groups : Array.isArray(data) ? data : [];
+      const list = raw.map((g: any) => ({
         id: g.id || g.jid,
         name: g.name || g.subject || "Sem nome",
         participants: g.participants?.length || g.size || 0,
@@ -235,26 +244,25 @@ export default function AdminConexao() {
   };
 
   // ─── Select Group ───
+  const upsertSetting = async (key: string, value: string) => {
+    const { data: existing } = await supabase
+      .from("community_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("community_settings").update({ value }).eq("key", key);
+    } else {
+      await supabase.from("community_settings").insert({ key, value });
+    }
+  };
+
   const selectGroup = async (group: WhatsAppGroup) => {
     try {
-      // Upsert wa_report_group_id
-      const { data: existing } = await supabase
-        .from("community_settings")
-        .select("id")
-        .eq("key", "wa_report_group_id")
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from("community_settings")
-          .update({ value: group.id })
-          .eq("key", "wa_report_group_id");
-      } else {
-        await supabase
-          .from("community_settings")
-          .insert({ key: "wa_report_group_id", value: group.id });
-      }
-
+      await Promise.all([
+        upsertSetting("wa_report_group_id", group.id),
+        upsertSetting("wa_report_group_name", group.name),
+      ]);
       queryClient.invalidateQueries({ queryKey: ["admin-conexao-settings"] });
       toast.success(`Grupo "${group.name}" selecionado`);
       setGroups([]);
@@ -265,20 +273,28 @@ export default function AdminConexao() {
 
   // ─── Send Test ───
   const sendTest = async () => {
-    if (!device?.uazapi_base_url || !device?.uazapi_token || !groupId) return;
+    if (!deviceId || !groupId) return;
     setSendingTest(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
       const groupNumber = groupId.replace(/@g\.us$/, "");
-      const res = await fetch(`${device.uazapi_base_url}/send/text`, {
-        method: "POST",
-        headers: { token: device.uazapi_token, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          number: groupNumber,
-          text: "✅ Teste de conexão — DG Contingência PRO\n\nSe você recebeu esta mensagem, a conexão está funcionando.",
-        }),
-      });
-      if (res.ok) toast.success("Mensagem de teste enviada!");
-      else toast.error("Falha ao enviar teste");
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "sendText",
+            deviceId,
+            number: groupNumber,
+            text: "✅ Teste de conexão — DG Contingência PRO\n\nSe você recebeu esta mensagem, a conexão está funcionando.",
+          }),
+        }
+      );
+      const result = await res.json();
+      if (result.success) toast.success("Mensagem de teste enviada!");
+      else toast.error(result.error || "Falha ao enviar teste");
     } catch (e) {
       toast.error("Erro de conexão");
     } finally {
@@ -379,7 +395,7 @@ export default function AdminConexao() {
         {groupId ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-sm text-foreground">{groupId}</p>
+              <p className="text-sm font-medium text-foreground">{groupName || "Grupo de Relatórios"}</p>
               <p className="text-xs text-muted-foreground mt-0.5">As mensagens automáticas e relatórios serão enviados para este grupo.</p>
             </div>
             <div className="flex gap-2">
