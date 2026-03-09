@@ -89,41 +89,108 @@ Deno.serve(async (req) => {
     };
 
     if (action === "list_chats") {
-      // UaZapi V2: fetch ALL groups using pagination
+      const forceRefresh = url.searchParams.get("refresh") === "true";
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
-      
-      // Try multiple pages to get all groups
-      const maxPages = 5;
+
+      // Helper: fetch with retry
+      const fetchWithRetry = async (endpoint: string, retries = 2): Promise<any> => {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+            if (!res.ok) {
+              if (attempt < retries) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                continue;
+              }
+              return null;
+            }
+            return await res.json();
+          } catch (e) {
+            console.error(`Fetch attempt ${attempt} failed for ${endpoint}:`, e);
+            if (attempt < retries) {
+              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+          }
+        }
+        return null;
+      };
+
+      const addGroups = (groups: any[]) => {
+        for (const g of groups) {
+          const jid = g.JID || g.jid || g.id || g.groupJid || "";
+          if (jid && !seenJids.has(jid)) {
+            seenJids.add(jid);
+            allGroups.push(g);
+          }
+        }
+      };
+
+      // Strategy 1: Paginated group/list
+      const maxPages = 8;
       for (let page = 0; page < maxPages; page++) {
         const endpoint = `${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`;
         console.log(`Fetching groups page ${page}: ${endpoint}`);
         
-        const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
-        if (!res.ok) {
-          console.log(`Page ${page} failed: ${res.status}`);
-          break;
-        }
-        const data = await res.json();
+        const data = await fetchWithRetry(endpoint);
+        if (!data) break;
+        
         const groups = data.groups || data || [];
         const groupArray = Array.isArray(groups) ? groups : [];
         
         if (groupArray.length === 0) break;
         
-        let newCount = 0;
-        for (const g of groupArray) {
-          const jid = g.JID || g.jid || g.id || "";
-          if (jid && !seenJids.has(jid)) {
-            seenJids.add(jid);
-            allGroups.push(g);
-            newCount++;
-          }
-        }
+        const prevCount = seenJids.size;
+        addGroups(groupArray);
+        const newCount = seenJids.size - prevCount;
         
-        console.log(`Page ${page}: ${groupArray.length} returned, ${newCount} new. Total unique: ${allGroups.length}`);
+        console.log(`Page ${page}: ${groupArray.length} returned, ${newCount} new. Total: ${seenJids.size}`);
         
-        // If no new groups were found, we've got them all
         if (newCount === 0) break;
+      }
+
+      // Strategy 2: Try alternative endpoint /chat/list filtering groups (catches recently joined groups)
+      if (forceRefresh || allGroups.length === 0) {
+        try {
+          const chatListEndpoint = `${apiBaseUrl}/chat/list?count=500`;
+          console.log(`Trying alternative chat/list: ${chatListEndpoint}`);
+          const chatData = await fetchWithRetry(chatListEndpoint, 1);
+          if (chatData) {
+            const chats = chatData.chats || chatData || [];
+            const chatArray = Array.isArray(chats) ? chats : [];
+            const groupChats = chatArray.filter((c: any) => {
+              const id = c.JID || c.jid || c.id || c.chatId || "";
+              return id.includes("@g.us");
+            });
+            if (groupChats.length > 0) {
+              const prevCount = seenJids.size;
+              addGroups(groupChats);
+              console.log(`chat/list found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
+            }
+          }
+        } catch (e) {
+          console.log("Alternative chat/list failed:", e);
+        }
+      }
+
+      // Strategy 3: Try /group/listAll (some UaZapi versions support this)
+      if (forceRefresh) {
+        try {
+          const listAllEndpoint = `${apiBaseUrl}/group/listAll`;
+          console.log(`Trying group/listAll: ${listAllEndpoint}`);
+          const allData = await fetchWithRetry(listAllEndpoint, 1);
+          if (allData) {
+            const groups = allData.groups || allData || [];
+            const groupArray = Array.isArray(groups) ? groups : [];
+            if (groupArray.length > 0) {
+              const prevCount = seenJids.size;
+              addGroups(groupArray);
+              console.log(`group/listAll found ${groupArray.length} groups, ${seenJids.size - prevCount} new`);
+            }
+          }
+        } catch (e) {
+          console.log("group/listAll failed:", e);
+        }
       }
       
       console.log(`Total unique groups: ${allGroups.length}`);
@@ -155,7 +222,6 @@ Deno.serve(async (req) => {
 
     if (action === "send_message" && req.method === "POST") {
       const body = await req.json();
-      // Keep group JIDs (@g.us) intact, only strip non-digits for phone numbers
       const to = body.to || "";
       const isGroup = to.includes("@g.us");
       const number = isGroup ? to : to.replace(/\D/g, "");

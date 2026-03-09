@@ -224,13 +224,14 @@ export default function ReportWhatsApp() {
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   }, [qrDialogOpen, reportDevice?.id, qrConnected, connectStep]);
 
-  const fetchGroups = async (deviceId: string) => {
+  const fetchGroups = async (deviceId: string, forceRefresh = false) => {
     setLoadingGroups(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
+      const refreshParam = forceRefresh ? "&refresh=true" : "";
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       if (!res.ok) {
@@ -423,7 +424,7 @@ export default function ReportWhatsApp() {
               )}
               {isConnected && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
+                  <Button variant="outline" size="sm" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id, true)} disabled={loadingGroups} className="gap-1.5 h-7 text-[11px]">
                     {loadingGroups ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                     Sincronizar
                   </Button>
@@ -450,14 +451,14 @@ export default function ReportWhatsApp() {
       {/* 3 Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <AlertCard
-          icon={<Flame className="w-5 h-5 text-orange-500" />}
+          icon={<Flame className="w-4 h-4 text-orange-500" />}
           iconColor="orange"
           title="Aquecimento"
           description="Relatórios após cada ciclo de 24h."
           groups={groups}
           selectedGroupId={config?.warmup_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           loadingGroups={loadingGroups}
@@ -467,14 +468,14 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Megaphone className="w-5 h-5 text-teal-500" />}
+          icon={<Megaphone className="w-4 h-4 text-primary" />}
           iconColor="teal"
           title="Campanhas"
           description="Alertas de eventos de campanha."
           groups={groups}
           selectedGroupId={config?.campaigns_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
           loadingGroups={loadingGroups}
@@ -484,14 +485,14 @@ export default function ReportWhatsApp() {
         />
 
         <AlertCard
-          icon={<Plug className="w-5 h-5 text-emerald-500" />}
+          icon={<Plug className="w-4 h-4 text-emerald-500" />}
           iconColor="emerald"
           title="Conexão"
           description="Alertas de mudança de status."
           groups={groups}
           selectedGroupId={config?.connection_group_id || ""}
           onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id)}
+          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
           loadingGroups={loadingGroups}
@@ -676,83 +677,115 @@ function AlertCard({
     .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-  const iconBg = {
-    orange: "bg-orange-500/10",
-    teal: "bg-teal-500/10",
-    emerald: "bg-emerald-500/10",
+  const accentMap = {
+    orange: {
+      bg: "bg-orange-500/8",
+      border: "border-orange-500/15",
+      dot: "bg-orange-500",
+      text: "text-orange-500",
+    },
+    teal: {
+      bg: "bg-primary/8",
+      border: "border-primary/15",
+      dot: "bg-primary",
+      text: "text-primary",
+    },
+    emerald: {
+      bg: "bg-emerald-500/8",
+      border: "border-emerald-500/15",
+      dot: "bg-emerald-500",
+      text: "text-emerald-500",
+    },
   }[iconColor];
 
   return (
     <>
-      <div className="flex flex-col rounded-xl border border-border/20 bg-card/50 overflow-hidden">
+      <div className={`flex flex-col rounded-2xl border bg-card/30 backdrop-blur-sm overflow-hidden transition-all duration-200 ${enabled ? accentMap.border : "border-border/10"}`}>
+        {/* Accent line */}
+        <div className={`h-[2px] w-full transition-colors duration-300 ${enabled ? accentMap.dot : "bg-muted/15"}`} />
+
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 space-y-2">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
-              {icon}
+        <div className="px-5 pt-5 pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${enabled ? accentMap.bg : "bg-muted/15"}`}>
+                {icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{title}</p>
+                <p className="text-[11px] text-muted-foreground/50 mt-0.5 leading-tight">{description}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-foreground">{title}</p>
-              <p className="text-[10px] text-muted-foreground/50 mt-0.5">{description}</p>
-            </div>
-            <Switch checked={enabled} onCheckedChange={onToggle} />
+            <Switch checked={enabled} onCheckedChange={onToggle} className="mt-0.5" />
           </div>
         </div>
 
-        <div className="px-4 pb-4 space-y-3 flex-1 flex flex-col">
+        {/* Content */}
+        <div className="px-5 pb-5 space-y-4 flex-1 flex flex-col">
           {/* Group selector */}
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-1.5 block">
+          <div className="space-y-2">
+            <label className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
               Grupo de destino
             </label>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between h-8 text-[11px] font-normal border-border/15">
-                  <span className="truncate">{selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecione um grupo")}</span>
-                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                <button className={`w-full flex items-center justify-between gap-2 h-9 px-3 rounded-xl border text-[12px] transition-all ${
+                  selectedGroup 
+                    ? "border-border/30 bg-card text-foreground" 
+                    : "border-border/15 bg-muted/5 text-muted-foreground/50"
+                } hover:border-border/40 hover:bg-card/60`}>
+                  <span className="truncate text-left">{selectedGroup ? selectedGroup.name : (loadingGroups ? "Carregando..." : "Selecionar grupo...")}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {selectedGroup && (
                       <span
                         role="button"
-                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5"
                         onClick={(e) => { e.stopPropagation(); onGroupSelect(""); }}
                       >
                         <X className="w-3 h-3" />
                       </span>
                     )}
-                    <Users className="w-3 h-3 text-muted-foreground/40" />
+                    <Users className="w-3.5 h-3.5 text-muted-foreground/30" />
                   </div>
-                </Button>
+                </button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <div className="p-2 border-b border-border/20 flex gap-1.5">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl overflow-hidden" align="start">
+                <div className="p-2.5 border-b border-border/15 flex gap-2 bg-card">
                   <Input
                     placeholder="Pesquisar grupo..."
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
-                    className="h-7 text-[11px] flex-1"
+                    className="h-8 text-[11px] flex-1 rounded-lg bg-muted/10 border-border/10"
                     autoFocus
                   />
                   {onRefreshGroups && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRefreshGroups} disabled={loadingGroups}>
-                      <RefreshCw className={`w-3 h-3 ${loadingGroups ? "animate-spin" : ""}`} />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-lg hover:bg-muted/20" onClick={onRefreshGroups} disabled={loadingGroups}>
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
                     </Button>
                   )}
                 </div>
-                <div className="max-h-[180px] overflow-y-auto p-1">
+                <div className="max-h-[220px] overflow-y-auto p-1.5">
                   {filteredGroups.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground text-center py-3">
-                      {loadingGroups ? "Carregando..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte uma instância"}
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-6 gap-2">
+                      <Users className="w-5 h-5 text-muted-foreground/20" />
+                      <p className="text-[11px] text-muted-foreground/40">
+                        {loadingGroups ? "Carregando grupos..." : groupSearch ? "Nenhum grupo encontrado" : "Conecte a instância primeiro"}
+                      </p>
+                    </div>
                   ) : (
                     filteredGroups.map((g) => (
                       <button
                         key={g.id}
-                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-accent transition-colors flex items-center justify-between gap-2 ${selectedGroupId === g.id ? "bg-accent" : ""}`}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-[11px] transition-all flex items-center justify-between gap-2 ${
+                          selectedGroupId === g.id 
+                            ? "bg-primary/10 text-primary" 
+                            : "hover:bg-muted/15 text-foreground/80"
+                        }`}
                         onClick={() => { onGroupSelect(g.id); setGroupSearch(""); setPopoverOpen(false); }}
                       >
                         <span className="truncate">{g.name}</span>
                         {g.participants && (
-                          <span className="text-muted-foreground/40 flex items-center gap-0.5 shrink-0 text-[10px]">
+                          <span className="text-muted-foreground/30 flex items-center gap-0.5 shrink-0 text-[10px]">
                             <Users className="w-2.5 h-2.5" />{g.participants}
                           </span>
                         )}
@@ -764,54 +797,56 @@ function AlertCard({
             </Popover>
           </div>
 
-          {/* Monitored events — compact */}
-          <div className="space-y-1 mt-auto">
-            <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider block">
-              Eventos
+          {/* Monitored events */}
+          <div className="space-y-2 mt-auto">
+            <label className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
+              Eventos monitorados
             </label>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {monitoredEvents.map((evt) => (
-                <Badge key={evt} variant="secondary" className="text-[9px] h-5 px-1.5 font-normal bg-muted/30 text-muted-foreground/70">
+                <span key={evt} className="text-[10px] px-2 py-1 rounded-md bg-muted/10 text-muted-foreground/60 border border-border/8">
                   {evt}
-                </Badge>
+                </span>
               ))}
             </div>
           </div>
 
           {/* Preview button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-[11px] gap-1.5 h-7 text-muted-foreground hover:text-foreground"
+          <button
+            className="w-full flex items-center justify-center gap-2 h-8 rounded-xl text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-muted/10 transition-all border border-transparent hover:border-border/15"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-3.5 h-3.5" />
             Ver mensagem
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* WhatsApp-style Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-sm p-0 overflow-hidden">
-          <div className="bg-[#075E54] p-3.5 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-              <Smartphone className="w-4 h-4 text-white" />
+        <DialogContent className="max-w-sm p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
+          {/* WhatsApp header */}
+          <div className="bg-[#202C33] px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#6B7B8D]/20 flex items-center justify-center">
+              <Smartphone className="w-4 h-4 text-[#AEBAC1]" />
             </div>
             <div>
-              <p className="text-white text-sm font-medium">Relatório Via WhatsApp</p>
-              <p className="text-white/70 text-[11px]">online</p>
+              <p className="text-[#E9EDEF] text-[14px] font-medium">Relatório Via WhatsApp</p>
+              <p className="text-[#8696A0] text-[11px]">online</p>
             </div>
           </div>
-          <div className="bg-[#ECE5DD] dark:bg-[#0B141A] p-4 min-h-[220px]">
-            <div className="bg-white dark:bg-[#1F2C34] rounded-lg p-3.5 shadow-sm max-w-[90%] ml-auto">
-              <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-[#111B21] dark:text-[#E9EDEF]">
+          {/* Chat body */}
+          <div className="p-4 min-h-[220px]" style={{ backgroundColor: "#0B141A" }}>
+            <div className="bg-[#005C4B] rounded-xl p-3.5 shadow-md max-w-[88%] ml-auto">
+              <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-[#E9EDEF]">
                 {previewMessage}
               </p>
-              <p className="text-[10px] text-[#667781] dark:text-[#8696A0] text-right mt-2 flex items-center justify-end gap-1">
-                {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                <CheckCircle2 className="w-3 h-3 text-[#53BDEB]" />
-              </p>
+              <div className="flex items-center justify-end gap-1 mt-2">
+                <span className="text-[10px] text-[#8696A0]/60">
+                  {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="text-[10px] text-[#53BDEB]/70">✓✓</span>
+              </div>
             </div>
           </div>
         </DialogContent>
