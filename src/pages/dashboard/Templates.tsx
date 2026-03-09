@@ -260,12 +260,19 @@ const Templates = () => {
   };
 
   const cycleSendMode = (id: number) => {
-    setFormMediaFiles(prev => prev.map(f => {
-      if (f.id !== id) return f;
+    setFormMediaFiles(prev => {
+      const current = prev.find(f => f.id === id);
+      if (!current) return prev;
       const order: Array<MediaFile["sendMode"]> = ["before", "with", "after"];
-      const nextIdx = (order.indexOf(f.sendMode) + 1) % order.length;
-      return { ...f, sendMode: order[nextIdx] };
-    }));
+      const nextIdx = (order.indexOf(current.sendMode) + 1) % order.length;
+      const nextMode = order[nextIdx];
+      return prev.map(f => {
+        if (f.id === id) return { ...f, sendMode: nextMode };
+        // Only one can be "with" — bump others to "before"
+        if (nextMode === "with" && f.sendMode === "with") return { ...f, sendMode: "before" };
+        return f;
+      });
+    });
   };
 
   const handleSave = () => {
