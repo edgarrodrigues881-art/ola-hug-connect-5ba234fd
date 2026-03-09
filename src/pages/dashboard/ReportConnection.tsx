@@ -461,10 +461,6 @@ export default function ReportConnection() {
                     {loadingGroups ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                     Sincronizar
                   </Button>
-                  <Button variant="outline" size="sm" onClick={sendTestMessage} disabled={sendingTest || !reportDevice?.id} className="gap-1.5 h-7 text-[11px]">
-                    {sendingTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    Teste
-                  </Button>
                   <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting} className="gap-1.5 h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20">
                     {disconnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogOut className="w-3 h-3" />}
                     Desconectar

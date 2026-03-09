@@ -58,13 +58,6 @@ const ExpiredClients = ({ clients, plans }: Props) => {
             <Badge className="bg-red-600/80 text-white text-[10px] px-2 shrink-0">
               Expirado há {daysExpired(c.expiresAt)}d
             </Badge>
-            <Button
-              size="sm"
-              onClick={() => sendWhatsApp(c)}
-              className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs shrink-0"
-            >
-              <MessageCircle size={14} className="mr-1" /> Mensagem
-            </Button>
           </div>
         ))}
       </div>

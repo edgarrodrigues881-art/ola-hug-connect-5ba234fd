@@ -219,9 +219,6 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, toggleClientA
                         <Button size="sm" variant="outline" onClick={() => { setWarmupModal({ clientId: c.id, instanceId: inst.id, name: inst.name }); setWarmupForm({ messages: 10, interval: 5, contacts: "" }); }} className="h-7 text-xs border-zinc-600 text-orange-300">
                           <Flame size={12} className="mr-1" /> Aquecer
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setBulkModal({ clientId: c.id, instanceId: inst.id, name: inst.name })} className="h-7 text-xs border-zinc-600 text-primary">
-                          <Send size={12} className="mr-1" /> Disparo
-                        </Button>
                       </>
                     )}
                     {inst.qrCodeUrl && inst.status === "CONECTANDO" && (
@@ -286,19 +283,6 @@ const ClientsSection = ({ clients, plans, addClient, deleteClient, toggleClientA
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Send Modal */}
-      <Dialog open={!!bulkModal} onOpenChange={() => setBulkModal(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
-          <DialogHeader><DialogTitle>Disparo em Massa — {bulkModal?.name}</DialogTitle></DialogHeader>
-          <p className="text-xs text-zinc-400">Upload CSV com colunas: numero, mensagem</p>
-          <Input
-            type="file"
-            accept=".csv"
-            onChange={(e) => handleBulkSend(e.target.files?.[0] ?? null)}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100"
-          />
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };
