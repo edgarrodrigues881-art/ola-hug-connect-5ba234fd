@@ -901,7 +901,7 @@ Deno.serve(async (req) => {
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
-                await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount);
+                await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
                 break;
               }
               console.log(`Number ${normalizedPhone} invalid, skipping without delay`);
