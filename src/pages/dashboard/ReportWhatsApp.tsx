@@ -145,16 +145,29 @@ export default function ReportWhatsApp() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Radio className="w-4 h-4 text-primary" />
-          </div>
-          Relatório Via WhatsApp
-        </h1>
-        <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
-          Configure notificações automáticas para grupos do WhatsApp.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Radio className="w-4 h-4 text-primary" />
+            </div>
+            Relatório Via WhatsApp
+          </h1>
+          <p className="text-muted-foreground text-xs mt-1 ml-[42px]">
+            Configure notificações automáticas para grupos do WhatsApp.
+          </p>
+        </div>
+        {canUseReport && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 shrink-0"
+            onClick={() => navigate("/dashboard/report-connection")}
+          >
+            <Plug className="w-4 h-4" />
+            Conexão
+          </Button>
+        )}
       </div>
 
       {/* 3 Cards */}
