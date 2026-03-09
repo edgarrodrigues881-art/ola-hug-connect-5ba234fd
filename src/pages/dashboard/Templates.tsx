@@ -511,6 +511,7 @@ const Templates = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="sm:max-w-[380px] max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
 
           {/* WhatsApp Preview Container */}
