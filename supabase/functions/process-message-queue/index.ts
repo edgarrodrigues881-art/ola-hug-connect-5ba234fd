@@ -19,10 +19,11 @@ function buildMessageByType(
     case "WELCOME":
       return (
         `Olá ${nome}! 👋\n\n` +
-        `Seja bem-vindo(a) ao DG CONTINGÊNCIA PRO!\n\n` +
-        `Seu plano ${plano} já está ativo.\n` +
-        `Vencimento: ${vencimento}\n\n` +
-        `Qualquer dúvida, fale com nosso suporte: ${SUPORTE_NUMERO}\n\n` +
+        `Seja bem-vindo ao DG CONTINGÊNCIA PRO.\n\n` +
+        `Seu teste gratuito de 3 dias já está ativo.\n\n` +
+        `📅 Vencimento: ${vencimento}\n\n` +
+        `Se precisar de ajuda, fale com nosso suporte:\n` +
+        `📞 ${SUPORTE_NUMERO}\n\n` +
         `Bons envios! 🚀`
       );
     case "DUE_3_DAYS":
