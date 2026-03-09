@@ -24,6 +24,7 @@ const AdminInfra = lazy(() => import("./AdminInfra"));
 const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
+const AdminConexao = lazy(() => import("./AdminConexao"));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   WELCOME: { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
