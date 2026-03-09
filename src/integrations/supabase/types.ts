@@ -1834,7 +1834,7 @@ export type Database = {
         | "WARMUP_REPORT_24H"
         | "TEST_ALERT"
       app_role: "admin" | "moderator" | "user"
-      warmup_chip_state: "new" | "recovered"
+      warmup_chip_state: "new" | "recovered" | "unstable"
       warmup_group_join_status: "pending" | "joined" | "failed" | "left"
       warmup_job_status:
         | "pending"
@@ -2001,7 +2001,7 @@ export const Constants = {
         "TEST_ALERT",
       ],
       app_role: ["admin", "moderator", "user"],
-      warmup_chip_state: ["new", "recovered"],
+      warmup_chip_state: ["new", "recovered", "unstable"],
       warmup_group_join_status: ["pending", "joined", "failed", "left"],
       warmup_job_status: [
         "pending",
