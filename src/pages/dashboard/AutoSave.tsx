@@ -58,7 +58,7 @@ function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, 
                 {c.contact_name || "Sem nome"}
               </p>
             </div>
-            <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
+            <p className="text-[11px] font-mono text-muted-foreground">{c.phone_e164}</p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onEdit(c)}>
