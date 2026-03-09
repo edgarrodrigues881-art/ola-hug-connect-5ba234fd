@@ -291,16 +291,10 @@ Deno.serve(async (req) => {
       const phone = (item.client_phone || "").replace(/\D/g, "");
 
       if (!phone) {
-        // No phone — mark as failed
-        await adminClient
-          .from("message_queue")
-          .update({
-            status: "failed",
-            error_message: "Telefone não informado",
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await adminClient.from("message_queue").update({
+          status: "failed" as any, error_message: "Telefone não informado",
+          sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
         failed++;
         continue;
       }
