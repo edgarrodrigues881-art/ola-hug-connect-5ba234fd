@@ -166,7 +166,7 @@ export default function AdminConexao() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "pairing-code", device_id: deviceId, phone: pairingPhone.replace(/\D/g, "") }),
+          body: JSON.stringify({ action: "requestPairingCode", deviceId, phoneNumber: pairingPhone.replace(/\D/g, "") }),
         }
       );
       const result = await res.json();
