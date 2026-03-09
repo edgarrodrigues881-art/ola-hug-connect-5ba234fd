@@ -64,7 +64,7 @@ export default function ReportWhatsApp() {
     enabled: !!user,
   });
 
-  // Dedicated report device
+  // Dedicated report device — auto-provision if missing
   const { data: reportDevice, isLoading: loadingDevice } = useQuery({
     queryKey: ["report-device", user?.id],
     queryFn: async () => {
@@ -74,9 +74,34 @@ export default function ReportWhatsApp() {
         .eq("user_id", user!.id)
         .eq("login_type", "report_wa")
         .maybeSingle();
-      return data;
+      
+      if (data) return data;
+
+      // Auto-create if not exists
+      const { data: created, error } = await supabase.functions.invoke("manage-devices", {
+        body: { action: "create-report" },
+      });
+      if (error || created?.error) {
+        console.error("Auto-provision report instance failed:", error || created?.error);
+        return null;
+      }
+      if (created?.device) {
+        // Link to config
+        await supabase.from("report_wa_configs").upsert({
+          user_id: user!.id,
+          device_id: created.device.id,
+        }, { onConflict: "user_id" }).select().maybeSingle();
+      }
+      // Re-fetch the device
+      const { data: refetched } = await supabase
+        .from("devices")
+        .select("id, name, number, status, login_type")
+        .eq("user_id", user!.id)
+        .eq("login_type", "report_wa")
+        .maybeSingle();
+      return refetched;
     },
-    enabled: !!user,
+    enabled: !!user && canUseReport,
   });
 
   const isConnected = reportDevice?.status === "Ready";
