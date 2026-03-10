@@ -379,33 +379,14 @@ Deno.serve(async (req) => {
         return json({ error: "Nenhum token disponível no pool. Solicite ao administrador.", code: "NO_TOKEN" }, 400);
       }
 
-      // Check if existing token is valid
-      const existingStatus = await checkInstanceStatus();
-      
-      if (!existingStatus.valid) {
-        return json({ error: "O token desta instância é inválido (401). Solicite ao administrador um novo token.", code: "TOKEN_INVALID" }, 401);
-      }
-
-      if (existingStatus.status === "connected") {
-        // Already connected
-        const phone = existingStatus.owner || "";
-        let formatted = "";
-        if (phone) {
-          formatted = formatBrPhone(phone);
-        }
-        const dupCheck = await checkDuplicatePhone(phone);
-        if (dupCheck.isDuplicate) {
-          return json({ success: false, error: `Este número já está conectado na instância "${dupCheck.existingDeviceName}". Desconecte lá primeiro.`, code: "DUPLICATE_PHONE" });
-        }
-        return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
-      }
+      // Go straight to /instance/connect — it returns status + QR in one call
+      // This avoids the extra round-trip of checkInstanceStatus()
 
       // Set proxy if provided — BLOCKING: if proxy fails, do NOT generate QR
       if (body.proxyConfig?.host) {
         const proxyResult = await setProxy(instanceUrl, instanceToken, body.proxyConfig);
         await oplog(svc, user.id, proxyResult.ok ? "proxy_configured" : "proxy_failed", `Proxy ${proxyResult.ok ? "configurada" : "FALHA"} para "${deviceName}": ${proxyResult.error || "OK"}`, deviceId, { host: body.proxyConfig.host, success: proxyResult.ok, error: proxyResult.error });
         if (!proxyResult.ok) {
-          // Mark proxy as INVALID in database if we can find it
           if (body.proxyId) {
             await svc.from("proxies").update({ status: "INVALID" }).eq("id", body.proxyId);
           }
@@ -423,7 +404,7 @@ Deno.serve(async (req) => {
       const connInst = connectRes.data?.instance || connectRes.data || {};
       let qr = connInst.qrcode || connectRes.data?.qrcode;
 
-      // Check if already connected (edge case)
+      // Check if already connected (from the connect response itself)
       const connStatus = connInst.status || connectRes.data?.status;
       if (connStatus === "connected") {
         const phone = connInst.owner || connInst.phone || "";
@@ -440,10 +421,10 @@ Deno.serve(async (req) => {
         return json({ success: true, alreadyConnected: true, phone: formatted, status: "authenticated" });
       }
 
-      // Quick poll for QR if not in response (reduced: 4 attempts, 600ms each = max 2.4s)
+      // Quick poll for QR if not in response (2 attempts, 500ms each = max 1s)
       if (!qr) {
-        for (let i = 0; i < 4; i++) {
-          await new Promise(r => setTimeout(r, 600));
+        for (let i = 0; i < 2; i++) {
+          await new Promise(r => setTimeout(r, 500));
           const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
           const pi = poll.data?.instance || poll.data || {};
           qr = pi.qrcode || poll.data?.qrcode;
