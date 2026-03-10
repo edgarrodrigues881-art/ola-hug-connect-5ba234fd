@@ -385,9 +385,11 @@ async function scheduleDayJobs(
   // For "new" chip: 07:00-19:00 BRT = 10:00-22:00 UTC
   const today = new Date(now);
   const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(chipState === "recovered" ? 11 : 10, 0, 0, 0);
+  const startHourUTC = chipState === "unstable" ? 12 : chipState === "recovered" ? 11 : 10;
+  const endHourUTC = chipState === "unstable" ? 21 : 22;
+  windowStartUTC.setUTCHours(startHourUTC, 0, 0, 0);
   const windowEndUTC = new Date(today);
-  windowEndUTC.setUTCHours(22, 0, 0, 0);
+  windowEndUTC.setUTCHours(endHourUTC, 0, 0, 0);
 
   const effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
   const effectiveEnd = windowEndUTC.getTime();
