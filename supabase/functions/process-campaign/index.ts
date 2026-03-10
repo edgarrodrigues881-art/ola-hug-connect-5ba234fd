@@ -623,6 +623,15 @@ Deno.serve(async (req) => {
         }).eq("id", campaignId);
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída (sem pendentes)`, null, { campaign_id: campaignId });
+        // Notify user
+        const finalStats0 = await serviceClient.from("campaigns").select("sent_count, delivered_count, failed_count").eq("id", campaignId).single();
+        const s0 = finalStats0.data || { sent_count: 0, delivered_count: 0, failed_count: 0 };
+        await serviceClient.from("notifications").insert({
+          user_id: campaign.user_id,
+          title: "✅ Campanha concluída",
+          message: `A campanha "${campaign.name}" foi finalizada. ${s0.sent_count || 0} enviadas, ${s0.delivered_count || 0} entregues, ${s0.failed_count || 0} falhas.`,
+          type: "success",
+        });
         console.log(`Campaign ${campaignId} completed! Locks released.`);
         startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
