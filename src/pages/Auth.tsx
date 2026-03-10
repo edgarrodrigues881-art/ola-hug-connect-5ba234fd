@@ -29,15 +29,13 @@ const translateAuthError = (msg: string): string => {
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
-  const [showForgot, setShowForgot] = useState(false);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -65,40 +63,8 @@ const Auth = () => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) {
-      toast({
-        title: "Informe seu e-mail",
-        description: "Digite seu e-mail para recuperar a senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setForgotLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast({
-        title: "E-mail enviado!",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: translateAuthError(error.message),
-        variant: "destructive",
-      });
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
   useEffect(() => {
     setIsLogin(searchParams.get("mode") !== "signup");
-    setShowForgot(false);
   }, [searchParams]);
 
   const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -216,7 +182,7 @@ const Auth = () => {
       {/* Back button */}
       <div className="absolute top-6 left-6 z-10">
         <button
-          onClick={() => showForgot ? setShowForgot(false) : navigate("/")}
+          onClick={() => navigate("/")}
           className="flex items-center gap-2 text-sm font-medium text-[#9CA3AF] hover:text-white transition-colors duration-200 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
@@ -234,70 +200,7 @@ const Auth = () => {
         {/* Main card */}
         <div className="w-full">
 
-        {showForgot ? (
-          <>
-            {/* Forgot password view */}
-             <div className="text-center mb-8">
-              <h1 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Recuperar senha</h1>
-              <p className="text-sm text-[#9CA3AF] font-medium">
-                Informe seu e-mail e enviaremos um link para redefinir sua senha
-              </p>
-            </div>
-
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="forgotEmail" className="text-xs font-semibold text-[#9CA3AF] tracking-wide uppercase">
-                  Endereço de e-mail
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]/50" />
-                  <Input
-                    id="forgotEmail"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    className={inputClass}
-                    required
-                    maxLength={255}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={forgotLoading}
-                className="w-full h-[52px] text-sm font-bold rounded-2xl bg-[#22C55E] hover:bg-[#16A34A] active:scale-[0.98] text-white transition-all duration-200 border-0 tracking-wide"
-                style={{ boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)' }}
-              >
-                {forgotLoading ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                ) : (
-                  "Enviar link de recuperação"
-                )}
-              </Button>
-            </form>
-
-            <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[#9CA3AF]/60">
-              <ShieldCheck className="w-3 h-3" />
-              <span>Ambiente seguro e criptografado</span>
-            </div>
-
-            <div className="my-6 border-t border-[#1E2330]" />
-
-            <p className="text-center text-sm text-[#9CA3AF]">
-              Lembrou a senha?{" "}
-              <button
-                onClick={() => setShowForgot(false)}
-                className="text-[#22C55E] hover:text-[#16A34A] font-medium transition-colors duration-150"
-              >
-                Voltar ao login
-              </button>
-            </p>
-          </>
-        ) : (
-          <>
+        
             {/* Heading */}
             <div className="text-center mb-10">
               <h1 className="text-3xl sm:text-[32px] font-extrabold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -427,16 +330,6 @@ const Auth = () => {
                       />
                       <span className="text-xs font-medium text-[#9CA3AF]">Manter conectado</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForgotEmail(email);
-                        setShowForgot(true);
-                      }}
-                      className="text-xs font-medium text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-200"
-                    >
-                      Esqueceu sua senha?
-                    </button>
                   </div>
                 )}
               </div>
@@ -518,8 +411,6 @@ const Auth = () => {
                 {isLogin ? "Criar agora" : "Faça login"}
               </button>
             </p>
-          </>
-        )}
       </div>
 
       {/* WhatsApp support button */}
