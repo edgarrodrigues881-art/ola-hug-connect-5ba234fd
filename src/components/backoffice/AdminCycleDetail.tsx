@@ -1,9 +1,20 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, CheckCircle, Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, RefreshCw, CheckCircle, Loader2, RotateCcw, FastForward, ChevronRight } from "lucide-react";
+
+const PHASE_ORDER = ["pre_24h", "groups_only", "autosave_enabled", "community_light", "community_enabled", "completed"] as const;
+const PHASE_LABELS: Record<string, string> = {
+  pre_24h: "Pré-24h",
+  groups_only: "Grupos",
+  autosave_enabled: "AutoSave",
+  community_light: "Comunidade Light",
+  community_enabled: "Comunidade Full",
+  completed: "Concluído",
+};
 
 const levelColors: Record<string, string> = {
   info: "text-teal-400",
