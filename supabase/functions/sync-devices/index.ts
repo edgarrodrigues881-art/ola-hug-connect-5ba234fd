@@ -238,6 +238,62 @@ Deno.serve(async (req) => {
             const eventName = newStatus === "Disconnected" ? "instance_disconnected" : "instance_connected";
             await oplog(serviceClient, userId, eventName, `"${device.name}" → ${newStatus}`, device.id, { previous: device.status, phone: formattedPhone });
 
+            // ── INSTANT WhatsApp group notification ──
+            if (device.login_type !== "report_wa") {
+              try {
+                const { data: rwConfig } = await serviceClient
+                  .from("report_wa_configs")
+                  .select("device_id, alert_disconnect, connection_group_id, connection_status")
+                  .eq("user_id", userId)
+                  .not("device_id", "is", null)
+                  .maybeSingle();
+
+                if (rwConfig?.alert_disconnect && rwConfig.connection_group_id && rwConfig.connection_status === "connected") {
+                  const { data: rwDevice } = await serviceClient
+                    .from("devices")
+                    .select("uazapi_token, uazapi_base_url")
+                    .eq("id", rwConfig.device_id)
+                    .single();
+
+                  if (rwDevice?.uazapi_token && rwDevice?.uazapi_base_url) {
+                    const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
+                    const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+                    const isConn = newStatus === "Ready";
+                    const msg = isConn
+                      ? `✅ INSTÂNCIA CONECTADA\n\nInstância: ${device.name}\nNúmero: ${formattedPhone || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`
+                      : `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${device.name}\nNúmero: ${formattedPhone || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+
+                    const sendEndpoints = [
+                      { path: "/send/text", body: { number: rwConfig.connection_group_id, text: msg } },
+                      { path: "/chat/send-text", body: { to: rwConfig.connection_group_id, body: msg } },
+                    ];
+                    let sent = false;
+                    for (const ep of sendEndpoints) {
+                      try {
+                        const r = await fetch(`${rwBase}${ep.path}`, {
+                          method: "POST",
+                          headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json", Accept: "application/json" },
+                          body: JSON.stringify(ep.body),
+                        });
+                        if (r.ok) {
+                          sent = true;
+                          console.log(`[sync-devices] ✅ Instant notification sent via ${ep.path} for "${device.name}" → ${newStatus}`);
+                          break;
+                        }
+                      } catch {}
+                    }
+                    if (sent) {
+                      await serviceClient.from("report_wa_logs").insert({
+                        user_id: userId,
+                        level: isConn ? "INFO" : "WARN",
+                        message: `Instância "${device.name}" ${isConn ? "conectada" : "desconectada"} — alerta instantâneo enviado`,
+                      });
+                    }
+                  }
+                }
+              } catch (e) { console.log("[sync-devices] instant notification error:", e); }
+            }
+
             // ── Auto-pause warmup when device disconnects ──
             if (newStatus === "Disconnected") {
               const { data: activeCycles } = await serviceClient

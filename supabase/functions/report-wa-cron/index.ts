@@ -157,30 +157,9 @@ Deno.serve(async (req) => {
 
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-      // ═══ CONNECTION ALERTS → connection_group_id ═══
-      if (config.alert_disconnect) {
-        const connectionGroupId = config.connection_group_id || config.group_id;
-        if (connectionGroupId) {
-          const { data: allDevices } = await serviceClient
-            .from("devices")
-            .select("id, name, number, status, login_type")
-            .eq("user_id", config.user_id)
-            .neq("login_type", "report_wa");
-
-          for (const dev of (allDevices || [])) {
-            const isDisconnected = ["Disconnected", "disconnected"].includes(dev.status);
-            const isConnected = dev.status === "Ready";
-
-            // Disconnection alert
-            if (isDisconnected) {
-              const alreadySent = await wasRecentlySent(config.user_id, `%${dev.name}%desconect%alerta%`);
-              if (!alreadySent) {
-                const msg = `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
-                const sent = await sendToGroup(creds, connectionGroupId, msg);
-                if (sent) totalSent++;
-                await logEvent(config.user_id, "WARN", `Instância "${dev.name}" desconectada — alerta enviado`);
-              }
-            }
+      // ═══ CONNECTION ALERTS — now handled INSTANTLY by sync-devices ═══
+      // The cron no longer sends connection/disconnection alerts.
+      // They are sent in real-time from the sync-devices function.
 
             // Connection alert
             if (isConnected) {
