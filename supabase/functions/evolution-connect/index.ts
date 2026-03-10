@@ -368,13 +368,17 @@ Deno.serve(async (req) => {
     if (action === "connect") {
       // Auto-assign token from pool if needed
       if (!instanceToken) {
-        const { data: poolToken } = await svc.from("user_api_tokens")
-          .select("id, token")
-          .eq("user_id", user.id).eq("status", "available").is("device_id", null)
-          .limit(1).maybeSingle();
+        // Try available first, then blocked (unassigned) as fallback
+        let poolToken: any = null;
+        for (const st of ["available", "blocked"]) {
+          const { data } = await svc.from("user_api_tokens")
+            .select("id, token")
+            .eq("user_id", user.id).eq("status", st).is("device_id", null)
+            .limit(1).maybeSingle();
+          if (data) { poolToken = data; break; }
+        }
 
         if (poolToken) {
-          // Parallel: assign token + update device
           await Promise.all([
             svc.from("user_api_tokens").update({
               device_id: deviceId, status: "in_use", assigned_at: new Date().toISOString(),
@@ -386,6 +390,7 @@ Deno.serve(async (req) => {
 
           instanceToken = poolToken.token;
           instanceUrl = BASE_URL;
+          console.log(`[evolution-connect] token_auto_assigned for ${deviceId.substring(0, 8)}`);
           await oplog(svc, user.id, "token_auto_assigned", `Token atribuído para "${deviceName}"`, deviceId, { tokenId: poolToken.id });
         }
       }
