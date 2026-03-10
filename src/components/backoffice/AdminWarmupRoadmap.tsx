@@ -298,9 +298,9 @@ const CATEGORIES: CategoryConfig[] = [
     icon: Skull,
     iconColor: "text-red-400",
     headerBg: "from-red-500/10 to-red-500/5",
-    message: "⚠️ Ciclo de recuperação de 21 dias com cautela máxima. Este número já sofreu ban ou restrição. A chance de bloqueio permanente é ALTA. O volume é reduzido em todas as fases e inclui período de quarentena obrigatório. Mesmo após os 21 dias, use sempre com delays maiores que o normal.",
+    message: "⚠️ Ciclo de recuperação de 30 dias com cautela máxima. Este número já sofreu ban ou restrição. O volume é reduzido em todas as fases (80-350 msgs em grupos vs 200-500 do chip novo). AutoSave usa 2 msgs/contato (vs 3). Comunidade com pares menores. Mesmo após 30 dias, use sempre com delays maiores.",
     roadmap: ROADMAP_BANIDO,
-    days: 21,
+    days: 30,
   },
 ];
 
