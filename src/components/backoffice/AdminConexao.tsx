@@ -315,6 +315,27 @@ export default function AdminConexao() {
     }
   };
 
+  const saveManualCredentials = async () => {
+    if (!deviceId || !manualToken.trim()) return;
+    setSavingCredentials(true);
+    try {
+      const baseUrl = manualBaseUrl.trim() || "https://api.uazapi.com";
+      const { error } = await supabase
+        .from("devices")
+        .update({ uazapi_token: manualToken.trim(), uazapi_base_url: baseUrl })
+        .eq("id", deviceId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] });
+      toast.success("Credenciais salvas com sucesso!");
+      setManualToken("");
+      setManualBaseUrl("");
+    } catch (e) {
+      toast.error("Erro ao salvar credenciais");
+    } finally {
+      setSavingCredentials(false);
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
