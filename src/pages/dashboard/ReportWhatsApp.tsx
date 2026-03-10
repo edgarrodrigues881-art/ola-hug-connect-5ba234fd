@@ -186,6 +186,26 @@ export default function ReportWhatsApp() {
     }
   };
 
+  const handleDeleteInstance = async () => {
+    if (!reportDevice?.id) return;
+    try {
+      // Try to logout from UAZAPI first (ignore errors)
+      try { await callApi({ action: "logout", deviceId: reportDevice.id }); } catch {}
+      // Delete config
+      if (config?.id) {
+        await supabase.from("report_wa_configs").delete().eq("id", config.id);
+      }
+      // Delete device
+      await supabase.from("devices").delete().eq("id", reportDevice.id);
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      queryClient.invalidateQueries({ queryKey: ["report-wa-config"] });
+      setGroups([]);
+      toast.success("Instância de relatório excluída");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao excluir instância");
+    }
+  };
+
   // QR auto-refresh every 30s
   useEffect(() => {
     if (connectStep === "qr" && qrCodeBase64) {
