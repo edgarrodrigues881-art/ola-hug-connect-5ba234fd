@@ -16,6 +16,7 @@ export function useSidebarStats() {
   return useQuery({
     queryKey: ["sidebar-stats", user?.id],
     queryFn: async (): Promise<SidebarStats> => {
+      if (!user?.id) return { onlineInstances: 0, activeWarmupCycles: 0, criticalAlerts: 0, activeCampaigns: 0, unreadNotifications: 0 };
       // Use count queries instead of fetching all rows
       const [
         onlineRes,
@@ -27,11 +28,13 @@ export function useSidebarStats() {
         supabase
           .from("devices")
           .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
           .neq("login_type", "report_wa")
           .in("status", ["Ready", "Connected", "authenticated"]),
         supabase
           .from("devices")
           .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
           .neq("login_type", "report_wa")
           .in("status", ["Disconnected", "disconnected"]),
         supabase

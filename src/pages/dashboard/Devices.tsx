@@ -160,10 +160,13 @@ const Devices = () => {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: async () => {
+      const userId = session?.user?.id;
+      if (!userId) return [];
       const [devicesRes, tokensRes] = await Promise.all([
         supabase
           .from("devices")
           .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
+          .eq("user_id", userId)
           .neq("login_type", "report_wa")
           .order("created_at", { ascending: true })
           .order("id", { ascending: true }),
