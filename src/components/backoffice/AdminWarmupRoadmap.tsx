@@ -314,7 +314,7 @@ const CATEGORIES: CategoryConfig[] = [
   },
   {
     key: "sensivel",
-    label: "🟡 Chip Sensível",
+    label: "🟡 Chip Fraco",
     subtitle: "Número que sofre restrição facilmente",
     icon: AlertTriangle,
     iconColor: "text-yellow-400",
