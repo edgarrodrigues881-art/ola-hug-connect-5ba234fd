@@ -1800,7 +1800,7 @@ const Devices = () => {
 
                 {/* Buttons */}
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>
+                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); resumeKeepAlive(); }}>
                     Cancelar
                   </Button>
                   <Button className="flex-1 h-11 text-sm font-semibold" onClick={handleConfirmProxy}>
