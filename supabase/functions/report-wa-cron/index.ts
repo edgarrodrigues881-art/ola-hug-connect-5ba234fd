@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
             const alreadySent = await wasRecentlySent(config.user_id, `%campanha%${camp.name}%iniciada%`);
             if (!alreadySent) {
               const msg = `📣 CAMPANHA INICIADA\n\nCampanha: ${camp.name}\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n⏱ Início: ${nowBRT}\n\nO envio de mensagens foi iniciado.`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" iniciada — alerta enviado`);
             }
