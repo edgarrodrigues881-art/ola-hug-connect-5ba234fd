@@ -241,19 +241,26 @@ Deno.serve(async (req) => {
             // ── INSTANT WhatsApp group notification ──
             if (device.login_type !== "report_wa") {
               try {
-                const { data: rwConfig } = await serviceClient
+                console.log(`[sync-devices] 🔔 Status changed for "${device.name}": ${device.status} → ${newStatus}, checking notification config...`);
+                const { data: rwConfig, error: rwErr } = await serviceClient
                   .from("report_wa_configs")
-                  .select("device_id, alert_disconnect, group_id, connection_status")
+                  .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances")
                   .eq("user_id", userId)
                   .not("device_id", "is", null)
                   .maybeSingle();
 
-                if (rwConfig?.alert_disconnect && rwConfig.group_id && rwConfig.connection_status === "connected") {
+                console.log(`[sync-devices] 🔔 rwConfig: ${JSON.stringify({ found: !!rwConfig, alert_disconnect: rwConfig?.alert_disconnect, toggle_instances: rwConfig?.toggle_instances, group_id: rwConfig?.group_id?.substring(0, 20), connection_status: rwConfig?.connection_status, error: rwErr?.message })}`);
+
+                // Accept either alert_disconnect OR toggle_instances as the trigger
+                const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
+                if (alertEnabled && rwConfig?.group_id && rwConfig?.connection_status === "connected") {
                   const { data: rwDevice } = await serviceClient
                     .from("devices")
                     .select("uazapi_token, uazapi_base_url")
                     .eq("id", rwConfig.device_id)
                     .single();
+
+                  console.log(`[sync-devices] 🔔 rwDevice credentials: has_token=${!!rwDevice?.uazapi_token}, has_url=${!!rwDevice?.uazapi_base_url}`);
 
                   if (rwDevice?.uazapi_token && rwDevice?.uazapi_base_url) {
                     const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
@@ -264,8 +271,8 @@ Deno.serve(async (req) => {
                       : `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${device.name}\nNúmero: ${formattedPhone || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
 
                     const sendEndpoints = [
-                      { path: "/send/text", body: { number: rwConfig.group_id, text: msg } },
                       { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
+                      { path: "/send/text", body: { number: rwConfig.group_id, text: msg } },
                     ];
                     let sent = false;
                     for (const ep of sendEndpoints) {
@@ -275,12 +282,16 @@ Deno.serve(async (req) => {
                           headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json", Accept: "application/json" },
                           body: JSON.stringify(ep.body),
                         });
+                        const respText = await r.text();
+                        console.log(`[sync-devices] 🔔 Send via ${ep.path}: status=${r.status} response=${respText.substring(0, 200)}`);
                         if (r.ok) {
                           sent = true;
                           console.log(`[sync-devices] ✅ Instant notification sent via ${ep.path} for "${device.name}" → ${newStatus}`);
                           break;
                         }
-                      } catch {}
+                      } catch (sendErr) {
+                        console.log(`[sync-devices] 🔔 Send error via ${ep.path}: ${sendErr}`);
+                      }
                     }
                     if (sent) {
                       await serviceClient.from("report_wa_logs").insert({
@@ -288,8 +299,16 @@ Deno.serve(async (req) => {
                         level: isConn ? "INFO" : "WARN",
                         message: `Instância "${device.name}" ${isConn ? "conectada" : "desconectada"} — alerta instantâneo enviado`,
                       });
+                    } else {
+                      console.log(`[sync-devices] ❌ All send attempts failed for "${device.name}"`);
+                      await serviceClient.from("report_wa_logs").insert({
+                        user_id: userId, level: "ERROR",
+                        message: `Falha ao enviar alerta instantâneo para "${device.name}" (${newStatus})`,
+                      });
                     }
                   }
+                } else {
+                  console.log(`[sync-devices] 🔔 Notification skipped: alertEnabled=${alertEnabled}, group_id=${!!rwConfig?.group_id}, conn_status=${rwConfig?.connection_status}`);
                 }
               } catch (e) { console.log("[sync-devices] instant notification error:", e); }
             }
