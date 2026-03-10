@@ -93,32 +93,28 @@ Deno.serve(async (req) => {
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
 
-      // Helper: fetch with retry
-      const fetchWithRetry = async (endpoint: string, retries = 2): Promise<any> => {
+      const fetchSafe = async (endpoint: string, retries = 2): Promise<any> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
           try {
             const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
             if (!res.ok) {
-              if (attempt < retries) {
-                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-                continue;
-              }
+              const body = await res.text().catch(() => "");
+              console.log(`[${res.status}] ${endpoint}: ${body.substring(0, 150)}`);
+              if (attempt < retries) { await new Promise(r => setTimeout(r, 800 * (attempt + 1))); continue; }
               return null;
             }
             return await res.json();
           } catch (e) {
-            console.error(`Fetch attempt ${attempt} failed for ${endpoint}:`, e);
-            if (attempt < retries) {
-              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-            }
+            console.error(`Fetch fail ${attempt} ${endpoint}:`, e);
+            if (attempt < retries) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
           }
         }
         return null;
       };
 
-      const addGroups = (groups: any[]) => {
-        for (const g of groups) {
-          const jid = g.JID || g.jid || g.id || g.groupJid || "";
+      const addGroups = (items: any[]) => {
+        for (const g of items) {
+          const jid = g.JID || g.jid || g.id || g.groupJid || g.chatId || "";
           if (jid && !seenJids.has(jid)) {
             seenJids.add(jid);
             allGroups.push(g);
@@ -126,95 +122,77 @@ Deno.serve(async (req) => {
         }
       };
 
-      // Strategy 1: Paginated group/list
-      const maxPages = 8;
-      for (let page = 0; page < maxPages; page++) {
-        const endpoint = `${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`;
-        console.log(`Fetching groups page ${page}: ${endpoint}`);
-        
-        const data = await fetchWithRetry(endpoint);
+      // ─── S1: /group/list paginated (main UaZapi endpoint) ───
+      for (let page = 0; page < 10; page++) {
+        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`);
         if (!data) break;
-        
-        const groups = data.groups || data || [];
-        const groupArray = Array.isArray(groups) ? groups : [];
-        
-        if (groupArray.length === 0) break;
-        
-        const prevCount = seenJids.size;
-        addGroups(groupArray);
-        const newCount = seenJids.size - prevCount;
-        
-        console.log(`Page ${page}: ${groupArray.length} returned, ${newCount} new. Total: ${seenJids.size}`);
-        
-        if (newCount === 0) break;
+        const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+        if (arr.length === 0) break;
+        const prev = seenJids.size;
+        addGroups(arr);
+        console.log(`[S1] page ${page}: ${arr.length} ret, ${seenJids.size - prev} new`);
+        if (seenJids.size - prev === 0) break;
       }
 
-      // Strategy 2: Always try /chat/list to catch recently created/joined groups
-      try {
-        const chatListEndpoint = `${apiBaseUrl}/chat/list?count=500`;
-        console.log(`Trying chat/list: ${chatListEndpoint}`);
-        const chatData = await fetchWithRetry(chatListEndpoint, 1);
-        if (chatData) {
-          const chats = chatData.chats || chatData || [];
-          const chatArray = Array.isArray(chats) ? chats : [];
-          const groupChats = chatArray.filter((c: any) => {
+      // ─── S2: /group/fetchAllGroups (UaZapi V2 - forces fresh fetch from WA) ───
+      if (forceRefresh) {
+        const data = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
+        if (data) {
+          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S2] fetchAllGroups: ${arr.length} ret, ${seenJids.size - prev} new`);
+        }
+      }
+
+      // ─── S3: /group/listAll ───
+      {
+        const data = await fetchSafe(`${apiBaseUrl}/group/listAll`, 1);
+        if (data) {
+          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S3] listAll: ${arr.length} ret, ${seenJids.size - prev} new`);
+        }
+      }
+
+      // ─── S4: /chat/list filtering @g.us ───
+      {
+        const data = await fetchSafe(`${apiBaseUrl}/chat/list?count=500`, 1);
+        if (data) {
+          const chats = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+          const groups = chats.filter((c: any) => {
             const id = c.JID || c.jid || c.id || c.chatId || "";
             return id.includes("@g.us");
           });
-          if (groupChats.length > 0) {
-            const prevCount = seenJids.size;
-            addGroups(groupChats);
-            console.log(`chat/list found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
-          }
-        }
-      } catch (e) {
-        console.log("chat/list failed:", e);
-      }
-
-      // Strategy 3: Try /group/listAll
-      if (forceRefresh) {
-        try {
-          const listAllEndpoint = `${apiBaseUrl}/group/listAll`;
-          console.log(`Trying group/listAll: ${listAllEndpoint}`);
-          const allData = await fetchWithRetry(listAllEndpoint, 1);
-          if (allData) {
-            const groupsData = allData.groups || allData || [];
-            const groupArray = Array.isArray(groupsData) ? groupsData : [];
-            if (groupArray.length > 0) {
-              const prevCount = seenJids.size;
-              addGroups(groupArray);
-              console.log(`group/listAll found ${groupArray.length} groups, ${seenJids.size - prevCount} new`);
-            }
-          }
-        } catch (e) {
-          console.log("group/listAll failed:", e);
+          const prev = seenJids.size;
+          addGroups(groups);
+          console.log(`[S4] chat/list: ${chats.length} chats, ${groups.length} groups, ${seenJids.size - prev} new`);
         }
       }
 
-      // Strategy 4: Try recent chats for very new groups
+      // ─── S5: /group/list with huge count (bypass pagination) ───
       if (forceRefresh) {
-        try {
-          const recentEndpoint = `${apiBaseUrl}/chat/list?count=50&sort=recent`;
-          console.log(`Trying recent chats: ${recentEndpoint}`);
-          const recentData = await fetchWithRetry(recentEndpoint, 1);
-          if (recentData) {
-            const chats = recentData.chats || recentData || [];
-            const chatArray = Array.isArray(chats) ? chats : [];
-            const groupChats = chatArray.filter((c: any) => {
-              const id = c.JID || c.jid || c.id || c.chatId || "";
-              return id.includes("@g.us");
-            });
-            if (groupChats.length > 0) {
-              const prevCount = seenJids.size;
-              addGroups(groupChats);
-              console.log(`recent chats found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
-            }
-          }
-        } catch (e) {
-          console.log("recent chats failed:", e);
+        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&count=9999`, 1);
+        if (data) {
+          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S5] big count: ${arr.length} ret, ${seenJids.size - prev} new`);
         }
       }
-      
+
+      // ─── S6: /group/participating (another UaZapi V2 endpoint) ───
+      if (forceRefresh) {
+        const data = await fetchSafe(`${apiBaseUrl}/group/participating`, 1);
+        if (data) {
+          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S6] participating: ${arr.length} ret, ${seenJids.size - prev} new`);
+        }
+      }
+
       console.log(`Total unique groups: ${allGroups.length}`);
 
       // Map to standardized format
