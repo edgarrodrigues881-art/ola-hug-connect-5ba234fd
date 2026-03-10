@@ -770,7 +770,7 @@ Deno.serve(async (req) => {
               const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
               const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
               const displayName = preDevice.profile_name ? `${preDevice.profile_name} (${preDevice.name})` : preDevice.name;
-              const msg = `⚠️ ALERTA DE CONEXÃO\n\n📱 ${displayName}\n📞 Número: ${phoneForAlert || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+              const msg = `⚠️ ALERTA DE CONEXÃO\n\n🖥 Instância: ${preDevice.name}\n📞 Número: ${phoneForAlert || "N/A"}\n\n❌ Status: Desconectado\n⏱ Horário: ${nowBRT}\n\nA instância perdeu a conexão com o WhatsApp.\n\nPara voltar a funcionar, é necessário reconectar.`;
 
               const sendEndpoints = [
                 { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
