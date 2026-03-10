@@ -1465,7 +1465,7 @@ Deno.serve(async (req) => {
       );
 
       // Filter eligible (under max pairs limit)
-      const available = memberships.filter((m: any) => (pairCountMap[m.device_id] || 0) < maxPairs);
+      const available = filteredMemberships.filter((m: any) => (pairCountMap[m.device_id] || 0) < maxPairs);
 
       // Shuffle
       const shuffled = [...available].sort(() => Math.random() - 0.5);
