@@ -33,6 +33,7 @@ const jobStatusColors: Record<string, string> = {
 const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => void }) => {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [confirmPhase, setConfirmPhase] = useState<string | null>(null);
 
   const { data: cycle, isLoading: loadingCycle } = useQuery({
     queryKey: ["admin-cycle-detail", cycleId],
