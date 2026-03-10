@@ -130,6 +130,7 @@ const Reports = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("devices")
         .select("id, name, number, status, created_at, profile_picture, login_type")
+        .eq("user_id", user!.id)
         .neq("login_type", "report_wa")
         .order("created_at", { ascending: true });
       if (error) throw error;
