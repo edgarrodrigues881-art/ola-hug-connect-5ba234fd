@@ -28,7 +28,7 @@ export function getRecentlyDeletedIds(): Set<string> {
  * Pauses when the browser tab is hidden.
  * @param intervalMs - sync interval in milliseconds (default 60s)
  */
-export function useAutoSyncDevices(intervalMs = 60000) {
+export function useAutoSyncDevices(intervalMs = 120000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
