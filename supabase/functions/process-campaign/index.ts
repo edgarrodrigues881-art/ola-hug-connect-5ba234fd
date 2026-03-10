@@ -31,6 +31,16 @@ async function oplog(client: any, userId: string, event: string, details: string
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
 }
 
+// Get real-time stats from campaign_contacts (source of truth)
+async function getRealCampaignStats(serviceClient: any, campaignId: string) {
+  const { count: sentCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "sent");
+  const { count: failedCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "failed");
+  const { count: pendingCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "pending");
+  const { count: processingCount } = await serviceClient.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "processing");
+  const total = (sentCount || 0) + (failedCount || 0) + (pendingCount || 0) + (processingCount || 0);
+  return { sent: sentCount || 0, failed: failedCount || 0, delivered: sentCount || 0, total, pending: (pendingCount || 0) + (processingCount || 0) };
+}
+
 // Instant WhatsApp alert for campaign status changes (bypass cron delay)
 async function sendCampaignAlertToWa(serviceClient: any, userId: string, campaignName: string, status: string, stats?: { sent?: number; total?: number; delivered?: number; failed?: number }) {
   try {
