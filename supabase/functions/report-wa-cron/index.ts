@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
             const alreadySent = await wasRecentlySent(config.user_id, `%campanha%${camp.name}%pausada%`);
             if (!alreadySent) {
               const msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${camp.name}\n\n📊 Progresso:\n✅ Enviadas: ${camp.sent_count || 0}/${camp.total_contacts || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada pelo operador.`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" pausada — alerta enviado`);
             }
