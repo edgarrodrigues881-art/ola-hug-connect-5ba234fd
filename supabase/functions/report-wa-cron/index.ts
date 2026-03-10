@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // If called from cron (anon key), process ALL configs. If from user, filter by user.
     let query = serviceClient
       .from("report_wa_configs")
-      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status")
       .not("device_id", "is", null);
 
     if (callerUserId) {
