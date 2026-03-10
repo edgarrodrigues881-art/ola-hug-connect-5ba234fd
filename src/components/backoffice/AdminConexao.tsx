@@ -387,7 +387,7 @@ export default function AdminConexao() {
                 Desconectar
               </Button>
             ) : (
-              <Button size="sm" onClick={openConnectDialog} disabled={!hasCredentials} className="text-xs">
+              <Button size="sm" onClick={openConnectDialog} className="text-xs">
                 <QrCode size={14} className="mr-1" />
                 Conectar
               </Button>
