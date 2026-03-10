@@ -126,11 +126,11 @@ const CommunityPoolTab = () => {
               </SelectContent>
             </Select>
             <Select value={filterEnrolled} onValueChange={setFilterEnrolled}>
-              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Pool" /></SelectTrigger>
+              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Ativo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="yes">No Pool</SelectItem>
-                <SelectItem value="no">Fora do Pool</SelectItem>
+                <SelectItem value="yes">Ativo</SelectItem>
+                <SelectItem value="no">Inativo</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPhase} onValueChange={setFilterPhase}>
