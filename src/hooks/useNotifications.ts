@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Clean notification chime using Web Audio API
 const playChime = () => {
@@ -64,25 +64,11 @@ export function useNotifications() {
 
   const showToastForNotif = useCallback((n: Notification) => {
     playChime();
-    const variantMap: Record<string, "default" | "destructive" | "success" | "warning"> = {
-      error: "destructive",
-      warning: "warning",
-      success: "success",
-      info: "default",
-    };
-    const iconMap: Record<string, string> = {
-      success: "✅",
-      warning: "⚠️",
-      error: "❌",
-      info: "ℹ️",
-    };
-    const icon = iconMap[n.type] || "🔔";
-    toast({
-      title: `${icon} ${n.title}`,
-      description: n.message,
-      variant: variantMap[n.type] || "default",
-      duration: 4000,
-    });
+    const toastFn = n.type === "error" ? toast.error
+      : n.type === "warning" ? toast.warning
+      : n.type === "success" ? toast.success
+      : toast.info;
+    toastFn(n.title, { description: n.message, duration: 4000 });
   }, []);
 
   const [unreadCount, setUnreadCount] = useState(0);
