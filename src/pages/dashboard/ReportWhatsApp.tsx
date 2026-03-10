@@ -939,91 +939,40 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
       {/* Group selector */}
       {enabled && (
         <div className="px-4 pb-4 space-y-3">
-          {/* Group dropdown */}
+          {/* Group JID input */}
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
-              Grupo de destino
+              Grupo de destino (JID)
             </label>
-            <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 justify-start text-xs h-9 font-normal border-border/60 bg-background/50"
-                  >
-                    <Users className="w-3.5 h-3.5 mr-2 text-muted-foreground shrink-0" />
-                    {selectedLabel ? (
-                      <span className="truncate">{selectedLabel}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Selecionar grupo...</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-0 max-h-72 overflow-y-auto" align="start">
-                  {/* Manual JID input */}
-                  <div className="p-2 border-b border-border/50">
-                    <label className="text-[10px] text-muted-foreground mb-1 block">Colar JID do grupo manualmente:</label>
-                    <div className="flex gap-1.5">
-                      <Input
-                        value={manualJid}
-                        onChange={(e) => setManualJid(e.target.value)}
-                        placeholder="120363...@g.us"
-                        className="h-7 text-[11px] flex-1"
-                        onKeyDown={(e) => e.key === "Enter" && handleManualAdd()}
-                      />
-                      <Button size="sm" className="h-7 px-2 text-[10px]" onClick={handleManualAdd} disabled={!manualJid.trim()}>
-                        Usar
-                      </Button>
-                    </div>
-                  </div>
-
-                  {groups.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <Users className="w-6 h-6 mx-auto text-muted-foreground/30 mb-2" />
-                      <p className="text-xs text-muted-foreground">
-                        {loadingGroups ? "Carregando grupos..." : "Nenhum grupo encontrado. Use o campo acima para colar o JID."}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="py-1">
-                      {/* Option to clear */}
-                      {selectedGroupId && (
-                        <button
-                          onClick={() => onGroupSelect("")}
-                          className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 transition-colors border-b border-border/50"
-                        >
-                          ✕ Remover grupo
-                        </button>
-                      )}
-                      {groups.map(g => (
-                        <button
-                          key={g.id}
-                          onClick={() => onGroupSelect(g.id)}
-                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 ${
-                            g.id === selectedGroupId ? "bg-primary/5 text-primary font-medium" : "text-foreground"
-                          }`}
-                        >
-                          <span className="truncate">{g.name}</span>
-                          {g.participants && (
-                            <span className="text-[10px] text-muted-foreground shrink-0">{g.participants} membros</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={onRefreshGroups}
-                disabled={loadingGroups}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
+            {selectedGroupId ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/60 bg-background/50 px-3 h-9">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs truncate flex-1">{selectedLabel}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => onGroupSelect("")}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={manualJid}
+                  onChange={(e) => setManualJid(e.target.value)}
+                  placeholder="Cole o JID do grupo: 120363...@g.us"
+                  className="h-9 text-xs flex-1"
+                  onKeyDown={(e) => e.key === "Enter" && handleManualAdd()}
+                />
+                <Button size="sm" className="h-9 px-3 text-xs" onClick={handleManualAdd} disabled={!manualJid.trim()}>
+                  Salvar
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Monitored events */}
