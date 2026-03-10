@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw, CircleDot, Zap, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw, CircleDot, Zap, AlertTriangle, Unlock, Lock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -107,7 +107,21 @@ const ClientTokensTab = ({ client, detail }: Props) => {
 
   const available = tokens.filter((t: any) => t.status === "available").length;
   const inUse = tokens.filter((t: any) => t.status === "in_use").length;
+  const blocked = tokens.filter((t: any) => t.status === "blocked").length;
   const invalidCount = tokens.filter((t: any) => t.healthy === false).length;
+
+  const handleBulkUnblock = () => {
+    mutate(
+      { action: "bulk-unblock-tokens", body: { target_user_id: client.id } },
+      {
+        onSuccess: (data: any) => {
+          toast({ title: `${data?.unblocked ?? 0} token(s) desbloqueado(s)` });
+          invalidateClient(client.id);
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
 
   const getHealthBadge = (healthy: boolean | null) => {
     if (healthy === true) return (
@@ -131,6 +145,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     if (status === "in_use") return (
       <Badge className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/10">
         <CircleDot size={8} className="mr-1" /> Em uso
+      </Badge>
+    );
+    if (status === "blocked") return (
+      <Badge className="text-[10px] px-2 py-0.5 bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10">
+        <Lock size={8} className="mr-1" /> Bloqueado
       </Badge>
     );
     return (
@@ -237,7 +256,7 @@ const ClientTokensTab = ({ client, detail }: Props) => {
         </div>
 
         {/* Stats mini-cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <Zap size={14} className="text-primary" />
@@ -257,6 +276,15 @@ const ClientTokensTab = ({ client, detail }: Props) => {
             </div>
           </div>
           <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${blocked > 0 ? "bg-destructive/10" : "bg-muted/50"}`}>
+              <Lock size={14} className={blocked > 0 ? "text-destructive" : "text-muted-foreground/40"} />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">Bloqueados</p>
+              <p className="text-xl font-bold text-foreground tabular-nums">{blocked}</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${invalidCount > 0 ? "bg-destructive/10" : "bg-muted/50"}`}>
               <AlertTriangle size={14} className={invalidCount > 0 ? "text-destructive" : "text-muted-foreground/40"} />
             </div>
@@ -266,6 +294,37 @@ const ClientTokensTab = ({ client, detail }: Props) => {
             </div>
           </div>
         </div>
+
+        {/* Bulk Unblock */}
+        {blocked > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+                className="w-full gap-2 text-xs border-primary/30 text-primary hover:bg-primary/10 rounded-xl h-9"
+              >
+                <Unlock size={14} />
+                Desbloquear {blocked} token(s) em massa
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-card border-border">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Desbloquear todos os tokens?</AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground">
+                  {blocked} token(s) bloqueado(s) serão alterados para "disponível". Eles poderão ser atribuídos a novas instâncias.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkUnblock} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Desbloquear todos
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         {/* Add Tokens */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
