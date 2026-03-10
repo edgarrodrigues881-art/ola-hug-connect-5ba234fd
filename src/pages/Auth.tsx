@@ -427,16 +427,6 @@ const Auth = () => {
                       />
                       <span className="text-xs font-medium text-[#9CA3AF]">Manter conectado</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForgotEmail(email);
-                        setShowForgot(true);
-                      }}
-                      className="text-xs font-medium text-[#9CA3AF] hover:text-[#22C55E] transition-colors duration-200"
-                    >
-                      Esqueceu sua senha?
-                    </button>
                   </div>
                 )}
               </div>
