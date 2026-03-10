@@ -165,14 +165,16 @@ export default function ReportWhatsApp() {
   };
 
   const handleRequestPairingCode = async () => {
-    if (!reportDevice?.id || !pairingPhone) return;
+    if (!pairingPhone) return;
     setPairingLoading(true);
     setConnectError("");
     setPairingCode("");
     try {
+      const deviceId = await ensureReportDevice();
+      if (!deviceId) return;
       const result = await callApi({
         action: "requestPairingCode",
-        deviceId: reportDevice.id,
+        deviceId,
         phoneNumber: pairingPhone,
       });
       if (result?.alreadyConnected) {
