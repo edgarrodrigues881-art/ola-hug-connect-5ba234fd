@@ -41,6 +41,7 @@ export default function ReportWhatsApp() {
   const [pairingPhone, setPairingPhone] = useState("");
   const [pairingCode, setPairingCode] = useState("");
   const [pairingLoading, setPairingLoading] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -199,14 +200,21 @@ export default function ReportWhatsApp() {
   };
 
   const handleDisconnect = async () => {
-    if (!reportDevice?.id) return;
+    if (!reportDevice?.id || disconnecting) return;
+    setDisconnecting(true);
+    // Optimistic: update cache immediately
+    queryClient.setQueryData(["report-device", user?.id], (old: any) => old ? { ...old, status: "Disconnected", number: null } : old);
     try {
       await callApi({ action: "logout", deviceId: reportDevice.id });
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       setGroups([]);
       toast.success("Instância desconectada");
     } catch (err: any) {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
       toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -415,9 +423,14 @@ export default function ReportWhatsApp() {
                 size="sm"
                 className="gap-2 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                 onClick={handleDisconnect}
+                disabled={disconnecting}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                Desconectar
+                {disconnecting ? (
+                  <span className="w-3.5 h-3.5 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                {disconnecting ? "Desconectando..." : "Desconectar"}
               </Button>
             )}
             {isConnected ? (
