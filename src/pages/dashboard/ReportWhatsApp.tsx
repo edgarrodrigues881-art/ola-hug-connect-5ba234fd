@@ -366,7 +366,16 @@ export default function ReportWhatsApp() {
         const { error } = await supabase.from("report_wa_configs").update(updates).eq("id", config.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("report_wa_configs").insert({ user_id: user!.id, ...updates });
+        // First insert: set all toggles to false, then apply the specific update
+        const defaults = {
+          toggle_campaigns: false,
+          toggle_warmup: false,
+          toggle_instances: false,
+          alert_disconnect: false,
+          alert_campaign_end: false,
+          alert_high_failures: false,
+        };
+        const { error } = await supabase.from("report_wa_configs").insert({ user_id: user!.id, ...defaults, ...updates });
         if (error) throw error;
       }
     },
