@@ -313,7 +313,7 @@ export default function ReportConnection() {
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-      const testGroupId = config?.warmup_group_id || config?.campaigns_group_id || config?.connection_group_id;
+      const testGroupId = config?.group_id;
       if (!testGroupId) {
         toast.error("Configure ao menos um grupo no Relatório antes de enviar teste");
         setSendingTest(false);
