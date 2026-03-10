@@ -6,62 +6,147 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
-// ── Message pools for natural conversation ──
-const groupMessages = [
-  "Bom dia! 😊", "Boa tarde pessoal!", "Boa noite! 🌙",
-  "Alguém sabe de alguma novidade?", "Como vocês estão?",
-  "Valeu pessoal! 👍", "Ótima informação, obrigado!",
-  "Concordo totalmente 👏", "Interessante isso!", "Show de bola! 🔥",
-  "Boa semana a todos!", "Obrigado por compartilhar!",
-  "Muito bom isso!", "Top demais 🚀", "Verdade!", "Com certeza!",
-  "Excelente ponto!", "Parabéns pelo conteúdo 🎉", "Adorei essa dica!",
-  "Muito útil, valeu!", "Tô acompanhando 👀", "Boa! Vou aplicar isso",
-  "Sensacional 💯", "Que legal, não sabia disso", "Perfeito, obrigado!",
-  "Salvei aqui, valeu!", "Bom demais 🙌", "Isso aí, concordo",
-  "Exatamente!", "Massa demais!", "Alguém mais concorda? 🤔",
-  "Ótimo dia pra todos 🌤️", "Bora que bora! 💪",
-  "Alguém tem dica sobre isso?", "Tô ligado nisso tb",
-  "Eita, que top!", "Boa sorte galera!", "Tmj! 🤝",
-  "Quem mais tá acompanhando?", "Faz sentido!", "Curti muito 👌",
-  "Mandou bem!", "Essa é boa hein", "Tamo junto!", "Bacana demais 😃",
-  "Li tudo, muito bom", "Vou testar aqui", "Obrigadão! 🙏",
-  "Que conteúdo massa", "Continue postando!", "Valeu demais pessoal",
+// ══════════════════════════════════════════════════════════
+// Gerador Combinatório de Mensagens Naturais (80.000+ variações)
+// ══════════════════════════════════════════════════════════
+
+const SAUDACOES = [
+  "oi", "oii", "oiii", "olá", "ola", "e aí", "eai", "eae",
+  "fala", "fala aí", "salve", "opa", "hey", "ei",
+  "bom dia", "boa tarde", "boa noite",
+  "tudo bem", "tudo certo", "tudo joia", "tudo tranquilo",
+  "e aí como tá", "e aí blz", "fala parceiro", "fala amigo",
+  "oi oi", "eae mano", "fala ae", "opa tudo bem",
 ];
 
-const autosaveMessages = [
-  "Oi, tudo bem? 😊", "E aí, como vai?", "Oi! Tudo certo por aí?",
-  "Eae, blz? 👋", "Fala, como tá?", "Oi oi!",
-  "Passando pra dar um oi 😄", "Bom dia! Tudo joia?",
-  "Boa tarde! Como está?", "Oi! Espero que esteja bem 🌟",
-  "Ei, saudades! Como anda?", "Opa, tudo tranquilo?",
-  "Fala aí, firmeza? ✌️", "Mandando um oi rápido!",
-  "Pensei em vc, como tá? 😊",
+const PERGUNTAS = [
+  "como está seu cachorro", "como está a casa nova", "conseguiu terminar a mudança",
+  "como está o trabalho", "como está sua família", "como foi seu dia",
+  "está tudo bem por aí", "como estão as coisas aí", "conseguiu resolver aquilo",
+  "como está o tempo aí", "ainda mora no mesmo lugar", "está tudo tranquilo por aí",
+  "o cachorro já melhorou", "a casa nova ficou boa", "o dia foi corrido hoje",
+  "como tá o projeto", "já resolveu aquele problema", "como tá a saúde",
+  "como foi a semana", "como tá o pessoal aí", "já conseguiu aquilo",
+  "como anda o serviço", "resolveu aquela questão", "como está o carro",
+  "como tá a reforma", "o que aprontou hoje", "como foi o fds",
+  "já voltou de viagem", "como tá o clima aí", "ainda tá naquela empresa",
+  "como anda o treino", "como tá o estudo", "já fez a prova",
+  "como foi a entrevista", "como está o bairro novo", "como tá a internet aí",
+  "já arrumou a moto", "como foi o almoço", "como tá a dieta",
+  "já comprou aquilo", "como está o filho", "a obra já terminou",
+  "como ficou a festa", "como foi a reunião", "o médico falou o quê",
+  "já trocou de celular", "como tá a academia", "como foi o passeio",
+  "já assistiu aquele filme", "como tá o novo emprego",
 ];
 
-const communityMessages = [
-  "E aí, tudo bem? 😊", "Fala! Como tá o dia?",
-  "Opa, tudo tranquilo por aí?", "Bom dia! 🌅",
-  "Boa tarde! Firmeza?", "Boa noite! Como foi o dia?",
-  "Que bom falar ctg! 😄", "Tô aqui, e vc?",
-  "Hoje tá corrido demais 😅", "Pois é, por aqui tb",
-  "Ss, concordo total", "Exato!", "Verdade hein",
-  "Boa essa! 😂", "Kkkk demais", "Né? Achei isso tb",
-  "Ah sim, entendi", "Show!", "Valeu pela dica 👍",
-  "Vou ver isso", "Massa!", "Legal demais",
-  "Tô ligado", "Aham, faz sentido", "Boa! 🔥",
-  "Cara, muito bom isso", "Sério? Não sabia",
-  "Que top!", "Tmj! 🤝", "Blz, combinado",
-  "Te mando depois", "Ok, tranquilo", "Beleza!",
-  "Ah sim, pode crer", "Tá certo", "Vamo que vamo! 💪",
-  "Kkk verdade", "😂😂", "👍👍", "🔥🔥🔥",
-  "Tô por aqui qualquer coisa", "Show de bola",
-  "Dahora!", "Curti muito isso", "Arrasou! 🎉",
-  "Boa sorte! 🍀", "Sucesso pra vc!", "Obrigado! 🙏",
-  "De nada! 😊", "Sempre! Tmj",
-  "haha", "kkk", "😊", "👀", "top", "blz", "ss",
-  "hmm", "aham", "uhum", "boa", "joia", "firmeza",
-  "Falou!", "Até mais! 👋", "Bom fds! 🎉",
+const COMENTARIOS = [
+  "hoje o dia foi corrido", "aqui está bem tranquilo", "estou resolvendo umas coisas",
+  "hoje trabalhei bastante", "estou organizando tudo aqui", "aqui está tudo certo",
+  "hoje foi puxado", "estou vendo umas coisas aqui", "tô meio ocupado hoje",
+  "aqui tá de boa", "dia longo hoje", "finalmente deu uma folga",
+  "tô correndo atrás das coisas", "hoje rendeu bastante", "tô resolvendo umas pendências",
+  "aqui tá tudo na paz", "dia cheio mas tá indo", "tô focado aqui no trabalho",
+  "hoje foi tranquilo", "semana puxada essa", "tô organizando umas ideias",
+  "hoje foi produtivo", "tô de olho em umas coisas", "por aqui tudo certo",
+  "mandando ver no trabalho", "hoje foi correria pura", "tô no corre mas tá suave",
+  "dia movimentado hoje", "por aqui tá tranquilo", "tô planejando uns negócios",
 ];
+
+const COMPLEMENTOS = [
+  "faz tempo que não falamos", "lembrei disso agora", "estava pensando nisso",
+  "vi algo parecido hoje", "estava lembrando disso", "me veio na cabeça agora",
+  "pensei nisso mais cedo", "lembrei de vc", "tava pensando aqui",
+  "me falaram disso", "vi vc online e lembrei", "alguém comentou isso",
+  "pensei nisso ontem", "me lembrou uma coisa", "queria saber mais",
+  "fiquei curioso", "me disseram sobre isso", "tava com isso na cabeça",
+  "lembrei na hora", "queria te perguntar",
+];
+
+const EMOJIS_POOL = [
+  "🙂", "😂", "😅", "😄", "👍", "🙏", "🔥", "👀", "😎", "🤝",
+  "😊", "🤔", "💯", "👏", "✌️", "🎉", "🙌", "😁", "🤗", "👌",
+  "💪", "🌟", "⭐", "😃", "🤙", "👋", "❤️", "😆", "🫡", "🤣",
+];
+
+const FRASES_NUMERO = [
+  "faz {n} dias que pensei nisso", "já tem uns {n} dias", "isso aconteceu em {a}",
+  "faz uns {n} dias", "já tem uns {n} anos", "faz {n} semanas",
+  "uns {n} meses atrás", "a gente se viu uns {n} dias atrás",
+  "faz {n} dias já", "lá pra {n} horas atrás",
+];
+
+const RESPOSTAS_CURTAS = [
+  "ss", "sim", "aham", "uhum", "pode crer", "exato",
+  "verdade", "isso aí", "com certeza", "claro",
+  "tá certo", "beleza", "blz", "joia", "show",
+  "massa", "dahora", "top", "boa", "firmeza",
+  "haha", "kkk", "kkkk", "rsrs",
+  "é mesmo", "pois é", "né", "sei",
+  "entendi", "ah sim", "faz sentido", "de boa",
+];
+
+const FRASES_GRUPO = [
+  "concordo", "muito bom isso", "ótimo ponto",
+  "valeu por compartilhar", "obrigado pela dica",
+  "interessante demais", "vou aplicar isso",
+  "sensacional", "mandou bem", "parabéns pelo conteúdo",
+  "curti muito", "tô acompanhando",
+  "alguém mais concorda", "boa semana a todos",
+  "continue postando", "excelente informação",
+  "salvei aqui", "bom demais", "tamo junto",
+  "quem mais tá acompanhando",
+];
+
+// Track recent messages to avoid repetition
+const recentMsgs: string[] = [];
+const MAX_RECENT = 200;
+
+function maybeEmoji(msg: string): string {
+  const r = Math.random();
+  if (r < 0.55) return msg;
+  if (r < 0.85) return `${msg} ${pickRandom(EMOJIS_POOL)}`;
+  return `${msg} ${pickRandom(EMOJIS_POOL)}${pickRandom(EMOJIS_POOL)}`;
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+type MsgCtx = "group" | "private" | "autosave" | "community";
+
+function generateNaturalMessage(context: MsgCtx = "group"): string {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const msg = buildMsg(context);
+    if (msg.length >= 10 && msg.length <= 60 && !recentMsgs.includes(msg)) {
+      recentMsgs.push(msg);
+      if (recentMsgs.length > MAX_RECENT) recentMsgs.shift();
+      return msg;
+    }
+  }
+  // Fallback
+  const fb = context === "community" ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
+  return fb.substring(0, 60);
+}
+
+function buildMsg(ctx: MsgCtx): string {
+  const s = randInt(1, 10);
+  if (s <= 3) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
+  if (s <= 5) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  if (s <= 7) {
+    let m = pickRandom(COMENTARIOS);
+    if (Math.random() < 0.3) m += `, ${pickRandom(COMPLEMENTOS)}`;
+    return cap(maybeEmoji(m));
+  }
+  if (s === 8) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
+  if (s === 9) {
+    const f = pickRandom(FRASES_NUMERO).replace("{n}", String(randInt(2, 15))).replace("{a}", String(randInt(2019, 2025)));
+    return cap(maybeEmoji(f));
+  }
+  // s === 10: context-specific
+  if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
+  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  return cap(maybeEmoji(pickRandom(SAUDACOES)));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -294,14 +379,14 @@ async function handleTick(db: any) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
+          // Use user custom messages if available, otherwise combinatorial generator
           const { data: userMsgs } = await db
             .from("warmup_messages")
             .select("content")
             .eq("user_id", job.user_id);
 
-          const msgPool = (userMsgs && userMsgs.length > 0)
-            ? userMsgs.map((m: any) => m.content)
-            : groupMessages;
+          const useCustomPool = userMsgs && userMsgs.length > 0;
+          const getGroupMsg = () => useCustomPool ? pickRandom(userMsgs.map((m: any) => m.content)) : generateNaturalMessage("group");
 
           const targetGroupRecord = pickRandom(joinedGroups);
           const { data: poolGroup } = await db
@@ -319,7 +404,7 @@ async function handleTick(db: any) {
             break;
           }
 
-          const message = pickRandom(msgPool);
+          const message = getGroupMsg();
           await uazapiSendText(baseUrl, token, poolGroup.external_group_ref, message);
 
           await db.from("warmup_cycles").update({
@@ -360,7 +445,7 @@ async function handleTick(db: any) {
           }
 
           const contact = contacts[recipientIndex % contacts.length];
-          const message = pickRandom(autosaveMessages);
+          const message = generateNaturalMessage("autosave");
           const phoneNumber = contact.phone_e164.replace(/\+/g, "");
 
           await uazapiSendText(baseUrl, token, phoneNumber, message);
@@ -418,7 +503,7 @@ async function handleTick(db: any) {
 
               if (partnerDevice?.number && partnerDevice.status === "Ready") {
                 const phoneNumber = partnerDevice.number.replace(/\+/g, "");
-                const message = pickRandom(communityMessages);
+                const message = generateNaturalMessage("community");
 
                 await uazapiSendText(baseUrl, token, phoneNumber, message);
 
@@ -461,7 +546,7 @@ async function handleTick(db: any) {
 
           if (partnerDevice?.number && partnerDevice.status === "Ready") {
             const phoneNumber = partnerDevice.number.replace(/\+/g, "");
-            const message = pickRandom(communityMessages);
+            const message = generateNaturalMessage("community");
 
             await uazapiSendText(baseUrl, token, phoneNumber, message);
 

@@ -28,6 +28,7 @@ import { PlanGateDialog } from "@/components/PlanGateDialog";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
+import { MessageGeneratorPreview } from "@/components/warmup/MessageGeneratorPreview";
 
 const profileBadge: Record<string, { label: string; class: string }> = {
   novo: { label: "Novo", class: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
@@ -628,14 +629,18 @@ const Warmup = () => {
         </TabsContent>
 
         {/* Messages tab */}
-        <TabsContent value="messages" className="mt-4">
+        <TabsContent value="messages" className="mt-4 space-y-4">
+          {/* Combinatorial Generator Preview */}
+          <MessageGeneratorPreview />
+
+          {/* Custom Messages */}
           <Card className="border-border/15">
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Mensagens para Aquecimento</p>
+                  <p className="text-sm font-semibold text-foreground">Mensagens Personalizadas</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Mensagens aleatórias enviadas nos grupos.
+                    Mensagens customizadas que substituem o gerador automático nos grupos.
                   </p>
                 </div>
                 {warmupMessages.length === 0 && (
@@ -661,7 +666,7 @@ const Warmup = () => {
               {warmupMessages.length === 0 ? (
                 <div className="border border-dashed border-border/30 rounded-lg p-8 flex flex-col items-center gap-2 text-center">
                   <MessageSquare className="w-6 h-6 text-muted-foreground/20" />
-                  <p className="text-xs text-muted-foreground">Nenhuma mensagem cadastrada</p>
+                  <p className="text-xs text-muted-foreground">Nenhuma mensagem personalizada — o gerador automático será usado</p>
                 </div>
               ) : (
                 <div className="space-y-1 max-h-[400px] overflow-y-auto">
@@ -683,7 +688,7 @@ const Warmup = () => {
               )}
 
               <div className="text-[10px] text-muted-foreground/50 pt-2 border-t border-border/15 flex items-center justify-between">
-                <span>{warmupMessages.length} mensagens cadastradas</span>
+                <span>{warmupMessages.length} mensagens personalizadas • {warmupMessages.length > 0 ? "Substituem o gerador" : "Gerador automático ativo"}</span>
                 {warmupMessages.length > 0 && (
                   <Button variant="ghost" size="sm" className="text-[10px] h-6 text-muted-foreground/50 hover:text-foreground" onClick={addDefaultMessages}>
                     <Plus className="w-2.5 h-2.5 mr-1" /> Adicionar padrão
