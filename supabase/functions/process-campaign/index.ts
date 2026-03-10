@@ -1069,6 +1069,7 @@ Deno.serve(async (req) => {
           await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
           await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída`, null, { campaign_id: campaignId, sent: sentCount, failed: failedCount });
           console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}. Locks released.`);
+          sendCampaignAlertToWa(serviceClient, campaign.user_id, campaign.name, "completed", { sent: sentCount, delivered: sentCount, failed: failedCount, total: campaign.total_contacts });
           startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         }
       } else if (finalCampaign && (finalCampaign.status === "paused" || finalCampaign.status === "canceled" || finalCampaign.status === "failed")) {
