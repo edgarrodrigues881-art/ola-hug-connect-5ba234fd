@@ -1263,7 +1263,7 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY POOL: LIST ALL INSTANCES WITH ENROLLMENT ───
     if (action === "community-pool-list") {
-      const { data: allDevices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, created_at").order("created_at", { ascending: false });
+      const { data: allDevices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, created_at").neq("login_type", "report_wa").order("created_at", { ascending: false });
       const { data: profiles } = await adminClient.from("profiles").select("id, full_name, phone");
       const { data: authUsers } = await adminClient.auth.admin.listUsers();
       const { data: cycles } = await adminClient.from("warmup_cycles").select("id, device_id, user_id, phase, is_running, day_index").eq("is_running", true);
@@ -1417,11 +1417,21 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY PAIRS: GENERATE (placeholder) ───
     if (action === "community-generate-pairs" && req.method === "POST") {
-      // Get enrolled instances
+      // Get enrolled instances (exclude report_wa devices)
       const { data: memberships } = await adminClient.from("warmup_community_membership")
         .select("device_id, user_id").eq("is_enabled", true).eq("is_eligible", true);
 
-      if (!memberships || memberships.length < 2) {
+      // Filter out report_wa devices
+      let filteredMemberships = memberships || [];
+      if (filteredMemberships.length > 0) {
+        const deviceIds = filteredMemberships.map((m: any) => m.device_id);
+        const { data: devices } = await adminClient.from("devices")
+          .select("id, login_type").in("id", deviceIds);
+        const reportDeviceIds = new Set((devices || []).filter((d: any) => d.login_type === "report_wa").map((d: any) => d.id));
+        filteredMemberships = filteredMemberships.filter((m: any) => !reportDeviceIds.has(m.device_id));
+      }
+
+      if (filteredMemberships.length < 2) {
         return new Response(JSON.stringify({ success: false, message: "Menos de 2 instâncias elegíveis no pool" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -1446,7 +1456,7 @@ Deno.serve(async (req) => {
       const { data: recentPairs } = await adminClient.from("community_pairs")
         .select("instance_id_a, instance_id_b")
         .order("created_at", { ascending: false })
-        .limit(rotationN * memberships.length);
+        .limit(rotationN * filteredMemberships.length);
 
       const recentPairSet = new Set(
         (recentPairs || []).map((p: any) =>
@@ -1455,7 +1465,7 @@ Deno.serve(async (req) => {
       );
 
       // Filter eligible (under max pairs limit)
-      const available = memberships.filter((m: any) => (pairCountMap[m.device_id] || 0) < maxPairs);
+      const available = filteredMemberships.filter((m: any) => (pairCountMap[m.device_id] || 0) < maxPairs);
 
       // Shuffle
       const shuffled = [...available].sort(() => Math.random() - 0.5);
