@@ -712,6 +712,18 @@ Deno.serve(async (req) => {
     if (action === "logout") {
       // Get device info BEFORE clearing for notification message
       const { data: preDevice } = await svc.from("devices").select("name, number, status, login_type, profile_name").eq("id", deviceId).single();
+
+      // If DB number is empty, try to get it from the provider before disconnecting
+      let phoneForAlert = preDevice?.number || "";
+      if (!phoneForAlert && instanceToken && instanceUrl) {
+        try {
+          const preCheck = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET");
+          const preInst = preCheck.data?.instance || preCheck.data || {};
+          const rawPhone = preInst.owner || preInst.phone || "";
+          if (rawPhone) phoneForAlert = formatBrPhone(rawPhone.replace(/\D/g, ""));
+        } catch (_e) { /* ignore */ }
+      }
+
       const wasConnected = preDevice?.status === "Ready" || preDevice?.status === "Connected";
 
       // Disconnect from WhatsApp session only — keep the token assigned
