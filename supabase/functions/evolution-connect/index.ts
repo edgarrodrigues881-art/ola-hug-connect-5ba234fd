@@ -427,7 +427,7 @@ Deno.serve(async (req) => {
       }
 
       // Request QR — single call with retry built into uazapi()
-      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {}, { timeoutMs: 10000, retries: 2 });
+      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {}, { timeoutMs: 8000, retries: 1 });
       if (connectRes.status === 401) {
         await oplog(svc, user.id, "uazapi_error", `Token inválido ao gerar QR para "${deviceName}"`, deviceId);
         return json({ error: "Token inválido. Solicite novo token.", code: "TOKEN_INVALID" }, 401);
