@@ -82,21 +82,51 @@ Deno.serve(async (req) => {
     }
 
     async function sendToGroup(creds: { baseUrl: string; token: string }, groupId: string, message: string): Promise<boolean> {
-      if (!groupId) return false;
+      if (!groupId) {
+        console.log(`[report-wa-cron] sendToGroup: no groupId provided`);
+        return false;
+      }
+      console.log(`[report-wa-cron] sendToGroup: attempting to send to ${groupId} via ${creds.baseUrl}`);
       const sendAttempts = [
         { path: "/send/text", body: { number: groupId, text: message } },
+        { path: "/chat/send-text", body: { to: groupId, body: message } },
         { path: "/message/sendText", body: { chatId: groupId, text: message } },
         { path: "/message/sendText", body: { to: groupId, text: message } },
       ];
       for (const attempt of sendAttempts) {
         try {
+          console.log(`[report-wa-cron] trying ${attempt.path}...`);
           const res = await uazapiRequest(creds.baseUrl, creds.token, attempt.path, "POST", attempt.body);
-          const data = await res.json();
-          if (res.status >= 200 && res.status < 300 && !data.error && data.code !== 404) {
+          const rawText = await res.text();
+          console.log(`[report-wa-cron] ${attempt.path} status=${res.status} response=${rawText.substring(0, 300)}`);
+          let data: any = {};
+          try { data = JSON.parse(rawText); } catch {}
+          // Check for actual success indicators
+          if (res.status >= 200 && res.status < 300) {
+            if (data.error || data.code === 404) {
+              console.log(`[report-wa-cron] ${attempt.path} returned error in body, trying next...`);
+              continue;
+            }
+            // Check if there's a message ID or key indicating actual delivery
+            const hasMessageId = data.id || data.key?.id || data.messageId || data.message?.id || data.result?.id;
+            if (hasMessageId) {
+              console.log(`[report-wa-cron] ✅ Message sent successfully via ${attempt.path}, messageId present`);
+              return true;
+            }
+            // If status=true or sent=true
+            if (data.status === true || data.sent === true || data.success === true) {
+              console.log(`[report-wa-cron] ✅ Message sent successfully via ${attempt.path}, status flag true`);
+              return true;
+            }
+            // Fallback: if 200 and no error, consider success
+            console.log(`[report-wa-cron] ✅ Message sent via ${attempt.path} (200 OK, no error)`);
             return true;
           }
-        } catch (_e) { /* try next */ }
+        } catch (e) {
+          console.log(`[report-wa-cron] ${attempt.path} exception: ${e instanceof Error ? e.message : e}`);
+        }
       }
+      console.log(`[report-wa-cron] ❌ All send attempts failed for group ${groupId}`);
       return false;
     }
 
