@@ -973,12 +973,6 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
                 </Button>
               </div>
             )}
-                onClick={onRefreshGroups}
-                disabled={loadingGroups}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
           </div>
 
           {/* Monitored events */}
