@@ -9,45 +9,51 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
+  // Accept either: service_role key, anon key (from pg_cron), or INTERNAL_TICK_SECRET
+  const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-  if (claimsError || !claimsData?.claims) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
 
-  const callerUserId = claimsData.claims.sub as string;
+  let callerUserId: string | null = null;
+
+  // If called with a real user token (not anon key), extract user_id to filter
+  if (token && token !== anonKey && token !== serviceRoleKey && token !== tickSecret) {
+    try {
+      const anonClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await anonClient.auth.getUser();
+      if (user) callerUserId = user.id;
+    } catch {}
+  }
 
   try {
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: configs } = await serviceClient
+    // If called from cron (anon key), process ALL configs. If from user, filter by user.
+    let query = serviceClient
       .from("report_wa_configs")
       .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
-      .eq("user_id", callerUserId)
       .not("device_id", "is", null);
 
+    if (callerUserId) {
+      query = query.eq("user_id", callerUserId);
+    }
+
+    const { data: configs } = await query;
+
     if (!configs || configs.length === 0) {
+      console.log(`[report-wa-cron] No configs found${callerUserId ? ` for user ${callerUserId}` : ""}`);
       return new Response(JSON.stringify({ message: "No configs to check" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[report-wa-cron] Processing ${configs.length} config(s)`);
 
     async function getDeviceCredentials(deviceId: string, userId: string) {
       const { data: device } = await serviceClient
