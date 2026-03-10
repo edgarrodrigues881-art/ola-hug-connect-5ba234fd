@@ -31,11 +31,6 @@ function getPhaseForDayNew(day: number): string {
 }
 
 // ── Phase rules per day — CHIP_RECUPERACAO (recovered) ──
-// Day 1: pre_24h (join groups, no volume)
-// Day 2-3: groups_only (80-150 msgs)
-// Day 4: autosave_enabled (groups 120-250 + autosave 3×2)
-// Day 5-7: community_light (groups 120-250 + autosave 5×2 + community 2-4 × 10-20)
-// Day 8-30: community_enabled (groups 150-350 + autosave 5×2 + community 4-8 × 15-25)
 function getPhaseForDayRecovered(day: number): string {
   if (day <= 1) return "pre_24h";
   if (day <= 3) return "groups_only";
@@ -44,9 +39,23 @@ function getPhaseForDayRecovered(day: number): string {
   return "community_enabled";
 }
 
+// ── Phase rules per day — CHIP_SENSIVEL (unstable) ──
+// Day 1: pre_24h (join groups only)
+// Day 2-5: groups_only (50-120 msgs, 09:00-18:00)
+// Day 6: autosave_enabled (groups 120-200 + autosave 3×2)
+// Day 7-10: autosave_enabled (groups 120-220 + autosave 3-4×2)
+// Day 11-30: community_light (groups 150-300 + autosave 5×2 + community 2-5 × 10-20)
+function getPhaseForDayUnstable(day: number): string {
+  if (day <= 1) return "pre_24h";
+  if (day <= 5) return "groups_only";
+  if (day <= 10) return "autosave_enabled";
+  return "community_light";
+}
+
 // Generic dispatcher
 function getPhaseForDay(day: number, chipState: string): string {
   if (chipState === "recovered") return getPhaseForDayRecovered(day);
+  if (chipState === "unstable") return getPhaseForDayUnstable(day);
   return getPhaseForDayNew(day);
 }
 
@@ -120,8 +129,10 @@ Deno.serve(async (req) => {
       const resolvedChipState = chip_state || "new";
       const now = new Date();
 
-      // Day 1 wait: new=5-8h, recovered=3-6h (more cautious but shorter idle)
-      const waitHours = resolvedChipState === "recovered" ? randInt(3, 6) : randInt(5, 8);
+      // Day 1 wait: new=5-8h, recovered=3-6h, unstable=4-7h
+      const waitHoursMap: Record<string, [number, number]> = { new: [5, 8], recovered: [3, 6], unstable: [4, 7] };
+      const [wMin, wMax] = waitHoursMap[resolvedChipState] || [5, 8];
+      const waitHours = randInt(wMin, wMax);
       const firstActivityAt = new Date(now.getTime() + waitHours * 60 * 60 * 1000);
       const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -206,7 +217,8 @@ Deno.serve(async (req) => {
         if (jobErr) throw jobErr;
       }
 
-      const chipLabel = resolvedChipState === "recovered" ? "CHIP_RECUPERAÇÃO" : "CHIP_NOVO";
+      const chipLabels: Record<string, string> = { new: "CHIP_NOVO", recovered: "CHIP_RECUPERAÇÃO", unstable: "CHIP_SENSÍVEL" };
+      const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
@@ -374,9 +386,11 @@ async function scheduleDayJobs(
   // For "new" chip: 07:00-19:00 BRT = 10:00-22:00 UTC
   const today = new Date(now);
   const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(chipState === "recovered" ? 11 : 10, 0, 0, 0);
+  const startHourUTC = chipState === "unstable" ? 12 : chipState === "recovered" ? 11 : 10;
+  const endHourUTC = chipState === "unstable" ? 21 : 22;
+  windowStartUTC.setUTCHours(startHourUTC, 0, 0, 0);
   const windowEndUTC = new Date(today);
-  windowEndUTC.setUTCHours(22, 0, 0, 0);
+  windowEndUTC.setUTCHours(endHourUTC, 0, 0, 0);
 
   const effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
   const effectiveEnd = windowEndUTC.getTime();
@@ -463,9 +477,8 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  if (chipState === "recovered") {
-    return getVolumesRecovered(dayIndex, phase);
-  }
+  if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
+  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
   return getVolumesNew(phase);
 }
 
@@ -533,6 +546,52 @@ function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
     v.autosaveTotal = 10; // 5 × 2
     v.communityPairs = randInt(4, 8);
     v.communityMsgsPerPair = randInt(15, 25);
+    return v;
+  }
+
+  return v;
+}
+
+// CHIP_SENSIVEL volumes (ultra-conservative)
+function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+
+  // Day 1: no volume
+  if (phase === "pre_24h") return v;
+
+  // Day 2-5: groups_only — 50-120 msgs
+  if (phase === "groups_only") {
+    v.groupMsgs = randInt(50, 120);
+    return v;
+  }
+
+  // Day 6-10: autosave_enabled
+  if (phase === "autosave_enabled") {
+    if (dayIndex <= 6) {
+      // Day 6: groups 120-200, autosave 3×2=6
+      v.groupMsgs = randInt(120, 200);
+      v.autosaveContacts = 3;
+      v.autosaveMsgsPerContact = 2;
+      v.autosaveTotal = 6;
+    } else {
+      // Day 7-10: groups 120-220, autosave 3-4×2
+      v.groupMsgs = randInt(120, 220);
+      const contacts = randInt(3, 4);
+      v.autosaveContacts = contacts;
+      v.autosaveMsgsPerContact = 2;
+      v.autosaveTotal = contacts * 2;
+    }
+    return v;
+  }
+
+  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(150, 300);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 5);
+    v.communityMsgsPerPair = randInt(10, 20);
     return v;
   }
 

@@ -128,8 +128,16 @@ function getPhaseForDayRecovered(day: number): string {
   return "community_enabled";
 }
 
+function getPhaseForDayUnstable(day: number): string {
+  if (day <= 1) return "pre_24h";
+  if (day <= 5) return "groups_only";
+  if (day <= 10) return "autosave_enabled";
+  return "community_light";
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (chipState === "recovered") return getPhaseForDayRecovered(day);
+  if (chipState === "unstable") return getPhaseForDayUnstable(day);
   return getPhaseForDayNew(day);
 }
 
@@ -543,14 +551,17 @@ async function handleTick(db: any) {
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
             budgetMin = 3; budgetMax = 8;
+          } else if (chipState === "unstable") {
+            // Ultra-conservative for unstable
+            if (newPhase === "groups_only") { budgetMin = 50; budgetMax = 120; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 228; }
+            else { budgetMin = 170; budgetMax = 410; } // community_light max
           } else if (chipState === "recovered") {
-            // Conservative budgets for recovered
             if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; } // 250 groups + ~6 autosave
-            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; } // 250 + 10 + ~80 community
-            else { budgetMin = 180; budgetMax = 460; } // 350 + 10 + ~100 community
+            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; }
+            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; }
+            else { budgetMin = 180; budgetMax = 460; }
           } else {
-            // CHIP_NOVO budgets
             budgetMin = 200; budgetMax = 500;
           }
 
@@ -567,7 +578,8 @@ async function handleTick(db: any) {
             last_daily_reset_at: new Date().toISOString(),
           }).eq("id", cycle.id);
 
-          const chipLabel = chipState === "recovered" ? "RECUPERAÇÃO" : "NOVO";
+          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "RECUPERAÇÃO", unstable: "SENSÍVEL" };
+          const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "daily_reset",
@@ -666,6 +678,7 @@ interface DayVolumes {
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
   if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
+  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
   return getVolumesNew(phase);
 }
 
@@ -703,6 +716,31 @@ function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
   return v;
 }
 
+function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  if (phase === "pre_24h") return v;
+  // Day 2-5: groups_only — 50-120 msgs
+  if (phase === "groups_only") { v.groupMsgs = randInt(50, 120); return v; }
+  // Day 6-10: autosave_enabled
+  if (phase === "autosave_enabled") {
+    if (dayIndex <= 6) {
+      v.groupMsgs = randInt(120, 200); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
+    } else {
+      v.groupMsgs = randInt(120, 220);
+      const contacts = randInt(3, 4);
+      v.autosaveContacts = contacts; v.autosaveMsgsPerContact = 2; v.autosaveTotal = contacts * 2;
+    }
+    return v;
+  }
+  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(150, 300); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 5); v.communityMsgsPerPair = randInt(10, 20);
+    return v;
+  }
+  return v;
+}
+
 // ════════════════════════════════════════
 // Schedule jobs for a specific day/phase
 // ════════════════════════════════════════
@@ -718,12 +756,17 @@ async function scheduleDayJobs(
   const now = new Date();
   const jobs: any[] = [];
 
-  // Activity window: recovered=08:00-19:00 BRT (11:00-22:00 UTC), new=07:00-19:00 BRT (10:00-22:00 UTC)
+  // Activity window BRT → UTC:
+  // new: 07:00-19:00 (10:00-22:00 UTC)
+  // recovered: 08:00-19:00 (11:00-22:00 UTC)
+  // unstable: 09:00-18:00 (12:00-21:00 UTC)
   const today = new Date(now);
   const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(chipState === "recovered" ? 11 : 10, 0, 0, 0);
+  const startHourUTC = chipState === "unstable" ? 12 : chipState === "recovered" ? 11 : 10;
+  const endHourUTC = chipState === "unstable" ? 21 : 22;
+  windowStartUTC.setUTCHours(startHourUTC, 0, 0, 0);
   const windowEndUTC = new Date(today);
-  windowEndUTC.setUTCHours(22, 0, 0, 0);
+  windowEndUTC.setUTCHours(endHourUTC, 0, 0, 0);
 
   const effectiveStart = Math.max(now.getTime(), windowStartUTC.getTime());
   const effectiveEnd = windowEndUTC.getTime();

@@ -256,6 +256,78 @@ const ROADMAP_BANIDO: DayPlan[] = [
   }),
 ];
 
+// ═══════════════════════════════════════════════
+// CHIP SENSÍVEL — 30 dias, ultra-conservador
+// ═══════════════════════════════════════════════
+const ROADMAP_SENSIVEL: DayPlan[] = [
+  {
+    day: 1, phase: "pre_24h", title: "Entrada nos grupos apenas",
+    goals: ["Conectar via QR Code", "Entrar nos 8 grupos gradualmente", "Sem envio intenso de mensagens"],
+    checklist: ["Instância conectada (Ready)", "Proxy residencial configurado", "8 grupos ingressados (distribuído)", "Sem mensagens enviadas"],
+    tips: "⚠️ Chip extremamente sensível. Apenas entre nos grupos, sem enviar nada.",
+    msgTarget: { min: 0, max: 5 }, groupTarget: 8, recipientTarget: 0,
+  },
+  ...Array.from({ length: 4 }, (_, i) => ({
+    day: i + 2,
+    phase: "groups_only",
+    title: i === 0 ? "Primeiras msgs conservadoras" : `Dia ${i + 2} — Grupos apenas`,
+    goals: ["Enviar 50-120 mensagens nos grupos", "Janela: 09:00-18:00 (reduzida)", "Sem Auto Save, sem comunitário"],
+    checklist: ["50-120 msgs em grupos", "Janela 09:00-18:00 respeitada", "Sem restrições", "Instância estável"],
+    tips: i === 0 ? "Volume MUITO baixo. 50-120 msgs é o máximo. Janela reduzida de 09:00 a 18:00." : undefined,
+    msgTarget: { min: 50, max: 120 }, groupTarget: 8, recipientTarget: 0,
+  } as DayPlan)),
+  {
+    day: 6, phase: "autosave", title: "Auto Save leve",
+    goals: ["Grupos: 120-200 msgs", "Ativar Auto Save: 3 números × 2 msgs = 6/dia"],
+    checklist: ["120-200 msgs nos grupos", "6 msgs Auto Save", "3 destinatários", "Sem problemas"],
+    tips: "Auto Save com volume mínimo: apenas 3 números com 2 msgs cada.",
+    msgTarget: { min: 126, max: 206 }, groupTarget: 8, recipientTarget: 3,
+  },
+  ...Array.from({ length: 4 }, (_, i) => ({
+    day: i + 7,
+    phase: "autosave",
+    title: i === 0 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 7} — Grupos + AutoSave`,
+    goals: ["Grupos: 120-220 msgs", "Auto Save: 3-4 números × 2 msgs"],
+    checklist: ["120-220 msgs grupos", "6-8 msgs Auto Save", "Sem restrições"],
+    tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip sensível pode recair." : undefined,
+    msgTarget: { min: 126, max: 228 }, groupTarget: 8, recipientTarget: 4,
+  } as DayPlan)),
+  // Days 11-30: community_light
+  ...Array.from({ length: 20 }, (_, i) => {
+    const day = i + 11;
+    const isCheckpoint = [14, 21, 30].includes(day);
+    return {
+      day,
+      phase: day >= 25 ? "consolidation" : "community_light",
+      title: day === 11 ? "Comunitário leve ativado" :
+             day === 14 ? "Checkpoint: 2 semanas ✅" :
+             day === 21 ? "3 semanas de maturação 🛡️" :
+             day === 25 ? "Consolidação final" :
+             day === 30 ? "Chip estabilizado! 🎉🛡️" :
+             `Dia ${day} — Maturação contínua`,
+      goals: [
+        "Grupos: 150-300 msgs (conservador)",
+        "Auto Save: 5 números × 2 msgs = 10/dia",
+        "Comunitário leve: 2-5 pares × 10-20 msgs",
+        ...(isCheckpoint ? ["Health check completo"] : []),
+      ],
+      checklist: [
+        "Volume controlado (abaixo do chip novo)",
+        "Auto Save: 10 msgs/dia",
+        "2-5 conversas comunitárias leves",
+        ...(isCheckpoint ? ["Zero bloqueios", "Instância estável"] : ["Logs limpos"]),
+        ...(day === 30 ? ["🛡️ 30 dias completos!", "Chip estabilizado — usar com delays seguros"] : []),
+      ],
+      tips: day === 14 ? "2 semanas! Continue conservador." :
+            day === 21 ? "3 semanas sem problemas. O chip está melhorando." :
+            day === 30 ? "🛡️ Ciclo completo! Use SEMPRE com delays maiores e volume conservador." : undefined,
+      msgTarget: { min: 150 + 10 + 20, max: 300 + 10 + 100 },
+      groupTarget: 8,
+      recipientTarget: 5 + 5,
+    } as DayPlan;
+  }),
+];
+
 interface CategoryConfig {
   key: string;
   label: string;
@@ -300,6 +372,17 @@ const CATEGORIES: CategoryConfig[] = [
     headerBg: "from-red-500/10 to-red-500/5",
     message: "⚠️ Ciclo de recuperação de 30 dias com cautela máxima. Este número já sofreu ban ou restrição. O volume é reduzido em todas as fases (80-350 msgs em grupos vs 200-500 do chip novo). AutoSave usa 2 msgs/contato (vs 3). Comunidade com pares menores. Mesmo após 30 dias, use sempre com delays maiores.",
     roadmap: ROADMAP_BANIDO,
+    days: 30,
+  },
+  {
+    key: "sensivel",
+    label: "🟡 Chip Sensível",
+    subtitle: "Número que sofre restrição facilmente",
+    icon: AlertTriangle,
+    iconColor: "text-yellow-400",
+    headerBg: "from-yellow-500/10 to-yellow-500/5",
+    message: "⚠️ Ciclo ultra-conservador de 30 dias. Para números que sofrem restrição muito facilmente. Volume reduzido (50-300 msgs), janela horária menor (09:00-18:00), AutoSave tardio (dia 6), e comunitário leve só a partir do dia 11. Nunca atinge community_enabled.",
+    roadmap: ROADMAP_SENSIVEL,
     days: 30,
   },
 ];
