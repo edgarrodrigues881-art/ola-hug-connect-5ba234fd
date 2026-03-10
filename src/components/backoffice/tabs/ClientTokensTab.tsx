@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw, CircleDot, Zap, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, Key, Copy, Check, Radio, Save, ShieldCheck, ShieldX, ShieldQuestion, RefreshCw, CircleDot, Zap, AlertTriangle, Unlock, Lock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

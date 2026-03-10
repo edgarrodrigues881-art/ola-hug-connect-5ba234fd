@@ -758,6 +758,37 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── BULK UNBLOCK TOKENS ───
+    if (action === "bulk-unblock-tokens" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      if (!target_user_id) throw new Error("target_user_id obrigatório");
+
+      const { data: blocked } = await adminClient.from("user_api_tokens")
+        .select("id")
+        .eq("user_id", target_user_id)
+        .eq("status", "blocked");
+
+      const count = blocked?.length || 0;
+      if (count === 0) {
+        return new Response(JSON.stringify({ success: true, unblocked: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const ids = blocked!.map((t: any) => t.id);
+      await adminClient.from("user_api_tokens")
+        .update({ status: "available" })
+        .in("id", ids);
+
+      await logAction(adminClient, user.id, target_user_id, "bulk-unblock-tokens",
+        `${count} token(s) desbloqueado(s) em massa`);
+
+      return new Response(JSON.stringify({ success: true, unblocked: count }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
 
     // ─── SET REPORT DEVICE CREDENTIALS (admin manually configures token+url for client's report_wa instance) ───
     if (action === "set-report-credentials" && req.method === "POST") {
