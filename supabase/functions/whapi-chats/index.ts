@@ -446,9 +446,9 @@ Deno.serve(async (req) => {
           let data: any;
           try { data = JSON.parse(raw); } catch { data = { raw }; }
 
-          // Extract JID from response
-          const jid = data?.JID || data?.jid || data?.groupId || data?.group_id || data?.data?.JID || data?.data?.jid || "";
-          const name = data?.Name || data?.name || data?.Subject || data?.subject || data?.data?.Name || "";
+          // Extract JID from response (UAZAPI returns { group: { JID: "..." } })
+          const jid = data?.group?.JID || data?.group?.jid || data?.JID || data?.jid || data?.groupId || data?.group_id || data?.data?.JID || data?.data?.jid || "";
+          const name = data?.group?.Name || data?.group?.name || data?.group?.Subject || data?.Name || data?.name || data?.Subject || data?.subject || data?.data?.Name || "";
 
           if (jid && jid.includes("@g.us")) {
             console.log(`[resolve_invite] Success! JID: ${jid}, Name: ${name}`);
