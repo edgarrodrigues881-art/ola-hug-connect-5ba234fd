@@ -386,18 +386,6 @@ const AdminWarmupRoadmap = () => {
         ))}
       </Tabs>
 
-      {/* Phase legend */}
-      <div className="flex flex-wrap gap-1.5">
-        {phaseOrder.map(key => {
-          const phase = PHASES[key];
-          if (!phase) return null;
-          return (
-            <Badge key={key} variant="outline" className={`text-[10px] ${phase.color}`}>
-              {phase.label}
-            </Badge>
-          );
-        })}
-      </div>
 
       {/* Roadmap */}
       {phaseGroups.map(({ key, days }) => {
