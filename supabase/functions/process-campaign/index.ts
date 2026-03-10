@@ -482,6 +482,8 @@ Deno.serve(async (req) => {
         console.log(`Released device locks for canceled campaign ${campaignId}`);
         startNextQueuedCampaigns(serviceClient, ids, supabaseUrl, serviceRoleKey);
       }
+      // Instant WA alert
+      sendCampaignAlertToWa(serviceClient, userId, campData?.name || "", "canceled", { sent: campData?.sent_count, failed: campData?.failed_count, total: campData?.total_contacts });
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
