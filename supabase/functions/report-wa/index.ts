@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status")
         .eq("user_id", userId)
         .single();
 
@@ -463,15 +463,8 @@ Deno.serve(async (req) => {
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
 
       const reportType = body.reportType || "general";
-      // Use per-type group, fallback to legacy group_id
-      const typeGroupMap: Record<string, { id: string; name: string }> = {
-        warmup: { id: config.warmup_group_id || config.group_id, name: config.warmup_group_name || config.group_name },
-        campaigns: { id: config.campaigns_group_id || config.group_id, name: config.campaigns_group_name || config.group_name },
-        connection: { id: config.connection_group_id || config.group_id, name: config.connection_group_name || config.group_name },
-      };
-      const typeGroup = typeGroupMap[reportType] || { id: config.group_id, name: config.group_name };
-      const targetGroupId = body.groupId || typeGroup.id;
-      const targetGroupName = body.groupName || typeGroup.name || "N/A";
+      const targetGroupId = body.groupId || config.group_id;
+      const targetGroupName = body.groupName || config.group_name || "N/A";
 
       if (!targetGroupId) {
         return json({ error: "Selecione um grupo para este tipo de relatório" }, 400);
