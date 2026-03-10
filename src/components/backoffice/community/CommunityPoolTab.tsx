@@ -180,7 +180,7 @@ const CommunityPoolTab = () => {
 
             <div className="flex items-center justify-between pt-2 border-t border-border/50">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">Pool</span>
+                <span className="text-[10px] text-muted-foreground">Ativo</span>
                 <Switch
                   checked={d.is_enrolled}
                   onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
