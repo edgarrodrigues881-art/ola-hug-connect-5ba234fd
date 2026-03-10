@@ -166,102 +166,92 @@ const ROADMAP_ESTAVEL: DayPlan[] = [
 ];
 
 // ═══════════════════════════════════════════════
-// CHIP BANIDO (RECUPERAÇÃO) — 21 dias, cautela máxima
+// CHIP BANIDO (RECUPERAÇÃO) — 30 dias, cautela máxima
 // ═══════════════════════════════════════════════
 const ROADMAP_BANIDO: DayPlan[] = [
   {
-    day: 1, phase: "observation", title: "🚨 Quarentena",
-    goals: ["Conectar e avaliar estado da conta", "NÃO ENVIAR NENHUMA MENSAGEM", "Aguardar 12-24 horas em silêncio total"],
-    checklist: ["Instância conectada com sucesso", "Proxy NOVO residencial configurado", "Zero mensagens enviadas", "Aguardou período de quarentena completo"],
-    tips: "⚠️ ATENÇÃO MÁXIMA! Chips com histórico de ban são sensíveis. Qualquer erro pode resultar em ban permanente. Silêncio total nas primeiras 24h.",
-    msgTarget: { min: 0, max: 0 }, groupTarget: 0, recipientTarget: 0,
+    day: 1, phase: "pre_24h", title: "🚨 Silêncio + Entrada nos grupos",
+    goals: ["Conectar via QR Code", "Aguardar 3-6 horas sem atividade", "Entrar nos 8 grupos gradualmente ao longo do dia", "Não enviar grande volume"],
+    checklist: ["Instância conectada (Ready)", "Proxy NOVO residencial configurado", "Aguardou período de espera", "Entrada nos 8 grupos distribuída"],
+    tips: "⚠️ ATENÇÃO MÁXIMA! Chips com histórico de ban são sensíveis. Entrada gradual nos grupos, sem volume de mensagens.",
+    msgTarget: { min: 0, max: 5 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 2, phase: "observation", title: "Observação cautelosa",
-    goals: ["Verificar se conta ainda está ativa", "Entrar em 2-3 grupos apenas", "Observar sem enviar mensagens"],
-    checklist: ["Conta ativa (sem ban)", "2-3 grupos ingressados", "Zero mensagens enviadas", "Monitoramento constante"],
-    tips: "Apenas entre nos grupos e observe. Não envie NADA ainda.",
-    msgTarget: { min: 0, max: 0 }, groupTarget: 3, recipientTarget: 0,
+    day: 2, phase: "groups_only", title: "Primeiras mensagens nos grupos",
+    goals: ["Enviar 80-150 mensagens nos 8 grupos", "Janela: 08:00-19:00", "Apenas textos curtos e emojis"],
+    checklist: ["80-150 msgs em grupos", "Sem erros de envio", "Nenhuma restrição"],
+    tips: "Volume CONSERVADOR. Muito abaixo do chip novo. Textos curtos e leves.",
+    msgTarget: { min: 80, max: 150 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 3, phase: "recovery", title: "Primeira interação",
-    goals: ["Enviar 5-10 msgs leves em grupos", "Apenas reações e textos curtos", "Completar entrada nos 8 grupos"],
-    checklist: ["5-10 msgs em grupos", "Textos curtos e emojis apenas", "8 grupos ingressados", "Nenhuma restrição"],
-    tips: "Mensagens MUITO leves: emoji, 'Bom dia!', 'Valeu!'. Nada mais.",
-    msgTarget: { min: 5, max: 10 }, groupTarget: 8, recipientTarget: 0,
+    day: 3, phase: "groups_only", title: "Consolidando nos grupos",
+    goals: ["Manter 80-150 msgs em grupos", "Monitorar de perto", "Verificar status da conta"],
+    checklist: ["80-150 msgs", "Conta estável", "Sem warnings"],
+    msgTarget: { min: 80, max: 150 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 4, phase: "recovery", title: "Aumentando gradualmente",
-    goals: ["Aumentar para 20-50 msgs em grupos", "Distribuir bem na janela 07:00-19:00", "Monitorar de perto"],
-    checklist: ["20-50 msgs nos grupos", "Sem warnings", "Distribuição horária ok"],
-    msgTarget: { min: 20, max: 50 }, groupTarget: 8, recipientTarget: 0,
+    day: 4, phase: "autosave", title: "Auto Save cauteloso",
+    goals: ["Grupos: 120-250 msgs", "Auto Save: 3 números × 2 msgs = 6/dia", "Volume reduzido vs chip novo"],
+    checklist: ["Grupos + AutoSave funcionando", "6 msgs Auto Save", "3 destinatários únicos", "Sem restrições"],
+    tips: "AutoSave com volume MENOR que chip novo. Apenas 3 números × 2 msgs.",
+    msgTarget: { min: 126, max: 256 }, groupTarget: 8, recipientTarget: 3,
   },
   {
-    day: 5, phase: "recovery", title: "Teste de resistência",
-    goals: ["50-100 msgs em grupos", "Verificar se conta permanece estável", "Health check completo"],
-    checklist: ["50-100 msgs", "Conta estável", "Sem restrições em 5 dias"],
-    tips: "Se chegou ao dia 5 sem problemas, há chance de recuperação. Continue com cautela.",
-    msgTarget: { min: 50, max: 100 }, groupTarget: 8, recipientTarget: 0,
+    day: 5, phase: "community_light", title: "Comunidade leve",
+    goals: ["Grupos: 120-250 msgs", "Auto Save: 5 números × 2 msgs = 10/dia", "Comunitário: 2-4 pares × 10-20 msgs"],
+    checklist: ["Grupos + AutoSave + Comunidade", "2-4 pares ativos", "10-20 msgs por conversa", "Sem problemas em 5 dias"],
+    tips: "Comunidade com MENOS volume que chip novo. 2-4 pares com 10-20 msgs.",
+    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
   },
   {
-    day: 6, phase: "groups_only", title: "Volume moderado",
-    goals: ["Aumentar para 100-200 msgs em grupos", "Começar a variar conteúdo", "Testar envio de mídia simples"],
-    checklist: ["100-200 msgs", "Conteúdo variado", "Mídia enviada com sucesso"],
-    msgTarget: { min: 100, max: 200 }, groupTarget: 8, recipientTarget: 0,
+    day: 6, phase: "community_light", title: "Comunidade consolidando",
+    goals: ["Manter grupos (120-250) + AutoSave (10) + Comunidade leve", "Verificar logs de erros"],
+    checklist: ["2-4 pares comunitários", "Volume estável", "Sem restrições"],
+    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
   },
   {
-    day: 7, phase: "groups_only", title: "Checkpoint: 1 semana ✅",
-    goals: ["150-250 msgs em grupos", "Health check completo", "Avaliar se pode prosseguir"],
-    checklist: ["150-250 msgs", "1 semana sem bloqueio", "Conta saudável"],
+    day: 7, phase: "community_light", title: "Checkpoint: 1 semana ✅",
+    goals: ["Manter todas as funções ativas", "Health check completo", "Avaliar se pode prosseguir"],
+    checklist: ["1 semana sem bloqueio!", "Grupos + AutoSave + Comunidade OK", "Conta saudável"],
     tips: "Uma semana sem ban! Bom sinal, mas mantenha a cautela. Chips banidos podem ter recaídas.",
-    msgTarget: { min: 150, max: 250 }, groupTarget: 8, recipientTarget: 0,
+    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
   },
-  {
-    day: 8, phase: "autosave", title: "Auto Save cauteloso",
-    goals: ["Grupos: 150-300 msgs", "Auto Save: 3 números × 2 msgs = 6/dia", "Volume reduzido vs chip novo"],
-    checklist: ["Grupos + AutoSave", "Apenas 6 msgs diretas", "Sem restrições"],
-    tips: "AutoSave com volume MENOR que chip novo. 3 números × 2 msgs apenas.",
-    msgTarget: { min: 156, max: 306 }, groupTarget: 8, recipientTarget: 3,
-  },
-  {
-    day: 9, phase: "autosave", title: "Estabilizando AutoSave",
-    goals: ["Manter grupos + AutoSave", "Aumentar para 5 números × 2 msgs = 10/dia", "Monitorar"],
-    checklist: ["10 msgs AutoSave", "Sem problemas", "Volume estável"],
-    msgTarget: { min: 160, max: 310 }, groupTarget: 8, recipientTarget: 5,
-  },
-  {
-    day: 10, phase: "autosave", title: "AutoSave pleno",
-    goals: ["Grupos: 200-350 msgs", "Auto Save: 5 números × 3 msgs = 15/dia", "Nível de chip novo alcançado"],
-    checklist: ["AutoSave = chip novo", "Sem restrições", "10 dias sem ban"],
-    msgTarget: { min: 215, max: 365 }, groupTarget: 8, recipientTarget: 5,
-  },
-  {
-    day: 11, phase: "community_light", title: "Comunidade cautelosa",
-    goals: ["Manter grupos + AutoSave", "Ativar 2-3 pares comunitários", "10-20 msgs por conversa (menos que chip novo)"],
-    checklist: ["2-3 pares ativos", "Volume comunitário reduzido", "Sem problemas"],
-    tips: "Comunidade com MENOS volume que chip novo. 2-3 pares com 10-20 msgs apenas.",
-    msgTarget: { min: 235, max: 425 }, groupTarget: 8, recipientTarget: 8,
-  },
-  ...Array.from({ length: 10 }, (_, i) => {
-    const day = i + 12;
+  // Days 8-30: Community Full (conservative)
+  ...Array.from({ length: 23 }, (_, i) => {
+    const day = i + 8;
+    const isCheckpoint = [14, 21, 30].includes(day);
+    const communityPairsMin = 4, communityPairsMax = 8;
+    const communityMsgsMin = communityPairsMin * 15;
+    const communityMsgsMax = communityPairsMax * 25;
+
     return {
       day,
-      phase: day >= 18 ? "consolidation" : "community_full",
-      title: day === 14 ? "Checkpoint: 2 semanas ✅" :
-             day === 21 ? "Recuperação completa! 🎉🛡️" :
+      phase: day >= 25 ? "consolidation" : "community_full",
+      title: day === 8 ? "Comunidade completa (conservadora)" :
+             day === 14 ? "Checkpoint: 2 semanas ✅" :
+             day === 21 ? "3 semanas de recuperação 🛡️" :
+             day === 25 ? "Fase de consolidação" :
+             day === 30 ? "Recuperação completa! 🎉🛡️" :
              `Dia ${day} — Recuperação contínua`,
       goals: [
-        "Grupos: 200-400 msgs", "Auto Save: 15 msgs/dia",
-        "Comunitário: 3-7 pares × 15-25 msgs",
-        ...(day === 21 ? ["Health check final de recuperação"] : []),
+        "Grupos: 150-350 msgs (conservador)",
+        "Auto Save: 5 números × 2 msgs = 10/dia",
+        `Comunitário: ${communityPairsMin}-${communityPairsMax} pares × 15-25 msgs`,
+        ...(isCheckpoint ? ["Health check completo"] : []),
       ],
       checklist: [
-        "Volume controlado", "Sem restrições",
-        ...(day === 21 ? ["🛡️ 21 dias sem ban!", "Chip recuperado — usar com delays maiores que normal"] : ["Logs limpos"]),
+        "Volume controlado (abaixo do chip novo)",
+        "Auto Save: 10 msgs/dia",
+        `${communityPairsMin}-${communityPairsMax} conversas comunitárias`,
+        ...(isCheckpoint ? ["Zero bloqueios ou restrições", "Instância estável"] : ["Logs limpos"]),
+        ...(day === 30 ? ["🛡️ 30 dias de recuperação completo!", "Chip recuperado — usar com delays maiores que normal"] : []),
       ],
       tips: day === 14 ? "2 semanas de recuperação! Continue mantendo cautela." :
-            day === 21 ? "🛡️ Recuperação de 21 dias completa! Use SEMPRE com delays maiores e volume menor que chips novos." : undefined,
-      msgTarget: { min: 260, max: 575 }, groupTarget: 8, recipientTarget: 12,
+            day === 21 ? "3 semanas! Se não houve problemas, o chip está se recuperando bem." :
+            day === 30 ? "🛡️ Recuperação de 30 dias completa! Use SEMPRE com delays maiores e volume menor que chips novos." : undefined,
+      msgTarget: { min: 150 + 10 + communityMsgsMin, max: 350 + 10 + communityMsgsMax },
+      groupTarget: 8,
+      recipientTarget: 5 + communityPairsMax,
     } as DayPlan;
   }),
 ];
