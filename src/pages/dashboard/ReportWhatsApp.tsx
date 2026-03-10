@@ -887,9 +887,10 @@ interface AlertCardProps {
   infoItems: string[];
   monitoredEvents: string[];
   previewMessage: string;
+  reportDeviceId?: string;
 }
 
-const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, monitoredEvents, previewMessage }: AlertCardProps & { reportDeviceId?: string }) => {
+const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, monitoredEvents, previewMessage, reportDeviceId }: AlertCardProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [groupLink, setGroupLink] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
