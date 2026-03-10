@@ -255,8 +255,14 @@ export default function ReportWhatsApp() {
         participants: c.participants?.length || c.participantsCount || c.size || undefined,
       }));
       setGroups(groupChats);
+      if (forceRefresh) {
+        toast.success(`${groupChats.length} grupo(s) encontrado(s)`);
+      }
     } catch (err) {
       console.error("Error fetching groups:", err);
+      if (forceRefresh) {
+        toast.error("Erro ao buscar grupos. Tente novamente.");
+      }
     } finally {
       setLoadingGroups(false);
     }

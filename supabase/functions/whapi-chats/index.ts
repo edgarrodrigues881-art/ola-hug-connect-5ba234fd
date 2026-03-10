@@ -149,39 +149,37 @@ Deno.serve(async (req) => {
         if (newCount === 0) break;
       }
 
-      // Strategy 2: Try alternative endpoint /chat/list filtering groups (catches recently joined groups)
-      if (forceRefresh || allGroups.length === 0) {
-        try {
-          const chatListEndpoint = `${apiBaseUrl}/chat/list?count=500`;
-          console.log(`Trying alternative chat/list: ${chatListEndpoint}`);
-          const chatData = await fetchWithRetry(chatListEndpoint, 1);
-          if (chatData) {
-            const chats = chatData.chats || chatData || [];
-            const chatArray = Array.isArray(chats) ? chats : [];
-            const groupChats = chatArray.filter((c: any) => {
-              const id = c.JID || c.jid || c.id || c.chatId || "";
-              return id.includes("@g.us");
-            });
-            if (groupChats.length > 0) {
-              const prevCount = seenJids.size;
-              addGroups(groupChats);
-              console.log(`chat/list found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
-            }
+      // Strategy 2: Always try /chat/list to catch recently created/joined groups
+      try {
+        const chatListEndpoint = `${apiBaseUrl}/chat/list?count=500`;
+        console.log(`Trying chat/list: ${chatListEndpoint}`);
+        const chatData = await fetchWithRetry(chatListEndpoint, 1);
+        if (chatData) {
+          const chats = chatData.chats || chatData || [];
+          const chatArray = Array.isArray(chats) ? chats : [];
+          const groupChats = chatArray.filter((c: any) => {
+            const id = c.JID || c.jid || c.id || c.chatId || "";
+            return id.includes("@g.us");
+          });
+          if (groupChats.length > 0) {
+            const prevCount = seenJids.size;
+            addGroups(groupChats);
+            console.log(`chat/list found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
           }
-        } catch (e) {
-          console.log("Alternative chat/list failed:", e);
         }
+      } catch (e) {
+        console.log("chat/list failed:", e);
       }
 
-      // Strategy 3: Try /group/listAll (some UaZapi versions support this)
+      // Strategy 3: Try /group/listAll
       if (forceRefresh) {
         try {
           const listAllEndpoint = `${apiBaseUrl}/group/listAll`;
           console.log(`Trying group/listAll: ${listAllEndpoint}`);
           const allData = await fetchWithRetry(listAllEndpoint, 1);
           if (allData) {
-            const groups = allData.groups || allData || [];
-            const groupArray = Array.isArray(groups) ? groups : [];
+            const groupsData = allData.groups || allData || [];
+            const groupArray = Array.isArray(groupsData) ? groupsData : [];
             if (groupArray.length > 0) {
               const prevCount = seenJids.size;
               addGroups(groupArray);
@@ -190,6 +188,30 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.log("group/listAll failed:", e);
+        }
+      }
+
+      // Strategy 4: Try recent chats for very new groups
+      if (forceRefresh) {
+        try {
+          const recentEndpoint = `${apiBaseUrl}/chat/list?count=50&sort=recent`;
+          console.log(`Trying recent chats: ${recentEndpoint}`);
+          const recentData = await fetchWithRetry(recentEndpoint, 1);
+          if (recentData) {
+            const chats = recentData.chats || recentData || [];
+            const chatArray = Array.isArray(chats) ? chats : [];
+            const groupChats = chatArray.filter((c: any) => {
+              const id = c.JID || c.jid || c.id || c.chatId || "";
+              return id.includes("@g.us");
+            });
+            if (groupChats.length > 0) {
+              const prevCount = seenJids.size;
+              addGroups(groupChats);
+              console.log(`recent chats found ${groupChats.length} groups, ${seenJids.size - prevCount} new`);
+            }
+          }
+        } catch (e) {
+          console.log("recent chats failed:", e);
         }
       }
       
