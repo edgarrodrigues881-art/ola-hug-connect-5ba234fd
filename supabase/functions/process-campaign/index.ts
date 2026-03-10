@@ -877,12 +877,7 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
               await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-              await serviceClient.from("notifications").insert({
-                user_id: campaign.user_id,
-                title: "⏸️ Campanha pausada automaticamente",
-                message: `A campanha "${campaign.name}" foi pausada porque a instância "${activeDevice.name}" desconectou. Reconecte e retome.`,
-                type: "warning",
-              });
+              // Notification handled by DB trigger trg_notify_campaign_status
               break;
             }
 
