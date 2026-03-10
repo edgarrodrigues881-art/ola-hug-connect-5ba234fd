@@ -464,7 +464,15 @@ Deno.serve(async (req) => {
     // ─── PAUSE ───
     if (action === "pause") {
       const { data: campData } = await serviceClient.from("campaigns").select("name, device_id, device_ids").eq("id", campaignId).single();
-      await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
+      // Get real stats FIRST, then update campaign with correct counters
+      const pauseStats = await getRealCampaignStats(serviceClient, campaignId);
+      await serviceClient.from("campaigns").update({ 
+        status: "paused",
+        sent_count: pauseStats.sent,
+        delivered_count: pauseStats.delivered,
+        failed_count: pauseStats.failed,
+        total_contacts: pauseStats.total,
+      }).eq("id", campaignId).eq("user_id", userId);
       // Release locks — get device IDs from campaign
       if (campData) {
         const ids: string[] = Array.isArray(campData.device_ids) && campData.device_ids.length > 0
@@ -472,8 +480,7 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, ids, campaignId);
         console.log(`Released device locks for paused campaign ${campaignId}`);
       }
-      // Instant WA alert — use real stats from campaign_contacts
-      const pauseStats = await getRealCampaignStats(serviceClient, campaignId);
+      // Instant WA alert
       sendCampaignAlertToWa(serviceClient, userId, campData?.name || "", "paused", pauseStats);
       return new Response(JSON.stringify({ success: true, status: "paused" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
