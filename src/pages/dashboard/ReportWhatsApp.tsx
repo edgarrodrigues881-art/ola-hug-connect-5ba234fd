@@ -362,14 +362,14 @@ export default function ReportWhatsApp() {
 
   // Auto-fetch groups on mount + periodic refresh every 2 minutes
   useEffect(() => {
-    if (reportDevice?.id && reportDevice?.status === "Ready") {
-      fetchGroups(reportDevice.id);
+    if (user) {
+      fetchGroups();
       const interval = setInterval(() => {
-        fetchGroups(reportDevice.id);
+        fetchGroups();
       }, 2 * 60 * 1000); // 2 minutes
       return () => clearInterval(interval);
     }
-  }, [reportDevice?.id, reportDevice?.status]);
+  }, [user?.id]);
 
   const upsertConfig = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
