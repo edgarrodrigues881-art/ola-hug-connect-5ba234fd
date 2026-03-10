@@ -107,7 +107,21 @@ const ClientTokensTab = ({ client, detail }: Props) => {
 
   const available = tokens.filter((t: any) => t.status === "available").length;
   const inUse = tokens.filter((t: any) => t.status === "in_use").length;
+  const blocked = tokens.filter((t: any) => t.status === "blocked").length;
   const invalidCount = tokens.filter((t: any) => t.healthy === false).length;
+
+  const handleBulkUnblock = () => {
+    mutate(
+      { action: "bulk-unblock-tokens", body: { target_user_id: client.id } },
+      {
+        onSuccess: (data: any) => {
+          toast({ title: `${data?.unblocked ?? 0} token(s) desbloqueado(s)` });
+          invalidateClient(client.id);
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
 
   const getHealthBadge = (healthy: boolean | null) => {
     if (healthy === true) return (
@@ -131,6 +145,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     if (status === "in_use") return (
       <Badge className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/10">
         <CircleDot size={8} className="mr-1" /> Em uso
+      </Badge>
+    );
+    if (status === "blocked") return (
+      <Badge className="text-[10px] px-2 py-0.5 bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10">
+        <Lock size={8} className="mr-1" /> Bloqueado
       </Badge>
     );
     return (
