@@ -254,10 +254,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ═══ WARMUP ALERTS → warmup_group_id ═══
+      // ═══ WARMUP ALERTS → group_id ═══
       if (config.toggle_warmup) {
-        const warmupGroupId = config.warmup_group_id || config.group_id;
-        if (warmupGroupId) {
+        const warmupTarget = config.group_id;
+        if (warmupTarget) {
           // Check for completed warmup cycles (24h report)
           const { data: completedCycles } = await serviceClient
             .from("warmup_cycles")
