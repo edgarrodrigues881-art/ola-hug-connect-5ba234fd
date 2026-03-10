@@ -25,6 +25,7 @@ const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
+const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   WELCOME: { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
