@@ -671,10 +671,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
-      if (config.toggle_campaigns) {
-        const campaignsGroupId = config.campaigns_group_id || config.group_id;
-        if (campaignsGroupId) {
+      // ═══ CAMPAIGN ALERTS → group_id ═══
+      if (config.toggle_campaigns && config.group_id) {
           // Started
           const { data: startedCampaigns } = await serviceClient
             .from("campaigns").select("id, name, total_contacts, started_at")
