@@ -303,7 +303,7 @@ const CATEGORIES: CategoryConfig[] = [
   },
   {
     key: "banido",
-    label: "🔴 Chip Banido",
+    label: "🔴 Chip Recuperado",
     subtitle: "Número com histórico de bloqueio/restrição",
     icon: Skull,
     iconColor: "text-red-400",
