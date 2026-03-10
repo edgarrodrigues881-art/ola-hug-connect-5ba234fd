@@ -726,7 +726,7 @@ Deno.serve(async (req) => {
                 } catch (sendErr) { console.log(`[logout] send error ${ep.path}: ${sendErr}`); }
               }
               await svc.from("report_wa_logs").insert({
-                user_id: userId,
+                user_id: user.id,
                 level: sent ? "WARN" : "ERROR",
                 message: sent
                   ? `Instância "${preDevice.name}" desconectada (logout) — alerta enviado`
