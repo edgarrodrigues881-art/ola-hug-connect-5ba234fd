@@ -28,7 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { muteAutoSync, trackDeletedDevice, getRecentlyDeletedIds } from "@/hooks/useAutoSyncDevices";
+import { muteAutoSync, trackDeletedDevice, getRecentlyDeletedIds, pauseKeepAlive, resumeKeepAlive } from "@/hooks/useAutoSyncDevices";
 import { useNavigate } from "react-router-dom";
 
 type PlanState = "noPlan" | "active" | "expired" | "suspended";
@@ -930,22 +930,36 @@ const Devices = () => {
     }
   };
 
-  // Helper to call evolution-connect edge function
-  const callApi = async (body: Record<string, any>) => {
+  // Helper to call evolution-connect edge function with retry on 503/concurrency errors
+  const callApi = async (body: Record<string, any>, maxRetries = 3): Promise<any> => {
     const { data: { session: s } } = await supabase.auth.getSession();
     if (!s) throw new Error("Not authenticated");
-    const response = await supabase.functions.invoke("evolution-connect", {
-      body,
-      headers: { Authorization: `Bearer ${s.access_token}` },
-    });
-    // When edge function returns non-2xx, supabase puts generic error in response.error
-    // but the real error message is in response.data
-    if (response.error) {
-      const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
-      const code = response.data?.code;
-      return { error: realError, code };
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const response = await supabase.functions.invoke("evolution-connect", {
+        body,
+        headers: { Authorization: `Bearer ${s.access_token}` },
+      });
+
+      // Retry on concurrency/overload errors (non-2xx without meaningful data)
+      if (response.error) {
+        const status = (response.error as any)?.status || 0;
+        const isOverload = status === 503 || status === 502 || status === 0;
+        const hasNoData = !response.data?.error && !response.data?.code;
+
+        if (isOverload && hasNoData && attempt < maxRetries) {
+          const delay = Math.min(1500 * Math.pow(1.5, attempt), 5000);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
+        const code = response.data?.code;
+        return { error: realError, code };
+      }
+      return response.data;
     }
-    return response.data;
+    return { error: "Servidor sobrecarregado. Tente novamente em instantes." };
   };
 
   // Quick actions
@@ -1095,6 +1109,7 @@ const Devices = () => {
     setPairingCode("");
     setConnectError("");
     stopPolling();
+    pauseKeepAlive(); // Pause keepAlive pings to free concurrency for connection
     setConnectOpen(true);
   };
 
@@ -1168,7 +1183,7 @@ const Devices = () => {
         setConnectStep("done");
         const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
         toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
-        setConnectOpen(false);
+        setConnectOpen(false); resumeKeepAlive();
         return;
       }
 
@@ -1674,7 +1689,7 @@ const Devices = () => {
       </Dialog>
 
       <Dialog open={connectOpen} onOpenChange={(open) => {
-        if (!open) { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }
+        if (!open) { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); resumeKeepAlive(); }
       }}>
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           {/* Header */}
@@ -1785,7 +1800,7 @@ const Devices = () => {
 
                 {/* Buttons */}
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>
+                  <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); resumeKeepAlive(); }}>
                     Cancelar
                   </Button>
                   <Button className="flex-1 h-11 text-sm font-semibold" onClick={handleConfirmProxy}>
@@ -2059,7 +2074,7 @@ const Devices = () => {
                   <p className="text-lg font-bold text-foreground">Conectado com sucesso!</p>
                   <p className="text-sm text-muted-foreground mt-1">Sua instância está pronta para uso</p>
                 </div>
-                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }}>Fechar</Button>
+                <Button className="h-10 px-8" onClick={() => { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); resumeKeepAlive(); }}>Fechar</Button>
               </motion.div>
             )}
            </AnimatePresence>
