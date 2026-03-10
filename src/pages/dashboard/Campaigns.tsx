@@ -354,7 +354,23 @@ const Campaigns = () => {
           sessionStorage.removeItem("resend_campaign_data");
           const resend = JSON.parse(resendRaw);
           if (resend.contacts?.length) { setContacts(resend.contacts); setShowContactTable(true); }
-          if (resend.message) setMessages(prev => { const c = [...prev]; c[0] = resend.message; return c; });
+          if (resend.message) {
+            // Split message variants back into individual slots
+            const raw = resend.message;
+            let variants: string[];
+            if (raw.includes("|&&|")) {
+              variants = raw.split("|&&|").map((m: string) => m.trim());
+              setRotationMode("all");
+            } else if (raw.includes("|||")) {
+              variants = raw.split("|||").map((m: string) => m.trim());
+              setRotationMode("random");
+            } else {
+              variants = [raw];
+            }
+            const filled = ["", "", "", "", ""];
+            variants.forEach((v: string, i: number) => { if (i < 5) filled[i] = v; });
+            setMessages(filled);
+          }
           if (resend.mediaUrl) setMediaUrl(resend.mediaUrl);
           if (resend.campaignName) setCampaignName(resend.campaignName);
           if (resend.buttons && Array.isArray(resend.buttons) && resend.buttons.length > 0) {
