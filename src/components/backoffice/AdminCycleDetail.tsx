@@ -1,9 +1,20 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, CheckCircle, Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, RefreshCw, CheckCircle, Loader2, RotateCcw, FastForward, ChevronRight } from "lucide-react";
+
+const PHASE_ORDER = ["pre_24h", "groups_only", "autosave_enabled", "community_light", "community_enabled", "completed"] as const;
+const PHASE_LABELS: Record<string, string> = {
+  pre_24h: "Pré-24h",
+  groups_only: "Grupos",
+  autosave_enabled: "AutoSave",
+  community_light: "Comunidade Light",
+  community_enabled: "Comunidade Full",
+  completed: "Concluído",
+};
 
 const levelColors: Record<string, string> = {
   info: "text-teal-400",
@@ -110,6 +121,63 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     },
   });
 
+  const advancePhase = useMutation({
+    mutationFn: async (targetPhase: string) => {
+      const updates: any = { phase: targetPhase, updated_at: new Date().toISOString() };
+      if (targetPhase === "completed") {
+        updates.is_running = false;
+      }
+      const { error } = await supabase
+        .from("warmup_cycles")
+        .update(updates)
+        .eq("id", cycleId);
+      if (error) throw error;
+
+      // If advancing to autosave_enabled, auto-enroll in community
+      if (targetPhase === "autosave_enabled" && cycle) {
+        const { data: existing } = await supabase
+          .from("warmup_community_membership")
+          .select("id, is_enabled")
+          .eq("device_id", cycle.device_id)
+          .maybeSingle();
+        if (!existing) {
+          await supabase.from("warmup_community_membership").insert({
+            device_id: cycle.device_id,
+            user_id: cycle.user_id,
+            cycle_id: cycleId,
+            is_enabled: true,
+            is_eligible: true,
+            enabled_at: new Date().toISOString(),
+          });
+        } else if (!existing.is_enabled) {
+          await supabase.from("warmup_community_membership")
+            .update({ is_enabled: true, is_eligible: true, enabled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+        }
+      }
+
+      // Log the manual advance
+      await supabase.from("warmup_audit_logs").insert({
+        user_id: cycle!.user_id,
+        device_id: cycle!.device_id,
+        cycle_id: cycleId,
+        level: "info" as any,
+        event_type: "manual_phase_advance",
+        message: `Fase avançada manualmente: ${cycle!.phase} → ${targetPhase}`,
+        meta: { from: cycle!.phase, to: targetPhase, advanced_by: "admin" },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-cycle-detail", cycleId] });
+      qc.invalidateQueries({ queryKey: ["admin-cycle-logs", cycleId] });
+      qc.invalidateQueries({ queryKey: ["admin-warmup-cycles"] });
+      toast({ title: "Fase avançada com sucesso" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro ao avançar fase", description: e.message, variant: "destructive" });
+    },
+  });
+
   if (loadingCycle) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
@@ -169,11 +237,52 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
           </div>
         )}
 
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => rescheduleJobs.mutate()} disabled={failedJobs === 0}>
             <RotateCcw size={12} className="mr-1" /> Reagendar falhados ({failedJobs})
           </Button>
         </div>
+
+        {/* Phase Advance Controls */}
+        {cycle.phase !== "completed" && cycle.phase !== "error" && (
+          <div className="mt-4 p-3 bg-muted/20 border border-border rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <FastForward size={14} className="text-primary" />
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Avanço Manual de Fase (Teste)</p>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {PHASE_ORDER.map((phase, idx) => {
+                const currentIdx = PHASE_ORDER.indexOf(cycle.phase as any);
+                const isCurrent = phase === cycle.phase;
+                const isPast = idx < currentIdx;
+                const isNext = idx === currentIdx + 1;
+                const isFuture = idx > currentIdx + 1;
+
+                return (
+                  <div key={phase} className="flex items-center gap-1">
+                    {idx > 0 && <ChevronRight size={10} className="text-muted-foreground/40" />}
+                    <Button
+                      variant={isCurrent ? "default" : isNext ? "outline" : "ghost"}
+                      size="sm"
+                      className={`h-7 px-2.5 text-[11px] ${isPast ? "opacity-40" : ""} ${isNext ? "border-primary/50 text-primary" : ""}`}
+                      disabled={isPast || isCurrent || advancePhase.isPending}
+                      onClick={() => {
+                        if (confirm(`Avançar para "${PHASE_LABELS[phase]}"?\n\nIsso é apenas para teste — simula o avanço de fase sem esperar os dias.`)) {
+                          advancePhase.mutate(phase);
+                        }
+                      }}
+                    >
+                      {advancePhase.isPending ? <Loader2 size={10} className="animate-spin" /> : PHASE_LABELS[phase]}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              ⚠️ Somente para testes. Avançar manualmente pula as verificações automáticas.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Instance Groups */}
