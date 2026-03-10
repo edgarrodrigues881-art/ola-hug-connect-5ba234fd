@@ -93,13 +93,21 @@ Deno.serve(async (req) => {
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
 
-      const fetchSafe = async (endpoint: string, retries = 2): Promise<any> => {
+      const fetchSafe = async (endpoint: string, retries = 2, method = "GET", body?: any): Promise<any> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
           try {
-            const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+            const opts: RequestInit = { method, headers: apiHeaders };
+            if (body && method === "POST") opts.body = JSON.stringify(body);
+            const res = await fetch(endpoint, opts);
             if (!res.ok) {
-              const body = await res.text().catch(() => "");
-              console.log(`[${res.status}] ${endpoint}: ${body.substring(0, 150)}`);
+              const respBody = await res.text().catch(() => "");
+              console.log(`[${res.status}] ${endpoint}: ${respBody.substring(0, 150)}`);
+              // If "No session", wait longer and retry
+              if (respBody.includes("No session") && attempt < retries) {
+                console.log(`[RETRY] No session detected, waiting 3s...`);
+                await new Promise(r => setTimeout(r, 3000));
+                continue;
+              }
               if (attempt < retries) { await new Promise(r => setTimeout(r, 800 * (attempt + 1))); continue; }
               return null;
             }
@@ -122,10 +130,32 @@ Deno.serve(async (req) => {
         }
       };
 
+      // ─── S-1: Wake up session before listing (always) ───
+      {
+        const statusRes = await fetchSafe(`${apiBaseUrl}/instance/status`, 1);
+        const st = statusRes?.instance?.status || statusRes?.status || "";
+        console.log(`[S-1] Instance status: ${st}`);
+        if (st !== "connected" && st !== "authenticated") {
+          // Try to reconnect session
+          const reconnectEps = [
+            { ep: "/instance/reconnect", method: "GET" },
+            { ep: "/instance/reconnect", method: "POST" },
+            { ep: "/instance/connect", method: "GET" },
+            { ep: "/instance/connect", method: "POST" },
+          ];
+          for (const { ep, method: m } of reconnectEps) {
+            try {
+              const r = await fetch(`${apiBaseUrl}${ep}`, { method: m, headers: apiHeaders });
+              console.log(`[S-1] ${m} ${ep}: ${r.status}`);
+              if (r.ok) { await new Promise(r => setTimeout(r, 3000)); break; }
+            } catch {}
+          }
+        }
+      }
+
       // ─── S0: Restart/resync instance to force WA group refresh (only on forceRefresh) ───
       if (forceRefresh) {
         console.log("[S0] Forcing instance resync...");
-        // Try both GET and POST for restart/refresh endpoints
         const restartAttempts = [
           { ep: "/instance/restart", method: "GET" },
           { ep: "/instance/restart", method: "POST" },
@@ -150,14 +180,13 @@ Deno.serve(async (req) => {
           }
         }
         if (restarted) {
-          // Wait for instance to come back online
           await new Promise(r => setTimeout(r, 4000));
         }
       }
 
       // ─── S1: /group/list paginated (main UaZapi endpoint) ───
       for (let page = 0; page < 10; page++) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`);
+        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, 3);
         if (!data) break;
         const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
         if (arr.length === 0) break;
