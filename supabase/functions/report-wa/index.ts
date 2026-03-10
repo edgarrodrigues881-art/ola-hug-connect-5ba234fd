@@ -758,7 +758,8 @@ Deno.serve(async (req) => {
 
             const sentMsgs = warmupLogs.filter(l => l.status === "sent").length;
             const failed = warmupLogs.filter(l => l.status !== "sent").length;
-            const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sentMsgs}\n❌ Falhas: ${failed}\n📊 Total de interações: ${warmupLogs.length}\n\n🗓 Dia do ciclo: ${cycle.day_index}/${cycle.days_total}\n📍 Fase: ${cycle.phase}\n\n🔎 Status atual da instância:\n${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
+            const received = warmupLogs.length - sentMsgs;
+            const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sentMsgs}\n\n📩 Mensagens recebidas: ${received}\n\n👥 Interações em grupos: ${warmupLogs.length}\n\n⏱ Última atividade registrada:\n${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n\n🔎 Status atual da instância: ${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
             if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
             await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sentMsgs} ok, ${failed} falhas` });
           }
