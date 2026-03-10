@@ -678,6 +678,7 @@ interface DayVolumes {
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
   if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
+  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
   return getVolumesNew(phase);
 }
 
@@ -710,6 +711,31 @@ function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
   if (phase === "community_enabled") {
     v.groupMsgs = randInt(150, 350); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
     v.communityPairs = randInt(4, 8); v.communityMsgsPerPair = randInt(15, 25);
+    return v;
+  }
+  return v;
+}
+
+function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  if (phase === "pre_24h") return v;
+  // Day 2-5: groups_only — 50-120 msgs
+  if (phase === "groups_only") { v.groupMsgs = randInt(50, 120); return v; }
+  // Day 6-10: autosave_enabled
+  if (phase === "autosave_enabled") {
+    if (dayIndex <= 6) {
+      v.groupMsgs = randInt(120, 200); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
+    } else {
+      v.groupMsgs = randInt(120, 220);
+      const contacts = randInt(3, 4);
+      v.autosaveContacts = contacts; v.autosaveMsgsPerContact = 2; v.autosaveTotal = contacts * 2;
+    }
+    return v;
+  }
+  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(150, 300); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 5); v.communityMsgsPerPair = randInt(10, 20);
     return v;
   }
   return v;
