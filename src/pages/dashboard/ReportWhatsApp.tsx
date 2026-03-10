@@ -891,7 +891,14 @@ interface AlertCardProps {
 
 const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, monitoredEvents, previewMessage }: AlertCardProps) => {
   const [showPreview, setShowPreview] = useState(false);
+  const [manualJid, setManualJid] = useState("");
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
+  // If a JID is selected but not in the fetched groups list, show it as "manual"
+  const selectedLabel = selectedGroup
+    ? selectedGroup.name
+    : selectedGroupId
+    ? `📌 ${selectedGroupId}`
+    : null;
 
   const colorMap: Record<string, { border: string; bg: string; iconBg: string }> = {
     orange: { border: "border-orange-500/40", bg: "bg-orange-500/5", iconBg: "bg-orange-500/10" },
@@ -899,6 +906,17 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
     emerald: { border: "border-emerald-500/40", bg: "bg-emerald-500/5", iconBg: "bg-emerald-500/10" },
   };
   const colors = colorMap[iconColor] || colorMap.emerald;
+
+  const handleManualAdd = () => {
+    let jid = manualJid.trim();
+    if (!jid) return;
+    // Ensure it ends with @g.us
+    if (!jid.includes("@g.us")) {
+      jid = jid.replace(/\D/g, "") + "@g.us";
+    }
+    onGroupSelect(jid);
+    setManualJid("");
+  };
 
   return (
     <div className={`rounded-xl border-2 transition-all duration-300 overflow-hidden ${enabled ? colors.border : "border-border"} ${enabled ? colors.bg : "bg-card"}`}>
@@ -935,19 +953,36 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
                     className="flex-1 justify-start text-xs h-9 font-normal border-border/60 bg-background/50"
                   >
                     <Users className="w-3.5 h-3.5 mr-2 text-muted-foreground shrink-0" />
-                    {selectedGroup ? (
-                      <span className="truncate">{selectedGroup.name}</span>
+                    {selectedLabel ? (
+                      <span className="truncate">{selectedLabel}</span>
                     ) : (
                       <span className="text-muted-foreground">Selecionar grupo...</span>
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-0 max-h-64 overflow-y-auto" align="start">
+                <PopoverContent className="w-72 p-0 max-h-72 overflow-y-auto" align="start">
+                  {/* Manual JID input */}
+                  <div className="p-2 border-b border-border/50">
+                    <label className="text-[10px] text-muted-foreground mb-1 block">Colar JID do grupo manualmente:</label>
+                    <div className="flex gap-1.5">
+                      <Input
+                        value={manualJid}
+                        onChange={(e) => setManualJid(e.target.value)}
+                        placeholder="120363...@g.us"
+                        className="h-7 text-[11px] flex-1"
+                        onKeyDown={(e) => e.key === "Enter" && handleManualAdd()}
+                      />
+                      <Button size="sm" className="h-7 px-2 text-[10px]" onClick={handleManualAdd} disabled={!manualJid.trim()}>
+                        Usar
+                      </Button>
+                    </div>
+                  </div>
+
                   {groups.length === 0 ? (
                     <div className="p-4 text-center">
                       <Users className="w-6 h-6 mx-auto text-muted-foreground/30 mb-2" />
                       <p className="text-xs text-muted-foreground">
-                        {loadingGroups ? "Carregando grupos..." : "Nenhum grupo encontrado. Conecte a instância primeiro."}
+                        {loadingGroups ? "Carregando grupos..." : "Nenhum grupo encontrado. Use o campo acima para colar o JID."}
                       </p>
                     </div>
                   ) : (
