@@ -161,20 +161,6 @@ Deno.serve(async (req) => {
       // The cron no longer sends connection/disconnection alerts.
       // They are sent in real-time from the sync-devices function.
 
-            // Connection alert
-            if (isConnected) {
-              const alreadySent = await wasRecentlySent(config.user_id, `%${dev.name}%conectada%alerta%`);
-              if (!alreadySent) {
-                const msg = `✅ INSTÂNCIA CONECTADA\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
-                const sent = await sendToGroup(creds, connectionGroupId, msg);
-                if (sent) totalSent++;
-                await logEvent(config.user_id, "INFO", `Instância "${dev.name}" conectada — alerta enviado`);
-              }
-            }
-          }
-        }
-      }
-
       // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
       if (config.toggle_campaigns) {
         const campaignsGroupId = config.campaigns_group_id || config.group_id;
