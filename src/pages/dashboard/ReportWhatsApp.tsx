@@ -423,9 +423,14 @@ export default function ReportWhatsApp() {
                 size="sm"
                 className="gap-2 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                 onClick={handleDisconnect}
+                disabled={disconnecting}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                Desconectar
+                {disconnecting ? (
+                  <span className="w-3.5 h-3.5 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                {disconnecting ? "Desconectando..." : "Desconectar"}
               </Button>
             )}
             {isConnected ? (
