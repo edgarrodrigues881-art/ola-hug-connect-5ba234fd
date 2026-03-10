@@ -200,14 +200,21 @@ export default function ReportWhatsApp() {
   };
 
   const handleDisconnect = async () => {
-    if (!reportDevice?.id) return;
+    if (!reportDevice?.id || disconnecting) return;
+    setDisconnecting(true);
+    // Optimistic: update cache immediately
+    queryClient.setQueryData(["report-device", user?.id], (old: any) => old ? { ...old, status: "Disconnected", number: null } : old);
     try {
       await callApi({ action: "logout", deviceId: reportDevice.id });
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       setGroups([]);
       toast.success("Instância desconectada");
     } catch (err: any) {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
       toast.error(err?.message || "Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
     }
   };
 
