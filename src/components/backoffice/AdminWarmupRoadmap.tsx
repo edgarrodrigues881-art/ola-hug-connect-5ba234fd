@@ -1,6 +1,7 @@
-import { useState, useCallback, memo } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Flame, MessageSquare, Users, Phone, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Flame, MessageSquare, Users, Phone, Shield, Sparkles, AlertTriangle, Skull } from "lucide-react";
 
 interface DayPlan {
   day: number;
@@ -14,215 +15,307 @@ interface DayPlan {
   recipientTarget: number;
 }
 
-const PHASES = {
+const PHASES: Record<string, { label: string; color: string }> = {
   pre_24h: { label: "Pré-24h", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
   groups_only: { label: "Grupos", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   autosave: { label: "AutoSave", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-  community: { label: "Comunidade", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  community_light: { label: "Comunidade Leve", color: "bg-violet-500/20 text-violet-400 border-violet-500/30" },
+  community_full: { label: "Comunidade Total", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
   consolidation: { label: "Consolidação", color: "bg-primary/20 text-primary border-primary/30" },
+  observation: { label: "Observação", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  recovery: { label: "Recuperação", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  reentry: { label: "Reentrada", color: "bg-rose-500/20 text-rose-400 border-rose-500/30" },
 };
 
-const ROADMAP: DayPlan[] = [
-  // Phase: Pre-24h (Day 1)
+// ═══════════════════════════════════════════════
+// CHIP NOVO — 30 dias, ciclo completo
+// ═══════════════════════════════════════════════
+const ROADMAP_NOVO: DayPlan[] = [
   {
-    day: 1, phase: "pre_24h", title: "Ativação inicial",
-    goals: ["Conectar instância e verificar QR Code", "Salvar 10 contatos na agenda", "Enviar 3-5 mensagens para contatos salvos"],
-    checklist: ["Instância conectada com status Ready", "Proxy residencial configurado", "10 contatos salvos no AutoSave", "3-5 mensagens enviadas com sucesso"],
-    tips: "Não envie mensagens para números desconhecidos. Use apenas contatos salvos.",
-    msgTarget: { min: 3, max: 5 }, groupTarget: 0, recipientTarget: 3,
-  },
-  // Phase: Groups Only (Days 2-4)
-  {
-    day: 2, phase: "groups_only", title: "Entrada nos grupos",
-    goals: ["Entrar em 2-3 grupos do pool", "Enviar 1-2 mensagens em grupos", "Continuar interações com contatos salvos"],
-    checklist: ["2-3 grupos ingressados com sucesso", "1-2 mensagens em grupos enviadas", "5-8 interações totais no dia"],
-    tips: "Espalhe as entradas em grupos ao longo do dia. Evite entrar em todos de uma vez.",
-    msgTarget: { min: 5, max: 8 }, groupTarget: 3, recipientTarget: 5,
+    day: 1, phase: "pre_24h", title: "Silêncio inicial",
+    goals: ["Conectar via QR Code e verificar status Ready", "Aguardar 5-8 horas sem nenhuma atividade", "Após espera, iniciar entrada gradual nos 8 grupos"],
+    checklist: ["Instância conectada com sucesso", "Proxy residencial configurado", "Aguardou 5-8h sem enviar nada", "Entrada nos grupos iniciada (distribuída ao longo do dia)"],
+    tips: "O primeiro dia é SILÊNCIO. Não envie mensagens. Apenas conecte e entre nos grupos de forma gradual após o período de espera.",
+    msgTarget: { min: 0, max: 5 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 3, phase: "groups_only", title: "Expandindo presença nos grupos",
-    goals: ["Entrar em mais 2-3 grupos (total: 5-6)", "Aumentar interações em grupos para 3-4", "Manter conversas com contatos salvos"],
-    checklist: ["5-6 grupos no total", "3-4 mensagens em grupos diferentes", "8-12 interações totais"],
-    msgTarget: { min: 8, max: 12 }, groupTarget: 6, recipientTarget: 8,
+    day: 2, phase: "groups_only", title: "Ativação nos grupos",
+    goals: ["Enviar 200-500 mensagens nos 8 grupos", "Distribuir envios na janela 07:00-19:00", "Alternar entre os grupos com intervalos aleatórios"],
+    checklist: ["200-500 msgs enviadas em grupos", "Mensagens distribuídas ao longo do dia", "Sem erros de envio", "Intervalos aleatórios entre mensagens"],
+    tips: "Volume alto apenas em grupos. Nunca para números diretos neste dia.",
+    msgTarget: { min: 200, max: 500 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 4, phase: "groups_only", title: "Completando pool de grupos",
-    goals: ["Completar entrada nos 8 grupos do pool", "Participar ativamente em 4-5 grupos", "Manter ritmo gradual de mensagens"],
-    checklist: ["8 grupos ingressados", "4-5 mensagens em grupos", "10-15 interações totais"],
-    msgTarget: { min: 10, max: 15 }, groupTarget: 8, recipientTarget: 10,
-  },
-  // Phase: AutoSave (Days 5-10)
-  {
-    day: 5, phase: "autosave", title: "Ativação do AutoSave",
-    goals: ["Ativar módulo AutoSave", "Importar 20-30 contatos para interação", "Enviar mensagens variadas (texto, emoji, áudio curto)"],
-    checklist: ["AutoSave ativado", "20+ contatos importados", "Mix de tipos de mensagem", "12-18 interações totais"],
-    tips: "Varie os tipos de mensagem. O WhatsApp monitora padrões repetitivos.",
-    msgTarget: { min: 12, max: 18 }, groupTarget: 8, recipientTarget: 12,
+    day: 3, phase: "autosave", title: "Grupos + Auto Save",
+    goals: ["Manter 200-500 msgs em grupos", "Ativar Auto Save: 5 números × 3 msgs = 15/dia", "Números devem ser novos todos os dias"],
+    checklist: ["200-500 msgs nos grupos", "15 msgs Auto Save enviadas", "5 destinatários únicos no AutoSave", "Distribuição ao longo do dia"],
+    msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 6, phase: "autosave", title: "Crescimento gradual",
-    goals: ["Aumentar volume de interações AutoSave", "Responder mensagens recebidas em grupos", "Manter diversidade de horários"],
-    checklist: ["15-20 interações totais", "Respostas em pelo menos 2 grupos", "Horários variados (manhã, tarde, noite)"],
-    msgTarget: { min: 15, max: 20 }, groupTarget: 8, recipientTarget: 15,
+    day: 4, phase: "autosave", title: "Consolidando Auto Save",
+    goals: ["Manter volume de grupos (200-500)", "Continuar Auto Save (5 números novos × 3 msgs)", "Monitorar health check"],
+    checklist: ["Grupos + AutoSave funcionando", "Nenhum bloqueio ou warning", "15 msgs Auto Save", "Instância estável"],
+    msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 7, phase: "autosave", title: "Primeira semana completa",
-    goals: ["Manter ritmo estável de 15-22 msgs/dia", "Verificar health check da instância", "Revisar logs de erro"],
-    checklist: ["Nenhum erro crítico nos logs", "Instância estável por 7 dias", "15-22 interações no dia", "Zero bloqueios ou restrições"],
-    tips: "Ponto de checkpoint! Se chegou aqui sem problemas, o chip está saudável.",
-    msgTarget: { min: 15, max: 22 }, groupTarget: 8, recipientTarget: 15,
+    day: 5, phase: "community_light", title: "Comunidade inicial",
+    goals: ["Manter grupos (200-500) + AutoSave (15)", "Ativar conversas comunitárias: 3-5 pares", "Cada conversa: 15-30 msgs trocadas naturalmente"],
+    checklist: ["Grupos + AutoSave mantidos", "3-5 conversas comunitárias ativas", "15-30 msgs por conversa", "Mensagens parecem naturais (emojis, textos curtos)"],
+    tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
+    msgTarget: { min: 260, max: 665 }, groupTarget: 8, recipientTarget: 10,
   },
   {
-    day: 8, phase: "autosave", title: "Ampliando rede de contatos",
-    goals: ["Adicionar mais 10-15 contatos ao AutoSave", "Intensificar participação em grupos", "Enviar primeiro áudio longo (30s+)"],
-    checklist: ["35+ contatos no AutoSave", "18-25 interações totais", "1 áudio longo enviado"],
-    msgTarget: { min: 18, max: 25 }, groupTarget: 8, recipientTarget: 18,
+    day: 6, phase: "community_light", title: "Comunidade consolidando",
+    goals: ["Continuar tudo: grupos + AutoSave + comunidade leve", "Verificar logs de erros", "Ajustar pares se necessário"],
+    checklist: ["3-5 pares comunitários ativos", "Zero erros nos últimos 2 dias", "Volume estável"],
+    msgTarget: { min: 260, max: 665 }, groupTarget: 8, recipientTarget: 10,
+  },
+  // Days 7-30: Community Full
+  ...Array.from({ length: 24 }, (_, i) => {
+    const day = i + 7;
+    const isCheckpoint = [7, 14, 21, 30].includes(day);
+    const communityPairsMin = 5, communityPairsMax = 10;
+    const communityMsgsMin = communityPairsMin * 15;
+    const communityMsgsMax = communityPairsMax * 30;
+
+    return {
+      day,
+      phase: day >= 25 ? "consolidation" : "community_full",
+      title: day === 7 ? "Comunidade completa ativada" :
+             day === 14 ? "Checkpoint: 2 semanas ✅" :
+             day === 21 ? "3 semanas de maturação 🔥" :
+             day === 25 ? "Fase de consolidação" :
+             day === 30 ? "Chip aquecido! 🎉🔥" :
+             `Dia ${day} — Maturação contínua`,
+      goals: [
+        "Grupos: 200-500 mensagens nos 8 grupos",
+        "Auto Save: 5 números novos × 3 msgs = 15/dia",
+        `Comunitário: ${communityPairsMin}-${communityPairsMax} pares × 15-30 msgs cada`,
+        ...(isCheckpoint ? ["Health check completo da instância"] : []),
+      ],
+      checklist: [
+        "Volume de grupos mantido (200-500)",
+        "Auto Save ativo (15 msgs/dia)",
+        `${communityPairsMin}-${communityPairsMax} conversas comunitárias`,
+        ...(isCheckpoint ? ["Zero bloqueios ou restrições", "Instância estável e saudável"] : ["Sem erros nos logs"]),
+        ...(day === 30 ? ["🏆 Ciclo de 30 dias completo!", "Chip pronto para campanhas com delays seguros"] : []),
+      ],
+      tips: day === 7 ? "Primeira semana completa! Se não houve bloqueios, o chip está no caminho certo." :
+            day === 14 ? "Duas semanas sem problemas = chip saudável. Continue o ritmo." :
+            day === 21 ? "3 semanas! O chip já tem boa reputação. Mantenha a consistência." :
+            day === 30 ? "🎉 Parabéns! O chip completou 30 dias de maturação. Use com delays seguros em campanhas." :
+            undefined,
+      msgTarget: { min: 200 + 15 + communityMsgsMin, max: 500 + 15 + communityMsgsMax },
+      groupTarget: 8,
+      recipientTarget: 5 + communityPairsMax,
+    } as DayPlan;
+  }),
+];
+
+// ═══════════════════════════════════════════════
+// CHIP ESTÁVEL — 14 dias, reforço de reputação
+// ═══════════════════════════════════════════════
+const ROADMAP_ESTAVEL: DayPlan[] = [
+  {
+    day: 1, phase: "observation", title: "Diagnóstico inicial",
+    goals: ["Conectar e verificar status da conta", "Analisar histórico de uso anterior", "Iniciar atividade leve nos 8 grupos"],
+    checklist: ["Instância conectada (Ready)", "Histórico verificado — sem ban recente", "Entrada nos 8 grupos concluída", "5-10 msgs leves em grupos"],
+    tips: "Chip estável já tem reputação. Não precisa do período de silêncio, mas comece devagar.",
+    msgTarget: { min: 5, max: 10 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 9, phase: "autosave", title: "Estabilização AutoSave",
-    goals: ["Manter volume de 20-25 interações", "Enviar imagens e vídeos curtos", "Reagir a mensagens em grupos"],
-    checklist: ["20-25 interações", "Mídia enviada com sucesso", "Reações em grupos"],
-    msgTarget: { min: 20, max: 25 }, groupTarget: 8, recipientTarget: 20,
+    day: 2, phase: "groups_only", title: "Retomada nos grupos",
+    goals: ["Aumentar volume nos grupos para 100-300 msgs", "Distribuir na janela 07:00-19:00", "Monitorar resposta do WhatsApp"],
+    checklist: ["100-300 msgs nos grupos", "Nenhuma restrição detectada", "Distribuição horária OK"],
+    msgTarget: { min: 100, max: 300 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 10, phase: "autosave", title: "Preparação para Comunidade",
-    goals: ["Verificar elegibilidade para comunidade", "Manter ritmo estável", "Health check completo"],
-    checklist: ["Elegível para comunidade", "22-28 interações", "Sem restrições ativas"],
-    tips: "O sistema vai avaliar se o chip pode entrar na fase comunitária.",
-    msgTarget: { min: 22, max: 28 }, groupTarget: 8, recipientTarget: 22,
-  },
-  // Phase: Community (Days 11-20)
-  {
-    day: 11, phase: "community", title: "Ativação da Comunidade",
-    goals: ["Ativar pareamento comunitário", "Primeira troca de mensagens com par", "Manter interações em grupos e AutoSave"],
-    checklist: ["Comunidade ativada", "Par atribuído", "1ª interação comunitária realizada", "25-30 interações totais"],
-    msgTarget: { min: 25, max: 30 }, groupTarget: 8, recipientTarget: 25,
+    day: 3, phase: "autosave", title: "Ativando Auto Save",
+    goals: ["Grupos: 200-400 msgs", "Auto Save: 5 números × 3 msgs = 15/dia", "Observar taxa de entrega"],
+    checklist: ["Grupos + AutoSave funcionando", "Sem bloqueios", "Taxa de entrega > 95%"],
+    msgTarget: { min: 215, max: 415 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 12, phase: "community", title: "Consolidando pareamento",
-    goals: ["2-3 interações com par comunitário", "Manter volume em grupos", "Diversificar conteúdo das mensagens"],
-    checklist: ["2-3 msgs comunitárias", "25-32 interações totais"],
-    msgTarget: { min: 25, max: 32 }, groupTarget: 8, recipientTarget: 25,
+    day: 4, phase: "community_light", title: "Comunidade leve",
+    goals: ["Manter grupos + AutoSave", "Ativar 3-5 conversas comunitárias", "15-30 msgs por conversa"],
+    checklist: ["3-5 pares comunitários", "Interações naturais", "Volume estável"],
+    msgTarget: { min: 260, max: 565 }, groupTarget: 8, recipientTarget: 10,
+  },
+  ...Array.from({ length: 10 }, (_, i) => {
+    const day = i + 5;
+    return {
+      day,
+      phase: day >= 11 ? "consolidation" : "community_full",
+      title: day === 7 ? "Checkpoint: 1 semana ✅" :
+             day === 14 ? "Reforço completo! 🎉" :
+             `Dia ${day} — Maturação acelerada`,
+      goals: [
+        "Grupos: 200-500 msgs", "Auto Save: 15 msgs/dia",
+        "Comunitário: 5-10 pares × 15-30 msgs",
+        ...(day === 14 ? ["Health check final"] : []),
+      ],
+      checklist: [
+        "Volume mantido", "Sem restrições",
+        ...(day === 14 ? ["🏆 Reforço de 14 dias completo!", "Chip pronto para uso normal"] : ["Logs limpos"]),
+      ],
+      tips: day === 7 ? "Metade do ciclo! Chip estável segue saudável." :
+            day === 14 ? "Reforço completo! O chip está pronto para campanhas." : undefined,
+      msgTarget: { min: 290, max: 815 }, groupTarget: 8, recipientTarget: 15,
+    } as DayPlan;
+  }),
+];
+
+// ═══════════════════════════════════════════════
+// CHIP BANIDO (RECUPERAÇÃO) — 21 dias, cautela máxima
+// ═══════════════════════════════════════════════
+const ROADMAP_BANIDO: DayPlan[] = [
+  {
+    day: 1, phase: "observation", title: "🚨 Quarentena",
+    goals: ["Conectar e avaliar estado da conta", "NÃO ENVIAR NENHUMA MENSAGEM", "Aguardar 12-24 horas em silêncio total"],
+    checklist: ["Instância conectada com sucesso", "Proxy NOVO residencial configurado", "Zero mensagens enviadas", "Aguardou período de quarentena completo"],
+    tips: "⚠️ ATENÇÃO MÁXIMA! Chips com histórico de ban são sensíveis. Qualquer erro pode resultar em ban permanente. Silêncio total nas primeiras 24h.",
+    msgTarget: { min: 0, max: 0 }, groupTarget: 0, recipientTarget: 0,
   },
   {
-    day: 13, phase: "community", title: "Crescimento comunitário",
-    goals: ["Aumentar interações comunitárias para 3-5", "Enviar mídia variada", "Manter estabilidade"],
-    checklist: ["3-5 msgs comunitárias", "28-35 interações totais", "Mix de texto, áudio e imagem"],
-    msgTarget: { min: 28, max: 35 }, groupTarget: 8, recipientTarget: 28,
+    day: 2, phase: "observation", title: "Observação cautelosa",
+    goals: ["Verificar se conta ainda está ativa", "Entrar em 2-3 grupos apenas", "Observar sem enviar mensagens"],
+    checklist: ["Conta ativa (sem ban)", "2-3 grupos ingressados", "Zero mensagens enviadas", "Monitoramento constante"],
+    tips: "Apenas entre nos grupos e observe. Não envie NADA ainda.",
+    msgTarget: { min: 0, max: 0 }, groupTarget: 3, recipientTarget: 0,
   },
   {
-    day: 14, phase: "community", title: "Duas semanas completas",
-    goals: ["Checkpoint de saúde do chip", "Manter volume de 30-35 msgs", "Verificar taxa de entrega"],
-    checklist: ["Zero bloqueios em 14 dias", "Taxa de entrega > 95%", "30-35 interações", "Instância estável"],
-    tips: "Marco importante! 14 dias sem problemas indica chip saudável para uso moderado.",
-    msgTarget: { min: 30, max: 35 }, groupTarget: 8, recipientTarget: 30,
+    day: 3, phase: "recovery", title: "Primeira interação",
+    goals: ["Enviar 5-10 msgs leves em grupos", "Apenas reações e textos curtos", "Completar entrada nos 8 grupos"],
+    checklist: ["5-10 msgs em grupos", "Textos curtos e emojis apenas", "8 grupos ingressados", "Nenhuma restrição"],
+    tips: "Mensagens MUITO leves: emoji, 'Bom dia!', 'Valeu!'. Nada mais.",
+    msgTarget: { min: 5, max: 10 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 15, phase: "community", title: "Aceleração gradual",
-    goals: ["Aumentar para 35-40 interações", "Expandir rede de destinatários únicos", "Manter diversidade de conteúdo"],
-    checklist: ["35-40 interações", "30+ destinatários únicos no dia", "Conteúdo diversificado"],
-    msgTarget: { min: 35, max: 40 }, groupTarget: 8, recipientTarget: 30,
+    day: 4, phase: "recovery", title: "Aumentando gradualmente",
+    goals: ["Aumentar para 20-50 msgs em grupos", "Distribuir bem na janela 07:00-19:00", "Monitorar de perto"],
+    checklist: ["20-50 msgs nos grupos", "Sem warnings", "Distribuição horária ok"],
+    msgTarget: { min: 20, max: 50 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 16, phase: "community", title: "Volume intermediário",
-    goals: ["Manter 35-42 interações estáveis", "Interagir com novos contatos", "Variar horários de envio"],
-    checklist: ["35-42 interações", "Horários variados", "Novos contatos alcançados"],
-    msgTarget: { min: 35, max: 42 }, groupTarget: 8, recipientTarget: 32,
+    day: 5, phase: "recovery", title: "Teste de resistência",
+    goals: ["50-100 msgs em grupos", "Verificar se conta permanece estável", "Health check completo"],
+    checklist: ["50-100 msgs", "Conta estável", "Sem restrições em 5 dias"],
+    tips: "Se chegou ao dia 5 sem problemas, há chance de recuperação. Continue com cautela.",
+    msgTarget: { min: 50, max: 100 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 17, phase: "community", title: "Expansão de rede",
-    goals: ["38-45 interações totais", "Participar de conversas longas em grupos", "Enviar status/stories"],
-    checklist: ["38-45 interações", "Conversa em grupo com 3+ msgs", "Status publicado"],
-    msgTarget: { min: 38, max: 45 }, groupTarget: 8, recipientTarget: 35,
+    day: 6, phase: "groups_only", title: "Volume moderado",
+    goals: ["Aumentar para 100-200 msgs em grupos", "Começar a variar conteúdo", "Testar envio de mídia simples"],
+    checklist: ["100-200 msgs", "Conteúdo variado", "Mídia enviada com sucesso"],
+    msgTarget: { min: 100, max: 200 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 18, phase: "community", title: "Maturação avançada",
-    goals: ["40-48 interações", "Criar grupo com 2-3 contatos", "Enviar localização e contato"],
-    checklist: ["40-48 interações", "Grupo criado", "Tipos variados de conteúdo"],
-    msgTarget: { min: 40, max: 48 }, groupTarget: 8, recipientTarget: 38,
+    day: 7, phase: "groups_only", title: "Checkpoint: 1 semana ✅",
+    goals: ["150-250 msgs em grupos", "Health check completo", "Avaliar se pode prosseguir"],
+    checklist: ["150-250 msgs", "1 semana sem bloqueio", "Conta saudável"],
+    tips: "Uma semana sem ban! Bom sinal, mas mantenha a cautela. Chips banidos podem ter recaídas.",
+    msgTarget: { min: 150, max: 250 }, groupTarget: 8, recipientTarget: 0,
   },
   {
-    day: 19, phase: "community", title: "Pré-consolidação",
-    goals: ["Manter volume alto estável", "Verificar métricas de saúde", "42-50 interações"],
-    checklist: ["42-50 interações", "Métricas de saúde OK", "Sem warnings nos logs"],
-    msgTarget: { min: 42, max: 50 }, groupTarget: 8, recipientTarget: 40,
+    day: 8, phase: "autosave", title: "Auto Save cauteloso",
+    goals: ["Grupos: 150-300 msgs", "Auto Save: 3 números × 2 msgs = 6/dia", "Volume reduzido vs chip novo"],
+    checklist: ["Grupos + AutoSave", "Apenas 6 msgs diretas", "Sem restrições"],
+    tips: "AutoSave com volume MENOR que chip novo. 3 números × 2 msgs apenas.",
+    msgTarget: { min: 156, max: 306 }, groupTarget: 8, recipientTarget: 3,
   },
   {
-    day: 20, phase: "community", title: "Fim da fase comunitária",
-    goals: ["Consolidar todas as interações", "Health check final da fase", "45-50 interações"],
-    checklist: ["45-50 interações", "20 dias sem bloqueio", "Chip pronto para consolidação"],
-    tips: "A fase comunitária está completa. O chip agora entra na reta final de maturação.",
-    msgTarget: { min: 45, max: 50 }, groupTarget: 8, recipientTarget: 42,
-  },
-  // Phase: Consolidation (Days 21-30)
-  {
-    day: 21, phase: "consolidation", title: "Início da consolidação",
-    goals: ["Manter volume de 45-55 interações", "Simular uso real do WhatsApp", "Fazer chamada de voz curta"],
-    checklist: ["45-55 interações", "Chamada de voz realizada", "Uso orgânico simulado"],
-    msgTarget: { min: 45, max: 55 }, groupTarget: 8, recipientTarget: 45,
+    day: 9, phase: "autosave", title: "Estabilizando AutoSave",
+    goals: ["Manter grupos + AutoSave", "Aumentar para 5 números × 2 msgs = 10/dia", "Monitorar"],
+    checklist: ["10 msgs AutoSave", "Sem problemas", "Volume estável"],
+    msgTarget: { min: 160, max: 310 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 22, phase: "consolidation", title: "Uso orgânico",
-    goals: ["Manter padrão de uso natural", "48-55 interações", "Enviar fotos pessoais"],
-    checklist: ["48-55 interações", "Foto pessoal enviada", "Padrão natural mantido"],
-    msgTarget: { min: 48, max: 55 }, groupTarget: 8, recipientTarget: 45,
+    day: 10, phase: "autosave", title: "AutoSave pleno",
+    goals: ["Grupos: 200-350 msgs", "Auto Save: 5 números × 3 msgs = 15/dia", "Nível de chip novo alcançado"],
+    checklist: ["AutoSave = chip novo", "Sem restrições", "10 dias sem ban"],
+    msgTarget: { min: 215, max: 365 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 23, phase: "consolidation", title: "Teste de carga leve",
-    goals: ["Testar envio para 5 contatos novos", "50-55 interações", "Monitorar reações do WhatsApp"],
-    checklist: ["5 contatos novos alcançados", "50-55 interações", "Sem restrições"],
-    tips: "Primeiro teste com contatos que não te conhecem. Monitore de perto.",
-    msgTarget: { min: 50, max: 55 }, groupTarget: 8, recipientTarget: 48,
+    day: 11, phase: "community_light", title: "Comunidade cautelosa",
+    goals: ["Manter grupos + AutoSave", "Ativar 2-3 pares comunitários", "10-20 msgs por conversa (menos que chip novo)"],
+    checklist: ["2-3 pares ativos", "Volume comunitário reduzido", "Sem problemas"],
+    tips: "Comunidade com MENOS volume que chip novo. 2-3 pares com 10-20 msgs apenas.",
+    msgTarget: { min: 235, max: 425 }, groupTarget: 8, recipientTarget: 8,
+  },
+  ...Array.from({ length: 10 }, (_, i) => {
+    const day = i + 12;
+    return {
+      day,
+      phase: day >= 18 ? "consolidation" : "community_full",
+      title: day === 14 ? "Checkpoint: 2 semanas ✅" :
+             day === 21 ? "Recuperação completa! 🎉🛡️" :
+             `Dia ${day} — Recuperação contínua`,
+      goals: [
+        "Grupos: 200-400 msgs", "Auto Save: 15 msgs/dia",
+        "Comunitário: 3-7 pares × 15-25 msgs",
+        ...(day === 21 ? ["Health check final de recuperação"] : []),
+      ],
+      checklist: [
+        "Volume controlado", "Sem restrições",
+        ...(day === 21 ? ["🛡️ 21 dias sem ban!", "Chip recuperado — usar com delays maiores que normal"] : ["Logs limpos"]),
+      ],
+      tips: day === 14 ? "2 semanas de recuperação! Continue mantendo cautela." :
+            day === 21 ? "🛡️ Recuperação de 21 dias completa! Use SEMPRE com delays maiores e volume menor que chips novos." : undefined,
+      msgTarget: { min: 260, max: 575 }, groupTarget: 8, recipientTarget: 12,
+    } as DayPlan;
+  }),
+];
+
+interface CategoryConfig {
+  key: string;
+  label: string;
+  subtitle: string;
+  icon: typeof Sparkles;
+  iconColor: string;
+  headerBg: string;
+  message: string;
+  roadmap: DayPlan[];
+  days: number;
+}
+
+const CATEGORIES: CategoryConfig[] = [
+  {
+    key: "novo",
+    label: "🟢 Chip Novo",
+    subtitle: "Número recém-ativado, sem histórico",
+    icon: Sparkles,
+    iconColor: "text-emerald-400",
+    headerBg: "from-emerald-500/10 to-emerald-500/5",
+    message: "Ciclo completo de 30 dias para maturação de um número virgem. O chip nunca foi usado no WhatsApp Business ou para disparos em massa. Segue o roteiro mais completo e seguro, passando por todas as fases de aquecimento gradual.",
+    roadmap: ROADMAP_NOVO,
+    days: 30,
   },
   {
-    day: 24, phase: "consolidation", title: "Validação de carga",
-    goals: ["Aumentar contatos novos para 8-10", "50-58 interações", "Verificar taxa de entrega"],
-    checklist: ["8-10 contatos novos", "50-58 interações", "Taxa de entrega > 95%"],
-    msgTarget: { min: 50, max: 58 }, groupTarget: 8, recipientTarget: 50,
+    key: "estavel",
+    label: "🔵 Chip Estável",
+    subtitle: "Número com uso anterior saudável",
+    icon: Shield,
+    iconColor: "text-blue-400",
+    headerBg: "from-blue-500/10 to-blue-500/5",
+    message: "Ciclo de reforço de 14 dias para chips que já possuem histórico positivo. Ideal para números que ficaram inativos por um tempo ou que precisam de uma 'recarga' de reputação antes de voltar a operar em campanhas.",
+    roadmap: ROADMAP_ESTAVEL,
+    days: 14,
   },
   {
-    day: 25, phase: "consolidation", title: "Preparação para produção",
-    goals: ["Simular mini-campanha (10-15 contatos)", "Usar delays longos entre envios", "52-60 interações"],
-    checklist: ["Mini-campanha simulada", "Delays de 30s+ entre envios", "52-60 interações"],
-    msgTarget: { min: 52, max: 60 }, groupTarget: 8, recipientTarget: 50,
-  },
-  {
-    day: 26, phase: "consolidation", title: "Teste de resiliência",
-    goals: ["Manter volume estável", "Testar envio de mídia pesada (vídeo)", "55-60 interações"],
-    checklist: ["Vídeo enviado com sucesso", "55-60 interações", "Sem degradação de performance"],
-    msgTarget: { min: 55, max: 60 }, groupTarget: 8, recipientTarget: 52,
-  },
-  {
-    day: 27, phase: "consolidation", title: "Reta final",
-    goals: ["Manter ritmo alto e estável", "55-65 interações", "Verificar todos os indicadores"],
-    checklist: ["55-65 interações", "Todos indicadores verdes", "27 dias sem problemas"],
-    msgTarget: { min: 55, max: 65 }, groupTarget: 8, recipientTarget: 55,
-  },
-  {
-    day: 28, phase: "consolidation", title: "Pré-liberação",
-    goals: ["Health check completo final", "55-65 interações", "Documentar estado do chip"],
-    checklist: ["Health check OK", "55-65 interações", "Estado documentado"],
-    tips: "Quase lá! Mantenha o padrão por mais 2 dias.",
-    msgTarget: { min: 55, max: 65 }, groupTarget: 8, recipientTarget: 55,
-  },
-  {
-    day: 29, phase: "consolidation", title: "Último dia de aquecimento",
-    goals: ["Manter volume normal", "60-65 interações", "Preparar para uso em produção"],
-    checklist: ["60-65 interações", "Chip estável e maduro", "Pronto para campanhas leves"],
-    msgTarget: { min: 60, max: 65 }, groupTarget: 8, recipientTarget: 55,
-  },
-  {
-    day: 30, phase: "consolidation", title: "Chip aquecido! 🎉",
-    goals: ["Aquecimento completo!", "Chip pronto para uso em campanhas", "Iniciar com volume moderado em produção"],
-    checklist: ["30 dias completos sem bloqueio", "Reputação do chip estabelecida", "Pronto para campanhas com delays seguros"],
-    tips: "Parabéns! O chip completou o ciclo de 30 dias. Comece campanhas com volume moderado e delays longos.",
-    msgTarget: { min: 60, max: 70 }, groupTarget: 8, recipientTarget: 55,
+    key: "banido",
+    label: "🔴 Chip Banido",
+    subtitle: "Número com histórico de bloqueio/restrição",
+    icon: Skull,
+    iconColor: "text-red-400",
+    headerBg: "from-red-500/10 to-red-500/5",
+    message: "⚠️ Ciclo de recuperação de 21 dias com cautela máxima. Este número já sofreu ban ou restrição. A chance de bloqueio permanente é ALTA. O volume é reduzido em todas as fases e inclui período de quarentena obrigatório. Mesmo após os 21 dias, use sempre com delays maiores que o normal.",
+    roadmap: ROADMAP_BANIDO,
+    days: 21,
   },
 ];
 
-const phaseKey = (p: string) => p as keyof typeof PHASES;
-
 const AdminWarmupRoadmap = () => {
+  const [activeTab, setActiveTab] = useState("novo");
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({});
 
@@ -234,39 +327,72 @@ const AdminWarmupRoadmap = () => {
     setExpandedDay(prev => prev === day ? null : day);
   };
 
-  const phaseGroups = [
-    { key: "pre_24h", days: ROADMAP.filter(d => d.phase === "pre_24h") },
-    { key: "groups_only", days: ROADMAP.filter(d => d.phase === "groups_only") },
-    { key: "autosave", days: ROADMAP.filter(d => d.phase === "autosave") },
-    { key: "community", days: ROADMAP.filter(d => d.phase === "community") },
-    { key: "consolidation", days: ROADMAP.filter(d => d.phase === "consolidation") },
-  ];
+  const activeCategory = CATEGORIES.find(c => c.key === activeTab)!;
+  const roadmap = activeCategory.roadmap;
+
+  // Group by phase
+  const phaseOrder = [...new Set(roadmap.map(d => d.phase))];
+  const phaseGroups = phaseOrder.map(phase => ({
+    key: phase,
+    days: roadmap.filter(d => d.phase === phase),
+  }));
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-1" style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}>
+    <div className="space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto pr-1" style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Flame size={20} className="text-primary" />
         <div>
-          <h2 className="text-base font-bold text-foreground">Roteiro de Aquecimento — Dia 1 ao 30</h2>
-          <p className="text-xs text-muted-foreground">Guia completo dia-a-dia para maturação segura de chips</p>
+          <h2 className="text-base font-bold text-foreground">Roteiro de Aquecimento</h2>
+          <p className="text-xs text-muted-foreground">Guia dia-a-dia por categoria de chip</p>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(PHASES).map(([key, val]) => (
-          <Badge key={key} variant="outline" className={`text-[10px] ${val.color}`}>
-            {val.label}
-          </Badge>
+      {/* Category Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setExpandedDay(null); }}>
+        <TabsList className="w-full grid grid-cols-3 h-auto p-1">
+          {CATEGORIES.map(cat => (
+            <TabsTrigger key={cat.key} value={cat.key} className="text-xs py-2 data-[state=active]:shadow-sm">
+              {cat.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {CATEGORIES.map(cat => (
+          <TabsContent key={cat.key} value={cat.key} className="mt-4 space-y-4">
+            {/* Category header card */}
+            <div className={`rounded-xl border border-border bg-gradient-to-br ${cat.headerBg} p-4 space-y-2`}>
+              <div className="flex items-center gap-2">
+                <cat.icon size={18} className={cat.iconColor} />
+                <div>
+                  <p className="text-sm font-bold text-foreground">{cat.subtitle}</p>
+                  <p className="text-[10px] text-muted-foreground">{cat.days} dias de ciclo</p>
+                </div>
+              </div>
+              <p className="text-xs text-foreground/70 leading-relaxed">{cat.message}</p>
+            </div>
+          </TabsContent>
         ))}
+      </Tabs>
+
+      {/* Phase legend */}
+      <div className="flex flex-wrap gap-1.5">
+        {phaseOrder.map(key => {
+          const phase = PHASES[key];
+          if (!phase) return null;
+          return (
+            <Badge key={key} variant="outline" className={`text-[10px] ${phase.color}`}>
+              {phase.label}
+            </Badge>
+          );
+        })}
       </div>
 
-      {/* Phases */}
+      {/* Roadmap */}
       {phaseGroups.map(({ key, days }) => {
-        const phase = PHASES[phaseKey(key)];
+        const phase = PHASES[key] || { label: key, color: "bg-muted text-muted-foreground border-border" };
         return (
-          <div key={key} className="space-y-1">
+          <div key={`${activeTab}-${key}`} className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <div className={`w-2 h-2 rounded-full ${phase.color.split(" ")[0]}`} />
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -277,13 +403,12 @@ const AdminWarmupRoadmap = () => {
             <div className="space-y-1">
               {days.map((plan) => {
                 const isOpen = expandedDay === plan.day;
-                const dayChecks = plan.checklist.map((_, i) => `d${plan.day}-c${i}`);
+                const dayChecks = plan.checklist.map((_, i) => `${activeTab}-d${plan.day}-c${i}`);
                 const completedCount = dayChecks.filter(k => completedItems[k]).length;
                 const allDone = completedCount === plan.checklist.length;
 
                 return (
                   <div key={plan.day} className="bg-card border border-border rounded-lg overflow-hidden" style={{ contain: "content" }}>
-                    {/* Day header */}
                     <button
                       onClick={() => toggle(plan.day)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
@@ -294,20 +419,20 @@ const AdminWarmupRoadmap = () => {
                         {plan.day}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{plan.title}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{plan.title}</p>
                         <div className="flex items-center gap-3 mt-0.5">
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <MessageSquare size={10} /> {plan.msgTarget.min}-{plan.msgTarget.max} msgs
+                            <MessageSquare size={10} /> {plan.msgTarget.min}-{plan.msgTarget.max}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Users size={10} /> {plan.recipientTarget} dest.
+                            <Users size={10} /> {plan.recipientTarget}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Phone size={10} /> {plan.groupTarget} grupos
+                            <Phone size={10} /> {plan.groupTarget}
                           </span>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`text-[10px] ${phase.color}`}>
+                      <Badge variant="outline" className={`text-[10px] ${phase.color} hidden sm:flex`}>
                         {phase.label}
                       </Badge>
                       {allDone && <CheckCircle2 size={16} className="text-emerald-400" />}
@@ -315,10 +440,8 @@ const AdminWarmupRoadmap = () => {
                       {isOpen ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                     </button>
 
-                    {/* Expanded content */}
                     {isOpen && (
                       <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
-                        {/* Goals */}
                         <div>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Objetivos do Dia</p>
                           <ul className="space-y-1.5">
@@ -331,12 +454,11 @@ const AdminWarmupRoadmap = () => {
                           </ul>
                         </div>
 
-                        {/* Checklist */}
                         <div>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Checklist</p>
                           <ul className="space-y-1.5">
                             {plan.checklist.map((item, i) => {
-                              const key = `d${plan.day}-c${i}`;
+                              const key = `${activeTab}-d${plan.day}-c${i}`;
                               const done = !!completedItems[key];
                               return (
                                 <li key={i}>
@@ -359,19 +481,25 @@ const AdminWarmupRoadmap = () => {
                           </ul>
                         </div>
 
-                        {/* Tips */}
                         {plan.tips && (
-                          <div className="flex items-start gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
-                            <Shield size={14} className="text-primary mt-0.5 shrink-0" />
+                          <div className={`flex items-start gap-2 rounded-lg px-3 py-2 ${
+                            activeTab === "banido"
+                              ? "bg-red-500/5 border border-red-500/20"
+                              : "bg-primary/5 border border-primary/20"
+                          }`}>
+                            {activeTab === "banido" ? (
+                              <AlertTriangle size={14} className="text-red-400 mt-0.5 shrink-0" />
+                            ) : (
+                              <Shield size={14} className="text-primary mt-0.5 shrink-0" />
+                            )}
                             <p className="text-xs text-foreground/70">{plan.tips}</p>
                           </div>
                         )}
 
-                        {/* Metrics */}
                         <div className="grid grid-cols-3 gap-2">
                           <div className="bg-muted/20 rounded-lg p-2 text-center">
                             <p className="text-lg font-bold text-foreground">{plan.msgTarget.min}-{plan.msgTarget.max}</p>
-                            <p className="text-[10px] text-muted-foreground">Mensagens/dia</p>
+                            <p className="text-[10px] text-muted-foreground">Msgs/dia</p>
                           </div>
                           <div className="bg-muted/20 rounded-lg p-2 text-center">
                             <p className="text-lg font-bold text-foreground">{plan.recipientTarget}</p>
