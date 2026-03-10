@@ -86,7 +86,7 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch notifications + show toast for NEW ones (deduplicated)
+  // Fetch notifications (no toasts — realtime handles toast display)
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
@@ -96,27 +96,18 @@ export function useNotifications() {
       .limit(20);
 
     if (data) {
-      // Show toast for truly new notifications (not yet toasted)
-      if (initialLoadDoneRef.current) {
-        for (const n of data) {
-          if (!toastedIdsRef.current.has(n.id)) {
-            toastedIdsRef.current.add(n.id);
-            showToastForNotif(n as Notification);
-          }
-        }
+      // Mark all fetched IDs as known so realtime won't re-toast them
+      for (const n of data) {
+        toastedIdsRef.current.add(n.id);
+        knownIdsRef.current.add(n.id);
       }
-      // Mark all initial IDs as already toasted on first load
-      if (!initialLoadDoneRef.current) {
-        toastedIdsRef.current = new Set(data.map((n) => n.id));
-      }
-      knownIdsRef.current = new Set(data.map((n) => n.id));
       initialLoadDoneRef.current = true;
 
       setNotifications(data as Notification[]);
       setUnreadCount(data.filter((n) => !n.read).length);
     }
     setLoading(false);
-  }, [user, showToastForNotif]);
+  }, [user]);
   // Mark single as read
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
