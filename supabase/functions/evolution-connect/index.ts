@@ -374,6 +374,42 @@ Deno.serve(async (req) => {
         }
       }
 
+      // For report_wa devices of admins: auto-create instance on provider if no pool token found
+      if (!instanceToken && isReportDevice) {
+        const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        if (isAdmin) {
+          console.log(`Admin report_wa device "${deviceName}" — auto-creating instance on provider...`);
+          const createResult = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, `admin_report_${Date.now()}`);
+          if (createResult.ok && createResult.token) {
+            // Save token to device
+            await svc.from("devices").update({
+              uazapi_token: createResult.token,
+              uazapi_base_url: BASE_URL,
+            }).eq("id", deviceId);
+
+            // Also save to pool for tracking
+            await svc.from("user_api_tokens").insert({
+              user_id: user.id,
+              token: createResult.token,
+              admin_id: user.id,
+              device_id: deviceId,
+              status: "in_use",
+              healthy: true,
+              label: "admin_report",
+              assigned_at: new Date().toISOString(),
+              last_checked_at: new Date().toISOString(),
+            });
+
+            instanceToken = createResult.token;
+            instanceUrl = BASE_URL;
+            console.log("Auto-created admin report instance with token");
+            await oplog(svc, user.id, "admin_report_provisioned", `Instância report_wa auto-provisionada para admin`, deviceId);
+          } else {
+            console.error("Failed to create admin report instance:", createResult.error);
+          }
+        }
+      }
+
       // Device MUST have a valid token
       if (!instanceToken) {
         return json({ error: "Nenhum token disponível no pool. Solicite ao administrador.", code: "NO_TOKEN" }, 400);
