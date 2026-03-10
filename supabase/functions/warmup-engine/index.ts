@@ -217,7 +217,8 @@ Deno.serve(async (req) => {
         if (jobErr) throw jobErr;
       }
 
-      const chipLabel = resolvedChipState === "recovered" ? "CHIP_RECUPERAÇÃO" : "CHIP_NOVO";
+      const chipLabels: Record<string, string> = { new: "CHIP_NOVO", recovered: "CHIP_RECUPERAÇÃO", unstable: "CHIP_SENSÍVEL" };
+      const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
