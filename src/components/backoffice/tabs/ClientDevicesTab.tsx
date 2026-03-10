@@ -68,6 +68,20 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
   const usagePercent = maxInstances > 0 ? Math.round((devices.length / maxInstances) * 100) : 0;
   const connectedCount = devices.filter((d: any) => d.status === "Connected").length;
+  const disconnectedWithoutToken = devices.filter((d: any) => d.status === "Disconnected" && !d.uazapi_token).length;
+
+  const bulkReassign = () => {
+    mutate(
+      { action: "bulk-reassign-tokens", body: { target_user_id: client.id } },
+      {
+        onSuccess: (data: any) => {
+          toast({ title: `✅ ${data.reassigned} instância(s) reatribuída(s)`, description: data.reassigned < data.total_disconnected ? `${data.total_disconnected - data.reassigned} sem token disponível` : "Tokens atribuídos com sucesso" });
+          invalidateClient(client.id);
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
 
   let blockReason = "";
   if (isBlocked) blockReason = `Conta ${client.status === "suspended" ? "suspensa" : "cancelada"}`;
