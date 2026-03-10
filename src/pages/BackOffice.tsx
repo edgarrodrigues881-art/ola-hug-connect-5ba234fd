@@ -75,21 +75,6 @@ const BackOffice = () => {
     setLogging(false);
   };
 
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) { toast({ title: "Digite seu e-mail", variant: "destructive" }); return; }
-    setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setResetting(false);
-    if (error) {
-      toast({ title: "Erro ao enviar e-mail", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada." });
-      setShowReset(false);
-    }
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
