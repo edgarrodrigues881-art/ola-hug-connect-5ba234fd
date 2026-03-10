@@ -644,10 +644,10 @@ Deno.serve(async (req) => {
 
       let sentCount = 0;
 
-      // ═══ CONNECTION ALERTS → connection_group_id ═══
+      // ═══ CONNECTION ALERTS → group_id ═══
       if (config.alert_disconnect) {
-        const connectionGroupId = config.connection_group_id || config.group_id;
-        if (connectionGroupId) {
+        const gid = config.group_id;
+        if (gid) {
           const { data: allDevices } = await serviceClient
             .from("devices").select("id, name, number, status, login_type")
             .eq("user_id", userId).neq("login_type", "report_wa");
