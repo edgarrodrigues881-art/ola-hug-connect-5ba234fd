@@ -23,6 +23,14 @@ export function getRecentlyDeletedIds(): Set<string> {
   return recentlyDeletedIds;
 }
 
+export function pauseKeepAlive() {
+  keepAlivePaused = true;
+}
+
+export function resumeKeepAlive() {
+  keepAlivePaused = false;
+}
+
 /**
  * Auto-syncs device statuses.
  * - Scales to 1000+ instances by using longer intervals and smart debouncing.
