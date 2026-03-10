@@ -630,7 +630,7 @@ Deno.serve(async (req) => {
       return json({ success: true, status: check.status, alive: false });
     }
 
-    // ── status ──
+    // ── status (lightweight — called frequently during QR polling) ──
     if (action === "status") {
       const check = await checkInstanceStatus();
       if (!check.valid) return json({ success: true, status: "token_invalid", tokenInvalid: true });
@@ -638,17 +638,10 @@ Deno.serve(async (req) => {
       const isConnected = check.status === "connected";
 
       if (isConnected && check.owner) {
-        // Save phone and mark Ready
         const raw = String(check.owner).replace(/\D/g, "");
         const fmt = formatBrPhone(raw);
-        // Check for duplicate phone
-        const statusDup = await checkDuplicatePhone(check.owner);
-        if (statusDup.isDuplicate) {
-          await uazapi(instanceUrl, "/instance/disconnect", instanceToken, "POST");
-          await svc.from("devices").update({ status: "Disconnected", number: null }).eq("id", deviceId);
-          return json({ success: false, error: `Este número já está conectado na instância "${statusDup.existingDeviceName}".`, code: "DUPLICATE_PHONE" });
-        }
-        await svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId);
+        // Update DB in background — don't block the response
+        svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId).then(() => {});
       }
 
       return json({
