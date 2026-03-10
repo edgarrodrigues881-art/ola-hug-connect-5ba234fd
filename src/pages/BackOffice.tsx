@@ -100,7 +100,6 @@ const BackOffice = () => {
             </div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Painel DG</h1>
             <p className="text-sm text-muted-foreground mt-1">Acesso restrito a administradores</p>
-            </p>
           </div>
 
             <form onSubmit={handleLogin} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
