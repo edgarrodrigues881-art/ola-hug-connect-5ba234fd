@@ -445,7 +445,7 @@ async function handleTick(db: any) {
           }
 
           const contact = contacts[recipientIndex % contacts.length];
-          const message = pickRandom(autosaveMessages);
+          const message = generateNaturalMessage("autosave");
           const phoneNumber = contact.phone_e164.replace(/\+/g, "");
 
           await uazapiSendText(baseUrl, token, phoneNumber, message);
