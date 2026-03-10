@@ -940,11 +940,12 @@ const Devices = () => {
       if (!device) return;
 
       if (action === "restart") {
+        // Prevent duplicate clicks if already disconnected
+        if (device.status === "Disconnected") return;
         // Optimistic UI update first
         queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
           old ? old.map(d => d.id === deviceId ? { ...d, status: "Disconnected", number: "", profile_picture: null, profile_name: null } : d) : old
         );
-        // Toast handled by notify_device_disconnected trigger
         // Fire API in background
         callApi({ action: "logout", deviceId }).catch(err => console.error("Restart logout error:", err));
         supabase.from("devices").update({ status: "Disconnected" } as any).eq("id", deviceId)
