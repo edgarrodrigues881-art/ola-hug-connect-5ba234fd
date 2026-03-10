@@ -252,6 +252,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "infra": return <AdminInfra />;
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
+        case "msg-generator": return <MessageGeneratorPreview />;
         default: return null;
       }
     })();
