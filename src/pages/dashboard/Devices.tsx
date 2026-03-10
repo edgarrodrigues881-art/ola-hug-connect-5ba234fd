@@ -406,6 +406,13 @@ const Devices = () => {
       });
       if (error) {
         let realMsg = data?.error || "";
+        if (!realMsg) {
+          // Try to extract from FunctionsHttpError context
+          try {
+            const body = await error.context?.json?.();
+            realMsg = body?.error || "";
+          } catch {}
+        }
         if (!realMsg && error.message) {
           const jsonMatch = error.message.match(/\{"error"\s*:\s*"([^"]+)"\}/);
           realMsg = jsonMatch?.[1] || error.message;
