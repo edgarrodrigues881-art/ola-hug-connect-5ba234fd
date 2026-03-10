@@ -85,7 +85,7 @@ const CommunityPoolTab = () => {
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <WifiOff size={16} className="mx-auto text-muted-foreground mb-1" />
           <p className="text-lg font-bold text-foreground">{enrolled}</p>
-          <p className="text-[10px] text-muted-foreground">No Pool</p>
+          <p className="text-[10px] text-muted-foreground">Ativos</p>
         </div>
       </div>
 
@@ -126,11 +126,11 @@ const CommunityPoolTab = () => {
               </SelectContent>
             </Select>
             <Select value={filterEnrolled} onValueChange={setFilterEnrolled}>
-              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Pool" /></SelectTrigger>
+              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Ativo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="yes">No Pool</SelectItem>
-                <SelectItem value="no">Fora do Pool</SelectItem>
+                <SelectItem value="yes">Ativo</SelectItem>
+                <SelectItem value="no">Inativo</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPhase} onValueChange={setFilterPhase}>
@@ -180,7 +180,7 @@ const CommunityPoolTab = () => {
 
             <div className="flex items-center justify-between pt-2 border-t border-border/50">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">Pool</span>
+                <span className="text-[10px] text-muted-foreground">Ativo</span>
                 <Switch
                   checked={d.is_enrolled}
                   onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
@@ -213,7 +213,7 @@ const CommunityPoolTab = () => {
                 <th className="text-left px-3 py-2.5">Ciclo</th>
                 <th className="text-left px-3 py-2.5">Phase</th>
                 <th className="text-left px-3 py-2.5">Dia</th>
-                <th className="text-center px-3 py-2.5">Pool</th>
+                <th className="text-center px-3 py-2.5">Ativo</th>
                 <th className="text-center px-3 py-2.5">Elegível</th>
               </tr>
             </thead>
