@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // If called from cron (anon key), process ALL configs. If from user, filter by user.
     let query = serviceClient
       .from("report_wa_configs")
-      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status")
       .not("device_id", "is", null);
 
     if (callerUserId) {
@@ -161,10 +161,10 @@ Deno.serve(async (req) => {
       // The cron no longer sends connection/disconnection alerts.
       // They are sent in real-time from the sync-devices function.
 
-      // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
+      // ═══ CAMPAIGN ALERTS → group_id ═══
       if (config.toggle_campaigns) {
-        const campaignsGroupId = config.campaigns_group_id || config.group_id;
-        if (campaignsGroupId) {
+        const targetGroupId = config.group_id;
+        if (targetGroupId) {
           // Started campaigns
           const { data: startedCampaigns } = await serviceClient
             .from("campaigns")
@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
             const alreadySent = await wasRecentlySent(config.user_id, `%campanha%${camp.name}%iniciada%`);
             if (!alreadySent) {
               const msg = `📣 CAMPANHA INICIADA\n\nCampanha: ${camp.name}\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n⏱ Início: ${nowBRT}\n\nO envio de mensagens foi iniciado.`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" iniciada — alerta enviado`);
             }
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
             const alreadySent = await wasRecentlySent(config.user_id, `%campanha%${camp.name}%pausada%`);
             if (!alreadySent) {
               const msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${camp.name}\n\n📊 Progresso:\n✅ Enviadas: ${camp.sent_count || 0}/${camp.total_contacts || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada pelo operador.`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" pausada — alerta enviado`);
             }
@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
               }
               const icon = camp.status === "completed" ? "📣" : "❌";
               const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${camp.status === "completed" ? "Concluída" : "Erro"}`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" ${statusLabel.toLowerCase()} — alerta enviado`);
             }
@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
                 if (!alreadySent) {
                   const rate = Math.round(((camp.failed_count || 0) / totalAttempts) * 100);
                   const msg = `🚨 FALHAS DETECTADAS\n\nCampanha: ${camp.name}\n\n⚠️ Taxa de falha: ${rate}%\n❌ Falhas: ${camp.failed_count || 0}/${totalAttempts}\n\n⏱ Horário: ${nowBRT}\n\nA taxa de falha está acima de 30%. Considere pausar a campanha para investigação.`;
-                  const sent = await sendToGroup(creds, campaignsGroupId, msg);
+                  const sent = await sendToGroup(creds, targetGroupId, msg);
                   if (sent) totalSent++;
                   await logEvent(config.user_id, "WARN", `Campanha "${camp.name}" falhas detectadas (${rate}%) — alerta enviado`);
                 }
@@ -254,10 +254,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ═══ WARMUP ALERTS → warmup_group_id ═══
+      // ═══ WARMUP ALERTS → group_id ═══
       if (config.toggle_warmup) {
-        const warmupGroupId = config.warmup_group_id || config.group_id;
-        if (warmupGroupId) {
+        const warmupTarget = config.group_id;
+        if (warmupTarget) {
           // Check for completed warmup cycles (24h report)
           const { data: completedCycles } = await serviceClient
             .from("warmup_cycles")
@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
             const failed = warmupLogs.filter(l => l.status !== "sent").length;
 
             const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sent}\n❌ Falhas: ${failed}\n📊 Total de interações: ${warmupLogs.length}\n\n🗓 Dia do ciclo: ${cycle.day_index}/${cycle.days_total}\n📍 Fase: ${cycle.phase}\n\n🔎 Status atual da instância:\n${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
-            const didSend = await sendToGroup(creds, warmupGroupId, msg);
+            const didSend = await sendToGroup(creds, warmupTarget, msg);
             if (didSend) totalSent++;
             await logEvent(config.user_id, "INFO", `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sent} ok, ${failed} falhas`);
           }

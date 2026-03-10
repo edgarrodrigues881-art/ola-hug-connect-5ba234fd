@@ -27,6 +27,8 @@ export default function ReportWhatsApp() {
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
+  const [groupLinkUnified, setGroupLinkUnified] = useState("");
+  const [joiningUnified, setJoiningUnified] = useState(false);
 
   // Connection dialog state
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -429,6 +431,44 @@ export default function ReportWhatsApp() {
     upsertConfig.mutate({ [field]: groupId, [nameField]: group?.name || "" });
   };
 
+  const handleUnifiedLinkJoin = async () => {
+    const link = groupLinkUnified.trim();
+    if (!link) return;
+    if (link.includes("@g.us")) {
+      upsertConfig.mutate({ group_id: link, group_name: link });
+      setGroupLinkUnified("");
+      return;
+    }
+    const cleaned = link.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "");
+    const inviteCode = cleaned.split("?")[0].split("/")[0].trim();
+    if (!inviteCode || inviteCode.length < 10) {
+      toast.error("Link inválido. Cole um link do tipo: https://chat.whatsapp.com/...");
+      return;
+    }
+    setJoiningUnified(true);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const deviceParam = reportDevice?.id ? `&device_id=${reportDevice.id}` : "";
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=resolve_invite&invite_code=${encodeURIComponent(inviteCode)}${deviceParam}`,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      const json = await res.json();
+      if (json.jid) {
+        upsertConfig.mutate({ group_id: json.jid, group_name: json.name || json.jid });
+        setGroupLinkUnified("");
+        toast.success(`Grupo encontrado: ${json.name || json.jid}`);
+      } else {
+        toast.error("Não foi possível resolver o link. Tente selecionar da lista.");
+      }
+    } catch (_err) {
+      toast.error("Erro ao resolver link do grupo");
+    } finally {
+      setJoiningUnified(false);
+    }
+  };
+
   if (loadingConfig) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -531,60 +571,123 @@ export default function ReportWhatsApp() {
         )}
       </div>
 
-      {/* 3 Cards */}
+      {/* Unified Group Selector */}
+      {canUseReport && isConnected && (
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Grupo de Destino</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Todas as notificações serão enviadas para este grupo.</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            {(config?.group_id) ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/60 bg-background/50 px-3 h-9">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs truncate flex-1">
+                    {groups.find(g => g.id === config.group_id)?.name || config.group_name || `📌 ${config.group_id}`}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => upsertConfig.mutate({ group_id: null, group_name: null })}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={groupLinkUnified}
+                    onChange={(e) => setGroupLinkUnified(e.target.value)}
+                    placeholder="Cole o link do grupo: https://chat.whatsapp.com/..."
+                    className="h-9 text-xs flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleUnifiedLinkJoin()}
+                    disabled={joiningUnified}
+                  />
+                  <Button size="sm" className="h-9 px-3 text-xs" onClick={handleUnifiedLinkJoin} disabled={!groupLinkUnified.trim() || joiningUnified}>
+                    {joiningUnified ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Buscar"}
+                  </Button>
+                </div>
+                {groups.length > 0 && (
+                  <div className="border border-border/40 rounded-lg overflow-hidden">
+                    <div className="px-2 py-1.5 bg-muted/30 border-b border-border/40 flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">Grupos encontrados ({groups.length})</span>
+                      <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-muted-foreground" onClick={() => reportDevice?.id && fetchGroups(reportDevice.id, true)} disabled={loadingGroups}>
+                        <RefreshCw className={`w-2.5 h-2.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
+                        Atualizar
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto">
+                      {groups.map(g => (
+                        <button
+                          key={g.id}
+                          onClick={() => {
+                            upsertConfig.mutate({ group_id: g.id, group_name: g.name });
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 border-b border-border/20 last:border-0"
+                        >
+                          <span className="truncate">{g.name}</span>
+                          {g.participants && <span className="text-[10px] text-muted-foreground shrink-0">{g.participants}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {groups.length === 0 && !loadingGroups && (
+                  <p className="text-[10px] text-muted-foreground text-center py-1">Cole o link de um grupo acima para selecioná-lo</p>
+                )}
+                {loadingGroups && (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground ml-1.5">Buscando grupos...</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3 Toggle Cards (no individual group selectors) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <AlertCard
+        <ToggleCard
           icon={<Flame className="w-4 h-4 text-orange-500" />}
           iconColor="orange"
           title="Aquecimento"
           description="Relatórios após cada ciclo de 24h."
-          groups={groups}
-          selectedGroupId={config?.warmup_group_id || ""}
-          onGroupSelect={(id) => handleGroupSelect("warmup_group_id", "warmup_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
-          loadingGroups={loadingGroups}
-          infoItems={[]}
           monitoredEvents={["Ciclo de aquecimento concluído"]}
           previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n📊 Atividades registradas\\n\\n📨 Mensagens enviadas: {msgs_enviadas}\\n📩 Mensagens recebidas: {msgs_recebidos}\\n\\n🖼 Fotos enviadas: {fotos}\\n🎧 Áudios enviados: {audios}\\n\\n🟢 Status postados: {status}\\n👥 Interações em grupos: {grupos_interacoes}\\n\\n⏱ Última atividade registrada:\\n{ultima_atividade}\\n\\n🔎 Status atual da instância:\\n${isConnected ? "🟢 Online" : "🔴 Offline"}\\n\\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
-          reportDeviceId={reportDevice?.id}
         />
-
-        <AlertCard
+        <ToggleCard
           icon={<Megaphone className="w-4 h-4 text-sky-500" />}
           iconColor="sky"
           title="Campanhas"
           description="Alertas de eventos de campanha."
-          groups={groups}
-          selectedGroupId={config?.campaigns_group_id || ""}
-          onGroupSelect={(id) => handleGroupSelect("campaigns_group_id", "campaigns_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.toggle_campaigns ?? false}
           onToggle={(v) => handleToggle("toggle_campaigns", v)}
-          loadingGroups={loadingGroups}
-          infoItems={[]}
           monitoredEvents={["Campanha iniciada", "Campanha pausada", "Campanha finalizada", "Falhas detectadas"]}
           previewMessage={`📣 CAMPANHA FINALIZADA\\n\\nCampanha: {nome_campanha}\\n\\n📊 Resultado da campanha\\n\\n👥 Total de contatos: {total}\\n\\n✅ Mensagens enviadas: {enviadas}\\n📬 Mensagens entregues: {entregues}\\n\\n❌ Falhas registradas: {falhas}\\n⏳ Pendentes: {pendentes}\\n\\n⏱ Tempo total de execução:\\n{tempo_execucao}\\n\\nStatus da campanha: Concluída`}
-          reportDeviceId={reportDevice?.id}
         />
-
-        <AlertCard
+        <ToggleCard
           icon={<Plug className="w-4 h-4 text-emerald-500" />}
           iconColor="emerald"
           title="Conexão"
           description="Alertas de mudança de status."
-          groups={groups}
-          selectedGroupId={config?.connection_group_id || ""}
-          onGroupSelect={(id) => handleGroupSelect("connection_group_id", "connection_group_name", id)}
-          onRefreshGroups={() => reportDevice?.id && fetchGroups(reportDevice.id, true)}
           enabled={config?.alert_disconnect ?? false}
           onToggle={(v) => handleToggle("alert_disconnect", v)}
-          loadingGroups={loadingGroups}
-          infoItems={[]}
-          monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
-          previewMessage={`⚠️ ALERTA DE CONEXÃO\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n❌ Status: Desconectado\\n\\n⏱ Horário da ocorrência:\\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\\n\\nA instância perdeu conexão com o WhatsApp.\\n\\nPara continuar utilizando o sistema,\\né necessário realizar a reconexão.`}
-          reportDeviceId={reportDevice?.id}
+          monitoredEvents={["Instância conectada", "Instância desconectada"]}
+          previewMessage={`⚠️ ALERTA DE CONEXÃO\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n❌ Status: Desconectado\\n\\n⏱ Horário da ocorrência:\\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\\n\\nA instância perdeu conexão com o WhatsApp.`}
         />
       </div>
 
@@ -900,37 +1003,20 @@ export default function ReportWhatsApp() {
   );
 }
 
-// ─── Alert Card ───
-interface AlertCardProps {
+// ─── Toggle Card (simplified - no group selector) ───
+interface ToggleCardProps {
   icon: React.ReactNode;
   iconColor: string;
   title: string;
   description: string;
-  groups: WhatsAppGroup[];
-  selectedGroupId: string;
-  onGroupSelect: (id: string) => void;
-  onRefreshGroups: () => void;
   enabled: boolean;
   onToggle: (v: boolean) => void;
-  loadingGroups: boolean;
-  infoItems: string[];
   monitoredEvents: string[];
   previewMessage: string;
-  reportDeviceId?: string;
 }
 
-const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupId, onGroupSelect, onRefreshGroups, enabled, onToggle, loadingGroups, monitoredEvents, previewMessage, reportDeviceId }: AlertCardProps) => {
+const ToggleCard = ({ icon, iconColor, title, description, enabled, onToggle, monitoredEvents, previewMessage }: ToggleCardProps) => {
   const [showPreview, setShowPreview] = useState(false);
-  const [groupLink, setGroupLink] = useState("");
-  const [joiningGroup, setJoiningGroup] = useState(false);
-  const { user } = useAuth();
-
-  const selectedGroup = groups.find(g => g.id === selectedGroupId);
-  const selectedLabel = selectedGroup
-    ? selectedGroup.name
-    : selectedGroupId
-    ? `📌 ${selectedGroupId}`
-    : null;
 
   const colorMap: Record<string, { border: string; bg: string; iconBg: string }> = {
     orange: { border: "border-orange-500/40", bg: "bg-orange-500/5", iconBg: "bg-orange-500/10" },
@@ -939,59 +1025,8 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
   };
   const colors = colorMap[iconColor] || colorMap.emerald;
 
-  const handleLinkJoin = async () => {
-    const link = groupLink.trim();
-    if (!link) return;
-
-    // If it looks like a JID already (contains @g.us)
-    if (link.includes("@g.us")) {
-      onGroupSelect(link);
-      setGroupLink("");
-      return;
-    }
-
-    // Extract invite code from link
-    const cleaned = link.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "");
-    const inviteCode = cleaned.split("?")[0].split("/")[0].trim();
-    if (!inviteCode || inviteCode.length < 10) {
-      toast.error("Link inválido. Cole um link do tipo: https://chat.whatsapp.com/...");
-      return;
-    }
-
-    // After joining, refresh the group list and it should appear
-    setJoiningGroup(true);
-    try {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      if (!token) throw new Error("Sessão expirada");
-
-      // Try to get group info via invite code using UAZAPI
-      const deviceParam = reportDeviceId ? `&device_id=${reportDeviceId}` : "";
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=resolve_invite&invite_code=${encodeURIComponent(inviteCode)}${deviceParam}`,
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-      );
-      const json = await res.json();
-
-      if (json.jid) {
-        onGroupSelect(json.jid);
-        setGroupLink("");
-        toast.success(`Grupo encontrado: ${json.name || json.jid}`);
-      } else {
-        // Fallback: refresh group list and hope it shows up
-        onRefreshGroups();
-        toast.error("Não foi possível resolver o link. Tente selecionar da lista abaixo.");
-      }
-    } catch (err: any) {
-      console.error("Error resolving group link:", err);
-      toast.error("Erro ao resolver link do grupo");
-    } finally {
-      setJoiningGroup(false);
-    }
-  };
-
   return (
     <div className={`rounded-xl border-2 transition-all duration-300 overflow-hidden ${enabled ? colors.border : "border-border"} ${enabled ? colors.bg : "bg-card"}`}>
-      {/* Header */}
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1007,95 +1042,8 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
         </div>
       </div>
 
-      {/* Group selector */}
       {enabled && (
         <div className="px-4 pb-4 space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
-              Grupo de destino
-            </label>
-
-            {selectedGroupId ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/60 bg-background/50 px-3 h-9">
-                  <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-xs truncate flex-1">{selectedLabel}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => onGroupSelect("")}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {/* Link input */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={groupLink}
-                    onChange={(e) => setGroupLink(e.target.value)}
-                    placeholder="Cole o link do grupo: https://chat.whatsapp.com/..."
-                    className="h-9 text-xs flex-1"
-                    onKeyDown={(e) => e.key === "Enter" && handleLinkJoin()}
-                    disabled={joiningGroup}
-                  />
-                  <Button size="sm" className="h-9 px-3 text-xs" onClick={handleLinkJoin} disabled={!groupLink.trim() || joiningGroup}>
-                    {joiningGroup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Buscar"}
-                  </Button>
-                </div>
-
-                {/* Existing groups list */}
-                {groups.length > 0 && (
-                  <div className="border border-border/40 rounded-lg overflow-hidden">
-                    <div className="px-2 py-1.5 bg-muted/30 border-b border-border/40 flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground">Grupos encontrados ({groups.length})</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 px-1.5 text-[10px] text-muted-foreground"
-                        onClick={onRefreshGroups}
-                        disabled={loadingGroups}
-                      >
-                        <RefreshCw className={`w-2.5 h-2.5 mr-1 ${loadingGroups ? "animate-spin" : ""}`} />
-                        Atualizar
-                      </Button>
-                    </div>
-                    <div className="max-h-32 overflow-y-auto">
-                      {groups.map(g => (
-                        <button
-                          key={g.id}
-                          onClick={() => onGroupSelect(g.id)}
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 border-b border-border/20 last:border-0"
-                        >
-                          <span className="truncate">{g.name}</span>
-                          {g.participants && (
-                            <span className="text-[10px] text-muted-foreground shrink-0">{g.participants}</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {groups.length === 0 && !loadingGroups && (
-                  <p className="text-[10px] text-muted-foreground text-center py-1">
-                    Cole o link de um grupo acima para selecioná-lo
-                  </p>
-                )}
-                {loadingGroups && (
-                  <div className="flex items-center justify-center py-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground ml-1.5">Buscando grupos...</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Monitored events */}
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
               Eventos monitorados
@@ -1109,7 +1057,6 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
             </div>
           </div>
 
-          {/* Preview toggle */}
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="text-[11px] text-primary hover:underline flex items-center gap-1"

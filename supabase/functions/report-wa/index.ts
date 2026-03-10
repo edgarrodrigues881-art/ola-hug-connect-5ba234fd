@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     if (action === "status") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("device_id, connection_status, connected_phone, group_id, group_name, frequency, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+        .select("device_id, connection_status, connected_phone, group_id, group_name, frequency, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures")
         .eq("user_id", userId)
         .single();
 
@@ -426,25 +426,15 @@ Deno.serve(async (req) => {
       };
       if (instanceId) upsertData.device_id = instanceId;
 
-      // Save per-type group if specified
-      if (reportType && perTypeGroup) {
-        const typeMap: Record<string, { idCol: string; nameCol: string }> = {
-          warmup: { idCol: "warmup_group_id", nameCol: "warmup_group_name" },
-          campaigns: { idCol: "campaigns_group_id", nameCol: "campaigns_group_name" },
-          connection: { idCol: "connection_group_id", nameCol: "connection_group_name" },
-        };
-        const cols = typeMap[reportType as string];
-        if (cols) {
-          // Save null when clearing (empty id means removal)
-          upsertData[cols.idCol] = perTypeGroup.id || null;
-          upsertData[cols.nameCol] = perTypeGroup.name || null;
-        }
-      }
-
-      // Also keep legacy group_id for backwards compat
+      // Save group_id
       if (groupId) {
         upsertData.group_id = groupId;
         upsertData.group_name = groupName;
+      }
+      // Also accept perTypeGroup as unified group
+      if (perTypeGroup && perTypeGroup.id) {
+        upsertData.group_id = perTypeGroup.id;
+        upsertData.group_name = perTypeGroup.name || null;
       }
 
       await serviceClient.from("report_wa_configs").upsert(upsertData, { onConflict: "user_id" });
@@ -462,7 +452,7 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status")
         .eq("user_id", userId)
         .single();
 
@@ -473,15 +463,8 @@ Deno.serve(async (req) => {
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
 
       const reportType = body.reportType || "general";
-      // Use per-type group, fallback to legacy group_id
-      const typeGroupMap: Record<string, { id: string; name: string }> = {
-        warmup: { id: config.warmup_group_id || config.group_id, name: config.warmup_group_name || config.group_name },
-        campaigns: { id: config.campaigns_group_id || config.group_id, name: config.campaigns_group_name || config.group_name },
-        connection: { id: config.connection_group_id || config.group_id, name: config.connection_group_name || config.group_name },
-      };
-      const typeGroup = typeGroupMap[reportType] || { id: config.group_id, name: config.group_name };
-      const targetGroupId = body.groupId || typeGroup.id;
-      const targetGroupName = body.groupName || typeGroup.name || "N/A";
+      const targetGroupId = body.groupId || config.group_id;
+      const targetGroupName = body.groupName || config.group_name || "N/A";
 
       if (!targetGroupId) {
         return json({ error: "Selecione um grupo para este tipo de relatório" }, 400);
@@ -617,7 +600,7 @@ Deno.serve(async (req) => {
     if (action === "check-events") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status")
         .eq("user_id", userId)
         .single();
 
@@ -625,10 +608,8 @@ Deno.serve(async (req) => {
         return json({ skipped: true, reason: "No device configured" });
       }
 
-      // Check if at least one group is configured
-      const hasAnyGroup = config.warmup_group_id || config.campaigns_group_id || config.connection_group_id || config.group_id;
-      if (!hasAnyGroup) {
-        return json({ skipped: true, reason: "No groups configured" });
+      if (!config.group_id) {
+        return json({ skipped: true, reason: "No group configured" });
       }
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
@@ -663,10 +644,10 @@ Deno.serve(async (req) => {
 
       let sentCount = 0;
 
-      // ═══ CONNECTION ALERTS → connection_group_id ═══
+      // ═══ CONNECTION ALERTS → group_id ═══
       if (config.alert_disconnect) {
-        const connectionGroupId = config.connection_group_id || config.group_id;
-        if (connectionGroupId) {
+        const gid = config.group_id;
+        if (gid) {
           const { data: allDevices } = await serviceClient
             .from("devices").select("id, name, number, status, login_type")
             .eq("user_id", userId).neq("login_type", "report_wa");
@@ -675,14 +656,14 @@ Deno.serve(async (req) => {
             if (["Disconnected", "disconnected"].includes(dev.status)) {
               if (!(await wasRecentlySent(`%${dev.name}%desconect%alerta%`))) {
                 const msg = `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
-                if (await sendToTargetGroup(connectionGroupId, msg)) sentCount++;
+                if (await sendToTargetGroup(gid, msg)) sentCount++;
                 await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Instância "${dev.name}" desconectada — alerta enviado` });
               }
             }
             if (dev.status === "Ready") {
               if (!(await wasRecentlySent(`%${dev.name}%conectada%alerta%`))) {
                 const msg = `✅ INSTÂNCIA CONECTADA\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
-                if (await sendToTargetGroup(connectionGroupId, msg)) sentCount++;
+                if (await sendToTargetGroup(gid, msg)) sentCount++;
                 await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Instância "${dev.name}" conectada — alerta enviado` });
               }
             }
@@ -690,10 +671,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
-      if (config.toggle_campaigns) {
-        const campaignsGroupId = config.campaigns_group_id || config.group_id;
-        if (campaignsGroupId) {
+      // ═══ CAMPAIGN ALERTS → group_id ═══
+      if (config.toggle_campaigns && config.group_id) {
           // Started
           const { data: startedCampaigns } = await serviceClient
             .from("campaigns").select("id, name, total_contacts, started_at")
@@ -701,7 +680,7 @@ Deno.serve(async (req) => {
           for (const camp of (startedCampaigns || [])) {
             if (!(await wasRecentlySent(`%campanha%${camp.name}%iniciada%`))) {
               const msg = `📣 CAMPANHA INICIADA\n\nCampanha: ${camp.name}\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n⏱ Início: ${nowBRT}\n\nO envio de mensagens foi iniciado.`;
-              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" iniciada — alerta enviado` });
             }
           }
@@ -713,7 +692,7 @@ Deno.serve(async (req) => {
           for (const camp of (pausedCampaigns || [])) {
             if (!(await wasRecentlySent(`%campanha%${camp.name}%pausada%`))) {
               const msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${camp.name}\n\n📊 Progresso:\n✅ Enviadas: ${camp.sent_count || 0}/${camp.total_contacts || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada pelo operador.`;
-              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" pausada — alerta enviado` });
             }
           }
@@ -735,7 +714,7 @@ Deno.serve(async (req) => {
               }
               const icon = camp.status === "completed" ? "📣" : "❌";
               const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${camp.status === "completed" ? "Concluída" : "Erro"}`;
-              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" ${statusLabel.toLowerCase()} — alerta enviado` });
             }
           }
@@ -751,19 +730,15 @@ Deno.serve(async (req) => {
                 if (!(await wasRecentlySent(`%${camp.name}%falhas detectadas%`, 15))) {
                   const rate = Math.round(((camp.failed_count || 0) / total) * 100);
                   const msg = `🚨 FALHAS DETECTADAS\n\nCampanha: ${camp.name}\n\n⚠️ Taxa de falha: ${rate}%\n❌ Falhas: ${camp.failed_count || 0}/${total}\n\n⏱ Horário: ${nowBRT}\n\nA taxa de falha está acima de 30%. Considere pausar a campanha para investigação.`;
-                  if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+                  if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
                   await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Campanha "${camp.name}" falhas detectadas (${rate}%) — alerta enviado` });
                 }
               }
             }
-          }
-        }
       }
 
-      // ═══ WARMUP ALERTS → warmup_group_id ═══
-      if (config.toggle_warmup) {
-        const warmupGroupId = config.warmup_group_id || config.group_id;
-        if (warmupGroupId) {
+      // ═══ WARMUP ALERTS → group_id ═══
+      if (config.toggle_warmup && config.group_id) {
           const { data: activeCycles } = await serviceClient
             .from("warmup_cycles").select("id, device_id, day_index, days_total, phase, started_at")
             .eq("user_id", userId).eq("is_running", true);
@@ -783,7 +758,7 @@ Deno.serve(async (req) => {
             const sentMsgs = warmupLogs.filter(l => l.status === "sent").length;
             const failed = warmupLogs.filter(l => l.status !== "sent").length;
             const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sentMsgs}\n❌ Falhas: ${failed}\n📊 Total de interações: ${warmupLogs.length}\n\n🗓 Dia do ciclo: ${cycle.day_index}/${cycle.days_total}\n📍 Fase: ${cycle.phase}\n\n🔎 Status atual da instância:\n${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
-            if (await sendToTargetGroup(warmupGroupId, msg)) sentCount++;
+            if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
             await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sentMsgs} ok, ${failed} falhas` });
           }
         }

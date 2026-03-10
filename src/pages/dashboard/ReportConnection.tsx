@@ -51,7 +51,7 @@ export default function ReportConnection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("report_wa_configs")
-        .select("id, device_id, warmup_group_id, campaigns_group_id, connection_group_id")
+        .select("id, device_id, group_id")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -313,7 +313,7 @@ export default function ReportConnection() {
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-      const testGroupId = config?.warmup_group_id || config?.campaigns_group_id || config?.connection_group_id;
+      const testGroupId = config?.group_id;
       if (!testGroupId) {
         toast.error("Configure ao menos um grupo no Relatório antes de enviar teste");
         setSendingTest(false);

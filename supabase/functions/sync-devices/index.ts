@@ -243,12 +243,12 @@ Deno.serve(async (req) => {
               try {
                 const { data: rwConfig } = await serviceClient
                   .from("report_wa_configs")
-                  .select("device_id, alert_disconnect, connection_group_id, connection_status")
+                  .select("device_id, alert_disconnect, group_id, connection_status")
                   .eq("user_id", userId)
                   .not("device_id", "is", null)
                   .maybeSingle();
 
-                if (rwConfig?.alert_disconnect && rwConfig.connection_group_id && rwConfig.connection_status === "connected") {
+                if (rwConfig?.alert_disconnect && rwConfig.group_id && rwConfig.connection_status === "connected") {
                   const { data: rwDevice } = await serviceClient
                     .from("devices")
                     .select("uazapi_token, uazapi_base_url")
@@ -264,8 +264,8 @@ Deno.serve(async (req) => {
                       : `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${device.name}\nNúmero: ${formattedPhone || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
 
                     const sendEndpoints = [
-                      { path: "/send/text", body: { number: rwConfig.connection_group_id, text: msg } },
-                      { path: "/chat/send-text", body: { to: rwConfig.connection_group_id, body: msg } },
+                      { path: "/send/text", body: { number: rwConfig.group_id, text: msg } },
+                      { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
                     ];
                     let sent = false;
                     for (const ep of sendEndpoints) {
