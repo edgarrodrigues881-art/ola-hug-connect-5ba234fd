@@ -320,15 +320,7 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
     updated_at: new Date().toISOString(),
   }).eq("id", campaignId);
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-  // Send notification
-  if (userId) {
-    await serviceClient.from("notifications").insert({
-      user_id: userId,
-      title: "⏸️ Campanha pausada automaticamente",
-      message: `A campanha "${campaignName || ""}" foi pausada porque as instâncias ficaram indisponíveis. Reconecte e retome o envio.`,
-      type: "warning",
-    });
-  }
+  // Notification handled by DB trigger trg_notify_campaign_status
 }
 
 interface BatchState {
