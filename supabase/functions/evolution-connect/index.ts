@@ -685,7 +685,7 @@ Deno.serve(async (req) => {
           const { data: rwConfig, error: rwErr } = await svc
             .from("report_wa_configs")
             .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances")
-            .eq("user_id", userId)
+            .eq("user_id", user.id)
             .not("device_id", "is", null)
             .maybeSingle();
 
