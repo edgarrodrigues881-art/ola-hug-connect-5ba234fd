@@ -1109,6 +1109,7 @@ const Devices = () => {
     setPairingCode("");
     setConnectError("");
     stopPolling();
+    pauseKeepAlive(); // Pause keepAlive pings to free concurrency for connection
     setConnectOpen(true);
   };
 
