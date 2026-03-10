@@ -682,6 +682,82 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── BULK REASSIGN TOKENS (reconnect disconnected devices) ───
+    if (action === "bulk-reassign-tokens" && req.method === "POST") {
+      const { target_user_id } = await req.json();
+      if (!target_user_id) throw new Error("target_user_id obrigatório");
+
+      const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+
+      // Get all disconnected devices WITHOUT tokens for this user (non-report_wa)
+      const { data: disconnected } = await adminClient.from("devices")
+        .select("id, name, proxy_id")
+        .eq("user_id", target_user_id)
+        .neq("login_type", "report_wa")
+        .is("uazapi_token", null)
+        .order("name", { ascending: true });
+
+      if (!disconnected?.length) {
+        return new Response(JSON.stringify({ success: true, reassigned: 0, message: "Nenhuma instância sem token encontrada" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get available tokens for this user
+      const { data: availableTokens } = await adminClient.from("user_api_tokens")
+        .select("id, token")
+        .eq("user_id", target_user_id)
+        .eq("status", "available")
+        .order("created_at", { ascending: true })
+        .limit(disconnected.length);
+
+      if (!availableTokens?.length) {
+        return new Response(JSON.stringify({ success: false, reassigned: 0, message: "Nenhum token disponível no pool" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const toReassign = Math.min(disconnected.length, availableTokens.length);
+      let reassigned = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < toReassign; i++) {
+        const device = disconnected[i];
+        const token = availableTokens[i];
+        try {
+          // Update device with token + base URL
+          await adminClient.from("devices").update({
+            uazapi_token: token.token,
+            uazapi_base_url: ADMIN_BASE_URL || null,
+          }).eq("id", device.id);
+
+          // Mark token as in_use
+          await adminClient.from("user_api_tokens").update({
+            status: "in_use",
+            device_id: device.id,
+            assigned_at: new Date().toISOString(),
+          }).eq("id", token.id);
+
+          reassigned++;
+        } catch (e: any) {
+          errors.push(`${device.name}: ${e.message}`);
+        }
+      }
+
+      await logAction(adminClient, user.id, target_user_id, "bulk-reassign-tokens", `${reassigned}/${disconnected.length} instâncias reatribuídas com tokens`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        reassigned,
+        total_disconnected: disconnected.length,
+        tokens_available: availableTokens.length,
+        errors: errors.length > 0 ? errors : undefined,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     // ─── SET REPORT DEVICE CREDENTIALS (admin manually configures token+url for client's report_wa instance) ───
     if (action === "set-report-credentials" && req.method === "POST") {
       const { target_user_id, device_id, uazapi_token, uazapi_base_url } = await req.json();

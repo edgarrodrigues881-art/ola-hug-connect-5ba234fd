@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Wifi, WifiOff, Loader2, Server, AlertTriangle, Ban, ArrowUpCircle, Lock, Key, Save } from "lucide-react";
+import { Plus, Trash2, Wifi, WifiOff, Loader2, Server, AlertTriangle, Ban, ArrowUpCircle, Lock, Key, Save, RefreshCcw } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -68,6 +68,20 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
 
   const usagePercent = maxInstances > 0 ? Math.round((devices.length / maxInstances) * 100) : 0;
   const connectedCount = devices.filter((d: any) => d.status === "Connected").length;
+  const disconnectedWithoutToken = devices.filter((d: any) => d.status === "Disconnected" && !d.uazapi_token).length;
+
+  const bulkReassign = () => {
+    mutate(
+      { action: "bulk-reassign-tokens", body: { target_user_id: client.id } },
+      {
+        onSuccess: (data: any) => {
+          toast({ title: `✅ ${data.reassigned} instância(s) reatribuída(s)`, description: data.reassigned < data.total_disconnected ? `${data.total_disconnected - data.reassigned} sem token disponível` : "Tokens atribuídos com sucesso" });
+          invalidateClient(client.id);
+        },
+        onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      }
+    );
+  };
 
   let blockReason = "";
   if (isBlocked) blockReason = `Conta ${client.status === "suspended" ? "suspensa" : "cancelada"}`;
@@ -146,10 +160,18 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
       <div className="bg-card border border-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Instâncias</p>
-          <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs px-3" disabled={isPending || isBlocked}>
-            {(isBlocked || noPlan) ? <Ban size={12} className="mr-1.5" /> : atLimit ? <ArrowUpCircle size={12} className="mr-1.5" /> : <Plus size={12} className="mr-1.5" />}
-            {noPlan ? "Sem Plano" : atLimit && !isBlocked ? "Upgrade" : "Nova Instância"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {disconnectedWithoutToken > 0 && (
+              <Button size="sm" variant="outline" onClick={bulkReassign} className="border-primary/30 text-primary hover:bg-primary/10 h-8 text-xs px-3" disabled={isPending}>
+                {isPending ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : <RefreshCcw size={12} className="mr-1.5" />}
+                Reatribuir Tokens ({disconnectedWithoutToken})
+              </Button>
+            )}
+            <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs px-3" disabled={isPending || isBlocked}>
+              {(isBlocked || noPlan) ? <Ban size={12} className="mr-1.5" /> : atLimit ? <ArrowUpCircle size={12} className="mr-1.5" /> : <Plus size={12} className="mr-1.5" />}
+              {noPlan ? "Sem Plano" : atLimit && !isBlocked ? "Upgrade" : "Nova Instância"}
+            </Button>
+          </div>
         </div>
 
         {/* Stats row */}
