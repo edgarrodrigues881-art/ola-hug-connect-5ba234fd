@@ -697,12 +697,12 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Completed/failed
+          // Completed/failed/canceled
           const { data: finishedCampaigns } = await serviceClient
             .from("campaigns").select("id, name, status, sent_count, delivered_count, failed_count, total_contacts, started_at, completed_at")
-            .eq("user_id", userId).in("status", ["completed", "failed"]).gte("updated_at", fiveMinAgo);
+            .eq("user_id", userId).in("status", ["completed", "failed", "canceled"]).gte("updated_at", fiveMinAgo);
           for (const camp of (finishedCampaigns || [])) {
-            const statusLabel = camp.status === "completed" ? "FINALIZADA" : "ERRO";
+            const statusLabel = camp.status === "completed" ? "FINALIZADA" : camp.status === "canceled" ? "CANCELADA" : "ERRO";
             if (!(await wasRecentlySent(`%campanha%${camp.name}%${statusLabel.toLowerCase()}%`))) {
               const pending = Math.max(0, (camp.total_contacts || 0) - (camp.sent_count || 0) - (camp.failed_count || 0));
               let duration = "";
@@ -712,8 +712,9 @@ Deno.serve(async (req) => {
                 const secs = Math.floor((diffMs % 60000) / 1000);
                 duration = mins > 0 ? `${mins}min ${secs}s` : `${secs}s`;
               }
-              const icon = camp.status === "completed" ? "📣" : "❌";
-              const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${camp.status === "completed" ? "Concluída" : "Erro"}`;
+              const icon = camp.status === "completed" ? "📣" : camp.status === "canceled" ? "🚫" : "❌";
+              const statusFinal = camp.status === "completed" ? "Concluída" : camp.status === "canceled" ? "Cancelada" : "Erro";
+              const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${statusFinal}`;
               if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" ${statusLabel.toLowerCase()} — alerta enviado` });
             }
