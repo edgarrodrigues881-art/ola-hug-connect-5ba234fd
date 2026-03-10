@@ -478,78 +478,57 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
+          // 1) Try formal pairs first
           const { data: pairs } = await db
             .from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
             .eq("cycle_id", cycle.id)
             .eq("status", "active");
 
-          if (!pairs || pairs.length === 0) {
-            // Include autosave_enabled devices as targets (they can RECEIVE but not send)
+          let targetPhone: string | null = null;
+          let targetDeviceId: string | null = null;
+          let pairId: string | null = null;
+
+          if (pairs && pairs.length > 0) {
+            const pair = pickRandom(pairs);
+            pairId = pair.id;
+            const isA = pair.instance_id_a === job.device_id;
+            const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
+            const { data: pd } = await db.from("devices").select("number, status").eq("id", partnerId).single();
+            if (pd?.number && pd.status === "Ready") {
+              targetPhone = pd.number.replace(/\+/g, "");
+              targetDeviceId = partnerId;
+            }
+          }
+
+          // 2) No pair or pair offline → find any eligible community peer
+          if (!targetPhone) {
             const { data: otherCycles } = await db
               .from("warmup_cycles")
               .select("id, device_id, user_id")
               .eq("is_running", true)
               .neq("device_id", job.device_id)
               .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
-              .limit(10);
+              .limit(20);
 
             if (otherCycles && otherCycles.length > 0) {
-              const pairTarget = pickRandom(otherCycles);
-              const { data: partnerDevice } = await db
-                .from("devices")
-                .select("number, status")
-                .eq("id", pairTarget.device_id)
-                .single();
-
-              if (partnerDevice?.number && partnerDevice.status === "Ready") {
-                const phoneNumber = partnerDevice.number.replace(/\+/g, "");
-                const message = generateNaturalMessage("community");
-
-                await uazapiSendText(baseUrl, token, phoneNumber, message);
-
-                await db.from("warmup_cycles").update({
-                  daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-                }).eq("id", cycle.id);
-
-                await db.from("warmup_audit_logs").insert({
-                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                  level: "info", event_type: "community_msg_sent",
-                  message: `Comunitário: msg para instância parceira (${phoneNumber.substring(0, 6)}...)`,
-                  meta: { partner_device: pairTarget.device_id },
-                });
-              } else {
-                await db.from("warmup_audit_logs").insert({
-                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                  level: "warn", event_type: "community_no_partner",
-                  message: "Nenhum parceiro comunitário online encontrado",
-                });
+              // Shuffle and try to find an online partner — reuse whoever is available
+              const shuffled = otherCycles.sort(() => Math.random() - 0.5);
+              for (const candidate of shuffled) {
+                const { data: pd } = await db.from("devices").select("number, status").eq("id", candidate.device_id).single();
+                if (pd?.number && pd.status === "Ready") {
+                  targetPhone = pd.number.replace(/\+/g, "");
+                  targetDeviceId = candidate.device_id;
+                  break;
+                }
               }
-            } else {
-              await db.from("warmup_audit_logs").insert({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "community_no_peers",
-                message: "Nenhuma instância elegível para pareamento comunitário",
-              });
             }
-            break;
           }
 
-          const pair = pickRandom(pairs);
-          const isA = pair.instance_id_a === job.device_id;
-          const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
-
-          const { data: partnerDevice } = await db
-            .from("devices")
-            .select("number, status")
-            .eq("id", partnerId)
-            .single();
-
-          if (partnerDevice?.number && partnerDevice.status === "Ready") {
-            const phoneNumber = partnerDevice.number.replace(/\+/g, "");
+          // 3) Send message if we found anyone
+          if (targetPhone) {
             const message = generateNaturalMessage("community");
-
-            await uazapiSendText(baseUrl, token, phoneNumber, message);
+            await uazapiSendText(baseUrl, token, targetPhone, message);
 
             await db.from("warmup_cycles").update({
               daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -558,8 +537,14 @@ async function handleTick(db: any) {
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "community_msg_sent",
-              message: `Comunitário: msg para parceiro (pair ${pair.id.substring(0, 8)})`,
-              meta: { pair_id: pair.id, partner_device: partnerId },
+              message: `Comunitário: msg para ${pairId ? `parceiro (pair ${pairId.substring(0, 8)})` : `instância (${targetPhone.substring(0, 6)}...)`}`,
+              meta: { pair_id: pairId, partner_device: targetDeviceId },
+            });
+          } else {
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "community_no_peers",
+              message: "Nenhuma instância online encontrada — conversa comunitária adiada",
             });
           }
           break;
