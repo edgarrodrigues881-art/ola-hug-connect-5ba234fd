@@ -592,7 +592,7 @@ async function handleTick(db: any) {
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "phase_changed",
-              message: `Auto Save habilitado (${count} contatos ativos) — inscrito automaticamente no comunitário`,
+              message: `Auto Save habilitado (${count} contatos ativos) — inscrito no comunitário (somente receber)`,
               meta: { active_contacts: count, auto_enrolled_community: true },
             });
           } else {
