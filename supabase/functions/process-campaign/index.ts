@@ -470,6 +470,7 @@ Deno.serve(async (req) => {
 
     // ─── CANCEL ───
     if (action === "cancel") {
+      const { data: campData } = await serviceClient.from("campaigns").select("name, sent_count, failed_count, total_contacts").eq("id", campaignId).single();
       await serviceClient.from("campaigns").update({ status: "canceled", completed_at: new Date().toISOString() }).eq("id", campaignId).eq("user_id", userId);
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
       // Release locks
