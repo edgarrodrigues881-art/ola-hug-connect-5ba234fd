@@ -31,6 +31,52 @@ async function oplog(client: any, userId: string, event: string, details: string
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
 }
 
+// Instant WhatsApp alert for campaign status changes (bypass cron delay)
+async function sendCampaignAlertToWa(serviceClient: any, userId: string, campaignName: string, status: string, stats?: { sent?: number; total?: number; delivered?: number; failed?: number }) {
+  try {
+    const { data: config } = await serviceClient
+      .from("report_wa_configs")
+      .select("device_id, group_id, toggle_campaigns, connected_phone, connection_status")
+      .eq("user_id", userId)
+      .single();
+    if (!config?.toggle_campaigns || !config?.group_id || !config?.device_id) return;
+
+    const { data: dev } = await serviceClient
+      .from("devices")
+      .select("uazapi_base_url, uazapi_token")
+      .eq("id", config.device_id)
+      .single();
+    if (!dev?.uazapi_base_url || !dev?.uazapi_token) return;
+
+    const now = new Date();
+    const nowBRT = now.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    const s = stats || {};
+    let msg = "";
+    if (status === "paused") {
+      msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${campaignName}\n\n📊 Progresso:\n✅ Enviadas: ${s.sent || 0}/${s.total || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada.`;
+    } else if (status === "canceled") {
+      const pending = Math.max(0, (s.total || 0) - (s.sent || 0) - (s.failed || 0));
+      msg = `🚫 CAMPANHA CANCELADA\n\nCampanha: ${campaignName}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${s.total || 0}\n✅ Enviadas: ${s.sent || 0}\n❌ Falhas: ${s.failed || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Horário: ${nowBRT}`;
+    } else if (status === "completed") {
+      msg = `📣 CAMPANHA FINALIZADA\n\nCampanha: ${campaignName}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${s.total || 0}\n✅ Enviadas: ${s.sent || 0}\n📬 Entregues: ${s.delivered || 0}\n❌ Falhas: ${s.failed || 0}\n\n⏱ Horário: ${nowBRT}`;
+    }
+    if (!msg) return;
+
+    const headers: Record<string, string> = { token: dev.uazapi_token, Accept: "application/json", "Content-Type": "application/json" };
+    const res = await fetch(`${dev.uazapi_base_url}/chat/send-text`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ chatId: config.group_id, text: msg }),
+    });
+    const resData = await res.json().catch(() => ({}));
+    if (res.ok) {
+      await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${campaignName}" ${status} — alerta instantâneo enviado` });
+    }
+  } catch (e) {
+    console.log(`Failed to send instant campaign alert: ${e.message}`);
+  }
+}
+
 const API_TIMEOUT_MS = 30_000;
 
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
