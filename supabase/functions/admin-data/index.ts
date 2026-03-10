@@ -1456,7 +1456,7 @@ Deno.serve(async (req) => {
       const { data: recentPairs } = await adminClient.from("community_pairs")
         .select("instance_id_a, instance_id_b")
         .order("created_at", { ascending: false })
-        .limit(rotationN * memberships.length);
+        .limit(rotationN * filteredMemberships.length);
 
       const recentPairSet = new Set(
         (recentPairs || []).map((p: any) =>
