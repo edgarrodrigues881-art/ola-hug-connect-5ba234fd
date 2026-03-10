@@ -63,40 +63,8 @@ const Auth = () => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) {
-      toast({
-        title: "Informe seu e-mail",
-        description: "Digite seu e-mail para recuperar a senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setForgotLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast({
-        title: "E-mail enviado!",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: translateAuthError(error.message),
-        variant: "destructive",
-      });
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
   useEffect(() => {
     setIsLogin(searchParams.get("mode") !== "signup");
-    setShowForgot(false);
   }, [searchParams]);
 
   const redirectTo = searchParams.get("redirect") || "/dashboard";
