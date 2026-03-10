@@ -678,14 +678,17 @@ Deno.serve(async (req) => {
       }).eq("id", deviceId);
 
       // ── Send instant WhatsApp notification if device was connected ──
+      console.log(`[logout] wasConnected=${wasConnected}, login_type=${preDevice?.login_type}, preStatus=${preDevice?.status}`);
       if (wasConnected && preDevice?.login_type !== "report_wa") {
         try {
-          const { data: rwConfig } = await svc
+          const { data: rwConfig, error: rwErr } = await svc
             .from("report_wa_configs")
             .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances")
             .eq("user_id", userId)
             .not("device_id", "is", null)
             .maybeSingle();
+
+          console.log(`[logout] rwConfig=${JSON.stringify({ found: !!rwConfig, err: rwErr?.message, alert_disconnect: rwConfig?.alert_disconnect, toggle_instances: rwConfig?.toggle_instances, group_id: rwConfig?.group_id?.substring(0, 25), conn_status: rwConfig?.connection_status, device_id: rwConfig?.device_id?.substring(0, 8) })}`);
 
           const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
           if (alertEnabled && rwConfig?.group_id && rwConfig?.connection_status === "connected" && rwConfig?.device_id) {
@@ -694,6 +697,8 @@ Deno.serve(async (req) => {
               .select("uazapi_token, uazapi_base_url")
               .eq("id", rwConfig.device_id)
               .single();
+
+            console.log(`[logout] rwDevice: has_token=${!!rwDevice?.uazapi_token}, has_url=${!!rwDevice?.uazapi_base_url}`);
 
             if (rwDevice?.uazapi_token && rwDevice?.uazapi_base_url) {
               const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
@@ -708,14 +713,16 @@ Deno.serve(async (req) => {
               let sent = false;
               for (const ep of sendEndpoints) {
                 try {
+                  console.log(`[logout] Trying ${ep.path} to group ${rwConfig.group_id}`);
                   const r = await fetch(`${rwBase}${ep.path}`, {
                     method: "POST",
                     headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json", Accept: "application/json" },
                     body: JSON.stringify(ep.body),
                   });
+                  const respText = await r.text();
+                  console.log(`[logout] ${ep.path} response: status=${r.status} body=${respText.substring(0, 300)}`);
                   if (r.ok) { sent = true; console.log(`[logout] ✅ Alert sent via ${ep.path}`); break; }
-                  await r.text();
-                } catch (_e) { /* try next */ }
+                } catch (sendErr) { console.log(`[logout] send error ${ep.path}: ${sendErr}`); }
               }
               await svc.from("report_wa_logs").insert({
                 user_id: userId,
@@ -724,7 +731,11 @@ Deno.serve(async (req) => {
                   ? `Instância "${preDevice.name}" desconectada (logout) — alerta enviado`
                   : `Falha ao enviar alerta de desconexão para "${preDevice.name}"`,
               });
+            } else {
+              console.log(`[logout] Skipped: rwDevice missing credentials`);
             }
+          } else {
+            console.log(`[logout] Skipped: alertEnabled=${alertEnabled}, group=${!!rwConfig?.group_id}, conn=${rwConfig?.connection_status}`);
           }
         } catch (e) { console.log("[logout] notification error:", e); }
       }
