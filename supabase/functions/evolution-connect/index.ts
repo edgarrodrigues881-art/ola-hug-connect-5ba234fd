@@ -114,7 +114,7 @@ async function adminCreateInstance(
 async function testProxyConnectivity(
   proxy: { host: string; port: string; username?: string; password?: string; type?: string },
 ): Promise<{ alive: boolean; error?: string }> {
-  const TIMEOUT_MS = 6000; // Reduced from 8s for faster feedback
+  const TIMEOUT_MS = 3000; // Fast feedback — 3s max
   try {
     const conn = await Promise.race([
       Deno.connect({ hostname: proxy.host, port: Number(proxy.port) }),
