@@ -630,8 +630,6 @@ const Warmup = () => {
 
         {/* Messages tab */}
         <TabsContent value="messages" className="mt-4 space-y-4">
-          {/* Combinatorial Generator Preview */}
-          <MessageGeneratorPreview />
 
           {/* Custom Messages */}
           <Card className="border-border/15">
