@@ -735,14 +735,10 @@ Deno.serve(async (req) => {
                 }
               }
             }
-          }
-        }
       }
 
-      // ═══ WARMUP ALERTS → warmup_group_id ═══
-      if (config.toggle_warmup) {
-        const warmupGroupId = config.warmup_group_id || config.group_id;
-        if (warmupGroupId) {
+      // ═══ WARMUP ALERTS → group_id ═══
+      if (config.toggle_warmup && config.group_id) {
           const { data: activeCycles } = await serviceClient
             .from("warmup_cycles").select("id, device_id, day_index, days_total, phase, started_at")
             .eq("user_id", userId).eq("is_running", true);
