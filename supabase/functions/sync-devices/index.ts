@@ -126,10 +126,42 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // 404: instance gone — release token + proxy, disconnect
+        // 404: instance gone — but require 3 consecutive 404s before releasing token/proxy
+        // This prevents transient UaZapi issues from mass-disconnecting all instances
         if (res.status === 404) {
           await res.text(); // consume body
-          console.log(`Device ${device.name}: instance not found (404), releasing token and proxy`);
+
+          // Count recent consecutive 404 logs for this device (last 10 minutes)
+          const { data: recent404s } = await serviceClient
+            .from("operation_logs")
+            .select("id")
+            .eq("device_id", device.id)
+            .eq("event", "sync_404_strike")
+            .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+
+          const strikeCount = (recent404s?.length || 0) + 1; // including this one
+          const STRIKE_THRESHOLD = 3;
+
+          // Always log the strike
+          await oplog(serviceClient, userId, "sync_404_strike",
+            `"${device.name}" retornou 404 (strike ${strikeCount}/${STRIKE_THRESHOLD})`,
+            device.id, { status: 404, strike: strikeCount, threshold: STRIKE_THRESHOLD });
+
+          if (strikeCount < STRIKE_THRESHOLD) {
+            // Not enough consecutive failures — preserve everything, just mark disconnected
+            console.log(`Device ${device.name}: 404 strike ${strikeCount}/${STRIKE_THRESHOLD} — preserving token, will retry`);
+            
+            await serviceClient.from("devices").update({ status: "Disconnected" }).eq("id", device.id);
+
+            results.push({
+              id: device.id, name: device.name, found: false,
+              status: "Disconnected", error: `404 strike ${strikeCount}/${STRIKE_THRESHOLD} — token preserved`,
+            });
+            continue;
+          }
+
+          // 3+ consecutive 404s — now it's safe to release
+          console.log(`Device ${device.name}: 404 strike ${strikeCount} >= ${STRIKE_THRESHOLD} — releasing token and proxy`);
           await serviceClient.from("devices").update({
             status: "Disconnected",
             uazapi_token: null,
@@ -159,19 +191,19 @@ Deno.serve(async (req) => {
           for (const cycle of (activeCycles404 || [])) {
             await serviceClient.from("warmup_cycles").update({
               is_running: false, phase: "paused", previous_phase: cycle.phase,
-              last_error: "Auto-pausado: instância inexistente (404)",
+              last_error: "Auto-pausado: instância inexistente (404 confirmado)",
             }).eq("id", cycle.id);
             await serviceClient.from("warmup_jobs").update({ status: "cancelled" })
               .eq("cycle_id", cycle.id).eq("status", "pending");
           }
 
           await oplog(serviceClient, userId, "instance_not_found",
-            `Instância "${device.name}" não encontrada (404) — token e proxy liberados`,
+            `Instância "${device.name}" confirmada inexistente (${strikeCount} 404s) — token e proxy liberados`,
             device.id, { status: 404, proxy_released: !!device.proxy_id, warmup_paused: (activeCycles404 || []).length });
 
           results.push({
             id: device.id, name: device.name, found: false,
-            status: "Disconnected", error: "Instance not found - token & proxy released",
+            status: "Disconnected", error: "Instance confirmed gone — token & proxy released",
           });
           continue;
         }
