@@ -558,6 +558,7 @@ export default function ReportWhatsApp() {
           infoItems={[]}
           monitoredEvents={["Instância conectada", "Instância desconectada", "QR Code gerado"]}
           previewMessage={`⚠️ ALERTA DE CONEXÃO\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n❌ Status: Desconectado\\n\\n⏱ Horário da ocorrência:\\n${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}\\n\\nA instância perdeu conexão com o WhatsApp.\\n\\nPara continuar utilizando o sistema,\\né necessário realizar a reconexão.`}
+          reportDeviceId={reportDevice?.id}
         />
       </div>
 
