@@ -270,9 +270,10 @@ Deno.serve(async (req) => {
                     const displayName = syncedName ? `${syncedName} (${device.name})` : device.name;
                     // For disconnect, use the PREVIOUS number from DB since provider won't return it
                     const reportPhone = isConn ? (formattedPhone || device.number || "N/A") : (device.number || formattedPhone || "N/A");
+                    const chipName = syncedProfileName || device.profile_name || device.name;
                     const msg = isConn
-                      ? `✅ INSTÂNCIA CONECTADA\n\n🔹 Instância: ${device.name}\n📱 Chip: ${profileName || device.name}\n📞 Número: ${reportPhone}\n\n🟢 Status: Online\n⏱ Conectado às: ${nowBRT}`
-                      : `⚠️ ALERTA DE CONEXÃO\n\n🔹 Instância: ${device.name}\n📱 Chip: ${profileName || device.name}\n📞 Número: ${reportPhone}\n\n❌ Status: Desconectado\n⏱ Desconectado às: ${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+                      ? `✅ INSTÂNCIA CONECTADA\n\n🔹 Instância: ${device.name}\n📱 Chip: ${chipName}\n📞 Número: ${reportPhone}\n\n🟢 Status: Online\n⏱ Conectado às: ${nowBRT}`
+                      : `⚠️ ALERTA DE CONEXÃO\n\n🔹 Instância: ${device.name}\n📱 Chip: ${chipName}\n📞 Número: ${reportPhone}\n\n❌ Status: Desconectado\n⏱ Desconectado às: ${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
 
                     const sendEndpoints = [
                       { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
