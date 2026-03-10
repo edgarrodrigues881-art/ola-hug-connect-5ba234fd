@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/auth";
 
 // Global mute flag: when set, realtime + auto-sync skip invalidation
 let mutedUntil = 0;
+// Global flag: pause keepAlive while user is in connection flow
+let keepAlivePaused = false;
 // Track recently deleted device IDs to filter from query results
 const recentlyDeletedIds = new Set<string>();
 
