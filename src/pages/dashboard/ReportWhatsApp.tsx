@@ -26,7 +26,8 @@ export default function ReportWhatsApp() {
   const { isBlocked, planState, canUseReports } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
-  const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
+  const [groupLinkUnified, setGroupLinkUnified] = useState("");
+  const [joiningUnified, setJoiningUnified] = useState(false);
 
   // Connection dialog state
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
