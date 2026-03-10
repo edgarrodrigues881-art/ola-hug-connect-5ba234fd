@@ -111,12 +111,26 @@ function backoffMinutes(attempt: number): number {
   return [5, 15, 60, 180, 360][Math.min(attempt, 4)];
 }
 
-function getPhaseForDay(day: number): string {
+// ── Phase rules per chip_state ──
+function getPhaseForDayNew(day: number): string {
   if (day <= 1) return "pre_24h";
   if (day <= 2) return "groups_only";
   if (day <= 4) return "autosave_enabled";
   if (day <= 6) return "community_light";
   return "community_enabled";
+}
+
+function getPhaseForDayRecovered(day: number): string {
+  if (day <= 1) return "pre_24h";
+  if (day <= 3) return "groups_only";
+  if (day <= 4) return "autosave_enabled";
+  if (day <= 7) return "community_light";
+  return "community_enabled";
+}
+
+function getPhaseForDay(day: number, chipState: string): string {
+  if (chipState === "recovered") return getPhaseForDayRecovered(day);
+  return getPhaseForDayNew(day);
 }
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
@@ -145,7 +159,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(20); // Process in smaller batches to respect edge function timeout
+    .limit(20);
 
   if (fetchErr) throw fetchErr;
 
@@ -230,8 +244,6 @@ async function handleTick(db: any) {
       switch (job.job_type) {
         case "join_group": {
           const groupId = job.payload?.group_id;
-          // TODO: Actually call UAZAPI to join group via invite link
-          // For now, mark as joined
           await db.from("warmup_instance_groups")
             .update({ join_status: "joined", joined_at: new Date().toISOString() })
             .eq("device_id", job.device_id)
@@ -259,12 +271,10 @@ async function handleTick(db: any) {
         }
 
         case "group_interaction": {
-          // Send a message to a random joined group
           if (!baseUrl || !token) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          // Get joined groups for this device
           const { data: joinedGroups } = await db
             .from("warmup_instance_groups")
             .select("group_id")
@@ -276,7 +286,6 @@ async function handleTick(db: any) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
-          // Get user custom messages or use defaults
           const { data: userMsgs } = await db
             .from("warmup_messages")
             .select("content")
@@ -286,7 +295,6 @@ async function handleTick(db: any) {
             ? userMsgs.map((m: any) => m.content)
             : groupMessages;
 
-          // Get the group pool record to find the external reference
           const targetGroupRecord = pickRandom(joinedGroups);
           const { data: poolGroup } = await db
             .from("warmup_groups_pool")
@@ -295,7 +303,6 @@ async function handleTick(db: any) {
             .single();
 
           if (!poolGroup?.external_group_ref) {
-            // Can't send without JID - log and skip
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "group_no_jid",
@@ -307,12 +314,10 @@ async function handleTick(db: any) {
           const message = pickRandom(msgPool);
           await uazapiSendText(baseUrl, token, poolGroup.external_group_ref, message);
 
-          // Update budget
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
 
-          // Log to warmup_audit_logs
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
@@ -323,7 +328,6 @@ async function handleTick(db: any) {
         }
 
         case "autosave_interaction": {
-          // Send message to an autosave contact
           if (!baseUrl || !token) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
@@ -331,7 +335,6 @@ async function handleTick(db: any) {
           const recipientIndex = job.payload?.recipient_index ?? 0;
           const msgIndex = job.payload?.msg_index ?? 0;
 
-          // Get autosave contacts for this user
           const { data: contacts } = await db
             .from("warmup_autosave_contacts")
             .select("id, phone_e164, contact_name")
@@ -348,46 +351,40 @@ async function handleTick(db: any) {
             break;
           }
 
-          // Pick contact by index (wraps around)
           const contact = contacts[recipientIndex % contacts.length];
           const message = pickRandom(autosaveMessages);
-
-          // Format phone for UAZAPI (remove +, add @s.whatsapp.net format if needed)
           const phoneNumber = contact.phone_e164.replace(/\+/g, "");
 
           await uazapiSendText(baseUrl, token, phoneNumber, message);
 
-          // Track unique recipient
           const todayStr = new Date().toISOString().split("T")[0];
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id,
             user_id: job.user_id,
             recipient_phone_e164: contact.phone_e164,
             day_date: todayStr,
-          }).catch(() => {}); // Ignore duplicate
+          }).catch(() => {});
 
-          // Update counters
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
             daily_unique_recipients_used: (cycle.daily_unique_recipients_used || 0) + (msgIndex === 0 ? 1 : 0),
           }).eq("id", cycle.id);
 
+          const msgsPerContact = cycle.chip_state === "recovered" ? 2 : 3;
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "autosave_msg_sent",
-            message: `Auto Save: msg ${msgIndex + 1}/3 para ${contact.contact_name || phoneNumber}`,
+            message: `Auto Save: msg ${msgIndex + 1}/${msgsPerContact} para ${contact.contact_name || phoneNumber}`,
             meta: { phone: phoneNumber, msg_index: msgIndex },
           });
           break;
         }
 
         case "community_interaction": {
-          // Send message between community pair instances
           if (!baseUrl || !token) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          // Get community pairs for this cycle
           const { data: pairs } = await db
             .from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
@@ -395,7 +392,6 @@ async function handleTick(db: any) {
             .eq("status", "active");
 
           if (!pairs || pairs.length === 0) {
-            // Try to create pairs by finding other active warmup instances
             const { data: otherCycles } = await db
               .from("warmup_cycles")
               .select("id, device_id, user_id")
@@ -406,7 +402,6 @@ async function handleTick(db: any) {
 
             if (otherCycles && otherCycles.length > 0) {
               const pairTarget = pickRandom(otherCycles);
-              // Get the partner device's number
               const { data: partnerDevice } = await db
                 .from("devices")
                 .select("number, status")
@@ -446,7 +441,6 @@ async function handleTick(db: any) {
             break;
           }
 
-          // Use existing pair
           const pair = pickRandom(pairs);
           const isA = pair.instance_id_a === job.device_id;
           const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
@@ -498,7 +492,6 @@ async function handleTick(db: any) {
               level: "warn", event_type: "autosave_missing",
               message: "Auto Save não habilitado: nenhum contato ativo",
             });
-            // Retry in 6 hours
             await db.from("warmup_jobs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               job_type: "enable_autosave", payload: {},
@@ -529,8 +522,8 @@ async function handleTick(db: any) {
 
         case "daily_reset": {
           const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
+          const chipState = cycle.chip_state || "new";
 
-          // Check if cycle is complete
           if (newDay > cycle.days_total) {
             await db.from("warmup_cycles").update({
               is_running: false, phase: "completed",
@@ -544,12 +537,22 @@ async function handleTick(db: any) {
             break;
           }
 
-          // Determine new phase based on day
-          const newPhase = getPhaseForDay(newDay);
+          const newPhase = getPhaseForDay(newDay, chipState);
 
-          // Set budgets based on phase
-          let budgetMin = 200, budgetMax = 500;
-          if (newPhase === "pre_24h") { budgetMin = 5; budgetMax = 10; }
+          // Set budgets based on chip_state + phase
+          let budgetMin: number, budgetMax: number;
+          if (newPhase === "pre_24h") {
+            budgetMin = 3; budgetMax = 8;
+          } else if (chipState === "recovered") {
+            // Conservative budgets for recovered
+            if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; } // 250 groups + ~6 autosave
+            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; } // 250 + 10 + ~80 community
+            else { budgetMin = 180; budgetMax = 460; } // 350 + 10 + ~100 community
+          } else {
+            // CHIP_NOVO budgets
+            budgetMin = 200; budgetMax = 500;
+          }
 
           const newTarget = randInt(budgetMin, budgetMax);
 
@@ -564,15 +567,16 @@ async function handleTick(db: any) {
             last_daily_reset_at: new Date().toISOString(),
           }).eq("id", cycle.id);
 
+          const chipLabel = chipState === "recovered" ? "RECUPERAÇÃO" : "NOVO";
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "daily_reset",
-            message: `Reset diário: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, budget: ${newTarget}`,
-            meta: { day: newDay, phase: newPhase, budget_target: newTarget },
+            message: `Reset diário [${chipLabel}]: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, budget: ${newTarget}`,
+            meta: { day: newDay, phase: newPhase, budget_target: newTarget, chip_state: chipState },
           });
 
-          // Schedule today's interaction jobs
-          await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase);
+          // Schedule today's interaction jobs using chip_state-aware volumes
+          await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
           // Schedule next daily_reset
           const nextReset = new Date();
@@ -649,6 +653,57 @@ async function handleTick(db: any) {
 }
 
 // ════════════════════════════════════════
+// Volume configuration per chip_state
+// ════════════════════════════════════════
+interface DayVolumes {
+  groupMsgs: number;
+  autosaveContacts: number;
+  autosaveMsgsPerContact: number;
+  autosaveTotal: number;
+  communityPairs: number;
+  communityMsgsPerPair: number;
+}
+
+function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
+  if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
+  return getVolumesNew(phase);
+}
+
+function getVolumesNew(phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 3, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  if (["groups_only", "autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
+    v.groupMsgs = randInt(200, 500);
+  }
+  if (["autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
+    v.autosaveContacts = 5; v.autosaveMsgsPerContact = 3; v.autosaveTotal = 15;
+  }
+  if (phase === "community_light") { v.communityPairs = randInt(3, 5); v.communityMsgsPerPair = randInt(15, 30); }
+  if (phase === "community_enabled") { v.communityPairs = randInt(5, 10); v.communityMsgsPerPair = randInt(15, 30); }
+  return v;
+}
+
+function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  if (phase === "pre_24h") return v;
+  if (phase === "groups_only") { v.groupMsgs = randInt(80, 150); return v; }
+  if (phase === "autosave_enabled") {
+    v.groupMsgs = randInt(120, 250); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
+    return v;
+  }
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(120, 250); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 4); v.communityMsgsPerPair = randInt(10, 20);
+    return v;
+  }
+  if (phase === "community_enabled") {
+    v.groupMsgs = randInt(150, 350); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
+    v.communityPairs = randInt(4, 8); v.communityMsgsPerPair = randInt(15, 25);
+    return v;
+  }
+  return v;
+}
+
+// ════════════════════════════════════════
 // Schedule jobs for a specific day/phase
 // ════════════════════════════════════════
 async function scheduleDayJobs(
@@ -658,14 +713,15 @@ async function scheduleDayJobs(
   deviceId: string,
   dayIndex: number,
   phase: string,
+  chipState: string = "new",
 ) {
   const now = new Date();
   const jobs: any[] = [];
 
-  // Activity window: 07:00-19:00 BRT = 10:00-22:00 UTC
+  // Activity window: recovered=08:00-19:00 BRT (11:00-22:00 UTC), new=07:00-19:00 BRT (10:00-22:00 UTC)
   const today = new Date(now);
   const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(10, 0, 0, 0);
+  windowStartUTC.setUTCHours(chipState === "recovered" ? 11 : 10, 0, 0, 0);
   const windowEndUTC = new Date(today);
   windowEndUTC.setUTCHours(22, 0, 0, 0);
 
@@ -675,18 +731,16 @@ async function scheduleDayJobs(
   if (effectiveStart >= effectiveEnd) return 0;
 
   const windowMs = effectiveEnd - effectiveStart;
+  const volumes = getVolumes(chipState, dayIndex, phase);
 
-  // ── GROUP INTERACTIONS (Day 2+) ──
-  if (["groups_only", "autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    const groupMsgCount = randInt(200, 500);
-    const groupSpacingMs = windowMs / groupMsgCount;
-
-    for (let i = 0; i < groupMsgCount; i++) {
+  // ── GROUP INTERACTIONS ──
+  if (volumes.groupMsgs > 0) {
+    const groupSpacingMs = windowMs / volumes.groupMsgs;
+    for (let i = 0; i < volumes.groupMsgs; i++) {
       const baseOffset = groupSpacingMs * i;
       const jitter = randInt(0, Math.floor(groupSpacingMs * 0.6));
       const runAt = new Date(effectiveStart + baseOffset + jitter);
       if (runAt.getTime() > effectiveEnd) break;
-
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "group_interaction", payload: {},
@@ -695,66 +749,37 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── AUTOSAVE INTERACTIONS (Day 3+) ──
-  if (["autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    const autosaveCount = 15; // 5 numbers × 3 msgs
-    const asSpacingMs = windowMs / autosaveCount;
-
-    for (let i = 0; i < autosaveCount; i++) {
+  // ── AUTOSAVE INTERACTIONS ──
+  if (volumes.autosaveTotal > 0) {
+    const asSpacingMs = windowMs / volumes.autosaveTotal;
+    for (let i = 0; i < volumes.autosaveTotal; i++) {
       const baseOffset = asSpacingMs * i;
       const jitter = randInt(0, Math.floor(asSpacingMs * 0.4));
       const runAt = new Date(effectiveStart + baseOffset + jitter);
       if (runAt.getTime() > effectiveEnd) break;
-
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "autosave_interaction",
-        payload: { recipient_index: Math.floor(i / 3), msg_index: i % 3 },
+        payload: { recipient_index: Math.floor(i / volumes.autosaveMsgsPerContact), msg_index: i % volumes.autosaveMsgsPerContact },
         run_at: runAt.toISOString(), status: "pending",
       });
     }
   }
 
-  // ── COMMUNITY INTERACTIONS (Day 5+) ──
-  if (phase === "community_light") {
-    const communityPairs = randInt(3, 5);
-    const msgsPerPair = randInt(15, 30);
-    const totalCommunityMsgs = communityPairs * msgsPerPair;
+  // ── COMMUNITY INTERACTIONS ──
+  if (volumes.communityPairs > 0 && volumes.communityMsgsPerPair > 0) {
+    const totalCommunityMsgs = volumes.communityPairs * volumes.communityMsgsPerPair;
     const cmSpacingMs = windowMs / totalCommunityMsgs;
-
     for (let i = 0; i < totalCommunityMsgs; i++) {
-      const pairIndex = Math.floor(i / msgsPerPair);
+      const pairIndex = Math.floor(i / volumes.communityMsgsPerPair);
       const baseOffset = cmSpacingMs * i;
       const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
       const runAt = new Date(effectiveStart + baseOffset + jitter);
       if (runAt.getTime() > effectiveEnd) break;
-
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "community_interaction",
-        payload: { pair_index: pairIndex, pairs_total: communityPairs, msgs_per_pair: msgsPerPair },
-        run_at: runAt.toISOString(), status: "pending",
-      });
-    }
-  }
-
-  if (phase === "community_enabled") {
-    const communityPairs = randInt(5, 10);
-    const msgsPerPair = randInt(15, 30);
-    const totalCommunityMsgs = communityPairs * msgsPerPair;
-    const cmSpacingMs = windowMs / totalCommunityMsgs;
-
-    for (let i = 0; i < totalCommunityMsgs; i++) {
-      const pairIndex = Math.floor(i / msgsPerPair);
-      const baseOffset = cmSpacingMs * i;
-      const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd) break;
-
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "community_interaction",
-        payload: { pair_index: pairIndex, pairs_total: communityPairs, msgs_per_pair: msgsPerPair },
+        payload: { pair_index: pairIndex, pairs_total: volumes.communityPairs, msgs_per_pair: volumes.communityMsgsPerPair },
         run_at: runAt.toISOString(), status: "pending",
       });
     }
@@ -767,7 +792,7 @@ async function scheduleDayJobs(
     }
   }
 
-  console.log(`[warmup-tick] Scheduled ${jobs.length} jobs for day ${dayIndex} (${phase})`);
+  console.log(`[warmup-tick] Scheduled ${jobs.length} jobs for day ${dayIndex} (${phase}, chip: ${chipState})`);
   return jobs.length;
 }
 
