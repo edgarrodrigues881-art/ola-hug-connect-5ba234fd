@@ -12,8 +12,6 @@ const BackOffice = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [showReset, setShowReset] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -76,21 +74,6 @@ const BackOffice = () => {
     setLogging(false);
   };
 
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) { toast({ title: "Digite seu e-mail", variant: "destructive" }); return; }
-    setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setResetting(false);
-    if (error) {
-      toast({ title: "Erro ao enviar e-mail", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada." });
-      setShowReset(false);
-    }
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -114,27 +97,10 @@ const BackOffice = () => {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
               <Lock size={24} className="text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              {showReset ? "Redefinir senha" : "Painel DG"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {showReset ? "Digite seu e-mail para receber o link." : "Acesso restrito a administradores"}
-            </p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Painel DG</h1>
+            <p className="text-sm text-muted-foreground mt-1">Acesso restrito a administradores</p>
           </div>
 
-          {showReset ? (
-            <form onSubmit={handleReset} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
-                <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20" />
-              </div>
-              <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
-                {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Enviar Link
-              </Button>
-              <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">Voltar ao login</button>
-            </form>
-          ) : (
             <form onSubmit={handleLogin} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
@@ -154,9 +120,7 @@ const BackOffice = () => {
               <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
                 {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Entrar
               </Button>
-              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-muted-foreground hover:text-primary font-medium">Esqueci minha senha</button>
             </form>
-          )}
         </div>
       </div>
     );
