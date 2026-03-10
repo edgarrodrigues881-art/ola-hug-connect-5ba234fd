@@ -420,15 +420,22 @@ export default function ReportWhatsApp() {
                 Desconectar
               </Button>
             )}
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
-              onClick={openConnectDialog}
-            >
-              <Plug className="w-4 h-4" />
-              {isConnected ? `Conectado: ${reportDevice?.number || ""}` : "Conexão"}
-            </Button>
+            {isConnected ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium select-none">
+                <Plug className="w-4 h-4" />
+                Conectado: {reportDevice?.number || ""}
+              </div>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={openConnectDialog}
+              >
+                <Plug className="w-4 h-4" />
+                Conexão
+              </Button>
+            )}
           </div>
         )}
       </div>
