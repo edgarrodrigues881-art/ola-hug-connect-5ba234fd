@@ -1384,7 +1384,7 @@ const Devices = () => {
                         {d.name}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-0.5">ID: {devices.indexOf(d) + 1}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}</p>
                   </div>
                 </div>
 
