@@ -237,11 +237,52 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
           </div>
         )}
 
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => rescheduleJobs.mutate()} disabled={failedJobs === 0}>
             <RotateCcw size={12} className="mr-1" /> Reagendar falhados ({failedJobs})
           </Button>
         </div>
+
+        {/* Phase Advance Controls */}
+        {cycle.phase !== "completed" && cycle.phase !== "error" && (
+          <div className="mt-4 p-3 bg-muted/20 border border-border rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <FastForward size={14} className="text-primary" />
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Avanço Manual de Fase (Teste)</p>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {PHASE_ORDER.map((phase, idx) => {
+                const currentIdx = PHASE_ORDER.indexOf(cycle.phase as any);
+                const isCurrent = phase === cycle.phase;
+                const isPast = idx < currentIdx;
+                const isNext = idx === currentIdx + 1;
+                const isFuture = idx > currentIdx + 1;
+
+                return (
+                  <div key={phase} className="flex items-center gap-1">
+                    {idx > 0 && <ChevronRight size={10} className="text-muted-foreground/40" />}
+                    <Button
+                      variant={isCurrent ? "default" : isNext ? "outline" : "ghost"}
+                      size="sm"
+                      className={`h-7 px-2.5 text-[11px] ${isPast ? "opacity-40" : ""} ${isNext ? "border-primary/50 text-primary" : ""}`}
+                      disabled={isPast || isCurrent || advancePhase.isPending}
+                      onClick={() => {
+                        if (confirm(`Avançar para "${PHASE_LABELS[phase]}"?\n\nIsso é apenas para teste — simula o avanço de fase sem esperar os dias.`)) {
+                          advancePhase.mutate(phase);
+                        }
+                      }}
+                    >
+                      {advancePhase.isPending ? <Loader2 size={10} className="animate-spin" /> : PHASE_LABELS[phase]}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              ⚠️ Somente para testes. Avançar manualmente pula as verificações automáticas.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Instance Groups */}
