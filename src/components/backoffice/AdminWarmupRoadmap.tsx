@@ -115,7 +115,7 @@ const ROADMAP_NOVO: DayPlan[] = [
 
 
 // ═══════════════════════════════════════════════
-// CHIP BANIDO (RECUPERAÇÃO) — 30 dias, cautela máxima
+// CHIP RECUPERADO — 30 dias, cautela máxima
 // ═══════════════════════════════════════════════
 const ROADMAP_BANIDO: DayPlan[] = [
   {
