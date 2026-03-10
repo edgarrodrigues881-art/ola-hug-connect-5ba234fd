@@ -128,8 +128,16 @@ function getPhaseForDayRecovered(day: number): string {
   return "community_enabled";
 }
 
+function getPhaseForDayUnstable(day: number): string {
+  if (day <= 1) return "pre_24h";
+  if (day <= 5) return "groups_only";
+  if (day <= 10) return "autosave_enabled";
+  return "community_light";
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (chipState === "recovered") return getPhaseForDayRecovered(day);
+  if (chipState === "unstable") return getPhaseForDayUnstable(day);
   return getPhaseForDayNew(day);
 }
 
