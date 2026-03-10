@@ -1109,21 +1109,22 @@ const Devices = () => {
     if (!connectingDevice) return;
     const proxyId = selectedProxy && selectedProxy !== "none" ? selectedProxy : null;
 
-    // Fire DB updates in background — don't block the API call
-    const dbUpdates: Promise<any>[] = [];
-    if (proxyId) {
-      dbUpdates.push(
-        supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id).then(),
-        supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId).then(),
-      );
-    } else if (selectedProxy === "none" && connectingDevice.proxy_id) {
-      dbUpdates.push(
-        supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id).then(),
-        supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id).then(),
-      );
-    }
-    // Don't await DB — fire in background
-    if (dbUpdates.length) Promise.all(dbUpdates).then(() => queryClient.invalidateQueries({ queryKey: ["proxies"] }));
+    const runDbUpdates = async () => {
+      if (proxyId) {
+        await Promise.all([
+          supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id),
+          supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId),
+        ]);
+      } else if (selectedProxy === "none" && connectingDevice.proxy_id) {
+        await Promise.all([
+          supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id),
+          supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id),
+        ]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    };
+    // Fire in background — don't block the API call
+    runDbUpdates();
 
     setConnectError("");
     if (connectMethod === "code") {
