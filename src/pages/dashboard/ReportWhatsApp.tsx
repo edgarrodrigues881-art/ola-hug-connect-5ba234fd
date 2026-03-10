@@ -230,10 +230,8 @@ export default function ReportWhatsApp() {
     setGroups([]);
     toast.success("Instância de relatório excluída");
     try {
-      // Fire logout in background (don't await — it's slow and we ignore errors anyway)
-      if (deviceId) {
-        callApi({ action: "logout", deviceId }).catch(() => {});
-      }
+      // Delete config and device first, then logout in background
+      // (no need to await logout — device is already being deleted)
       // Delete config and device in parallel
       await Promise.all([
         configId ? supabase.from("report_wa_configs").delete().eq("id", configId) : Promise.resolve(),
