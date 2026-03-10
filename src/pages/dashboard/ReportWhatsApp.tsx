@@ -431,6 +431,44 @@ export default function ReportWhatsApp() {
     upsertConfig.mutate({ [field]: groupId, [nameField]: group?.name || "" });
   };
 
+  const handleUnifiedLinkJoin = async () => {
+    const link = groupLinkUnified.trim();
+    if (!link) return;
+    if (link.includes("@g.us")) {
+      upsertConfig.mutate({ group_id: link, group_name: link });
+      setGroupLinkUnified("");
+      return;
+    }
+    const cleaned = link.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "");
+    const inviteCode = cleaned.split("?")[0].split("/")[0].trim();
+    if (!inviteCode || inviteCode.length < 10) {
+      toast.error("Link inválido. Cole um link do tipo: https://chat.whatsapp.com/...");
+      return;
+    }
+    setJoiningUnified(true);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const deviceParam = reportDevice?.id ? `&device_id=${reportDevice.id}` : "";
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=resolve_invite&invite_code=${encodeURIComponent(inviteCode)}${deviceParam}`,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      const json = await res.json();
+      if (json.jid) {
+        upsertConfig.mutate({ group_id: json.jid, group_name: json.name || json.jid });
+        setGroupLinkUnified("");
+        toast.success(`Grupo encontrado: ${json.name || json.jid}`);
+      } else {
+        toast.error("Não foi possível resolver o link. Tente selecionar da lista.");
+      }
+    } catch (_err) {
+      toast.error("Erro ao resolver link do grupo");
+    } finally {
+      setJoiningUnified(false);
+    }
+  };
+
   if (loadingConfig) {
     return (
       <div className="flex items-center justify-center h-64">
