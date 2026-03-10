@@ -1113,13 +1113,13 @@ const Devices = () => {
     const dbUpdates: Promise<any>[] = [];
     if (proxyId) {
       dbUpdates.push(
-        supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id),
-        supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId),
+        supabase.from("devices").update({ proxy_id: proxyId } as any).eq("id", connectingDevice.id).then(),
+        supabase.from("proxies").update({ status: "USANDO" } as any).eq("id", proxyId).then(),
       );
     } else if (selectedProxy === "none" && connectingDevice.proxy_id) {
       dbUpdates.push(
-        supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id),
-        supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id),
+        supabase.from("devices").update({ proxy_id: null } as any).eq("id", connectingDevice.id).then(),
+        supabase.from("proxies").update({ status: "USADA" } as any).eq("id", connectingDevice.proxy_id).then(),
       );
     }
     // Don't await DB — fire in background
