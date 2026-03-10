@@ -1431,7 +1431,7 @@ Deno.serve(async (req) => {
         filteredMemberships = filteredMemberships.filter((m: any) => !reportDeviceIds.has(m.device_id));
       }
 
-      if (!memberships || memberships.length < 2) {
+      if (filteredMemberships.length < 2) {
         return new Response(JSON.stringify({ success: false, message: "Menos de 2 instâncias elegíveis no pool" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
