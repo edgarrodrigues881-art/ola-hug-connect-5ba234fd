@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
                     const chipName = syncedProfileName || device.profile_name || device.name;
                     const msg = isConn
                       ? `✅ INSTÂNCIA CONECTADA\n\n🔹 Instância: ${device.name}\n📱 Chip: ${chipName}\n📞 Número: ${reportPhone}\n\n🟢 Status: Online\n⏱ Conectado às: ${nowBRT}`
-                      : `⚠️ ALERTA DE CONEXÃO\n\n🔹 Instância: ${device.name}\n📱 Chip: ${chipName}\n📞 Número: ${reportPhone}\n\n❌ Status: Desconectado\n⏱ Desconectado às: ${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+                      : `⚠️ ALERTA DE CONEXÃO\n\n🖥 Instância: ${device.name}\n📞 Número: ${reportPhone}\n\n❌ Status: Desconectado\n⏱ Horário: ${nowBRT}\n\nA instância perdeu a conexão com o WhatsApp.\n\nPara voltar a funcionar, é necessário reconectar.`;
 
                     const sendEndpoints = [
                       { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },

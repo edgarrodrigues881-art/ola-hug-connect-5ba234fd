@@ -655,7 +655,7 @@ Deno.serve(async (req) => {
           for (const dev of (allDevices || [])) {
             if (["Disconnected", "disconnected"].includes(dev.status)) {
               if (!(await wasRecentlySent(`%${dev.name}%desconect%alerta%`))) {
-                const msg = `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+                const msg = `⚠️ ALERTA DE CONEXÃO\n\n🖥 Instância: ${dev.name}\n📞 Número: ${dev.number || "N/A"}\n\n❌ Status: Desconectado\n⏱ Horário: ${nowBRT}\n\nA instância perdeu a conexão com o WhatsApp.\n\nPara voltar a funcionar, é necessário reconectar.`;
                 if (await sendToTargetGroup(gid, msg)) sentCount++;
                 await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Instância "${dev.name}" desconectada — alerta enviado` });
               }
