@@ -112,58 +112,7 @@ const ROADMAP_NOVO: DayPlan[] = [
   }),
 ];
 
-// ═══════════════════════════════════════════════
-// CHIP ESTÁVEL — 14 dias, reforço de reputação
-// ═══════════════════════════════════════════════
-const ROADMAP_ESTAVEL: DayPlan[] = [
-  {
-    day: 1, phase: "observation", title: "Diagnóstico inicial",
-    goals: ["Conectar e verificar status da conta", "Analisar histórico de uso anterior", "Iniciar atividade leve nos 8 grupos"],
-    checklist: ["Instância conectada (Ready)", "Histórico verificado — sem ban recente", "Entrada nos 8 grupos concluída", "5-10 msgs leves em grupos"],
-    tips: "Chip estável já tem reputação. Não precisa do período de silêncio, mas comece devagar.",
-    msgTarget: { min: 5, max: 10 }, groupTarget: 8, recipientTarget: 0,
-  },
-  {
-    day: 2, phase: "groups_only", title: "Retomada nos grupos",
-    goals: ["Aumentar volume nos grupos para 100-300 msgs", "Distribuir na janela 07:00-19:00", "Monitorar resposta do WhatsApp"],
-    checklist: ["100-300 msgs nos grupos", "Nenhuma restrição detectada", "Distribuição horária OK"],
-    msgTarget: { min: 100, max: 300 }, groupTarget: 8, recipientTarget: 0,
-  },
-  {
-    day: 3, phase: "autosave", title: "Ativando Auto Save",
-    goals: ["Grupos: 200-400 msgs", "Auto Save: 5 números × 3 msgs = 15/dia", "Observar taxa de entrega"],
-    checklist: ["Grupos + AutoSave funcionando", "Sem bloqueios", "Taxa de entrega > 95%"],
-    msgTarget: { min: 215, max: 415 }, groupTarget: 8, recipientTarget: 5,
-  },
-  {
-    day: 4, phase: "community_light", title: "Comunidade leve",
-    goals: ["Manter grupos + AutoSave", "Ativar 3-5 conversas comunitárias", "15-30 msgs por conversa"],
-    checklist: ["3-5 pares comunitários", "Interações naturais", "Volume estável"],
-    msgTarget: { min: 260, max: 565 }, groupTarget: 8, recipientTarget: 10,
-  },
-  ...Array.from({ length: 10 }, (_, i) => {
-    const day = i + 5;
-    return {
-      day,
-      phase: day >= 11 ? "consolidation" : "community_full",
-      title: day === 7 ? "Checkpoint: 1 semana ✅" :
-             day === 14 ? "Reforço completo! 🎉" :
-             `Dia ${day} — Maturação acelerada`,
-      goals: [
-        "Grupos: 200-500 msgs", "Auto Save: 15 msgs/dia",
-        "Comunitário: 5-10 pares × 15-30 msgs",
-        ...(day === 14 ? ["Health check final"] : []),
-      ],
-      checklist: [
-        "Volume mantido", "Sem restrições",
-        ...(day === 14 ? ["🏆 Reforço de 14 dias completo!", "Chip pronto para uso normal"] : ["Logs limpos"]),
-      ],
-      tips: day === 7 ? "Metade do ciclo! Chip estável segue saudável." :
-            day === 14 ? "Reforço completo! O chip está pronto para campanhas." : undefined,
-      msgTarget: { min: 290, max: 815 }, groupTarget: 8, recipientTarget: 15,
-    } as DayPlan;
-  }),
-];
+
 
 // ═══════════════════════════════════════════════
 // CHIP BANIDO (RECUPERAÇÃO) — 30 dias, cautela máxima
@@ -351,17 +300,6 @@ const CATEGORIES: CategoryConfig[] = [
     message: "Ciclo completo de 30 dias para maturação de um número virgem. O chip nunca foi usado no WhatsApp Business ou para disparos em massa. Segue o roteiro mais completo e seguro, passando por todas as fases de aquecimento gradual.",
     roadmap: ROADMAP_NOVO,
     days: 30,
-  },
-  {
-    key: "estavel",
-    label: "🔵 Chip Estável",
-    subtitle: "Número com uso anterior saudável",
-    icon: Shield,
-    iconColor: "text-blue-400",
-    headerBg: "from-blue-500/10 to-blue-500/5",
-    message: "Ciclo de reforço de 14 dias para chips que já possuem histórico positivo. Ideal para números que ficaram inativos por um tempo ou que precisam de uma 'recarga' de reputação antes de voltar a operar em campanhas.",
-    roadmap: ROADMAP_ESTAVEL,
-    days: 14,
   },
   {
     key: "banido",
