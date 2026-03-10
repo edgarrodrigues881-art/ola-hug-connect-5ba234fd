@@ -77,7 +77,7 @@ export function useAutoSyncDevices(intervalMs = 180_000) {
     if (!session?.access_token) return;
 
     const doKeepAlive = async () => {
-      if (document.hidden) return;
+      if (document.hidden || keepAlivePaused) return;
       try {
         const { data: connectedDevices } = await supabase
           .from("devices")
@@ -87,9 +87,10 @@ export function useAutoSyncDevices(intervalMs = 180_000) {
 
         if (!connectedDevices?.length) return;
 
-        // Process in batches of 10 to avoid overwhelming the API
-        const BATCH = 10;
+        // Process in batches of 5 (reduced from 10) to avoid overwhelming the API
+        const BATCH = 5;
         for (let i = 0; i < connectedDevices.length; i += BATCH) {
+          if (keepAlivePaused) return; // Check again between batches
           const batch = connectedDevices.slice(i, i + BATCH);
           await Promise.allSettled(
             batch.map(d =>
@@ -98,9 +99,9 @@ export function useAutoSyncDevices(intervalMs = 180_000) {
               })
             )
           );
-          // Small delay between batches to prevent rate limiting
+          // Longer delay between batches (1.5s) to prevent rate limiting
           if (i + BATCH < connectedDevices.length) {
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 1500));
           }
         }
       } catch {
