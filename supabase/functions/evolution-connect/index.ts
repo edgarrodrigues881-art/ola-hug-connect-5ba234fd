@@ -658,7 +658,7 @@ Deno.serve(async (req) => {
     // ── logout ──
     if (action === "logout") {
       // Get device info BEFORE clearing for notification message
-      const { data: preDevice } = await svc.from("devices").select("name, number, status, login_type").eq("id", deviceId).single();
+      const { data: preDevice } = await svc.from("devices").select("name, number, status, login_type, profile_name").eq("id", deviceId).single();
       const wasConnected = preDevice?.status === "Ready" || preDevice?.status === "Connected";
 
       // Disconnect from WhatsApp session only — keep the token assigned
@@ -698,7 +698,8 @@ Deno.serve(async (req) => {
             if (rwDevice?.uazapi_token && rwDevice?.uazapi_base_url) {
               const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
               const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-              const msg = `⚠️ ALERTA DE CONEXÃO\n\nInstância: ${preDevice.name}\nNúmero: ${preDevice.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
+              const displayName = preDevice.profile_name ? `${preDevice.profile_name} (${preDevice.name})` : preDevice.name;
+              const msg = `⚠️ ALERTA DE CONEXÃO\n\n📱 ${displayName}\n📞 Número: ${preDevice.number || "N/A"}\n\n❌ Status: Desconectado\n\n⏱ Horário da ocorrência:\n${nowBRT}\n\nA instância perdeu conexão com o WhatsApp.\n\nPara continuar utilizando o sistema,\né necessário realizar a reconexão.`;
 
               const sendEndpoints = [
                 { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
