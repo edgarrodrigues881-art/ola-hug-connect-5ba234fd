@@ -154,6 +154,32 @@ Deno.serve(async (req) => {
         if (seenJids.size - prev === 0) break;
       }
 
+      // ─── S1b: /group/list with getParticipants=true (different response shape) ───
+      if (allGroups.length < 5) {
+        const data = await fetchSafe(`${apiBaseUrl}/group/list?count=500`, 1);
+        if (data) {
+          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S1b] alt group/list: ${arr.length} ret, ${seenJids.size - prev} new`);
+        }
+      }
+
+      // ─── S1c: /chats with filter (UaZapi V2 alternative) ───
+      {
+        const data = await fetchSafe(`${apiBaseUrl}/chats?type=group&count=500`, 1);
+        if (data) {
+          const arr = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+          const groupArr = arr.filter((c: any) => {
+            const id = c.JID || c.jid || c.id || c.chatId || "";
+            return id.includes("@g.us");
+          });
+          const prev = seenJids.size;
+          addGroups(groupArr);
+          console.log(`[S1c] /chats?type=group: ${arr.length} total, ${groupArr.length} groups, ${seenJids.size - prev} new`);
+        }
+      }
+
       // ─── S2: /group/fetchAllGroups (UaZapi V2 - forces fresh fetch from WA) ───
       if (forceRefresh) {
         const data = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
