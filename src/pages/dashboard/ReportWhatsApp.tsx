@@ -42,6 +42,7 @@ export default function ReportWhatsApp() {
   const [pairingCode, setPairingCode] = useState("");
   const [pairingLoading, setPairingLoading] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -219,22 +220,33 @@ export default function ReportWhatsApp() {
   };
 
   const handleDeleteInstance = async () => {
-    if (!reportDevice?.id) return;
+    if (!reportDevice?.id || deleting) return;
+    setDeleting(true);
+    const deviceId = reportDevice.id;
+    const configId = config?.id;
+    // Optimistic: clear UI immediately
+    queryClient.setQueryData(["report-device", user?.id], null);
+    queryClient.setQueryData(["report-wa-config", user?.id], null);
+    setGroups([]);
+    toast.success("Instância de relatório excluída");
     try {
-      // Try to logout from UAZAPI first (ignore errors)
-      try { await callApi({ action: "logout", deviceId: reportDevice.id }); } catch {}
-      // Delete config
-      if (config?.id) {
-        await supabase.from("report_wa_configs").delete().eq("id", config.id);
+      // Fire logout in background (don't await — it's slow and we ignore errors anyway)
+      if (deviceId) {
+        callApi({ action: "logout", deviceId }).catch(() => {});
       }
-      // Delete device
-      await supabase.from("devices").delete().eq("id", reportDevice.id);
+      // Delete config and device in parallel
+      await Promise.all([
+        configId ? supabase.from("report_wa_configs").delete().eq("id", configId) : Promise.resolve(),
+        supabase.from("devices").delete().eq("id", deviceId),
+      ]);
       queryClient.invalidateQueries({ queryKey: ["report-device"] });
       queryClient.invalidateQueries({ queryKey: ["report-wa-config"] });
-      setGroups([]);
-      toast.success("Instância de relatório excluída");
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      queryClient.invalidateQueries({ queryKey: ["report-wa-config"] });
       toast.error(err?.message || "Erro ao excluir instância");
+    } finally {
+      setDeleting(false);
     }
   };
 
