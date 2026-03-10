@@ -10,7 +10,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Eye, Smartphone, Users, X, Ban, QrCode, CheckCircle2, Key, Lock, XCircle, Zap, LogOut, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { PlanGateDialog } from "@/components/PlanGateDialog";
 
