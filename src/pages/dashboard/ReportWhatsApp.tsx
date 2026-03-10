@@ -667,7 +667,7 @@ export default function ReportWhatsApp() {
           enabled={config?.toggle_warmup ?? false}
           onToggle={(v) => handleToggle("toggle_warmup", v)}
           monitoredEvents={["Ciclo de aquecimento concluído"]}
-          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n📊 Atividades registradas\\n\\n📨 Mensagens enviadas: {msgs_enviadas}\\n📩 Mensagens recebidas: {msgs_recebidos}\\n\\n🖼 Fotos enviadas: {fotos}\\n🎧 Áudios enviados: {audios}\\n\\n🟢 Status postados: {status}\\n👥 Interações em grupos: {grupos_interacoes}\\n\\n⏱ Última atividade registrada:\\n{ultima_atividade}\\n\\n🔎 Status atual da instância:\\n${isConnected ? "🟢 Online" : "🔴 Offline"}\\n\\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
+          previewMessage={`🔥 RELATÓRIO DE AQUECIMENTO (24H)\\n\\nInstância: ${reportDevice?.name || "{nome_instancia}"}\\nNúmero: ${reportDevice?.number || "{numero}"}\\n\\n📊 Atividades registradas\\n\\n📨 Mensagens enviadas: {msgs_enviadas}\\n\\n📩 Mensagens recebidas: {msgs_recebidos}\\n\\n👥 Interações em grupos: {grupos_interacoes}\\n\\n⏱ Última atividade registrada:\\n{ultima_atividade}\\n\\n🔎 Status atual da instância: ${isConnected ? "🟢 Online" : "🔴 Offline"}\\n\\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`}
         />
         <ToggleCard
           icon={<Megaphone className="w-4 h-4 text-sky-500" />}
