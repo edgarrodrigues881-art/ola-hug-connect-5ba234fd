@@ -213,7 +213,7 @@ const CommunityPoolTab = () => {
                 <th className="text-left px-3 py-2.5">Ciclo</th>
                 <th className="text-left px-3 py-2.5">Phase</th>
                 <th className="text-left px-3 py-2.5">Dia</th>
-                <th className="text-center px-3 py-2.5">Pool</th>
+                <th className="text-center px-3 py-2.5">Ativo</th>
                 <th className="text-center px-3 py-2.5">Elegível</th>
               </tr>
             </thead>
