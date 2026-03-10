@@ -85,7 +85,7 @@ const CommunityPoolTab = () => {
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <WifiOff size={16} className="mx-auto text-muted-foreground mb-1" />
           <p className="text-lg font-bold text-foreground">{enrolled}</p>
-          <p className="text-[10px] text-muted-foreground">No Pool</p>
+          <p className="text-[10px] text-muted-foreground">Ativos</p>
         </div>
       </div>
 
