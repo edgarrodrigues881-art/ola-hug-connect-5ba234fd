@@ -282,9 +282,28 @@ export default function ReportWhatsApp() {
     return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
   }, [connectStep, qrCodeBase64, reportDevice?.id]);
 
-  // Poll connection status while QR dialog open
+  // Detect connection via Realtime (devices table changes) — much faster than polling
   useEffect(() => {
     if (!qrDialogOpen || !reportDevice?.id || qrConnected) return;
+    const channel = supabase
+      .channel(`report-device-${reportDevice.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${reportDevice.id}` },
+        (payload: any) => {
+          const newStatus = payload.new?.status;
+          if (newStatus === 'Ready' || newStatus === 'Connected' || newStatus === 'authenticated') {
+            setQrConnected(true);
+            setConnectStep("done");
+            queryClient.invalidateQueries({ queryKey: ["report-device"] });
+            toast.success("Instância conectada com sucesso!");
+            setTimeout(() => setQrDialogOpen(false), 1500);
+          }
+        }
+      )
+      .subscribe();
+
+    // Fallback: also poll every 4s in case Realtime misses it
     pollRef.current = setInterval(async () => {
       try {
         const result = await callApi({ action: "status", deviceId: reportDevice.id });
@@ -294,11 +313,15 @@ export default function ReportWhatsApp() {
           setConnectStep("done");
           queryClient.invalidateQueries({ queryKey: ["report-device"] });
           toast.success("Instância conectada com sucesso!");
-          setTimeout(() => setQrDialogOpen(false), 2000);
+          setTimeout(() => setQrDialogOpen(false), 1500);
         }
       } catch {}
-    }, 3000);
-    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+    }, 4000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
   }, [qrDialogOpen, reportDevice?.id, qrConnected]);
 
   const fetchGroups = async (deviceId: string, forceRefresh = false) => {
