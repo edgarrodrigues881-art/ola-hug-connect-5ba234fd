@@ -692,7 +692,7 @@ Deno.serve(async (req) => {
           for (const camp of (pausedCampaigns || [])) {
             if (!(await wasRecentlySent(`%campanha%${camp.name}%pausada%`))) {
               const msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${camp.name}\n\n📊 Progresso:\n✅ Enviadas: ${camp.sent_count || 0}/${camp.total_contacts || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada pelo operador.`;
-              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" pausada — alerta enviado` });
             }
           }
