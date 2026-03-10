@@ -369,6 +369,26 @@ export default function ReportWhatsApp() {
     }
   }, [reportDevice?.id, reportDevice?.status]);
 
+  // Sync device_id and connection_status into report_wa_configs
+  useEffect(() => {
+    if (!reportDevice?.id || !config?.id) return;
+    const isReady = reportDevice.status === "Ready";
+    const needsDeviceSync = config.device_id !== reportDevice.id;
+    const currentStatus = isReady ? "connected" : "disconnected";
+    const needsStatusSync = config.connection_status !== currentStatus;
+    const needsPhoneSync = reportDevice.number && config.connected_phone !== reportDevice.number;
+
+    if (needsDeviceSync || needsStatusSync || needsPhoneSync) {
+      const updates: Record<string, any> = {};
+      if (needsDeviceSync) updates.device_id = reportDevice.id;
+      if (needsStatusSync) updates.connection_status = currentStatus;
+      if (needsPhoneSync) updates.connected_phone = reportDevice.number;
+      supabase.from("report_wa_configs").update(updates).eq("id", config.id).then(({ error }) => {
+        if (!error) queryClient.invalidateQueries({ queryKey: ["report-wa-config"] });
+      });
+    }
+  }, [reportDevice?.id, reportDevice?.status, reportDevice?.number, config?.id]);
+
   const upsertConfig = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       if (config?.id) {
@@ -384,7 +404,14 @@ export default function ReportWhatsApp() {
           alert_campaign_end: false,
           alert_high_failures: false,
         };
-        const { error } = await supabase.from("report_wa_configs").insert({ user_id: user!.id, ...defaults, ...updates });
+        const { error } = await supabase.from("report_wa_configs").insert({
+          user_id: user!.id,
+          device_id: reportDevice?.id || null,
+          connection_status: reportDevice?.status === "Ready" ? "connected" : "disconnected",
+          connected_phone: reportDevice?.number || null,
+          ...defaults,
+          ...updates,
+        });
         if (error) throw error;
       }
     },
