@@ -168,10 +168,12 @@ async function setProxy(
     username: proxy.username || "", password: proxy.password || "",
     type: (proxy.type || "HTTP").toLowerCase(),
   };
-  for (const ep of ["/instance/proxy", "/proxy/set", "/settings/proxy"]) {
-    const r = await uazapi(baseUrl, ep, token, "POST", payload, { timeoutMs: 6000, retries: 1 });
-    if (r.ok) return { ok: true };
-  }
+  // Try all endpoints in PARALLEL — first success wins
+  const endpoints = ["/instance/proxy", "/proxy/set", "/settings/proxy"];
+  const results = await Promise.allSettled(
+    endpoints.map(ep => uazapi(baseUrl, ep, token, "POST", payload, { timeoutMs: 4000, retries: 0 }))
+  );
+  if (results.some(r => r.status === "fulfilled" && r.value.ok)) return { ok: true };
   return { ok: false, error: "Falha ao configurar proxy no provedor" };
 }
 
