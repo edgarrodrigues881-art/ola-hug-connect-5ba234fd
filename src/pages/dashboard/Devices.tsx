@@ -1221,6 +1221,9 @@ const Devices = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
                         if (!canCreateInstance) { if (planState !== "active") setPlanGateOpen(true); else setLimitGateOpen(true); return; }
+                        const nums = devices.map(d => { const m = d.name.match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; });
+                        const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+                        setInstanceName(`Instância ${next}`);
                         setCreateOpen(true);
                       }}>
                         <Plus className="w-3.5 h-3.5 mr-2" /> Criar uma
