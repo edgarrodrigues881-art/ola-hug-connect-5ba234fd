@@ -103,19 +103,6 @@ const BackOffice = () => {
             </p>
           </div>
 
-          {showReset ? (
-            <form onSubmit={handleReset} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
-                <Input placeholder="admin@empresa.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20" />
-              </div>
-              <Button type="submit" disabled={resetting} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
-                {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Enviar Link
-              </Button>
-              <button type="button" onClick={() => setShowReset(false)} className="w-full text-sm text-primary hover:underline font-medium">Voltar ao login</button>
-            </form>
-          ) : (
             <form onSubmit={handleLogin} className="bg-card rounded-2xl border border-border p-8 shadow-sm space-y-4">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">E-mail</label>
@@ -135,9 +122,7 @@ const BackOffice = () => {
               <Button type="submit" disabled={logging} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
                 {logging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Entrar
               </Button>
-              <button type="button" onClick={() => setShowReset(true)} className="w-full text-sm text-muted-foreground hover:text-primary font-medium">Esqueci minha senha</button>
             </form>
-          )}
         </div>
       </div>
     );
