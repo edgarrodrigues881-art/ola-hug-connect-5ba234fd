@@ -35,15 +35,17 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Check if user already has tokens (idempotent - skip if already provisioned)
-    const { data: existingTokens } = await adminClient.from("user_api_tokens")
-      .select("id").eq("user_id", user.id).limit(1);
-
-    if (existingTokens && existingTokens.length > 0) {
-      return new Response(JSON.stringify({ success: true, message: "Tokens já provisionados", created: 0 }), {
+    // Atomic lock: prevents concurrent provisioning for the same user
+    const { data: lockAcquired } = await adminClient.rpc("try_provision_lock", { _user_id: user.id });
+    if (!lockAcquired) {
+      console.log(`[provision-trial] Lock not acquired for ${user.id} — already provisioned or concurrent call`);
+      return new Response(JSON.stringify({ success: true, message: "Tokens já provisionados ou em processamento", created: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Wrap everything in try/finally to always release the lock
+    try {
 
     // Check user has a Trial subscription
     const { data: sub } = await adminClient.from("subscriptions")
