@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
               }
               const icon = camp.status === "completed" ? "📣" : "❌";
               const msg = `${icon} CAMPANHA ${statusLabel}\n\nCampanha: ${camp.name}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n✅ Mensagens enviadas: ${camp.sent_count || 0}\n📬 Mensagens entregues: ${camp.delivered_count || 0}\n\n❌ Falhas registradas: ${camp.failed_count || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Tempo total de execução:\n${duration || "N/A"}\n\nStatus da campanha: ${camp.status === "completed" ? "Concluída" : "Erro"}`;
-              const sent = await sendToGroup(creds, campaignsGroupId, msg);
+              const sent = await sendToGroup(creds, targetGroupId, msg);
               if (sent) totalSent++;
               await logEvent(config.user_id, "INFO", `Campanha "${camp.name}" ${statusLabel.toLowerCase()} — alerta enviado`);
             }
