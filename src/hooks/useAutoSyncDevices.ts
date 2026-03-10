@@ -72,51 +72,8 @@ export function useAutoSyncDevices(intervalMs = 180_000) {
     };
   }, [session?.access_token, intervalMs, queryClient]);
 
-  // Keep-alive: ping connected devices every 5 minutes to prevent session timeout
-  useEffect(() => {
-    if (!session?.access_token) return;
-
-    const doKeepAlive = async () => {
-      if (document.hidden || keepAlivePaused) return;
-      try {
-        const { data: connectedDevices } = await supabase
-          .from("devices")
-          .select("id")
-          .eq("status", "Ready")
-          .neq("login_type", "report_wa");
-
-        if (!connectedDevices?.length) return;
-
-        // Process in batches of 5 (reduced from 10) to avoid overwhelming the API
-        const BATCH = 5;
-        for (let i = 0; i < connectedDevices.length; i += BATCH) {
-          if (keepAlivePaused) return; // Check again between batches
-          const batch = connectedDevices.slice(i, i + BATCH);
-          await Promise.allSettled(
-            batch.map(d =>
-              supabase.functions.invoke("evolution-connect", {
-                body: { action: "keepAlive", deviceId: d.id },
-              })
-            )
-          );
-          // Longer delay between batches (1.5s) to prevent rate limiting
-          if (i + BATCH < connectedDevices.length) {
-            await new Promise(r => setTimeout(r, 1500));
-          }
-        }
-      } catch {
-        // silent
-      }
-    };
-
-    const keepAliveInterval = setInterval(doKeepAlive, 5 * 60 * 1000);
-    const initialTimeout = setTimeout(doKeepAlive, 3 * 60 * 1000);
-
-    return () => {
-      clearInterval(keepAliveInterval);
-      clearTimeout(initialTimeout);
-    };
-  }, [session?.access_token]);
+  // Keep-alive removed: sync-devices already handles status checks for all devices
+  // This eliminates ~24 concurrent Edge Function calls that were overwhelming the runtime
 
   // ── Realtime subscription (debounced 1s for high volume) ──
   useEffect(() => {

@@ -285,6 +285,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const body = await req.json();
+    const { action, deviceId } = body;
+    console.log(`[evolution-connect] action=${action} device=${deviceId?.substring(0, 8) || "none"}`);
+
     // ── Auth ──
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
@@ -301,9 +305,6 @@ Deno.serve(async (req) => {
 
     const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
     const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
-
-    const body = await req.json();
-    const { action, deviceId } = body;
 
     // ── getBaseUrl ──
     if (action === "getBaseUrl") return json({ success: true, baseUrl: BASE_URL });
