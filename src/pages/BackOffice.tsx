@@ -13,7 +13,6 @@ const BackOffice = () => {
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const { toast } = useToast();
