@@ -640,8 +640,61 @@ Deno.serve(async (req) => {
       if (isConnected && check.owner) {
         const raw = String(check.owner).replace(/\D/g, "");
         const fmt = formatBrPhone(raw);
-        // Update DB in background — don't block the response
-        svc.from("devices").update({ status: "Ready", number: fmt }).eq("id", deviceId).then(() => {});
+
+        // Check if this is a NEW connection (status was not Ready/Connected before)
+        const { data: currentDevice } = await svc.from("devices").select("status, name, login_type, profile_name").eq("id", deviceId).single();
+        const wasDisconnected = currentDevice?.status !== "Ready" && currentDevice?.status !== "Connected";
+
+        // Update DB
+        await svc.from("devices").update({ status: "Ready", number: fmt, profile_name: check.profileName || currentDevice?.profile_name || "" }).eq("id", deviceId);
+
+        // Send connection notification if status actually changed
+        if (wasDisconnected && currentDevice?.login_type !== "report_wa") {
+          try {
+            const { data: rwConfig } = await svc
+              .from("report_wa_configs")
+              .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances, connection_group_id")
+              .eq("user_id", user.id)
+              .not("device_id", "is", null)
+              .maybeSingle();
+
+            const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
+            const targetGroup = rwConfig?.connection_group_id || rwConfig?.group_id;
+            if (alertEnabled && targetGroup && rwConfig?.connection_status === "connected" && rwConfig?.device_id) {
+              const { data: rwDevice } = await svc
+                .from("devices")
+                .select("uazapi_token, uazapi_base_url")
+                .eq("id", rwConfig.device_id)
+                .single();
+
+              if (rwDevice?.uazapi_token && rwDevice?.uazapi_base_url) {
+                const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
+                const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+                const displayName = check.profileName ? `${check.profileName} (${currentDevice.name})` : currentDevice.name;
+                const msg = `✅ INSTÂNCIA CONECTADA\n\n📱 ${displayName}\n📞 Número: ${fmt || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
+
+                const sendEndpoints = [
+                  { path: "/chat/send-text", body: { to: targetGroup, body: msg } },
+                  { path: "/send/text", body: { number: targetGroup, text: msg } },
+                ];
+                for (const ep of sendEndpoints) {
+                  try {
+                    const r = await fetch(`${rwBase}${ep.path}`, {
+                      method: "POST",
+                      headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json", Accept: "application/json" },
+                      body: JSON.stringify(ep.body),
+                    });
+                    if (r.ok) { console.log(`[status] ✅ Connection alert sent via ${ep.path}`); break; }
+                  } catch (e) { console.log(`[status] send error: ${e}`); }
+                }
+                await svc.from("report_wa_logs").insert({
+                  user_id: user.id, level: "INFO",
+                  message: `Instância "${currentDevice.name}" conectada — alerta enviado`,
+                });
+              }
+            }
+          } catch (e) { console.log("[status] connection notification error:", e); }
+        }
       }
 
       return json({
