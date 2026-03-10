@@ -730,7 +730,7 @@ Deno.serve(async (req) => {
                 if (!(await wasRecentlySent(`%${camp.name}%falhas detectadas%`, 15))) {
                   const rate = Math.round(((camp.failed_count || 0) / total) * 100);
                   const msg = `🚨 FALHAS DETECTADAS\n\nCampanha: ${camp.name}\n\n⚠️ Taxa de falha: ${rate}%\n❌ Falhas: ${camp.failed_count || 0}/${total}\n\n⏱ Horário: ${nowBRT}\n\nA taxa de falha está acima de 30%. Considere pausar a campanha para investigação.`;
-                  if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+                  if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
                   await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "WARN", message: `Campanha "${camp.name}" falhas detectadas (${rate}%) — alerta enviado` });
                 }
               }
