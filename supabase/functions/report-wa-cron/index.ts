@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
             const failed = warmupLogs.filter(l => l.status !== "sent").length;
 
             const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sent}\n❌ Falhas: ${failed}\n📊 Total de interações: ${warmupLogs.length}\n\n🗓 Dia do ciclo: ${cycle.day_index}/${cycle.days_total}\n📍 Fase: ${cycle.phase}\n\n🔎 Status atual da instância:\n${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
-            const didSend = await sendToGroup(creds, warmupGroupId, msg);
+            const didSend = await sendToGroup(creds, warmupTarget, msg);
             if (didSend) totalSent++;
             await logEvent(config.user_id, "INFO", `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sent} ok, ${failed} falhas`);
           }
