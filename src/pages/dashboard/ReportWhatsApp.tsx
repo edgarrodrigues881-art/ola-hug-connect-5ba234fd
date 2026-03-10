@@ -936,8 +936,9 @@ const AlertCard = ({ icon, iconColor, title, description, groups, selectedGroupI
       if (!token) throw new Error("Sessão expirada");
 
       // Try to get group info via invite code using UAZAPI
+      const deviceParam = reportDeviceId ? `&device_id=${reportDeviceId}` : "";
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=resolve_invite&invite_code=${encodeURIComponent(inviteCode)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=resolve_invite&invite_code=${encodeURIComponent(inviteCode)}${deviceParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       const json = await res.json();
