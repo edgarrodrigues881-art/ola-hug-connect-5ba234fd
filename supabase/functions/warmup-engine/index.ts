@@ -474,9 +474,8 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  if (chipState === "recovered") {
-    return getVolumesRecovered(dayIndex, phase);
-  }
+  if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
+  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
   return getVolumesNew(phase);
 }
 
