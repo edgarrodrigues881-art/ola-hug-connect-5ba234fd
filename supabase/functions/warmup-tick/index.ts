@@ -379,14 +379,14 @@ async function handleTick(db: any) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
+          // Use user custom messages if available, otherwise combinatorial generator
           const { data: userMsgs } = await db
             .from("warmup_messages")
             .select("content")
             .eq("user_id", job.user_id);
 
-          const msgPool = (userMsgs && userMsgs.length > 0)
-            ? userMsgs.map((m: any) => m.content)
-            : groupMessages;
+          const useCustomPool = userMsgs && userMsgs.length > 0;
+          const getGroupMsg = () => useCustomPool ? pickRandom(userMsgs.map((m: any) => m.content)) : generateNaturalMessage("group");
 
           const targetGroupRecord = pickRandom(joinedGroups);
           const { data: poolGroup } = await db
