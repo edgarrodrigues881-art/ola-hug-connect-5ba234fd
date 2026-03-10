@@ -93,13 +93,21 @@ Deno.serve(async (req) => {
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
 
-      const fetchSafe = async (endpoint: string, retries = 2): Promise<any> => {
+      const fetchSafe = async (endpoint: string, retries = 2, method = "GET", body?: any): Promise<any> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
           try {
-            const res = await fetch(endpoint, { method: "GET", headers: apiHeaders });
+            const opts: RequestInit = { method, headers: apiHeaders };
+            if (body && method === "POST") opts.body = JSON.stringify(body);
+            const res = await fetch(endpoint, opts);
             if (!res.ok) {
-              const body = await res.text().catch(() => "");
-              console.log(`[${res.status}] ${endpoint}: ${body.substring(0, 150)}`);
+              const respBody = await res.text().catch(() => "");
+              console.log(`[${res.status}] ${endpoint}: ${respBody.substring(0, 150)}`);
+              // If "No session", wait longer and retry
+              if (respBody.includes("No session") && attempt < retries) {
+                console.log(`[RETRY] No session detected, waiting 3s...`);
+                await new Promise(r => setTimeout(r, 3000));
+                continue;
+              }
               if (attempt < retries) { await new Promise(r => setTimeout(r, 800 * (attempt + 1))); continue; }
               return null;
             }
