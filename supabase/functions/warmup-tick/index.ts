@@ -503,7 +503,7 @@ async function handleTick(db: any) {
 
               if (partnerDevice?.number && partnerDevice.status === "Ready") {
                 const phoneNumber = partnerDevice.number.replace(/\+/g, "");
-                const message = pickRandom(communityMessages);
+                const message = generateNaturalMessage("community");
 
                 await uazapiSendText(baseUrl, token, phoneNumber, message);
 
