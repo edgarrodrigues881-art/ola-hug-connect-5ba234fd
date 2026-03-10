@@ -663,7 +663,7 @@ Deno.serve(async (req) => {
             if (dev.status === "Ready") {
               if (!(await wasRecentlySent(`%${dev.name}%conectada%alerta%`))) {
                 const msg = `✅ INSTÂNCIA CONECTADA\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
-                if (await sendToTargetGroup(connectionGroupId, msg)) sentCount++;
+                if (await sendToTargetGroup(gid, msg)) sentCount++;
                 await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Instância "${dev.name}" conectada — alerta enviado` });
               }
             }
