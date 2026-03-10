@@ -677,9 +677,10 @@ Deno.serve(async (req) => {
         profile_name: null,
       }).eq("id", deviceId);
 
-      // ── Send instant WhatsApp notification if device was connected ──
-      console.log(`[logout] wasConnected=${wasConnected}, login_type=${preDevice?.login_type}, preStatus=${preDevice?.status}`);
-      if (wasConnected && preDevice?.login_type !== "report_wa") {
+      // ── Send instant WhatsApp notification on explicit logout ──
+      // Always notify on explicit logout action (user clicked disconnect)
+      console.log(`[logout] preStatus=${preDevice?.status}, login_type=${preDevice?.login_type}`);
+      if (preDevice?.login_type !== "report_wa") {
         try {
           const { data: rwConfig, error: rwErr } = await svc
             .from("report_wa_configs")
