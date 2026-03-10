@@ -161,10 +161,10 @@ Deno.serve(async (req) => {
       // The cron no longer sends connection/disconnection alerts.
       // They are sent in real-time from the sync-devices function.
 
-      // ═══ CAMPAIGN ALERTS → campaigns_group_id ═══
+      // ═══ CAMPAIGN ALERTS → group_id ═══
       if (config.toggle_campaigns) {
-        const campaignsGroupId = config.campaigns_group_id || config.group_id;
-        if (campaignsGroupId) {
+        const targetGroupId = config.group_id;
+        if (targetGroupId) {
           // Started campaigns
           const { data: startedCampaigns } = await serviceClient
             .from("campaigns")
