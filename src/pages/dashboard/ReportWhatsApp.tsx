@@ -357,6 +357,34 @@ export default function ReportWhatsApp() {
         </div>
         {canUseReport && (
           <div className="flex items-center gap-2">
+            {reportDevice?.id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir instância de relatório?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso irá desconectar e remover permanentemente a instância "{reportDevice?.name}". As configurações de grupos e alertas também serão apagadas. Essa ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteInstance} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             {isConnected && (
               <Button
                 variant="outline"
