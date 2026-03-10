@@ -548,3 +548,49 @@ function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
 
   return v;
 }
+
+// CHIP_SENSIVEL volumes (ultra-conservative)
+function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+
+  // Day 1: no volume
+  if (phase === "pre_24h") return v;
+
+  // Day 2-5: groups_only — 50-120 msgs
+  if (phase === "groups_only") {
+    v.groupMsgs = randInt(50, 120);
+    return v;
+  }
+
+  // Day 6-10: autosave_enabled
+  if (phase === "autosave_enabled") {
+    if (dayIndex <= 6) {
+      // Day 6: groups 120-200, autosave 3×2=6
+      v.groupMsgs = randInt(120, 200);
+      v.autosaveContacts = 3;
+      v.autosaveMsgsPerContact = 2;
+      v.autosaveTotal = 6;
+    } else {
+      // Day 7-10: groups 120-220, autosave 3-4×2
+      v.groupMsgs = randInt(120, 220);
+      const contacts = randInt(3, 4);
+      v.autosaveContacts = contacts;
+      v.autosaveMsgsPerContact = 2;
+      v.autosaveTotal = contacts * 2;
+    }
+    return v;
+  }
+
+  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(150, 300);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 5);
+    v.communityMsgsPerPair = randInt(10, 20);
+    return v;
+  }
+
+  return v;
+}
