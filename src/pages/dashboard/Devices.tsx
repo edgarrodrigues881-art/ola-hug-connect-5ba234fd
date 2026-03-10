@@ -593,7 +593,9 @@ const Devices = () => {
     }
     // Optimistic: add placeholder devices immediately
     muteAutoSync(5000);
-    const startIdx = devices.length + 1;
+    const existingNums = devices.map(d => { const m = d.name.match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; });
+    const maxNum = existingNums.length > 0 ? Math.max(...existingNums) : 0;
+    const startIdx = maxNum + 1;
     const tempDevices: Device[] = Array.from({ length: totalCount }, (_, i) => ({
       id: `temp-bulk-${Date.now()}-${i}`,
       name: `${bulkPrefix} ${startIdx + i}`,
@@ -1221,6 +1223,9 @@ const Devices = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
                         if (!canCreateInstance) { if (planState !== "active") setPlanGateOpen(true); else setLimitGateOpen(true); return; }
+                        const nums = devices.map(d => { const m = d.name.match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; });
+                        const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+                        setInstanceName(`Instância ${next}`);
                         setCreateOpen(true);
                       }}>
                         <Plus className="w-3.5 h-3.5 mr-2" /> Criar uma
