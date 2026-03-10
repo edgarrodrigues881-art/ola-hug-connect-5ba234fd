@@ -1417,9 +1417,19 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY PAIRS: GENERATE (placeholder) ───
     if (action === "community-generate-pairs" && req.method === "POST") {
-      // Get enrolled instances
+      // Get enrolled instances (exclude report_wa devices)
       const { data: memberships } = await adminClient.from("warmup_community_membership")
         .select("device_id, user_id").eq("is_enabled", true).eq("is_eligible", true);
+
+      // Filter out report_wa devices
+      let filteredMemberships = memberships || [];
+      if (filteredMemberships.length > 0) {
+        const deviceIds = filteredMemberships.map((m: any) => m.device_id);
+        const { data: devices } = await adminClient.from("devices")
+          .select("id, login_type").in("id", deviceIds);
+        const reportDeviceIds = new Set((devices || []).filter((d: any) => d.login_type === "report_wa").map((d: any) => d.id));
+        filteredMemberships = filteredMemberships.filter((m: any) => !reportDeviceIds.has(m.device_id));
+      }
 
       if (!memberships || memberships.length < 2) {
         return new Response(JSON.stringify({ success: false, message: "Menos de 2 instâncias elegíveis no pool" }), {
