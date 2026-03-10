@@ -296,6 +296,61 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── list_all_groups: Fetch groups from ALL connected devices ───
+    if (action === "list_all_groups") {
+      const { data: allDevices } = await serviceClient
+        .from("devices")
+        .select("id, name, number, status, uazapi_token, uazapi_base_url")
+        .eq("user_id", userId)
+        .in("status", ["Ready", "Connected", "connected", "authenticated"]);
+
+      const seenJids = new Set<string>();
+      const allGroups: any[] = [];
+
+      for (const dev of (allDevices || [])) {
+        if (!dev.uazapi_token || !dev.uazapi_base_url) continue;
+        const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
+        const devHeaders = { token: dev.uazapi_token, Accept: "application/json", "Content-Type": "application/json" };
+
+        try {
+          // Simple paginated fetch per device
+          for (let page = 0; page < 5; page++) {
+            const res = await fetch(`${devBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: devHeaders });
+            if (!res.ok) break;
+            const data = await res.json();
+            const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+            if (arr.length === 0) break;
+            let newCount = 0;
+            for (const g of arr) {
+              const jid = g.JID || g.jid || g.id || g.groupJid || g.chatId || "";
+              if (jid && !seenJids.has(jid)) {
+                seenJids.add(jid);
+                allGroups.push(g);
+                newCount++;
+              }
+            }
+            console.log(`[ALL] Device ${dev.name} page ${page}: ${arr.length} ret, ${newCount} new`);
+            if (newCount === 0) break;
+          }
+        } catch (e) {
+          console.log(`[ALL] Device ${dev.name} failed: ${e.message}`);
+        }
+      }
+
+      console.log(`[ALL] Total unique groups from all devices: ${allGroups.length}`);
+
+      const chats = allGroups.map((g: any) => ({
+        id: g.JID || g.jid || g.id || g.groupJid || "",
+        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "Grupo sem nome",
+        participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
+        isGroup: true,
+      }));
+
+      return new Response(JSON.stringify({ chats }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "get_messages" && chatId) {
       const count = url.searchParams.get("count") || "50";
       const res = await fetch(`${apiBaseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=${count}`, {
