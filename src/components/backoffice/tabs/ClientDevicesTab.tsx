@@ -160,10 +160,18 @@ const ClientDevicesTab = ({ client, detail }: Props) => {
       <div className="bg-card border border-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Instâncias</p>
-          <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs px-3" disabled={isPending || isBlocked}>
-            {(isBlocked || noPlan) ? <Ban size={12} className="mr-1.5" /> : atLimit ? <ArrowUpCircle size={12} className="mr-1.5" /> : <Plus size={12} className="mr-1.5" />}
-            {noPlan ? "Sem Plano" : atLimit && !isBlocked ? "Upgrade" : "Nova Instância"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {disconnectedWithoutToken > 0 && (
+              <Button size="sm" variant="outline" onClick={bulkReassign} className="border-primary/30 text-primary hover:bg-primary/10 h-8 text-xs px-3" disabled={isPending}>
+                {isPending ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : <RefreshCcw size={12} className="mr-1.5" />}
+                Reatribuir Tokens ({disconnectedWithoutToken})
+              </Button>
+            )}
+            <Button size="sm" onClick={handleCreateClick} className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs px-3" disabled={isPending || isBlocked}>
+              {(isBlocked || noPlan) ? <Ban size={12} className="mr-1.5" /> : atLimit ? <ArrowUpCircle size={12} className="mr-1.5" /> : <Plus size={12} className="mr-1.5" />}
+              {noPlan ? "Sem Plano" : atLimit && !isBlocked ? "Upgrade" : "Nova Instância"}
+            </Button>
+          </div>
         </div>
 
         {/* Stats row */}
