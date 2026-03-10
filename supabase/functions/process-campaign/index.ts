@@ -31,6 +31,52 @@ async function oplog(client: any, userId: string, event: string, details: string
   try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
 }
 
+// Instant WhatsApp alert for campaign status changes (bypass cron delay)
+async function sendCampaignAlertToWa(serviceClient: any, userId: string, campaignName: string, status: string, stats?: { sent?: number; total?: number; delivered?: number; failed?: number }) {
+  try {
+    const { data: config } = await serviceClient
+      .from("report_wa_configs")
+      .select("device_id, group_id, toggle_campaigns, connected_phone, connection_status")
+      .eq("user_id", userId)
+      .single();
+    if (!config?.toggle_campaigns || !config?.group_id || !config?.device_id) return;
+
+    const { data: dev } = await serviceClient
+      .from("devices")
+      .select("uazapi_base_url, uazapi_token")
+      .eq("id", config.device_id)
+      .single();
+    if (!dev?.uazapi_base_url || !dev?.uazapi_token) return;
+
+    const now = new Date();
+    const nowBRT = now.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    const s = stats || {};
+    let msg = "";
+    if (status === "paused") {
+      msg = `⏸ CAMPANHA PAUSADA\n\nCampanha: ${campaignName}\n\n📊 Progresso:\n✅ Enviadas: ${s.sent || 0}/${s.total || 0}\n\n⏱ Horário: ${nowBRT}\n\nA campanha foi pausada.`;
+    } else if (status === "canceled") {
+      const pending = Math.max(0, (s.total || 0) - (s.sent || 0) - (s.failed || 0));
+      msg = `🚫 CAMPANHA CANCELADA\n\nCampanha: ${campaignName}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${s.total || 0}\n✅ Enviadas: ${s.sent || 0}\n❌ Falhas: ${s.failed || 0}\n⏳ Pendentes: ${pending}\n\n⏱ Horário: ${nowBRT}`;
+    } else if (status === "completed") {
+      msg = `📣 CAMPANHA FINALIZADA\n\nCampanha: ${campaignName}\n\n📊 Resultado da campanha\n\n👥 Total de contatos: ${s.total || 0}\n✅ Enviadas: ${s.sent || 0}\n📬 Entregues: ${s.delivered || 0}\n❌ Falhas: ${s.failed || 0}\n\n⏱ Horário: ${nowBRT}`;
+    }
+    if (!msg) return;
+
+    const headers: Record<string, string> = { token: dev.uazapi_token, Accept: "application/json", "Content-Type": "application/json" };
+    const res = await fetch(`${dev.uazapi_base_url}/chat/send-text`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ chatId: config.group_id, text: msg }),
+    });
+    const resData = await res.json().catch(() => ({}));
+    if (res.ok) {
+      await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${campaignName}" ${status} — alerta instantâneo enviado` });
+    }
+  } catch (e) {
+    console.log(`Failed to send instant campaign alert: ${e.message}`);
+  }
+}
+
 const API_TIMEOUT_MS = 30_000;
 
 async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any, method: "POST" | "GET" = "POST") {
@@ -320,7 +366,11 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
     updated_at: new Date().toISOString(),
   }).eq("id", campaignId);
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-  // Notification handled by DB trigger trg_notify_campaign_status
+  // Notification handled by DB trigger + instant WA alert
+  if (userId) {
+    const { data: campStats } = await serviceClient.from("campaigns").select("sent_count, total_contacts").eq("id", campaignId).single();
+    sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", { sent: campStats?.sent_count, total: campStats?.total_contacts });
+  }
 }
 
 interface BatchState {
@@ -403,6 +453,7 @@ Deno.serve(async (req) => {
     try {
     // ─── PAUSE ───
     if (action === "pause") {
+      const { data: campData } = await serviceClient.from("campaigns").select("name, sent_count, total_contacts").eq("id", campaignId).single();
       await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
       // Release locks — get device IDs from campaign
       const { data: camp } = await serviceClient.from("campaigns").select("device_id, device_ids").eq("id", campaignId).single();
@@ -412,11 +463,14 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, ids, campaignId);
         console.log(`Released device locks for paused campaign ${campaignId}`);
       }
+      // Instant WA alert
+      sendCampaignAlertToWa(serviceClient, userId, campData?.name || "", "paused", { sent: campData?.sent_count, total: campData?.total_contacts });
       return new Response(JSON.stringify({ success: true, status: "paused" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── CANCEL ───
     if (action === "cancel") {
+      const { data: campData } = await serviceClient.from("campaigns").select("name, sent_count, failed_count, total_contacts").eq("id", campaignId).single();
       await serviceClient.from("campaigns").update({ status: "canceled", completed_at: new Date().toISOString() }).eq("id", campaignId).eq("user_id", userId);
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
       // Release locks
@@ -428,6 +482,8 @@ Deno.serve(async (req) => {
         console.log(`Released device locks for canceled campaign ${campaignId}`);
         startNextQueuedCampaigns(serviceClient, ids, supabaseUrl, serviceRoleKey);
       }
+      // Instant WA alert
+      sendCampaignAlertToWa(serviceClient, userId, campData?.name || "", "canceled", { sent: campData?.sent_count, failed: campData?.failed_count, total: campData?.total_contacts });
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -605,6 +661,7 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
         await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída (sem pendentes)`, null, { campaign_id: campaignId });
         console.log(`Campaign ${campaignId} completed! Locks released.`);
+        sendCampaignAlertToWa(serviceClient, campaign.user_id, campaign.name, "completed", { sent: campaign.sent_count, delivered: campaign.delivered_count, failed: campaign.failed_count, total: campaign.total_contacts });
         startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         return new Response(JSON.stringify({ success: true, status: "completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -1012,6 +1069,7 @@ Deno.serve(async (req) => {
           await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
           await oplog(serviceClient, campaign.user_id, "campaign_completed", `Campanha "${campaign.name}" concluída`, null, { campaign_id: campaignId, sent: sentCount, failed: failedCount });
           console.log(`Campaign ${campaignId} completed! Sent: ${sentCount}, Failed: ${failedCount}. Locks released.`);
+          sendCampaignAlertToWa(serviceClient, campaign.user_id, campaign.name, "completed", { sent: sentCount, delivered: sentCount, failed: failedCount, total: campaign.total_contacts });
           startNextQueuedCampaigns(serviceClient, deviceIds, supabaseUrl, serviceRoleKey);
         }
       } else if (finalCampaign && (finalCampaign.status === "paused" || finalCampaign.status === "canceled" || finalCampaign.status === "failed")) {
