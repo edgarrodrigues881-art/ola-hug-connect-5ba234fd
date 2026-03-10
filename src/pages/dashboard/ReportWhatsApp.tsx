@@ -41,6 +41,7 @@ export default function ReportWhatsApp() {
   const [pairingPhone, setPairingPhone] = useState("");
   const [pairingCode, setPairingCode] = useState("");
   const [pairingLoading, setPairingLoading] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
