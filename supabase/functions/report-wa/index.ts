@@ -600,7 +600,7 @@ Deno.serve(async (req) => {
     if (action === "check-events") {
       const { data: config } = await serviceClient
         .from("report_wa_configs")
-        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status, warmup_group_id, warmup_group_name, campaigns_group_id, campaigns_group_name, connection_group_id, connection_group_name")
+        .select("id, user_id, device_id, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, group_id, group_name, frequency, connected_phone, connection_status")
         .eq("user_id", userId)
         .single();
 
@@ -608,10 +608,8 @@ Deno.serve(async (req) => {
         return json({ skipped: true, reason: "No device configured" });
       }
 
-      // Check if at least one group is configured
-      const hasAnyGroup = config.warmup_group_id || config.campaigns_group_id || config.connection_group_id || config.group_id;
-      if (!hasAnyGroup) {
-        return json({ skipped: true, reason: "No groups configured" });
+      if (!config.group_id) {
+        return json({ skipped: true, reason: "No group configured" });
       }
 
       const { baseUrl, token: apiToken } = await getDeviceCredentials(config.device_id);
