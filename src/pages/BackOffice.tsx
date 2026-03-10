@@ -98,11 +98,8 @@ const BackOffice = () => {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
               <Lock size={24} className="text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              {showReset ? "Redefinir senha" : "Painel DG"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {showReset ? "Digite seu e-mail para receber o link." : "Acesso restrito a administradores"}
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Painel DG</h1>
+            <p className="text-sm text-muted-foreground mt-1">Acesso restrito a administradores</p>
             </p>
           </div>
 
