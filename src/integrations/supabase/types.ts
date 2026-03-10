@@ -1936,6 +1936,7 @@ export type Database = {
         | "daily_reset"
         | "phase_transition"
         | "health_check"
+        | "group_interaction"
       warmup_log_level: "info" | "warn" | "error"
       warmup_phase:
         | "pre_24h"
@@ -1945,6 +1946,7 @@ export type Database = {
         | "completed"
         | "paused"
         | "error"
+        | "community_light"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2113,6 +2115,7 @@ export const Constants = {
         "daily_reset",
         "phase_transition",
         "health_check",
+        "group_interaction",
       ],
       warmup_log_level: ["info", "warn", "error"],
       warmup_phase: [
@@ -2123,6 +2126,7 @@ export const Constants = {
         "completed",
         "paused",
         "error",
+        "community_light",
       ],
     },
   },
