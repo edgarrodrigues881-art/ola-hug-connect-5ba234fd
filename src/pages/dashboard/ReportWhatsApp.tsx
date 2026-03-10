@@ -322,15 +322,14 @@ export default function ReportWhatsApp() {
     };
   }, [qrDialogOpen, reportDevice?.id, qrConnected]);
 
-  const fetchGroups = async (_deviceId?: string, forceRefresh = false) => {
+  const fetchGroups = async (deviceId: string, forceRefresh = false) => {
     setLoadingGroups(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
       const refreshParam = forceRefresh ? "&refresh=true" : "";
-      // Fetch groups from ALL connected devices, not just the report_wa one
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_all_groups${refreshParam}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
@@ -362,14 +361,14 @@ export default function ReportWhatsApp() {
 
   // Auto-fetch groups on mount + periodic refresh every 2 minutes
   useEffect(() => {
-    if (user) {
-      fetchGroups();
+    if (reportDevice?.id && reportDevice?.status === "Ready") {
+      fetchGroups(reportDevice.id);
       const interval = setInterval(() => {
-        fetchGroups();
-      }, 2 * 60 * 1000); // 2 minutes
+        fetchGroups(reportDevice.id);
+      }, 2 * 60 * 1000);
       return () => clearInterval(interval);
     }
-  }, [user?.id]);
+  }, [reportDevice?.id, reportDevice?.status]);
 
   const upsertConfig = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
