@@ -12,8 +12,7 @@ const BackOffice = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [showReset, setShowReset] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
