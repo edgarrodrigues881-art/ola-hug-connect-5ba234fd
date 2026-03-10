@@ -413,6 +413,94 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── resolve_invite: Join group via invite link and return JID ───
+    if (action === "resolve_invite") {
+      const inviteCode = url.searchParams.get("invite_code") || "";
+      if (!inviteCode) {
+        return new Response(JSON.stringify({ error: "invite_code required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`[resolve_invite] Trying to join/resolve invite code: ${inviteCode}`);
+
+      // Try joining the group - this also works if already a member
+      const endpoints = [
+        { method: "POST", url: `${apiBaseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
+        { method: "POST", url: `${apiBaseUrl}/group/join`, body: JSON.stringify({ invitecode: `https://chat.whatsapp.com/${inviteCode}` }) },
+      ];
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep.url, {
+            method: ep.method,
+            headers: apiHeaders,
+            body: ep.body,
+          });
+          const raw = await res.text();
+          console.log(`[resolve_invite] ${ep.method} ${ep.url}: ${res.status} ${raw.substring(0, 500)}`);
+          
+          if (res.status === 405) continue;
+
+          let data: any;
+          try { data = JSON.parse(raw); } catch { data = { raw }; }
+
+          // Extract JID from response
+          const jid = data?.JID || data?.jid || data?.groupId || data?.group_id || data?.data?.JID || data?.data?.jid || "";
+          const name = data?.Name || data?.name || data?.Subject || data?.subject || data?.data?.Name || "";
+
+          if (jid && jid.includes("@g.us")) {
+            console.log(`[resolve_invite] Success! JID: ${jid}, Name: ${name}`);
+            return new Response(JSON.stringify({ jid, name, status: "ok" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          // If the response is 2xx but no JID, check if it's "already member" and try to find JID in groups list
+          if (res.ok || res.status === 409) {
+            console.log(`[resolve_invite] Joined but no JID in response. Searching groups list...`);
+            // Fetch groups to find the newly joined one
+            const groupsRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=0&count=200`, { headers: apiHeaders });
+            if (groupsRes.ok) {
+              const groupsRaw = await groupsRes.text();
+              let groupsData: any;
+              try { groupsData = JSON.parse(groupsRaw); } catch { groupsData = {}; }
+              const groups = Array.isArray(groupsData.groups || groupsData) ? (groupsData.groups || groupsData) : [];
+              
+              // Return the most recently joined group (last in list) or try to match
+              if (groups.length > 0) {
+                const lastGroup = groups[groups.length - 1];
+                const foundJid = lastGroup.JID || lastGroup.jid || "";
+                const foundName = lastGroup.Name || lastGroup.name || "";
+                if (foundJid) {
+                  console.log(`[resolve_invite] Found via groups list: ${foundJid} (${foundName})`);
+                  return new Response(JSON.stringify({ jid: foundJid, name: foundName, status: "ok" }), {
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                  });
+                }
+              }
+            }
+          }
+
+          // Return error info
+          const msg = data?.message || data?.msg || raw.substring(0, 200);
+          return new Response(JSON.stringify({ error: msg, status: "error" }), {
+            status: res.status >= 400 ? res.status : 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (err) {
+          console.error(`[resolve_invite] Error:`, err);
+          continue;
+        }
+      }
+
+      return new Response(JSON.stringify({ error: "Não foi possível resolver o link do grupo" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
