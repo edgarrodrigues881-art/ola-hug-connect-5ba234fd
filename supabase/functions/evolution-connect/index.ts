@@ -671,7 +671,7 @@ Deno.serve(async (req) => {
                 const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
                 const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
                 const displayName = check.profileName ? `${check.profileName} (${currentDevice.name})` : currentDevice.name;
-                const msg = `✅ INSTÂNCIA CONECTADA\n\n📱 ${displayName}\n📞 Número: ${fmt || "N/A"}\n\n🟢 Status: Conectado\n\n⏱ Horário:\n${nowBRT}\n\nA instância está online e operacional.`;
+                const msg = `✅ INSTÂNCIA CONECTADA\n\n🔹 Instância: ${currentDevice.name}\n📱 Chip: ${check.profileName || currentDevice.name}\n📞 Número: ${fmt || "N/A"}\n\n🟢 Status: Online\n⏱ Conectado às: ${nowBRT}`;
 
                 const sendEndpoints = [
                   { path: "/chat/send-text", body: { to: targetGroup, body: msg } },
