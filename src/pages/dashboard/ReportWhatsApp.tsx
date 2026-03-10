@@ -381,7 +381,7 @@ export default function ReportWhatsApp() {
         </div>
         {canUseReport && (
           <div className="flex items-center gap-2">
-            {reportDevice?.id && (
+            {reportDevice?.id && !isConnected && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
