@@ -64,9 +64,11 @@ export function useNotifications() {
 
   const showToastForNotif = useCallback((n: Notification) => {
     playChime();
-    const variantMap: Record<string, "default" | "destructive"> = {
+    const variantMap: Record<string, "default" | "destructive" | "success" | "warning"> = {
       error: "destructive",
-      warning: "destructive",
+      warning: "warning",
+      success: "success",
+      info: "default",
     };
     const iconMap: Record<string, string> = {
       success: "✅",
@@ -79,7 +81,7 @@ export function useNotifications() {
       title: `${icon} ${n.title}`,
       description: n.message,
       variant: variantMap[n.type] || "default",
-      duration: 3000,
+      duration: 4000,
     });
   }, []);
 
