@@ -252,8 +252,8 @@ const WarmupInstanceDetail = () => {
             <div className="grid grid-cols-3 gap-2.5">
               {([
                 { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢" },
-                { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", emoji: "🟡" },
-                { value: "unstable" as const, label: "Chip Fraco", desc: "Não aguenta 1 mensagem", emoji: "🔴" },
+                { value: "recovered" as const, label: "Chip Banido", desc: "Extra cauteloso, já sofreu ban", emoji: "🔴" },
+                { value: "unstable" as const, label: "Chip Sensível", desc: "Sofre restrição facilmente", emoji: "🟡" },
               ]).map(opt => (
                 <button
                   key={opt.value}
