@@ -31,11 +31,6 @@ function getPhaseForDayNew(day: number): string {
 }
 
 // ── Phase rules per day — CHIP_RECUPERACAO (recovered) ──
-// Day 1: pre_24h (join groups, no volume)
-// Day 2-3: groups_only (80-150 msgs)
-// Day 4: autosave_enabled (groups 120-250 + autosave 3×2)
-// Day 5-7: community_light (groups 120-250 + autosave 5×2 + community 2-4 × 10-20)
-// Day 8-30: community_enabled (groups 150-350 + autosave 5×2 + community 4-8 × 15-25)
 function getPhaseForDayRecovered(day: number): string {
   if (day <= 1) return "pre_24h";
   if (day <= 3) return "groups_only";
@@ -44,9 +39,23 @@ function getPhaseForDayRecovered(day: number): string {
   return "community_enabled";
 }
 
+// ── Phase rules per day — CHIP_SENSIVEL (unstable) ──
+// Day 1: pre_24h (join groups only)
+// Day 2-5: groups_only (50-120 msgs, 09:00-18:00)
+// Day 6: autosave_enabled (groups 120-200 + autosave 3×2)
+// Day 7-10: autosave_enabled (groups 120-220 + autosave 3-4×2)
+// Day 11-30: community_light (groups 150-300 + autosave 5×2 + community 2-5 × 10-20)
+function getPhaseForDayUnstable(day: number): string {
+  if (day <= 1) return "pre_24h";
+  if (day <= 5) return "groups_only";
+  if (day <= 10) return "autosave_enabled";
+  return "community_light";
+}
+
 // Generic dispatcher
 function getPhaseForDay(day: number, chipState: string): string {
   if (chipState === "recovered") return getPhaseForDayRecovered(day);
+  if (chipState === "unstable") return getPhaseForDayUnstable(day);
   return getPhaseForDayNew(day);
 }
 
