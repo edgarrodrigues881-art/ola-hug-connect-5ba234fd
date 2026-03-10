@@ -302,17 +302,6 @@ const CATEGORIES: CategoryConfig[] = [
     days: 30,
   },
   {
-    key: "estavel",
-    label: "🔵 Chip Estável",
-    subtitle: "Número com uso anterior saudável",
-    icon: Shield,
-    iconColor: "text-blue-400",
-    headerBg: "from-blue-500/10 to-blue-500/5",
-    message: "Ciclo de reforço de 14 dias para chips que já possuem histórico positivo. Ideal para números que ficaram inativos por um tempo ou que precisam de uma 'recarga' de reputação antes de voltar a operar em campanhas.",
-    roadmap: ROADMAP_ESTAVEL,
-    days: 14,
-  },
-  {
     key: "banido",
     label: "🔴 Chip Banido",
     subtitle: "Número com histórico de bloqueio/restrição",
