@@ -366,7 +366,11 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
     updated_at: new Date().toISOString(),
   }).eq("id", campaignId);
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-  // Notification handled by DB trigger trg_notify_campaign_status
+  // Notification handled by DB trigger + instant WA alert
+  if (userId) {
+    const { data: campStats } = await serviceClient.from("campaigns").select("sent_count, total_contacts").eq("id", campaignId).single();
+    sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", { sent: campStats?.sent_count, total: campStats?.total_contacts });
+  }
 }
 
 interface BatchState {
