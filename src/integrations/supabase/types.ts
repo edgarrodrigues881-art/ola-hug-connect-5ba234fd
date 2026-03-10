@@ -1896,6 +1896,8 @@ export type Database = {
         Args: { _campaign_id: string; _device_id: string }
         Returns: undefined
       }
+      release_provision_lock: { Args: { _user_id: string }; Returns: undefined }
+      try_provision_lock: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       alert_severity: "INFO" | "WARNING" | "CRITICAL"
