@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Clean notification chime using Web Audio API
 const playChime = () => {
