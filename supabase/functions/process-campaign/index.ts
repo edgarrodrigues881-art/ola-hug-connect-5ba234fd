@@ -378,8 +378,8 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
   // Notification handled by DB trigger + instant WA alert
   if (userId) {
-    const { data: campStats } = await serviceClient.from("campaigns").select("sent_count, total_contacts").eq("id", campaignId).single();
-    sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", { sent: campStats?.sent_count, total: campStats?.total_contacts });
+    const realStats = await getRealCampaignStats(serviceClient, campaignId);
+    sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", realStats);
   }
 }
 
