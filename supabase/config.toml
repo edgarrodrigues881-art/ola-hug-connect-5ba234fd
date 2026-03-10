@@ -51,9 +51,6 @@ verify_jwt = false
 [functions.report-wa-cron]
 verify_jwt = false
 
-[functions.report-wa]
-verify_jwt = false
-
 [functions.wa-lifecycle]
 verify_jwt = false
 
