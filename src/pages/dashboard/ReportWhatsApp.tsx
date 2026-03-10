@@ -6,8 +6,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Eye, Smartphone, Users, X, Ban, QrCode, CheckCircle2, Key, Lock, XCircle, Zap, LogOut } from "lucide-react";
+import { Radio, RefreshCw, Flame, Megaphone, Plug, Loader2, Eye, Smartphone, Users, X, Ban, QrCode, CheckCircle2, Key, Lock, XCircle, Zap, LogOut, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { usePlanGate } from "@/hooks/usePlanGate";
@@ -185,6 +186,26 @@ export default function ReportWhatsApp() {
     }
   };
 
+  const handleDeleteInstance = async () => {
+    if (!reportDevice?.id) return;
+    try {
+      // Try to logout from UAZAPI first (ignore errors)
+      try { await callApi({ action: "logout", deviceId: reportDevice.id }); } catch {}
+      // Delete config
+      if (config?.id) {
+        await supabase.from("report_wa_configs").delete().eq("id", config.id);
+      }
+      // Delete device
+      await supabase.from("devices").delete().eq("id", reportDevice.id);
+      queryClient.invalidateQueries({ queryKey: ["report-device"] });
+      queryClient.invalidateQueries({ queryKey: ["report-wa-config"] });
+      setGroups([]);
+      toast.success("Instância de relatório excluída");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao excluir instância");
+    }
+  };
+
   // QR auto-refresh every 30s
   useEffect(() => {
     if (connectStep === "qr" && qrCodeBase64) {
@@ -336,6 +357,34 @@ export default function ReportWhatsApp() {
         </div>
         {canUseReport && (
           <div className="flex items-center gap-2">
+            {reportDevice?.id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir instância de relatório?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso irá desconectar e remover permanentemente a instância "{reportDevice?.name}". As configurações de grupos e alertas também serão apagadas. Essa ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteInstance} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             {isConnected && (
               <Button
                 variant="outline"
