@@ -114,7 +114,7 @@ async function adminCreateInstance(
 async function testProxyConnectivity(
   proxy: { host: string; port: string; username?: string; password?: string; type?: string },
 ): Promise<{ alive: boolean; error?: string }> {
-  const TIMEOUT_MS = 6000; // Reduced from 8s for faster feedback
+  const TIMEOUT_MS = 3000; // Fast feedback — 3s max
   try {
     const conn = await Promise.race([
       Deno.connect({ hostname: proxy.host, port: Number(proxy.port) }),
@@ -168,10 +168,12 @@ async function setProxy(
     username: proxy.username || "", password: proxy.password || "",
     type: (proxy.type || "HTTP").toLowerCase(),
   };
-  for (const ep of ["/instance/proxy", "/proxy/set", "/settings/proxy"]) {
-    const r = await uazapi(baseUrl, ep, token, "POST", payload, { timeoutMs: 6000, retries: 1 });
-    if (r.ok) return { ok: true };
-  }
+  // Try all endpoints in PARALLEL — first success wins
+  const endpoints = ["/instance/proxy", "/proxy/set", "/settings/proxy"];
+  const results = await Promise.allSettled(
+    endpoints.map(ep => uazapi(baseUrl, ep, token, "POST", payload, { timeoutMs: 4000, retries: 0 }))
+  );
+  if (results.some(r => r.status === "fulfilled" && r.value.ok)) return { ok: true };
   return { ok: false, error: "Falha ao configurar proxy no provedor" };
 }
 
@@ -425,7 +427,7 @@ Deno.serve(async (req) => {
       }
 
       // Request QR — single call with retry built into uazapi()
-      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {}, { timeoutMs: 10000, retries: 2 });
+      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {}, { timeoutMs: 8000, retries: 1 });
       if (connectRes.status === 401) {
         await oplog(svc, user.id, "uazapi_error", `Token inválido ao gerar QR para "${deviceName}"`, deviceId);
         return json({ error: "Token inválido. Solicite novo token.", code: "TOKEN_INVALID" }, 401);
