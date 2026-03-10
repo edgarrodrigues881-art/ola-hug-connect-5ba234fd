@@ -90,11 +90,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSession(newSession);
             setUser(newSession.user ?? null);
 
-            // Auto-provision trial tokens on first sign-in (idempotent)
+            // Auto-provision trial tokens on first sign-in (debounced + idempotent)
             if (event === "SIGNED_IN") {
-              supabase.functions.invoke("provision-trial").catch((err) => {
-                console.warn("[auth] Trial provision failed (non-blocking):", err);
-              });
+              const provisionKey = `provision_trial_${newSession.user.id}`;
+              const lastProvision = sessionStorage.getItem(provisionKey);
+              if (!lastProvision) {
+                sessionStorage.setItem(provisionKey, Date.now().toString());
+                supabase.functions.invoke("provision-trial").catch((err) => {
+                  console.warn("[auth] Trial provision failed (non-blocking):", err);
+                  sessionStorage.removeItem(provisionKey);
+                });
+              }
             }
           }
         }
