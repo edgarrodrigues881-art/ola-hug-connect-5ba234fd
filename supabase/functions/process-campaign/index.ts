@@ -491,8 +491,17 @@ Deno.serve(async (req) => {
     // ─── CANCEL ───
     if (action === "cancel") {
       const { data: campDataC } = await serviceClient.from("campaigns").select("name, device_id, device_ids").eq("id", campaignId).single();
-      await serviceClient.from("campaigns").update({ status: "canceled", completed_at: new Date().toISOString() }).eq("id", campaignId).eq("user_id", userId);
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
+      // Get real stats after marking pending as failed
+      const cancelStats = await getRealCampaignStats(serviceClient, campaignId);
+      await serviceClient.from("campaigns").update({ 
+        status: "canceled", 
+        completed_at: new Date().toISOString(),
+        sent_count: cancelStats.sent,
+        delivered_count: cancelStats.delivered,
+        failed_count: cancelStats.failed,
+        total_contacts: cancelStats.total,
+      }).eq("id", campaignId).eq("user_id", userId);
       // Release locks
       if (campDataC) {
         const ids: string[] = Array.isArray(campDataC.device_ids) && campDataC.device_ids.length > 0
@@ -501,8 +510,7 @@ Deno.serve(async (req) => {
         console.log(`Released device locks for canceled campaign ${campaignId}`);
         startNextQueuedCampaigns(serviceClient, ids, supabaseUrl, serviceRoleKey);
       }
-      // Instant WA alert — use real stats from campaign_contacts
-      const cancelStats = await getRealCampaignStats(serviceClient, campaignId);
+      // Instant WA alert
       sendCampaignAlertToWa(serviceClient, userId, campDataC?.name || "", "canceled", cancelStats);
       return new Response(JSON.stringify({ success: true, status: "canceled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
