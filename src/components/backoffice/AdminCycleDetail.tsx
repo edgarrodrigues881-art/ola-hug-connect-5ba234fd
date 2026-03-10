@@ -33,6 +33,7 @@ const jobStatusColors: Record<string, string> = {
 const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => void }) => {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [confirmPhase, setConfirmPhase] = useState<string | null>(null);
 
   const { data: cycle, isLoading: loadingCycle } = useQuery({
     queryKey: ["admin-cycle-detail", cycleId],
@@ -256,7 +257,6 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
                 const isCurrent = phase === cycle.phase;
                 const isPast = idx < currentIdx;
                 const isNext = idx === currentIdx + 1;
-                const isFuture = idx > currentIdx + 1;
 
                 return (
                   <div key={phase} className="flex items-center gap-1">
@@ -266,11 +266,7 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
                       size="sm"
                       className={`h-7 px-2.5 text-[11px] ${isPast ? "opacity-40" : ""} ${isNext ? "border-primary/50 text-primary" : ""}`}
                       disabled={isPast || isCurrent || advancePhase.isPending}
-                      onClick={() => {
-                        if (confirm(`Avançar para "${PHASE_LABELS[phase]}"?\n\nIsso é apenas para teste — simula o avanço de fase sem esperar os dias.`)) {
-                          advancePhase.mutate(phase);
-                        }
-                      }}
+                      onClick={() => setConfirmPhase(phase)}
                     >
                       {advancePhase.isPending ? <Loader2 size={10} className="animate-spin" /> : PHASE_LABELS[phase]}
                     </Button>
@@ -278,6 +274,27 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
                 );
               })}
             </div>
+
+            {/* Inline confirmation */}
+            {confirmPhase && (
+              <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between gap-3">
+                <p className="text-xs text-foreground">
+                  Avançar para <strong>{PHASE_LABELS[confirmPhase]}</strong>? Isso pula as verificações automáticas.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmPhase(null)}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={() => {
+                    advancePhase.mutate(confirmPhase);
+                    setConfirmPhase(null);
+                  }}>
+                    Confirmar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <p className="text-[10px] text-muted-foreground mt-2">
               ⚠️ Somente para testes. Avançar manualmente pula as verificações automáticas.
             </p>
