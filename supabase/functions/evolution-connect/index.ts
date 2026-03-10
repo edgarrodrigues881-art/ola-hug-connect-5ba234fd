@@ -658,7 +658,7 @@ Deno.serve(async (req) => {
     // ── logout ──
     if (action === "logout") {
       // Get device info BEFORE clearing for notification message
-      const { data: preDevice } = await svc.from("devices").select("name, number, status, login_type").eq("id", deviceId).single();
+      const { data: preDevice } = await svc.from("devices").select("name, number, status, login_type, profile_name").eq("id", deviceId).single();
       const wasConnected = preDevice?.status === "Ready" || preDevice?.status === "Connected";
 
       // Disconnect from WhatsApp session only — keep the token assigned
