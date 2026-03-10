@@ -121,6 +121,63 @@ const AdminCycleDetail = ({ cycleId, onBack }: { cycleId: string; onBack: () => 
     },
   });
 
+  const advancePhase = useMutation({
+    mutationFn: async (targetPhase: string) => {
+      const updates: any = { phase: targetPhase, updated_at: new Date().toISOString() };
+      if (targetPhase === "completed") {
+        updates.is_running = false;
+      }
+      const { error } = await supabase
+        .from("warmup_cycles")
+        .update(updates)
+        .eq("id", cycleId);
+      if (error) throw error;
+
+      // If advancing to autosave_enabled, auto-enroll in community
+      if (targetPhase === "autosave_enabled" && cycle) {
+        const { data: existing } = await supabase
+          .from("warmup_community_membership")
+          .select("id, is_enabled")
+          .eq("device_id", cycle.device_id)
+          .maybeSingle();
+        if (!existing) {
+          await supabase.from("warmup_community_membership").insert({
+            device_id: cycle.device_id,
+            user_id: cycle.user_id,
+            cycle_id: cycleId,
+            is_enabled: true,
+            is_eligible: true,
+            enabled_at: new Date().toISOString(),
+          });
+        } else if (!existing.is_enabled) {
+          await supabase.from("warmup_community_membership")
+            .update({ is_enabled: true, is_eligible: true, enabled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+        }
+      }
+
+      // Log the manual advance
+      await supabase.from("warmup_audit_logs").insert({
+        user_id: cycle!.user_id,
+        device_id: cycle!.device_id,
+        cycle_id: cycleId,
+        level: "info" as any,
+        event_type: "manual_phase_advance",
+        message: `Fase avançada manualmente: ${cycle!.phase} → ${targetPhase}`,
+        meta: { from: cycle!.phase, to: targetPhase, advanced_by: "admin" },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-cycle-detail", cycleId] });
+      qc.invalidateQueries({ queryKey: ["admin-cycle-logs", cycleId] });
+      qc.invalidateQueries({ queryKey: ["admin-warmup-cycles"] });
+      toast({ title: "Fase avançada com sucesso" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro ao avançar fase", description: e.message, variant: "destructive" });
+    },
+  });
+
   if (loadingCycle) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
