@@ -104,8 +104,9 @@ const AdminWarmupCycles = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="new">Novo</SelectItem>
-            <SelectItem value="recovered">Recuperado</SelectItem>
+            <SelectItem value="new">Chip Novo</SelectItem>
+            <SelectItem value="recovered">Chip Banido</SelectItem>
+            <SelectItem value="unstable">Chip Sensível</SelectItem>
           </SelectContent>
         </Select>
 
