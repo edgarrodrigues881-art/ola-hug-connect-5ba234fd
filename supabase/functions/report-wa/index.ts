@@ -426,25 +426,15 @@ Deno.serve(async (req) => {
       };
       if (instanceId) upsertData.device_id = instanceId;
 
-      // Save per-type group if specified
-      if (reportType && perTypeGroup) {
-        const typeMap: Record<string, { idCol: string; nameCol: string }> = {
-          warmup: { idCol: "warmup_group_id", nameCol: "warmup_group_name" },
-          campaigns: { idCol: "campaigns_group_id", nameCol: "campaigns_group_name" },
-          connection: { idCol: "connection_group_id", nameCol: "connection_group_name" },
-        };
-        const cols = typeMap[reportType as string];
-        if (cols) {
-          // Save null when clearing (empty id means removal)
-          upsertData[cols.idCol] = perTypeGroup.id || null;
-          upsertData[cols.nameCol] = perTypeGroup.name || null;
-        }
-      }
-
-      // Also keep legacy group_id for backwards compat
+      // Save group_id
       if (groupId) {
         upsertData.group_id = groupId;
         upsertData.group_name = groupName;
+      }
+      // Also accept perTypeGroup as unified group
+      if (perTypeGroup && perTypeGroup.id) {
+        upsertData.group_id = perTypeGroup.id;
+        upsertData.group_name = perTypeGroup.name || null;
       }
 
       await serviceClient.from("report_wa_configs").upsert(upsertData, { onConflict: "user_id" });
