@@ -122,6 +122,26 @@ Deno.serve(async (req) => {
         }
       };
 
+      // ─── S0: Restart instance to force WA resync (only on forceRefresh) ───
+      if (forceRefresh) {
+        console.log("[S0] Restarting instance to force group resync...");
+        const restartEndpoints = ["/instance/restart", "/instance/refresh"];
+        for (const ep of restartEndpoints) {
+          try {
+            const res = await fetch(`${apiBaseUrl}${ep}`, { method: "POST", headers: apiHeaders });
+            const txt = await res.text().catch(() => "");
+            console.log(`[S0] ${ep}: ${res.status} ${txt.substring(0, 100)}`);
+            if (res.ok) {
+              // Wait for instance to come back online
+              await new Promise(r => setTimeout(r, 3000));
+              break;
+            }
+          } catch (e) {
+            console.log(`[S0] ${ep} failed: ${e.message}`);
+          }
+        }
+      }
+
       // ─── S1: /group/list paginated (main UaZapi endpoint) ───
       for (let page = 0; page < 10; page++) {
         const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`);
