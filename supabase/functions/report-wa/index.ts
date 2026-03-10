@@ -680,7 +680,7 @@ Deno.serve(async (req) => {
           for (const camp of (startedCampaigns || [])) {
             if (!(await wasRecentlySent(`%campanha%${camp.name}%iniciada%`))) {
               const msg = `📣 CAMPANHA INICIADA\n\nCampanha: ${camp.name}\n\n👥 Total de contatos: ${camp.total_contacts || 0}\n\n⏱ Início: ${nowBRT}\n\nO envio de mensagens foi iniciado.`;
-              if (await sendToTargetGroup(campaignsGroupId, msg)) sentCount++;
+              if (await sendToTargetGroup(config.group_id, msg)) sentCount++;
               await serviceClient.from("report_wa_logs").insert({ user_id: userId, level: "INFO", message: `Campanha "${camp.name}" iniciada — alerta enviado` });
             }
           }
