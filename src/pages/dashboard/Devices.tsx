@@ -1183,7 +1183,7 @@ const Devices = () => {
         setConnectStep("done");
         const phoneMsg = connectResult.phone ? ` Número: ${connectResult.phone}` : "";
         toast({ title: "Já conectado!", description: `Esta instância já está autenticada.${phoneMsg}` });
-        setConnectOpen(false);
+        setConnectOpen(false); resumeKeepAlive();
         return;
       }
 
