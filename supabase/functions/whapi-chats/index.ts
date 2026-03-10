@@ -122,23 +122,36 @@ Deno.serve(async (req) => {
         }
       };
 
-      // ─── S0: Restart instance to force WA resync (only on forceRefresh) ───
+      // ─── S0: Restart/resync instance to force WA group refresh (only on forceRefresh) ───
       if (forceRefresh) {
-        console.log("[S0] Restarting instance to force group resync...");
-        const restartEndpoints = ["/instance/restart", "/instance/refresh"];
-        for (const ep of restartEndpoints) {
+        console.log("[S0] Forcing instance resync...");
+        // Try both GET and POST for restart/refresh endpoints
+        const restartAttempts = [
+          { ep: "/instance/restart", method: "GET" },
+          { ep: "/instance/restart", method: "POST" },
+          { ep: "/instance/refresh", method: "GET" },
+          { ep: "/instance/refresh", method: "POST" },
+          { ep: "/instance/reboot", method: "GET" },
+          { ep: "/group/sync", method: "GET" },
+          { ep: "/group/sync", method: "POST" },
+        ];
+        let restarted = false;
+        for (const { ep, method } of restartAttempts) {
           try {
-            const res = await fetch(`${apiBaseUrl}${ep}`, { method: "POST", headers: apiHeaders });
+            const res = await fetch(`${apiBaseUrl}${ep}`, { method, headers: apiHeaders });
             const txt = await res.text().catch(() => "");
-            console.log(`[S0] ${ep}: ${res.status} ${txt.substring(0, 100)}`);
+            console.log(`[S0] ${method} ${ep}: ${res.status} ${txt.substring(0, 100)}`);
             if (res.ok) {
-              // Wait for instance to come back online
-              await new Promise(r => setTimeout(r, 3000));
+              restarted = true;
               break;
             }
           } catch (e) {
             console.log(`[S0] ${ep} failed: ${e.message}`);
           }
+        }
+        if (restarted) {
+          // Wait for instance to come back online
+          await new Promise(r => setTimeout(r, 4000));
         }
       }
 
