@@ -59,7 +59,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const maxInstances = sub.max_instances || 3;
+    // Trial provision: always cap at 3 regardless of subscription max_instances
+    const maxInstances = Math.min(sub.max_instances || 3, 3);
     const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
     const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
 
