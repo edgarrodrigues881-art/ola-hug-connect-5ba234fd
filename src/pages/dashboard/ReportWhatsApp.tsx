@@ -102,14 +102,36 @@ export default function ReportWhatsApp() {
     return response.data;
   };
 
+  // Ensure a report_wa device exists, creating one if needed
+  const ensureReportDevice = async (): Promise<string | null> => {
+    if (reportDevice?.id) return reportDevice.id;
+    // Create a new report_wa device
+    const { data, error } = await supabase
+      .from("devices")
+      .insert({
+        user_id: user!.id,
+        name: "Relatorio Via Whatsapp",
+        login_type: "report_wa",
+        status: "Disconnected",
+        instance_type: "report",
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error("Erro ao criar instância de relatório: " + error.message);
+    // Invalidate to pick up the new device
+    await queryClient.invalidateQueries({ queryKey: ["report-device"] });
+    return data.id;
+  };
+
   const handleConnectQR = async () => {
-    if (!reportDevice?.id) return;
     setConnectStep("qr");
     setQrLoading(true);
     setQrCodeBase64("");
     setConnectError("");
     try {
-      const result = await callApi({ action: "connect", deviceId: reportDevice.id, method: "qr" });
+      const deviceId = await ensureReportDevice();
+      if (!deviceId) return;
+      const result = await callApi({ action: "connect", deviceId, method: "qr" });
       if (result?.alreadyConnected) {
         setQrConnected(true);
         setConnectStep("done");
@@ -143,14 +165,16 @@ export default function ReportWhatsApp() {
   };
 
   const handleRequestPairingCode = async () => {
-    if (!reportDevice?.id || !pairingPhone) return;
+    if (!pairingPhone) return;
     setPairingLoading(true);
     setConnectError("");
     setPairingCode("");
     try {
+      const deviceId = await ensureReportDevice();
+      if (!deviceId) return;
       const result = await callApi({
         action: "requestPairingCode",
-        deviceId: reportDevice.id,
+        deviceId,
         phoneNumber: pairingPhone,
       });
       if (result?.alreadyConnected) {
