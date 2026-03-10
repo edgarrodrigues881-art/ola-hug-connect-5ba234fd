@@ -129,8 +129,10 @@ Deno.serve(async (req) => {
       const resolvedChipState = chip_state || "new";
       const now = new Date();
 
-      // Day 1 wait: new=5-8h, recovered=3-6h (more cautious but shorter idle)
-      const waitHours = resolvedChipState === "recovered" ? randInt(3, 6) : randInt(5, 8);
+      // Day 1 wait: new=5-8h, recovered=3-6h, unstable=4-7h
+      const waitHoursMap: Record<string, [number, number]> = { new: [5, 8], recovered: [3, 6], unstable: [4, 7] };
+      const [wMin, wMax] = waitHoursMap[resolvedChipState] || [5, 8];
+      const waitHours = randInt(wMin, wMax);
       const firstActivityAt = new Date(now.getTime() + waitHours * 60 * 60 * 1000);
       const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
