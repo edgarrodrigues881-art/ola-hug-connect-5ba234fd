@@ -404,7 +404,7 @@ async function handleTick(db: any) {
             break;
           }
 
-          const message = pickRandom(msgPool);
+          const message = getGroupMsg();
           await uazapiSendText(baseUrl, token, poolGroup.external_group_ref, message);
 
           await db.from("warmup_cycles").update({
