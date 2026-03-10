@@ -703,11 +703,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get available tokens for this user
+      // Get available or blocked tokens (not currently in_use with a device) for this user
       const { data: availableTokens } = await adminClient.from("user_api_tokens")
         .select("id, token")
         .eq("user_id", target_user_id)
-        .eq("status", "available")
+        .in("status", ["available", "blocked"])
+        .is("device_id", null)
         .order("created_at", { ascending: true })
         .limit(disconnected.length);
 
