@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
                 if (!alreadySent) {
                   const rate = Math.round(((camp.failed_count || 0) / totalAttempts) * 100);
                   const msg = `🚨 FALHAS DETECTADAS\n\nCampanha: ${camp.name}\n\n⚠️ Taxa de falha: ${rate}%\n❌ Falhas: ${camp.failed_count || 0}/${totalAttempts}\n\n⏱ Horário: ${nowBRT}\n\nA taxa de falha está acima de 30%. Considere pausar a campanha para investigação.`;
-                  const sent = await sendToGroup(creds, campaignsGroupId, msg);
+                  const sent = await sendToGroup(creds, targetGroupId, msg);
                   if (sent) totalSent++;
                   await logEvent(config.user_id, "WARN", `Campanha "${camp.name}" falhas detectadas (${rate}%) — alerta enviado`);
                 }
