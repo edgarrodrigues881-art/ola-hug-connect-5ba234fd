@@ -404,7 +404,14 @@ export default function ReportWhatsApp() {
           alert_campaign_end: false,
           alert_high_failures: false,
         };
-        const { error } = await supabase.from("report_wa_configs").insert({ user_id: user!.id, ...defaults, ...updates });
+        const { error } = await supabase.from("report_wa_configs").insert({
+          user_id: user!.id,
+          device_id: reportDevice?.id || null,
+          connection_status: reportDevice?.status === "Ready" ? "connected" : "disconnected",
+          connected_phone: reportDevice?.number || null,
+          ...defaults,
+          ...updates,
+        });
         if (error) throw error;
       }
     },
