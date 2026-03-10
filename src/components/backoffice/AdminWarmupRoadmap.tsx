@@ -206,7 +206,7 @@ const ROADMAP_BANIDO: DayPlan[] = [
 ];
 
 // ═══════════════════════════════════════════════
-// CHIP SENSÍVEL — 30 dias, ultra-conservador
+// CHIP FRACO — 30 dias, ultra-conservador
 // ═══════════════════════════════════════════════
 const ROADMAP_SENSIVEL: DayPlan[] = [
   {
