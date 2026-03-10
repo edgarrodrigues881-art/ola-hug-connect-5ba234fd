@@ -1,3 +1,4 @@
+// sync-devices v4.0 — optimized for 1000+ instances across multiple clients
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,428 +7,319 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function oplog(client: any, userId: string, event: string, details: string, deviceId?: string | null, meta?: any) {
-  try { await client.from("operation_logs").insert({ user_id: userId, device_id: deviceId || null, event, details, meta: meta || {} }); } catch (_e) { /* ignore */ }
-}
+const jsonRes = (data: any, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-// ── Parallel batch helper ──
-async function processBatch<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = [];
-  for (let i = 0; i < items.length; i += concurrency) {
-    const batch = items.slice(i, i + concurrency);
-    const batchResults = await Promise.allSettled(batch.map(fn));
-    for (const r of batchResults) {
-      if (r.status === "fulfilled") results.push(r.value);
-    }
-  }
-  return results;
-}
-
-// ── Process a single device sync ──
-async function syncOneDevice(
-  device: any,
-  serviceClient: any,
-  userId: string,
-  globalDeadline: number,
-): Promise<any> {
-  // Abort if we're running out of time (leave 5s buffer)
-  if (Date.now() > globalDeadline) {
-    return { id: device.id, name: device.name, found: false, status: device.status, error: "Skipped — time limit" };
-  }
-
-  const deviceToken = device.uazapi_token;
-  const deviceBaseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
-
-  if (!deviceToken || !deviceBaseUrl) {
-    return { id: device.id, name: device.name, found: false, status: device.status, error: "No token configured" };
-  }
-
-  let newStatus = device.status;
-  let formattedPhone = device.number || "";
-  let profilePicture = device.profile_picture || null;
-
+// ── Lightweight fetch with timeout ──
+async function fetchWithTimeout(url: string, opts: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const controller = new AbortController();
-    // Shorter timeout per device (6s instead of 10s) to fit more in the window
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-    let res: Response;
-    try {
-      res = await fetch(`${deviceBaseUrl}/instance/status`, {
-        method: "GET",
-        headers: { "token": deviceToken, "Accept": "application/json" },
-        signal: controller.signal,
-      });
-    } catch (fetchErr: any) {
-      clearTimeout(timeoutId);
-      const isTimeout = fetchErr?.name === "AbortError";
-      return {
-        id: device.id, name: device.name, found: false,
-        status: device.status, error: isTimeout ? "Timeout" : `Network: ${fetchErr?.message}`,
-      };
-    }
-    clearTimeout(timeoutId);
-
-    // 401: token invalid
-    if (res.status === 401) {
-      await res.text();
-      await serviceClient.from("devices").update({
-        status: "Disconnected", uazapi_token: null, uazapi_base_url: null, proxy_id: null,
-      }).eq("id", device.id);
-      await serviceClient.from("user_api_tokens").update({
-        status: "invalid", device_id: null, assigned_at: null,
-      }).eq("device_id", device.id);
-      if (device.proxy_id) {
-        await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
-      }
-      await oplog(serviceClient, userId, "uazapi_error", `Token inválido (401) para "${device.name}"`, device.id, { status: 401 });
-      return { id: device.id, name: device.name, found: false, status: "Disconnected", error: "Token invalid" };
-    }
-
-    // 404: strike system
-    if (res.status === 404) {
-      await res.text();
-      const { data: recent404s } = await serviceClient
-        .from("operation_logs").select("id")
-        .eq("device_id", device.id).eq("event", "sync_404_strike")
-        .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
-
-      const strikeCount = (recent404s?.length || 0) + 1;
-      const STRIKE_THRESHOLD = 3;
-
-      await oplog(serviceClient, userId, "sync_404_strike",
-        `"${device.name}" 404 (strike ${strikeCount}/${STRIKE_THRESHOLD})`, device.id, { strike: strikeCount });
-
-      if (strikeCount < STRIKE_THRESHOLD) {
-        await serviceClient.from("devices").update({ status: "Disconnected" }).eq("id", device.id);
-        return { id: device.id, name: device.name, found: false, status: "Disconnected", error: `404 strike ${strikeCount}/${STRIKE_THRESHOLD}` };
-      }
-
-      // Confirmed gone — release
-      await serviceClient.from("devices").update({
-        status: "Disconnected", uazapi_token: null, uazapi_base_url: null, proxy_id: null,
-      }).eq("id", device.id);
-      await serviceClient.from("user_api_tokens").update({
-        status: "available", device_id: null, assigned_at: null, healthy: false,
-      }).eq("device_id", device.id);
-      if (device.proxy_id) {
-        await serviceClient.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id);
-      }
-      // Pause warmup
-      const { data: activeCycles404 } = await serviceClient
-        .from("warmup_cycles").select("id, phase")
-        .eq("device_id", device.id).eq("is_running", true)
-        .neq("phase", "completed");
-      for (const cycle of (activeCycles404 || [])) {
-        await serviceClient.from("warmup_cycles").update({
-          is_running: false, phase: "paused", previous_phase: cycle.phase,
-          last_error: "Auto-pausado: instância inexistente (404 confirmado)",
-        }).eq("id", cycle.id);
-        await serviceClient.from("warmup_jobs").update({ status: "cancelled" })
-          .eq("cycle_id", cycle.id).eq("status", "pending");
-      }
-      return { id: device.id, name: device.name, found: false, status: "Disconnected", error: "Instance gone — released" };
-    }
-
-    if (!res.ok) {
-      await res.text();
-      return { id: device.id, name: device.name, found: false, status: device.status, error: `API ${res.status}` };
-    }
-
-    const data = await res.json();
-    const inst = data.instance || data || {};
-    const state = inst.status || data.state;
-    const isConnected = state === "connected" || state === "authenticated";
-    const phone = inst.owner || inst.phone || data.phone || "";
-
-    if (isConnected && phone) {
-      const raw = String(phone).replace(/\D/g, "");
-      if (raw.startsWith("55") && raw.length === 13) {
-        formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 9)}-${raw.slice(9)}`;
-      } else if (raw.startsWith("55") && raw.length === 12) {
-        formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, 8)}-${raw.slice(8)}`;
-      } else if (raw.startsWith("55") && raw.length >= 10) {
-        formattedPhone = `+${raw.slice(0, 2)} ${raw.slice(2, 4)} ${raw.slice(4, raw.length - 4)}-${raw.slice(raw.length - 4)}`;
-      } else if (raw) {
-        formattedPhone = `+${raw}`;
-      }
-    } else if (!isConnected) {
-      formattedPhone = device.number || "";
-    }
-
-    profilePicture = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : (device.profile_picture || null);
-    const syncedProfileName = isConnected ? (inst.profileName || inst.pushname || "") : (device.profile_name || "");
-    newStatus = isConnected ? "Ready" : "Disconnected";
-
-    const statusChanged = newStatus !== device.status;
-    const phoneChanged = formattedPhone !== (device.number || "");
-    const picChanged = profilePicture !== (device.profile_picture || null);
-    const nameChanged = (syncedProfileName || "") !== (device.profile_name || "");
-
-    if (statusChanged || phoneChanged || picChanged || nameChanged) {
-      await serviceClient.from("devices").update({
-        status: newStatus,
-        number: formattedPhone,
-        profile_picture: profilePicture,
-        profile_name: syncedProfileName || device.profile_name || "",
-      }).eq("id", device.id);
-
-      if (statusChanged) {
-        const eventName = newStatus === "Disconnected" ? "instance_disconnected" : "instance_connected";
-        await oplog(serviceClient, userId, eventName, `"${device.name}" → ${newStatus}`, device.id, { previous: device.status, phone: formattedPhone });
-
-        // ── Instant WhatsApp notification (fire-and-forget, don't block) ──
-        if (device.login_type !== "report_wa") {
-          notifyStatusChange(serviceClient, userId, device, newStatus, formattedPhone, syncedProfileName).catch(() => {});
-        }
-
-        // ── Auto-pause warmup on disconnect ──
-        if (newStatus === "Disconnected") {
-          await handleWarmupPause(serviceClient, userId, device);
-        }
-        // ── Auto-resume warmup on reconnect ──
-        if (newStatus === "Ready") {
-          await handleWarmupResume(serviceClient, userId, device);
-        }
-
-        // ── Make webhook ──
-        const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
-        if (makeUrl) {
-          fetch(makeUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event: newStatus === "Ready" ? "instance.connected" : "instance.disconnected",
-              client_id: userId,
-              instance: { id: device.id, name: device.name, type: device.instance_type || "principal", status: newStatus === "Ready" ? "conectada" : "desconectada" },
-              timestamp: new Date().toISOString(),
-            }),
-          }).catch(() => {});
-        }
-      }
-    }
-  } catch (err) {
-    console.error(`Error syncing device ${device.name}:`, err);
-  }
-
-  return { id: device.id, name: device.name, found: true, status: newStatus, phone: formattedPhone };
-}
-
-// ── Notification helper (extracted to avoid blocking sync loop) ──
-async function notifyStatusChange(serviceClient: any, userId: string, device: any, newStatus: string, formattedPhone: string, syncedProfileName: string) {
-  try {
-    const { data: rwConfig } = await serviceClient
-      .from("report_wa_configs")
-      .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances")
-      .eq("user_id", userId).not("device_id", "is", null).maybeSingle();
-
-    const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
-    if (!alertEnabled || !rwConfig?.group_id || rwConfig?.connection_status !== "connected") return;
-
-    const { data: rwDevice } = await serviceClient
-      .from("devices").select("uazapi_token, uazapi_base_url")
-      .eq("id", rwConfig.device_id).single();
-
-    if (!rwDevice?.uazapi_token || !rwDevice?.uazapi_base_url) return;
-
-    const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
-    const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-    const isConn = newStatus === "Ready";
-    const reportPhone = isConn ? (formattedPhone || device.number || "N/A") : (device.number || formattedPhone || "N/A");
-    const chipName = syncedProfileName || device.profile_name || device.name;
-    const msg = isConn
-      ? `✅ INSTÂNCIA CONECTADA\n\n🔹 Instância: ${device.name}\n📱 Chip: ${chipName}\n📞 Número: ${reportPhone}\n\n🟢 Status: Online\n⏱ Conectado às: ${nowBRT}`
-      : `⚠️ ALERTA DE CONEXÃO\n\n🖥 Instância: ${device.name}\n📞 Número: ${reportPhone}\n\n❌ Status: Desconectado\n⏱ Horário: ${nowBRT}\n\nA instância perdeu a conexão com o WhatsApp.\n\nPara voltar a funcionar, é necessário reconectar.`;
-
-    const endpoints = [
-      { path: "/chat/send-text", body: { to: rwConfig.group_id, body: msg } },
-      { path: "/send/text", body: { number: rwConfig.group_id, text: msg } },
-    ];
-    for (const ep of endpoints) {
-      try {
-        const r = await fetch(`${rwBase}${ep.path}`, {
-          method: "POST",
-          headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json" },
-          body: JSON.stringify(ep.body),
-        });
-        if (r.ok) {
-          await serviceClient.from("report_wa_logs").insert({
-            user_id: userId, level: isConn ? "INFO" : "WARN",
-            message: `Instância "${device.name}" ${isConn ? "conectada" : "desconectada"} — alerta enviado`,
-          });
-          return;
-        }
-        await r.text();
-      } catch (_) {}
-    }
-  } catch (_) {}
-}
-
-// ── Warmup pause on disconnect ──
-async function handleWarmupPause(serviceClient: any, userId: string, device: any) {
-  const { data: activeCycles } = await serviceClient
-    .from("warmup_cycles").select("id, phase")
-    .eq("device_id", device.id).eq("is_running", true)
-    .neq("phase", "completed").neq("phase", "paused");
-
-  for (const cycle of (activeCycles || [])) {
-    await serviceClient.from("warmup_cycles").update({
-      is_running: false, phase: "paused", previous_phase: cycle.phase,
-      last_error: "Auto-pausado: instância desconectada",
-    }).eq("id", cycle.id);
-    await serviceClient.from("warmup_jobs").update({ status: "cancelled" })
-      .eq("cycle_id", cycle.id).eq("status", "pending");
-    await serviceClient.from("warmup_audit_logs").insert({
-      user_id: userId, device_id: device.id, cycle_id: cycle.id,
-      level: "warn", event_type: "auto_paused_disconnected",
-      message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
-    });
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    clearTimeout(tid);
+    return res;
+  } catch (e) {
+    clearTimeout(tid);
+    throw e;
   }
 }
 
-// ── Warmup resume on reconnect ──
-async function handleWarmupResume(serviceClient: any, userId: string, device: any) {
-  const { data: pausedCycles } = await serviceClient
-    .from("warmup_cycles")
-    .select("id, first_24h_ends_at, day_index, days_total, user_id, previous_phase, last_error, daily_interaction_budget_target, daily_interaction_budget_used")
-    .eq("device_id", device.id).eq("phase", "paused").eq("is_running", false);
-
-  for (const cycle of (pausedCycles || [])) {
-    if (cycle.last_error !== "Auto-pausado: instância desconectada") continue;
-
-    const nowDate = new Date();
-    const first24hEnds = new Date(cycle.first_24h_ends_at);
-    let resumePhase = cycle.previous_phase || "groups_only";
-    if (nowDate < first24hEnds) resumePhase = "pre_24h";
-    if (["error", "completed", "paused"].includes(resumePhase)) resumePhase = "groups_only";
-
-    await serviceClient.from("warmup_cycles").update({
-      is_running: true, phase: resumePhase, previous_phase: null, last_error: null,
-      next_run_at: nowDate.toISOString(),
-    }).eq("id", cycle.id);
-
-    const tomorrow = new Date(nowDate);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(3, 5, 0, 0);
-    await serviceClient.from("warmup_jobs").insert({
-      user_id: cycle.user_id, device_id: device.id, cycle_id: cycle.id,
-      job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
-    });
-
-    if (["autosave_enabled", "community_enabled"].includes(resumePhase)) {
-      const remaining = (cycle.daily_interaction_budget_target || 25) - (cycle.daily_interaction_budget_used || 0);
-      if (remaining > 0) {
-        const windowStart = Math.max(nowDate.getTime(), new Date(nowDate).setUTCHours(11, 0, 0, 0));
-        const windowEnd = new Date(nowDate).setUTCHours(24, 0, 0, 0);
-        if (windowStart < windowEnd) {
-          const interactionCount = Math.min(remaining, 15);
-          const windowMs = windowEnd - windowStart;
-          const jobs: any[] = [];
-          for (let i = 0; i < interactionCount; i++) {
-            const baseOffset = (windowMs / interactionCount) * i;
-            const jitter = Math.floor(Math.random() * (windowMs / interactionCount * 0.4));
-            jobs.push({
-              user_id: cycle.user_id, device_id: device.id, cycle_id: cycle.id,
-              job_type: "autosave_interaction", payload: {},
-              run_at: new Date(windowStart + baseOffset + jitter).toISOString(), status: "pending",
-            });
-          }
-          if (jobs.length > 0) await serviceClient.from("warmup_jobs").insert(jobs);
-        }
-      }
+// ── Parallel runner with true concurrency pool ──
+async function runPool<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let idx = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (idx < items.length) {
+      const i = idx++;
+      try { await fn(items[i]); } catch { /* swallow */ }
     }
+  });
+  await Promise.all(workers);
+}
 
-    await serviceClient.from("warmup_audit_logs").insert({
-      user_id: userId, device_id: device.id, cycle_id: cycle.id,
-      level: "info", event_type: "auto_resumed_connected",
-      message: `Aquecimento retomado: instância reconectada (fase: ${resumePhase})`,
-    });
-  }
+// ── Format BR phone ──
+function fmtPhone(phone: string): string {
+  const r = String(phone).replace(/\D/g, "");
+  if (!r) return "";
+  if (r.startsWith("55") && r.length === 13) return `+${r.slice(0, 2)} ${r.slice(2, 4)} ${r.slice(4, 9)}-${r.slice(9)}`;
+  if (r.startsWith("55") && r.length === 12) return `+${r.slice(0, 2)} ${r.slice(2, 4)} ${r.slice(4, 8)}-${r.slice(8)}`;
+  if (r.startsWith("55") && r.length >= 10) return `+${r.slice(0, 2)} ${r.slice(2, 4)} ${r.slice(4, r.length - 4)}-${r.slice(r.length - 4)}`;
+  return `+${r}`;
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return jsonRes({ error: "Unauthorized" }, 401);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (userError || !user) return jsonRes({ error: "Unauthorized" }, 401);
 
     const userId = user.id;
-    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Fetch ALL devices (handle >1000 with pagination)
-    let allDevices: any[] = [];
+    // ── Fetch all devices with pagination ──
+    let devices: any[] = [];
     let from = 0;
-    const PAGE_SIZE = 500;
+    const PAGE = 500;
     while (true) {
-      const { data: page, error: devError } = await serviceClient
-        .from("devices")
+      const { data, error } = await svc.from("devices")
         .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture")
         .eq("user_id", userId)
-        .range(from, from + PAGE_SIZE - 1);
-      if (devError) throw devError;
-      if (!page || page.length === 0) break;
-      allDevices = allDevices.concat(page);
-      if (page.length < PAGE_SIZE) break;
-      from += PAGE_SIZE;
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data?.length) break;
+      devices = devices.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
     }
 
-    // Global deadline: 50s from now (edge function limit ~60s, leave buffer)
-    const globalDeadline = Date.now() + 50_000;
+    // Split: devices WITH tokens (need API call) vs WITHOUT (skip)
+    const syncable = devices.filter(d => d.uazapi_token && d.uazapi_base_url);
+    const skipped = devices.length - syncable.length;
 
-    // Process in parallel batches of 25
-    const BATCH_CONCURRENCY = 25;
-    const results = await processBatch(allDevices, BATCH_CONCURRENCY, (device) =>
-      syncOneDevice(device, serviceClient, userId, globalDeadline)
-    );
+    // ── Global deadline: 48s (safe margin for 60s limit) ──
+    const deadline = Date.now() + 48_000;
 
-    // Sync proxy statuses (batch update)
-    const { data: allDevicesAfter } = await supabase.from("devices").select("proxy_id").eq("user_id", userId);
-    const { data: allProxies } = await supabase.from("proxies").select("id, status").eq("user_id", userId);
-    const linkedProxyIds = new Set((allDevicesAfter || []).filter((d: any) => d.proxy_id).map((d: any) => d.proxy_id));
+    // ── Batch DB updates (collect, then flush once) ──
+    const dbUpdates: { id: string; patch: Record<string, any> }[] = [];
+    const opLogs: any[] = [];
+    const warmupPauses: string[] = [];
+    const warmupResumes: string[] = [];
+    let synced = 0;
+    let timeouts = 0;
+    let errors = 0;
 
+    // ── Pre-fetch notification config once (shared across all devices) ──
+    let rwConfig: any = null;
+    let rwDevice: any = null;
+    try {
+      const { data } = await svc.from("report_wa_configs")
+        .select("device_id, alert_disconnect, group_id, connection_status, toggle_instances, connection_group_id")
+        .eq("user_id", userId).not("device_id", "is", null).maybeSingle();
+      rwConfig = data;
+      if (rwConfig?.device_id) {
+        const { data: rd } = await svc.from("devices")
+          .select("uazapi_token, uazapi_base_url")
+          .eq("id", rwConfig.device_id).single();
+        rwDevice = rd;
+      }
+    } catch { /* ignore */ }
+
+    const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
+    const targetGroup = rwConfig?.connection_group_id || rwConfig?.group_id;
+    const canNotify = alertEnabled && targetGroup && rwConfig?.connection_status === "connected"
+      && rwDevice?.uazapi_token && rwDevice?.uazapi_base_url;
+
+    // ── Process each device ──
+    await runPool(syncable, 40, async (device) => {
+      if (Date.now() > deadline) { timeouts++; return; }
+
+      const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
+      let res: Response;
+      try {
+        res = await fetchWithTimeout(`${baseUrl}/instance/status`, {
+          method: "GET",
+          headers: { token: device.uazapi_token, Accept: "application/json" },
+        }, 5000);
+      } catch (e: any) {
+        // Network error or timeout — preserve current status
+        if (e?.name === "AbortError") timeouts++;
+        else errors++;
+        return;
+      }
+
+      // ── 401: token invalid ──
+      if (res.status === 401) {
+        await res.text();
+        dbUpdates.push({ id: device.id, patch: { status: "Disconnected", uazapi_token: null, uazapi_base_url: null, proxy_id: null } });
+        // Release token
+        svc.from("user_api_tokens").update({ status: "invalid", device_id: null, assigned_at: null }).eq("device_id", device.id).then(() => {});
+        if (device.proxy_id) svc.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id).then(() => {});
+        opLogs.push({ user_id: userId, device_id: device.id, event: "uazapi_error", details: `Token inválido (401) "${device.name}"` });
+        synced++;
+        return;
+      }
+
+      // ── 404: strike system (lightweight) ──
+      if (res.status === 404) {
+        await res.text();
+        // Count recent strikes from opLogs buffer + DB
+        const { data: recent404s } = await svc.from("operation_logs").select("id")
+          .eq("device_id", device.id).eq("event", "sync_404_strike")
+          .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+
+        const strikes = (recent404s?.length || 0) + 1;
+        opLogs.push({ user_id: userId, device_id: device.id, event: "sync_404_strike", details: `"${device.name}" 404 (${strikes}/3)`, meta: { strike: strikes } });
+
+        if (strikes < 3) {
+          dbUpdates.push({ id: device.id, patch: { status: "Disconnected" } });
+        } else {
+          dbUpdates.push({ id: device.id, patch: { status: "Disconnected", uazapi_token: null, uazapi_base_url: null, proxy_id: null } });
+          svc.from("user_api_tokens").update({ status: "available", device_id: null, assigned_at: null, healthy: false }).eq("device_id", device.id).then(() => {});
+          if (device.proxy_id) svc.from("proxies").update({ status: "USADA" }).eq("id", device.proxy_id).then(() => {});
+          warmupPauses.push(device.id);
+        }
+        synced++;
+        return;
+      }
+
+      if (!res.ok) { await res.text(); errors++; synced++; return; }
+
+      // ── Parse status ──
+      const data = await res.json();
+      const inst = data.instance || data || {};
+      const state = inst.status || data.state;
+      const isConnected = state === "connected" || state === "authenticated";
+      const phone = inst.owner || inst.phone || data.phone || "";
+
+      const newStatus = isConnected ? "Ready" : "Disconnected";
+      const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
+      const newPic = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : (device.profile_picture || null);
+      const newName = isConnected ? (inst.profileName || inst.pushname || device.profile_name || "") : (device.profile_name || "");
+
+      const statusChanged = newStatus !== device.status;
+      const anyChanged = statusChanged
+        || newPhone !== (device.number || "")
+        || newPic !== (device.profile_picture || null)
+        || (newName || "") !== (device.profile_name || "");
+
+      if (anyChanged) {
+        dbUpdates.push({ id: device.id, patch: { status: newStatus, number: newPhone, profile_picture: newPic, profile_name: newName } });
+
+        if (statusChanged) {
+          opLogs.push({ user_id: userId, device_id: device.id, event: newStatus === "Disconnected" ? "instance_disconnected" : "instance_connected", details: `"${device.name}" → ${newStatus}`, meta: { previous: device.status } });
+
+          if (newStatus === "Disconnected") warmupPauses.push(device.id);
+          if (newStatus === "Ready") warmupResumes.push(device.id);
+
+          // Fire-and-forget notification
+          if (canNotify && device.login_type !== "report_wa") {
+            const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
+            const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+            const chipName = newName || device.name;
+            const rPhone = isConnected ? (newPhone || "N/A") : (device.number || "N/A");
+            const msg = isConnected
+              ? `✅ CONECTADA\n🔹 ${device.name}\n📱 ${chipName}\n📞 ${rPhone}\n🟢 Online ${nowBRT}`
+              : `⚠️ DESCONECTADA\n🖥 ${device.name}\n📞 ${rPhone}\n❌ Offline ${nowBRT}`;
+
+            fetch(`${rwBase}/chat/send-text`, {
+              method: "POST",
+              headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json" },
+              body: JSON.stringify({ to: targetGroup, body: msg }),
+            }).catch(() => {
+              fetch(`${rwBase}/send/text`, {
+                method: "POST",
+                headers: { token: rwDevice.uazapi_token, "Content-Type": "application/json" },
+                body: JSON.stringify({ number: targetGroup, text: msg }),
+              }).catch(() => {});
+            });
+          }
+
+          // Make webhook
+          const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+          if (makeUrl) {
+            fetch(makeUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                event: newStatus === "Ready" ? "instance.connected" : "instance.disconnected",
+                client_id: userId,
+                instance: { id: device.id, name: device.name, status: newStatus === "Ready" ? "conectada" : "desconectada" },
+                timestamp: new Date().toISOString(),
+              }),
+            }).catch(() => {});
+          }
+        }
+      }
+      synced++;
+    });
+
+    // ── Flush all DB updates in parallel batches ──
+    if (dbUpdates.length > 0) {
+      await runPool(dbUpdates, 50, async (u) => {
+        await svc.from("devices").update(u.patch).eq("id", u.id);
+      });
+    }
+
+    // ── Flush operation logs (single bulk insert) ──
+    if (opLogs.length > 0) {
+      const batches = [];
+      for (let i = 0; i < opLogs.length; i += 100) {
+        batches.push(opLogs.slice(i, i + 100));
+      }
+      await Promise.all(batches.map(b => svc.from("operation_logs").insert(b)));
+    }
+
+    // ── Handle warmup pauses (batch) ──
+    if (warmupPauses.length > 0) {
+      for (const devId of warmupPauses) {
+        const { data: cycles } = await svc.from("warmup_cycles").select("id, phase")
+          .eq("device_id", devId).eq("is_running", true)
+          .neq("phase", "completed").neq("phase", "paused");
+        for (const c of (cycles || [])) {
+          await svc.from("warmup_cycles").update({
+            is_running: false, phase: "paused", previous_phase: c.phase,
+            last_error: "Auto-pausado: instância desconectada",
+          }).eq("id", c.id);
+          svc.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", c.id).eq("status", "pending").then(() => {});
+        }
+      }
+    }
+
+    // ── Handle warmup resumes (batch) ──
+    if (warmupResumes.length > 0) {
+      for (const devId of warmupResumes) {
+        const { data: cycles } = await svc.from("warmup_cycles")
+          .select("id, first_24h_ends_at, user_id, previous_phase, last_error, daily_interaction_budget_target, daily_interaction_budget_used")
+          .eq("device_id", devId).eq("phase", "paused").eq("is_running", false);
+        for (const c of (cycles || [])) {
+          if (c.last_error !== "Auto-pausado: instância desconectada") continue;
+          const now = new Date();
+          let phase = c.previous_phase || "groups_only";
+          if (now < new Date(c.first_24h_ends_at)) phase = "pre_24h";
+          if (["error", "completed", "paused"].includes(phase)) phase = "groups_only";
+          await svc.from("warmup_cycles").update({
+            is_running: true, phase, previous_phase: null, last_error: null, next_run_at: now.toISOString(),
+          }).eq("id", c.id);
+        }
+      }
+    }
+
+    // ── Sync proxy statuses ──
+    const [{ data: devProxies }, { data: allProxies }] = await Promise.all([
+      supabase.from("devices").select("proxy_id").eq("user_id", userId).not("proxy_id", "is", null),
+      supabase.from("proxies").select("id, status").eq("user_id", userId),
+    ]);
+    const linkedIds = new Set((devProxies || []).map((d: any) => d.proxy_id));
     let proxiesUpdated = 0;
-    for (const proxy of (allProxies || [])) {
-      const isLinked = linkedProxyIds.has(proxy.id);
-      let correctStatus: string;
-      if (isLinked) correctStatus = "USANDO";
-      else if (proxy.status === "USANDO") correctStatus = "USADA";
-      else correctStatus = proxy.status;
-
-      if (proxy.status !== correctStatus) {
-        await supabase.from("proxies").update({ status: correctStatus } as any).eq("id", proxy.id);
+    for (const p of (allProxies || [])) {
+      const correct = linkedIds.has(p.id) ? "USANDO" : (p.status === "USANDO" ? "USADA" : p.status);
+      if (p.status !== correct) {
+        await supabase.from("proxies").update({ status: correct } as any).eq("id", p.id);
         proxiesUpdated++;
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, total: allDevices.length, synced: results.length, proxiesUpdated }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonRes({
+      success: true,
+      total: devices.length,
+      synced,
+      skipped,
+      timeouts,
+      errors,
+      proxiesUpdated,
+    });
   } catch (error: unknown) {
     console.error("Sync error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ error: error instanceof Error ? error.message : "Unknown" }, 500);
   }
 });
