@@ -573,11 +573,26 @@ async function handleTick(db: any) {
 
           if (count && count > 0) {
             await db.from("warmup_cycles").update({ phase: "autosave_enabled" }).eq("id", cycle.id);
+
+            // Auto-enroll in community pool when reaching autosave phase
+            const { data: existingMembership } = await db.from("warmup_community_membership")
+              .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
+            if (!existingMembership) {
+              await db.from("warmup_community_membership").insert({
+                device_id: job.device_id, user_id: job.user_id, cycle_id: job.cycle_id,
+                is_enabled: true, is_eligible: true, enabled_at: new Date().toISOString(),
+              });
+            } else if (!existingMembership.is_enabled) {
+              await db.from("warmup_community_membership").update({
+                is_enabled: true, is_eligible: true, enabled_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+              }).eq("id", existingMembership.id);
+            }
+
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "phase_changed",
-              message: `Auto Save habilitado (${count} contatos ativos)`,
-              meta: { active_contacts: count },
+              message: `Auto Save habilitado (${count} contatos ativos) — inscrito automaticamente no comunitário`,
+              meta: { active_contacts: count, auto_enrolled_community: true },
             });
           } else {
             await db.from("warmup_audit_logs").insert({
