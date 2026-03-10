@@ -299,12 +299,51 @@ Deno.serve(async (req) => {
       console.log(`Total unique groups: ${allGroups.length}`);
 
       // Map to standardized format
-      const chats = allGroups.map((g: any) => ({
+      let chats = allGroups.map((g: any) => ({
         id: g.JID || g.jid || g.id || g.groupJid || "",
-        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "Grupo sem nome",
+        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "",
         participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
         isGroup: true,
       }));
+
+      // ─── Enrich groups without names via /group/info ───
+      const nameless = chats.filter(c => !c.name && c.id);
+      if (nameless.length > 0 && nameless.length <= 20) {
+        console.log(`[ENRICH] Fetching names for ${nameless.length} unnamed groups...`);
+        const enrichResults = await Promise.allSettled(
+          nameless.map(async (g) => {
+            try {
+              const infoRes = await fetch(`${apiBaseUrl}/group/info`, {
+                method: "POST",
+                headers: apiHeaders,
+                body: JSON.stringify({ groupJid: g.id }),
+              });
+              if (infoRes.ok) {
+                const info = await infoRes.json();
+                const gData = info.group || info.data || info || {};
+                const resolvedName = gData.Name || gData.name || gData.Subject || gData.subject || "";
+                if (resolvedName) {
+                  console.log(`[ENRICH] ${g.id} → "${resolvedName}"`);
+                  return { id: g.id, name: resolvedName };
+                }
+              }
+            } catch {}
+            return { id: g.id, name: "" };
+          })
+        );
+        const nameMap = new Map<string, string>();
+        for (const r of enrichResults) {
+          if (r.status === "fulfilled" && r.value.name) {
+            nameMap.set(r.value.id, r.value.name);
+          }
+        }
+        chats = chats.map(c => ({
+          ...c,
+          name: c.name || nameMap.get(c.id) || c.id || "Grupo sem nome",
+        }));
+      } else {
+        chats = chats.map(c => ({ ...c, name: c.name || c.id || "Grupo sem nome" }));
+      }
 
       return new Response(JSON.stringify({ chats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -354,14 +393,40 @@ Deno.serve(async (req) => {
 
       console.log(`[ALL] Total unique groups from all devices: ${allGroups.length}`);
 
-      const chats = allGroups.map((g: any) => ({
+      let chatsAll = allGroups.map((g: any) => ({
         id: g.JID || g.jid || g.id || g.groupJid || "",
-        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "Grupo sem nome",
+        name: g.Name || g.name || g.Subject || g.subject || g.groupName || "",
         participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
         isGroup: true,
       }));
 
-      return new Response(JSON.stringify({ chats }), {
+      // Enrich unnamed groups - pick first connected device for info calls
+      const namelessAll = chatsAll.filter(c => !c.name && c.id);
+      const firstDev = (allDevices || []).find(d => d.uazapi_token && d.uazapi_base_url);
+      if (namelessAll.length > 0 && namelessAll.length <= 20 && firstDev) {
+        const devBase = (firstDev.uazapi_base_url || "").replace(/\/+$/, "");
+        const devHdrs = { token: firstDev.uazapi_token, Accept: "application/json", "Content-Type": "application/json" };
+        const results = await Promise.allSettled(
+          namelessAll.map(async (g) => {
+            try {
+              const r = await fetch(`${devBase}/group/info`, { method: "POST", headers: devHdrs, body: JSON.stringify({ groupJid: g.id }) });
+              if (r.ok) {
+                const info = await r.json();
+                const gd = info.group || info.data || info || {};
+                return { id: g.id, name: gd.Name || gd.name || gd.Subject || gd.subject || "" };
+              }
+            } catch {}
+            return { id: g.id, name: "" };
+          })
+        );
+        const nm = new Map<string, string>();
+        for (const r of results) { if (r.status === "fulfilled" && r.value.name) nm.set(r.value.id, r.value.name); }
+        chatsAll = chatsAll.map(c => ({ ...c, name: c.name || nm.get(c.id) || c.id || "Grupo sem nome" }));
+      } else {
+        chatsAll = chatsAll.map(c => ({ ...c, name: c.name || c.id || "Grupo sem nome" }));
+      }
+
+      return new Response(JSON.stringify({ chats: chatsAll }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
