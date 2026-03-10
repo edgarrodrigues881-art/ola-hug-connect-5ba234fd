@@ -399,7 +399,7 @@ export default function AdminConexao() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            {isConnected ? (
+            {isConnected && (
               <Button
                 size="sm"
                 variant="outline"
@@ -410,10 +410,11 @@ export default function AdminConexao() {
                 {disconnecting ? <Loader2 size={14} className="mr-1 animate-spin" /> : <LogOut size={14} className="mr-1" />}
                 Desconectar
               </Button>
-            ) : (
+            )}
+            {!isConnected && (
               <Button size="sm" onClick={openConnectDialog} className="text-xs">
                 <QrCode size={14} className="mr-1" />
-                Conectar
+                Reconectar
               </Button>
             )}
           </div>
