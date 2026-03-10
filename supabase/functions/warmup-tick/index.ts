@@ -551,14 +551,17 @@ async function handleTick(db: any) {
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
             budgetMin = 3; budgetMax = 8;
+          } else if (chipState === "unstable") {
+            // Ultra-conservative for unstable
+            if (newPhase === "groups_only") { budgetMin = 50; budgetMax = 120; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 228; }
+            else { budgetMin = 170; budgetMax = 410; } // community_light max
           } else if (chipState === "recovered") {
-            // Conservative budgets for recovered
             if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; } // 250 groups + ~6 autosave
-            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; } // 250 + 10 + ~80 community
-            else { budgetMin = 180; budgetMax = 460; } // 350 + 10 + ~100 community
+            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; }
+            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; }
+            else { budgetMin = 180; budgetMax = 460; }
           } else {
-            // CHIP_NOVO budgets
             budgetMin = 200; budgetMax = 500;
           }
 
