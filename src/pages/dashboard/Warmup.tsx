@@ -28,6 +28,7 @@ import { PlanGateDialog } from "@/components/PlanGateDialog";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PROFILES, DURATION_OPTIONS, getPlanSummary, getSessionParams, type QualityProfile } from "@/lib/warmupMotor";
+import { MessageGeneratorPreview } from "@/components/warmup/MessageGeneratorPreview";
 
 const profileBadge: Record<string, { label: string; class: string }> = {
   novo: { label: "Novo", class: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
