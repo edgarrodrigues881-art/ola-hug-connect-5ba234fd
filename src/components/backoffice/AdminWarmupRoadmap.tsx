@@ -115,7 +115,7 @@ const ROADMAP_NOVO: DayPlan[] = [
 
 
 // ═══════════════════════════════════════════════
-// CHIP BANIDO (RECUPERAÇÃO) — 30 dias, cautela máxima
+// CHIP RECUPERADO — 30 dias, cautela máxima
 // ═══════════════════════════════════════════════
 const ROADMAP_BANIDO: DayPlan[] = [
   {
@@ -206,7 +206,7 @@ const ROADMAP_BANIDO: DayPlan[] = [
 ];
 
 // ═══════════════════════════════════════════════
-// CHIP SENSÍVEL — 30 dias, ultra-conservador
+// CHIP FRACO — 30 dias, ultra-conservador
 // ═══════════════════════════════════════════════
 const ROADMAP_SENSIVEL: DayPlan[] = [
   {
@@ -238,7 +238,7 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     title: i === 0 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 7} — Grupos + AutoSave`,
     goals: ["Grupos: 120-220 msgs", "Auto Save: 3-4 números × 2 msgs"],
     checklist: ["120-220 msgs grupos", "6-8 msgs Auto Save", "Sem restrições"],
-    tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip sensível pode recair." : undefined,
+    tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
     msgTarget: { min: 126, max: 228 }, groupTarget: 8, recipientTarget: 4,
   } as DayPlan)),
   // Days 11-30: community_light
@@ -303,7 +303,7 @@ const CATEGORIES: CategoryConfig[] = [
   },
   {
     key: "banido",
-    label: "🔴 Chip Banido",
+    label: "🔴 Chip Recuperado",
     subtitle: "Número com histórico de bloqueio/restrição",
     icon: Skull,
     iconColor: "text-red-400",
@@ -314,7 +314,7 @@ const CATEGORIES: CategoryConfig[] = [
   },
   {
     key: "sensivel",
-    label: "🟡 Chip Sensível",
+    label: "🟡 Chip Fraco",
     subtitle: "Número que sofre restrição facilmente",
     icon: AlertTriangle,
     iconColor: "text-yellow-400",
