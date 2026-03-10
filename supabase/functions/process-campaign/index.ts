@@ -453,6 +453,7 @@ Deno.serve(async (req) => {
     try {
     // ─── PAUSE ───
     if (action === "pause") {
+      const { data: campData } = await serviceClient.from("campaigns").select("name, sent_count, total_contacts").eq("id", campaignId).single();
       await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
       // Release locks — get device IDs from campaign
       const { data: camp } = await serviceClient.from("campaigns").select("device_id, device_ids").eq("id", campaignId).single();
@@ -462,6 +463,8 @@ Deno.serve(async (req) => {
         await releaseDeviceLocks(serviceClient, ids, campaignId);
         console.log(`Released device locks for paused campaign ${campaignId}`);
       }
+      // Instant WA alert
+      sendCampaignAlertToWa(serviceClient, userId, campData?.name || "", "paused", { sent: campData?.sent_count, total: campData?.total_contacts });
       return new Response(JSON.stringify({ success: true, status: "paused" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
