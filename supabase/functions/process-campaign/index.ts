@@ -370,15 +370,18 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
   console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
   // Revert any processing contacts back to pending
   await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
+  const realStats = await getRealCampaignStats(serviceClient, campaignId);
   await serviceClient.from("campaigns").update({
     status: "paused",
-    failed_count: failedCount,
+    sent_count: realStats.sent,
+    delivered_count: realStats.delivered,
+    failed_count: realStats.failed,
+    total_contacts: realStats.total,
     updated_at: new Date().toISOString(),
   }).eq("id", campaignId);
   await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
   // Notification handled by DB trigger + instant WA alert
   if (userId) {
-    const realStats = await getRealCampaignStats(serviceClient, campaignId);
     sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", realStats);
   }
 }
