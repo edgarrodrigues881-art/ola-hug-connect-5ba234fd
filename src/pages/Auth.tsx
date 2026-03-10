@@ -411,8 +411,6 @@ const Auth = () => {
                 {isLogin ? "Criar agora" : "Faça login"}
               </button>
             </p>
-          </>
-        )}
       </div>
 
       {/* WhatsApp support button */}
