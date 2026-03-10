@@ -1689,7 +1689,7 @@ const Devices = () => {
       </Dialog>
 
       <Dialog open={connectOpen} onOpenChange={(open) => {
-        if (!open) { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); }
+        if (!open) { stopPolling(); setConnectStep("proxy"); setConnectOpen(false); resumeKeepAlive(); }
       }}>
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           {/* Header */}
