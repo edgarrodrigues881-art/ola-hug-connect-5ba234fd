@@ -322,24 +322,30 @@ export default function ReportWhatsApp() {
     };
   }, [qrDialogOpen, reportDevice?.id, qrConnected]);
 
-  const fetchGroups = async (deviceId: string, forceRefresh = false) => {
+  const fetchGroups = async (_deviceId?: string, forceRefresh = false) => {
     setLoadingGroups(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
       const refreshParam = forceRefresh ? "&refresh=true" : "";
+      // Fetch groups from ALL connected devices, not just the report_wa one
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_all_groups${refreshParam}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
       const json = await res.json();
       const chats = json.chats || [];
-      const groupChats: WhatsAppGroup[] = chats.map((c: any) => ({
-        id: c.id || c.jid || c.chatId || "",
-        name: c.name || c.subject || c.title || c.id || "Grupo sem nome",
-        participants: c.participants?.length || c.participantsCount || c.size || undefined,
-      }));
+      const seenIds = new Set<string>();
+      const groupChats: WhatsAppGroup[] = [];
+      for (const c of chats) {
+        const id = c.id || c.jid || c.chatId || "";
+        const name = c.name || c.subject || c.title || c.id || "Grupo sem nome";
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          groupChats.push({ id, name, participants: c.participants?.length || c.participantsCount || c.size || undefined });
+        }
+      }
       setGroups(groupChats);
       if (forceRefresh) {
         toast.success(`${groupChats.length} grupo(s) encontrado(s)`);
