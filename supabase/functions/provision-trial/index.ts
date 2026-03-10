@@ -209,6 +209,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, created, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+    } finally {
+      // Always release the advisory lock
+      await adminClient.rpc("release_provision_lock", { _user_id: user.id }).catch(() => {});
+    }
   } catch (e) {
     console.error("[provision-trial] Error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
