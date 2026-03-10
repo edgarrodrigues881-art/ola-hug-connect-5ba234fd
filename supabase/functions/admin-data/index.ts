@@ -1263,7 +1263,7 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY POOL: LIST ALL INSTANCES WITH ENROLLMENT ───
     if (action === "community-pool-list") {
-      const { data: allDevices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, created_at").order("created_at", { ascending: false });
+      const { data: allDevices } = await adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, created_at").neq("login_type", "report_wa").order("created_at", { ascending: false });
       const { data: profiles } = await adminClient.from("profiles").select("id, full_name, phone");
       const { data: authUsers } = await adminClient.auth.admin.listUsers();
       const { data: cycles } = await adminClient.from("warmup_cycles").select("id, device_id, user_id, phase, is_running, day_index").eq("is_running", true);
