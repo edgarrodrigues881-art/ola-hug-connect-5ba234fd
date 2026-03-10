@@ -186,14 +186,29 @@ Deno.serve(async (req) => {
 
       // ─── S1: /group/list paginated (main UaZapi endpoint) ───
       for (let page = 0; page < 10; page++) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, 3);
-        if (!data) break;
-        const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-        if (arr.length === 0) break;
-        const prev = seenJids.size;
-        addGroups(arr);
-        console.log(`[S1] page ${page}: ${arr.length} ret, ${seenJids.size - prev} new`);
-        if (seenJids.size - prev === 0) break;
+        // Use raw fetch to log response body for debugging
+        try {
+          const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: apiHeaders });
+          const rawText = await rawRes.text();
+          if (page === 0) {
+            console.log(`[S1-RAW] Status: ${rawRes.status}, Body (500 chars): ${rawText.substring(0, 500)}`);
+          }
+          if (!rawRes.ok) break;
+          const data = JSON.parse(rawText);
+          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+          if (arr.length === 0) break;
+          // Log first group structure for debugging
+          if (page === 0 && arr.length > 0) {
+            console.log(`[S1-STRUCT] Keys: ${Object.keys(arr[0]).join(",")}`);
+          }
+          const prev = seenJids.size;
+          addGroups(arr);
+          console.log(`[S1] page ${page}: ${arr.length} ret, ${seenJids.size - prev} new`);
+          if (seenJids.size - prev === 0) break;
+        } catch (e) {
+          console.log(`[S1] page ${page} error: ${e.message}`);
+          break;
+        }
       }
 
       // ─── S1b: /group/list with getParticipants=true (different response shape) ───
