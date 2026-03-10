@@ -15,15 +15,25 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg !animate-none",
-          error:
-            "group toast !bg-destructive !text-destructive-foreground !border-destructive/50",
-          success:
-            "group toast !bg-primary !text-primary-foreground !border-primary/50",
           description: "group-[.toast]:text-muted-foreground",
           actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
+        style: {},
       }}
+      style={
+        {
+          "--normal-bg": "hsl(var(--background))",
+          "--normal-text": "hsl(var(--foreground))",
+          "--normal-border": "hsl(var(--border))",
+          "--error-bg": "hsl(var(--destructive))",
+          "--error-text": "hsl(var(--destructive-foreground))",
+          "--error-border": "hsl(var(--destructive) / 0.5)",
+          "--success-bg": "hsl(var(--primary))",
+          "--success-text": "hsl(var(--primary-foreground))",
+          "--success-border": "hsl(var(--primary) / 0.5)",
+        } as React.CSSProperties
+      }
       {...props}
     />
   );
