@@ -144,18 +144,34 @@ export default function AdminConexao() {
     }, 1000);
 
     pollRef.current = setInterval(async () => {
-      const { data: d } = await supabase
-        .from("devices")
-        .select("status")
-        .eq("id", devId)
-        .maybeSingle();
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ action: "status", deviceId: devId }),
+          }
+        );
+        const result = await res.json();
 
-      if (d?.status === "Connected" || d?.status === "Ready" || d?.status === "authenticated") {
-        setQrConnected(true);
-        if (pollRef.current) clearInterval(pollRef.current);
-        if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
-        queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] });
-        toast.success("Dispositivo conectado!");
+        if (result.status === "authenticated") {
+          setQrConnected(true);
+          if (pollRef.current) clearInterval(pollRef.current);
+          if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+          queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] });
+          toast.success("Dispositivo conectado!");
+        } else if (result.base64 || result.qr) {
+          // Update QR code if a new one was returned
+          setQrCodeBase64(result.base64 || result.qr);
+        }
+      } catch (_e) {
+        // Silently ignore polling errors
       }
     }, 3000);
   };
