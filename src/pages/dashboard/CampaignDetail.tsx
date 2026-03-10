@@ -250,8 +250,13 @@ const CampaignDetail = () => {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["campaign", id] });
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-      const labels = { pause: "Campanha pausada", resume: "Campanha retomada", cancel: "Campanha cancelada", start: "Campanha iniciada" };
-      toast({ title: labels[action] });
+      const labels: Record<string, { title: string; description: string; variant?: "default" | "destructive" }> = {
+        pause: { title: "⏸️ Campanha pausada", description: "O envio foi interrompido. Você pode retomar a qualquer momento." },
+        resume: { title: "▶️ Campanha retomada", description: "O envio continua de onde parou." },
+        cancel: { title: "🚫 Campanha cancelada", description: "A campanha foi encerrada permanentemente.", variant: "destructive" },
+        start: { title: "🚀 Campanha iniciada", description: "Os disparos estão em andamento." },
+      };
+      toast(labels[action]);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
