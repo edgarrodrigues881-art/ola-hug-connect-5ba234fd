@@ -540,6 +540,7 @@ export default function ReportWhatsApp() {
           infoItems={[]}
           monitoredEvents={["Campanha iniciada", "Campanha pausada", "Campanha finalizada", "Falhas detectadas"]}
           previewMessage={`📣 CAMPANHA FINALIZADA\\n\\nCampanha: {nome_campanha}\\n\\n📊 Resultado da campanha\\n\\n👥 Total de contatos: {total}\\n\\n✅ Mensagens enviadas: {enviadas}\\n📬 Mensagens entregues: {entregues}\\n\\n❌ Falhas registradas: {falhas}\\n⏳ Pendentes: {pendentes}\\n\\n⏱ Tempo total de execução:\\n{tempo_execucao}\\n\\nStatus da campanha: Concluída`}
+          reportDeviceId={reportDevice?.id}
         />
 
         <AlertCard
