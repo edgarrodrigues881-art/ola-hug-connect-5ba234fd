@@ -485,12 +485,13 @@ async function handleTick(db: any) {
             .eq("status", "active");
 
           if (!pairs || pairs.length === 0) {
+            // Include autosave_enabled devices as targets (they can RECEIVE but not send)
             const { data: otherCycles } = await db
               .from("warmup_cycles")
               .select("id, device_id, user_id")
               .eq("is_running", true)
               .neq("device_id", job.device_id)
-              .in("phase", ["community_light", "community_enabled"])
+              .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
               .limit(10);
 
             if (otherCycles && otherCycles.length > 0) {
