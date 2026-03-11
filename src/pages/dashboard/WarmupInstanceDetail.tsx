@@ -435,7 +435,7 @@ const WarmupInstanceDetail = () => {
                     📱 <strong className="text-foreground">Fase Auto Save ativa.</strong> Além dos grupos, o sistema agora troca mensagens privadas com contatos salvos para diversificar o tipo de interação.
                   </>
                 )}
-                {(cycle.phase === "community_light" || cycle.phase === "community_enabled") && (
+                {(cycle.phase as string === "community_light" || cycle.phase === "community_enabled") && (
                   <>
                     🌐 <strong className="text-foreground">Fase Comunidade.</strong> O chip troca mensagens com outros chips do sistema em pareamento automático, aumentando a variedade de interações.
                   </>
