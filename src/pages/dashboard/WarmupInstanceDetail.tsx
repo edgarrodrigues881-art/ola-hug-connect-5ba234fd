@@ -604,8 +604,8 @@ const WarmupInstanceDetail = () => {
                             <div key={job.id} className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
                               <Clock className="w-3 h-3" />
                               <span>{cfg.label}</span>
-                              {job.payload?.target_phase && (
-                                <span>→ {phaseConfig[job.payload.target_phase]?.label || job.payload.target_phase}</span>
+                              {(job.payload as any)?.target_phase && (
+                                <span>→ {phaseConfig[(job.payload as any).target_phase]?.label || (job.payload as any).target_phase}</span>
                               )}
                               <span className="ml-auto font-mono">{format(new Date(job.run_at), "dd/MM HH:mm")}</span>
                             </div>
