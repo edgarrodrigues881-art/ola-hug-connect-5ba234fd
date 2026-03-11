@@ -892,8 +892,8 @@ const WarmupInstanceDetail = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Isso vai <strong className="text-foreground">forçar a execução imediata</strong> de todas as tarefas pendentes no próximo ciclo do motor (~5 min).</p>
-                <p>Executar muitas ações fora do horário programado pode gerar um padrão não-natural e chamar atenção do WhatsApp.</p>
+                <p>O <strong className="text-foreground">primeiro job será executado imediatamente</strong>. Os demais manterão o espaçamento original entre si, apenas antecipados a partir de agora.</p>
+                <p>Isso preserva o padrão natural de delays e protege seu chip.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
                   <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) serão aceleradas.
                 </p>
