@@ -436,87 +436,66 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Request QR — single call with retry built into uazapi()
-      const connectRes = await uazapi(instanceUrl, "/instance/connect", instanceToken, "POST", {}, { timeoutMs: 8000, retries: 1 });
-      if (connectRes.status === 401) {
+      // ── Try connect, with auto-retry loop on 401 (up to 5 tokens) ──
+      let currentToken = instanceToken;
+      let currentTokenId = autoAssignedTokenId;
+      const MAX_TOKEN_RETRIES = 5;
+      let tokenAttempt = 0;
+      let connectRes: any = null;
+
+      while (tokenAttempt < MAX_TOKEN_RETRIES) {
+        tokenAttempt++;
+        connectRes = await uazapi(instanceUrl, "/instance/connect", currentToken, "POST", {}, { timeoutMs: 8000, retries: 1 });
+        
+        if (connectRes.status !== 401) break; // Success or non-token error — exit loop
+
         // ── ROLLBACK: mark token as invalid and release from device ──
-        console.log(`[evolution-connect] 401 rollback for device=${deviceId.substring(0, 8)} token=${instanceToken.substring(0, 8)}`);
+        console.log(`[evolution-connect] 401 rollback for device=${deviceId.substring(0, 8)} token=${currentToken.substring(0, 8)} attempt=${tokenAttempt}`);
         await Promise.all([
           svc.from("user_api_tokens").update({
             status: "invalid", healthy: false, device_id: null,
             last_checked_at: new Date().toISOString(),
-          }).eq("token", instanceToken),
+          }).eq("token", currentToken),
           svc.from("devices").update({
             uazapi_token: null, uazapi_base_url: null,
           }).eq("id", deviceId),
         ]);
-        await oplog(svc, user.id, "token_invalid_rollback", `Token inválido revertido para "${deviceName}"`, deviceId);
+        await oplog(svc, user.id, "token_invalid_rollback", `Token inválido revertido para "${deviceName}" (tentativa ${tokenAttempt})`, deviceId);
 
-        // ── AUTO-RETRY: try next available token ──
-        let retryToken: any = null;
+        // ── Find next available token ──
+        let nextToken: any = null;
         for (const st of ["available", "blocked"]) {
           const { data } = await svc.from("user_api_tokens")
             .select("id, token")
             .eq("user_id", user.id).eq("status", st).is("device_id", null)
             .limit(1).maybeSingle();
-          if (data) { retryToken = data; break; }
+          if (data) { nextToken = data; break; }
         }
 
-        if (retryToken) {
-          // Assign retry token
-          await Promise.all([
-            svc.from("user_api_tokens").update({
-              device_id: deviceId, status: "in_use", assigned_at: new Date().toISOString(),
-            }).eq("id", retryToken.id),
-            svc.from("devices").update({
-              uazapi_token: retryToken.token, uazapi_base_url: BASE_URL,
-            }).eq("id", deviceId),
-          ]);
-          console.log(`[evolution-connect] retry with token=${retryToken.token.substring(0, 8)}`);
-
-          // Try connect with new token
-          const retryRes = await uazapi(BASE_URL, "/instance/connect", retryToken.token, "POST", {}, { timeoutMs: 8000, retries: 1 });
-          if (retryRes.status === 401) {
-            // Second token also invalid — rollback and give up
-            await Promise.all([
-              svc.from("user_api_tokens").update({
-                status: "invalid", healthy: false, device_id: null,
-                last_checked_at: new Date().toISOString(),
-              }).eq("id", retryToken.id),
-              svc.from("devices").update({
-                uazapi_token: null, uazapi_base_url: null,
-              }).eq("id", deviceId),
-            ]);
-            return json({ error: "Tokens inválidos no provedor. Solicite novos tokens ao administrador.", code: "TOKEN_INVALID" }, 401);
-          }
-
-          const retryInst = retryRes.data?.instance || retryRes.data || {};
-          const retryStatus = retryInst.status || retryRes.data?.status;
-          if (retryStatus === "connected") {
-            const phone = retryInst.owner || retryInst.phone || "";
-            const pName = retryInst.profileName || retryInst.pushname || "";
-            const resp = await handleAlreadyConnected(svc, user.id, deviceId, deviceName, phone, pName, device?.login_type || "", BASE_URL, retryToken.token);
-            if (resp) return resp;
-          }
-
-          let retryQr = retryInst.qrcode || retryRes.data?.qrcode;
-          if (!retryQr) {
-            await new Promise(r => setTimeout(r, 400));
-            const poll = await uazapi(BASE_URL, "/instance/status", retryToken.token, "GET", undefined, { timeoutMs: 4000, retries: 0 });
-            const pi = poll.data?.instance || poll.data || {};
-            retryQr = pi.qrcode || poll.data?.qrcode;
-          }
-
-          return json({
-            success: true,
-            base64: retryQr || null,
-            qr: retryQr || null,
-            status: retryQr ? "connecting" : "waiting",
-            instanceToken: retryToken.token,
-          });
+        if (!nextToken) {
+          return json({ error: "Todos os tokens inválidos. Solicite novos tokens ao administrador.", code: "TOKEN_INVALID" }, 401);
         }
 
-        return json({ error: "Token inválido e nenhum substituto disponível. Solicite novos tokens.", code: "TOKEN_INVALID" }, 401);
+        // Assign next token
+        await Promise.all([
+          svc.from("user_api_tokens").update({
+            device_id: deviceId, status: "in_use", assigned_at: new Date().toISOString(),
+          }).eq("id", nextToken.id),
+          svc.from("devices").update({
+            uazapi_token: nextToken.token, uazapi_base_url: BASE_URL,
+          }).eq("id", deviceId),
+        ]);
+        console.log(`[evolution-connect] retry with token=${nextToken.token.substring(0, 8)} attempt=${tokenAttempt + 1}`);
+
+        currentToken = nextToken.token;
+        currentTokenId = nextToken.id;
+        instanceToken = currentToken;
+        instanceUrl = BASE_URL;
+      }
+
+      // If we exhausted all retries and last was still 401
+      if (connectRes?.status === 401) {
+        return json({ error: "Todos os tokens testados são inválidos. Solicite novos tokens ao administrador.", code: "TOKEN_INVALID" }, 401);
       }
 
       const connInst = connectRes.data?.instance || connectRes.data || {};
