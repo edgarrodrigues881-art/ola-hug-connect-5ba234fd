@@ -560,11 +560,11 @@ const WarmupInstanceDetail = () => {
                           <div className="flex items-center gap-2">
                             <Icon className={cn("w-3.5 h-3.5 shrink-0", cfg.color)} />
                             <span className="text-xs font-semibold text-foreground truncate">{cfg.label}</span>
-                            {job.payload?.group_name && (
-                              <span className="text-[10px] text-muted-foreground truncate">— {job.payload.group_name}</span>
+                            {(job.payload as any)?.group_name && (
+                              <span className="text-[10px] text-muted-foreground truncate">— {(job.payload as any).group_name}</span>
                             )}
-                            {job.payload?.target_phase && (
-                              <span className="text-[10px] text-muted-foreground">→ {phaseConfig[job.payload.target_phase]?.label || job.payload.target_phase}</span>
+                            {(job.payload as any)?.target_phase && (
+                              <span className="text-[10px] text-muted-foreground">→ {phaseConfig[(job.payload as any).target_phase]?.label || (job.payload as any).target_phase}</span>
                             )}
                           </div>
                         </div>
