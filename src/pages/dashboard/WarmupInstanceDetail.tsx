@@ -806,7 +806,45 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
-          {/* ── Audit Logs grouped by day ── */}
+          {/* Confirm advance phase dialog */}
+          <Dialog open={showAdvanceConfirm} onOpenChange={setShowAdvanceConfirm}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-foreground">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  Pular fase?
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Avançar a fase manualmente <strong className="text-foreground">pode comprometer a segurança do chip</strong>.</p>
+                <p>O aquecimento gradual existe para proteger seu número contra restrições e banimentos do WhatsApp.</p>
+                {cycle && (
+                  <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
+                    <span className="font-semibold text-foreground">{phaseConfig[cycle.phase]?.label}</span>
+                    <span className="mx-1.5">→</span>
+                    <span className="font-semibold text-foreground">
+                      {phaseConfig[phaseSteps[(phaseSteps.indexOf(cycle.phase as any) + 1)] || ""]?.label || "Próxima"}
+                    </span>
+                  </p>
+                )}
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowAdvanceConfirm(false)}>Cancelar</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                  onClick={() => { setShowAdvanceConfirm(false); handleAdvancePhase(); }}
+                  disabled={advancingPhase}
+                >
+                  {advancingPhase && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <SkipForward className="w-3.5 h-3.5" />
+                  Confirmar avanço
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
