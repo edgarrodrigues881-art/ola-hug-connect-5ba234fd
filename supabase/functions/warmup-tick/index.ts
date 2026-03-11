@@ -343,18 +343,107 @@ async function handleTick(db: any) {
       // ── Process job by type ──
       switch (job.job_type) {
         case "join_group": {
-          const groupId = job.payload?.group_id;
-          await db.from("warmup_instance_groups")
-            .update({ join_status: "joined", joined_at: new Date().toISOString() })
-            .eq("device_id", job.device_id)
-            .eq("group_id", groupId);
+          if (!baseUrl || !token) {
+            throw new Error("Credenciais UAZAPI não configuradas para join_group");
+          }
 
-          await db.from("warmup_audit_logs").insert({
-            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-            level: "info", event_type: "group_joined",
-            message: `Entrada no grupo: ${job.payload?.group_name || groupId}`,
-            meta: job.payload,
-          });
+          const groupId = job.payload?.group_id;
+          const groupName = job.payload?.group_name || groupId;
+
+          // Get the invite link from pool
+          const { data: poolGroupJoin } = await db
+            .from("warmup_groups_pool")
+            .select("external_group_ref, name")
+            .eq("id", groupId)
+            .single();
+
+          if (!poolGroupJoin?.external_group_ref) {
+            throw new Error(`Grupo ${groupName} sem link de convite`);
+          }
+
+          const inviteLink = poolGroupJoin.external_group_ref;
+          // Extract invite code from link
+          const inviteCode = inviteLink.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "").split("?")[0].split("/")[0].trim();
+
+          if (!inviteCode || inviteCode.length < 10) {
+            throw new Error(`Código de convite inválido para ${groupName}: ${inviteLink}`);
+          }
+
+          // Actually join the group via UAZAPI
+          console.log(`[join_group] Joining group ${groupName} with code ${inviteCode} via ${baseUrl}`);
+          
+          let joinResult: any = null;
+          let joinOk = false;
+          let joinJid: string | null = null;
+          let joinError: string | null = null;
+
+          const joinEndpoints = [
+            { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
+            { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteLink.split("?")[0] }) },
+            { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
+          ];
+
+          for (const ep of joinEndpoints) {
+            try {
+              const res = await fetch(ep.url, {
+                method: ep.method,
+                headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+                body: ep.body,
+              });
+              const raw = await res.text();
+              let parsed: any;
+              try { parsed = JSON.parse(raw); } catch (_e) { parsed = { raw }; }
+              console.log(`[join_group] ${ep.method} ${ep.url} → ${res.status}: ${raw.substring(0, 300)}`);
+
+              if (res.status === 405) continue;
+              if (res.status === 500 && (parsed?.error === "error joining group" || parsed?.error === "internal server error")) continue;
+
+              joinResult = parsed;
+              if (res.ok || res.status === 409) {
+                joinOk = true;
+                // Extract JID from response
+                const jid = parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+                if (jid) joinJid = jid;
+                
+                const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
+                if (msg.includes("already") || msg.includes("já")) {
+                  joinOk = true; // already member is also OK
+                }
+                break;
+              } else {
+                joinError = `${res.status}: ${raw.substring(0, 200)}`;
+              }
+            } catch (err) {
+              joinError = err.message;
+              continue;
+            }
+          }
+
+          if (joinOk) {
+            await db.from("warmup_instance_groups")
+              .update({ 
+                join_status: "joined", 
+                joined_at: new Date().toISOString(),
+                ...(joinJid ? { group_jid: joinJid } : {}),
+              })
+              .eq("device_id", job.device_id)
+              .eq("group_id", groupId);
+
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "group_joined",
+              message: `Entrou no grupo ${groupName} via API${joinJid ? ` (JID: ${joinJid})` : ""}`,
+              meta: { group_name: groupName, invite_code: inviteCode, jid: joinJid, response: joinResult },
+            });
+          } else {
+            // Mark as failed
+            await db.from("warmup_instance_groups")
+              .update({ join_status: "failed", last_error: joinError || "Falha ao entrar no grupo" })
+              .eq("device_id", job.device_id)
+              .eq("group_id", groupId);
+
+            throw new Error(`Falha ao entrar no grupo ${groupName}: ${joinError}`);
+          }
           break;
         }
 
@@ -377,7 +466,7 @@ async function handleTick(db: any) {
 
           const { data: joinedGroups } = await db
             .from("warmup_instance_groups")
-            .select("group_id")
+            .select("group_id, group_jid")
             .eq("device_id", job.device_id)
             .eq("cycle_id", cycle.id)
             .eq("join_status", "joined");
@@ -402,17 +491,59 @@ async function handleTick(db: any) {
             .eq("id", targetGroupRecord.group_id)
             .single();
 
-          if (!poolGroup?.external_group_ref) {
+          // Resolve the actual JID: prefer stored group_jid, then external_group_ref if it looks like a JID
+          let groupJid = targetGroupRecord.group_jid;
+          if (!groupJid && poolGroup?.external_group_ref) {
+            const ref = poolGroup.external_group_ref;
+            // Only use external_group_ref if it looks like a JID (contains @g.us)
+            if (ref.includes("@g.us")) {
+              groupJid = ref;
+            }
+          }
+
+          if (!groupJid) {
+            // Try to resolve JID by fetching group info from API
+            console.log(`[group_interaction] No JID for group ${poolGroup?.name}, attempting to resolve...`);
+            try {
+              const groupsRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
+                method: "GET",
+                headers: { token, Accept: "application/json" },
+              });
+              if (groupsRes.ok) {
+                const groupsList = await groupsRes.json();
+                const groups = Array.isArray(groupsList) ? groupsList : (groupsList?.data || []);
+                // Match by name
+                const match = groups.find((g: any) => 
+                  (g.subject || g.name || "").toLowerCase() === (poolGroup?.name || "").toLowerCase()
+                );
+                if (match) {
+                  groupJid = match.jid || match.id || match.JID;
+                  if (groupJid) {
+                    // Store for future use
+                    await db.from("warmup_instance_groups")
+                      .update({ group_jid: groupJid })
+                      .eq("device_id", job.device_id)
+                      .eq("group_id", targetGroupRecord.group_id);
+                    console.log(`[group_interaction] Resolved JID for ${poolGroup?.name}: ${groupJid}`);
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn(`[group_interaction] Failed to resolve JID:`, e.message);
+            }
+          }
+
+          if (!groupJid) {
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "group_no_jid",
-              message: `Grupo sem JID externo: ${poolGroup?.name || targetGroupRecord.group_id}`,
+              message: `Grupo sem JID resolvido: ${poolGroup?.name || targetGroupRecord.group_id}. Não é possível enviar mensagem.`,
             });
             break;
           }
 
           const message = getGroupMsg();
-          await uazapiSendText(baseUrl, token, poolGroup.external_group_ref, message);
+          await uazapiSendText(baseUrl, token, groupJid, message);
 
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -421,8 +552,8 @@ async function handleTick(db: any) {
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
-            message: `Msg enviada no grupo ${poolGroup.name}: "${message.substring(0, 50)}"`,
-            meta: { group_name: poolGroup.name, group_jid: poolGroup.external_group_ref },
+            message: `Msg enviada no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
+            meta: { group_name: poolGroup?.name, group_jid: groupJid },
           });
           break;
         }
