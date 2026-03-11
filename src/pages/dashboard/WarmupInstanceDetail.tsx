@@ -879,6 +879,8 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
+          {/* ── Audit Logs grouped by day ── */}
+          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                 <ScrollText className="w-4 h-4 text-primary" />
