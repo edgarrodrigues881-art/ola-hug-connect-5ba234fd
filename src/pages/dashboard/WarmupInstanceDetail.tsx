@@ -289,7 +289,7 @@ const WarmupInstanceDetail = () => {
 
           {/* action row */}
           {cycle && cycle.phase !== "completed" && (
-            <div className="px-5 pb-5">
+            <div className="px-5 pb-5 space-y-2">
               {cycle.is_running ? (
                 <Button
                   className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
@@ -307,6 +307,30 @@ const WarmupInstanceDetail = () => {
                   <Play className="w-4 h-4" /> Retomar aquecimento
                 </Button>
               ) : null}
+
+              {/* Accelerate buttons */}
+              {cycle.is_running && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                    onClick={handleAccelerate}
+                    disabled={accelerating || scheduledJobs.filter(j => j.status === "pending").length === 0}
+                  >
+                    {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
+                    Executar Agora
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                    onClick={handleAdvancePhase}
+                    disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
+                  >
+                    {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
+                    Pular Fase
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
