@@ -402,87 +402,225 @@ const WarmupInstanceDetail = () => {
             </div>
           )}
 
-          {/* ── Metrics ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              {
-                icon: MessageSquare, label: "Budget Diário", color: "text-primary", bg: "bg-primary/8",
-                value: cycle.daily_interaction_budget_used, max: cycle.daily_interaction_budget_target,
-                suffix: null,
-              },
-              {
-                icon: Shield, label: "Únicos Hoje", color: "text-emerald-400", bg: "bg-emerald-500/8",
-                value: cycle.daily_unique_recipients_used, max: cycle.daily_unique_recipients_cap,
-                suffix: null,
-              },
-            ].map((m, i) => (
-              <div key={i} className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", m.bg)}>
-                    <m.icon className={cn("w-3 h-3", m.color)} />
-                  </div>
-                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">{m.label}</span>
-                </div>
-                <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
-                  {m.value}
-                  <span className="text-sm text-muted-foreground/40 font-normal">/{m.max}</span>
-                </p>
-                <div className="w-full h-1.5 bg-muted/20 rounded-full overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full transition-all duration-500", m.color === "text-primary" ? "bg-primary" : "bg-emerald-400")}
-                    style={{ width: `${Math.min((m.value / m.max) * 100, 100)}%` }}
-                  />
-                </div>
+          {/* ── Plano do Dia — O que vai acontecer hoje ── */}
+          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="w-4 h-4 text-primary" />
               </div>
-            ))}
-
-            {/* Groups */}
-            <div className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-teal-500/8 flex items-center justify-center">
-                  <Users className="w-3 h-3 text-teal-400" />
-                </div>
-                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Grupos</span>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-foreground">Plano do Dia {cycle.day_index}</span>
+                <p className="text-[10px] text-muted-foreground">O que está programado para hoje</p>
               </div>
-              <div>
-                <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
-                  {joinedGroups}
-                  <span className="text-sm text-muted-foreground/40 font-normal"> entrou</span>
-                </p>
-                {pendingGroups > 0 && (
-                  <p className="text-[10px] text-amber-400 mt-1.5 font-semibold flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
-                    {pendingGroups} pendente{pendingGroups > 1 ? "s" : ""}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Auto Save */}
-            <div className="rounded-xl border border-border/20 bg-card p-4 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-500/8 flex items-center justify-center">
-                  <Zap className="w-3 h-3 text-emerald-400" />
-                </div>
-                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Auto Save</span>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums text-foreground leading-none">
-                {activeContacts}
-                <span className="text-sm text-muted-foreground/40 font-normal"> contatos</span>
-              </p>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[9px] h-5 rounded-md font-semibold",
-                  ["autosave_enabled", "community_enabled"].includes(cycle.phase)
-                    ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5"
-                    : "text-muted-foreground border-border/30"
-                )}
-              >
-                {["autosave_enabled", "community_enabled"].includes(cycle.phase) ? "● Ativo" : "Bloqueado"}
+              <Badge className="text-[9px] h-5 rounded-lg font-bold bg-primary/10 text-primary border-0 hover:bg-primary/10">
+                {pc?.label}
               </Badge>
             </div>
+
+            {/* Phase explanation */}
+            <div className="px-5 py-4 border-b border-border/10">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {cycle.phase === "pre_24h" && (
+                  <>
+                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. O chip ficará ocioso enquanto entra gradualmente nos 8 grupos oficiais do sistema para parecer um uso natural.
+                  </>
+                )}
+                {cycle.phase === "groups_only" && (
+                  <>
+                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou, simulando participação natural com textos variados e delays aleatórios.
+                  </>
+                )}
+                {cycle.phase === "autosave_enabled" && (
+                  <>
+                    📱 <strong className="text-foreground">Fase Auto Save ativa.</strong> Além dos grupos, o sistema agora troca mensagens privadas com contatos salvos para diversificar o tipo de interação.
+                  </>
+                )}
+                {(cycle.phase === "community_light" || cycle.phase === "community_enabled") && (
+                  <>
+                    🌐 <strong className="text-foreground">Fase Comunidade.</strong> O chip troca mensagens com outros chips do sistema em pareamento automático, aumentando a variedade de interações.
+                  </>
+                )}
+                {cycle.phase === "completed" && (
+                  <>
+                    ✅ <strong className="text-foreground">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
+                  </>
+                )}
+                {cycle.phase === "paused" && (
+                  <>
+                    ⏸️ <strong className="text-foreground">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Quick stats row */}
+            <div className="grid grid-cols-4 divide-x divide-border/10">
+              <div className="px-4 py-3.5 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
+                <p className="text-lg font-extrabold tabular-nums text-foreground">
+                  {cycle.daily_interaction_budget_used}
+                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_interaction_budget_target}</span>
+                </p>
+              </div>
+              <div className="px-4 py-3.5 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Destinos</p>
+                <p className="text-lg font-extrabold tabular-nums text-foreground">
+                  {cycle.daily_unique_recipients_used}
+                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span>
+                </p>
+              </div>
+              <div className="px-4 py-3.5 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
+                <p className="text-lg font-extrabold tabular-nums text-foreground">
+                  {joinedGroups}
+                  <span className="text-xs text-muted-foreground/40 font-normal">/8</span>
+                </p>
+                {pendingGroups > 0 && (
+                  <p className="text-[9px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
+                )}
+              </div>
+              <div className="px-4 py-3.5 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Contatos</p>
+                <p className="text-lg font-extrabold tabular-nums text-foreground">{activeContacts}</p>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[8px] h-4 rounded px-1.5 font-semibold mt-0.5",
+                    ["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase)
+                      ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5"
+                      : "text-muted-foreground border-border/30"
+                  )}
+                >
+                  {["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase) ? "Ativo" : "Fase futura"}
+                </Badge>
+              </div>
+            </div>
           </div>
+
+          {/* ── Tarefas agendadas para hoje ── */}
+          {(() => {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 86400000);
+            const todayJobs = scheduledJobs.filter(j => {
+              const runAt = new Date(j.run_at);
+              return runAt >= todayStart && runAt < todayEnd;
+            });
+            const futureJobs = scheduledJobs.filter(j => {
+              const runAt = new Date(j.run_at);
+              return runAt >= todayEnd;
+            });
+            
+            const jobTypeLabels: Record<string, { label: string; icon: typeof Target; color: string }> = {
+              join_group: { label: "Entrar no grupo", icon: UserPlus, color: "text-teal-400" },
+              group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
+              autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
+              community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
+              phase_transition: { label: "Avançar fase", icon: Zap, color: "text-amber-400" },
+              daily_reset: { label: "Reset diário", icon: RotateCcw, color: "text-muted-foreground" },
+              health_check: { label: "Verificação de saúde", icon: Shield, color: "text-emerald-400" },
+              enable_autosave: { label: "Ativar Auto Save", icon: Zap, color: "text-emerald-400" },
+              enable_community: { label: "Ativar Comunidade", icon: Globe, color: "text-purple-400" },
+            };
+
+            const statusIcon = (status: string) => {
+              if (status === "succeeded") return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />;
+              if (status === "running") return <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />;
+              if (status === "failed") return <AlertTriangle className="w-3.5 h-3.5 text-destructive" />;
+              if (status === "cancelled") return <Square className="w-3.5 h-3.5 text-muted-foreground/40" />;
+              return <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />;
+            };
+
+            if (todayJobs.length === 0 && futureJobs.length === 0) return null;
+
+            return (
+              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+                <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-teal-500/10 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-teal-400" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-foreground">Tarefas Programadas</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {todayJobs.length} hoje · {futureJobs.length} futuras
+                    </p>
+                  </div>
+                </div>
+
+                <div className="max-h-[400px] overflow-y-auto divide-y divide-border/10">
+                  {todayJobs.map((job) => {
+                    const cfg = jobTypeLabels[job.job_type] || { label: job.job_type, icon: Target, color: "text-muted-foreground" };
+                    const Icon = cfg.icon;
+                    const runAt = new Date(job.run_at);
+                    const isPast = runAt < now;
+                    return (
+                      <div key={job.id} className={cn("px-5 py-3 flex items-center gap-3", isPast && job.status === "pending" && "opacity-60")}>
+                        {statusIcon(job.status)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Icon className={cn("w-3.5 h-3.5 shrink-0", cfg.color)} />
+                            <span className="text-xs font-semibold text-foreground truncate">{cfg.label}</span>
+                            {job.payload?.group_name && (
+                              <span className="text-[10px] text-muted-foreground truncate">— {job.payload.group_name}</span>
+                            )}
+                            {job.payload?.target_phase && (
+                              <span className="text-[10px] text-muted-foreground">→ {phaseConfig[job.payload.target_phase]?.label || job.payload.target_phase}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                          {format(runAt, "HH:mm")}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[8px] h-4 rounded px-1.5 font-bold shrink-0",
+                            job.status === "succeeded" ? "text-emerald-400 border-emerald-400/20" :
+                            job.status === "running" ? "text-primary border-primary/20" :
+                            job.status === "failed" ? "text-destructive border-destructive/20" :
+                            job.status === "cancelled" ? "text-muted-foreground/40 border-border/20" :
+                            "text-muted-foreground border-border/30"
+                          )}
+                        >
+                          {job.status === "succeeded" ? "✓ Feito" :
+                           job.status === "running" ? "Executando" :
+                           job.status === "failed" ? "Falhou" :
+                           job.status === "cancelled" ? "Cancelado" :
+                           "Agendado"}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+
+                  {futureJobs.length > 0 && (
+                    <div className="px-5 py-3 bg-muted/5">
+                      <p className="text-[10px] text-muted-foreground/50 font-semibold uppercase tracking-wider">
+                        📅 Próximos dias — {futureJobs.length} tarefa{futureJobs.length !== 1 ? "s" : ""}
+                      </p>
+                      <div className="mt-2 space-y-1.5">
+                        {futureJobs.slice(0, 5).map((job) => {
+                          const cfg = jobTypeLabels[job.job_type] || { label: job.job_type, icon: Target, color: "text-muted-foreground" };
+                          return (
+                            <div key={job.id} className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                              <Clock className="w-3 h-3" />
+                              <span>{cfg.label}</span>
+                              {job.payload?.target_phase && (
+                                <span>→ {phaseConfig[job.payload.target_phase]?.label || job.payload.target_phase}</span>
+                              )}
+                              <span className="ml-auto font-mono">{format(new Date(job.run_at), "dd/MM HH:mm")}</span>
+                            </div>
+                          );
+                        })}
+                        {futureJobs.length > 5 && (
+                          <p className="text-[9px] text-muted-foreground/30 mt-1">+ {futureJobs.length - 5} tarefas restantes</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Auto Save alert ── */}
           {activeContacts === 0 && (
@@ -492,7 +630,7 @@ const WarmupInstanceDetail = () => {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-bold text-foreground">Sem contatos Auto Save</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Adicione contatos para habilitar essa camada.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Adicione contatos para habilitar essa camada quando chegar a fase.</p>
               </div>
               <Button size="sm" variant="outline" className="text-[11px] shrink-0 rounded-lg h-8 px-3 font-semibold" onClick={() => navigate("/dashboard/autosave")}>
                 Adicionar
