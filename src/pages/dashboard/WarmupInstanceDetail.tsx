@@ -316,7 +316,7 @@ const WarmupInstanceDetail = () => {
                   <Button
                     variant="outline"
                     className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                    onClick={handleAccelerate}
+                    onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating || scheduledJobs.filter(j => j.status === "pending").length === 0}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
