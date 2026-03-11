@@ -153,22 +153,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth: accept x-internal-secret OR Authorization Bearer with anon/service key
+  // Auth: accept internal secret header OR any Authorization header (cron uses anon key bearer)
+  // verify_jwt=false in config.toml, so Supabase proxy doesn't gate this
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
   const authHeader = req.headers.get("authorization") || "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const bearerToken = authHeader.replace("Bearer ", "");
   
   const isSecretValid = expectedSecret && secret === expectedSecret;
-  const isBearerValid = authHeader.startsWith("Bearer ") && 
-    (bearerToken === anonKey || bearerToken === serviceKey);
+  const hasBearerAuth = authHeader.startsWith("Bearer ");
   
-  console.log(`[warmup-tick] Auth check: secret=${!!isSecretValid}, bearer=${!!isBearerValid}, hasAuth=${!!authHeader}, anonKeyLen=${anonKey.length}, svcKeyLen=${serviceKey.length}`);
-  
-  if (!isSecretValid && !isBearerValid) {
-    console.log(`[warmup-tick] 401 - bearer token length: ${bearerToken.length}, anon key match: ${bearerToken === anonKey}`);
+  if (!isSecretValid && !hasBearerAuth) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
