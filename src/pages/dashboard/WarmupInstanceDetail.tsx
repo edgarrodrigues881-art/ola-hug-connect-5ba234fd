@@ -113,18 +113,54 @@ const WarmupInstanceDetail = () => {
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
 
-  /* accelerate: force pending jobs to run now */
+  /* accelerate: run first job now, recalculate delays for the rest */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
-      const { error } = await supabase
+      // Fetch all pending jobs ordered by run_at
+      const { data: pendingJobs, error: fetchErr } = await supabase
         .from("warmup_jobs")
-        .update({ run_at: new Date().toISOString() })
+        .select("id, run_at")
         .eq("cycle_id", cycle.id)
-        .eq("status", "pending");
-      if (error) throw error;
-      toast({ title: "⚡ Jobs acelerados!", description: "Todas as tarefas pendentes serão executadas no próximo tick (~5 min)." });
+        .eq("status", "pending")
+        .order("run_at", { ascending: true });
+      if (fetchErr) throw fetchErr;
+      if (!pendingJobs || pendingJobs.length === 0) {
+        toast({ title: "Nenhum job pendente", description: "Não há tarefas para acelerar." });
+        return;
+      }
+
+      const now = new Date();
+      // First job runs immediately
+      const { error: firstErr } = await supabase
+        .from("warmup_jobs")
+        .update({ run_at: now.toISOString() })
+        .eq("id", pendingJobs[0].id);
+      if (firstErr) throw firstErr;
+
+      // Remaining jobs: preserve original spacing but shift to start from now
+      if (pendingJobs.length > 1) {
+        const originalFirstRunAt = new Date(pendingJobs[0].run_at).getTime();
+        const updates = pendingJobs.slice(1).map(job => {
+          const originalOffset = new Date(job.run_at).getTime() - originalFirstRunAt;
+          const newRunAt = new Date(now.getTime() + originalOffset);
+          return { id: job.id, run_at: newRunAt.toISOString() };
+        });
+
+        // Batch update in chunks
+        for (const upd of updates) {
+          await supabase
+            .from("warmup_jobs")
+            .update({ run_at: upd.run_at })
+            .eq("id", upd.id);
+        }
+      }
+
+      toast({
+        title: "⚡ Acelerado!",
+        description: `1º job será executado agora. ${pendingJobs.length - 1} restantes mantêm o delay original.`,
+      });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -856,8 +892,8 @@ const WarmupInstanceDetail = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Isso vai <strong className="text-foreground">forçar a execução imediata</strong> de todas as tarefas pendentes no próximo ciclo do motor (~5 min).</p>
-                <p>Executar muitas ações fora do horário programado pode gerar um padrão não-natural e chamar atenção do WhatsApp.</p>
+                <p>O <strong className="text-foreground">primeiro job será executado imediatamente</strong>. Os demais manterão o espaçamento original entre si, apenas antecipados a partir de agora.</p>
+                <p>Isso preserva o padrão natural de delays e protege seu chip.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
                   <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) serão aceleradas.
                 </p>
