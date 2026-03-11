@@ -1485,6 +1485,7 @@ export type Database = {
           cycle_id: string | null
           device_id: string
           group_id: string
+          group_jid: string | null
           id: string
           join_status: Database["public"]["Enums"]["warmup_group_join_status"]
           joined_at: string | null
@@ -1497,6 +1498,7 @@ export type Database = {
           cycle_id?: string | null
           device_id: string
           group_id: string
+          group_jid?: string | null
           id?: string
           join_status?: Database["public"]["Enums"]["warmup_group_join_status"]
           joined_at?: string | null
@@ -1509,6 +1511,7 @@ export type Database = {
           cycle_id?: string | null
           device_id?: string
           group_id?: string
+          group_jid?: string | null
           id?: string
           join_status?: Database["public"]["Enums"]["warmup_group_join_status"]
           joined_at?: string | null
