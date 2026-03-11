@@ -108,6 +108,49 @@ const WarmupInstanceDetail = () => {
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [accelerating, setAccelerating] = useState(false);
+  const [advancingPhase, setAdvancingPhase] = useState(false);
+
+  /* accelerate: force pending jobs to run now */
+  const handleAccelerate = async () => {
+    if (!cycle?.id) return;
+    setAccelerating(true);
+    try {
+      const { error } = await supabase
+        .from("warmup_jobs")
+        .update({ run_at: new Date().toISOString() })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending");
+      if (error) throw error;
+      toast({ title: "⚡ Jobs acelerados!", description: "Todas as tarefas pendentes serão executadas no próximo tick (~5 min)." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setAccelerating(false);
+    }
+  };
+
+  /* advance phase */
+  const handleAdvancePhase = () => {
+    if (!deviceId || !cycle) return;
+    const currentIdx = phaseSteps.indexOf(cycle.phase as any);
+    if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) return;
+    const nextPhase = phaseSteps[currentIdx + 1];
+    setAdvancingPhase(true);
+    engine.mutate(
+      { action: "advance_phase", device_id: deviceId, target_phase: nextPhase },
+      {
+        onSuccess: () => {
+          toast({ title: "🚀 Fase avançada!", description: `Avançou para: ${phaseConfig[nextPhase]?.label || nextPhase}` });
+          setAdvancingPhase(false);
+        },
+        onError: (err: any) => {
+          toast({ title: "Erro", description: err.message, variant: "destructive" });
+          setAdvancingPhase(false);
+        },
+      }
+    );
+  };
 
   /* countdown */
   const [countdown, setCountdown] = useState("");
