@@ -324,7 +324,7 @@ const WarmupInstanceDetail = () => {
                   <Button
                     variant="outline"
                     className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
-                    onClick={handleAdvancePhase}
+                    onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
                   >
                     {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
