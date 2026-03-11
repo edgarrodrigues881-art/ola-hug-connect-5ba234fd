@@ -38,7 +38,6 @@ const typeColors = {
 };
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
