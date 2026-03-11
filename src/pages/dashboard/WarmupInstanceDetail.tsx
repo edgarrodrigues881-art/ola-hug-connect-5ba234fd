@@ -24,6 +24,7 @@ import {
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
   CalendarDays, Target, UserPlus, Send, RotateCcw,
+  FastForward, SkipForward,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInCalendarDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -107,6 +108,57 @@ const WarmupInstanceDetail = () => {
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [accelerating, setAccelerating] = useState(false);
+  const [advancingPhase, setAdvancingPhase] = useState(false);
+
+  /* accelerate: force pending jobs to run now */
+  const handleAccelerate = async () => {
+    if (!cycle?.id) return;
+    setAccelerating(true);
+    try {
+      const { error } = await supabase
+        .from("warmup_jobs")
+        .update({ run_at: new Date().toISOString() })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending");
+      if (error) throw error;
+      toast({ title: "⚡ Jobs acelerados!", description: "Todas as tarefas pendentes serão executadas no próximo tick (~5 min)." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setAccelerating(false);
+    }
+  };
+
+  /* advance phase: directly update cycle */
+  const handleAdvancePhase = async () => {
+    if (!deviceId || !cycle) return;
+    const currentIdx = phaseSteps.indexOf(cycle.phase as any);
+    if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) return;
+    const nextPhase = phaseSteps[currentIdx + 1];
+    setAdvancingPhase(true);
+    try {
+      const { error } = await supabase
+        .from("warmup_cycles")
+        .update({ phase: nextPhase, previous_phase: cycle.phase, updated_at: new Date().toISOString() })
+        .eq("id", cycle.id);
+      if (error) throw error;
+      // Log audit
+      await supabase.from("warmup_audit_logs").insert({
+        user_id: user!.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        event_type: "manual_phase_advance",
+        level: "info",
+        message: `Fase avançada manualmente: ${cycle.phase} → ${nextPhase}`,
+      });
+      toast({ title: "🚀 Fase avançada!", description: `Avançou para: ${phaseConfig[nextPhase]?.label || nextPhase}` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setAdvancingPhase(false);
+    }
+  };
 
   /* countdown */
   const [countdown, setCountdown] = useState("");
@@ -237,7 +289,7 @@ const WarmupInstanceDetail = () => {
 
           {/* action row */}
           {cycle && cycle.phase !== "completed" && (
-            <div className="px-5 pb-5">
+            <div className="px-5 pb-5 space-y-2">
               {cycle.is_running ? (
                 <Button
                   className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
@@ -255,6 +307,30 @@ const WarmupInstanceDetail = () => {
                   <Play className="w-4 h-4" /> Retomar aquecimento
                 </Button>
               ) : null}
+
+              {/* Accelerate buttons */}
+              {cycle.is_running && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                    onClick={handleAccelerate}
+                    disabled={accelerating || scheduledJobs.filter(j => j.status === "pending").length === 0}
+                  >
+                    {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
+                    Executar Agora
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                    onClick={handleAdvancePhase}
+                    disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
+                  >
+                    {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
+                    Pular Fase
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
