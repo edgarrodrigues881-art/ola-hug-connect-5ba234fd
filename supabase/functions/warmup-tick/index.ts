@@ -171,8 +171,8 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const db = createClient(supabaseUrl, serviceKey);
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const db = createClient(supabaseUrl, svcKey);
 
   let body: any = {};
   try { body = await req.json(); } catch (_e) { /* ignore */ }
