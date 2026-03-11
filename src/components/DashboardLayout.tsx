@@ -12,7 +12,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
-import { } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
