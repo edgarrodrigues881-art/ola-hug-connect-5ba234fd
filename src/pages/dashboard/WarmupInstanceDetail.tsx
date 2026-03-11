@@ -109,6 +109,7 @@ const WarmupInstanceDetail = () => {
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
+  const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
 
