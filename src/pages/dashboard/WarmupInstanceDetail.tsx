@@ -108,6 +108,7 @@ const WarmupInstanceDetail = () => {
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
 
