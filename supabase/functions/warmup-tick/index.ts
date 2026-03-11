@@ -153,9 +153,18 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: accept x-internal-secret OR Authorization Bearer with anon/service key
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
-  if (!expectedSecret || secret !== expectedSecret) {
+  const authHeader = req.headers.get("authorization") || "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  
+  const isSecretValid = expectedSecret && secret === expectedSecret;
+  const isBearerValid = authHeader.startsWith("Bearer ") && 
+    (authHeader.replace("Bearer ", "") === anonKey || authHeader.replace("Bearer ", "") === serviceKey);
+  
+  if (!isSecretValid && !isBearerValid) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
