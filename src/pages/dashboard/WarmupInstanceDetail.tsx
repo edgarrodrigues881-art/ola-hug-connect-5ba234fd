@@ -130,26 +130,34 @@ const WarmupInstanceDetail = () => {
     }
   };
 
-  /* advance phase */
-  const handleAdvancePhase = () => {
+  /* advance phase: directly update cycle */
+  const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
     const currentIdx = phaseSteps.indexOf(cycle.phase as any);
     if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) return;
     const nextPhase = phaseSteps[currentIdx + 1];
     setAdvancingPhase(true);
-    engine.mutate(
-      { action: "advance_phase", device_id: deviceId, target_phase: nextPhase },
-      {
-        onSuccess: () => {
-          toast({ title: "🚀 Fase avançada!", description: `Avançou para: ${phaseConfig[nextPhase]?.label || nextPhase}` });
-          setAdvancingPhase(false);
-        },
-        onError: (err: any) => {
-          toast({ title: "Erro", description: err.message, variant: "destructive" });
-          setAdvancingPhase(false);
-        },
-      }
-    );
+    try {
+      const { error } = await supabase
+        .from("warmup_cycles")
+        .update({ phase: nextPhase, previous_phase: cycle.phase, updated_at: new Date().toISOString() })
+        .eq("id", cycle.id);
+      if (error) throw error;
+      // Log audit
+      await supabase.from("warmup_audit_logs").insert({
+        user_id: user!.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        event_type: "manual_phase_advance",
+        level: "info",
+        message: `Fase avançada manualmente: ${cycle.phase} → ${nextPhase}`,
+      });
+      toast({ title: "🚀 Fase avançada!", description: `Avançou para: ${phaseConfig[nextPhase]?.label || nextPhase}` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setAdvancingPhase(false);
+    }
   };
 
   /* countdown */
