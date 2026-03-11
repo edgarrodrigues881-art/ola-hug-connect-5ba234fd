@@ -311,6 +311,41 @@ Deno.serve(async (req) => {
 
       await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
 
+      // ── Re-schedule join_group jobs for groups never joined ──
+      const { data: pendingGroups } = await db
+        .from("warmup_instance_groups")
+        .select("group_id, warmup_groups_pool(id, name)")
+        .eq("device_id", device_id)
+        .eq("cycle_id", cycle.id)
+        .eq("join_status", "pending");
+
+      if (pendingGroups && pendingGroups.length > 0) {
+        const joinJobs: any[] = [];
+        const shuffled = shuffleArray(pendingGroups);
+        const joinWindowMs = 6 * 60 * 60 * 1000; // spread over 6 hours
+        const joinSpacing = joinWindowMs / (shuffled.length + 1);
+
+        for (let i = 0; i < shuffled.length; i++) {
+          const g = shuffled[i];
+          const groupName = g.warmup_groups_pool?.name || "Grupo";
+          const groupId = g.group_id;
+          const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
+          const runAt = new Date(now.getTime() + Math.max(offset, 5 * 60 * 1000));
+
+          joinJobs.push({
+            user_id: callerUserId, device_id, cycle_id: cycle.id,
+            job_type: "join_group",
+            payload: { group_id: groupId, group_name: groupName },
+            run_at: runAt.toISOString(), status: "pending",
+          });
+        }
+
+        if (joinJobs.length > 0) {
+          await db.from("warmup_jobs").insert(joinJobs);
+          console.log(`[resume] Re-scheduled ${joinJobs.length} join_group jobs for device ${device_id}`);
+        }
+      }
+
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_resumed", message: `Aquecimento retomado na fase: ${resumePhase} (dia ${cycle.day_index})`,
