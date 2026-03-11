@@ -455,19 +455,21 @@ const WarmupInstanceDetail = () => {
 
             {/* Quick stats row */}
             <div className="grid grid-cols-4 divide-x divide-border/10">
-              <div className="px-4 py-3.5 text-center">
+              <div className="px-4 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {cycle.daily_interaction_budget_used}
                   <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_interaction_budget_target}</span>
                 </p>
+                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Mensagens enviadas / limite diário</p>
               </div>
-              <div className="px-4 py-3.5 text-center">
+              <div className="px-4 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Destinos</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {cycle.daily_unique_recipients_used}
                   <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span>
                 </p>
+                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Pessoas diferentes contactadas hoje</p>
               </div>
               <div className="px-4 py-3.5 text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
@@ -475,8 +477,10 @@ const WarmupInstanceDetail = () => {
                   {joinedGroups}
                   <span className="text-xs text-muted-foreground/40 font-normal">/8</span>
                 </p>
-                {pendingGroups > 0 && (
-                  <p className="text-[9px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
+                {pendingGroups > 0 ? (
+                  <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando entrada</p>
+                ) : (
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Grupos de aquecimento ingressados</p>
                 )}
               </div>
               <div className="px-4 py-3.5 text-center">
