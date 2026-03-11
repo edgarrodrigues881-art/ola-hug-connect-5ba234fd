@@ -23,6 +23,7 @@ import {
   ArrowLeft, Flame, Play, Pause, Square,
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
+  CalendarDays, Target, UserPlus, Send, RotateCcw,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInCalendarDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
