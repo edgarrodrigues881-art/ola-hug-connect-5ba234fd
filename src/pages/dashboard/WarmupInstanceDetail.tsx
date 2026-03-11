@@ -109,6 +109,7 @@ const WarmupInstanceDetail = () => {
   const [daysTotal, setDaysTotal] = useState("3");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
+  const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
 
@@ -315,7 +316,7 @@ const WarmupInstanceDetail = () => {
                   <Button
                     variant="outline"
                     className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                    onClick={handleAccelerate}
+                    onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating || scheduledJobs.filter(j => j.status === "pending").length === 0}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
@@ -845,6 +846,40 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
+          {/* Confirm accelerate dialog */}
+          <Dialog open={showAccelerateConfirm} onOpenChange={setShowAccelerateConfirm}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-foreground">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  Executar agora?
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Isso vai <strong className="text-foreground">forçar a execução imediata</strong> de todas as tarefas pendentes no próximo ciclo do motor (~5 min).</p>
+                <p>Executar muitas ações fora do horário programado pode gerar um padrão não-natural e chamar atenção do WhatsApp.</p>
+                <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
+                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) serão aceleradas.
+                </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowAccelerateConfirm(false)}>Cancelar</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                  onClick={() => { setShowAccelerateConfirm(false); handleAccelerate(); }}
+                  disabled={accelerating}
+                >
+                  {accelerating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <FastForward className="w-3.5 h-3.5" />
+                  Confirmar execução
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* ── Audit Logs grouped by day ── */}
           <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
