@@ -72,6 +72,22 @@ const WarmupInstanceDetail = () => {
   const { data: auditLogs = [] } = useWarmupAuditLogs(cycle?.id);
   const { data: plans = [] } = useWarmupPlans();
 
+  // Fetch scheduled jobs for this cycle
+  const { data: scheduledJobs = [] } = useQuery({
+    queryKey: ["warmup_jobs_scheduled", cycle?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_jobs")
+        .select("id, job_type, status, run_at, payload")
+        .eq("cycle_id", cycle!.id)
+        .order("run_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!cycle?.id,
+    refetchInterval: 30_000,
+  });
+
   // Group audit logs by warmup day
   const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
   const dayGroups = useMemo(() => {
