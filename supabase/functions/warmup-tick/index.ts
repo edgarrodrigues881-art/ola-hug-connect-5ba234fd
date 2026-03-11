@@ -159,12 +159,16 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("authorization") || "";
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const bearerToken = authHeader.replace("Bearer ", "");
   
   const isSecretValid = expectedSecret && secret === expectedSecret;
   const isBearerValid = authHeader.startsWith("Bearer ") && 
-    (authHeader.replace("Bearer ", "") === anonKey || authHeader.replace("Bearer ", "") === serviceKey);
+    (bearerToken === anonKey || bearerToken === serviceKey);
+  
+  console.log(`[warmup-tick] Auth check: secret=${!!isSecretValid}, bearer=${!!isBearerValid}, hasAuth=${!!authHeader}, anonKeyLen=${anonKey.length}, svcKeyLen=${serviceKey.length}`);
   
   if (!isSecretValid && !isBearerValid) {
+    console.log(`[warmup-tick] 401 - bearer token length: ${bearerToken.length}, anon key match: ${bearerToken === anonKey}`);
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
