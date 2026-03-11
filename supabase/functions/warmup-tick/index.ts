@@ -401,8 +401,15 @@ async function handleTick(db: any) {
               joinResult = parsed;
               if (res.ok || res.status === 409) {
                 joinOk = true;
-                // Extract JID from response
-                const jid = parsed?.group?.JID || parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+                // Extract JID from response — UAZAPI returns { group: { JID: "..." }, response: "..." }
+                const jid = parsed?.group?.JID 
+                  || parsed?.data?.group?.JID 
+                  || parsed?.data?.JID 
+                  || parsed?.gid 
+                  || parsed?.groupId 
+                  || parsed?.jid 
+                  || null;
+                console.log(`[join_group] JID extraction: group.JID=${parsed?.group?.JID}, data.group.JID=${parsed?.data?.group?.JID}, final=${jid}`);
                 if (jid) joinJid = jid;
                 
                 const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
