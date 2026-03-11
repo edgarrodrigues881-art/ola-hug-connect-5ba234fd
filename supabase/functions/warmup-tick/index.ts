@@ -402,7 +402,7 @@ async function handleTick(db: any) {
               if (res.ok || res.status === 409) {
                 joinOk = true;
                 // Extract JID from response
-                const jid = parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+                const jid = parsed?.group?.JID || parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
                 if (jid) joinJid = jid;
                 
                 const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
