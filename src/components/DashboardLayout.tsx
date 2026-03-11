@@ -56,18 +56,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground w-7 h-7 sm:w-8 sm:h-8" />
             <img src={logo} alt="DG Contingência Pro" className="w-6 h-6 rounded-md sm:hidden" />
 
-            {/* Search bar */}
-            <div className="flex-1 flex justify-center">
-              <div className={`relative ${searchOpen ? "w-full max-w-md" : "w-full max-w-xs"}`}>
-                <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder="Buscar..."
-                  className="pl-8 sm:pl-9 h-8 sm:h-9 bg-muted/40 border-border/40 focus:bg-muted/60 text-xs sm:text-sm rounded-lg"
-                  onFocus={() => setSearchOpen(true)}
-                  onBlur={() => setSearchOpen(false)}
-                />
-              </div>
-            </div>
+            {/* Spacer */}
+            <div className="flex-1" />
 
             {/* Theme toggle */}
             <Button
