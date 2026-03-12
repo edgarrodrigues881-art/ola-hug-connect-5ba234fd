@@ -60,7 +60,7 @@ interface ContactRowProps {
 
 const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
       <div className="p-2 overflow-hidden"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
