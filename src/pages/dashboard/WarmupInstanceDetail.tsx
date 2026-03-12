@@ -969,45 +969,80 @@ const WarmupInstanceDetail = () => {
                 {dayGroups.map(({ day, logs }, groupIdx) => {
                   const errorCount = logs.filter(l => l.level === "error").length;
                   const warnCount = logs.filter(l => l.level === "warn").length;
-                  const infoCount = logs.filter(l => l.level === "info").length;
-                  // Summarize by event_type
                   const typeCounts: Record<string, number> = {};
                   logs.forEach(l => { typeCounts[l.event_type] = (typeCounts[l.event_type] || 0) + 1; });
                   const dateStr = cycleStartedAt ? format(new Date(cycleStartedAt.getTime() + (day - 1) * 86400000), "dd/MM", { locale: ptBR }) : "";
+                  const isExpanded = expandedDays.has(day);
 
                   return (
-                    <div key={day} className="px-5 py-3 flex items-center gap-3">
-                      <div className={cn(
-                        "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold shrink-0",
-                        groupIdx === 0 ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground"
-                      )}>
-                        {day}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
-                          <span className="text-[10px] text-muted-foreground/40">{dateStr}</span>
+                    <div key={day}>
+                      <button
+                        onClick={() => setExpandedDays(prev => {
+                          const next = new Set(prev);
+                          next.has(day) ? next.delete(day) : next.add(day);
+                          return next;
+                        })}
+                        className="w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/5 transition-colors"
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold shrink-0",
+                          groupIdx === 0 ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground"
+                        )}>
+                          {day}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          {Object.entries(typeCounts).slice(0, 4).map(([type, count]) => (
-                            <span key={type} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/15 text-muted-foreground/70">
-                              {type} <span className="font-bold text-foreground/60">×{count}</span>
-                            </span>
-                          ))}
-                          {Object.keys(typeCounts).length > 4 && (
-                            <span className="text-[9px] text-muted-foreground/40">+{Object.keys(typeCounts).length - 4}</span>
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
+                            <span className="text-[10px] text-muted-foreground/40">{dateStr}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {Object.entries(typeCounts).slice(0, 4).map(([type, count]) => (
+                              <span key={type} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/15 text-muted-foreground/70">
+                                {translateEventType(type)} <span className="font-bold text-foreground/60">×{count}</span>
+                              </span>
+                            ))}
+                            {Object.keys(typeCounts).length > 4 && (
+                              <span className="text-[9px] text-muted-foreground/40">+{Object.keys(typeCounts).length - 4}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {errorCount > 0 && (
+                            <span className="text-[9px] font-bold text-destructive">{errorCount} erro{errorCount !== 1 ? "s" : ""}</span>
                           )}
+                          {warnCount > 0 && (
+                            <span className="text-[9px] font-bold text-amber-400">{warnCount} aviso{warnCount !== 1 ? "s" : ""}</span>
+                          )}
+                          <span className="text-[9px] text-muted-foreground/40">{logs.length}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground/40 transition-transform", isExpanded && "rotate-180")} />
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {errorCount > 0 && (
-                          <span className="text-[9px] font-bold text-destructive">{errorCount} erro{errorCount !== 1 ? "s" : ""}</span>
-                        )}
-                        {warnCount > 0 && (
-                          <span className="text-[9px] font-bold text-amber-400">{warnCount} aviso{warnCount !== 1 ? "s" : ""}</span>
-                        )}
-                        <span className="text-[9px] text-muted-foreground/40">{logs.length}</span>
-                      </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="border-t border-border/10 bg-muted/5 max-h-[300px] overflow-y-auto">
+                          {logs.map((log) => (
+                            <div key={log.id} className="px-5 py-2 flex items-start gap-3 border-b border-border/5 last:border-0">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                log.level === "error" ? "bg-destructive" : log.level === "warn" ? "bg-amber-400" : "bg-emerald-400"
+                              )} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    "text-[9px] font-bold px-1.5 py-0.5 rounded",
+                                    log.level === "error" ? "text-destructive bg-destructive/10" : log.level === "warn" ? "text-amber-400 bg-amber-400/10" : "text-emerald-400 bg-emerald-400/10"
+                                  )}>
+                                    {translateEventType(log.event_type)}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/30 font-mono">
+                                    {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground/60 mt-1 leading-relaxed">{log.message}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
