@@ -44,6 +44,7 @@ export function useNotifications() {
   const audioUnlockedRef = useRef(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const toastedIdsRef = useRef<Set<string>>(new Set());
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
   const initialLoadDoneRef = useRef(false);
 
   // Unlock AudioContext on first user gesture
@@ -153,7 +154,14 @@ export function useNotifications() {
             knownIdsRef.current.add(newNotif.id);
             setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
             setUnreadCount((c) => c + 1);
-            showToastForNotif(newNotif);
+
+            // Dedup by title+message within 10s window to prevent duplicate toasts
+            const dedupKey = `${newNotif.title}::${newNotif.message}`;
+            const lastShown = recentToastsRef.current.get(dedupKey) || 0;
+            if (Date.now() - lastShown > 10_000) {
+              recentToastsRef.current.set(dedupKey, Date.now());
+              showToastForNotif(newNotif);
+            }
           }
         }
       )
