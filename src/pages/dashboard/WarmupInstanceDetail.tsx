@@ -403,7 +403,7 @@ const WarmupInstanceDetail = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/15 hover:text-amber-400 font-semibold"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating || scheduledJobs.filter(j => j.status === "pending").length === 0}
                   >
@@ -412,7 +412,7 @@ const WarmupInstanceDetail = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/30 text-purple-500 hover:bg-purple-500/15 hover:text-purple-400 font-semibold"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
                   >
