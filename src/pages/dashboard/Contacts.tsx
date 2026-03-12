@@ -510,15 +510,18 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1430 }}>
-            <VirtualList
-              rowCount={filtered.length}
-              rowHeight={48}
-              overscanCount={10}
-              style={{ height: "100%", width: "100%", overflow: "hidden" }}
-              rowProps={contactRowProps}
-              rowComponent={ContactRow}
-            />
+          <div
+            className="overflow-y-auto"
+            style={{ maxHeight: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1430, WebkitOverflowScrolling: "touch" }}
+          >
+            {filtered.map((contact, index) => (
+              <ContactRow
+                key={contact.id}
+                index={index}
+                style={{}}
+                {...contactRowProps}
+              />
+            ))}
           </div>
         )}
       </Card>
