@@ -324,13 +324,11 @@ const Contacts = () => {
   };
 
   const removeTagFromSelected = () => {
-    if (!removeTagName) return;
-    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).includes(removeTagName));
+    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).length > 0);
     toUpdate.forEach(c => {
-      updateContact.mutate({ id: c.id, tags: (c.tags || []).filter(t => t !== removeTagName) });
+      updateContact.mutate({ id: c.id, tags: [] });
     });
-    toast({ title: "Tag removida", description: `Tag "${removeTagName}" removida de ${toUpdate.length} contatos.` });
-    setRemoveTagName("");
+    toast({ title: "Tags removidas", description: `Tags removidas de ${toUpdate.length} contatos.` });
     setRemoveTagDialogOpen(false);
   };
 
