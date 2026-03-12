@@ -653,20 +653,18 @@ const Contacts = () => {
           <DialogHeader><DialogTitle>Adicionar tag</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <Label className="text-xs">Selecione a tag</Label>
-            <div className="flex flex-wrap gap-2">
-              {customTags.map(tag => (
-                <Badge
-                  key={tag}
-                  variant={newTagName === tag ? "default" : "outline"}
-                  className="cursor-pointer text-xs px-3 py-1.5"
-                  onClick={() => setNewTagName(prev => prev === tag ? "" : tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+            <Select value={newTagName} onValueChange={setNewTagName}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecionar tag..." />
+              </SelectTrigger>
+              <SelectContent>
+                {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
+                  <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {customTags.length === 0 && (
-              <p className="text-xs text-muted-foreground">Nenhuma tag criada. Crie tags no filtro de tags acima.</p>
+              <p className="text-xs text-muted-foreground">Nenhuma tag criada.</p>
             )}
           </div>
           <DialogFooter>
