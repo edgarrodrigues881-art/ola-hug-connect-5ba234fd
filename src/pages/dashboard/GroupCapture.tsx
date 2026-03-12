@@ -420,10 +420,30 @@ const GroupCapture = () => {
       }
     }
 
+    // Create campaign record
+    const campaignName = `${selectedDevices.length} inst. × ${selectedGroups.length} grupos`;
+    const { data: campData } = await supabase
+      .from("group_join_campaigns" as any)
+      .insert({
+        user_id: user!.id,
+        name: campaignName,
+        status: "running",
+        total_items: items.length,
+        device_ids: selectedDevices,
+        group_links: selectedGroups,
+        min_delay: minDelay,
+        max_delay: maxDelay,
+      } as any)
+      .select("id")
+      .single();
+
+    campaignIdRef.current = campData?.id || null;
+    queryClient.invalidateQueries({ queryKey: ["group-join-campaigns"] });
+
     itemsRef.current = items;
     setJoinItems(items);
     await processItems(items);
-  }, [selectedGroups, selectedDevices, devices, groups, processItems]);
+  }, [selectedGroups, selectedDevices, devices, groups, processItems, user, queryClient, minDelay, maxDelay]);
 
   const retryFailures = useCallback(async () => {
     const items = itemsRef.current.map((item) =>
