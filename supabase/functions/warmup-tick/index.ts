@@ -1320,14 +1320,11 @@ async function scheduleDayJobs(
   const now = new Date();
   const jobs: any[] = [];
 
-  // Activity window BRT → UTC:
-  // new: 07:00-19:00 (10:00-22:00 UTC)
-  // recovered: 08:00-19:00 (11:00-22:00 UTC)
-  // unstable: 09:00-18:00 (12:00-21:00 UTC)
+  // Activity window BRT → UTC: 07:00-19:00 BRT = 10:00-22:00 UTC (unified for all chip states)
   const today = new Date(now);
   const windowStartUTC = new Date(today);
-  const startHourUTC = chipState === "unstable" ? 12 : chipState === "recovered" ? 11 : 10;
-  const endHourUTC = chipState === "unstable" ? 21 : 22;
+  const startHourUTC = 10; // 07:00 BRT
+  const endHourUTC = 22;   // 19:00 BRT
   windowStartUTC.setUTCHours(startHourUTC, 0, 0, 0);
   const windowEndUTC = new Date(today);
   windowEndUTC.setUTCHours(endHourUTC, 0, 0, 0);
