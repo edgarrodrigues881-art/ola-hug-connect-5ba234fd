@@ -1036,7 +1036,7 @@ const ToggleCard = ({ icon, iconColor, title, description, enabled, onToggle, mo
   const colors = colorMap[iconColor] || colorMap.emerald;
 
   return (
-    <div className={`rounded-xl border-2 transition-all duration-300 overflow-hidden ${enabled ? colors.border : "border-border"} ${enabled ? colors.bg : "bg-card"}`}>
+    <div className={`rounded-xl border-2 transition-all duration-300 ${enabled ? colors.border : "border-border"} ${enabled ? colors.bg : "bg-card"}`}>
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1067,39 +1067,36 @@ const ToggleCard = ({ icon, iconColor, title, description, enabled, onToggle, mo
             </div>
           </div>
 
-          <div className="relative inline-block">
-            <button
-              onMouseEnter={() => setShowPreview(true)}
-              onMouseLeave={() => setShowPreview(false)}
-              className="text-[11px] text-primary hover:underline flex items-center gap-1"
-            >
-              <Eye className="w-3 h-3" />
-              Ver preview da mensagem
-            </button>
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="text-[11px] text-primary hover:underline flex items-center gap-1"
+          >
+            <Eye className="w-3 h-3" />
+            {showPreview ? "Ocultar preview" : "Ver preview da mensagem"}
+          </button>
 
-            {showPreview && (
-              <div className="absolute z-50 bottom-full left-0 mb-2 w-72 bg-[#e5ddd5] border border-border rounded-xl shadow-xl p-0 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-                {/* WhatsApp-style header */}
-                <div className="bg-[#075e54] px-3 py-2 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                    <Users className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <span className="text-[11px] text-white font-medium truncate">Grupo de Relatórios</span>
+          {showPreview && (
+            <div className="mt-2 rounded-xl overflow-hidden shadow-lg border border-border/50">
+              {/* WhatsApp header */}
+              <div className="bg-[#075e54] px-3 py-2 flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5 text-white" />
                 </div>
-                {/* Message bubble */}
-                <div className="p-3">
-                  <div className="bg-white rounded-lg rounded-tl-none shadow-sm p-2.5 max-h-52 overflow-y-auto">
-                    <pre className="text-[10px] text-gray-800 whitespace-pre-wrap font-sans leading-relaxed m-0">
-                      {previewMessage.replace(/\\n/g, "\n")}
-                    </pre>
-                    <div className="text-right mt-1">
-                      <span className="text-[9px] text-gray-400">22:00</span>
-                    </div>
+                <span className="text-[11px] text-white font-medium truncate">Grupo de Relatórios</span>
+              </div>
+              {/* WhatsApp chat bg */}
+              <div className="bg-[#e5ddd5] p-3" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ccc' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
+                <div className="bg-white rounded-lg rounded-tl-none shadow-sm p-2.5 max-h-56 overflow-y-auto">
+                  <pre className="text-[10px] text-gray-800 whitespace-pre-wrap font-sans leading-relaxed m-0">
+                    {previewMessage.replace(/\\n/g, "\n")}
+                  </pre>
+                  <div className="text-right mt-1">
+                    <span className="text-[9px] text-gray-400">22:00 ✓✓</span>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
