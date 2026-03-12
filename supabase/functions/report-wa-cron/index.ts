@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
   const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
 
   let callerUserId: string | null = null;
+  let forceWarmup = false;
 
   // If called with a real user token (not anon key), extract user_id to filter
   if (token && token !== anonKey && token !== serviceRoleKey && token !== tickSecret) {
@@ -30,6 +31,12 @@ Deno.serve(async (req) => {
       if (user) callerUserId = user.id;
     } catch {}
   }
+
+  // Check for force flag in body (manual trigger from frontend)
+  try {
+    const body = await req.clone().json();
+    if (body?.force === true) forceWarmup = true;
+  } catch {}
 
   try {
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
@@ -259,7 +266,7 @@ Deno.serve(async (req) => {
         const warmupTarget = config.group_id;
         // Only send warmup reports at 22:00 BRT (end of activity window)
         const brtHour = parseInt(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }), 10);
-        const isWarmupReportTime = brtHour === 22 || (callerUserId !== null); // allow manual trigger anytime
+        const isWarmupReportTime = brtHour === 22 || forceWarmup; // only manual force bypasses time
         if (warmupTarget && isWarmupReportTime) {
           // Check for active warmup cycles (24h report)
           const { data: activeCycles } = await serviceClient
