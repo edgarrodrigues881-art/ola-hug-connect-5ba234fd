@@ -643,17 +643,30 @@ const WarmupInstanceDetail = () => {
 
           {/* ── Tarefas agendadas para hoje ── */}
           {(() => {
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const todayEnd = new Date(todayStart.getTime() + 86400000);
+            // Convert to BRT (UTC-3) for "today" calculation
+            const nowUtc = new Date();
+            const brtOffset = -3 * 60; // minutes
+            const nowBrt = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
+            const todayStartBrt = new Date(nowBrt.getFullYear(), nowBrt.getMonth(), nowBrt.getDate());
+            const todayEndBrt = new Date(todayStartBrt.getTime() + 86400000);
+            // Convert back to UTC for comparison
+            const todayStartUtc = new Date(todayStartBrt.getTime() - (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
+            const todayEndUtc = new Date(todayEndBrt.getTime() - (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
+
             const todayJobs = scheduledJobs.filter(j => {
               const runAt = new Date(j.run_at);
-              return runAt >= todayStart && runAt < todayEnd;
+              return runAt >= todayStartUtc && runAt < todayEndUtc;
             });
             const futureJobs = scheduledJobs.filter(j => {
               const runAt = new Date(j.run_at);
-              return runAt >= todayEnd;
+              return runAt >= todayEndUtc;
             });
+
+            // Helper to format a date in BRT
+            const formatBrt = (date: Date, fmt: string) => {
+              const d = new Date(date.getTime() + (date.getTimezoneOffset() + brtOffset) * 60000);
+              return format(d, fmt, { locale: ptBR });
+            };
             
             const jobTypeLabels: Record<string, { label: string; icon: typeof Target; color: string }> = {
               join_group: { label: "Entrar no grupo", icon: UserPlus, color: "text-teal-400" },
@@ -694,7 +707,7 @@ const WarmupInstanceDetail = () => {
             const doneToday = todayJobs.filter(j => j.status === "succeeded").length;
             const failedToday = todayJobs.filter(j => j.status === "failed").length;
             const pendingToday = todayJobs.filter(j => j.status === "pending").length;
-            const nextPendingJob = todayJobs.find(j => j.status === "pending" && new Date(j.run_at) >= now);
+            const nextPendingJob = todayJobs.find(j => j.status === "pending" && new Date(j.run_at) >= nowUtc);
 
             return (
               <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
@@ -705,13 +718,13 @@ const WarmupInstanceDetail = () => {
                   <div className="flex-1">
                     <span className="text-sm font-bold text-foreground">Tarefas do Dia</span>
                     <p className="text-[10px] text-muted-foreground">
-                      {doneToday} concluídas · {pendingToday} pendentes{failedToday > 0 ? ` · ${failedToday} falhas` : ""}
+                      ✅ {doneToday} feitas · ⏳ {pendingToday} a fazer{failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}
                     </p>
                   </div>
                   {nextPendingJob && (
                     <div className="text-right">
                       <p className="text-[9px] text-muted-foreground uppercase">Próxima</p>
-                      <p className="text-xs font-bold text-foreground font-mono">{format(new Date(nextPendingJob.run_at), "HH:mm")}</p>
+                      <p className="text-xs font-bold text-foreground font-mono">{formatBrt(new Date(nextPendingJob.run_at), "HH:mm")}</p>
                     </div>
                   )}
                 </div>
@@ -742,7 +755,7 @@ const WarmupInstanceDetail = () => {
                           <span className="text-[10px] text-destructive font-mono">({summary.failed}✗)</span>
                         )}
                         {summary.next && (
-                          <span className="text-[10px] text-muted-foreground/40 font-mono ml-1">{format(summary.next, "HH:mm")}</span>
+                          <span className="text-[10px] text-muted-foreground/40 font-mono ml-1">{formatBrt(summary.next, "HH:mm")}</span>
                         )}
                       </div>
                     );
@@ -761,7 +774,7 @@ const WarmupInstanceDetail = () => {
                         <div key={job.id} className="flex items-center gap-2 text-[10px] text-muted-foreground/60 py-0.5">
                           <Clock className="w-3 h-3" />
                           <span>{cfg.label}</span>
-                          <span className="ml-auto font-mono">{format(new Date(job.run_at), "dd/MM HH:mm")}</span>
+                          <span className="ml-auto font-mono">{formatBrt(new Date(job.run_at), "dd/MM HH:mm")}</span>
                         </div>
                       );
                     })}
