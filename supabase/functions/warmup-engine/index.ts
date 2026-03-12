@@ -498,12 +498,13 @@ interface DayVolumes {
 }
 
 function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
 
   if (phase === "pre_24h") return v;
 
   if (phase === "groups_only") {
     v.groupMsgs = randInt(200, 500);
+    v.statusPosts = randInt(1, 3);
     return v;
   }
 
@@ -512,6 +513,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveContacts = 5;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 10;
+    v.statusPosts = randInt(2, 4);
     return v;
   }
 
@@ -522,6 +524,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveTotal = 10;
     v.communityPairs = randInt(2, 4);
     v.communityMsgsPerPair = randInt(10, 20);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
 
@@ -532,6 +535,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveTotal = 10;
     v.communityPairs = randInt(4, 6);
     v.communityMsgsPerPair = randInt(15, 25);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
 
