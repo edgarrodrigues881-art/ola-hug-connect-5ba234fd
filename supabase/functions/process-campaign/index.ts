@@ -670,7 +670,7 @@ Deno.serve(async (req) => {
       // Get pending contacts (batch of 100)
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
-        .select("id, phone, name, status, campaign_id")
+        .select("id, phone, name, status, campaign_id, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10")
         .eq("campaign_id", campaignId)
         .eq("status", "pending")
         .order("created_at", { ascending: true })
