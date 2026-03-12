@@ -700,7 +700,10 @@ const WarmupInstanceDetail = () => {
               if (job.status === "failed") typeSummary[key].failed++;
               if (job.status === "pending") {
                 const runAt = new Date(job.run_at);
-                if (!typeSummary[key].next || runAt < typeSummary[key].next!) typeSummary[key].next = runAt;
+                // Only track future pending jobs for "next" time
+                if (runAt >= nowUtc && (!typeSummary[key].next || runAt < typeSummary[key].next!)) {
+                  typeSummary[key].next = runAt;
+                }
               }
             }
 
