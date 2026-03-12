@@ -814,10 +814,13 @@ const Contacts = () => {
               <p className="text-xs text-muted-foreground">contatos serão exportados</p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleExport} disabled={exportContacts.length === 0}>
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar CSV
+            <Button variant="outline" onClick={handleExportCSV} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
+            </Button>
+            <Button onClick={handleExportXLSX} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> XLSX
             </Button>
           </DialogFooter>
         </DialogContent>
