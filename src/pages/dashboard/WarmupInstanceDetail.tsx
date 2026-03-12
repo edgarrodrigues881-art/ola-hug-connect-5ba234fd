@@ -718,7 +718,7 @@ const WarmupInstanceDetail = () => {
                   <div className="flex-1">
                     <span className="text-sm font-bold text-foreground">Tarefas do Dia</span>
                     <p className="text-[10px] text-muted-foreground">
-                      {doneToday} concluídas · {pendingToday} pendentes{failedToday > 0 ? ` · ${failedToday} falhas` : ""}
+                      ✅ {doneToday} feitas · ⏳ {pendingToday} a fazer{failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}
                     </p>
                   </div>
                   {nextPendingJob && (
