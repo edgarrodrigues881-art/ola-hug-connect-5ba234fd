@@ -299,15 +299,20 @@ const Contacts = () => {
     return list;
   }, [contacts, exportTagFilter, exportLimit]);
 
-  const handleExport = () => {
+  const buildExportRows = () => {
     const headers = ["Nome", "Telefone", "Tags"];
     if (exportIncludeVars) headers.push(...VAR_KEYS.map((_, i) => `Var ${i + 1}`));
     const rows = [headers];
     exportContacts.forEach((c) => {
-      const row = [c.name, c.phone, (c.tags || []).join("|")];
+      const row: string[] = [c.name, c.phone, (c.tags || []).join("|")];
       if (exportIncludeVars) row.push(...VAR_KEYS.map(k => c[k] || ""));
       rows.push(row);
     });
+    return rows;
+  };
+
+  const handleExportCSV = () => {
+    const rows = buildExportRows();
     const csv = rows.map((r) => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -316,7 +321,22 @@ const Contacts = () => {
     a.download = `contatos${exportTagFilter !== "all" ? `-${exportTagFilter}` : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exportação concluída", description: `${exportContacts.length} contatos exportados.` });
+    toast({ title: "Exportação concluída", description: `${exportContacts.length} contatos exportados em CSV.` });
+    setExportDialogOpen(false);
+  };
+
+  const handleExportXLSX = async () => {
+    const rows = buildExportRows();
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Auto-fit column widths
+    ws["!cols"] = rows[0].map((_, i) => ({
+      wch: Math.max(...rows.map(r => String(r[i] || "").length), 8)
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contatos");
+    XLSX.writeFile(wb, `contatos${exportTagFilter !== "all" ? `-${exportTagFilter}` : ""}.xlsx`);
+    toast({ title: "Exportação concluída", description: `${exportContacts.length} contatos exportados em XLSX.` });
     setExportDialogOpen(false);
   };
 
@@ -794,10 +814,13 @@ const Contacts = () => {
               <p className="text-xs text-muted-foreground">contatos serão exportados</p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleExport} disabled={exportContacts.length === 0}>
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar CSV
+            <Button variant="outline" onClick={handleExportCSV} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
+            </Button>
+            <Button onClick={handleExportXLSX} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> XLSX
             </Button>
           </DialogFooter>
         </DialogContent>
