@@ -382,34 +382,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   }
 }
 
-async function uazapiSendAudio(baseUrl: string, token: string, number: string) {
-  // Send a PTT (voice note) — UAZAPI supports /send/ptt with a URL or base64
-  // We'll use a short TTS-generated audio via a public URL
-  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=${encodeURIComponent(pickRandom(AUDIO_CAPTIONS))}`;
-  
-  const endpoints = ["/send/ptt", "/send/audio"];
-  for (const ep of endpoints) {
-    try {
-      const payload: any = ep === "/send/ptt"
-        ? { number, audio: audioUrl }
-        : { number, audioUrl, ptt: true };
-      const res = await fetch(`${baseUrl}${ep}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.status === 405) continue;
-      if (!res.ok) {
-        const errText = await res.text();
-        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
-        continue;
-      }
-      return await res.json();
-    } catch (e) {
-      if (ep === endpoints[endpoints.length - 1]) throw e;
-    }
-  }
-}
+// Audio removed — only text + image
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoints = ["/status/post", "/sendStories"];
