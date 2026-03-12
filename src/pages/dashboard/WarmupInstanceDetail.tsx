@@ -704,9 +704,20 @@ const WarmupInstanceDetail = () => {
               }
             }
 
+            // Cap group_interaction total to the daily budget target for consistency with "Msgs Hoje"
+            if (cycle && typeSummary["group_interaction"]) {
+              const budget = cycle.daily_interaction_budget_target;
+              if (typeSummary["group_interaction"].total > budget) {
+                typeSummary["group_interaction"].total = budget;
+              }
+            }
+
             const doneToday = todayJobs.filter(j => j.status === "succeeded").length;
             const failedToday = todayJobs.filter(j => j.status === "failed").length;
             const pendingToday = todayJobs.filter(j => j.status === "pending").length;
+            const totalDisplay = cycle ? Math.min(todayJobs.length, 
+              todayJobs.filter(j => j.job_type !== "group_interaction").length + (cycle.daily_interaction_budget_target || 0)
+            ) : todayJobs.length;
             const nextPendingJob = todayJobs.find(j => j.status === "pending" && new Date(j.run_at) >= nowUtc);
 
             return (
@@ -718,7 +729,7 @@ const WarmupInstanceDetail = () => {
                   <div className="flex-1">
                     <span className="text-sm font-bold text-foreground">Tarefas do Dia</span>
                     <p className="text-[10px] text-muted-foreground">
-                      ✅ {doneToday} feitas · ⏳ {pendingToday} a fazer{failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}
+                      ✅ {doneToday} feitas · ⏳ {Math.max(0, totalDisplay - doneToday - failedToday)} a fazer{failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}
                     </p>
                   </div>
                   {nextPendingJob && (
@@ -732,9 +743,9 @@ const WarmupInstanceDetail = () => {
                 {/* Progress bar */}
                 <div className="px-5 py-2 bg-muted/5 border-b border-border/10">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[10px] text-muted-foreground">{doneToday + failedToday}/{todayJobs.length}</span>
+                    <span className="text-[10px] text-muted-foreground">{doneToday + failedToday}/{totalDisplay}</span>
                     <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${todayJobs.length > 0 ? ((doneToday + failedToday) / todayJobs.length) * 100 : 0}%` }} />
+                      <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
                     </div>
                   </div>
                 </div>
