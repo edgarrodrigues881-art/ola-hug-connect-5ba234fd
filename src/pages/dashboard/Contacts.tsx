@@ -436,19 +436,22 @@ const Contacts = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {[
-          { label: "Total", value: stats.total, icon: Users },
-          { label: "Com Tags", value: stats.tagged, icon: Tag },
+          { label: "Total", value: stats.total, icon: Users, color: "text-primary" },
+          { label: "Com Tags", value: stats.tagged, icon: Tag, color: "text-primary" },
+          { label: "Duplicados", value: stats.duplicates, icon: Copy, color: stats.duplicates > 0 ? "text-amber-500" : "text-muted-foreground" },
+          { label: "Inválidos", value: stats.invalid, icon: Ban, color: stats.invalid > 0 ? "text-destructive" : "text-muted-foreground" },
+          { label: "DDI 55", value: stats.ddi55, icon: Phone, color: "text-blue-500" },
         ].map((s) => (
           <Card key={s.label} className="glass-card">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <s.icon className="w-4 h-4 text-primary" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <div className={cn("w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0")}>
+                <s.icon className={cn("w-3.5 h-3.5", s.color)} />
               </div>
               <div>
-                <p className="text-lg font-bold text-foreground">{s.value}</p>
-                <p className="text-[11px] text-muted-foreground">{s.label}</p>
+                <p className="text-base font-bold text-foreground">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
               </div>
             </CardContent>
           </Card>
