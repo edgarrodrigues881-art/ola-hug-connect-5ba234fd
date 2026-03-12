@@ -44,6 +44,7 @@ export function useNotifications() {
   const audioUnlockedRef = useRef(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const toastedIdsRef = useRef<Set<string>>(new Set());
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
   const initialLoadDoneRef = useRef(false);
 
   // Unlock AudioContext on first user gesture
