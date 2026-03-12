@@ -437,7 +437,7 @@ const Contacts = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
             <FileSpreadsheet className="w-3.5 h-3.5" /> Planilha
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportDialogOpen(true)}>
             <Database className="w-3.5 h-3.5" /> Base
           </Button>
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
