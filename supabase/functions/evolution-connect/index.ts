@@ -369,33 +369,51 @@ Deno.serve(async (req) => {
       // Track which token was auto-assigned so we can rollback on failure
       let autoAssignedTokenId: string | null = null;
 
-      // Auto-assign token from pool if needed
+      // Auto-assign token if needed
       if (!instanceToken) {
-        // Try available first, then blocked (unassigned) as fallback
-        let poolToken: any = null;
-        for (const st of ["available", "blocked"]) {
-          const { data } = await svc.from("user_api_tokens")
-            .select("id, token")
-            .eq("user_id", user.id).eq("status", st).is("device_id", null)
-            .limit(1).maybeSingle();
-          if (data) { poolToken = data; break; }
+        // ── report_wa: use isolated monitor token from profiles first ──
+        if (isReportDevice) {
+          const { data: prof } = await svc.from("profiles")
+            .select("whatsapp_monitor_token")
+            .eq("id", user.id).maybeSingle();
+          if (prof?.whatsapp_monitor_token) {
+            await svc.from("devices").update({
+              uazapi_token: prof.whatsapp_monitor_token, uazapi_base_url: BASE_URL,
+            }).eq("id", deviceId);
+            instanceToken = prof.whatsapp_monitor_token;
+            instanceUrl = BASE_URL;
+            console.log(`[evolution-connect] monitor_token_assigned for report_wa ${deviceId.substring(0, 8)}`);
+            await oplog(svc, user.id, "monitor_token_assigned", `Token monitor atribuído para "${deviceName}"`, deviceId);
+          }
         }
 
-        if (poolToken) {
-          await Promise.all([
-            svc.from("user_api_tokens").update({
-              device_id: deviceId, status: "in_use", assigned_at: new Date().toISOString(),
-            }).eq("id", poolToken.id),
-            svc.from("devices").update({
-              uazapi_token: poolToken.token, uazapi_base_url: BASE_URL,
-            }).eq("id", deviceId),
-          ]);
+        // ── Regular devices (or report_wa without monitor token): use pool ──
+        if (!instanceToken) {
+          let poolToken: any = null;
+          for (const st of ["available", "blocked"]) {
+            const { data } = await svc.from("user_api_tokens")
+              .select("id, token")
+              .eq("user_id", user.id).eq("status", st).is("device_id", null)
+              .limit(1).maybeSingle();
+            if (data) { poolToken = data; break; }
+          }
 
-          instanceToken = poolToken.token;
-          instanceUrl = BASE_URL;
-          autoAssignedTokenId = poolToken.id;
-          console.log(`[evolution-connect] token_auto_assigned for ${deviceId.substring(0, 8)}`);
-          await oplog(svc, user.id, "token_auto_assigned", `Token atribuído para "${deviceName}"`, deviceId, { tokenId: poolToken.id });
+          if (poolToken) {
+            await Promise.all([
+              svc.from("user_api_tokens").update({
+                device_id: deviceId, status: "in_use", assigned_at: new Date().toISOString(),
+              }).eq("id", poolToken.id),
+              svc.from("devices").update({
+                uazapi_token: poolToken.token, uazapi_base_url: BASE_URL,
+              }).eq("id", deviceId),
+            ]);
+
+            instanceToken = poolToken.token;
+            instanceUrl = BASE_URL;
+            autoAssignedTokenId = poolToken.id;
+            console.log(`[evolution-connect] token_auto_assigned for ${deviceId.substring(0, 8)}`);
+            await oplog(svc, user.id, "token_auto_assigned", `Token atribuído para "${deviceName}"`, deviceId, { tokenId: poolToken.id });
+          }
         }
       }
 
