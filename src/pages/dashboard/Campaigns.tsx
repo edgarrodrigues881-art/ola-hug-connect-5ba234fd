@@ -658,10 +658,10 @@ const Campaigns = () => {
   const addPrefixToNumbers = (prefix: string) => {
     let count = 0;
     setContacts(prev => prev.map(c => {
-      const num = c.numero.trim();
-      if (num && !num.startsWith(prefix)) {
+      const cleaned = c.numero.replace(/\D/g, "");
+      if (cleaned && !cleaned.startsWith(prefix)) {
         count++;
-        return { ...c, numero: prefix + num };
+        return { ...c, numero: prefix + cleaned };
       }
       return c;
     }));
