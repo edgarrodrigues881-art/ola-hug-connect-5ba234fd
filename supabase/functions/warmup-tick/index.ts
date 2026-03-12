@@ -409,13 +409,10 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
   }
 }
 
-// Decide media type for group interaction: 70% text, 15% image, 10% audio, 5% skip (natural)
-type MediaType = "text" | "image" | "audio";
+// Decide media type for group interaction: 75% text, 25% image (no audio)
+type MediaType = "text" | "image";
 function pickMediaType(): MediaType {
-  const r = Math.random();
-  if (r < 0.70) return "text";
-  if (r < 0.85) return "image";
-  return "audio";
+  return Math.random() < 0.75 ? "text" : "image";
 }
 
 // ════════════════════════════════════════
