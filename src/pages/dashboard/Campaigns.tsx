@@ -1554,8 +1554,8 @@ const Campaigns = () => {
                     </div>
                   )}
 
-                  {/* Tags filter — always show in tag mode, or when tags exist */}
-                  {(importSearchMode === "tag" || allTags.length > 0) && (
+                  {/* Tags filter — show only in tag mode */}
+                  {importSearchMode === "tag" && (
                     <div className="flex flex-wrap gap-1.5">
                       {allTags.length > 0 ? allTags.map(tag => (
                         <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
