@@ -475,7 +475,7 @@ const Contacts = () => {
       <Card className="glass-card overflow-x-auto overflow-y-hidden">
         {/* Header row */}
         <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1320 }}>
-          <div className="p-3 w-10 shrink-0"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
+          <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
           <div className="p-3 w-[140px] shrink-0">Nome</div>
           <div className="p-3 w-[140px] shrink-0">Telefone</div>
           <div className="p-3 w-[120px] shrink-0">Tags</div>
