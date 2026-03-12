@@ -776,6 +776,62 @@ export type Database = {
         }
         Relationships: []
       }
+      group_join_queue: {
+        Row: {
+          attempt: number
+          campaign_id: string
+          created_at: string
+          device_id: string
+          device_name: string
+          error_message: string | null
+          group_link: string
+          group_name: string
+          id: string
+          processed_at: string | null
+          response_status: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          campaign_id: string
+          created_at?: string
+          device_id: string
+          device_name?: string
+          error_message?: string | null
+          group_link: string
+          group_name?: string
+          id?: string
+          processed_at?: string | null
+          response_status?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          campaign_id?: string
+          created_at?: string
+          device_id?: string
+          device_name?: string
+          error_message?: string | null
+          group_link?: string
+          group_name?: string
+          id?: string
+          processed_at?: string | null
+          response_status?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_join_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_join_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_queue: {
         Row: {
           client_email: string
