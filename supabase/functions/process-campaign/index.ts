@@ -1032,7 +1032,7 @@ Deno.serve(async (req) => {
               if (!result.success) {
                 const translated = translateErrorMessage(result.error || "Erro ao enviar");
                 console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: activeDevice.id }).eq("id", contact.id);
                 failedCount++;
                 await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
