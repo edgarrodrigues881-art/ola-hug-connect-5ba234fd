@@ -126,6 +126,7 @@ const Contacts = () => {
   const [exportTagFilter, setExportTagFilter] = useState<string>("all");
   const [exportIncludeVars, setExportIncludeVars] = useState(true);
   const [exportLimit, setExportLimit] = useState<string>("");
+  const [exportSelectedIds, setExportSelectedIds] = useState<Set<string>>(new Set());
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
