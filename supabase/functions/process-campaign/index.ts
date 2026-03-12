@@ -857,7 +857,7 @@ Deno.serve(async (req) => {
               }
             } catch (err) {
               const translated = translateErrorMessage(err.message || "Erro");
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated, device_id: dev.id }).eq("id", contact.id);
               devFailed++;
               await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, allDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
               if (isDisconnectError(err.message || "")) {
