@@ -134,6 +134,7 @@ const WarmupInstanceDetail = () => {
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   /* accelerate: run first job now, recalculate delays for the rest */
   const handleAccelerate = async () => {
