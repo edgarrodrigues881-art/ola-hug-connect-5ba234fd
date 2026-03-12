@@ -290,6 +290,7 @@ const Contacts = () => {
       id: editContact.id,
       name: editContact.name,
       phone: editContact.phone,
+      tags: editContact.tags || [],
       var1: editContact.var1, var2: editContact.var2, var3: editContact.var3, var4: editContact.var4, var5: editContact.var5,
       var6: editContact.var6, var7: editContact.var7, var8: editContact.var8, var9: editContact.var9, var10: editContact.var10,
     }, {
@@ -558,6 +559,31 @@ const Contacts = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs">Telefone</Label>
                 <Input value={editContact.phone} onChange={(e) => setEditContact(p => p ? { ...p, phone: e.target.value } : p)} placeholder="+5511999999999" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tags</Label>
+                <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-md border border-border/50 bg-background">
+                  {(editContact.tags || []).map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p)}>
+                      {tag}
+                      <X className="w-2.5 h-2.5" />
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Adicionar tag..."
+                    className="h-6 border-0 p-0 text-xs shadow-none focus-visible:ring-0 w-24 flex-1 min-w-[60px]"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const val = (e.target as HTMLInputElement).value.trim().toLowerCase();
+                        if (val && !(editContact.tags || []).includes(val)) {
+                          setEditContact(p => p ? { ...p, tags: [...(p.tags || []), val] } : p);
+                        }
+                        (e.target as HTMLInputElement).value = "";
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Variables toggle */}
