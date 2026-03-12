@@ -687,6 +687,13 @@ const CampaignDetail = () => {
                             </Tooltip>
                           ) : <span className="text-muted-foreground/20">—</span>}
                         </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground/60 py-2.5 font-mono tracking-tight">
+                          {(() => {
+                            const dev = (c as any).device_id ? devices.find(d => d.id === (c as any).device_id) : null;
+                            if (dev) return dev.number ? formatPhoneDisplay(dev.number) : dev.name;
+                            return <span className="text-muted-foreground/20">—</span>;
+                          })()}
+                        </TableCell>
                       </TableRow>
                     );
                   })
