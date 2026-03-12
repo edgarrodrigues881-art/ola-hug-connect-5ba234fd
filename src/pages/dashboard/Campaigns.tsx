@@ -213,6 +213,8 @@ const Campaigns = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("nova");
   const [importFromContacts, setImportFromContacts] = useState(false);
   const [selectedContactTags, setSelectedContactTags] = useState<string[]>([]);
+  const [selectedSavedContactIds, setSelectedSavedContactIds] = useState<Set<string>>(new Set());
+  const [importContactSearch, setImportContactSearch] = useState("");
   const [showInstancePicker, setShowInstancePicker] = useState(false);
   const [showContactTools, setShowContactTools] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
