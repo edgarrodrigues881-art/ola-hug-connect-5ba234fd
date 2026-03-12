@@ -108,16 +108,31 @@ export default function ReportWhatsApp() {
   // Ensure a report_wa device exists, creating one if needed
   const ensureReportDevice = async (): Promise<string | null> => {
     if (reportDevice?.id) return reportDevice.id;
-    // Create a new report_wa device
+    
+    // Fetch monitor token from profile to pre-fill the device
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("whatsapp_monitor_token")
+      .eq("id", user!.id)
+      .maybeSingle();
+    
+    const insertPayload: Record<string, any> = {
+      user_id: user!.id,
+      name: "Relatorio Via Whatsapp",
+      login_type: "report_wa",
+      status: "Disconnected",
+      instance_type: "report",
+    };
+    
+    // Pre-assign the isolated monitor token if available
+    if (profile?.whatsapp_monitor_token) {
+      insertPayload.uazapi_token = profile.whatsapp_monitor_token;
+      insertPayload.uazapi_base_url = import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '') || null;
+    }
+    
     const { data, error } = await supabase
       .from("devices")
-      .insert({
-        user_id: user!.id,
-        name: "Relatorio Via Whatsapp",
-        login_type: "report_wa",
-        status: "Disconnected",
-        instance_type: "report",
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
     if (error) throw new Error("Erro ao criar instância de relatório: " + error.message);
