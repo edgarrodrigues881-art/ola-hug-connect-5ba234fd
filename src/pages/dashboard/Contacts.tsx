@@ -290,6 +290,7 @@ const Contacts = () => {
       id: editContact.id,
       name: editContact.name,
       phone: editContact.phone,
+      tags: editContact.tags || [],
       var1: editContact.var1, var2: editContact.var2, var3: editContact.var3, var4: editContact.var4, var5: editContact.var5,
       var6: editContact.var6, var7: editContact.var7, var8: editContact.var8, var9: editContact.var9, var10: editContact.var10,
     }, {
