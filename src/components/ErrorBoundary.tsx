@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface Props {
@@ -8,19 +8,38 @@ interface Props {
 interface State {
   hasError: boolean;
   errorCount: number;
+  lastErrorMessage: string;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, errorCount: 0 };
+  state: State = { hasError: false, errorCount: 0, lastErrorMessage: "" };
 
-  static getDerivedStateFromError(): Partial<State> {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true, lastErrorMessage: `${error.name}: ${error.message}` };
   }
 
-  componentDidCatch(error: Error) {
-    console.error("[ErrorBoundary]", error.message);
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    const signature = `${error.name}: ${error.message}`;
 
-    // Auto-recover up to 3 times
+    console.error("[ErrorBoundary]", signature, {
+      stack: error.stack,
+      componentStack: info.componentStack,
+    });
+
+    // Known browser translation / extension DOM mutation errors (Radix/React portals)
+    const isRecoverableDomMutationError = /notfounderror|removechild|insertbefore|node to be removed is not a child/i.test(signature);
+
+    if (isRecoverableDomMutationError) {
+      requestAnimationFrame(() => {
+        this.setState((prev) => ({
+          hasError: false,
+          errorCount: Math.max(0, prev.errorCount - 1),
+        }));
+      });
+      return;
+    }
+
+    // Auto-recover up to 3 times for transient runtime errors
     if (this.state.errorCount < 3) {
       setTimeout(() => {
         this.setState((prev) => ({
