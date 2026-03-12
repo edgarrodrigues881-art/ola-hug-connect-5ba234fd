@@ -1535,8 +1535,8 @@ const Campaigns = () => {
               const isNumValid = (n: string) => /^\d{10,15}$/.test(n.replace(/\D/g, ""));
               return (
               <SurfaceCard className="p-0 overflow-hidden">
-                <div className="overflow-auto max-h-[420px] rounded-xl">
-                  <table className="w-full text-xs">
+                <div className="overflow-x-auto overflow-y-auto max-h-[420px] rounded-xl scrollbar-thin">
+                  <table className="w-full text-xs min-w-[600px]">
                     <thead className="sticky top-0 bg-card dark:bg-[hsl(220_13%_10%)] z-10">
                       <tr className="border-b border-border/10">
                         <th className="text-left px-4 py-3.5 text-muted-foreground/40 font-semibold w-10 text-[10px]">#</th>
