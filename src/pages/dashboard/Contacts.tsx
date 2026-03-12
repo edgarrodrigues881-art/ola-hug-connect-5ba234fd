@@ -493,7 +493,7 @@ const Contacts = () => {
       </Card>
 
       {/* Contact Table */}
-      <Card className="glass-card overflow-x-auto overflow-y-hidden">
+      <Card className="glass-card overflow-x-auto">
         {/* Header row */}
         <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1430 }}>
           <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
@@ -510,10 +510,7 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div
-            className="overflow-y-auto"
-            style={{ maxHeight: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1430, WebkitOverflowScrolling: "touch" }}
-          >
+          <div style={{ minWidth: 1430 }}>
             {filtered.map((contact, index) => (
               <ContactRow
                 key={contact.id}
