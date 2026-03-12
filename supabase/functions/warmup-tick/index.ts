@@ -247,6 +247,131 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
+// ── Media pools for warmup variety ──
+const IMAGE_POOL = [
+  "https://picsum.photos/800/600?random=1",
+  "https://picsum.photos/800/600?random=2",
+  "https://picsum.photos/800/600?random=3",
+  "https://picsum.photos/800/600?random=4",
+  "https://picsum.photos/800/600?random=5",
+  "https://picsum.photos/800/600?random=6",
+  "https://picsum.photos/800/600?random=7",
+  "https://picsum.photos/800/600?random=8",
+  "https://picsum.photos/800/600?random=9",
+  "https://picsum.photos/800/600?random=10",
+];
+
+const IMAGE_CAPTIONS = [
+  "📸", "Olha isso!", "Show 🔥", "Top demais!", "😍",
+  "Que legal", "Sensacional!", "Massa!", "👀", "Curti muito",
+  "Bom demais 🙌", "Olha que bacana", "💯", "Registro do dia",
+  "Achei interessante", "😄", "Boa!", "Que foto!", "🌟",
+];
+
+const AUDIO_CAPTIONS = [
+  "Tá aí o áudio", "Ouve aí", "Escuta isso", "Áudio rapidão",
+  "Falei aqui rapidinho", "Tá aí ó", "Ouve quando puder",
+];
+
+const STATUS_TEXTS = [
+  "Bom dia! ☀️", "Boa tarde pessoal! 🌤️", "Boa noite! 🌙",
+  "Dia produtivo 💪", "Mais um dia de luta 🔥", "Gratidão 🙏",
+  "Trabalhando duro 💼", "Foco total 🎯", "Semana abençoada ✨",
+  "Vamos que vamos 🚀", "Dia lindo hoje ☀️", "Sexta-feira 🎉",
+  "Deus é bom o tempo todo 🙌", "Sextou! 🥳", "Segunda-feira produtiva 💪",
+  "Confiança no processo 🧠", "Sempre em frente ➡️", "Dia de conquistas 🏆",
+  "Tranquilidade sempre 🧘", "Bora trabalhar! 💰",
+];
+
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
+  // Try /send/image first, then /send/media as fallback
+  const endpoints = ["/send/image", "/send/media"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = ep === "/send/image" 
+        ? { number, image: imageUrl, caption }
+        : { number, mediaUrl: imageUrl, caption, type: "image" };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+async function uazapiSendAudio(baseUrl: string, token: string, number: string) {
+  // Send a PTT (voice note) — UAZAPI supports /send/ptt with a URL or base64
+  // We'll use a short TTS-generated audio via a public URL
+  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=${encodeURIComponent(pickRandom(AUDIO_CAPTIONS))}`;
+  
+  const endpoints = ["/send/ptt", "/send/audio"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = ep === "/send/ptt"
+        ? { number, audio: audioUrl }
+        : { number, audioUrl, ptt: true };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
+  const endpoints = ["/status/post", "/sendStories"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = type === "text"
+        ? { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }
+        : { type: "image", image: imageUrl, caption: content };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`Status API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+// Decide media type for group interaction: 70% text, 15% image, 10% audio, 5% skip (natural)
+type MediaType = "text" | "image" | "audio";
+function pickMediaType(): MediaType {
+  const r = Math.random();
+  if (r < 0.70) return "text";
+  if (r < 0.85) return "image";
+  return "audio";
+}
+
 // ════════════════════════════════════════
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
@@ -556,8 +681,32 @@ async function handleTick(db: any) {
             break;
           }
 
-          const message = getGroupMsg();
-          await uazapiSendText(baseUrl, token, groupJid, message);
+          // Pick media type: text, image, or audio
+          const mediaType = pickMediaType();
+          let message = getGroupMsg();
+          let mediaLabel = "texto";
+
+          try {
+            if (mediaType === "image") {
+              const imgUrl = pickRandom(IMAGE_POOL);
+              const caption = pickRandom(IMAGE_CAPTIONS);
+              await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
+              message = `[IMG] ${caption}`;
+              mediaLabel = "imagem";
+            } else if (mediaType === "audio") {
+              await uazapiSendAudio(baseUrl, token, groupJid);
+              message = `[PTT] ${pickRandom(AUDIO_CAPTIONS)}`;
+              mediaLabel = "áudio";
+            } else {
+              await uazapiSendText(baseUrl, token, groupJid, message);
+            }
+          } catch (mediaErr) {
+            // Fallback to text if media fails
+            console.warn(`[group_interaction] ${mediaType} failed, fallback to text:`, mediaErr.message);
+            message = getGroupMsg();
+            mediaLabel = "texto (fallback)";
+            await uazapiSendText(baseUrl, token, groupJid, message);
+          }
 
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -566,8 +715,8 @@ async function handleTick(db: any) {
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
-            message: `Msg enviada no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
-            meta: { group_name: poolGroup?.name, group_jid: groupJid },
+            message: `[${mediaLabel}] Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
+            meta: { group_name: poolGroup?.name, group_jid: groupJid, media_type: mediaType },
           });
           break;
         }
@@ -794,7 +943,7 @@ async function handleTick(db: any) {
             .eq("cycle_id", cycle.id)
             .eq("status", "pending")
             .lt("run_at", nowIso)
-            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction", "post_status"]);
 
           // Set budgets based on chip_state + phase — grupo não dá ban, volume agressivo
           let budgetMin: number, budgetMax: number;
@@ -849,6 +998,43 @@ async function handleTick(db: any) {
           await db.from("warmup_jobs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
+          });
+          break;
+        }
+
+        case "post_status": {
+          if (!baseUrl || !token) {
+            throw new Error("Credenciais UAZAPI não configuradas para post_status");
+          }
+
+          // Randomly decide: text status (60%) or image status (40%)
+          const statusType = Math.random() < 0.6 ? "text" : "image";
+          let statusContent = pickRandom(STATUS_TEXTS);
+          let statusImgUrl: string | undefined;
+
+          if (statusType === "image") {
+            statusImgUrl = pickRandom(IMAGE_POOL);
+            statusContent = pickRandom(IMAGE_CAPTIONS);
+          }
+
+          try {
+            await uazapiPostStatus(baseUrl, token, statusType as "text" | "image", statusContent, statusImgUrl);
+          } catch (statusErr) {
+            // If image status fails, try text status as fallback
+            if (statusType === "image") {
+              console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
+              statusContent = pickRandom(STATUS_TEXTS);
+              await uazapiPostStatus(baseUrl, token, "text", statusContent);
+            } else {
+              throw statusErr;
+            }
+          }
+
+          await db.from("warmup_audit_logs").insert({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "status_posted",
+            message: `Status postado [${statusType}]: "${statusContent.substring(0, 50)}"`,
+            meta: { status_type: statusType, content: statusContent },
           });
           break;
         }
@@ -928,6 +1114,7 @@ interface DayVolumes {
   autosaveTotal: number;
   communityPairs: number;
   communityMsgsPerPair: number;
+  statusPosts: number;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -937,72 +1124,61 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 }
 
 function getVolumesNew(phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
 
-  // Mensagem em grupo NÃO dá ban — volume agressivo
   if (phase === "groups_only") {
     v.groupMsgs = randInt(150, 250);
+    v.statusPosts = randInt(1, 3);
     return v;
   }
-
   if (phase === "autosave_enabled") {
     v.groupMsgs = randInt(200, 300);
-    v.autosaveContacts = 3;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 6;
+    v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
+    v.statusPosts = randInt(2, 4);
     return v;
   }
-
   if (phase === "community_light") {
     v.groupMsgs = randInt(200, 350);
-    v.autosaveContacts = 4;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 8;
-    v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(8, 15);
+    v.autosaveContacts = 4; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 8;
+    v.communityPairs = randInt(2, 3); v.communityMsgsPerPair = randInt(8, 15);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
-
   if (phase === "community_enabled") {
     v.groupMsgs = randInt(250, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(3, 5);
-    v.communityMsgsPerPair = randInt(10, 20);
+    v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
+    v.communityPairs = randInt(3, 5); v.communityMsgsPerPair = randInt(10, 20);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
-
   return v;
 }
 
 function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
   if (phase === "pre_24h") return v;
-  if (phase === "groups_only") { v.groupMsgs = randInt(80, 150); return v; }
+  if (phase === "groups_only") { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); return v; }
   if (phase === "autosave_enabled") {
     v.groupMsgs = randInt(120, 250); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
-    return v;
+    v.statusPosts = randInt(1, 3); return v;
   }
   if (phase === "community_light") {
     v.groupMsgs = randInt(120, 250); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
     v.communityPairs = randInt(2, 4); v.communityMsgsPerPair = randInt(10, 20);
-    return v;
+    v.statusPosts = randInt(2, 4); return v;
   }
   if (phase === "community_enabled") {
     v.groupMsgs = randInt(150, 350); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
     v.communityPairs = randInt(4, 8); v.communityMsgsPerPair = randInt(15, 25);
-    return v;
+    v.statusPosts = randInt(2, 5); return v;
   }
   return v;
 }
 
 function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
   if (phase === "pre_24h") return v;
-  // Day 2-5: groups_only — 50-120 msgs
-  if (phase === "groups_only") { v.groupMsgs = randInt(50, 120); return v; }
-  // Day 6-10: autosave_enabled
+  if (phase === "groups_only") { v.groupMsgs = randInt(50, 120); v.statusPosts = randInt(1, 2); return v; }
   if (phase === "autosave_enabled") {
     if (dayIndex <= 6) {
       v.groupMsgs = randInt(120, 200); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
@@ -1011,13 +1187,12 @@ function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
       const contacts = randInt(3, 4);
       v.autosaveContacts = contacts; v.autosaveMsgsPerContact = 2; v.autosaveTotal = contacts * 2;
     }
-    return v;
+    v.statusPosts = randInt(1, 3); return v;
   }
-  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
   if (phase === "community_light") {
     v.groupMsgs = randInt(150, 300); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
     v.communityPairs = randInt(2, 5); v.communityMsgsPerPair = randInt(10, 20);
-    return v;
+    v.statusPosts = randInt(2, 4); return v;
   }
   return v;
 }
@@ -1104,6 +1279,22 @@ async function scheduleDayJobs(
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "community_interaction",
         payload: { pair_index: pairIndex, pairs_total: volumes.communityPairs, msgs_per_pair: volumes.communityMsgsPerPair },
+        run_at: runAt.toISOString(), status: "pending",
+      });
+    }
+  }
+
+  // ── STATUS POSTS ──
+  if (volumes.statusPosts > 0) {
+    const stSpacingMs = windowMs / (volumes.statusPosts + 1);
+    for (let i = 0; i < volumes.statusPosts; i++) {
+      const baseOffset = stSpacingMs * (i + 1);
+      const jitter = randInt(-30, 30) * 60 * 1000; // ±30 min jitter
+      const runAt = new Date(effectiveStart + baseOffset + jitter);
+      if (runAt.getTime() > effectiveEnd || runAt.getTime() < effectiveStart) continue;
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "post_status", payload: {},
         run_at: runAt.toISOString(), status: "pending",
       });
     }

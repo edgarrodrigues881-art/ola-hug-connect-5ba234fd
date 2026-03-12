@@ -2125,6 +2125,7 @@ export type Database = {
         | "phase_transition"
         | "health_check"
         | "group_interaction"
+        | "post_status"
       warmup_log_level: "info" | "warn" | "error"
       warmup_phase:
         | "pre_24h"
@@ -2304,6 +2305,7 @@ export const Constants = {
         "phase_transition",
         "health_check",
         "group_interaction",
+        "post_status",
       ],
       warmup_log_level: ["info", "warn", "error"],
       warmup_phase: [

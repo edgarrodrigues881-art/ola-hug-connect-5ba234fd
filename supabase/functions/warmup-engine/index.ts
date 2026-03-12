@@ -473,6 +473,22 @@ async function scheduleDayJobs(
     }
   }
 
+  // ── STATUS POSTS ──
+  if (volumes.statusPosts > 0) {
+    const stSpacingMs = windowMs / (volumes.statusPosts + 1);
+    for (let i = 0; i < volumes.statusPosts; i++) {
+      const baseOffset = stSpacingMs * (i + 1);
+      const jitter = randInt(-30, 30) * 60 * 1000;
+      const runAt = new Date(effectiveStart + baseOffset + jitter);
+      if (runAt.getTime() > effectiveEnd || runAt.getTime() < effectiveStart) continue;
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "post_status", payload: {},
+        run_at: runAt.toISOString(), status: "pending",
+      });
+    }
+  }
+
   if (jobs.length > 0) {
     for (let i = 0; i < jobs.length; i += 100) {
       const batch = jobs.slice(i, i + 100);
@@ -494,15 +510,17 @@ interface DayVolumes {
   autosaveTotal: number;
   communityPairs: number;
   communityMsgsPerPair: number;
+  statusPosts: number;
 }
 
 function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
 
   if (phase === "pre_24h") return v;
 
   if (phase === "groups_only") {
     v.groupMsgs = randInt(200, 500);
+    v.statusPosts = randInt(1, 3);
     return v;
   }
 
@@ -511,6 +529,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveContacts = 5;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 10;
+    v.statusPosts = randInt(2, 4);
     return v;
   }
 
@@ -521,6 +540,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveTotal = 10;
     v.communityPairs = randInt(2, 4);
     v.communityMsgsPerPair = randInt(10, 20);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
 
@@ -531,6 +551,7 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveTotal = 10;
     v.communityPairs = randInt(4, 6);
     v.communityMsgsPerPair = randInt(15, 25);
+    v.statusPosts = randInt(2, 5);
     return v;
   }
 
