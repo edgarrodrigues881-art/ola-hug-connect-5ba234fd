@@ -695,15 +695,25 @@ const WarmupInstanceDetail = () => {
             for (const job of todayJobs) {
               const key = job.job_type;
               if (!typeSummary[key]) typeSummary[key] = { total: 0, done: 0, failed: 0, next: null };
-              typeSummary[key].total++;
-              if (job.status === "succeeded") typeSummary[key].done++;
-              if (job.status === "failed") typeSummary[key].failed++;
-              if (job.status === "pending") {
+              if (job.status === "succeeded") {
+                typeSummary[key].total++;
+                typeSummary[key].done++;
+              } else if (job.status === "failed") {
+                typeSummary[key].total++;
+                typeSummary[key].failed++;
+              } else if (job.status === "pending") {
                 const runAt = new Date(job.run_at);
-                // Only track future pending jobs for "next" time
-                if (runAt >= nowUtc && (!typeSummary[key].next || runAt < typeSummary[key].next!)) {
-                  typeSummary[key].next = runAt;
+                // Only count future pending jobs — stale ones are ignored entirely
+                if (runAt >= nowUtc) {
+                  typeSummary[key].total++;
+                  if (!typeSummary[key].next || runAt < typeSummary[key].next!) {
+                    typeSummary[key].next = runAt;
+                  }
                 }
+              } else if (job.status === "running") {
+                typeSummary[key].total++;
+              } else if (job.status === "cancelled") {
+                // skip cancelled jobs entirely
               }
             }
 
