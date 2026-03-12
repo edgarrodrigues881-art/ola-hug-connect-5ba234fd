@@ -778,7 +778,16 @@ async function handleTick(db: any) {
 
           const newPhase = getPhaseForDay(newDay, chipState);
 
-          // Set budgets based on chip_state + phase
+          // Cancel overdue interaction jobs from previous day to avoid impossible carry-over backlog
+          const nowIso = new Date().toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .lt("run_at", nowIso)
+            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+          // Set budgets based on chip_state + phase (calibrated for realistic daily throughput)
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
             budgetMin = 3; budgetMax = 8;
@@ -793,7 +802,11 @@ async function handleTick(db: any) {
             else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; }
             else { budgetMin = 180; budgetMax = 460; }
           } else {
-            budgetMin = 200; budgetMax = 500;
+            // Chip novo: keep targets feasible for the daily window
+            if (newPhase === "groups_only") { budgetMin = 60; budgetMax = 100; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 76; budgetMax = 105; }
+            else if (newPhase === "community_light") { budgetMin = 90; budgetMax = 125; }
+            else { budgetMin = 100; budgetMax = 135; }
           }
 
           const newTarget = randInt(budgetMin, budgetMax);
