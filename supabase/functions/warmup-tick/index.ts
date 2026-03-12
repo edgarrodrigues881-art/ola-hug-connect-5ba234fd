@@ -914,15 +914,41 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 }
 
 function getVolumesNew(phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 3, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
-  if (["groups_only", "autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    v.groupMsgs = randInt(200, 500);
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+
+  if (phase === "groups_only") {
+    v.groupMsgs = randInt(60, 100);
+    return v;
   }
-  if (["autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    v.autosaveContacts = 5; v.autosaveMsgsPerContact = 3; v.autosaveTotal = 15;
+
+  if (phase === "autosave_enabled") {
+    v.groupMsgs = randInt(70, 95);
+    v.autosaveContacts = 3;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 6;
+    return v;
   }
-  if (phase === "community_light") { v.communityPairs = randInt(3, 5); v.communityMsgsPerPair = randInt(15, 30); }
-  if (phase === "community_enabled") { v.communityPairs = randInt(5, 10); v.communityMsgsPerPair = randInt(15, 30); }
+
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(70, 90);
+    v.autosaveContacts = 4;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 8;
+    v.communityPairs = randInt(2, 3);
+    v.communityMsgsPerPair = randInt(6, 10);
+    return v;
+  }
+
+  if (phase === "community_enabled") {
+    v.groupMsgs = randInt(75, 95);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 3);
+    v.communityMsgsPerPair = randInt(6, 10);
+    return v;
+  }
+
   return v;
 }
 
