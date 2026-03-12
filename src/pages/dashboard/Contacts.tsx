@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, memo, type ReactElement, type CSSProperties } from "react";
-import { List } from "react-window";
+import { useState, useRef, useEffect, useCallback, useMemo, memo, type ReactElement } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +22,8 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+// 14 columns: edit(40px) + name + phone + tags + 10 vars(1fr each) + actions(40px)
+const TABLE_GRID_COLS = "40px minmax(100px,1.4fr) minmax(100px,1.2fr) minmax(80px,1fr) repeat(10,minmax(60px,1fr)) 40px";
 
 const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
   <div className="grid grid-cols-2 gap-2">
@@ -58,12 +59,12 @@ interface ContactRowProps {
 
 const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div style={{ minWidth: 1430, transform: 'translateZ(0)' }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
-      <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
-      <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
-      <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
-      <div className="p-3 w-[120px] shrink-0 flex gap-1 flex-wrap">
-        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => (
+    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+      <div className="p-2 overflow-hidden"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
+      <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
+      <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
+      <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
+        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 2).map((tag: string) => (
           <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
             {tag}
             <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -71,11 +72,11 @@ const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, on
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
       {VAR_KEYS.map(k => (
-        <div key={k} className="p-3 w-[100px] shrink-0 text-xs text-muted-foreground truncate">
+        <div key={k} className="p-2 text-xs text-muted-foreground truncate">
           {contact[k]?.trim() || "—"}
         </div>
       ))}
-      <div className="p-3 w-10 shrink-0">
+      <div className="p-2 overflow-hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent"><MoreVertical className="w-3.5 h-3.5" /></button>
@@ -489,44 +490,27 @@ const Contacts = () => {
       </Card>
 
       {/* Contact Table */}
-      <Card className="glass-card overflow-x-auto will-change-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <Card className="glass-card overflow-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1430 }}>
-          <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
-          <div className="p-3 w-[140px] shrink-0">Nome</div>
-          <div className="p-3 w-[140px] shrink-0">Telefone</div>
-          <div className="p-3 w-[120px] shrink-0">Tags</div>
+        <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+          <div className="p-2"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
+          <div className="p-2 truncate">Nome</div>
+          <div className="p-2 truncate">Telefone</div>
+          <div className="p-2 truncate">Tags</div>
           {VAR_KEYS.map((_, i) => (
-            <div key={i} className="p-3 w-[100px] shrink-0">Var {i + 1}</div>
+            <div key={i} className="p-2 truncate">Var {i + 1}</div>
           ))}
-          <div className="p-3 w-10 shrink-0"></div>
+          <div className="p-2"></div>
         </div>
         {isLoading ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
-        ) : filtered.length <= 10 ? (
-          <div style={{ minWidth: 1430 }}>
+        ) : (
+          <div style={{ maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? 'auto' : undefined }}>
             {filtered.map((contact) => (
               <ContactRow key={contact.id} contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
             ))}
-          </div>
-        ) : (
-          <div style={{ minWidth: 1430 }}>
-            <List
-              rowCount={filtered.length}
-              rowHeight={44}
-              style={{ height: Math.min(filtered.length * 44, 480), overflowY: 'auto' }}
-              rowComponent={({ rowIndex, style: rowStyle }: { rowIndex: number; style: CSSProperties }) => {
-                const contact = filtered[rowIndex];
-                return (
-                  <div style={rowStyle}>
-                    <ContactRow contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
-                  </div>
-                );
-              }}
-              rowProps={{} as any}
-            />
           </div>
         )}
       </Card>
