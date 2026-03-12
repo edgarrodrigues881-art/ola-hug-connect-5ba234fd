@@ -523,8 +523,8 @@ const Contacts = () => {
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
           <div style={{ maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? 'auto' : undefined }}>
-            {filtered.map((contact) => (
-              <ContactRow key={contact.id} contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
+            {filtered.map((contact, i) => (
+              <ContactRow key={contact.id} contact={contact} index={i + 1} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
             ))}
           </div>
         )}
