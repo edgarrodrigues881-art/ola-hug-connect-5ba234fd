@@ -488,6 +488,9 @@ async function scheduleDayJobs(
 // ════════════════════════════════════════
 // Volume configuration per chip_state
 // ════════════════════════════════════════
+// Volume configuration — UNIFIED for all chip states
+// 200-500 messages/day from day 2 to day 30
+// ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
   autosaveContacts: number;
@@ -497,10 +500,50 @@ interface DayVolumes {
   communityMsgsPerPair: number;
 }
 
-function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
-  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
-  return getVolumesNew(phase);
+function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+
+  // Day 1: no volume (pre_24h — just join groups)
+  if (phase === "pre_24h") return v;
+
+  // Day 2: groups_only — 200-500 msgs in groups
+  if (phase === "groups_only") {
+    v.groupMsgs = randInt(200, 500);
+    return v;
+  }
+
+  // Day 3-4: autosave_enabled — groups 200-450 + autosave 5×2=10
+  if (phase === "autosave_enabled") {
+    v.groupMsgs = randInt(200, 450);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    return v;
+  }
+
+  // Day 5-6: community_light — groups 200-400 + autosave 5×2=10 + community 2-4×10-20
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(200, 400);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 4);
+    v.communityMsgsPerPair = randInt(10, 20);
+    return v;
+  }
+
+  // Day 7-30: community_enabled — groups 200-400 + autosave 5×2=10 + community 4-6×15-25
+  if (phase === "community_enabled") {
+    v.groupMsgs = randInt(200, 400);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(4, 6);
+    v.communityMsgsPerPair = randInt(15, 25);
+    return v;
+  }
+
+  return v;
 }
 
 // CHIP_NOVO volumes — grupo NÃO dá ban, volume agressivo
