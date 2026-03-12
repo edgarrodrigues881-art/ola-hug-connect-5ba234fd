@@ -84,8 +84,8 @@ const CampaignDetail = () => {
   const [countdown, setCountdown] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
   const [resendOpen, setResendOpen] = useState(false);
-  const [resendFailed, setResendFailed] = useState(true);
-  const [resendPending, setResendPending] = useState(true);
+  const [resendFailed, setResendFailed] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSent, setExportSent] = useState(true);
   const [exportFailed, setExportFailed] = useState(true);
@@ -215,12 +215,22 @@ const CampaignDetail = () => {
     });
   }, [contacts, logSearch, logFilter]);
 
-  const stats = useMemo(() => ({
-    total: contacts.length,
-    sent: contacts.filter(c => c.status === "sent" || c.status === "delivered").length,
-    failed: contacts.filter(c => c.status === "failed" || c.status === "error").length,
-    pending: contacts.filter(c => c.status === "pending").length,
-  }), [contacts]);
+  const isInvalidNumber = (msg: string | null) => {
+    if (!msg) return false;
+    const lower = msg.toLowerCase();
+    return lower.includes("número inválido") || lower.includes("not on whats") || lower.includes("not registered") || lower.includes("not_exists");
+  };
+
+  const stats = useMemo(() => {
+    const failed = contacts.filter(c => c.status === "failed" || c.status === "error");
+    return {
+      total: contacts.length,
+      sent: contacts.filter(c => c.status === "sent" || c.status === "delivered").length,
+      failed: failed.length,
+      failedResendable: failed.filter(c => !isInvalidNumber(c.error_message)).length,
+      pending: contacts.filter(c => c.status === "pending").length,
+    };
+  }, [contacts]);
 
   // Auto-detect stuck campaigns
   useEffect(() => {
@@ -280,7 +290,12 @@ const CampaignDetail = () => {
 
   const handleResendConfirm = () => {
     const selectedContacts = contacts.filter(c => {
-      if (resendFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (resendFailed && (c.status === "failed" || c.status === "error")) {
+        // Exclude invalid numbers from resend
+        const err = (c.error_message || "").toLowerCase();
+        if (err.includes("número inválido") || err.includes("not on whats") || err.includes("not registered") || err.includes("not_exists")) return false;
+        return true;
+      }
       if (resendPending && c.status === "pending") return true;
       return false;
     });
@@ -727,7 +742,7 @@ const CampaignDetail = () => {
               <Checkbox checked={resendFailed} onCheckedChange={(v) => setResendFailed(!!v)} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Falhas</p>
-                <p className="text-[10px] text-muted-foreground">Contatos que falharam no envio ({stats.failed})</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam, exceto números inválidos ({stats.failedResendable})</p>
               </div>
               <XCircle className="w-4 h-4 text-destructive/60" />
             </label>
@@ -744,7 +759,7 @@ const CampaignDetail = () => {
             <Button variant="ghost" size="sm" onClick={() => setResendOpen(false)} className="text-xs">Cancelar</Button>
             <Button size="sm" onClick={handleResendConfirm} disabled={!resendFailed && !resendPending} className="gap-1.5 text-xs">
               <RotateCcw className="w-3.5 h-3.5" />
-              Reenviar ({(resendFailed ? stats.failed : 0) + (resendPending ? stats.pending : 0)})
+              Reenviar ({(resendFailed ? stats.failedResendable : 0) + (resendPending ? stats.pending : 0)})
             </Button>
           </DialogFooter>
         </DialogContent>
