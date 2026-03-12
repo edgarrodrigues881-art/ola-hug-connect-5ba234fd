@@ -778,7 +778,16 @@ async function handleTick(db: any) {
 
           const newPhase = getPhaseForDay(newDay, chipState);
 
-          // Set budgets based on chip_state + phase
+          // Cancel overdue interaction jobs from previous day to avoid impossible carry-over backlog
+          const nowIso = new Date().toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .lt("run_at", nowIso)
+            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+          // Set budgets based on chip_state + phase (calibrated for realistic daily throughput)
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
             budgetMin = 3; budgetMax = 8;
@@ -793,7 +802,11 @@ async function handleTick(db: any) {
             else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; }
             else { budgetMin = 180; budgetMax = 460; }
           } else {
-            budgetMin = 200; budgetMax = 500;
+            // Chip novo: keep targets feasible for the daily window
+            if (newPhase === "groups_only") { budgetMin = 60; budgetMax = 100; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 76; budgetMax = 105; }
+            else if (newPhase === "community_light") { budgetMin = 90; budgetMax = 125; }
+            else { budgetMin = 100; budgetMax = 135; }
           }
 
           const newTarget = randInt(budgetMin, budgetMax);
@@ -914,15 +927,41 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 }
 
 function getVolumesNew(phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 3, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
-  if (["groups_only", "autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    v.groupMsgs = randInt(200, 500);
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
+
+  if (phase === "groups_only") {
+    v.groupMsgs = randInt(60, 100);
+    return v;
   }
-  if (["autosave_enabled", "community_light", "community_enabled"].includes(phase)) {
-    v.autosaveContacts = 5; v.autosaveMsgsPerContact = 3; v.autosaveTotal = 15;
+
+  if (phase === "autosave_enabled") {
+    v.groupMsgs = randInt(70, 95);
+    v.autosaveContacts = 3;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 6;
+    return v;
   }
-  if (phase === "community_light") { v.communityPairs = randInt(3, 5); v.communityMsgsPerPair = randInt(15, 30); }
-  if (phase === "community_enabled") { v.communityPairs = randInt(5, 10); v.communityMsgsPerPair = randInt(15, 30); }
+
+  if (phase === "community_light") {
+    v.groupMsgs = randInt(70, 90);
+    v.autosaveContacts = 4;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 8;
+    v.communityPairs = randInt(2, 3);
+    v.communityMsgsPerPair = randInt(6, 10);
+    return v;
+  }
+
+  if (phase === "community_enabled") {
+    v.groupMsgs = randInt(75, 95);
+    v.autosaveContacts = 5;
+    v.autosaveMsgsPerContact = 2;
+    v.autosaveTotal = 10;
+    v.communityPairs = randInt(2, 3);
+    v.communityMsgsPerPair = randInt(6, 10);
+    return v;
+  }
+
   return v;
 }
 
