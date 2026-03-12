@@ -69,22 +69,12 @@ export const ActivityChart = React.memo(function ActivityChart({ data }: Props) 
                 radius={[2, 2, 0, 0]}
                 name="Entregas"
               />
-              <Line
-                type="monotone"
-                dataKey="crescimento"
-                stroke="hsl(263, 70%, 50%)"
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-                dot={false}
-                name="Crescimento %"
-              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "hsl(217, 91%, 60%)" }} /> Volume</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "hsl(152, 69%, 53%)" }} /> Entregas</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-0.5" style={{ background: "hsl(263, 70%, 50%)" }} /> Crescimento %</span>
         </div>
       </CardContent>
     </Card>
