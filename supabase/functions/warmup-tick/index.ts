@@ -37,6 +37,8 @@ const PERGUNTAS = [
   "como ficou a festa", "como foi a reunião", "o médico falou o quê",
   "já trocou de celular", "como tá a academia", "como foi o passeio",
   "já assistiu aquele filme", "como tá o novo emprego",
+  "como foi a viagem", "já mudou de apartamento", "como tá o cachorro novo",
+  "conseguiu aquele emprego", "como foi a formatura", "já marcou a consulta",
 ];
 
 const COMENTARIOS = [
@@ -95,6 +97,11 @@ const FRASES_GRUPO = [
   "continue postando", "excelente informação",
   "salvei aqui", "bom demais", "tamo junto",
   "quem mais tá acompanhando",
+  "muito bom esse conteúdo, parabéns por compartilhar com a gente",
+  "cara isso é muito verdade, passei por algo parecido recentemente",
+  "valeu demais pela informação, vou aplicar no meu dia a dia",
+  "isso é exatamente o que eu precisava ouvir hoje, obrigado",
+  "conteúdo de qualidade como sempre, continue assim",
 ];
 
 // ── Temas variados para enriquecer conversas ──
@@ -108,6 +115,12 @@ const OPINIOES = [
   "cada dia é uma conquista", "tô mais seletivo com meu tempo",
   "quero investir mais em mim", "o importante é ter paz",
   "tô priorizando o que importa", "a vida tá mudando pra melhor",
+  "acho que a gente precisa valorizar mais as coisas simples da vida",
+  "o segredo é manter a calma e seguir em frente sem olhar pra trás",
+  "tô numa fase de mudanças grandes e acho que vai ser bom",
+  "a paciência é a chave pra tudo, sem pressa as coisas acontecem",
+  "cada vez mais eu acredito que o esforço compensa no final",
+  "o importante não é chegar primeiro, é chegar bem e preparado",
 ];
 
 const DICAS_GERAIS = [
@@ -119,6 +132,10 @@ const DICAS_GERAIS = [
   "tem um podcast bom sobre isso", "vi um documentário sensacional",
   "tem uma loja nova no bairro", "encontrei uma academia boa e barata",
   "descobri um atalho no celular", "achei uma playlist ótima",
+  "vi um vídeo muito bom sobre produtividade que mudou minha rotina toda",
+  "descobri um aplicativo de organização que tá me ajudando demais no trabalho",
+  "tem uma receita de bolo de cenoura que eu fiz ontem e ficou perfeita",
+  "achei um lugar pra caminhar aqui perto que é muito tranquilo e bonito",
 ];
 
 const COTIDIANO = [
@@ -131,6 +148,58 @@ const COTIDIANO = [
   "arrumei o quarto todo", "cozinhei pela primeira vez em semanas",
   "tô assistindo uma série boa", "fui cortar o cabelo", "dormi super bem ontem",
   "tomei um açaí agora", "pedi uma pizza pra comemorar", "fiz uma compra online",
+  "hoje acordei mais cedo e fui caminhar, o dia tava lindo demais",
+  "fiz um café especial hoje de manhã e sentei pra aproveitar sem pressa",
+  "passei o dia todo organizando a casa e agora tô exausto mas satisfeito",
+  "fui no mercado comprar umas coisas e acabei gastando mais do que planejava",
+  "tô tentando criar uma rotina nova de exercícios pra ficar mais disposto",
+  "ontem fiz uma janta especial pra família e todo mundo adorou demais",
+  "o dia tava tão bonito que resolvi sair pra dar uma volta e tomar um sorvete",
+];
+
+// ── Frases longas e reflexões (para mensagens de 100-250 chars) ──
+const REFLEXOES = [
+  "sabe o que eu penso, a gente tem que aproveitar cada momento porque passa muito rápido e quando a gente percebe já foi",
+  "ontem eu tava lembrando de como as coisas eram diferentes uns anos atrás, muita coisa mudou e acho que foi pra melhor",
+  "às vezes eu paro pra pensar no quanto a gente evoluiu, tanto pessoal quanto profissional, e dá um orgulho bom",
+  "tô numa fase da vida que tô priorizando paz e tranquilidade, chega de correria sem sentido",
+  "faz tempo que eu queria falar isso, mas a vida corrida não deixa, enfim, espero que esteja tudo bem por aí",
+  "eu acho que o segredo da vida é ter equilíbrio, trabalhar quando precisa e descansar quando pode",
+  "essa semana foi intensa demais, mas no final deu tudo certo e isso é o que importa",
+  "tô aprendendo que nem tudo precisa de resposta imediata, às vezes é melhor esperar e ver o que acontece",
+  "cara eu tava pensando aqui que a gente deveria se encontrar mais, faz muito tempo que não nos vemos",
+  "o mundo tá cada vez mais corrido né, antigamente as coisas eram mais simples e a gente tinha mais tempo",
+  "acabei de ler um artigo muito interessante sobre como pequenos hábitos podem mudar completamente a nossa rotina",
+  "sabe aquela sensação de quando você termina algo que tava adiando há muito tempo? tô sentindo isso agora",
+  "tava conversando com um amigo e ele me disse algo que me fez repensar várias coisas na minha vida",
+  "acho muito importante a gente parar de vez em quando pra agradecer por tudo que conquistou até aqui",
+  "tem dias que são mais difíceis mas no final sempre dá certo, é questão de manter a fé e a persistência",
+];
+
+const HISTORIAS_CURTAS = [
+  "ontem aconteceu uma coisa engraçada, eu fui no mercado e encontrei um amigo que não via há anos",
+  "meu vizinho adotou um cachorro e agora o bicho late o dia inteiro mas ele é muito fofo",
+  "fui almoçar num restaurante novo e a comida era tão boa que já marquei de voltar semana que vem",
+  "tentei fazer uma receita nova e deu tudo errado mas pelo menos a cozinha ficou cheirosa",
+  "meu filho falou uma coisa tão engraçada ontem que eu quase chorei de rir",
+  "fui numa loja comprar uma coisa e saí com cinco, acontece sempre isso comigo",
+  "tava dirigindo e vi o pôr do sol mais bonito que já vi na vida, pena que não deu pra tirar foto",
+  "hoje de manhã o café ficou perfeito, daquele jeito que a gente gosta, forte e quente",
+  "recebi uma mensagem de um amigo antigo e matamos a saudade conversando por horas",
+  "fui na padaria e o pão tava tão fresquinho que comi três de uma vez",
+  "acordei com o barulho da chuva e resolvi ficar mais um pouco na cama, foi a melhor decisão do dia",
+  "meu gato derrubou um copo da mesa e ficou olhando pra mim com cara de inocente",
+];
+
+const PERGUNTAS_LONGAS = [
+  "ei, tudo bem? faz tempo que não conversamos, queria saber como está sua vida, o trabalho, a família, tudo",
+  "opa, lembrei de você agora, como estão as coisas por aí? aconteceu muita coisa desde a última vez que falamos",
+  "queria te perguntar uma coisa, você já foi naquele lugar que me indicou? tô pensando em ir esse final de semana",
+  "fala, como tá? vi umas fotos suas e parece que tá tudo bem, queria saber das novidades",
+  "e aí, conseguiu resolver aquela situação que tava te preocupando? espero que tenha dado tudo certo",
+  "opa, tudo tranquilo? queria saber se você tem alguma dica boa de série ou filme pra assistir",
+  "faz tempo que tô querendo te perguntar, como foi aquela viagem que você tava planejando? deu certo?",
+  "ei, você viu aquela notícia que saiu hoje? me lembrou de uma conversa que a gente teve uma vez",
 ];
 
 // Track recent messages to avoid repetition
@@ -151,9 +220,9 @@ function cap(s: string): string {
 type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
-  for (let attempt = 0; attempt < 50; attempt++) {
+  for (let attempt = 0; attempt < 80; attempt++) {
     const msg = buildMsg(context);
-    if (msg.length >= 10 && msg.length <= 60 && !recentMsgs.includes(msg)) {
+    if (msg.length >= 5 && msg.length <= 250 && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
       if (recentMsgs.length > MAX_RECENT) recentMsgs.shift();
       return msg;
@@ -161,31 +230,42 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
   }
   // Fallback
   const fb = context === "community" ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
-  return fb.substring(0, 60);
+  return fb.substring(0, 250);
 }
 
 function buildMsg(ctx: MsgCtx): string {
-  const s = randInt(1, 16);
-  if (s <= 2) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
-  if (s <= 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  if (s <= 6) {
+  const s = randInt(1, 24);
+  // Curtas (5-30 chars)
+  if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
+  if (s === 2) return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  // Médias (20-80 chars)
+  if (s <= 4) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
+  if (s <= 6) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  if (s <= 8) {
     let m = pickRandom(COMENTARIOS);
-    if (Math.random() < 0.3) m += `, ${pickRandom(COMPLEMENTOS)}`;
+    if (Math.random() < 0.4) m += `, ${pickRandom(COMPLEMENTOS)}`;
     return cap(maybeEmoji(m));
   }
-  if (s <= 8) return cap(maybeEmoji(pickRandom(OPINIOES)));
-  if (s <= 10) return cap(maybeEmoji(pickRandom(COTIDIANO)));
-  if (s <= 12) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
-  if (s === 13) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
-  if (s === 14) {
+  if (s <= 10) return cap(maybeEmoji(pickRandom(OPINIOES)));
+  if (s <= 12) return cap(maybeEmoji(pickRandom(COTIDIANO)));
+  if (s === 13) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (s === 14) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
+  if (s === 15) {
     const f = pickRandom(FRASES_NUMERO).replace("{n}", String(randInt(2, 15))).replace("{a}", String(randInt(2019, 2025)));
     return cap(maybeEmoji(f));
   }
-  if (s === 15) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
-  // s === 16: context-specific
+  if (s === 16) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
+  // Longas (80-250 chars)
+  if (s <= 18) return cap(maybeEmoji(pickRandom(REFLEXOES)));
+  if (s <= 20) return cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
+  if (s === 21) return cap(maybeEmoji(pickRandom(PERGUNTAS_LONGAS)));
+  // Combinações longas
+  if (s === 22) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COTIDIANO)}. ${pickRandom(COMPLEMENTOS)}`));
+  if (s === 23) return cap(maybeEmoji(`${pickRandom(COMENTARIOS)}, ${pickRandom(OPINIOES)}`));
+  // s === 24: context-specific
   if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
-  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(COTIDIANO)}`));
-  return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (ctx === "community") return Math.random() < 0.3 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
+  return cap(maybeEmoji(pickRandom(REFLEXOES)));
 }
 
 Deno.serve(async (req) => {
