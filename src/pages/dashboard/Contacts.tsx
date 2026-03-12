@@ -58,12 +58,12 @@ interface ContactRowProps {
 
 const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div style={{ minWidth: 1430, transform: 'translateZ(0)' }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
-      <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
-      <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
-      <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
-      <div className="p-3 w-[120px] shrink-0 flex gap-1 flex-wrap">
-        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => (
+    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+      <div className="p-2 overflow-hidden"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
+      <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
+      <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
+      <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
+        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 2).map((tag: string) => (
           <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
             {tag}
             <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -71,11 +71,11 @@ const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, on
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
       {VAR_KEYS.map(k => (
-        <div key={k} className="p-3 w-[100px] shrink-0 text-xs text-muted-foreground truncate">
+        <div key={k} className="p-2 text-xs text-muted-foreground truncate">
           {contact[k]?.trim() || "—"}
         </div>
       ))}
-      <div className="p-3 w-10 shrink-0">
+      <div className="p-2 overflow-hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent"><MoreVertical className="w-3.5 h-3.5" /></button>
