@@ -787,6 +787,58 @@ const Contacts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => { setExportDialogOpen(open); if (!open) { setExportTagFilter("all"); setExportLimit(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Exportar contatos</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Filtrar por tag</Label>
+              <Select value={exportTagFilter} onValueChange={setExportTagFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas as tags" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as tags</SelectItem>
+                  {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
+                    <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Quantidade máxima (vazio = todos)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={exportLimit}
+                onChange={e => setExportLimit(e.target.value)}
+                placeholder={`Todos (${exportContacts.length})`}
+                className="h-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="export-vars"
+                checked={exportIncludeVars}
+                onCheckedChange={(v) => setExportIncludeVars(!!v)}
+              />
+              <Label htmlFor="export-vars" className="text-xs cursor-pointer">Incluir variáveis (Var 1 a Var 10)</Label>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border/30 p-3 text-center">
+              <p className="text-2xl font-bold text-foreground">{exportContacts.length}</p>
+              <p className="text-xs text-muted-foreground">contatos serão exportados</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleExport} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
