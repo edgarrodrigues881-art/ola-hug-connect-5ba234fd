@@ -152,11 +152,18 @@ export function useDashboardStats() {
       const avgDeliveryRate = totalMessages > 0 ? Math.round((totalSent / totalMessages) * 100) : 100;
       const avgFailRate = totalMessages > 0 ? Math.round((totalFailed / totalMessages) * 100) : 0;
 
-      // Warmup evolution — 7 days
+      // Warmup evolution — week Monday to Sunday
       const now = new Date();
+      const todayDow = now.getDay(); // 0=Sun, 1=Mon, ...
+      // Calculate Monday of this week
+      const mondayOffset = todayDow === 0 ? -6 : 1 - todayDow;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+
       const warmupEvolution: WarmupEvolutionPoint[] = Array.from({ length: 7 }).map((_, i) => {
-        const d = new Date(now);
-        d.setDate(d.getDate() - (6 - i));
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
         const dayStr = d.toDateString();
         const dayLabel = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
 
