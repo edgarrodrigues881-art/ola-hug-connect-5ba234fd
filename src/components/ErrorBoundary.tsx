@@ -13,6 +13,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, errorCount: 0, lastErrorMessage: "" };
+  private resetTimer: ReturnType<typeof setTimeout> | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, lastErrorMessage: `${error.name}: ${error.message}` };
