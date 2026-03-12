@@ -31,7 +31,7 @@ export function useContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("id, name, phone, email, tags, notes, created_at, updated_at")
+        .select("id, name, phone, email, tags, notes, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Contact[];
