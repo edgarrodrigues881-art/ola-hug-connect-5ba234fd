@@ -505,7 +505,7 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ minWidth: 1430 }}>
+          <div style={{ minWidth: 1430, maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? "auto" : undefined }}>
             {filtered.map((contact) => (
               <ContactRow
                 key={contact.id}
