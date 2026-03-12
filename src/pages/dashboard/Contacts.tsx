@@ -300,12 +300,16 @@ const Contacts = () => {
   }, [contacts, exportTagFilter, exportLimit]);
 
   const buildExportRows = () => {
+    // Detect which var columns actually have data
+    const usedVarKeys = exportIncludeVars
+      ? VAR_KEYS.filter(k => exportContacts.some(c => c[k]?.trim()))
+      : [];
     const headers = ["Nome", "Telefone", "Tags"];
-    if (exportIncludeVars) headers.push(...VAR_KEYS.map((_, i) => `Var ${i + 1}`));
+    if (usedVarKeys.length > 0) headers.push(...usedVarKeys.map(k => `Var ${k.replace("var", "")}`));
     const rows = [headers];
     exportContacts.forEach((c) => {
       const row: string[] = [c.name, c.phone, (c.tags || []).join("|")];
-      if (exportIncludeVars) row.push(...VAR_KEYS.map(k => c[k] || ""));
+      if (usedVarKeys.length > 0) row.push(...usedVarKeys.map(k => c[k] || ""));
       rows.push(row);
     });
     return rows;
