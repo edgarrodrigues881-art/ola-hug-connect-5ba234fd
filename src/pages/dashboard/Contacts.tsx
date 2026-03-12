@@ -299,7 +299,7 @@ const Contacts = () => {
   };
 
   // Variable fields component (reused in add & edit dialogs)
-  const VarFields = ({ values, onChange }: { values: Record<string, string>; onChange: (key: string, val: string) => void }) => (
+  const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
     <div className="grid grid-cols-2 gap-2">
       {VAR_KEYS.map((k, i) => (
         <div key={k} className="space-y-1">
