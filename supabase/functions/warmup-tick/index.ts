@@ -253,6 +253,13 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 async function handleTick(db: any) {
   const now = new Date().toISOString();
 
+  // Recover stale "running" jobs (stuck for >5 minutes) back to pending
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  await db.from("warmup_jobs")
+    .update({ status: "pending", last_error: "Recuperado de estado running travado" })
+    .eq("status", "running")
+    .lt("updated_at", staleThreshold);
+
   const { data: pendingJobs, error: fetchErr } = await db
     .from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
@@ -596,12 +603,14 @@ async function handleTick(db: any) {
           await uazapiSendText(baseUrl, token, phoneNumber, message);
 
           const todayStr = new Date().toISOString().split("T")[0];
-          await db.from("warmup_unique_recipients").insert({
-            cycle_id: cycle.id,
-            user_id: job.user_id,
-            recipient_phone_e164: contact.phone_e164,
-            day_date: todayStr,
-          }).catch(() => {});
+          try {
+            await db.from("warmup_unique_recipients").insert({
+              cycle_id: cycle.id,
+              user_id: job.user_id,
+              recipient_phone_e164: contact.phone_e164,
+              day_date: todayStr,
+            });
+          } catch (_e) { /* duplicate OK */ }
 
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -880,12 +889,14 @@ async function handleTick(db: any) {
           status: "failed", attempts: newAttempts, last_error: jobErr.message,
         }).eq("id", job.id);
       }
-      await db.from("warmup_audit_logs").insert({
-        user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-        level: "error", event_type: "job_failed",
-        message: `Job ${job.job_type} falhou: ${jobErr.message}`,
-        meta: { job_id: job.id, attempts: newAttempts },
-      }).catch(() => {});
+      try {
+        await db.from("warmup_audit_logs").insert({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "error", event_type: "job_failed",
+          message: `Job ${job.job_type} falhou: ${jobErr.message}`,
+          meta: { job_id: job.id, attempts: newAttempts },
+        });
+      } catch (_e) { /* ignore */ }
     }
   }
 
