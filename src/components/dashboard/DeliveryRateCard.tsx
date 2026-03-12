@@ -20,7 +20,7 @@ export function PerformanceBlock({ performance }: Props) {
       icon: BarChart3,
     },
     {
-      label: "Volume Médio Diário",
+      label: "Média Hoje / Chip",
       value: String(performance.avgDailyVolume),
       icon: BarChart3,
     },
