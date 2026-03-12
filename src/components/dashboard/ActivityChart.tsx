@@ -39,6 +39,7 @@ export const ActivityChart = React.memo(function ActivityChart({ data }: Props) 
                 tickLine={false}
               />
               <Tooltip
+                cursor={{ fill: "hsl(var(--muted) / 0.2)" }}
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
