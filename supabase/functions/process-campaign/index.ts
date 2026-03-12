@@ -964,6 +964,7 @@ Deno.serve(async (req) => {
           }
 
           try {
+            const sendStartTime = Date.now();
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
             const msgIndex = sequentialMode ? sequentialIndex : randomPicker.next();
@@ -979,7 +980,6 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
               await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-              // Notification handled by DB trigger trg_notify_campaign_status
               break;
             }
 
@@ -1047,17 +1047,19 @@ Deno.serve(async (req) => {
             msgsSincePause++;
             await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-            // Apply random delay AFTER send
+            // Apply random delay AFTER send, subtracting API time so perceived gap matches config
             const isLastContact = contacts.indexOf(contact) === contacts.length - 1;
             if (!isLastContact) {
-              const delayMs = randomBetween(minDelayMs, maxDelayMs);
-              console.log(`✅ Sent to ${phone} via ${activeDevice.name} | batch=${batchSent} sincePause=${msgsSincePause}/${pauseAfter} | delay=${Math.round(delayMs / 1000)}s`);
-              await new Promise(resolve => setTimeout(resolve, delayMs));
+              const apiElapsed = Date.now() - sendStartTime;
+              const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+              const actualDelay = Math.max(500, targetDelay - apiElapsed);
+              console.log(`✅ Sent to ${phone} via ${activeDevice.name} | batch=${batchSent} sincePause=${msgsSincePause}/${pauseAfter} | target=${Math.round(targetDelay / 1000)}s api=${Math.round(apiElapsed / 1000)}s wait=${Math.round(actualDelay / 1000)}s`);
+              await new Promise(resolve => setTimeout(resolve, actualDelay));
             } else {
               console.log(`✅ Sent to ${phone} via ${activeDevice.name} | LAST in batch, no delay`);
             }
 
-            // Pause logic
+            // Pause logic — recalculate pauseAfter each time for true randomness
             if (msgsSincePause >= pauseAfter) {
               const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
               console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${msgsSincePause} msgs`);
@@ -1067,6 +1069,7 @@ Deno.serve(async (req) => {
                 needsContinue = true;
                 pendingPauseMs = pauseDuration;
                 msgsSincePause = 0;
+                pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
                 break;
               }
 
