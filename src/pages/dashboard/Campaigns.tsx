@@ -1545,17 +1545,19 @@ const Campaigns = () => {
                     </div>
                   )}
 
-                  {/* Tags filter */}
-                  {allTags.length > 0 && (
+                  {/* Tags filter — always show in tag mode, or when tags exist */}
+                  {(importSearchMode === "tag" || allTags.length > 0) && (
                     <div className="flex flex-wrap gap-1.5">
-                      {allTags.map(tag => (
+                      {allTags.length > 0 ? allTags.map(tag => (
                         <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
                           className={cn("px-2.5 py-1 rounded-full text-[11px] border transition-colors",
                             selectedContactTags.includes(tag)
                               ? "bg-primary/10 text-primary border-primary/30"
                               : "bg-muted/30 text-muted-foreground border-border/30 hover:border-primary/20"
                           )}>{tag}</button>
-                      ))}
+                      )) : (
+                        <p className="text-[11px] text-muted-foreground/50">Nenhuma tag encontrada nos contatos</p>
+                      )}
                     </div>
                   )}
 
