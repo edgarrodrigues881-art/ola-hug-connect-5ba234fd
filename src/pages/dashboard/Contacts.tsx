@@ -145,32 +145,75 @@ const Contacts = () => {
     else setSelected(new Set(filtered.map((c) => c.id)));
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const lines = text.split("\n").filter(Boolean);
-      const header = lines[0].toLowerCase();
-      const cols = header.split(/[,;]/);
-      const nameIdx = cols.findIndex((h) => h.trim().includes("nom"));
-      const phoneIdx = cols.findIndex((h) => h.trim().includes("tel") || h.trim().includes("phone") || h.trim().includes("numero"));
+    const ext = file.name.split(".").pop()?.toLowerCase();
 
-      const newContacts: { name: string; phone: string }[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(/[,;]/);
-        const name = row[nameIdx >= 0 ? nameIdx : 0]?.trim();
-        const phone = row[phoneIdx >= 0 ? phoneIdx : 1]?.trim();
-        if (phone) {
-          newContacts.push({ name: name || "Sem nome", phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2") });
-        }
-      }
-      createContacts.mutate(newContacts, {
-        onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
+    if (ext === "xlsx" || ext === "xls") {
+      import("xlsx").then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wb = XLSX.read(ev.target?.result, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          if (rows.length < 2) return;
+          const header = rows[0].map((h: any) => String(h).toLowerCase().trim());
+          const nameIdx = header.findIndex((h: string) => h.includes("nom"));
+          const phoneIdx = header.findIndex((h: string) => h.includes("tel") || h.includes("phone") || h.includes("numero"));
+          const varIdxs = VAR_KEYS.map((_, i) => header.findIndex((h: string) => h === `var${i + 1}` || h === `var ${i + 1}`));
+          const tagIdx = header.findIndex((h: string) => h.includes("tag"));
+
+          const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const phone = String(row[phoneIdx >= 0 ? phoneIdx : 1] || "").trim();
+            if (!phone) continue;
+            const contact: any = {
+              name: String(row[nameIdx >= 0 ? nameIdx : 0] || "Sem nome").trim(),
+              phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
+            };
+            if (tagIdx >= 0 && row[tagIdx]) contact.tags = String(row[tagIdx]).split("|").map((t: string) => t.trim()).filter(Boolean);
+            VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = String(row[varIdxs[vi]]); });
+            newContacts.push(contact);
+          }
+          createContacts.mutate(newContacts, {
+            onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
+          });
+        };
+        reader.readAsArrayBuffer(file);
       });
-    };
-    reader.readAsText(file);
+    } else {
+      // CSV
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter(Boolean);
+        const cols = lines[0].toLowerCase().split(/[,;]/);
+        const nameIdx = cols.findIndex((h) => h.trim().includes("nom"));
+        const phoneIdx = cols.findIndex((h) => h.trim().includes("tel") || h.trim().includes("phone") || h.trim().includes("numero"));
+        const varIdxs = VAR_KEYS.map((_, i) => cols.findIndex((h) => h.trim() === `var${i + 1}` || h.trim() === `var ${i + 1}`));
+        const tagIdx = cols.findIndex((h) => h.trim().includes("tag"));
+
+        const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i].split(/[,;]/);
+          const phone = row[phoneIdx >= 0 ? phoneIdx : 1]?.trim();
+          if (!phone) continue;
+          const contact: any = {
+            name: row[nameIdx >= 0 ? nameIdx : 0]?.trim() || "Sem nome",
+            phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
+          };
+          if (tagIdx >= 0 && row[tagIdx]) contact.tags = row[tagIdx].split("|").map((t: string) => t.trim()).filter(Boolean);
+          VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = row[varIdxs[vi]].trim(); });
+          newContacts.push(contact);
+        }
+        createContacts.mutate(newContacts, {
+          onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
+        });
+      };
+      reader.readAsText(file);
+    }
     e.target.value = "";
   };
 
@@ -319,9 +362,9 @@ const Contacts = () => {
           <p className="text-sm text-muted-foreground">Importe, organize e filtre seus contatos</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3.5 h-3.5" /> Importar CSV
+            <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
             <Download className="w-3.5 h-3.5" /> Exportar
