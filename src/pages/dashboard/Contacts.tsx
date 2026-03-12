@@ -168,15 +168,7 @@ const Contacts = () => {
       if (rawRows.length < 2) { setImportLoading(false); return; }
       const headers = rawRows[0].map((h: any) => String(h || "").trim());
       const dataRows = rawRows.slice(1).filter(r => r.some((c: any) => c != null && String(c).trim()));
-      // Auto-detect mappings
-      const mappings: ContactColumnMapping[] = headers.map(h => {
-        const hl = h.toLowerCase();
-        if (hl.includes("nom")) return "nome";
-        if (hl.includes("tel") || hl.includes("phone") || hl.includes("numero")) return "numero";
-        if (hl.includes("tag")) return "tags";
-        for (let i = 0; i < 10; i++) { if (hl === `var${i+1}` || hl === `var ${i+1}`) return `var${i+1}` as ContactColumnMapping; }
-        return "ignorar";
-      });
+      const mappings: ContactColumnMapping[] = headers.map(() => "ignorar" as ContactColumnMapping);
       setRawImport({ headers, rows: dataRows, columnMappings: mappings });
       setImportLoading(false);
     };
