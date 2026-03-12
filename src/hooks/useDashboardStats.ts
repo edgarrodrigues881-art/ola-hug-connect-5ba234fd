@@ -191,11 +191,9 @@ export function useDashboardStats() {
       const firstDayVol = warmupEvolution[0]?.volume || 0;
       const lastDayVol = warmupEvolution[6]?.volume || 0;
       const growthLast7Days = firstDayVol > 0 ? Math.round(((lastDayVol - firstDayVol) / firstDayVol) * 100) : 0;
-      // Volume médio diário = mensagens de HOJE ÷ chips ativos (com warmup rodando)
-      const todayLabel = new Date().toDateString();
-      const todayVolume = allDayLogs.filter((l) => l.date === todayLabel).length;
-      const activeChipCount = chips.filter((c) => c.warmupStatus === "running" || c.volumeToday > 0).length || 1;
-      const avgDailyVolume = Math.round(todayVolume / activeChipCount);
+      // Volume médio diário = total de interações de hoje ÷ chips ativos (com warmup rodando)
+      const activeChipCount = runningCycles.length || 1;
+      const avgDailyVolume = Math.round(totalDailyVolume / activeChipCount);
 
       return {
         chipsOnline,
