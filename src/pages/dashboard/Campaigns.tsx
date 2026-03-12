@@ -150,6 +150,8 @@ const Campaigns = () => {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaFileName, setMediaFileName] = useState("");
   const [previewMode, setPreviewMode] = useState<"sent" | "received">("sent");
+  const [showVarPreview, setShowVarPreview] = useState(false);
+  const [previewContactIndex, setPreviewContactIndex] = useState(0);
   const [buttonAddedFlash, setButtonAddedFlash] = useState(false);
 
   const { data: devices = [] } = useQuery({
