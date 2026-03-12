@@ -54,7 +54,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
   const contact = filtered[index];
   if (!contact) return null;
   return (
-    <div style={{ ...style, minWidth: 1320 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ ...style, minWidth: 1430 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
@@ -497,7 +497,7 @@ const Contacts = () => {
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto overflow-y-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1320 }}>
+        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1430 }}>
           <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
           <div className="p-3 w-[140px] shrink-0">Nome</div>
           <div className="p-3 w-[140px] shrink-0">Telefone</div>
@@ -512,12 +512,12 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1320 }}>
+          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1430 }}>
             <VirtualList
               rowCount={filtered.length}
               rowHeight={48}
               overscanCount={10}
-              style={{ height: "100%", width: "100%", overflowX: "hidden", overflowY: "auto" }}
+              style={{ height: "100%", width: "100%", overflow: "hidden" }}
               rowProps={contactRowProps}
               rowComponent={ContactRow}
             />
