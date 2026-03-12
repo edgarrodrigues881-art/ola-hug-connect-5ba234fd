@@ -6,11 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   UsersRound, Link2, Copy, Check, LogIn, Pause, Play, Timer,
   RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock,
-  Loader2, Shield
+  Loader2, Shield, Megaphone, BarChart3, Users, StopCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import dgLogo from "@/assets/dg-contingencia.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast as sonnerToast } from "sonner";
 
 const SUGGESTED_GROUPS: { name: string; link: string }[] = [];
 
