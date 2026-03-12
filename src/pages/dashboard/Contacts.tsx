@@ -122,6 +122,10 @@ const Contacts = () => {
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
   const [removeTagDialogOpen, setRemoveTagDialogOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportTagFilter, setExportTagFilter] = useState<string>("all");
+  const [exportIncludeVars, setExportIncludeVars] = useState(true);
+  const [exportLimit, setExportLimit] = useState<string>("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
@@ -285,19 +289,35 @@ const Contacts = () => {
     });
   };
 
+  const exportContacts = useMemo(() => {
+    let list = contacts;
+    if (exportTagFilter !== "all") {
+      list = list.filter(c => (c.tags || []).includes(exportTagFilter));
+    }
+    const limit = parseInt(exportLimit);
+    if (limit > 0) list = list.slice(0, limit);
+    return list;
+  }, [contacts, exportTagFilter, exportLimit]);
+
   const handleExport = () => {
-    const rows = [["Nome", "Telefone", "Tags", ...VAR_KEYS.map((_, i) => `Var ${i + 1}`)]];
-    const list = selected.size > 0 ? contacts.filter((c) => selected.has(c.id)) : filtered;
-    list.forEach((c) => rows.push([c.name, c.phone, (c.tags || []).join("|"), ...VAR_KEYS.map(k => c[k] || "")]));
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const headers = ["Nome", "Telefone", "Tags"];
+    if (exportIncludeVars) headers.push(...VAR_KEYS.map((_, i) => `Var ${i + 1}`));
+    const rows = [headers];
+    exportContacts.forEach((c) => {
+      const row = [c.name, c.phone, (c.tags || []).join("|")];
+      if (exportIncludeVars) row.push(...VAR_KEYS.map(k => c[k] || ""));
+      rows.push(row);
+    });
+    const csv = rows.map((r) => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "contatos.csv";
+    a.download = `contatos${exportTagFilter !== "all" ? `-${exportTagFilter}` : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exportação concluída", description: `${list.length} contatos exportados.` });
+    toast({ title: "Exportação concluída", description: `${exportContacts.length} contatos exportados.` });
+    setExportDialogOpen(false);
   };
 
   const handleDeleteSelected = () => {
@@ -417,7 +437,7 @@ const Contacts = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
             <FileSpreadsheet className="w-3.5 h-3.5" /> Planilha
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportDialogOpen(true)}>
             <Database className="w-3.5 h-3.5" /> Base
           </Button>
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
@@ -763,6 +783,58 @@ const Contacts = () => {
             <Button onClick={confirmImportMapping} disabled={!rawImport?.columnMappings.includes("numero") || createContacts.isPending}>
               {createContacts.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
               Importar {rawImport ? rawImport.rows.length : 0} contatos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => { setExportDialogOpen(open); if (!open) { setExportTagFilter("all"); setExportLimit(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Exportar contatos</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Filtrar por tag</Label>
+              <Select value={exportTagFilter} onValueChange={setExportTagFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas as tags" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as tags</SelectItem>
+                  {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
+                    <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Quantidade máxima (vazio = todos)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={exportLimit}
+                onChange={e => setExportLimit(e.target.value)}
+                placeholder={`Todos (${exportContacts.length})`}
+                className="h-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="export-vars"
+                checked={exportIncludeVars}
+                onCheckedChange={(v) => setExportIncludeVars(!!v)}
+              />
+              <Label htmlFor="export-vars" className="text-xs cursor-pointer">Incluir variáveis (Var 1 a Var 10)</Label>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border/30 p-3 text-center">
+              <p className="text-2xl font-bold text-foreground">{exportContacts.length}</p>
+              <p className="text-xs text-muted-foreground">contatos serão exportados</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleExport} disabled={exportContacts.length === 0}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar CSV
             </Button>
           </DialogFooter>
         </DialogContent>
