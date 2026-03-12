@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     }
 
     // ════════════════════════════════════════
-    // ACTION: start — warmup cycle (supports new & recovered)
+    // ACTION: start — warmup cycle
     // ════════════════════════════════════════
     if (action === "start") {
       if (!callerUserId) throw new Error("start requires authenticated user");
@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
       if (pendingGroups && pendingGroups.length > 0) {
         const joinJobs: any[] = [];
         const shuffled = shuffleArray(pendingGroups);
-        const joinWindowMs = 6 * 60 * 60 * 1000; // spread over 6 hours
+        const joinWindowMs = 6 * 60 * 60 * 1000;
         const joinSpacing = joinWindowMs / (shuffled.length + 1);
 
         for (let i = 0; i < shuffled.length; i++) {
@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
     }
 
     // ════════════════════════════════════════
-    // ACTION: schedule_day — re-schedule jobs for a specific day/phase (used by "Pular Fase")
+    // ACTION: schedule_day
     // ════════════════════════════════════════
     if (action === "schedule_day") {
       if (!callerUserId) throw new Error("schedule_day requires authenticated user");
@@ -391,7 +391,6 @@ Deno.serve(async (req) => {
 
 // ════════════════════════════════════════
 // Schedule jobs for a specific day/phase
-// Supports chip_state-specific volumes
 // ════════════════════════════════════════
 async function scheduleDayJobs(
   db: any,
@@ -420,7 +419,6 @@ async function scheduleDayJobs(
 
   const windowMs = effectiveEnd - effectiveStart;
 
-  // ── Volume config based on chip_state ──
   const volumes = getVolumes(chipState, dayIndex, phase);
 
   // ── GROUP INTERACTIONS ──
@@ -533,165 +531,6 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
     v.autosaveTotal = 10;
     v.communityPairs = randInt(4, 6);
     v.communityMsgsPerPair = randInt(15, 25);
-    return v;
-  }
-
-  return v;
-}
-
-  // Day 3-4: autosave_enabled — groups 200-450 + autosave 5×2=10
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(200, 450);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    return v;
-  }
-
-  // Day 5-6: community_light — groups 200-400 + autosave 5×2=10 + community 2-4×10-20
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(200, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 4);
-    v.communityMsgsPerPair = randInt(10, 20);
-    return v;
-  }
-
-  // Day 7-30: community_enabled — groups 200-400 + autosave 5×2=10 + community 4-6×15-25
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(200, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(4, 6);
-    v.communityMsgsPerPair = randInt(15, 25);
-    return v;
-  }
-
-  return v;
-}
-
-
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(200, 300);
-    v.autosaveContacts = 3;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 6;
-    return v;
-  }
-
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(200, 350);
-    v.autosaveContacts = 4;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 8;
-    v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(8, 15);
-    return v;
-  }
-
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(250, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(3, 5);
-    v.communityMsgsPerPair = randInt(10, 20);
-    return v;
-  }
-
-  return v;
-}
-
-// CHIP_RECUPERACAO volumes (conservative)
-function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
-
-  // Day 1: no volume (pre_24h — just join groups)
-  if (phase === "pre_24h") return v;
-
-  // Day 2-3: groups_only — 80-150 msgs
-  if (phase === "groups_only") {
-    v.groupMsgs = randInt(80, 150);
-    return v;
-  }
-
-  // Day 4: autosave_enabled — groups 120-250, autosave 3 contacts × 2 msgs = 6
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(120, 250);
-    v.autosaveContacts = 3;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 6; // 3 × 2
-    return v;
-  }
-
-  // Day 5-7: community_light — groups 120-250, autosave 5×2=10, community 2-4 × 10-20
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(120, 250);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10; // 5 × 2
-    v.communityPairs = randInt(2, 4);
-    v.communityMsgsPerPair = randInt(10, 20);
-    return v;
-  }
-
-  // Day 8-30: community_enabled — groups 150-350, autosave 5×2=10, community 4-8 × 15-25
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(150, 350);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10; // 5 × 2
-    v.communityPairs = randInt(4, 8);
-    v.communityMsgsPerPair = randInt(15, 25);
-    return v;
-  }
-
-  return v;
-}
-
-// CHIP_SENSIVEL volumes (ultra-conservative)
-function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
-
-  // Day 1: no volume
-  if (phase === "pre_24h") return v;
-
-  // Day 2-5: groups_only — 50-120 msgs
-  if (phase === "groups_only") {
-    v.groupMsgs = randInt(50, 120);
-    return v;
-  }
-
-  // Day 6-10: autosave_enabled
-  if (phase === "autosave_enabled") {
-    if (dayIndex <= 6) {
-      // Day 6: groups 120-200, autosave 3×2=6
-      v.groupMsgs = randInt(120, 200);
-      v.autosaveContacts = 3;
-      v.autosaveMsgsPerContact = 2;
-      v.autosaveTotal = 6;
-    } else {
-      // Day 7-10: groups 120-220, autosave 3-4×2
-      v.groupMsgs = randInt(120, 220);
-      const contacts = randInt(3, 4);
-      v.autosaveContacts = contacts;
-      v.autosaveMsgsPerContact = 2;
-      v.autosaveTotal = contacts * 2;
-    }
-    return v;
-  }
-
-  // Day 11-30: community_light — groups 150-300, autosave 5×2=10, community 2-5 × 10-20
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(150, 300);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 5);
-    v.communityMsgsPerPair = randInt(10, 20);
     return v;
   }
 
