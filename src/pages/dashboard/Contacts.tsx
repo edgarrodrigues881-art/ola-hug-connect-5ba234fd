@@ -161,7 +161,25 @@ const Contacts = () => {
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportLoading(true);
     const ext = file.name.split(".").pop()?.toLowerCase();
+
+    const processRows = (rawRows: any[][]) => {
+      if (rawRows.length < 2) { setImportLoading(false); return; }
+      const headers = rawRows[0].map((h: any) => String(h || "").trim());
+      const dataRows = rawRows.slice(1).filter(r => r.some((c: any) => c != null && String(c).trim()));
+      // Auto-detect mappings
+      const mappings: ContactColumnMapping[] = headers.map(h => {
+        const hl = h.toLowerCase();
+        if (hl.includes("nom")) return "nome";
+        if (hl.includes("tel") || hl.includes("phone") || hl.includes("numero")) return "numero";
+        if (hl.includes("tag")) return "tags";
+        for (let i = 0; i < 10; i++) { if (hl === `var${i+1}` || hl === `var ${i+1}`) return `var${i+1}` as ContactColumnMapping; }
+        return "ignorar";
+      });
+      setRawImport({ headers, rows: dataRows, columnMappings: mappings });
+      setImportLoading(false);
+    };
 
     if (ext === "xlsx" || ext === "xls") {
       import("xlsx").then(XLSX => {
@@ -169,65 +187,62 @@ const Contacts = () => {
         reader.onload = (ev) => {
           const wb = XLSX.read(ev.target?.result, { type: "array" });
           const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          if (rows.length < 2) return;
-          const header = rows[0].map((h: any) => String(h).toLowerCase().trim());
-          const nameIdx = header.findIndex((h: string) => h.includes("nom"));
-          const phoneIdx = header.findIndex((h: string) => h.includes("tel") || h.includes("phone") || h.includes("numero"));
-          const varIdxs = VAR_KEYS.map((_, i) => header.findIndex((h: string) => h === `var${i + 1}` || h === `var ${i + 1}`));
-          const tagIdx = header.findIndex((h: string) => h.includes("tag"));
-
-          const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const phone = String(row[phoneIdx >= 0 ? phoneIdx : 1] || "").trim();
-            if (!phone) continue;
-            const contact: any = {
-              name: String(row[nameIdx >= 0 ? nameIdx : 0] || "Sem nome").trim(),
-              phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
-            };
-            if (tagIdx >= 0 && row[tagIdx]) contact.tags = String(row[tagIdx]).split("|").map((t: string) => t.trim()).filter(Boolean);
-            VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = String(row[varIdxs[vi]]); });
-            newContacts.push(contact);
-          }
-          createContacts.mutate(newContacts, {
-            onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
-          });
+          processRows(XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]);
         };
         reader.readAsArrayBuffer(file);
       });
     } else {
-      // CSV
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target?.result as string;
         const lines = text.split("\n").filter(Boolean);
-        const cols = lines[0].toLowerCase().split(/[,;]/);
-        const nameIdx = cols.findIndex((h) => h.trim().includes("nom"));
-        const phoneIdx = cols.findIndex((h) => h.trim().includes("tel") || h.trim().includes("phone") || h.trim().includes("numero"));
-        const varIdxs = VAR_KEYS.map((_, i) => cols.findIndex((h) => h.trim() === `var${i + 1}` || h.trim() === `var ${i + 1}`));
-        const tagIdx = cols.findIndex((h) => h.trim().includes("tag"));
-
-        const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(/[,;]/);
-          const phone = row[phoneIdx >= 0 ? phoneIdx : 1]?.trim();
-          if (!phone) continue;
-          const contact: any = {
-            name: row[nameIdx >= 0 ? nameIdx : 0]?.trim() || "Sem nome",
-            phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
-          };
-          if (tagIdx >= 0 && row[tagIdx]) contact.tags = row[tagIdx].split("|").map((t: string) => t.trim()).filter(Boolean);
-          VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = row[varIdxs[vi]].trim(); });
-          newContacts.push(contact);
-        }
-        createContacts.mutate(newContacts, {
-          onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
-        });
+        processRows(lines.map(l => l.split(/[,;]/)));
       };
       reader.readAsText(file);
     }
     e.target.value = "";
+  };
+
+  const updateImportMapping = (colIndex: number, value: ContactColumnMapping) => {
+    if (!rawImport) return;
+    const newMappings = [...rawImport.columnMappings];
+    if (value !== "ignorar" && value !== "tags") {
+      newMappings.forEach((m, i) => { if (i !== colIndex && m === value) newMappings[i] = "ignorar"; });
+    }
+    newMappings[colIndex] = value;
+    setRawImport({ ...rawImport, columnMappings: newMappings });
+  };
+
+  const confirmImportMapping = () => {
+    if (!rawImport) return;
+    const { rows, columnMappings } = rawImport;
+    const numIdx = columnMappings.indexOf("numero");
+    const nameIdx = columnMappings.indexOf("nome");
+    const tagIdx = columnMappings.indexOf("tags");
+    const varIndices: Record<string, number> = {};
+    columnMappings.forEach((m, i) => { if (m.startsWith("var")) varIndices[m] = i; });
+
+    if (numIdx < 0) { toast({ title: "Mapeie a coluna de número", variant: "destructive" }); return; }
+
+    const newContacts: any[] = [];
+    for (const row of rows) {
+      const phone = String(row[numIdx] || "").trim();
+      if (!phone) continue;
+      const contact: any = {
+        name: nameIdx >= 0 ? String(row[nameIdx] || "Sem nome").trim() : "Sem nome",
+        phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
+      };
+      if (tagIdx >= 0 && row[tagIdx]) contact.tags = String(row[tagIdx]).split("|").map((t: string) => t.trim()).filter(Boolean);
+      Object.entries(varIndices).forEach(([k, idx]) => { if (row[idx]) contact[k] = String(row[idx]).trim(); });
+      newContacts.push(contact);
+    }
+
+    createContacts.mutate(newContacts, {
+      onSuccess: () => {
+        toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` });
+        setRawImport(null);
+      },
+    });
   };
 
   const handleExport = () => {
