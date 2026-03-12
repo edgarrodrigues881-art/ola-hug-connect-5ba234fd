@@ -254,10 +254,13 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ═══ WARMUP ALERTS → group_id ═══
+      // ═══ WARMUP ALERTS → group_id (only at 22:00 BRT) ═══
       if (config.toggle_warmup) {
         const warmupTarget = config.group_id;
-        if (warmupTarget) {
+        // Only send warmup reports at 22:00 BRT (end of activity window)
+        const brtHour = parseInt(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }), 10);
+        const isWarmupReportTime = brtHour === 22 || (callerUserId !== null); // allow manual trigger anytime
+        if (warmupTarget && isWarmupReportTime) {
           // Check for active warmup cycles (24h report)
           const { data: activeCycles } = await serviceClient
             .from("warmup_cycles")
