@@ -351,28 +351,12 @@ const Contacts = () => {
     setEditContactOpen(true);
   }, []);
 
-  const removeTag = (contactId: string, tag: string) => {
+  const removeTag = useCallback((contactId: string, tag: string) => {
     const contact = contacts.find(c => c.id === contactId);
     if (contact) {
       updateContact.mutate({ id: contactId, tags: (contact.tags || []).filter(t => t !== tag) });
     }
-  };
-
-  const handleDeleteIds = useCallback((ids: string[]) => {
-    deleteContacts.mutate(ids, { onSuccess: () => toast({ title: "Contato removido" }) });
-  }, [deleteContacts, toast]);
-
-  const contactRowProps = useMemo(() => ({
-    filtered,
-    selected,
-    onToggleSelect: toggleSelect,
-    onRemoveTag: removeTag,
-    onDelete: handleDeleteIds,
-    onEdit: openEditDialog,
-    toast,
-    deleteContacts,
-    showTableVars,
-  }), [filtered, selected, openEditDialog, showTableVars]);
+  }, [contacts, updateContact]);
 
   const stats = {
     total: contacts.length,
