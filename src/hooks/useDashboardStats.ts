@@ -86,7 +86,10 @@ export function useDashboardStats() {
       // Combine old warmup_logs + new warmup_audit_logs for evolution chart
       // Old logs: status "sent" / "error"
       // New audit logs: event_type contains interaction events, level "info"/"error"
-      const interactionEvents = new Set(["autosave_interaction", "community_interaction", "group_interaction"]);
+      const interactionEvents = new Set([
+        "autosave_interaction", "community_interaction", "group_interaction",
+        "group_msg_sent", "autosave_msg_sent", "community_msg_sent",
+      ]);
 
       // Count sent/failed from both systems
       let totalSent = 0;
