@@ -411,6 +411,36 @@ const Contacts = () => {
   }, [deleteContacts, toast]);
 
 
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Contatos</h1>
+          <p className="text-sm text-muted-foreground">Importe, organize e filtre seus contatos</p>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Planilha
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportDialogOpen(true)}>
+            <Download className="w-3.5 h-3.5" /> Exportar
+          </Button>
+          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
+            <UserRoundPlus className="w-3.5 h-3.5" /> Manual
+          </Button>
+          {selectMode ? (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setSelectMode(false); setSelected(new Set()); }}>
+              <X className="w-3.5 h-3.5" /> Cancelar
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setSelectMode(true)}>
+              <CheckSquare className="w-3.5 h-3.5" /> Selecionar
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Filters */}
       <Card className="glass-card">
         <CardContent className="p-4">
