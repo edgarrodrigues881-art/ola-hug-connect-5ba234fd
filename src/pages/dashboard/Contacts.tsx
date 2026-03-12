@@ -527,7 +527,13 @@ const Contacts = () => {
       <Card className="glass-card overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header row */}
         <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
-          <div className="p-2 text-center">#</div>
+          <div className="p-2 flex items-center justify-center">
+            {selectMode ? (
+              <Checkbox checked={selected.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
+            ) : (
+              <span>#</span>
+            )}
+          </div>
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
           <div className="p-2 truncate">Tags</div>
