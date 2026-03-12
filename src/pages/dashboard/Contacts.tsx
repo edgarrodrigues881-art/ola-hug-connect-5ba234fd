@@ -569,20 +569,18 @@ const Contacts = () => {
                       <X className="w-2.5 h-2.5" />
                     </Badge>
                   ))}
-                  <Input
-                    placeholder="Adicionar tag..."
-                    className="h-6 border-0 p-0 text-xs shadow-none focus-visible:ring-0 w-24 flex-1 min-w-[60px]"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const val = (e.target as HTMLInputElement).value.trim().toLowerCase();
-                        if (val && !(editContact.tags || []).includes(val)) {
-                          setEditContact(p => p ? { ...p, tags: [...(p.tags || []), val] } : p);
-                        }
-                        (e.target as HTMLInputElement).value = "";
-                      }
-                    }}
-                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {customTags.filter(t => !(editContact.tags || []).includes(t)).map(tag => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="text-[10px] cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                      onClick={() => setEditContact(p => p ? { ...p, tags: [...(p.tags || []), tag] } : p)}
+                    >
+                      + {tag}
+                    </Badge>
+                  ))}
                 </div>
               </div>
 
