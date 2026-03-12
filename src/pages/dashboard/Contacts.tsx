@@ -451,7 +451,7 @@ const Contacts = () => {
               rowCount={filtered.length}
               rowHeight={48}
               overscanCount={10}
-              style={{ height: "100%", width: "100%", overflowX: "hidden" }}
+              style={{ height: "100%", width: "100%", overflow: "hidden auto" }}
               rowProps={contactRowProps}
               rowComponent={ContactRow}
             />
