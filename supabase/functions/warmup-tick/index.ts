@@ -255,7 +255,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 function getImagePool(): string[] {
   const bucketBase = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-media`;
   // Pool of filenames expected in the bucket (upload manually: 01.jpg, 02.jpg, etc.)
-  const bucketImages = Array.from({ length: 20 }, (_, i) => 
+  const bucketImages = Array.from({ length: 30 }, (_, i) => 
     `${bucketBase}/${String(i + 1).padStart(2, "0")}.jpg`
   );
   // Fallback stock images (free, no attribution needed)
