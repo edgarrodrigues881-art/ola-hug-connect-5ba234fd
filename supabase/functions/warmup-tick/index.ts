@@ -234,27 +234,38 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
 }
 
 function buildMsg(ctx: MsgCtx): string {
-  const s = randInt(1, 16);
-  if (s <= 2) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
-  if (s <= 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  if (s <= 6) {
+  const s = randInt(1, 24);
+  // Curtas (5-30 chars)
+  if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
+  if (s === 2) return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  // Médias (20-80 chars)
+  if (s <= 4) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
+  if (s <= 6) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  if (s <= 8) {
     let m = pickRandom(COMENTARIOS);
-    if (Math.random() < 0.3) m += `, ${pickRandom(COMPLEMENTOS)}`;
+    if (Math.random() < 0.4) m += `, ${pickRandom(COMPLEMENTOS)}`;
     return cap(maybeEmoji(m));
   }
-  if (s <= 8) return cap(maybeEmoji(pickRandom(OPINIOES)));
-  if (s <= 10) return cap(maybeEmoji(pickRandom(COTIDIANO)));
-  if (s <= 12) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
-  if (s === 13) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
-  if (s === 14) {
+  if (s <= 10) return cap(maybeEmoji(pickRandom(OPINIOES)));
+  if (s <= 12) return cap(maybeEmoji(pickRandom(COTIDIANO)));
+  if (s === 13) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (s === 14) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
+  if (s === 15) {
     const f = pickRandom(FRASES_NUMERO).replace("{n}", String(randInt(2, 15))).replace("{a}", String(randInt(2019, 2025)));
     return cap(maybeEmoji(f));
   }
-  if (s === 15) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
-  // s === 16: context-specific
+  if (s === 16) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
+  // Longas (80-250 chars)
+  if (s <= 18) return cap(maybeEmoji(pickRandom(REFLEXOES)));
+  if (s <= 20) return cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
+  if (s === 21) return cap(maybeEmoji(pickRandom(PERGUNTAS_LONGAS)));
+  // Combinações longas
+  if (s === 22) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COTIDIANO)}. ${pickRandom(COMPLEMENTOS)}`));
+  if (s === 23) return cap(maybeEmoji(`${pickRandom(COMENTARIOS)}, ${pickRandom(OPINIOES)}`));
+  // s === 24: context-specific
   if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
-  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(COTIDIANO)}`));
-  return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (ctx === "community") return Math.random() < 0.3 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
+  return cap(maybeEmoji(pickRandom(REFLEXOES)));
 }
 
 Deno.serve(async (req) => {
