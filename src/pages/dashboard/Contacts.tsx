@@ -54,15 +54,24 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
 interface ContactRowProps {
   contact: Contact;
   index: number;
+  selectMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
   onRemoveTag: (contactId: string, tag: string) => void;
   onDelete: (ids: string[]) => void;
   onEdit: (contact: Contact) => void;
 }
 
-const ContactRow = memo(function ContactRow({ contact, index, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
+const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
     <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
-      <div className="p-2 text-center text-xs text-muted-foreground tabular-nums">{index}</div>
+      <div className="p-2 flex items-center justify-center">
+        {selectMode ? (
+          <Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(contact.id)} />
+        ) : (
+          <span className="text-xs text-muted-foreground tabular-nums">{index}</span>
+        )}
+      </div>
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
       <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
