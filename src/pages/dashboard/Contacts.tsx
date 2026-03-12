@@ -502,12 +502,13 @@ const Contacts = () => {
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
           <div style={{ minWidth: 1430 }}>
-            {filtered.map((contact, index) => (
+            {filtered.map((contact) => (
               <ContactRow
                 key={contact.id}
-                index={index}
-                style={{}}
-                {...contactRowProps}
+                contact={contact}
+                onRemoveTag={removeTag}
+                onDelete={handleDeleteIds}
+                onEdit={openEditDialog}
               />
             ))}
           </div>
