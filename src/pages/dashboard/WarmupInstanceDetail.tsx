@@ -260,8 +260,11 @@ const WarmupInstanceDetail = () => {
     );
   }
 
-  const joinedGroups = instanceGroups.filter(g => g.join_status === "joined").length;
-  const pendingGroups = instanceGroups.filter(g => g.join_status === "pending").length;
+  // Count unique groups (deduplicate by group_id)
+  const joinedGroupIds = new Set(instanceGroups.filter(g => g.join_status === "joined").map(g => g.group_id));
+  const pendingGroupIds = new Set(instanceGroups.filter(g => g.join_status === "pending").map(g => g.group_id));
+  const joinedGroups = joinedGroupIds.size;
+  const pendingGroups = pendingGroupIds.size;
   const activeContacts = autosaveContacts.filter(c => c.is_active).length;
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
 
