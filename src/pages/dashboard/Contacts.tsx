@@ -497,15 +497,23 @@ const Contacts = () => {
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto overflow-y-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1320 }}>
+        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: showTableVars ? 1320 : 520 }}>
           <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
           <div className="p-3 w-[140px] shrink-0">Nome</div>
           <div className="p-3 w-[140px] shrink-0">Telefone</div>
           <div className="p-3 w-[120px] shrink-0">Tags</div>
-          {VAR_KEYS.map((_, i) => (
+          {showTableVars && VAR_KEYS.map((_, i) => (
             <div key={i} className="p-3 w-[100px] shrink-0">Var {i + 1}</div>
           ))}
-          <div className="p-3 w-10 shrink-0"></div>
+          <div className="p-3 w-10 shrink-0 ml-auto">
+            <button
+              onClick={() => setShowTableVars(!showTableVars)}
+              className={cn("inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors", showTableVars ? "text-primary" : "text-muted-foreground")}
+              title={showTableVars ? "Ocultar variáveis" : "Visualizar variáveis"}
+            >
+              <Variable className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         {isLoading ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
