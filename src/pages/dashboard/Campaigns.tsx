@@ -227,6 +227,13 @@ const Campaigns = () => {
   const [rawImport, setRawImport] = useState<RawImportData | null>(null);
   const [contactPage, setContactPage] = useState(0);
   const [importProgress, setImportProgress] = useState<number | null>(null);
+  const [importReview, setImportReview] = useState<{
+    all: Contact[];
+    invalid: Contact[];
+    batchDuplicates: Contact[];
+    existingDuplicates: Contact[];
+    clean: Contact[];
+  } | null>(null);
   const CONTACTS_PER_PAGE = 50;
   const [draftLoaded, setDraftLoaded] = useState(false);
 
