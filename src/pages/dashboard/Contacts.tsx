@@ -16,21 +16,32 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable,
 } from "lucide-react";
-import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts } from "@/hooks/useContacts";
+import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts, type Contact } from "@/hooks/useContacts";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
+const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
 
 // Virtualized row for contacts list
-function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
+function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
   const contact = filtered[index];
   if (!contact) return null;
+  const hasVars = VAR_KEYS.some(k => contact[k]?.trim());
   return (
     <div style={style} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10"><Checkbox checked={selected.has(contact.id)} onCheckedChange={() => onToggleSelect(contact.id)} /></div>
       <div className="p-3 flex-[2] font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 flex-[2] text-muted-foreground font-mono text-xs">{contact.phone}</div>
+      <div className="p-3 flex-[1] hidden md:flex items-center gap-1">
+        {hasVars && (
+          <Badge variant="outline" className="text-[10px] gap-1 bg-primary/5 border-primary/20 text-primary">
+            <Variable className="w-2.5 h-2.5" />
+            {VAR_KEYS.filter(k => contact[k]?.trim()).length}
+          </Badge>
+        )}
+      </div>
       <div className="p-3 flex-[2] hidden md:flex gap-1 flex-wrap">
         {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => (
           <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
@@ -45,9 +56,10 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent"><MoreVertical className="w-3.5 h-3.5" /></button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => {
-              onDelete([contact.id]);
-            }}>
+            <DropdownMenuItem className="text-xs gap-2" onClick={() => onEdit(contact)}>
+              <Pencil className="w-3 h-3" /> Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={() => onDelete([contact.id])}>
               <Trash2 className="w-3 h-3" /> Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -74,10 +86,16 @@ const Contacts = () => {
   const [removeTagName, setRemoveTagName] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [addContactOpen, setAddContactOpen] = useState(false);
-  const [newContact, setNewContact] = useState({ name: "", phone: "" });
+  const [showAddVars, setShowAddVars] = useState(false);
+  const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [createTagInput, setCreateTagInput] = useState("");
+
+  // Edit contact state
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [editContact, setEditContact] = useState<Contact | null>(null);
+  const [showEditVars, setShowEditVars] = useState(false);
 
   // Load tags from localStorage on mount
   useEffect(() => {
@@ -161,9 +179,9 @@ const Contacts = () => {
   };
 
   const handleExport = () => {
-    const rows = [["Nome", "Telefone", "Tags"]];
+    const rows = [["Nome", "Telefone", "Tags", ...VAR_KEYS.map((_, i) => `Var ${i + 1}`)]];
     const list = selected.size > 0 ? contacts.filter((c) => selected.has(c.id)) : filtered;
-    list.forEach((c) => rows.push([c.name, c.phone, (c.tags || []).join("|")]));
+    list.forEach((c) => rows.push([c.name, c.phone, (c.tags || []).join("|"), ...VAR_KEYS.map(k => c[k] || "")]));
     const csv = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -210,14 +228,46 @@ const Contacts = () => {
 
   const handleAddContact = () => {
     if (!newContact.phone.trim()) return;
-    createContact.mutate({ name: newContact.name || "Sem nome", phone: newContact.phone }, {
+    createContact.mutate({
+      name: newContact.name || "Sem nome",
+      phone: newContact.phone,
+      ...(showAddVars ? {
+        var1: newContact.var1, var2: newContact.var2, var3: newContact.var3, var4: newContact.var4, var5: newContact.var5,
+        var6: newContact.var6, var7: newContact.var7, var8: newContact.var8, var9: newContact.var9, var10: newContact.var10,
+      } : {}),
+    }, {
       onSuccess: () => {
-        setNewContact({ name: "", phone: "" });
+        setNewContact({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
         setAddContactOpen(false);
+        setShowAddVars(false);
         toast({ title: "Contato adicionado" });
       },
     });
   };
+
+  const handleEditContact = () => {
+    if (!editContact) return;
+    updateContact.mutate({
+      id: editContact.id,
+      name: editContact.name,
+      phone: editContact.phone,
+      var1: editContact.var1, var2: editContact.var2, var3: editContact.var3, var4: editContact.var4, var5: editContact.var5,
+      var6: editContact.var6, var7: editContact.var7, var8: editContact.var8, var9: editContact.var9, var10: editContact.var10,
+    }, {
+      onSuccess: () => {
+        setEditContactOpen(false);
+        setEditContact(null);
+        setShowEditVars(false);
+        toast({ title: "Contato atualizado" });
+      },
+    });
+  };
+
+  const openEditDialog = useCallback((contact: Contact) => {
+    setEditContact({ ...contact });
+    setShowEditVars(VAR_KEYS.some(k => contact[k]?.trim()));
+    setEditContactOpen(true);
+  }, []);
 
   const removeTag = (contactId: string, tag: string) => {
     const contact = contacts.find(c => c.id === contactId);
@@ -236,9 +286,10 @@ const Contacts = () => {
     onToggleSelect: toggleSelect,
     onRemoveTag: removeTag,
     onDelete: handleDeleteIds,
+    onEdit: openEditDialog,
     toast,
     deleteContacts,
-  }), [filtered, selected]);
+  }), [filtered, selected, openEditDialog]);
 
   const stats = {
     total: contacts.length,
@@ -246,6 +297,23 @@ const Contacts = () => {
     blocked: 0,
     tagged: contacts.filter((c) => (c.tags || []).length > 0).length,
   };
+
+  // Variable fields component (reused in add & edit dialogs)
+  const VarFields = ({ values, onChange }: { values: Record<string, string>; onChange: (key: string, val: string) => void }) => (
+    <div className="grid grid-cols-2 gap-2">
+      {VAR_KEYS.map((k, i) => (
+        <div key={k} className="space-y-1">
+          <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Var {i + 1}</Label>
+          <Input
+            value={values[k] || ""}
+            onChange={(e) => onChange(k, e.target.value)}
+            placeholder={`Variável ${i + 1}`}
+            className="h-8 text-xs"
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -371,6 +439,7 @@ const Contacts = () => {
           <div className="p-3 w-10"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
           <div className="p-3 flex-[2]">Nome</div>
           <div className="p-3 flex-[2]">Telefone</div>
+          <div className="p-3 flex-[1] hidden md:block">Vars</div>
           <div className="p-3 flex-[2] hidden md:block">Tags</div>
           <div className="p-3 w-10"></div>
         </div>
@@ -393,8 +462,8 @@ const Contacts = () => {
       </Card>
 
       {/* Add Contact Dialog */}
-      <Dialog open={addContactOpen} onOpenChange={setAddContactOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={addContactOpen} onOpenChange={(open) => { setAddContactOpen(open); if (!open) setShowAddVars(false); }}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Adicionar contato</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -405,10 +474,77 @@ const Contacts = () => {
               <Label className="text-xs">Telefone</Label>
               <Input value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} placeholder="+5511999999999" />
             </div>
+
+            {/* Variables toggle */}
+            <button
+              type="button"
+              onClick={() => setShowAddVars(!showAddVars)}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all",
+                showAddVars
+                  ? "border-primary/30 bg-primary/5 text-primary"
+                  : "border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground"
+              )}
+            >
+              <Variable className="w-3.5 h-3.5" />
+              {showAddVars ? "Ocultar variáveis" : "Adicionar variáveis (var1 - var10)"}
+            </button>
+
+            {showAddVars && (
+              <VarFields
+                values={newContact}
+                onChange={(key, val) => setNewContact(p => ({ ...p, [key]: val }))}
+              />
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddContactOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setAddContactOpen(false); setShowAddVars(false); }}>Cancelar</Button>
             <Button onClick={handleAddContact} disabled={createContact.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contact Dialog */}
+      <Dialog open={editContactOpen} onOpenChange={(open) => { setEditContactOpen(open); if (!open) { setEditContact(null); setShowEditVars(false); } }}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Editar contato</DialogTitle></DialogHeader>
+          {editContact && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nome</Label>
+                <Input value={editContact.name} onChange={(e) => setEditContact(p => p ? { ...p, name: e.target.value } : p)} placeholder="Nome do contato" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Telefone</Label>
+                <Input value={editContact.phone} onChange={(e) => setEditContact(p => p ? { ...p, phone: e.target.value } : p)} placeholder="+5511999999999" />
+              </div>
+
+              {/* Variables toggle */}
+              <button
+                type="button"
+                onClick={() => setShowEditVars(!showEditVars)}
+                className={cn(
+                  "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all",
+                  showEditVars
+                    ? "border-primary/30 bg-primary/5 text-primary"
+                    : "border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground"
+                )}
+              >
+                <Variable className="w-3.5 h-3.5" />
+                {showEditVars ? "Ocultar variáveis" : "Editar variáveis (var1 - var10)"}
+              </button>
+
+              {showEditVars && (
+                <VarFields
+                  values={editContact}
+                  onChange={(key, val) => setEditContact(p => p ? { ...p, [key]: val } : p)}
+                />
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditContactOpen(false); setEditContact(null); setShowEditVars(false); }}>Cancelar</Button>
+            <Button onClick={handleEditContact} disabled={updateContact.isPending}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
