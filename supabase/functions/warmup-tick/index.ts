@@ -253,6 +253,13 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 async function handleTick(db: any) {
   const now = new Date().toISOString();
 
+  // Recover stale "running" jobs (stuck for >5 minutes) back to pending
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  await db.from("warmup_jobs")
+    .update({ status: "pending", last_error: "Recuperado de estado running travado" })
+    .eq("status", "running")
+    .lt("updated_at", staleThreshold);
+
   const { data: pendingJobs, error: fetchErr } = await db
     .from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
