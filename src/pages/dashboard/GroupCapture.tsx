@@ -414,6 +414,32 @@ const GroupCapture = () => {
         </Button>
       </div>
 
+      {/* Minimized join status bar */}
+      {!joinModalOpen && (joinStatus === "running" || joinStatus === "paused") && (
+        <div
+          onClick={() => setJoinModalOpen(true)}
+          className="cursor-pointer rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3 hover:bg-primary/10 transition-colors"
+        >
+          <Loader2 className={`w-4 h-4 text-primary ${joinStatus === "running" ? "animate-spin" : ""}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-foreground">
+              {joinStatus === "paused" ? "Entrada pausada" : "Entrando nos grupos..."}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {joinItems.filter(i => i.status === "success" || i.status === "already_member").length}/{joinItems.length} concluídos
+              {countdown > 0 && ` · próximo em ${countdown}s`}
+            </p>
+          </div>
+          <Progress value={joinItems.length > 0 ? ((joinItems.filter(i => i.status === "success" || i.status === "already_member" || i.status === "error").length) / joinItems.length) * 100 : 0} className="w-24 h-1.5" />
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleForceCancel(); }}>
+            <StopCircle className="w-3 h-3" /> Parar
+          </Button>
+        </div>
+      )}
+
+      {/* Active campaigns widget */}
+      <ActiveCampaignsWidget />
+
       {/* Group count badge */}
       {!isLoading && (groups.length > 0 || SUGGESTED_GROUPS.length > 0) && (
         <div className="flex items-center gap-2">
