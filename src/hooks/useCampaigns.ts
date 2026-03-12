@@ -151,6 +151,16 @@ export function useCreateCampaign() {
           campaign_id: newCampaign.id,
           phone: c.phone,
           name: c.name || null,
+          var1: c.var1 || "",
+          var2: c.var2 || "",
+          var3: c.var3 || "",
+          var4: c.var4 || "",
+          var5: c.var5 || "",
+          var6: c.var6 || "",
+          var7: c.var7 || "",
+          var8: c.var8 || "",
+          var9: c.var9 || "",
+          var10: c.var10 || "",
         }));
         const { error: contactsError } = await supabase
           .from("campaign_contacts")
