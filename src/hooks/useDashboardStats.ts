@@ -66,19 +66,36 @@ export function useDashboardStats() {
     queryFn: async (): Promise<DashboardStats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [devicesRes, cyclesRes, auditLogsRes, proxiesRes, oldLogsRes] = await Promise.all([
+      // Paginated fetch for audit logs to avoid 1000 row limit
+      async function fetchAllAuditLogs() {
+        const PAGE_SIZE = 1000;
+        let allLogs: any[] = [];
+        let from = 0;
+        while (true) {
+          const { data } = await supabase
+            .from("warmup_audit_logs")
+            .select("device_id, level, event_type, created_at")
+            .eq("user_id", user!.id)
+            .gte("created_at", sevenDaysAgo)
+            .range(from, from + PAGE_SIZE - 1);
+          const batch = data || [];
+          allLogs = allLogs.concat(batch);
+          if (batch.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return allLogs;
+      }
+
+      const [devicesRes, cyclesRes, auditLogs, proxiesRes] = await Promise.all([
         supabase.from("devices").select("id, name, number, status, proxy_id, profile_picture").eq("user_id", user!.id).neq("login_type", "report_wa"),
         supabase.from("warmup_cycles").select("id, device_id, is_running, phase, day_index, days_total, daily_interaction_budget_used, daily_interaction_budget_target, updated_at").eq("user_id", user!.id),
-        supabase.from("warmup_audit_logs").select("device_id, level, event_type, created_at").eq("user_id", user!.id).gte("created_at", sevenDaysAgo).limit(1000),
+        fetchAllAuditLogs(),
         supabase.from("proxies").select("id, host"),
-        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo).limit(500),
       ]);
 
       const devices = devicesRes.data || [];
       const cycles = cyclesRes.data || [];
-      const auditLogs = auditLogsRes.data || [];
       const proxies = proxiesRes.data || [];
-      const oldLogs = oldLogsRes.data || [];
 
       const proxyMap: Record<string, string> = {};
       proxies.forEach((p) => { proxyMap[p.id] = p.host; });
@@ -95,17 +112,7 @@ export function useDashboardStats() {
       let totalSent = 0;
       let totalFailed = 0;
 
-      // Old system logs
       const allDayLogs: { date: string; sent: boolean }[] = [];
-      oldLogs.forEach((l) => {
-        const isSent = l.status === "sent";
-        const isFailed = l.status === "error" || l.status === "failed";
-        if (isSent) totalSent++;
-        if (isFailed) totalFailed++;
-        if (isSent || isFailed) {
-          allDayLogs.push({ date: new Date(l.created_at).toDateString(), sent: isSent });
-        }
-      });
 
       // New system audit logs (interaction events = "sent")
       auditLogs.forEach((l) => {
