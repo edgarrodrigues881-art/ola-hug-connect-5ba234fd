@@ -227,6 +227,13 @@ const Campaigns = () => {
   const [rawImport, setRawImport] = useState<RawImportData | null>(null);
   const [contactPage, setContactPage] = useState(0);
   const [importProgress, setImportProgress] = useState<number | null>(null);
+  const [importReview, setImportReview] = useState<{
+    all: Contact[];
+    invalid: Contact[];
+    batchDuplicates: Contact[];
+    existingDuplicates: Contact[];
+    clean: Contact[];
+  } | null>(null);
   const CONTACTS_PER_PAGE = 50;
   const [draftLoaded, setDraftLoaded] = useState(false);
 
@@ -837,73 +844,78 @@ const Campaigns = () => {
       return;
     }
 
-    // Filter invalid numbers (less than 8 digits)
-    const valid = imported.filter(c => {
+    // Identify issues but DON'T remove — let user decide
+    const invalid: Contact[] = [];
+    const valid: Contact[] = [];
+    for (const c of imported) {
       const digits = c.numero.replace(/\D/g, "");
-      return digits.length >= 8;
-    });
-    const invalidCount = totalImported - valid.length;
+      if (digits.length < 8) {
+        invalid.push(c);
+      } else {
+        valid.push(c);
+      }
+    }
 
-    // Remove duplicates within the batch
     const seenInBatch = new Set<string>();
+    const batchDuplicates: Contact[] = [];
     const uniqueInBatch: Contact[] = [];
     for (const c of valid) {
       const num = c.numero.trim();
-      if (seenInBatch.has(num)) continue;
-      seenInBatch.add(num);
-      uniqueInBatch.push(c);
+      if (seenInBatch.has(num)) {
+        batchDuplicates.push(c);
+      } else {
+        seenInBatch.add(num);
+        uniqueInBatch.push(c);
+      }
     }
-    const batchDuplicates = valid.length - uniqueInBatch.length;
 
-    // Remove duplicates already in existing contacts
     const existingNums = new Set(contacts.map(c => c.numero.trim()).filter(Boolean));
-    const finalContacts = uniqueInBatch.filter(c => !existingNums.has(c.numero.trim()));
-    const existingDuplicates = uniqueInBatch.length - finalContacts.length;
+    const existingDuplicates: Contact[] = [];
+    const clean: Contact[] = [];
+    for (const c of uniqueInBatch) {
+      if (existingNums.has(c.numero.trim())) {
+        existingDuplicates.push(c);
+      } else {
+        clean.push(c);
+      }
+    }
 
-    const totalDuplicates = batchDuplicates + existingDuplicates;
+    const hasIssues = invalid.length > 0 || batchDuplicates.length > 0 || existingDuplicates.length > 0;
 
-    if (finalContacts.length === 0) {
-      toast({ 
-        title: "Nenhum contato novo", 
-        description: `${totalDuplicates} duplicado(s) ignorado(s). ${invalidCount} inválido(s) descartado(s).`,
-        variant: "destructive" 
-      });
+    if (!hasIssues) {
+      // No issues — import directly
+      finishImport(imported);
+    } else {
+      // Show review dialog
       setRawImport(null);
+      setImportReview({ all: imported, invalid, batchDuplicates, existingDuplicates, clean });
+    }
+  };
+
+  const finishImport = (finalContacts: Contact[]) => {
+    if (finalContacts.length === 0) {
+      toast({ title: "Nenhum contato para importar", variant: "destructive" });
       return;
     }
-
-    // Close dialog and start animated import progress (3 seconds)
-    setRawImport(null);
+    setImportReview(null);
     setImportProgress(0);
 
-    const totalSteps = 60; // 60 steps over 3s = 50ms each
+    const totalSteps = 60;
     let currentStep = 0;
     const interval = setInterval(() => {
       currentStep++;
-      // Ease-out curve for natural feel
       const progress = Math.round(100 * (1 - Math.pow(1 - currentStep / totalSteps, 3)));
       setImportProgress(Math.min(progress, 99));
 
       if (currentStep >= totalSteps) {
         clearInterval(interval);
         setImportProgress(100);
-        
-        // Add contacts after animation completes
         setTimeout(() => {
           setContacts(prev => [...prev, ...finalContacts]);
           setShowContactTable(true);
           setContactPage(0);
           setImportProgress(null);
-
-          const parts: string[] = [];
-          if (batchDuplicates > 0) parts.push(`${batchDuplicates} duplicado(s) na planilha`);
-          if (existingDuplicates > 0) parts.push(`${existingDuplicates} já na lista`);
-          if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) (< 8 dígitos)`);
-
-          toast({ 
-            title: `✅ ${finalContacts.length} de ${totalImported} contatos importados`,
-            description: parts.length > 0 ? `Removidos: ${parts.join(", ")}.` : undefined,
-          });
+          toast({ title: `✅ ${finalContacts.length} contatos importados` });
         }, 300);
       }
     }, 50);
@@ -2363,6 +2375,80 @@ const Campaigns = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Import Review Dialog */}
+      <Dialog open={!!importReview} onOpenChange={(open) => !open && setImportReview(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Revisão da Importação</DialogTitle>
+          </DialogHeader>
+          {importReview && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-border/30 p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{importReview.all.length}</p>
+                  <p className="text-xs text-muted-foreground">Total na planilha</p>
+                </div>
+                <div className="rounded-lg border border-border/30 p-3 text-center">
+                  <p className="text-2xl font-bold text-primary tabular-nums">{importReview.clean.length}</p>
+                  <p className="text-xs text-muted-foreground">Sem problemas</p>
+                </div>
+              </div>
+
+              {importReview.invalid.length > 0 && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-destructive flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> {importReview.invalid.length} número(s) inválido(s) (&lt;8 dígitos)
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    {importReview.invalid.slice(0, 5).map(c => c.numero || "(vazio)").join(", ")}
+                    {importReview.invalid.length > 5 && ` +${importReview.invalid.length - 5} mais`}
+                  </p>
+                </div>
+              )}
+
+              {importReview.batchDuplicates.length > 0 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-xs font-semibold text-amber-400 flex items-center gap-1 mb-1">
+                    <AlertTriangle className="w-3 h-3" /> {importReview.batchDuplicates.length} duplicado(s) na planilha
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    {importReview.batchDuplicates.slice(0, 5).map(c => c.numero).join(", ")}
+                    {importReview.batchDuplicates.length > 5 && ` +${importReview.batchDuplicates.length - 5} mais`}
+                  </p>
+                </div>
+              )}
+
+              {importReview.existingDuplicates.length > 0 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-xs font-semibold text-amber-400 flex items-center gap-1 mb-1">
+                    <AlertTriangle className="w-3 h-3" /> {importReview.existingDuplicates.length} já existe(m) na lista
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    {importReview.existingDuplicates.slice(0, 5).map(c => c.numero).join(", ")}
+                    {importReview.existingDuplicates.length > 5 && ` +${importReview.existingDuplicates.length - 5} mais`}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-2">
+                <Button onClick={() => finishImport(importReview.clean)} className="w-full gap-2">
+                  <Check className="w-4 h-4" /> Importar apenas os {importReview.clean.length} limpos
+                </Button>
+                <Button variant="outline" onClick={() => finishImport(importReview.all)} className="w-full gap-2">
+                  Importar todos ({importReview.all.length}) mesmo assim
+                </Button>
+                <Button variant="ghost" onClick={() => setImportReview(null)} className="w-full text-muted-foreground">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
     </div>
   );
