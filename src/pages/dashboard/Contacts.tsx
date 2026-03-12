@@ -158,11 +158,14 @@ const Contacts = () => {
     toast({ title: `Tag "${tag}" removida` });
   };
 
-  const filtered = contacts.filter((c) => {
-    const matchesSearch = (c.name || "").toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search);
-    const matchesTag = tagFilter === "all" || (c.tags || []).includes(tagFilter);
-    return matchesSearch && matchesTag;
-  });
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return contacts.filter((c) => {
+      const matchesSearch = (c.name || "").toLowerCase().includes(query) || c.phone.includes(query);
+      const matchesTag = tagFilter === "all" || (c.tags || []).includes(tagFilter);
+      return matchesSearch && matchesTag;
+    });
+  }, [contacts, search, tagFilter]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
