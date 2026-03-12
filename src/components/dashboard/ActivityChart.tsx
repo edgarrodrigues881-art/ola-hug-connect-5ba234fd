@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Area, Bar } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Bar, BarChart } from "recharts";
 import { BarChart3 } from "lucide-react";
 
 interface WarmupPoint {
@@ -26,13 +26,7 @@ export const ActivityChart = React.memo(function ActivityChart({ data }: Props) 
       <CardContent>
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradVol" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
@@ -53,23 +47,23 @@ export const ActivityChart = React.memo(function ActivityChart({ data }: Props) 
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="volume"
-                stroke="hsl(217, 91%, 60%)"
-                strokeWidth={2}
-                fill="url(#gradVol)"
+                fill="hsl(217, 91%, 60%)"
+                opacity={0.7}
+                barSize={14}
+                radius={[3, 3, 0, 0]}
                 name="Volume"
               />
               <Bar
                 dataKey="entregas"
                 fill="hsl(152, 69%, 53%)"
-                opacity={0.5}
-                barSize={8}
-                radius={[2, 2, 0, 0]}
+                opacity={0.8}
+                barSize={14}
+                radius={[3, 3, 0, 0]}
                 name="Entregas"
               />
-            </ComposedChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
