@@ -546,14 +546,6 @@ function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVo
   return v;
 }
 
-// CHIP_NOVO volumes — grupo NÃO dá ban, volume agressivo
-function getVolumesNew(phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
-
-  if (phase === "groups_only") {
-    v.groupMsgs = randInt(150, 250);
-    return v;
-  }
 
   if (phase === "autosave_enabled") {
     v.groupMsgs = randInt(200, 300);
