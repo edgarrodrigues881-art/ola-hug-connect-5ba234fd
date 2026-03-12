@@ -46,7 +46,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
           {contact[k]?.trim() || "—"}
         </div>
       ))}
-      <div className="p-3 w-10 shrink-0 sticky right-0 bg-background/80 backdrop-blur-sm">
+      <div className="p-3 w-10 shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent"><MoreVertical className="w-3.5 h-3.5" /></button>
