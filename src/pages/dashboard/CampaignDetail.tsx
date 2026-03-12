@@ -215,12 +215,22 @@ const CampaignDetail = () => {
     });
   }, [contacts, logSearch, logFilter]);
 
-  const stats = useMemo(() => ({
-    total: contacts.length,
-    sent: contacts.filter(c => c.status === "sent" || c.status === "delivered").length,
-    failed: contacts.filter(c => c.status === "failed" || c.status === "error").length,
-    pending: contacts.filter(c => c.status === "pending").length,
-  }), [contacts]);
+  const isInvalidNumber = (msg: string | null) => {
+    if (!msg) return false;
+    const lower = msg.toLowerCase();
+    return lower.includes("número inválido") || lower.includes("not on whats") || lower.includes("not registered") || lower.includes("not_exists");
+  };
+
+  const stats = useMemo(() => {
+    const failed = contacts.filter(c => c.status === "failed" || c.status === "error");
+    return {
+      total: contacts.length,
+      sent: contacts.filter(c => c.status === "sent" || c.status === "delivered").length,
+      failed: failed.length,
+      failedResendable: failed.filter(c => !isInvalidNumber(c.error_message)).length,
+      pending: contacts.filter(c => c.status === "pending").length,
+    };
+  }, [contacts]);
 
   // Auto-detect stuck campaigns
   useEffect(() => {
