@@ -126,6 +126,7 @@ const Contacts = () => {
   const [exportTagFilter, setExportTagFilter] = useState<string>("all");
   const [exportIncludeVars, setExportIncludeVars] = useState(true);
   const [exportLimit, setExportLimit] = useState<string>("");
+  const [exportSelectedIds, setExportSelectedIds] = useState<Set<string>>(new Set());
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
@@ -289,7 +290,7 @@ const Contacts = () => {
     });
   };
 
-  const exportContacts = useMemo(() => {
+  const exportFilteredContacts = useMemo(() => {
     let list = contacts;
     if (exportTagFilter !== "all") {
       list = list.filter(c => (c.tags || []).includes(exportTagFilter));
@@ -298,6 +299,13 @@ const Contacts = () => {
     if (limit > 0) list = list.slice(0, limit);
     return list;
   }, [contacts, exportTagFilter, exportLimit]);
+
+  const exportContacts = useMemo(() => {
+    if (exportSelectedIds.size > 0) {
+      return exportFilteredContacts.filter(c => exportSelectedIds.has(c.id));
+    }
+    return exportFilteredContacts;
+  }, [exportFilteredContacts, exportSelectedIds]);
 
   const buildExportRows = () => {
     // Detect which var columns actually have data
@@ -776,49 +784,99 @@ const Contacts = () => {
       </Dialog>
 
       {/* Export Dialog */}
-      <Dialog open={exportDialogOpen} onOpenChange={(open) => { setExportDialogOpen(open); if (!open) { setExportTagFilter("all"); setExportLimit(""); } }}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => { setExportDialogOpen(open); if (!open) { setExportTagFilter("all"); setExportLimit(""); setExportSelectedIds(new Set()); } }}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader><DialogTitle>Exportar contatos</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Filtrar por tag</Label>
-              <Select value={exportTagFilter} onValueChange={setExportTagFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todas as tags" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as tags</SelectItem>
-                  {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
-                    <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4 flex-1 min-h-0 flex flex-col">
+            {/* Filters row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Filtrar por tag</Label>
+                <Select value={exportTagFilter} onValueChange={(v) => { setExportTagFilter(v); setExportSelectedIds(new Set()); }}>
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue placeholder="Todas as tags" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as tags</SelectItem>
+                    {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
+                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Limite (vazio = todos)</Label>
+                <Input type="number" min="1" value={exportLimit} onChange={e => { setExportLimit(e.target.value); setExportSelectedIds(new Set()); }} placeholder={`Todos`} className="h-8 text-xs" />
+              </div>
+              <div className="flex items-end gap-2 pb-0.5">
+                <Checkbox id="export-vars" checked={exportIncludeVars} onCheckedChange={(v) => setExportIncludeVars(!!v)} />
+                <Label htmlFor="export-vars" className="text-[10px] cursor-pointer text-muted-foreground">Incluir variáveis</Label>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Quantidade máxima (vazio = todos)</Label>
-              <Input
-                type="number"
-                min="1"
-                value={exportLimit}
-                onChange={e => setExportLimit(e.target.value)}
-                placeholder={`Todos (${exportContacts.length})`}
-                className="h-9"
-              />
+
+            {/* Select all / count */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <button className="hover:text-foreground transition-colors" onClick={() => {
+                if (exportSelectedIds.size === exportFilteredContacts.length) setExportSelectedIds(new Set());
+                else setExportSelectedIds(new Set(exportFilteredContacts.map(c => c.id)));
+              }}>
+                {exportSelectedIds.size === exportFilteredContacts.length && exportFilteredContacts.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+              </button>
+              <span className="tabular-nums font-medium">
+                {exportSelectedIds.size > 0 ? `${exportSelectedIds.size} selecionado(s)` : `${exportFilteredContacts.length} contato(s)`}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="export-vars"
-                checked={exportIncludeVars}
-                onCheckedChange={(v) => setExportIncludeVars(!!v)}
-              />
-              <Label htmlFor="export-vars" className="text-xs cursor-pointer">Incluir variáveis (Var 1 a Var 10)</Label>
+
+            {/* Contact list with variables */}
+            <div className="flex-1 min-h-0 overflow-auto border border-border/20 rounded-lg max-h-[400px]">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card z-10 border-b border-border/20">
+                  <tr>
+                    <th className="p-2 w-8"></th>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Nome</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Telefone</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Tags</th>
+                    {exportIncludeVars && VAR_KEYS.map((_, i) => (
+                      <th key={i} className="p-2 text-left font-medium text-muted-foreground whitespace-nowrap">V{i + 1}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/10">
+                  {exportFilteredContacts.length === 0 ? (
+                    <tr><td colSpan={4 + (exportIncludeVars ? 10 : 0)} className="p-8 text-center text-muted-foreground">Nenhum contato</td></tr>
+                  ) : exportFilteredContacts.map(c => {
+                    const isSelected = exportSelectedIds.has(c.id);
+                    return (
+                      <tr key={c.id} onClick={() => setExportSelectedIds(prev => {
+                        const next = new Set(prev);
+                        next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                        return next;
+                      })} className={cn("cursor-pointer hover:bg-muted/10 transition-colors", isSelected && "bg-primary/5")}>
+                        <td className="p-2 text-center"><Checkbox checked={isSelected} className="pointer-events-none" /></td>
+                        <td className="p-2 font-medium text-foreground truncate max-w-[140px]">{c.name}</td>
+                        <td className="p-2 text-muted-foreground font-mono">{c.phone}</td>
+                        <td className="p-2">
+                          <div className="flex gap-1 flex-wrap">
+                            {(c.tags || []).map(t => <Badge key={t} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>)}
+                          </div>
+                        </td>
+                        {exportIncludeVars && VAR_KEYS.map(k => (
+                          <td key={k} className="p-2 text-muted-foreground truncate max-w-[80px]">{c[k]?.trim() || "—"}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="rounded-lg bg-muted/30 border border-border/30 p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{exportContacts.length}</p>
-              <p className="text-xs text-muted-foreground">contatos serão exportados</p>
+
+            {/* Export count */}
+            <div className="rounded-lg bg-muted/30 border border-border/30 p-2 text-center">
+              <p className="text-lg font-bold text-foreground">{exportContacts.length}</p>
+              <p className="text-[10px] text-muted-foreground">contatos serão exportados</p>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
             <Button variant="outline" onClick={handleExportCSV} disabled={exportContacts.length === 0}>
               <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
