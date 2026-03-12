@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi, WifiOff, Flame, MessageSquare, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMessagesTodayCount } from "@/hooks/useMessagesTodayCount";
 import { AnimatedCounter } from "@/components/dashboard/AnimatedCounter";
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
@@ -10,12 +11,13 @@ import { ActivityChart } from "@/components/dashboard/ActivityChart";
 
 const DashboardHome = () => {
   const { data: stats, isLoading } = useDashboardStats();
+  const { data: liveMessagesToday } = useMessagesTodayCount();
 
   const chips = stats?.chips || [];
   const connectedCount = chips.filter((c) => c.connected).length;
   const warmingCount = chips.filter((c) => c.warmupStatus === "running").length;
   const disconnectedCount = chips.filter((c) => !c.connected).length;
-  const messagesToday = chips.reduce((a, c) => a + c.volumeToday, 0);
+  const messagesToday = liveMessagesToday ?? chips.reduce((a, c) => a + c.volumeToday, 0);
 
   const topCards = [
     {
