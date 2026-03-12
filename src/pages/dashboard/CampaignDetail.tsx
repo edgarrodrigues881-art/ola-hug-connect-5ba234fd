@@ -307,13 +307,17 @@ const CampaignDetail = () => {
   const handleExportConfirm = async () => {
     const XLSX = await import("xlsx");
     const toRows = (list: typeof contacts) =>
-      list.map(c => ({
-        Nome: c.name || "—",
-        Telefone: c.phone,
-        Status: contactStatusConfig[c.status]?.label || c.status,
-        Horário: c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "",
-        Erro: c.error_message || "",
-      }));
+      list.map(c => {
+        const dev = (c as any).device_id ? devices.find(d => d.id === (c as any).device_id) : null;
+        return {
+          Nome: c.name || "—",
+          Telefone: c.phone,
+          Status: contactStatusConfig[c.status]?.label || c.status,
+          Horário: c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "",
+          Erro: c.error_message || "",
+          "Enviado por": dev ? (dev.number || dev.name) : "",
+        };
+      });
 
     const wb = XLSX.utils.book_new();
     let total = 0;
