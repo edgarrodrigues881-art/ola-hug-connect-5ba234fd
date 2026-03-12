@@ -1530,7 +1530,7 @@ const Campaigns = () => {
             </SurfaceCard>
 
             {/* ── Import from saved contacts dialog ── */}
-            <Dialog open={importFromContacts} onOpenChange={(open) => { setImportFromContacts(open); if (!open) { setSelectedSavedContactIds(new Set()); setImportContactSearch(""); } }}>
+            <Dialog open={importFromContacts} onOpenChange={(open) => { setImportFromContacts(open); if (!open) { setSelectedSavedContactIds(new Set()); setImportContactSearch(""); setSelectedContactTags([]); setImportSearchMode("name"); } }}>
               <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader><DialogTitle>Importar da Base</DialogTitle></DialogHeader>
                 <div className="space-y-3 flex-1 min-h-0 flex flex-col">
