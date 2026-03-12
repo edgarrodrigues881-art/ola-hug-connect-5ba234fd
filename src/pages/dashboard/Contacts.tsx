@@ -430,31 +430,35 @@ const Contacts = () => {
 
       {/* Contact Table */}
       <Card className="glass-card overflow-hidden">
-        {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
-          <div className="p-3 w-10"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
-          <div className="p-3 flex-[2]">Nome</div>
-          <div className="p-3 flex-[2]">Telefone</div>
-          <div className="p-3 flex-[1] hidden md:block">Vars</div>
-          <div className="p-3 flex-[2] hidden md:block">Tags</div>
-          <div className="p-3 w-10"></div>
-        </div>
-        {isLoading ? (
-          <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
-        ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), contain: "layout style" }}>
-            <VirtualList
-              rowCount={filtered.length}
-              rowHeight={48}
-              overscanCount={10}
-              style={{ height: "100%", width: "100%" }}
-              rowProps={contactRowProps}
-              rowComponent={ContactRow}
-            />
+        <div className="overflow-x-auto">
+          {/* Header row */}
+          <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1200 }}>
+            <div className="p-3 w-10 shrink-0"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
+            <div className="p-3 w-[140px] shrink-0">Nome</div>
+            <div className="p-3 w-[140px] shrink-0">Telefone</div>
+            <div className="p-3 w-[120px] shrink-0">Tags</div>
+            {VAR_KEYS.map((_, i) => (
+              <div key={i} className="p-3 w-[90px] shrink-0">Var {i + 1}</div>
+            ))}
+            <div className="p-3 w-10 shrink-0 sticky right-0 bg-muted/30"></div>
           </div>
-        )}
+          {isLoading ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
+          ) : (
+            <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), contain: "layout style" }}>
+              <VirtualList
+                rowCount={filtered.length}
+                rowHeight={48}
+                overscanCount={10}
+                style={{ height: "100%", width: "100%", overflowX: "auto" }}
+                rowProps={contactRowProps}
+                rowComponent={ContactRow}
+              />
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Add Contact Dialog */}
