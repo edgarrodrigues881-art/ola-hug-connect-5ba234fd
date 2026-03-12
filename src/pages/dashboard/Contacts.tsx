@@ -103,7 +103,6 @@ const Contacts = () => {
   const deleteContacts = useDeleteContacts();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [showTableVars, setShowTableVars] = useState(false);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
