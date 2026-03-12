@@ -302,11 +302,10 @@ const GroupCapture = () => {
 
   const handleCloseModal = (openState?: boolean | React.MouseEvent) => {
     if (openState === true) return;
+    // If process is running or paused, just minimize (close dialog) but keep process alive
     if (joinStatus === "running" || joinStatus === "paused") {
-      cancelledRef.current = true;
-      pausedRef.current = false;
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      setCountdown(0);
+      setJoinModalOpen(false);
+      return;
     }
     setJoinModalOpen(false);
     setJoinStatus("idle");
@@ -314,6 +313,17 @@ const GroupCapture = () => {
     setCurrentIndex(0);
     setSelectedGroups([]);
     setSelectedDevices([]);
+  };
+
+  const handleForceCancel = () => {
+    cancelledRef.current = true;
+    pausedRef.current = false;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(0);
+    setJoinModalOpen(false);
+    setJoinStatus("idle");
+    setJoinItems([]);
+    setCurrentIndex(0);
   };
 
   const copyReport = () => {
