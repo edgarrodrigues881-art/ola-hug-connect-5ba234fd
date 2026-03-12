@@ -382,7 +382,7 @@ const WarmupInstanceDetail = () => {
             <div className="px-5 pb-5 space-y-2">
               {cycle.is_running ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
+                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
                   variant="ghost"
                   onClick={handlePause}
                 >
@@ -390,7 +390,7 @@ const WarmupInstanceDetail = () => {
                 </Button>
               ) : cycle.phase === "paused" ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
+                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
                   variant="ghost"
                   onClick={handleResume}
                 >
