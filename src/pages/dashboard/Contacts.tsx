@@ -512,7 +512,7 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1320 }}>
+          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1430 }}>
             <VirtualList
               rowCount={filtered.length}
               rowHeight={48}
