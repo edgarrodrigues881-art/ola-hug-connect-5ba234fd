@@ -709,12 +709,12 @@ const Contacts = () => {
               </div>
 
               {/* Preview */}
-              {rawImport.columnMappings.some(m => m !== "ignorar") && (
+              {rawImport.columnMappings.some(m => m !== "ignorar" && !m.startsWith("var")) && (
                 <div className="rounded-lg border border-border/30 overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/30 border-b border-border/30">
-                        {rawImport.columnMappings.map((m, i) => m !== "ignorar" && (
+                        {rawImport.columnMappings.map((m, i) => m !== "ignorar" && !m.startsWith("var") && (
                           <th key={i} className="px-3 py-2 text-left font-medium">{MAPPING_OPTIONS.find(o => o.value === m)?.label}</th>
                         ))}
                       </tr>
@@ -722,7 +722,7 @@ const Contacts = () => {
                     <tbody>
                       {rawImport.rows.slice(0, 5).map((row, ri) => (
                         <tr key={ri} className="border-b border-border/20">
-                          {rawImport.columnMappings.map((m, ci) => m !== "ignorar" && (
+                          {rawImport.columnMappings.map((m, ci) => m !== "ignorar" && !m.startsWith("var") && (
                             <td key={ci} className="px-3 py-1.5 text-muted-foreground truncate max-w-[150px]">{String(row[ci] || "—")}</td>
                           ))}
                         </tr>
