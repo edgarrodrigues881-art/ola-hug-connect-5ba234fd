@@ -258,14 +258,14 @@ Deno.serve(async (req) => {
       if (config.toggle_warmup) {
         const warmupTarget = config.group_id;
         if (warmupTarget) {
-          // Check for completed warmup cycles (24h report)
-          const { data: completedCycles } = await serviceClient
+          // Check for active warmup cycles (24h report)
+          const { data: activeCycles } = await serviceClient
             .from("warmup_cycles")
-            .select("id, device_id, day_index, days_total, phase, daily_interaction_budget_used, daily_unique_recipients_used, started_at, updated_at")
+            .select("id, device_id, day_index, days_total, phase, chip_state, daily_interaction_budget_used, daily_interaction_budget_target, daily_unique_recipients_used, daily_unique_recipients_cap, started_at, updated_at")
             .eq("user_id", config.user_id)
             .eq("is_running", true);
 
-          for (const cycle of (completedCycles || [])) {
+          for (const cycle of (activeCycles || [])) {
             // Check if 24h passed since last report for this cycle
             const alreadySent = await wasRecentlySent(config.user_id, `%aquecimento%${cycle.device_id.substring(0, 8)}%`, 60 * 23);
             if (alreadySent) continue;
@@ -279,25 +279,45 @@ Deno.serve(async (req) => {
 
             if (!dev) continue;
 
-            // Get warmup logs for last 24h
+            // Get warmup audit logs for last 24h (v2 system uses warmup_audit_logs)
             const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-            const { data: warmupLogs } = await serviceClient
-              .from("warmup_logs")
-              .select("id, status")
+            const { data: auditLogs } = await serviceClient
+              .from("warmup_audit_logs")
+              .select("id, event_type, level")
               .eq("user_id", config.user_id)
               .eq("device_id", cycle.device_id)
               .gte("created_at", oneDayAgo);
 
-            if (!warmupLogs || warmupLogs.length === 0) continue;
+            if (!auditLogs || auditLogs.length === 0) continue;
 
-            const sent = warmupLogs.filter(l => l.status === "sent").length;
-            const failed = warmupLogs.filter(l => l.status !== "sent").length;
+            // Count by event type
+            const groupMsgs = auditLogs.filter(l => l.event_type === "group_msg_sent").length;
+            const autosaveMsgs = auditLogs.filter(l => l.event_type === "autosave_msg_sent").length;
+            const communityMsgs = auditLogs.filter(l => l.event_type === "community_msg_sent").length;
+            const totalSentMsgs = groupMsgs + autosaveMsgs + communityMsgs;
+            const errors = auditLogs.filter(l => l.level === "error").length;
+            const warnings = auditLogs.filter(l => l.level === "warn").length;
 
-            const received = warmupLogs.length - sent;
-            const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\nInstância: ${dev.name}\nNúmero: ${dev.number || "N/A"}\n\n📊 Atividades registradas\n\n📨 Mensagens enviadas: ${sent}\n\n📩 Mensagens recebidas: ${received}\n\n👥 Interações em grupos: ${warmupLogs.length}\n\n⏱ Última atividade registrada:\n${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n\n🔎 Status atual da instância: ${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n\nRelatório gerado automaticamente após o ciclo de aquecimento de 24h.`;
+            const phaseLabels: Record<string, string> = {
+              pre_24h: "Pré 24h",
+              groups_only: "Grupos",
+              autosave_enabled: "Auto Save",
+              community_light: "Comunitário Light",
+              community_enabled: "Comunitário",
+              completed: "Concluído",
+              paused: "Pausado",
+            };
+
+            const chipLabels: Record<string, string> = {
+              new: "Chip Novo",
+              recovered: "Recuperado",
+              unstable: "Chip Fraco",
+            };
+
+            const msg = `🔥 RELATÓRIO DE AQUECIMENTO (24H)\n\n🖥 Instância: ${dev.name}\n📞 Número: ${dev.number || "N/A"}\n📋 Perfil: ${chipLabels[cycle.chip_state] || cycle.chip_state}\n📅 Dia: ${cycle.day_index}/${cycle.days_total}\n🔄 Fase: ${phaseLabels[cycle.phase] || cycle.phase}\n\n📊 Atividade nas últimas 24h\n\n👥 Msgs em grupos: ${groupMsgs}\n💾 Msgs Auto Save: ${autosaveMsgs}\n🤝 Msgs Comunitário: ${communityMsgs}\n📨 Total enviadas: ${totalSentMsgs}\n\n📈 Orçamento do dia: ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target}\n👤 Destinatários: ${cycle.daily_unique_recipients_used}/${cycle.daily_unique_recipients_cap}\n\n${errors > 0 ? `❌ Erros: ${errors}\n` : ""}${warnings > 0 ? `⚠️ Avisos: ${warnings}\n` : ""}\n🔎 Status: ${dev.status === "Ready" ? "🟢 Online" : "🔴 Offline"}\n⏱ ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
             const didSend = await sendToGroup(creds, warmupTarget, msg);
             if (didSend) totalSent++;
-            await logEvent(config.user_id, "INFO", `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${sent} ok, ${failed} falhas`);
+            await logEvent(config.user_id, "INFO", `Resumo aquecimento ${cycle.device_id.substring(0, 8)} enviado: ${totalSentMsgs} msgs, ${errors} erros`);
           }
         }
       }
