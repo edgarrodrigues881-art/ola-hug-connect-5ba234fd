@@ -1270,17 +1270,6 @@ const Campaigns = () => {
                     className="text-sm leading-[1.8] bg-muted/8 dark:bg-muted/4 border-border/15 resize-none focus-visible:ring-1 focus-visible:ring-primary/30 px-4 py-3 text-foreground/90 placeholder:text-muted-foreground/30 rounded-xl"
                   />
 
-                  {/* Detected variables */}
-                  {detectedVars.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] text-muted-foreground/50 font-medium">Variáveis:</span>
-                      {detectedVars.map(v => (
-                        <span key={v} className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 dark:bg-primary/15 text-primary text-[10px] font-mono font-medium border border-primary/20">
-                          {v}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </SurfaceCard>
               </div>
 
