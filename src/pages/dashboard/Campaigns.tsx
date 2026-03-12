@@ -844,73 +844,78 @@ const Campaigns = () => {
       return;
     }
 
-    // Filter invalid numbers (less than 8 digits)
-    const valid = imported.filter(c => {
+    // Identify issues but DON'T remove — let user decide
+    const invalid: Contact[] = [];
+    const valid: Contact[] = [];
+    for (const c of imported) {
       const digits = c.numero.replace(/\D/g, "");
-      return digits.length >= 8;
-    });
-    const invalidCount = totalImported - valid.length;
+      if (digits.length < 8) {
+        invalid.push(c);
+      } else {
+        valid.push(c);
+      }
+    }
 
-    // Remove duplicates within the batch
     const seenInBatch = new Set<string>();
+    const batchDuplicates: Contact[] = [];
     const uniqueInBatch: Contact[] = [];
     for (const c of valid) {
       const num = c.numero.trim();
-      if (seenInBatch.has(num)) continue;
-      seenInBatch.add(num);
-      uniqueInBatch.push(c);
+      if (seenInBatch.has(num)) {
+        batchDuplicates.push(c);
+      } else {
+        seenInBatch.add(num);
+        uniqueInBatch.push(c);
+      }
     }
-    const batchDuplicates = valid.length - uniqueInBatch.length;
 
-    // Remove duplicates already in existing contacts
     const existingNums = new Set(contacts.map(c => c.numero.trim()).filter(Boolean));
-    const finalContacts = uniqueInBatch.filter(c => !existingNums.has(c.numero.trim()));
-    const existingDuplicates = uniqueInBatch.length - finalContacts.length;
+    const existingDuplicates: Contact[] = [];
+    const clean: Contact[] = [];
+    for (const c of uniqueInBatch) {
+      if (existingNums.has(c.numero.trim())) {
+        existingDuplicates.push(c);
+      } else {
+        clean.push(c);
+      }
+    }
 
-    const totalDuplicates = batchDuplicates + existingDuplicates;
+    const hasIssues = invalid.length > 0 || batchDuplicates.length > 0 || existingDuplicates.length > 0;
 
-    if (finalContacts.length === 0) {
-      toast({ 
-        title: "Nenhum contato novo", 
-        description: `${totalDuplicates} duplicado(s) ignorado(s). ${invalidCount} inválido(s) descartado(s).`,
-        variant: "destructive" 
-      });
+    if (!hasIssues) {
+      // No issues — import directly
+      finishImport(imported);
+    } else {
+      // Show review dialog
       setRawImport(null);
+      setImportReview({ all: imported, invalid, batchDuplicates, existingDuplicates, clean });
+    }
+  };
+
+  const finishImport = (finalContacts: Contact[]) => {
+    if (finalContacts.length === 0) {
+      toast({ title: "Nenhum contato para importar", variant: "destructive" });
       return;
     }
-
-    // Close dialog and start animated import progress (3 seconds)
-    setRawImport(null);
+    setImportReview(null);
     setImportProgress(0);
 
-    const totalSteps = 60; // 60 steps over 3s = 50ms each
+    const totalSteps = 60;
     let currentStep = 0;
     const interval = setInterval(() => {
       currentStep++;
-      // Ease-out curve for natural feel
       const progress = Math.round(100 * (1 - Math.pow(1 - currentStep / totalSteps, 3)));
       setImportProgress(Math.min(progress, 99));
 
       if (currentStep >= totalSteps) {
         clearInterval(interval);
         setImportProgress(100);
-        
-        // Add contacts after animation completes
         setTimeout(() => {
           setContacts(prev => [...prev, ...finalContacts]);
           setShowContactTable(true);
           setContactPage(0);
           setImportProgress(null);
-
-          const parts: string[] = [];
-          if (batchDuplicates > 0) parts.push(`${batchDuplicates} duplicado(s) na planilha`);
-          if (existingDuplicates > 0) parts.push(`${existingDuplicates} já na lista`);
-          if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) (< 8 dígitos)`);
-
-          toast({ 
-            title: `✅ ${finalContacts.length} de ${totalImported} contatos importados`,
-            description: parts.length > 0 ? `Removidos: ${parts.join(", ")}.` : undefined,
-          });
+          toast({ title: `✅ ${finalContacts.length} contatos importados` });
         }, 300);
       }
     }, 50);
