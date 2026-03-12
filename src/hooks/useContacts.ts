@@ -9,6 +9,16 @@ export interface Contact {
   email: string | null;
   tags: string[];
   notes: string | null;
+  var1: string;
+  var2: string;
+  var3: string;
+  var4: string;
+  var5: string;
+  var6: string;
+  var7: string;
+  var8: string;
+  var9: string;
+  var10: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,7 +31,7 @@ export function useContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("id, name, phone, email, tags, notes, created_at, updated_at")
+        .select("id, name, phone, email, tags, notes, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Contact[];
@@ -36,11 +46,11 @@ export function useCreateContact() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (contact: { name: string; phone: string; email?: string; tags?: string[]; notes?: string }) => {
+    mutationFn: async (contact: { name: string; phone: string; email?: string; tags?: string[]; notes?: string; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }) => {
       const { data, error } = await supabase
         .from("contacts")
         .insert({ ...contact, user_id: user!.id, tags: contact.tags || [] })
-        .select("id, name, phone, email, tags, notes, created_at, updated_at")
+        .select("id, name, phone, email, tags, notes, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
@@ -77,7 +87,7 @@ export function useUpdateContact() {
         .from("contacts")
         .update(updates)
         .eq("id", id)
-        .select("id, name, phone, email, tags, notes, created_at, updated_at")
+        .select("id, name, phone, email, tags, notes, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
