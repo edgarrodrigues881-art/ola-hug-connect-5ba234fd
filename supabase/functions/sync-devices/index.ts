@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
     } catch { /* */ }
 
     const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
-    const targetGroup = rwConfig?.connection_group_id || rwConfig?.group_id;
+    const targetGroup = (rwConfig?.connection_group_id || "").trim() || rwConfig?.group_id;
     const canNotify = alertEnabled && targetGroup && rwConfig?.connection_status === "connected"
       && rwDevice?.uazapi_token && rwDevice?.uazapi_base_url;
 
