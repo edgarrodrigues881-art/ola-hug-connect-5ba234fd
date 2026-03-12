@@ -311,14 +311,18 @@ const Contacts = () => {
   };
 
   const addTagToSelected = () => {
-    if (!newTagName.trim()) return;
-    const tag = newTagName.trim().toLowerCase();
-    const toUpdate = contacts.filter(c => selected.has(c.id) && !(c.tags || []).includes(tag));
+    if (selectedTags.length === 0) return;
+    const tags = selectedTags.map(t => t.trim().toLowerCase());
+    const toUpdate = contacts.filter(c => selected.has(c.id));
     toUpdate.forEach(c => {
-      updateContact.mutate({ id: c.id, tags: [...(c.tags || []), tag] });
+      const existing = c.tags || [];
+      const newTags = [...new Set([...existing, ...tags])];
+      if (newTags.length !== existing.length) {
+        updateContact.mutate({ id: c.id, tags: newTags });
+      }
     });
-    toast({ title: "Tag adicionada", description: `Tag "${tag}" adicionada a ${selected.size} contatos.` });
-    setNewTagName("");
+    toast({ title: "Tags adicionadas", description: `${tags.length} tag(s) adicionada(s) a ${selected.size} contatos.` });
+    setSelectedTags([]);
     setAddTagDialogOpen(false);
   };
 
