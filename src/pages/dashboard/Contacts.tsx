@@ -127,12 +127,25 @@ const Contacts = () => {
   const [rawImport, setRawImport] = useState<RawContactImport | null>(null);
   const [importLoading, setImportLoading] = useState(false);
 
-  // Load tags from localStorage on mount
+  // Load tags from localStorage on mount (safe parse)
   useEffect(() => {
     const stored = localStorage.getItem("contactCustomTags");
-    if (stored) {
-      setCustomTags(JSON.parse(stored));
-    } else {
+
+    if (!stored) {
+      setCustomTags(DEFAULT_TAGS);
+      localStorage.setItem("contactCustomTags", JSON.stringify(DEFAULT_TAGS));
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.every((tag) => typeof tag === "string")) {
+        setCustomTags(parsed);
+      } else {
+        setCustomTags(DEFAULT_TAGS);
+        localStorage.setItem("contactCustomTags", JSON.stringify(DEFAULT_TAGS));
+      }
+    } catch {
       setCustomTags(DEFAULT_TAGS);
       localStorage.setItem("contactCustomTags", JSON.stringify(DEFAULT_TAGS));
     }
