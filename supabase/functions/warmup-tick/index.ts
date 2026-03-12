@@ -97,6 +97,42 @@ const FRASES_GRUPO = [
   "quem mais tá acompanhando",
 ];
 
+// ── Temas variados para enriquecer conversas ──
+const OPINIOES = [
+  "acho que esse ano vai ser diferente", "to otimista com o futuro",
+  "cada vez mais difícil achar coisa boa", "o mercado tá complicado",
+  "tô repensando muita coisa na vida", "preciso descansar mais",
+  "quero viajar mais esse ano", "preciso focar na saúde",
+  "tô curtindo mais ficar em casa", "o tempo tá passando rápido demais",
+  "tô aprendendo a ter mais paciência", "as coisas estão melhorando",
+  "cada dia é uma conquista", "tô mais seletivo com meu tempo",
+  "quero investir mais em mim", "o importante é ter paz",
+  "tô priorizando o que importa", "a vida tá mudando pra melhor",
+];
+
+const DICAS_GERAIS = [
+  "vi um restaurante bom pra indicar", "descobri um app muito bom",
+  "tem uma série nova que vale a pena", "aprendi um truque legal ontem",
+  "achei um lugar ótimo pra passear", "tem uma promoção boa hoje",
+  "recomendo demais aquele livro", "testei uma receita incrível",
+  "achei um canal no youtube muito bom", "descobri um café ótimo aqui perto",
+  "tem um podcast bom sobre isso", "vi um documentário sensacional",
+  "tem uma loja nova no bairro", "encontrei uma academia boa e barata",
+  "descobri um atalho no celular", "achei uma playlist ótima",
+];
+
+const COTIDIANO = [
+  "acabei de almoçar agora", "tô no trânsito parado", "choveu demais aqui",
+  "acordei cedo hoje", "café da manhã top hoje", "fui na feira agora cedo",
+  "limpei a casa inteira", "fiz um churrasco ontem", "passei no mercado agora",
+  "tô esperando o delivery", "acabei de sair da academia", "lavei o carro hoje",
+  "fiz um bolo caseiro", "tô estudando uma coisa nova", "voltei a ler",
+  "comecei a caminhar de manhã", "troquei a tela do celular",
+  "arrumei o quarto todo", "cozinhei pela primeira vez em semanas",
+  "tô assistindo uma série boa", "fui cortar o cabelo", "dormi super bem ontem",
+  "tomei um açaí agora", "pedi uma pizza pra comemorar", "fiz uma compra online",
+];
+
 // Track recent messages to avoid repetition
 const recentMsgs: string[] = [];
 const MAX_RECENT = 200;
