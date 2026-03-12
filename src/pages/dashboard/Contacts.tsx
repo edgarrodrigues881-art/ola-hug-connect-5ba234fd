@@ -29,7 +29,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
   const contact = filtered[index];
   if (!contact) return null;
   return (
-    <div style={{ ...style, minWidth: 1200 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ ...style, minWidth: 1320 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><Checkbox checked={selected.has(contact.id)} onCheckedChange={() => onToggleSelect(contact.id)} /></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
@@ -42,7 +42,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
       {VAR_KEYS.map(k => (
-        <div key={k} className="p-3 w-[90px] shrink-0 text-xs text-muted-foreground truncate">
+        <div key={k} className="p-3 w-[100px] shrink-0 text-xs text-muted-foreground truncate">
           {contact[k]?.trim() || "—"}
         </div>
       ))}
@@ -474,13 +474,13 @@ const Contacts = () => {
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto overflow-y-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1200 }}>
+        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1320 }}>
           <div className="p-3 w-10 shrink-0"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></div>
           <div className="p-3 w-[140px] shrink-0">Nome</div>
           <div className="p-3 w-[140px] shrink-0">Telefone</div>
           <div className="p-3 w-[120px] shrink-0">Tags</div>
           {VAR_KEYS.map((_, i) => (
-            <div key={i} className="p-3 w-[90px] shrink-0">Var {i + 1}</div>
+            <div key={i} className="p-3 w-[100px] shrink-0">Var {i + 1}</div>
           ))}
           <div className="p-3 w-10 shrink-0"></div>
         </div>
@@ -489,7 +489,7 @@ const Contacts = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1200 }}>
+          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1320 }}>
             <VirtualList
               rowCount={filtered.length}
               rowHeight={48}
