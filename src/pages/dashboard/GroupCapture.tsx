@@ -579,8 +579,8 @@ const GroupCapture = () => {
         </div>
       )}
 
-      {/* Active campaigns widget */}
-      <ActiveCampaignsWidget />
+      {/* Group join campaigns widget */}
+      <GroupJoinCampaignsWidget />
 
       {/* Group count badge */}
       {!isLoading && (groups.length > 0 || SUGGESTED_GROUPS.length > 0) && (
