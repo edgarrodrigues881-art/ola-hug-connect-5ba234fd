@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Area, Bar } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Bar, BarChart } from "recharts";
 import { BarChart3 } from "lucide-react";
 
 interface WarmupPoint {
