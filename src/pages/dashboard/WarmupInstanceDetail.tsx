@@ -761,7 +761,9 @@ const WarmupInstanceDetail = () => {
                     <span className="w-16 text-right">Total</span>
                     <span className="w-14 text-right">Próx.</span>
                   </div>
-                  {Object.entries(typeSummary).map(([type, summary]) => {
+                  {Object.entries(typeSummary)
+                    .filter(([, summary]) => summary.done > 0 || summary.failed > 0 || summary.next !== null)
+                    .map(([type, summary]) => {
                     const cfg = jobTypeLabels[type] || { label: type, icon: Target, color: "text-muted-foreground" };
                     const Icon = cfg.icon;
                     return (
