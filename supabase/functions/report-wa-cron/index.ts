@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     // If called from cron (anon key), process ALL configs. If from user, filter by user.
     let query = serviceClient
       .from("report_wa_configs")
-      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status")
+      .select("user_id, device_id, group_id, group_name, toggle_campaigns, toggle_warmup, toggle_instances, alert_disconnect, alert_campaign_end, alert_high_failures, connection_status, warmup_group_id, campaigns_group_id, connection_group_id")
       .not("device_id", "is", null);
 
     if (callerUserId) {
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
 
       // ═══ CAMPAIGN ALERTS → group_id ═══
       if (config.toggle_campaigns) {
-        const targetGroupId = config.group_id;
+        const targetGroupId = (config.campaigns_group_id || "").trim() || config.group_id;
         if (targetGroupId) {
           // Started campaigns
           const { data: startedCampaigns } = await serviceClient
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
 
       // ═══ WARMUP ALERTS → group_id (only at 22:00 BRT) ═══
       if (config.toggle_warmup) {
-        const warmupTarget = config.group_id;
+        const warmupTarget = (config.warmup_group_id || "").trim() || config.group_id;
         // Only send warmup reports at 22:00 BRT (end of activity window)
         const brtHour = parseInt(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }), 10);
         const isWarmupReportTime = brtHour === 22 || forceWarmup; // only manual force bypasses time

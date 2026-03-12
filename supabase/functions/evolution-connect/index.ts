@@ -202,7 +202,7 @@ async function notifyConnectionChange(svc: any, userId: string, deviceName: stri
       .eq("user_id", userId).not("device_id", "is", null).maybeSingle();
 
     const alertEnabled = rwConfig?.alert_disconnect || rwConfig?.toggle_instances;
-    const targetGroup = rwConfig?.connection_group_id || rwConfig?.group_id;
+    const targetGroup = (rwConfig?.connection_group_id || "").trim() || rwConfig?.group_id;
     if (!alertEnabled || !targetGroup || rwConfig?.connection_status !== "connected") return;
 
     const { data: rwDevice } = await svc.from("devices").select("uazapi_token, uazapi_base_url").eq("id", rwConfig.device_id).single();
