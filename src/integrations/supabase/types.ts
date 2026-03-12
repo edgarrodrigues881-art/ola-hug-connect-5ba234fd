@@ -662,6 +662,63 @@ export type Database = {
           },
         ]
       }
+      group_join_campaigns: {
+        Row: {
+          already_member_count: number
+          completed_at: string | null
+          created_at: string
+          device_ids: Json
+          error_count: number
+          group_links: Json
+          id: string
+          max_delay: number
+          min_delay: number
+          name: string
+          started_at: string
+          status: string
+          success_count: number
+          total_items: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          already_member_count?: number
+          completed_at?: string | null
+          created_at?: string
+          device_ids?: Json
+          error_count?: number
+          group_links?: Json
+          id?: string
+          max_delay?: number
+          min_delay?: number
+          name?: string
+          started_at?: string
+          status?: string
+          success_count?: number
+          total_items?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          already_member_count?: number
+          completed_at?: string | null
+          created_at?: string
+          device_ids?: Json
+          error_count?: number
+          group_links?: Json
+          id?: string
+          max_delay?: number
+          min_delay?: number
+          name?: string
+          started_at?: string
+          status?: string
+          success_count?: number
+          total_items?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_join_logs: {
         Row: {
           attempt: number
