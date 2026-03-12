@@ -766,9 +766,7 @@ const WarmupInstanceDetail = () => {
                     );
                   })}
                 </div>
-                    );
-                  })}
-                </div>
+
 
                 {/* Future jobs */}
                 {futureJobs.length > 0 && (
