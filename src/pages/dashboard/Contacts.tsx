@@ -121,7 +121,7 @@ const Contacts = () => {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
   const [removeTagDialogOpen, setRemoveTagDialogOpen] = useState(false);
-  const [newTagName, setNewTagName] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
@@ -311,14 +311,18 @@ const Contacts = () => {
   };
 
   const addTagToSelected = () => {
-    if (!newTagName.trim()) return;
-    const tag = newTagName.trim().toLowerCase();
-    const toUpdate = contacts.filter(c => selected.has(c.id) && !(c.tags || []).includes(tag));
+    if (selectedTags.length === 0) return;
+    const tags = selectedTags.map(t => t.trim().toLowerCase());
+    const toUpdate = contacts.filter(c => selected.has(c.id));
     toUpdate.forEach(c => {
-      updateContact.mutate({ id: c.id, tags: [...(c.tags || []), tag] });
+      const existing = c.tags || [];
+      const newTags = [...new Set([...existing, ...tags])];
+      if (newTags.length !== existing.length) {
+        updateContact.mutate({ id: c.id, tags: newTags });
+      }
     });
-    toast({ title: "Tag adicionada", description: `Tag "${tag}" adicionada a ${selected.size} contatos.` });
-    setNewTagName("");
+    toast({ title: "Tags adicionadas", description: `${tags.length} tag(s) adicionada(s) a ${selected.size} contatos.` });
+    setSelectedTags([]);
     setAddTagDialogOpen(false);
   };
 
@@ -645,28 +649,39 @@ const Contacts = () => {
       </Dialog>
 
       {/* Add Tag Dialog */}
-      <Dialog open={addTagDialogOpen} onOpenChange={setAddTagDialogOpen}>
+      <Dialog open={addTagDialogOpen} onOpenChange={(open) => { setAddTagDialogOpen(open); if (!open) setSelectedTags([]); }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Adicionar tag</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Adicionar tags</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <Label className="text-xs">Selecione a tag</Label>
-            <Select value={newTagName} onValueChange={setNewTagName}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecionar tag..." />
-              </SelectTrigger>
-              <SelectContent>
-                {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => (
-                  <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Selecione até 2 tags</Label>
+            <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+              {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => {
+                const isSelected = selectedTags.includes(tag);
+                return (
+                  <label key={tag} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          if (selectedTags.length < 2) setSelectedTags([...selectedTags, tag]);
+                        } else {
+                          setSelectedTags(selectedTags.filter(t => t !== tag));
+                        }
+                      }}
+                      disabled={!isSelected && selectedTags.length >= 2}
+                    />
+                    {tag}
+                  </label>
+                );
+              })}
+            </div>
             {customTags.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhuma tag criada.</p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddTagDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={addTagToSelected} disabled={!newTagName.trim()}>Adicionar</Button>
+            <Button onClick={addTagToSelected} disabled={selectedTags.length === 0}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
