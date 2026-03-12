@@ -16,13 +16,22 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable, ArrowRight, Loader2,
 } from "lucide-react";
 import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts, type Contact } from "@/hooks/useContacts";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+type ContactColumnMapping = "nome" | "numero" | "tags" | "var1" | "var2" | "var3" | "var4" | "var5" | "var6" | "var7" | "var8" | "var9" | "var10" | "ignorar";
+interface RawContactImport { headers: string[]; rows: any[][]; columnMappings: ContactColumnMapping[]; }
+const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
+  { value: "ignorar", label: "Ignorar" },
+  { value: "nome", label: "Nome" },
+  { value: "numero", label: "Número" },
+  { value: "tags", label: "Tags" },
+  ...VAR_KEYS.map((k, i) => ({ value: k as ContactColumnMapping, label: `Variável ${i + 1}` })),
+];
 
 // Virtualized row for contacts list
 function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
@@ -93,6 +102,10 @@ const Contacts = () => {
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [showEditVars, setShowEditVars] = useState(false);
 
+  // Import mapping state
+  const [rawImport, setRawImport] = useState<RawContactImport | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+
   // Load tags from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("contactCustomTags");
@@ -148,7 +161,25 @@ const Contacts = () => {
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportLoading(true);
     const ext = file.name.split(".").pop()?.toLowerCase();
+
+    const processRows = (rawRows: any[][]) => {
+      if (rawRows.length < 2) { setImportLoading(false); return; }
+      const headers = rawRows[0].map((h: any) => String(h || "").trim());
+      const dataRows = rawRows.slice(1).filter(r => r.some((c: any) => c != null && String(c).trim()));
+      // Auto-detect mappings
+      const mappings: ContactColumnMapping[] = headers.map(h => {
+        const hl = h.toLowerCase();
+        if (hl.includes("nom")) return "nome";
+        if (hl.includes("tel") || hl.includes("phone") || hl.includes("numero")) return "numero";
+        if (hl.includes("tag")) return "tags";
+        for (let i = 0; i < 10; i++) { if (hl === `var${i+1}` || hl === `var ${i+1}`) return `var${i+1}` as ContactColumnMapping; }
+        return "ignorar";
+      });
+      setRawImport({ headers, rows: dataRows, columnMappings: mappings });
+      setImportLoading(false);
+    };
 
     if (ext === "xlsx" || ext === "xls") {
       import("xlsx").then(XLSX => {
@@ -156,65 +187,62 @@ const Contacts = () => {
         reader.onload = (ev) => {
           const wb = XLSX.read(ev.target?.result, { type: "array" });
           const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          if (rows.length < 2) return;
-          const header = rows[0].map((h: any) => String(h).toLowerCase().trim());
-          const nameIdx = header.findIndex((h: string) => h.includes("nom"));
-          const phoneIdx = header.findIndex((h: string) => h.includes("tel") || h.includes("phone") || h.includes("numero"));
-          const varIdxs = VAR_KEYS.map((_, i) => header.findIndex((h: string) => h === `var${i + 1}` || h === `var ${i + 1}`));
-          const tagIdx = header.findIndex((h: string) => h.includes("tag"));
-
-          const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const phone = String(row[phoneIdx >= 0 ? phoneIdx : 1] || "").trim();
-            if (!phone) continue;
-            const contact: any = {
-              name: String(row[nameIdx >= 0 ? nameIdx : 0] || "Sem nome").trim(),
-              phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
-            };
-            if (tagIdx >= 0 && row[tagIdx]) contact.tags = String(row[tagIdx]).split("|").map((t: string) => t.trim()).filter(Boolean);
-            VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = String(row[varIdxs[vi]]); });
-            newContacts.push(contact);
-          }
-          createContacts.mutate(newContacts, {
-            onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
-          });
+          processRows(XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]);
         };
         reader.readAsArrayBuffer(file);
       });
     } else {
-      // CSV
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target?.result as string;
         const lines = text.split("\n").filter(Boolean);
-        const cols = lines[0].toLowerCase().split(/[,;]/);
-        const nameIdx = cols.findIndex((h) => h.trim().includes("nom"));
-        const phoneIdx = cols.findIndex((h) => h.trim().includes("tel") || h.trim().includes("phone") || h.trim().includes("numero"));
-        const varIdxs = VAR_KEYS.map((_, i) => cols.findIndex((h) => h.trim() === `var${i + 1}` || h.trim() === `var ${i + 1}`));
-        const tagIdx = cols.findIndex((h) => h.trim().includes("tag"));
-
-        const newContacts: { name: string; phone: string; tags?: string[]; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(/[,;]/);
-          const phone = row[phoneIdx >= 0 ? phoneIdx : 1]?.trim();
-          if (!phone) continue;
-          const contact: any = {
-            name: row[nameIdx >= 0 ? nameIdx : 0]?.trim() || "Sem nome",
-            phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
-          };
-          if (tagIdx >= 0 && row[tagIdx]) contact.tags = row[tagIdx].split("|").map((t: string) => t.trim()).filter(Boolean);
-          VAR_KEYS.forEach((k, vi) => { if (varIdxs[vi] >= 0 && row[varIdxs[vi]]) contact[k] = row[varIdxs[vi]].trim(); });
-          newContacts.push(contact);
-        }
-        createContacts.mutate(newContacts, {
-          onSuccess: () => toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` }),
-        });
+        processRows(lines.map(l => l.split(/[,;]/)));
       };
       reader.readAsText(file);
     }
     e.target.value = "";
+  };
+
+  const updateImportMapping = (colIndex: number, value: ContactColumnMapping) => {
+    if (!rawImport) return;
+    const newMappings = [...rawImport.columnMappings];
+    if (value !== "ignorar" && value !== "tags") {
+      newMappings.forEach((m, i) => { if (i !== colIndex && m === value) newMappings[i] = "ignorar"; });
+    }
+    newMappings[colIndex] = value;
+    setRawImport({ ...rawImport, columnMappings: newMappings });
+  };
+
+  const confirmImportMapping = () => {
+    if (!rawImport) return;
+    const { rows, columnMappings } = rawImport;
+    const numIdx = columnMappings.indexOf("numero");
+    const nameIdx = columnMappings.indexOf("nome");
+    const tagIdx = columnMappings.indexOf("tags");
+    const varIndices: Record<string, number> = {};
+    columnMappings.forEach((m, i) => { if (m.startsWith("var")) varIndices[m] = i; });
+
+    if (numIdx < 0) { toast({ title: "Mapeie a coluna de número", variant: "destructive" }); return; }
+
+    const newContacts: any[] = [];
+    for (const row of rows) {
+      const phone = String(row[numIdx] || "").trim();
+      if (!phone) continue;
+      const contact: any = {
+        name: nameIdx >= 0 ? String(row[nameIdx] || "Sem nome").trim() : "Sem nome",
+        phone: phone.replace(/\D/g, "").replace(/^(\d{2})(\d+)/, "+$1$2"),
+      };
+      if (tagIdx >= 0 && row[tagIdx]) contact.tags = String(row[tagIdx]).split("|").map((t: string) => t.trim()).filter(Boolean);
+      Object.entries(varIndices).forEach(([k, idx]) => { if (row[idx]) contact[k] = String(row[idx]).trim(); });
+      newContacts.push(contact);
+    }
+
+    createContacts.mutate(newContacts, {
+      onSuccess: () => {
+        toast({ title: "Importação concluída", description: `${newContacts.length} contatos importados.` });
+        setRawImport(null);
+      },
+    });
   };
 
   const handleExport = () => {
@@ -664,6 +692,87 @@ const Contacts = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemoveTagDialogOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={removeTagFromSelected} disabled={!removeTagName}>Remover</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Mapping Dialog */}
+      <Dialog open={!!rawImport} onOpenChange={(open) => { if (!open) setRawImport(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader><DialogTitle>Mapear colunas do arquivo</DialogTitle></DialogHeader>
+          {rawImport && (
+            <div className="space-y-4">
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span>{rawImport.rows.length} linhas</span>
+                <span>{rawImport.headers.length} colunas</span>
+                <span className={rawImport.columnMappings.filter(m => m !== "ignorar").length > 0 ? "text-primary font-medium" : ""}>
+                  {rawImport.columnMappings.filter(m => m !== "ignorar").length} mapeadas
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {rawImport.headers.map((header, i) => {
+                  const mapping = rawImport.columnMappings[i];
+                  const sample = rawImport.rows.slice(0, 3).map(r => String(r[i] || "")).filter(Boolean).join(", ");
+                  const mappingColors: Record<string, string> = {
+                    nome: "ring-emerald-500/30 bg-emerald-500/5",
+                    numero: "ring-blue-500/30 bg-blue-500/5",
+                    tags: "ring-amber-500/30 bg-amber-500/5",
+                  };
+                  return (
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border/30 bg-muted/10">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{header || `Coluna ${i + 1}`}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{sample || "—"}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
+                      <Select value={mapping} onValueChange={(v) => updateImportMapping(i, v as ContactColumnMapping)}>
+                        <SelectTrigger className={cn("w-[150px] h-9 text-xs", mapping !== "ignorar" && (mappingColors[mapping] || "ring-primary/30 bg-primary/5"))}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MAPPING_OPTIONS.map(opt => {
+                            const taken = opt.value !== "ignorar" && rawImport.columnMappings.some((m, idx) => idx !== i && m === opt.value);
+                            return <SelectItem key={opt.value} value={opt.value} disabled={taken} className={taken ? "opacity-30" : ""}>{opt.label}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Preview */}
+              {rawImport.columnMappings.some(m => m !== "ignorar") && (
+                <div className="rounded-lg border border-border/30 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/30 border-b border-border/30">
+                        {rawImport.columnMappings.map((m, i) => m !== "ignorar" && (
+                          <th key={i} className="px-3 py-2 text-left font-medium">{MAPPING_OPTIONS.find(o => o.value === m)?.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rawImport.rows.slice(0, 5).map((row, ri) => (
+                        <tr key={ri} className="border-b border-border/20">
+                          {rawImport.columnMappings.map((m, ci) => m !== "ignorar" && (
+                            <td key={ci} className="px-3 py-1.5 text-muted-foreground truncate max-w-[150px]">{String(row[ci] || "—")}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRawImport(null)}>Cancelar</Button>
+            <Button onClick={confirmImportMapping} disabled={!rawImport?.columnMappings.includes("numero") || createContacts.isPending}>
+              {createContacts.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+              Importar {rawImport ? rawImport.rows.length : 0} contatos
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
