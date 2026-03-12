@@ -6,11 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   UsersRound, Link2, Copy, Check, LogIn, Pause, Play, Timer,
   RotateCcw, ClipboardCopy, AlertTriangle, CheckCircle2, XCircle, Clock,
-  Loader2, Shield
+  Loader2, Shield, Megaphone, BarChart3, Users, StopCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import dgLogo from "@/assets/dg-contingencia.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast as sonnerToast } from "sonner";
 
 const SUGGESTED_GROUPS: { name: string; link: string }[] = [];
 
@@ -56,6 +57,129 @@ const statusConfig: Record<ItemStatus, { icon: typeof Check; label: string; colo
   already_member: { icon: CheckCircle2, label: "Já participa", color: "text-teal-500" },
   pending_approval: { icon: AlertTriangle, label: "Aguardando aprovação", color: "text-amber-500" },
 };
+
+// ── Active Campaigns Widget ──────────────────────────────────────
+function ActiveCampaignsWidget() {
+  const { user } = useAuth();
+
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["active-campaigns-widget"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("id, name, status, total_contacts, sent_count, delivered_count, failed_count, started_at, device_ids, message_type")
+        .eq("user_id", user!.id)
+        .in("status", ["sending", "paused"])
+        .order("started_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("campaigns").update({ status: "paused" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => sonnerToast.success("Campanha pausada"),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("campaigns").update({ status: "sending" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => sonnerToast.success("Campanha retomada"),
+  });
+
+  if (campaigns.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Megaphone className="w-4 h-4 text-primary" />
+        <h2 className="text-sm font-bold text-foreground">Campanhas Ativas</h2>
+        <Badge variant="secondary" className="text-[10px] ml-auto">{campaigns.length}</Badge>
+      </div>
+      <div className="space-y-2">
+        {campaigns.map((camp) => {
+          const total = camp.total_contacts || 0;
+          const sent = camp.sent_count || 0;
+          const delivered = camp.delivered_count || 0;
+          const failed = camp.failed_count || 0;
+          const pending = Math.max(0, total - sent - failed);
+          const progress = total > 0 ? ((sent + failed) / total) * 100 : 0;
+          const failRate = (sent + failed) > 0 ? Math.round((failed / (sent + failed)) * 100) : 0;
+          const isPaused = camp.status === "paused";
+          const deviceCount = Array.isArray(camp.device_ids) ? (camp.device_ids as string[]).length : 0;
+
+          return (
+            <div key={camp.id} className="rounded-xl border border-border/30 bg-card/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+                  <span className="text-[13px] font-semibold text-foreground truncate">{camp.name}</span>
+                </div>
+                <Badge variant={isPaused ? "outline" : "default"} className="text-[9px] shrink-0">
+                  {isPaused ? "Pausada" : "Enviando"}
+                </Badge>
+              </div>
+
+              <Progress value={progress} className="h-1.5" />
+
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Enviadas</p>
+                  <p className="text-xs font-bold text-foreground">{sent}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Entregues</p>
+                  <p className="text-xs font-bold text-emerald-500">{delivered}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Falhas</p>
+                  <p className={`text-xs font-bold ${failed > 0 ? "text-destructive" : "text-foreground"}`}>{failed}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Pendentes</p>
+                  <p className="text-xs font-bold text-foreground">{pending}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-border/15">
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  {deviceCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" /> {deviceCount} instância{deviceCount !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {failRate > 0 && (
+                    <span className={`flex items-center gap-1 ${failRate > 30 ? "text-destructive" : ""}`}>
+                      <BarChart3 className="w-3 h-3" /> {failRate}% falha
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  {isPaused ? (
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={() => resumeMutation.mutate(camp.id)}>
+                      <Play className="w-3 h-3" /> Retomar
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={() => pauseMutation.mutate(camp.id)}>
+                      <Pause className="w-3 h-3" /> Pausar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const GroupCapture = () => {
   const { toast } = useToast();
@@ -301,11 +425,10 @@ const GroupCapture = () => {
 
   const handleCloseModal = (openState?: boolean | React.MouseEvent) => {
     if (openState === true) return;
+    // If process is running or paused, just minimize (close dialog) but keep process alive
     if (joinStatus === "running" || joinStatus === "paused") {
-      cancelledRef.current = true;
-      pausedRef.current = false;
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      setCountdown(0);
+      setJoinModalOpen(false);
+      return;
     }
     setJoinModalOpen(false);
     setJoinStatus("idle");
@@ -313,6 +436,17 @@ const GroupCapture = () => {
     setCurrentIndex(0);
     setSelectedGroups([]);
     setSelectedDevices([]);
+  };
+
+  const handleForceCancel = () => {
+    cancelledRef.current = true;
+    pausedRef.current = false;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(0);
+    setJoinModalOpen(false);
+    setJoinStatus("idle");
+    setJoinItems([]);
+    setCurrentIndex(0);
   };
 
   const copyReport = () => {
@@ -402,6 +536,32 @@ const GroupCapture = () => {
           <LogIn className="w-3.5 h-3.5" /> Entrar nos Grupos
         </Button>
       </div>
+
+      {/* Minimized join status bar */}
+      {!joinModalOpen && (joinStatus === "running" || joinStatus === "paused") && (
+        <div
+          onClick={() => setJoinModalOpen(true)}
+          className="cursor-pointer rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3 hover:bg-primary/10 transition-colors"
+        >
+          <Loader2 className={`w-4 h-4 text-primary ${joinStatus === "running" ? "animate-spin" : ""}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-foreground">
+              {joinStatus === "paused" ? "Entrada pausada" : "Entrando nos grupos..."}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {joinItems.filter(i => i.status === "success" || i.status === "already_member").length}/{joinItems.length} concluídos
+              {countdown > 0 && ` · próximo em ${countdown}s`}
+            </p>
+          </div>
+          <Progress value={joinItems.length > 0 ? ((joinItems.filter(i => i.status === "success" || i.status === "already_member" || i.status === "error").length) / joinItems.length) * 100 : 0} className="w-24 h-1.5" />
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleForceCancel(); }}>
+            <StopCircle className="w-3 h-3" /> Parar
+          </Button>
+        </div>
+      )}
+
+      {/* Active campaigns widget */}
+      <ActiveCampaignsWidget />
 
       {/* Group count badge */}
       {!isLoading && (groups.length > 0 || SUGGESTED_GROUPS.length > 0) && (
