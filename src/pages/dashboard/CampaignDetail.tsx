@@ -451,7 +451,7 @@ const CampaignDetail = () => {
               </>
             )}
             {isFinished && (stats.failed + stats.pending > 0) && (
-              <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setResendFailed(true); setResendPending(true); setResendOpen(true); }}>
+              <Button size="sm" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setResendFailed(false); setResendPending(false); setResendOpen(true); }}>
                 <RotateCcw className="w-3.5 h-3.5" /> Reenviar
               </Button>
             )}
