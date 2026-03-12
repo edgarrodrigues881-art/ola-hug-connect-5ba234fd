@@ -695,6 +695,87 @@ const Contacts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Mapping Dialog */}
+      <Dialog open={!!rawImport} onOpenChange={(open) => { if (!open) setRawImport(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader><DialogTitle>Mapear colunas do arquivo</DialogTitle></DialogHeader>
+          {rawImport && (
+            <div className="space-y-4">
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span>{rawImport.rows.length} linhas</span>
+                <span>{rawImport.headers.length} colunas</span>
+                <span className={rawImport.columnMappings.filter(m => m !== "ignorar").length > 0 ? "text-primary font-medium" : ""}>
+                  {rawImport.columnMappings.filter(m => m !== "ignorar").length} mapeadas
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {rawImport.headers.map((header, i) => {
+                  const mapping = rawImport.columnMappings[i];
+                  const sample = rawImport.rows.slice(0, 3).map(r => String(r[i] || "")).filter(Boolean).join(", ");
+                  const mappingColors: Record<string, string> = {
+                    nome: "ring-emerald-500/30 bg-emerald-500/5",
+                    numero: "ring-blue-500/30 bg-blue-500/5",
+                    tags: "ring-amber-500/30 bg-amber-500/5",
+                  };
+                  return (
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border/30 bg-muted/10">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{header || `Coluna ${i + 1}`}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{sample || "—"}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
+                      <Select value={mapping} onValueChange={(v) => updateImportMapping(i, v as ContactColumnMapping)}>
+                        <SelectTrigger className={cn("w-[150px] h-9 text-xs", mapping !== "ignorar" && (mappingColors[mapping] || "ring-primary/30 bg-primary/5"))}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MAPPING_OPTIONS.map(opt => {
+                            const taken = opt.value !== "ignorar" && rawImport.columnMappings.some((m, idx) => idx !== i && m === opt.value);
+                            return <SelectItem key={opt.value} value={opt.value} disabled={taken} className={taken ? "opacity-30" : ""}>{opt.label}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Preview */}
+              {rawImport.columnMappings.some(m => m !== "ignorar") && (
+                <div className="rounded-lg border border-border/30 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/30 border-b border-border/30">
+                        {rawImport.columnMappings.map((m, i) => m !== "ignorar" && (
+                          <th key={i} className="px-3 py-2 text-left font-medium">{MAPPING_OPTIONS.find(o => o.value === m)?.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rawImport.rows.slice(0, 5).map((row, ri) => (
+                        <tr key={ri} className="border-b border-border/20">
+                          {rawImport.columnMappings.map((m, ci) => m !== "ignorar" && (
+                            <td key={ci} className="px-3 py-1.5 text-muted-foreground truncate max-w-[150px]">{String(row[ci] || "—")}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRawImport(null)}>Cancelar</Button>
+            <Button onClick={confirmImportMapping} disabled={!rawImport?.columnMappings.includes("numero") || createContacts.isPending}>
+              {createContacts.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+              Importar {rawImport ? rawImport.rows.length : 0} contatos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
