@@ -50,11 +50,11 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
 ];
 
 // Virtualized row for contacts list
-function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
+function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes, showTableVars }: any): ReactElement | null {
   const contact = filtered[index];
   if (!contact) return null;
   return (
-    <div style={{ ...style, minWidth: 1320 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ ...style, minWidth: showTableVars ? 1320 : 520 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
@@ -66,7 +66,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
           </Badge>
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
-      {VAR_KEYS.map(k => (
+      {showTableVars && VAR_KEYS.map(k => (
         <div key={k} className="p-3 w-[100px] shrink-0 text-xs text-muted-foreground truncate">
           {contact[k]?.trim() || "—"}
         </div>
@@ -100,6 +100,7 @@ const Contacts = () => {
   const deleteContacts = useDeleteContacts();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showTableVars, setShowTableVars] = useState(false);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
@@ -365,7 +366,8 @@ const Contacts = () => {
     onEdit: openEditDialog,
     toast,
     deleteContacts,
-  }), [filtered, selected, openEditDialog]);
+    showTableVars,
+  }), [filtered, selected, openEditDialog, showTableVars]);
 
   const stats = {
     total: contacts.length,
@@ -495,22 +497,30 @@ const Contacts = () => {
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto overflow-y-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1320 }}>
+        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: showTableVars ? 1320 : 520 }}>
           <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
           <div className="p-3 w-[140px] shrink-0">Nome</div>
           <div className="p-3 w-[140px] shrink-0">Telefone</div>
           <div className="p-3 w-[120px] shrink-0">Tags</div>
-          {VAR_KEYS.map((_, i) => (
+          {showTableVars && VAR_KEYS.map((_, i) => (
             <div key={i} className="p-3 w-[100px] shrink-0">Var {i + 1}</div>
           ))}
-          <div className="p-3 w-10 shrink-0"></div>
+          <div className="p-3 w-10 shrink-0 ml-auto">
+            <button
+              onClick={() => setShowTableVars(!showTableVars)}
+              className={cn("inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors", showTableVars ? "text-primary" : "text-muted-foreground")}
+              title={showTableVars ? "Ocultar variáveis" : "Visualizar variáveis"}
+            >
+              <Variable className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         {isLoading ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
         ) : (
-          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: 1320 }}>
+          <div style={{ height: Math.min(filtered.length * 48, window.innerHeight - 360), minWidth: showTableVars ? 1320 : 520 }}>
             <VirtualList
               rowCount={filtered.length}
               rowHeight={48}
