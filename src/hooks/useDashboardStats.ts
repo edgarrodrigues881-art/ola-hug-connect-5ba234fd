@@ -209,6 +209,7 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    refetchInterval: 60000,
+    refetchInterval: 5000,
+    staleTime: 4000,
   });
 }
