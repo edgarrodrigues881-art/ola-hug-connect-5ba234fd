@@ -13,6 +13,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, errorCount: 0, lastErrorMessage: "" };
+  private resetTimer: ReturnType<typeof setTimeout> | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, lastErrorMessage: `${error.name}: ${error.message}` };
@@ -47,6 +48,12 @@ class ErrorBoundary extends Component<Props, State> {
           errorCount: prev.errorCount + 1,
         }));
       }, 200);
+    } else {
+      // Auto-reset after 8 seconds even at max retries (handles HMR / transient crashes)
+      if (this.resetTimer) clearTimeout(this.resetTimer);
+      this.resetTimer = setTimeout(() => {
+        this.setState({ hasError: false, errorCount: 0, lastErrorMessage: "" });
+      }, 8000);
     }
   }
 
