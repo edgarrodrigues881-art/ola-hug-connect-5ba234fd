@@ -774,7 +774,7 @@ const WarmupInstanceDetail = () => {
                         <div key={job.id} className="flex items-center gap-2 text-[10px] text-muted-foreground/60 py-0.5">
                           <Clock className="w-3 h-3" />
                           <span>{cfg.label}</span>
-                          <span className="ml-auto font-mono">{format(new Date(job.run_at), "dd/MM HH:mm")}</span>
+                          <span className="ml-auto font-mono">{formatBrt(new Date(job.run_at), "dd/MM HH:mm")}</span>
                         </div>
                       );
                     })}
