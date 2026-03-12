@@ -412,6 +412,15 @@ const Contacts = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
             <Download className="w-3.5 h-3.5" /> Exportar
           </Button>
+          {selectMode ? (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setSelectMode(false); setSelected(new Set()); }}>
+              <X className="w-3.5 h-3.5" /> Cancelar
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setSelectMode(true)}>
+              <CheckSquare className="w-3.5 h-3.5" /> Selecionar
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
             <UserPlus className="w-3.5 h-3.5" /> Adicionar
           </Button>
