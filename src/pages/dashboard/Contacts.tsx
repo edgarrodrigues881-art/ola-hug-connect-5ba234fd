@@ -23,6 +23,15 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+type ContactColumnMapping = "nome" | "numero" | "tags" | "var1" | "var2" | "var3" | "var4" | "var5" | "var6" | "var7" | "var8" | "var9" | "var10" | "ignorar";
+interface RawContactImport { headers: string[]; rows: any[][]; columnMappings: ContactColumnMapping[]; }
+const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
+  { value: "ignorar", label: "Ignorar" },
+  { value: "nome", label: "Nome" },
+  { value: "numero", label: "Número" },
+  { value: "tags", label: "Tags" },
+  ...VAR_KEYS.map((k, i) => ({ value: k as ContactColumnMapping, label: `Variável ${i + 1}` })),
+];
 
 // Virtualized row for contacts list
 function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
