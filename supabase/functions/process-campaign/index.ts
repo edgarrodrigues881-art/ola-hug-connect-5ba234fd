@@ -987,7 +987,7 @@ Deno.serve(async (req) => {
 
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
             if (!check.exists) {
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
