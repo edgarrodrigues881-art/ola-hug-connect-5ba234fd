@@ -262,16 +262,22 @@ function replaceVariables(template: string, contact: any, rand4: string, rand3: 
     .replace(/\{\{var10\}\}/gi, contact.var10 || "");
 }
 
+// Crypto-grade random for better distribution
+function secureRandom(): number {
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return arr[0] / (0xFFFFFFFF + 1);
+}
+
 function randomBetween(min: number, max: number): number {
-  // Ensure there's always some variation even if min==max
   const effectiveMin = Math.min(min, max);
   const effectiveMax = Math.max(min, max);
   // If min==max, add ±20% jitter so delay is never perfectly fixed
   if (effectiveMax - effectiveMin < 1) {
-    const jitter = effectiveMin * 0.2;
-    return (effectiveMin - jitter) + Math.random() * (jitter * 2);
+    const jitter = Math.max(effectiveMin * 0.2, 0.5);
+    return Math.max(0, (effectiveMin - jitter) + secureRandom() * (jitter * 2));
   }
-  return effectiveMin + Math.random() * (effectiveMax - effectiveMin);
+  return effectiveMin + secureRandom() * (effectiveMax - effectiveMin);
 }
 
 // True random picker: picks a random variant each time, avoiding consecutive repeats
