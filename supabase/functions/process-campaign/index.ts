@@ -780,6 +780,7 @@ Deno.serve(async (req) => {
               continue;
             }
             try {
+              const pSendStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
               const chosenMessage = messageVariants[devRandomPicker.next()];
@@ -790,7 +791,6 @@ Deno.serve(async (req) => {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
-                  // Revert remaining contacts in chunk back to pending
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                   if (remainingIds.length > 0) {
                     await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
@@ -824,7 +824,7 @@ Deno.serve(async (req) => {
                   }
                 }
                 if (allSendFailed) {
-                  if (isDisconnectError("")) break; // already handled above
+                  if (isDisconnectError("")) break;
                   continue;
                 }
               } else {
@@ -849,9 +849,11 @@ Deno.serve(async (req) => {
 
               const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
               if (!isLastInChunk) {
-                const delayMs = randomBetween(minDelayMs, maxDelayMs);
-                console.log(`✅ [P-${devIdx}] Sent to ${normalized} | delay=${Math.round(delayMs / 1000)}s`);
-                await new Promise(r => setTimeout(r, delayMs));
+                const pApiElapsed = Date.now() - pSendStart;
+                const pTargetDelay = randomBetween(minDelayMs, maxDelayMs);
+                const pActualDelay = Math.max(500, pTargetDelay - pApiElapsed);
+                console.log(`✅ [P-${devIdx}] Sent to ${normalized} | target=${Math.round(pTargetDelay / 1000)}s api=${Math.round(pApiElapsed / 1000)}s wait=${Math.round(pActualDelay / 1000)}s`);
+                await new Promise(r => setTimeout(r, pActualDelay));
               }
             } catch (err) {
               const translated = translateErrorMessage(err.message || "Erro");
