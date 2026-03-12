@@ -746,14 +746,16 @@ const CampaignDetail = () => {
               </div>
               <XCircle className="w-4 h-4 text-destructive/60" />
             </label>
-            <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
-              <Checkbox checked={resendPending} onCheckedChange={(v) => setResendPending(!!v)} />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Pendentes</p>
-                <p className="text-[10px] text-muted-foreground">Contatos que não foram enviados ({stats.pending})</p>
-              </div>
-              <Clock className="w-4 h-4 text-yellow-400/60" />
-            </label>
+            {stats.pending > 0 && (
+              <label className="flex items-center gap-3 rounded-lg border border-border/30 p-3 cursor-pointer hover:bg-muted/20 transition-colors">
+                <Checkbox checked={resendPending} onCheckedChange={(v) => setResendPending(!!v)} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Pendentes</p>
+                  <p className="text-[10px] text-muted-foreground">Contatos que não foram enviados ({stats.pending})</p>
+                </div>
+                <Clock className="w-4 h-4 text-yellow-400/60" />
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setResendOpen(false)} className="text-xs">Cancelar</Button>
