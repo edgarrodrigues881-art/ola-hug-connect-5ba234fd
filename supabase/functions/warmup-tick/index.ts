@@ -165,23 +165,27 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
 }
 
 function buildMsg(ctx: MsgCtx): string {
-  const s = randInt(1, 10);
-  if (s <= 3) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
-  if (s <= 5) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  if (s <= 7) {
+  const s = randInt(1, 16);
+  if (s <= 2) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
+  if (s <= 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  if (s <= 6) {
     let m = pickRandom(COMENTARIOS);
     if (Math.random() < 0.3) m += `, ${pickRandom(COMPLEMENTOS)}`;
     return cap(maybeEmoji(m));
   }
-  if (s === 8) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
-  if (s === 9) {
+  if (s <= 8) return cap(maybeEmoji(pickRandom(OPINIOES)));
+  if (s <= 10) return cap(maybeEmoji(pickRandom(COTIDIANO)));
+  if (s <= 12) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (s === 13) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
+  if (s === 14) {
     const f = pickRandom(FRASES_NUMERO).replace("{n}", String(randInt(2, 15))).replace("{a}", String(randInt(2019, 2025)));
     return cap(maybeEmoji(f));
   }
-  // s === 10: context-specific
+  if (s === 15) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
+  // s === 16: context-specific
   if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
-  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(COTIDIANO)}`));
+  return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
 }
 
 Deno.serve(async (req) => {
