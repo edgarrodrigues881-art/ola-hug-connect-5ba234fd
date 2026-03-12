@@ -112,17 +112,7 @@ export function useDashboardStats() {
       let totalSent = 0;
       let totalFailed = 0;
 
-      // Old system logs
       const allDayLogs: { date: string; sent: boolean }[] = [];
-      oldLogs.forEach((l) => {
-        const isSent = l.status === "sent";
-        const isFailed = l.status === "error" || l.status === "failed";
-        if (isSent) totalSent++;
-        if (isFailed) totalFailed++;
-        if (isSent || isFailed) {
-          allDayLogs.push({ date: new Date(l.created_at).toDateString(), sent: isSent });
-        }
-      });
 
       // New system audit logs (interaction events = "sent")
       auditLogs.forEach((l) => {
