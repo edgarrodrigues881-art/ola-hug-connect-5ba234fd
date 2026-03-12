@@ -386,18 +386,36 @@ const GroupCapture = () => {
       }
     }
 
-    setJoinStatus(cancelledRef.current ? "cancelled" : "done");
+    const finalStatus = cancelledRef.current ? "cancelled" : "done";
+    setJoinStatus(finalStatus);
     setCountdown(0);
 
     const finalItems = itemsRef.current;
-    const successCount = finalItems.filter((r) => r.status === "success" || r.status === "already_member").length;
+    const successCount = finalItems.filter((r) => r.status === "success").length;
+    const alreadyCount = finalItems.filter((r) => r.status === "already_member").length;
     const errorCount = finalItems.filter((r) => r.status === "error").length;
+
+    // Update campaign record
+    if (campaignIdRef.current) {
+      await supabase
+        .from("group_join_campaigns" as any)
+        .update({
+          status: finalStatus,
+          success_count: successCount,
+          already_member_count: alreadyCount,
+          error_count: errorCount,
+          completed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", campaignIdRef.current);
+      queryClient.invalidateQueries({ queryKey: ["group-join-campaigns"] });
+    }
+
     toast({
       title: cancelledRef.current ? "Processo cancelado" : "Processo concluído",
-      description: `${successCount} sucesso, ${errorCount} erros de ${finalItems.length} tentativas`,
+      description: `${successCount + alreadyCount} sucesso, ${errorCount} erros de ${finalItems.length} tentativas`,
       variant: errorCount > 0 ? "destructive" : "default",
     });
-  }, [minDelay, maxDelay, waitForResume, startCountdown, toast]);
+  }, [minDelay, maxDelay, waitForResume, startCountdown, toast, queryClient]);
 
   const startJoinProcess = useCallback(async () => {
     const uniqueGrps = [
