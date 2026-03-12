@@ -1523,11 +1523,25 @@ const Campaigns = () => {
               <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader><DialogTitle>Importar da Base</DialogTitle></DialogHeader>
                 <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input placeholder="Buscar por nome ou número..." value={importContactSearch} onChange={e => setImportContactSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+                  {/* Search tabs */}
+                  <div className="flex gap-1 border-b border-border/20 pb-2">
+                    <button onClick={() => setImportSearchMode("name")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "name" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Nome
+                    </button>
+                    <button onClick={() => setImportSearchMode("phone")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "phone" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Número
+                    </button>
+                    <button onClick={() => setImportSearchMode("tag")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "tag" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Tag
+                    </button>
                   </div>
+
+                  {importSearchMode !== "tag" && (
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input placeholder={importSearchMode === "phone" ? "Buscar por número..." : "Buscar por nome..."} value={importContactSearch} onChange={e => setImportContactSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+                    </div>
+                  )}
 
                   {/* Tags filter */}
                   {allTags.length > 0 && (
