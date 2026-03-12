@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, type ReactElement, type CSSProperties } from "react";
-import { List as VirtualList } from "react-window";
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactElement } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
