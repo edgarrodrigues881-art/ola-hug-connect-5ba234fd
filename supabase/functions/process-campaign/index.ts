@@ -1042,7 +1042,7 @@ Deno.serve(async (req) => {
                 continue;
               }
             }
-            await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+            await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString(), device_id: activeDevice.id }).eq("id", contact.id);
             sentCount++;
             batchSent++;
             instanceMsgCount++;
