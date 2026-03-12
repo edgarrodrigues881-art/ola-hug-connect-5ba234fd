@@ -882,12 +882,14 @@ async function handleTick(db: any) {
           status: "failed", attempts: newAttempts, last_error: jobErr.message,
         }).eq("id", job.id);
       }
-      await db.from("warmup_audit_logs").insert({
-        user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-        level: "error", event_type: "job_failed",
-        message: `Job ${job.job_type} falhou: ${jobErr.message}`,
-        meta: { job_id: job.id, attempts: newAttempts },
-      }).catch(() => {});
+      try {
+        await db.from("warmup_audit_logs").insert({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "error", event_type: "job_failed",
+          message: `Job ${job.job_type} falhou: ${jobErr.message}`,
+          meta: { job_id: job.id, attempts: newAttempts },
+        });
+      } catch (_e) { /* ignore */ }
     }
   }
 
