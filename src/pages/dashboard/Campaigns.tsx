@@ -675,7 +675,8 @@ const Campaigns = () => {
     if (selectedContactTags.length > 0) list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
     if (importContactSearch.trim()) {
       const q = importContactSearch.trim().toLowerCase();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q));
+      if (importSearchMode === "phone") list = list.filter(c => c.phone.includes(q));
+      else if (importSearchMode === "name") list = list.filter(c => c.name.toLowerCase().includes(q));
     }
     return list;
   }, [savedContacts, selectedContactTags, importContactSearch]);
