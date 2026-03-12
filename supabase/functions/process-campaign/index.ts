@@ -231,14 +231,14 @@ function normalizeBrazilianPhone(phone: string): string {
 
 function generateUniqueRand4(usedSet: Set<string>): string {
   let value: string;
-  do { value = String(Math.floor(Math.random() * 10000)).padStart(4, "0"); } while (usedSet.has(value) && usedSet.size < 10000);
+  do { value = String(Math.floor(secureRandom() * 10000)).padStart(4, "0"); } while (usedSet.has(value) && usedSet.size < 10000);
   usedSet.add(value);
   return value;
 }
 
 function generateUniqueRand3(usedSet: Set<string>): string {
   let value: string;
-  do { value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join(""); } while (usedSet.has(value) && usedSet.size < 17576);
+  do { value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(secureRandom() * 26))).join(""); } while (usedSet.has(value) && usedSet.size < 17576);
   usedSet.add(value);
   return value;
 }
