@@ -289,19 +289,35 @@ const Contacts = () => {
     });
   };
 
+  const exportContacts = useMemo(() => {
+    let list = contacts;
+    if (exportTagFilter !== "all") {
+      list = list.filter(c => (c.tags || []).includes(exportTagFilter));
+    }
+    const limit = parseInt(exportLimit);
+    if (limit > 0) list = list.slice(0, limit);
+    return list;
+  }, [contacts, exportTagFilter, exportLimit]);
+
   const handleExport = () => {
-    const rows = [["Nome", "Telefone", "Tags", ...VAR_KEYS.map((_, i) => `Var ${i + 1}`)]];
-    const list = selected.size > 0 ? contacts.filter((c) => selected.has(c.id)) : filtered;
-    list.forEach((c) => rows.push([c.name, c.phone, (c.tags || []).join("|"), ...VAR_KEYS.map(k => c[k] || "")]));
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const headers = ["Nome", "Telefone", "Tags"];
+    if (exportIncludeVars) headers.push(...VAR_KEYS.map((_, i) => `Var ${i + 1}`));
+    const rows = [headers];
+    exportContacts.forEach((c) => {
+      const row = [c.name, c.phone, (c.tags || []).join("|")];
+      if (exportIncludeVars) row.push(...VAR_KEYS.map(k => c[k] || ""));
+      rows.push(row);
+    });
+    const csv = rows.map((r) => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "contatos.csv";
+    a.download = `contatos${exportTagFilter !== "all" ? `-${exportTagFilter}` : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exportação concluída", description: `${list.length} contatos exportados.` });
+    toast({ title: "Exportação concluída", description: `${exportContacts.length} contatos exportados.` });
+    setExportDialogOpen(false);
   };
 
   const handleDeleteSelected = () => {
