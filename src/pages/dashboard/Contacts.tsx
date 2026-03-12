@@ -610,27 +610,10 @@ const Contacts = () => {
                 </Popover>
               </div>
 
-              {/* Variables toggle */}
-              <button
-                type="button"
-                onClick={() => setShowEditVars(!showEditVars)}
-                className={cn(
-                  "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all",
-                  showEditVars
-                    ? "border-primary/30 bg-primary/5 text-primary"
-                    : "border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground"
-                )}
-              >
-                <Variable className="w-3.5 h-3.5" />
-                {showEditVars ? "Ocultar variáveis" : "Editar variáveis (var1 - var10)"}
-              </button>
-
-              {showEditVars && (
-                <VarFields
-                  values={editContact}
-                  onChange={(key, val) => setEditContact(p => p ? { ...p, [key]: val } : p)}
-                />
-              )}
+              <VarFields
+                values={editContact}
+                onChange={(key, val) => setEditContact(p => p ? { ...p, [key]: val } : p)}
+              />
             </div>
           )}
           <DialogFooter>
