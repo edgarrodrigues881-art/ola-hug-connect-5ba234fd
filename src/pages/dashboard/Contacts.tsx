@@ -390,11 +390,18 @@ const Contacts = () => {
     deleteContacts.mutate(ids, { onSuccess: () => toast({ title: "Contato removido" }) });
   }, [deleteContacts, toast]);
 
+  const phoneCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    contacts.forEach(c => map.set(c.phone, (map.get(c.phone) || 0) + 1));
+    return map;
+  }, [contacts]);
+
   const stats = {
     total: contacts.length,
-    active: contacts.length,
-    blocked: 0,
     tagged: contacts.filter((c) => (c.tags || []).length > 0).length,
+    duplicates: contacts.filter(c => (phoneCounts.get(c.phone) || 0) > 1).length,
+    invalid: contacts.filter(c => !c.phone || c.phone.replace(/\D/g, "").length < 10).length,
+    ddi55: contacts.filter(c => c.phone?.replace(/\D/g, "").startsWith("55")).length,
   };
 
 
