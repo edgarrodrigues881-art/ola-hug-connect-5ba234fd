@@ -19,44 +19,18 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy;
 }
 
-// ── Phase rules per day — CHIP_NOVO (new) ──
-// Day 1: pre_24h | Day 2: groups_only | Day 3-4: autosave_enabled
-// Day 5-6: community_light | Day 7-30: community_enabled
-function getPhaseForDayNew(day: number): string {
+// ── Phase rules per day — UNIFIED for all chip states ──
+// Day 1: pre_24h (join groups, no messages)
+// Day 2: groups_only
+// Day 3-4: autosave_enabled
+// Day 5-6: community_light
+// Day 7-30: community_enabled
+function getPhaseForDay(day: number, _chipState: string): string {
   if (day <= 1) return "pre_24h";
   if (day <= 2) return "groups_only";
   if (day <= 4) return "autosave_enabled";
   if (day <= 6) return "community_light";
   return "community_enabled";
-}
-
-// ── Phase rules per day — CHIP_RECUPERACAO (recovered) ──
-function getPhaseForDayRecovered(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 3) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 7) return "community_light";
-  return "community_enabled";
-}
-
-// ── Phase rules per day — CHIP_SENSIVEL (unstable) ──
-// Day 1: pre_24h (join groups only)
-// Day 2-5: groups_only (50-120 msgs, 09:00-18:00)
-// Day 6: autosave_enabled (groups 120-200 + autosave 3×2)
-// Day 7-10: autosave_enabled (groups 120-220 + autosave 3-4×2)
-// Day 11-30: community_light (groups 150-300 + autosave 5×2 + community 2-5 × 10-20)
-function getPhaseForDayUnstable(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 5) return "groups_only";
-  if (day <= 10) return "autosave_enabled";
-  return "community_light";
-}
-
-// Generic dispatcher
-function getPhaseForDay(day: number, chipState: string): string {
-  if (chipState === "recovered") return getPhaseForDayRecovered(day);
-  if (chipState === "unstable") return getPhaseForDayUnstable(day);
-  return getPhaseForDayNew(day);
 }
 
 Deno.serve(async (req) => {
