@@ -150,6 +150,8 @@ const Campaigns = () => {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaFileName, setMediaFileName] = useState("");
   const [previewMode, setPreviewMode] = useState<"sent" | "received">("sent");
+  const [showVarPreview, setShowVarPreview] = useState(false);
+  const [previewContactIndex, setPreviewContactIndex] = useState(0);
   const [buttonAddedFlash, setButtonAddedFlash] = useState(false);
 
   const { data: devices = [] } = useQuery({
@@ -888,9 +890,34 @@ const Campaigns = () => {
     { num: 4, label: "Lançamento", desc: "Revisão & Envio", icon: Send },
   ];
 
+  // ─── Variable Preview Helper ───
+  const previewContact = contacts[previewContactIndex] || contacts[0];
+  const previewMessage = useMemo(() => {
+    if (!showVarPreview || !previewContact || !message) return message;
+    return message
+      .replace(/\{\{nome\}\}/gi, previewContact.nome || "")
+      .replace(/\{\{numero\}\}/gi, previewContact.numero || "")
+      .replace(/\{\{telefone\}\}/gi, previewContact.numero || "")
+      .replace(/\{\{var1\}\}/gi, previewContact.var1 || "")
+      .replace(/\{\{var2\}\}/gi, previewContact.var2 || "")
+      .replace(/\{\{var3\}\}/gi, previewContact.var3 || "")
+      .replace(/\{\{var4\}\}/gi, previewContact.var4 || "")
+      .replace(/\{\{var5\}\}/gi, previewContact.var5 || "")
+      .replace(/\{\{var6\}\}/gi, previewContact.var6 || "")
+      .replace(/\{\{var7\}\}/gi, previewContact.var7 || "")
+      .replace(/\{\{var8\}\}/gi, previewContact.var8 || "")
+      .replace(/\{\{var9\}\}/gi, previewContact.var9 || "")
+      .replace(/\{\{var10\}\}/gi, previewContact.var10 || "")
+      .replace(/\{\{rand4\}\}/gi, "1234")
+      .replace(/\{\{rand3\}\}/gi, "abc");
+  }, [showVarPreview, previewContact, message]);
+
+  const hasVarsInMessage = /\{\{(nome|numero|telefone|var[0-9]+|rand[34])\}\}/i.test(message || "");
+
   // ─── WhatsApp Preview Component ───
   const WhatsAppPreview = () => {
-    const hasContent = message || mediaUrl;
+    const displayMessage = showVarPreview ? previewMessage : message;
+    const hasContent = displayMessage || mediaUrl;
     const hasAnyButtons = buttons.filter(b => b.text.trim()).length > 0;
     const bubbleMaxW = "max-w-[70%] sm:max-w-[75%]";
     const isSent = previewMode === "sent";
@@ -903,9 +930,47 @@ const Campaigns = () => {
             <Smartphone className="w-4 h-4 text-[#AEBAC1]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[#E9EDEF] text-[14px] font-medium leading-tight">Destinatário</p>
+            <p className="text-[#E9EDEF] text-[14px] font-medium leading-tight">
+              {showVarPreview && previewContact ? (previewContact.nome || previewContact.numero) : "Destinatário"}
+            </p>
             <p className="text-[#8696A0] text-[11px]">online</p>
           </div>
+          {/* Var preview toggle */}
+          {hasVarsInMessage && contacts.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {showVarPreview && contacts.length > 1 && (
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setPreviewContactIndex(Math.max(0, previewContactIndex - 1))}
+                    disabled={previewContactIndex === 0}
+                    className="w-5 h-5 rounded flex items-center justify-center text-[#AEBAC1] hover:bg-[#313D45] disabled:opacity-30 transition-colors"
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </button>
+                  <span className="text-[10px] text-[#8696A0] tabular-nums min-w-[24px] text-center">{previewContactIndex + 1}/{Math.min(contacts.length, 50)}</span>
+                  <button
+                    onClick={() => setPreviewContactIndex(Math.min(contacts.length - 1, previewContactIndex + 1))}
+                    disabled={previewContactIndex >= contacts.length - 1}
+                    className="w-5 h-5 rounded flex items-center justify-center text-[#AEBAC1] hover:bg-[#313D45] disabled:opacity-30 transition-colors"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => { setShowVarPreview(!showVarPreview); setPreviewContactIndex(0); }}
+                className={cn(
+                  "px-2 py-1 rounded-md text-[11px] font-medium transition-all duration-200",
+                  showVarPreview
+                    ? "bg-[#00A884] text-white shadow-sm"
+                    : "bg-[#313D45] text-[#AEBAC1] hover:bg-[#3B4A54]"
+                )}
+              >
+                <Eye className="w-3 h-3 inline mr-1" />
+                {showVarPreview ? "Vars" : "Vars"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Chat Area ── */}
@@ -916,6 +981,16 @@ const Campaigns = () => {
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M50 50v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm30-30v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/svg%3E")`,
           }}
         >
+          {/* Var preview indicator */}
+          {showVarPreview && previewContact && (
+            <div className="flex justify-center mb-3">
+              <div className="bg-[#1D2C36] rounded-lg px-3 py-1.5 text-[11px] text-[#00A884] font-medium flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" />
+                Preview com dados de: {previewContact.nome || previewContact.numero}
+              </div>
+            </div>
+          )}
+
           {/* ── Message Group ── */}
           <div
             className={cn("flex flex-col gap-[6px]", isSent ? "items-end" : "items-start")}
@@ -929,7 +1004,7 @@ const Campaigns = () => {
               {/* Text */}
               <div className="px-[14px] py-[10px]">
                 <p className="text-[14px] text-[#E9EDEF] whitespace-pre-wrap leading-[1.65] break-words">
-                  {hasContent ? message : (
+                  {hasContent ? displayMessage : (
                     <span className="italic text-[#8696A0]/70">Sua mensagem aparecerá aqui…</span>
                   )}
                 </p>
