@@ -290,7 +290,7 @@ const Contacts = () => {
     });
   };
 
-  const exportContacts = useMemo(() => {
+  const exportFilteredContacts = useMemo(() => {
     let list = contacts;
     if (exportTagFilter !== "all") {
       list = list.filter(c => (c.tags || []).includes(exportTagFilter));
@@ -299,6 +299,13 @@ const Contacts = () => {
     if (limit > 0) list = list.slice(0, limit);
     return list;
   }, [contacts, exportTagFilter, exportLimit]);
+
+  const exportContacts = useMemo(() => {
+    if (exportSelectedIds.size > 0) {
+      return exportFilteredContacts.filter(c => exportSelectedIds.has(c.id));
+    }
+    return exportFilteredContacts;
+  }, [exportFilteredContacts, exportSelectedIds]);
 
   const buildExportRows = () => {
     // Detect which var columns actually have data
