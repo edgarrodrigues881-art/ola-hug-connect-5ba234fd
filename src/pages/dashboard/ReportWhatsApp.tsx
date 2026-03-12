@@ -1067,21 +1067,39 @@ const ToggleCard = ({ icon, iconColor, title, description, enabled, onToggle, mo
             </div>
           </div>
 
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            className="text-[11px] text-primary hover:underline flex items-center gap-1"
-          >
-            <Eye className="w-3 h-3" />
-            {showPreview ? "Ocultar preview" : "Ver preview da mensagem"}
-          </button>
+          <div className="relative inline-block">
+            <button
+              onMouseEnter={() => setShowPreview(true)}
+              onMouseLeave={() => setShowPreview(false)}
+              className="text-[11px] text-primary hover:underline flex items-center gap-1"
+            >
+              <Eye className="w-3 h-3" />
+              Ver preview da mensagem
+            </button>
 
-          {showPreview && (
-            <div className="bg-background/80 border border-border/40 rounded-lg p-3 max-h-48 overflow-y-auto">
-              <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                {previewMessage.replace(/\\n/g, "\n")}
-              </pre>
-            </div>
-          )}
+            {showPreview && (
+              <div className="absolute z-50 bottom-full left-0 mb-2 w-72 bg-[#e5ddd5] border border-border rounded-xl shadow-xl p-0 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+                {/* WhatsApp-style header */}
+                <div className="bg-[#075e54] px-3 py-2 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-[11px] text-white font-medium truncate">Grupo de Relatórios</span>
+                </div>
+                {/* Message bubble */}
+                <div className="p-3">
+                  <div className="bg-white rounded-lg rounded-tl-none shadow-sm p-2.5 max-h-52 overflow-y-auto">
+                    <pre className="text-[10px] text-gray-800 whitespace-pre-wrap font-sans leading-relaxed m-0">
+                      {previewMessage.replace(/\\n/g, "\n")}
+                    </pre>
+                    <div className="text-right mt-1">
+                      <span className="text-[9px] text-gray-400">22:00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
