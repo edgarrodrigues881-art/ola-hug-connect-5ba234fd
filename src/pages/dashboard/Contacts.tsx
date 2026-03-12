@@ -362,9 +362,9 @@ const Contacts = () => {
           <p className="text-sm text-muted-foreground">Importe, organize e filtre seus contatos</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3.5 h-3.5" /> Importar CSV
+            <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
             <Download className="w-3.5 h-3.5" /> Exportar
