@@ -832,7 +832,7 @@ Deno.serve(async (req) => {
                 if (!result.success) {
                   const translated = translateErrorMessage(result.error || "Erro");
                   console.error(`[P-${devIdx}] Failed ${normalized} after ${result.attempts} attempts: ${translated}`);
-                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: dev.id }).eq("id", contact.id);
                   devFailed++;
                   if (isDisconnectError(result.error || "")) {
                     const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
