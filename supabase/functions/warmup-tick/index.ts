@@ -596,12 +596,14 @@ async function handleTick(db: any) {
           await uazapiSendText(baseUrl, token, phoneNumber, message);
 
           const todayStr = new Date().toISOString().split("T")[0];
-          await db.from("warmup_unique_recipients").insert({
-            cycle_id: cycle.id,
-            user_id: job.user_id,
-            recipient_phone_e164: contact.phone_e164,
-            day_date: todayStr,
-          }).catch(() => {});
+          try {
+            await db.from("warmup_unique_recipients").insert({
+              cycle_id: cycle.id,
+              user_id: job.user_id,
+              recipient_phone_e164: contact.phone_e164,
+              day_date: todayStr,
+            });
+          } catch (_e) { /* duplicate OK */ }
 
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
