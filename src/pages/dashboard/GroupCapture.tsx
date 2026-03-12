@@ -496,11 +496,26 @@ const GroupCapture = () => {
     setSelectedDevices([]);
   };
 
-  const handleForceCancel = () => {
+  const handleForceCancel = async () => {
     cancelledRef.current = true;
     pausedRef.current = false;
     if (countdownRef.current) clearInterval(countdownRef.current);
     setCountdown(0);
+    // Update campaign as cancelled
+    if (campaignIdRef.current) {
+      const finalItems = itemsRef.current;
+      await supabase
+        .from("group_join_campaigns" as any)
+        .update({
+          status: "cancelled",
+          success_count: finalItems.filter(i => i.status === "success").length,
+          already_member_count: finalItems.filter(i => i.status === "already_member").length,
+          error_count: finalItems.filter(i => i.status === "error").length,
+          completed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", campaignIdRef.current);
+      queryClient.invalidateQueries({ queryKey: ["group-join-campaigns"] });
+    }
     setJoinModalOpen(false);
     setJoinStatus("idle");
     setJoinItems([]);
