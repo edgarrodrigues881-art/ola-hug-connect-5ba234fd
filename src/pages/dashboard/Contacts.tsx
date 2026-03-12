@@ -366,7 +366,8 @@ const Contacts = () => {
     onEdit: openEditDialog,
     toast,
     deleteContacts,
-  }), [filtered, selected, openEditDialog]);
+    showTableVars,
+  }), [filtered, selected, openEditDialog, showTableVars]);
 
   const stats = {
     total: contacts.length,
