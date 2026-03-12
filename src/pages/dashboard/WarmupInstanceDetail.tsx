@@ -704,9 +704,20 @@ const WarmupInstanceDetail = () => {
               }
             }
 
+            // Cap group_interaction total to the daily budget target for consistency with "Msgs Hoje"
+            if (cycle && typeSummary["group_interaction"]) {
+              const budget = cycle.daily_interaction_budget_target;
+              if (typeSummary["group_interaction"].total > budget) {
+                typeSummary["group_interaction"].total = budget;
+              }
+            }
+
             const doneToday = todayJobs.filter(j => j.status === "succeeded").length;
             const failedToday = todayJobs.filter(j => j.status === "failed").length;
             const pendingToday = todayJobs.filter(j => j.status === "pending").length;
+            const totalDisplay = cycle ? Math.min(todayJobs.length, 
+              todayJobs.filter(j => j.job_type !== "group_interaction").length + (cycle.daily_interaction_budget_target || 0)
+            ) : todayJobs.length;
             const nextPendingJob = todayJobs.find(j => j.status === "pending" && new Date(j.run_at) >= nowUtc);
 
             return (
