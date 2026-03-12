@@ -54,7 +54,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
   const contact = filtered[index];
   if (!contact) return null;
   return (
-    <div style={{ ...style, minWidth: showTableVars ? 1320 : 520 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ ...style, minWidth: 1320 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
