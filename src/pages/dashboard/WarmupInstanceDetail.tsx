@@ -191,29 +191,55 @@ const WarmupInstanceDetail = () => {
     }
   };
 
-  /* advance phase: directly update cycle */
+  /* advance phase: skip to next day + phase, cancel current jobs, schedule new ones via engine */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
     const currentIdx = phaseSteps.indexOf(cycle.phase as any);
     if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) return;
     const nextPhase = phaseSteps[currentIdx + 1];
+    const newDayIndex = Math.min((cycle.day_index || 1) + 1, cycle.days_total || 30);
     setAdvancingPhase(true);
     try {
+      // 1. Cancel all pending interaction jobs for current day
+      await supabase
+        .from("warmup_jobs")
+        .update({ status: "cancelled", last_error: "Fase pulada manualmente" })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+      // 2. Update cycle: advance day + phase
       const { error } = await supabase
         .from("warmup_cycles")
-        .update({ phase: nextPhase, previous_phase: cycle.phase, updated_at: new Date().toISOString() })
+        .update({
+          phase: nextPhase,
+          previous_phase: cycle.phase,
+          day_index: newDayIndex,
+          daily_interaction_budget_used: 0,
+          daily_unique_recipients_used: 0,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", cycle.id);
       if (error) throw error;
-      // Log audit
+
+      // 3. Trigger warmup-tick to schedule new day jobs by invoking engine resume-like logic
+      // We invoke warmup-engine with a special "skip_phase" action that schedules new jobs
+      const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
+        body: { action: "schedule_day", device_id: deviceId, cycle_id: cycle.id, day_index: newDayIndex, phase: nextPhase, chip_state: cycle.chip_state || "new" },
+      });
+      if (fnErr) console.warn("schedule_day invoke error:", fnErr);
+
+      // 4. Log audit
       await supabase.from("warmup_audit_logs").insert({
         user_id: user!.id,
         device_id: deviceId,
         cycle_id: cycle.id,
         event_type: "manual_phase_advance",
         level: "info",
-        message: `Fase avançada manualmente: ${cycle.phase} → ${nextPhase}`,
+        message: `Fase pulada: ${cycle.phase} → ${nextPhase} (dia ${cycle.day_index} → ${newDayIndex})`,
+        meta: { from_phase: cycle.phase, to_phase: nextPhase, from_day: cycle.day_index, to_day: newDayIndex },
       });
-      toast({ title: "🚀 Fase avançada!", description: `Avançou para: ${phaseConfig[nextPhase]?.label || nextPhase}` });
+      toast({ title: "🚀 Fase pulada!", description: `Avançou para dia ${newDayIndex}, fase: ${phaseConfig[nextPhase]?.label || nextPhase}` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {

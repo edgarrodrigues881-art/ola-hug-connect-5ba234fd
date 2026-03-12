@@ -388,6 +388,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ════════════════════════════════════════
+    // ACTION: schedule_day — re-schedule jobs for a specific day/phase (used by "Pular Fase")
+    // ════════════════════════════════════════
+    if (action === "schedule_day") {
+      if (!callerUserId) throw new Error("schedule_day requires authenticated user");
+      const { device_id, cycle_id, day_index, phase, chip_state } = body;
+      if (!cycle_id || !device_id) throw new Error("cycle_id and device_id required");
+
+      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, phase || "groups_only", chip_state || "new", true);
+
+      return new Response(JSON.stringify({ ok: true, jobs_scheduled: jobCount || 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Use warmup-tick endpoint for tick processing" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
