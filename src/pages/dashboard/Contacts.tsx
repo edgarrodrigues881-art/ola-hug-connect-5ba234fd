@@ -50,7 +50,7 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
 ];
 
 // Virtualized row for contacts list
-function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes }: any): ReactElement | null {
+function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes, showTableVars }: any): ReactElement | null {
   const contact = filtered[index];
   if (!contact) return null;
   return (
