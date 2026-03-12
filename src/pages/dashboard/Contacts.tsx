@@ -410,69 +410,6 @@ const Contacts = () => {
     deleteContacts.mutate(ids, { onSuccess: () => toast({ title: "Contato removido" }) });
   }, [deleteContacts, toast]);
 
-  const phoneCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    contacts.forEach(c => map.set(c.phone, (map.get(c.phone) || 0) + 1));
-    return map;
-  }, [contacts]);
-
-  const stats = {
-    total: contacts.length,
-    tagged: contacts.filter((c) => (c.tags || []).length > 0).length,
-    duplicates: contacts.filter(c => (phoneCounts.get(c.phone) || 0) > 1).length,
-    invalid: contacts.filter(c => !c.phone || c.phone.replace(/\D/g, "").length < 10).length,
-    ddi55: contacts.filter(c => c.phone?.replace(/\D/g, "").startsWith("55")).length,
-  };
-
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Contatos</h1>
-          <p className="text-sm text-muted-foreground">Importe, organize e filtre seus contatos</p>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Planilha
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportDialogOpen(true)}>
-            <Download className="w-3.5 h-3.5" /> Exportar
-          </Button>
-          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
-            <UserRoundPlus className="w-3.5 h-3.5" /> Manual
-          </Button>
-          {selectMode ? (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setSelectMode(false); setSelected(new Set()); }}>
-              <X className="w-3.5 h-3.5" /> Cancelar
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setSelectMode(true)}>
-              <CheckSquare className="w-3.5 h-3.5" /> Selecionar
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        {[
-          { label: "Total", value: stats.total, icon: Users, color: "text-primary" },
-          { label: "Com Tags", value: stats.tagged, icon: Tag, color: "text-primary" },
-          { label: "Duplicados", value: stats.duplicates, icon: Copy, color: stats.duplicates > 0 ? "text-amber-500" : "text-muted-foreground" },
-          { label: "Inválidos", value: stats.invalid, icon: Ban, color: stats.invalid > 0 ? "text-destructive" : "text-muted-foreground" },
-          { label: "DDI 55", value: stats.ddi55, icon: Phone, color: "text-blue-500" },
-        ].map((s) => (
-          <Card key={s.label} className="glass-card">
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-1">
-              <s.icon className={cn("w-4 h-4", s.color)} />
-              <p className="text-lg font-bold text-foreground leading-none">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Filters */}
       <Card className="glass-card">
