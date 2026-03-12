@@ -643,14 +643,14 @@ const CampaignDetail = () => {
                 {contactsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 5 }).map((_, j) => (
+                      {Array.from({ length: 6 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-3.5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filteredContacts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-[11px] text-muted-foreground/50 py-14">
+                    <TableCell colSpan={6} className="text-center text-[11px] text-muted-foreground/50 py-14">
                       Nenhum registro encontrado
                     </TableCell>
                   </TableRow>
