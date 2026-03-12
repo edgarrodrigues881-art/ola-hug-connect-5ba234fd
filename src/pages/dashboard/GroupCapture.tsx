@@ -58,6 +58,129 @@ const statusConfig: Record<ItemStatus, { icon: typeof Check; label: string; colo
   pending_approval: { icon: AlertTriangle, label: "Aguardando aprovação", color: "text-amber-500" },
 };
 
+// ── Active Campaigns Widget ──────────────────────────────────────
+function ActiveCampaignsWidget() {
+  const { user } = useAuth();
+
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["active-campaigns-widget"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("id, name, status, total_contacts, sent_count, delivered_count, failed_count, started_at, device_ids, message_type")
+        .eq("user_id", user!.id)
+        .in("status", ["sending", "paused"])
+        .order("started_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("campaigns").update({ status: "paused" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => sonnerToast.success("Campanha pausada"),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("campaigns").update({ status: "sending" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => sonnerToast.success("Campanha retomada"),
+  });
+
+  if (campaigns.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Megaphone className="w-4 h-4 text-primary" />
+        <h2 className="text-sm font-bold text-foreground">Campanhas Ativas</h2>
+        <Badge variant="secondary" className="text-[10px] ml-auto">{campaigns.length}</Badge>
+      </div>
+      <div className="space-y-2">
+        {campaigns.map((camp) => {
+          const total = camp.total_contacts || 0;
+          const sent = camp.sent_count || 0;
+          const delivered = camp.delivered_count || 0;
+          const failed = camp.failed_count || 0;
+          const pending = Math.max(0, total - sent - failed);
+          const progress = total > 0 ? ((sent + failed) / total) * 100 : 0;
+          const failRate = (sent + failed) > 0 ? Math.round((failed / (sent + failed)) * 100) : 0;
+          const isPaused = camp.status === "paused";
+          const deviceCount = Array.isArray(camp.device_ids) ? (camp.device_ids as string[]).length : 0;
+
+          return (
+            <div key={camp.id} className="rounded-xl border border-border/30 bg-card/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? "bg-amber-400" : "bg-emerald-400 animate-pulse"}`} />
+                  <span className="text-[13px] font-semibold text-foreground truncate">{camp.name}</span>
+                </div>
+                <Badge variant={isPaused ? "outline" : "default"} className="text-[9px] shrink-0">
+                  {isPaused ? "Pausada" : "Enviando"}
+                </Badge>
+              </div>
+
+              <Progress value={progress} className="h-1.5" />
+
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Enviadas</p>
+                  <p className="text-xs font-bold text-foreground">{sent}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Entregues</p>
+                  <p className="text-xs font-bold text-emerald-500">{delivered}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Falhas</p>
+                  <p className={`text-xs font-bold ${failed > 0 ? "text-destructive" : "text-foreground"}`}>{failed}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Pendentes</p>
+                  <p className="text-xs font-bold text-foreground">{pending}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-border/15">
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  {deviceCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" /> {deviceCount} instância{deviceCount !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {failRate > 0 && (
+                    <span className={`flex items-center gap-1 ${failRate > 30 ? "text-destructive" : ""}`}>
+                      <BarChart3 className="w-3 h-3" /> {failRate}% falha
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  {isPaused ? (
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={() => resumeMutation.mutate(camp.id)}>
+                      <Play className="w-3 h-3" /> Retomar
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={() => pauseMutation.mutate(camp.id)}>
+                      <Pause className="w-3 h-3" /> Pausar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const GroupCapture = () => {
   const { toast } = useToast();
   const { user } = useAuth();
