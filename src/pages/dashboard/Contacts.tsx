@@ -652,12 +652,31 @@ const Contacts = () => {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Adicionar tag</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Label className="text-xs">Nome da tag</Label>
-            <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Ex: cliente, vip" />
+            {customTags.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tags existentes</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {customTags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant={newTagName === tag ? "default" : "outline"}
+                      className="cursor-pointer text-xs"
+                      onClick={() => setNewTagName(tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ou digite uma nova</Label>
+              <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Ex: cliente, vip" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddTagDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={addTagToSelected}>Adicionar</Button>
+            <Button onClick={addTagToSelected} disabled={!newTagName.trim()}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
