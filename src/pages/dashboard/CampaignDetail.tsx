@@ -280,7 +280,12 @@ const CampaignDetail = () => {
 
   const handleResendConfirm = () => {
     const selectedContacts = contacts.filter(c => {
-      if (resendFailed && (c.status === "failed" || c.status === "error")) return true;
+      if (resendFailed && (c.status === "failed" || c.status === "error")) {
+        // Exclude invalid numbers from resend
+        const err = (c.error_message || "").toLowerCase();
+        if (err.includes("número inválido") || err.includes("not on whats") || err.includes("not registered") || err.includes("not_exists")) return false;
+        return true;
+      }
       if (resendPending && c.status === "pending") return true;
       return false;
     });
