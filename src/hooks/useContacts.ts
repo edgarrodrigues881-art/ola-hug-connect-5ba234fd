@@ -68,11 +68,17 @@ export function useCreateContacts() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (contacts: { name: string; phone: string; tags?: string[] }[]) => {
+    mutationFn: async (contacts: { name: string; phone: string; tags?: string[]; [key: string]: any }[]) => {
       const rows = contacts.map(c => ({ ...c, user_id: user!.id, tags: c.tags || [] }));
-      const { data, error } = await supabase.from("contacts").insert(rows).select("id, name, phone, email, tags, notes, created_at");
-      if (error) throw error;
-      return data;
+      const BATCH = 500;
+      const results: any[] = [];
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const chunk = rows.slice(i, i + BATCH);
+        const { data, error } = await supabase.from("contacts").insert(chunk).select("id");
+        if (error) throw error;
+        if (data) results.push(...data);
+      }
+      return results;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
   });
