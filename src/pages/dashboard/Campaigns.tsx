@@ -744,7 +744,8 @@ const Campaigns = () => {
           ? firstRow.map((c: any) => String(c).trim() || `Coluna ${firstRow.indexOf(c) + 1}`)
           : Array.from({ length: colCount }, (_, i) => `Coluna ${i + 1}`);
 
-        parsedResult = { headers, rows: hasHeader ? rows.slice(1) : rows, hasHeader, mappings: headers.map(() => "ignorar" as ColumnMapping) };
+        const dataRows = (hasHeader ? rows.slice(1) : rows).filter(r => r.some((cell: any) => cell != null && String(cell).trim() !== ""));
+        parsedResult = { headers, rows: dataRows, hasHeader, mappings: headers.map(() => "ignorar" as ColumnMapping) };
       } catch (err) {
         console.error("Import error:", err);
         parseError = "format";
