@@ -636,6 +636,7 @@ const CampaignDetail = () => {
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest text-center w-[100px]">Status</TableHead>
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[120px]">Horário</TableHead>
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest">Erro</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[140px]">Enviado por</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
