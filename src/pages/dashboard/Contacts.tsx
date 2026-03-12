@@ -23,6 +23,22 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+
+const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
+  <div className="grid grid-cols-2 gap-2">
+    {VAR_KEYS.map((k, i) => (
+      <div key={k} className="space-y-1">
+        <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Var {i + 1}</Label>
+        <Input
+          value={values[k] || ""}
+          onChange={(e) => onChange(k, e.target.value)}
+          placeholder={`Variável ${i + 1}`}
+          className="h-8 text-xs"
+        />
+      </div>
+    ))}
+  </div>
+);
 type ContactColumnMapping = "nome" | "numero" | "tags" | "var1" | "var2" | "var3" | "var4" | "var5" | "var6" | "var7" | "var8" | "var9" | "var10" | "ignorar";
 interface RawContactImport { headers: string[]; rows: any[][]; columnMappings: ContactColumnMapping[]; }
 const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
@@ -358,22 +374,6 @@ const Contacts = () => {
     tagged: contacts.filter((c) => (c.tags || []).length > 0).length,
   };
 
-  // Variable fields component (reused in add & edit dialogs)
-  const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
-    <div className="grid grid-cols-2 gap-2">
-      {VAR_KEYS.map((k, i) => (
-        <div key={k} className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Var {i + 1}</Label>
-          <Input
-            value={values[k] || ""}
-            onChange={(e) => onChange(k, e.target.value)}
-            placeholder={`Variável ${i + 1}`}
-            className="h-8 text-xs"
-          />
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <div className="space-y-6">
