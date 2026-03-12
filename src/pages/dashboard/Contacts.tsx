@@ -102,6 +102,10 @@ const Contacts = () => {
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [showEditVars, setShowEditVars] = useState(false);
 
+  // Import mapping state
+  const [rawImport, setRawImport] = useState<RawContactImport | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+
   // Load tags from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("contactCustomTags");
