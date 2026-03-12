@@ -196,7 +196,7 @@ async function sendWithRetry(
       if (!isTemporaryError(lastError) || attempt > MAX_RETRIES) {
         return { success: false, attempts: attempt, error: lastError };
       }
-      const retryDelay = RETRY_DELAY_MIN_MS + Math.random() * (RETRY_DELAY_MAX_MS - RETRY_DELAY_MIN_MS);
+      const retryDelay = RETRY_DELAY_MIN_MS + secureRandom() * (RETRY_DELAY_MAX_MS - RETRY_DELAY_MIN_MS);
       console.log(`⚠️ Attempt ${attempt} failed for ${to}: ${lastError} | retrying in ${Math.round(retryDelay / 1000)}s`);
       await new Promise(r => setTimeout(r, retryDelay));
     }
