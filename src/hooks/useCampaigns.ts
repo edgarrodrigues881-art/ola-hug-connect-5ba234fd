@@ -102,7 +102,7 @@ export function useCreateCampaign() {
       device_id?: string;
       device_ids?: string[];
       messages_per_instance?: number;
-      contacts: { phone: string; name?: string }[];
+      contacts: { phone: string; name?: string; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[];
     }) => {
       const { contacts, ...campaignData } = campaign;
 
