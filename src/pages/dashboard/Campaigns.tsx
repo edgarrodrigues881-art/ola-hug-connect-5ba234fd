@@ -668,13 +668,30 @@ const Campaigns = () => {
     toast({ title: `Prefixo "${prefix}" adicionado`, description: `${count} número(s) atualizados.` });
   };
 
+  const filteredSavedContacts = useMemo(() => {
+    let list = savedContacts;
+    if (selectedContactTags.length > 0) list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
+    if (importContactSearch.trim()) {
+      const q = importContactSearch.trim().toLowerCase();
+      list = list.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q));
+    }
+    return list;
+  }, [savedContacts, selectedContactTags, importContactSearch]);
+
   const handleImportFromDB = () => {
-    let filtered = savedContacts;
-    if (selectedContactTags.length > 0) filtered = filtered.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
-    const imported: Contact[] = filtered.map((c, i) => ({ id: Date.now() + i, nome: c.name, numero: c.phone, var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" }));
+    const toImport = selectedSavedContactIds.size > 0
+      ? savedContacts.filter(c => selectedSavedContactIds.has(c.id))
+      : filteredSavedContacts;
+    const imported: Contact[] = toImport.map((c, i) => ({
+      id: Date.now() + i, nome: c.name, numero: c.phone,
+      var1: c.var1 || "", var2: c.var2 || "", var3: c.var3 || "", var4: c.var4 || "", var5: c.var5 || "",
+      var6: c.var6 || "", var7: c.var7 || "", var8: c.var8 || "", var9: c.var9 || "", var10: c.var10 || "",
+    }));
     if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
     setContacts(prev => [...prev, ...imported]);
     setImportFromContacts(false);
+    setSelectedSavedContactIds(new Set());
+    setImportContactSearch("");
     setShowContactTable(true);
     toast({ title: `${imported.length} contatos adicionados` });
   };
