@@ -247,6 +247,131 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
+// ── Media pools for warmup variety ──
+const IMAGE_POOL = [
+  "https://picsum.photos/800/600?random=1",
+  "https://picsum.photos/800/600?random=2",
+  "https://picsum.photos/800/600?random=3",
+  "https://picsum.photos/800/600?random=4",
+  "https://picsum.photos/800/600?random=5",
+  "https://picsum.photos/800/600?random=6",
+  "https://picsum.photos/800/600?random=7",
+  "https://picsum.photos/800/600?random=8",
+  "https://picsum.photos/800/600?random=9",
+  "https://picsum.photos/800/600?random=10",
+];
+
+const IMAGE_CAPTIONS = [
+  "📸", "Olha isso!", "Show 🔥", "Top demais!", "😍",
+  "Que legal", "Sensacional!", "Massa!", "👀", "Curti muito",
+  "Bom demais 🙌", "Olha que bacana", "💯", "Registro do dia",
+  "Achei interessante", "😄", "Boa!", "Que foto!", "🌟",
+];
+
+const AUDIO_CAPTIONS = [
+  "Tá aí o áudio", "Ouve aí", "Escuta isso", "Áudio rapidão",
+  "Falei aqui rapidinho", "Tá aí ó", "Ouve quando puder",
+];
+
+const STATUS_TEXTS = [
+  "Bom dia! ☀️", "Boa tarde pessoal! 🌤️", "Boa noite! 🌙",
+  "Dia produtivo 💪", "Mais um dia de luta 🔥", "Gratidão 🙏",
+  "Trabalhando duro 💼", "Foco total 🎯", "Semana abençoada ✨",
+  "Vamos que vamos 🚀", "Dia lindo hoje ☀️", "Sexta-feira 🎉",
+  "Deus é bom o tempo todo 🙌", "Sextou! 🥳", "Segunda-feira produtiva 💪",
+  "Confiança no processo 🧠", "Sempre em frente ➡️", "Dia de conquistas 🏆",
+  "Tranquilidade sempre 🧘", "Bora trabalhar! 💰",
+];
+
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
+  // Try /send/image first, then /send/media as fallback
+  const endpoints = ["/send/image", "/send/media"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = ep === "/send/image" 
+        ? { number, image: imageUrl, caption }
+        : { number, mediaUrl: imageUrl, caption, type: "image" };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+async function uazapiSendAudio(baseUrl: string, token: string, number: string) {
+  // Send a PTT (voice note) — UAZAPI supports /send/ptt with a URL or base64
+  // We'll use a short TTS-generated audio via a public URL
+  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=${encodeURIComponent(pickRandom(AUDIO_CAPTIONS))}`;
+  
+  const endpoints = ["/send/ptt", "/send/audio"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = ep === "/send/ptt"
+        ? { number, audio: audioUrl }
+        : { number, audioUrl, ptt: true };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
+  const endpoints = ["/status/post", "/sendStories"];
+  for (const ep of endpoints) {
+    try {
+      const payload: any = type === "text"
+        ? { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }
+        : { type: "image", image: imageUrl, caption: content };
+      const res = await fetch(`${baseUrl}${ep}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 405) continue;
+      if (!res.ok) {
+        const errText = await res.text();
+        if (ep === endpoints[endpoints.length - 1]) throw new Error(`Status API ${res.status}: ${errText}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      if (ep === endpoints[endpoints.length - 1]) throw e;
+    }
+  }
+}
+
+// Decide media type for group interaction: 70% text, 15% image, 10% audio, 5% skip (natural)
+type MediaType = "text" | "image" | "audio";
+function pickMediaType(): MediaType {
+  const r = Math.random();
+  if (r < 0.70) return "text";
+  if (r < 0.85) return "image";
+  return "audio";
+}
+
 // ════════════════════════════════════════
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
