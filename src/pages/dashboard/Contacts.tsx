@@ -545,27 +545,10 @@ const Contacts = () => {
               <Input value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} placeholder="+5511999999999" />
             </div>
 
-            {/* Variables toggle */}
-            <button
-              type="button"
-              onClick={() => setShowAddVars(!showAddVars)}
-              className={cn(
-                "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all",
-                showAddVars
-                  ? "border-primary/30 bg-primary/5 text-primary"
-                  : "border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground"
-              )}
-            >
-              <Variable className="w-3.5 h-3.5" />
-              {showAddVars ? "Ocultar variáveis" : "Adicionar variáveis (var1 - var10)"}
-            </button>
-
-            {showAddVars && (
-              <VarFields
-                values={newContact}
-                onChange={(key, val) => setNewContact(p => ({ ...p, [key]: val }))}
-              />
-            )}
+            <VarFields
+              values={newContact}
+              onChange={(key, val) => setNewContact(p => ({ ...p, [key]: val }))}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setAddContactOpen(false); setShowAddVars(false); }}>Cancelar</Button>
