@@ -222,6 +222,7 @@ const GroupCapture = () => {
   const cancelledRef = useRef(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const itemsRef = useRef<JoinItem[]>([]);
+  const campaignIdRef = useRef<string | null>(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["warmup-groups"],
