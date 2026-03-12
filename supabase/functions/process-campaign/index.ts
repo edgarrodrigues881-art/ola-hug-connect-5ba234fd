@@ -788,7 +788,7 @@ Deno.serve(async (req) => {
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
               if (!check.exists) {
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido", device_id: dev.id }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
