@@ -196,7 +196,7 @@ async function sendWithRetry(
       if (!isTemporaryError(lastError) || attempt > MAX_RETRIES) {
         return { success: false, attempts: attempt, error: lastError };
       }
-      const retryDelay = RETRY_DELAY_MIN_MS + Math.random() * (RETRY_DELAY_MAX_MS - RETRY_DELAY_MIN_MS);
+      const retryDelay = RETRY_DELAY_MIN_MS + secureRandom() * (RETRY_DELAY_MAX_MS - RETRY_DELAY_MIN_MS);
       console.log(`⚠️ Attempt ${attempt} failed for ${to}: ${lastError} | retrying in ${Math.round(retryDelay / 1000)}s`);
       await new Promise(r => setTimeout(r, retryDelay));
     }
@@ -231,14 +231,14 @@ function normalizeBrazilianPhone(phone: string): string {
 
 function generateUniqueRand4(usedSet: Set<string>): string {
   let value: string;
-  do { value = String(Math.floor(Math.random() * 10000)).padStart(4, "0"); } while (usedSet.has(value) && usedSet.size < 10000);
+  do { value = String(Math.floor(secureRandom() * 10000)).padStart(4, "0"); } while (usedSet.has(value) && usedSet.size < 10000);
   usedSet.add(value);
   return value;
 }
 
 function generateUniqueRand3(usedSet: Set<string>): string {
   let value: string;
-  do { value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join(""); } while (usedSet.has(value) && usedSet.size < 17576);
+  do { value = Array.from({ length: 3 }, () => String.fromCharCode(97 + Math.floor(secureRandom() * 26))).join(""); } while (usedSet.has(value) && usedSet.size < 17576);
   usedSet.add(value);
   return value;
 }
@@ -262,16 +262,22 @@ function replaceVariables(template: string, contact: any, rand4: string, rand3: 
     .replace(/\{\{var10\}\}/gi, contact.var10 || "");
 }
 
+// Crypto-grade random for better distribution
+function secureRandom(): number {
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return arr[0] / (0xFFFFFFFF + 1);
+}
+
 function randomBetween(min: number, max: number): number {
-  // Ensure there's always some variation even if min==max
   const effectiveMin = Math.min(min, max);
   const effectiveMax = Math.max(min, max);
   // If min==max, add ±20% jitter so delay is never perfectly fixed
   if (effectiveMax - effectiveMin < 1) {
-    const jitter = effectiveMin * 0.2;
-    return (effectiveMin - jitter) + Math.random() * (jitter * 2);
+    const jitter = Math.max(effectiveMin * 0.2, 0.5);
+    return Math.max(0, (effectiveMin - jitter) + secureRandom() * (jitter * 2));
   }
-  return effectiveMin + Math.random() * (effectiveMax - effectiveMin);
+  return effectiveMin + secureRandom() * (effectiveMax - effectiveMin);
 }
 
 // True random picker: picks a random variant each time, avoiding consecutive repeats
@@ -287,7 +293,7 @@ class RandomPicker {
     if (this.total <= 1) return 0;
     let picked: number;
     do {
-      picked = Math.floor(Math.random() * this.total);
+      picked = Math.floor(secureRandom() * this.total);
     } while (picked === this.lastPicked && this.total > 1);
     this.lastPicked = picked;
     return picked;
@@ -774,6 +780,7 @@ Deno.serve(async (req) => {
               continue;
             }
             try {
+              const pSendStart = Date.now();
               const rand4 = generateUniqueRand4(devUsedRand4);
               const rand3 = generateUniqueRand3(devUsedRand3);
               const chosenMessage = messageVariants[devRandomPicker.next()];
@@ -784,7 +791,6 @@ Deno.serve(async (req) => {
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
-                  // Revert remaining contacts in chunk back to pending
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                   if (remainingIds.length > 0) {
                     await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).in("id", remainingIds);
@@ -818,7 +824,7 @@ Deno.serve(async (req) => {
                   }
                 }
                 if (allSendFailed) {
-                  if (isDisconnectError("")) break; // already handled above
+                  if (isDisconnectError("")) break;
                   continue;
                 }
               } else {
@@ -843,9 +849,11 @@ Deno.serve(async (req) => {
 
               const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
               if (!isLastInChunk) {
-                const delayMs = randomBetween(minDelayMs, maxDelayMs);
-                console.log(`✅ [P-${devIdx}] Sent to ${normalized} | delay=${Math.round(delayMs / 1000)}s`);
-                await new Promise(r => setTimeout(r, delayMs));
+                const pApiElapsed = Date.now() - pSendStart;
+                const pTargetDelay = randomBetween(minDelayMs, maxDelayMs);
+                const pActualDelay = Math.max(500, pTargetDelay - pApiElapsed);
+                console.log(`✅ [P-${devIdx}] Sent to ${normalized} | target=${Math.round(pTargetDelay / 1000)}s api=${Math.round(pApiElapsed / 1000)}s wait=${Math.round(pActualDelay / 1000)}s`);
+                await new Promise(r => setTimeout(r, pActualDelay));
               }
             } catch (err) {
               const translated = translateErrorMessage(err.message || "Erro");
@@ -958,6 +966,7 @@ Deno.serve(async (req) => {
           }
 
           try {
+            const sendStartTime = Date.now();
             const rand4 = generateUniqueRand4(usedRand4);
             const rand3 = generateUniqueRand3(usedRand3);
             const msgIndex = sequentialMode ? sequentialIndex : randomPicker.next();
@@ -973,7 +982,6 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
               await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
-              // Notification handled by DB trigger trg_notify_campaign_status
               break;
             }
 
@@ -1041,17 +1049,19 @@ Deno.serve(async (req) => {
             msgsSincePause++;
             await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
 
-            // Apply random delay AFTER send
+            // Apply random delay AFTER send, subtracting API time so perceived gap matches config
             const isLastContact = contacts.indexOf(contact) === contacts.length - 1;
             if (!isLastContact) {
-              const delayMs = randomBetween(minDelayMs, maxDelayMs);
-              console.log(`✅ Sent to ${phone} via ${activeDevice.name} | batch=${batchSent} sincePause=${msgsSincePause}/${pauseAfter} | delay=${Math.round(delayMs / 1000)}s`);
-              await new Promise(resolve => setTimeout(resolve, delayMs));
+              const apiElapsed = Date.now() - sendStartTime;
+              const targetDelay = randomBetween(minDelayMs, maxDelayMs);
+              const actualDelay = Math.max(500, targetDelay - apiElapsed);
+              console.log(`✅ Sent to ${phone} via ${activeDevice.name} | batch=${batchSent} sincePause=${msgsSincePause}/${pauseAfter} | target=${Math.round(targetDelay / 1000)}s api=${Math.round(apiElapsed / 1000)}s wait=${Math.round(actualDelay / 1000)}s`);
+              await new Promise(resolve => setTimeout(resolve, actualDelay));
             } else {
               console.log(`✅ Sent to ${phone} via ${activeDevice.name} | LAST in batch, no delay`);
             }
 
-            // Pause logic
+            // Pause logic — recalculate pauseAfter each time for true randomness
             if (msgsSincePause >= pauseAfter) {
               const pauseDuration = randomBetween(pauseDurMinMs, pauseDurMaxMs);
               console.log(`Pausing for ${Math.round(pauseDuration / 1000)}s after ${msgsSincePause} msgs`);
@@ -1061,6 +1071,7 @@ Deno.serve(async (req) => {
                 needsContinue = true;
                 pendingPauseMs = pauseDuration;
                 msgsSincePause = 0;
+                pauseAfter = Math.round(randomBetween(pauseEveryMin, pauseEveryMax));
                 break;
               }
 
