@@ -437,7 +437,7 @@ const GroupCapture = () => {
       .select("id")
       .single();
 
-    campaignIdRef.current = campData?.id || null;
+    campaignIdRef.current = (campData as any)?.id || null;
     queryClient.invalidateQueries({ queryKey: ["group-join-campaigns"] });
 
     itemsRef.current = items;
