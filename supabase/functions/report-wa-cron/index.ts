@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
   const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
 
   let callerUserId: string | null = null;
+  let forceWarmup = false;
 
   // If called with a real user token (not anon key), extract user_id to filter
   if (token && token !== anonKey && token !== serviceRoleKey && token !== tickSecret) {
@@ -30,6 +31,12 @@ Deno.serve(async (req) => {
       if (user) callerUserId = user.id;
     } catch {}
   }
+
+  // Check for force flag in body (manual trigger from frontend)
+  try {
+    const body = await req.clone().json();
+    if (body?.force === true) forceWarmup = true;
+  } catch {}
 
   try {
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
