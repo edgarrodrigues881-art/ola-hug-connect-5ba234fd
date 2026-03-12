@@ -425,7 +425,7 @@ const Campaigns = () => {
     toast({ title: "Formulário limpo", description: "Todos os campos foram resetados." });
   };
 
-  const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
+  const allTags = useMemo(() => Array.from(new Set(savedContacts.flatMap(c => c.tags || []))), [savedContacts]);
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
   const selectedDeviceData = selectedDevicesData[0];
   const validContacts = useMemo(() => contacts.filter(c => c.numero.trim()), [contacts]);
@@ -672,14 +672,23 @@ const Campaigns = () => {
 
   const filteredSavedContacts = useMemo(() => {
     let list = savedContacts;
-    if (selectedContactTags.length > 0) list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
-    if (importContactSearch.trim()) {
-      const q = importContactSearch.trim().toLowerCase();
-      if (importSearchMode === "phone") list = list.filter(c => c.phone.includes(q));
-      else if (importSearchMode === "name") list = list.filter(c => c.name.toLowerCase().includes(q));
+    const q = importContactSearch.trim().toLowerCase();
+
+    if (importSearchMode === "tag" && selectedContactTags.length > 0) {
+      list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
     }
+
+    if (q) {
+      if (importSearchMode === "phone") {
+        const phoneQuery = q.replace(/\D/g, "");
+        list = list.filter(c => c.phone.replace(/\D/g, "").includes(phoneQuery));
+      } else if (importSearchMode === "name") {
+        list = list.filter(c => c.name.toLowerCase().includes(q));
+      }
+    }
+
     return list;
-  }, [savedContacts, selectedContactTags, importContactSearch]);
+  }, [savedContacts, selectedContactTags, importContactSearch, importSearchMode]);
 
   const handleImportFromDB = () => {
     const toImport = selectedSavedContactIds.size > 0
@@ -1521,7 +1530,7 @@ const Campaigns = () => {
             </SurfaceCard>
 
             {/* ── Import from saved contacts dialog ── */}
-            <Dialog open={importFromContacts} onOpenChange={(open) => { setImportFromContacts(open); if (!open) { setSelectedSavedContactIds(new Set()); setImportContactSearch(""); } }}>
+            <Dialog open={importFromContacts} onOpenChange={(open) => { setImportFromContacts(open); if (!open) { setSelectedSavedContactIds(new Set()); setImportContactSearch(""); setSelectedContactTags([]); setImportSearchMode("name"); } }}>
               <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader><DialogTitle>Importar da Base</DialogTitle></DialogHeader>
                 <div className="space-y-3 flex-1 min-h-0 flex flex-col">
@@ -1545,8 +1554,8 @@ const Campaigns = () => {
                     </div>
                   )}
 
-                  {/* Tags filter — always show in tag mode, or when tags exist */}
-                  {(importSearchMode === "tag" || allTags.length > 0) && (
+                  {/* Tags filter — show only in tag mode */}
+                  {importSearchMode === "tag" && (
                     <div className="flex flex-wrap gap-1.5">
                       {allTags.length > 0 ? allTags.map(tag => (
                         <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
