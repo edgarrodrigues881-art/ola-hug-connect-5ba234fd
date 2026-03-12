@@ -216,6 +216,7 @@ const Campaigns = () => {
   const [selectedContactTags, setSelectedContactTags] = useState<string[]>([]);
   const [selectedSavedContactIds, setSelectedSavedContactIds] = useState<Set<string>>(new Set());
   const [importContactSearch, setImportContactSearch] = useState("");
+  const [importSearchMode, setImportSearchMode] = useState<"name" | "phone" | "tag">("name");
   const [showInstancePicker, setShowInstancePicker] = useState(false);
   const [showContactTools, setShowContactTools] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -674,7 +675,8 @@ const Campaigns = () => {
     if (selectedContactTags.length > 0) list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
     if (importContactSearch.trim()) {
       const q = importContactSearch.trim().toLowerCase();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q));
+      if (importSearchMode === "phone") list = list.filter(c => c.phone.includes(q));
+      else if (importSearchMode === "name") list = list.filter(c => c.name.toLowerCase().includes(q));
     }
     return list;
   }, [savedContacts, selectedContactTags, importContactSearch]);
@@ -1523,23 +1525,39 @@ const Campaigns = () => {
               <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader><DialogTitle>Importar da Base</DialogTitle></DialogHeader>
                 <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input placeholder="Buscar por nome ou número..." value={importContactSearch} onChange={e => setImportContactSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+                  {/* Search tabs */}
+                  <div className="flex gap-1 border-b border-border/20 pb-2">
+                    <button onClick={() => setImportSearchMode("name")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "name" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Nome
+                    </button>
+                    <button onClick={() => setImportSearchMode("phone")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "phone" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Número
+                    </button>
+                    <button onClick={() => setImportSearchMode("tag")} className={cn("px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors", importSearchMode === "tag" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                      Tag
+                    </button>
                   </div>
 
-                  {/* Tags filter */}
-                  {allTags.length > 0 && (
+                  {importSearchMode !== "tag" && (
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input placeholder={importSearchMode === "phone" ? "Buscar por número..." : "Buscar por nome..."} value={importContactSearch} onChange={e => setImportContactSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+                    </div>
+                  )}
+
+                  {/* Tags filter — always show in tag mode, or when tags exist */}
+                  {(importSearchMode === "tag" || allTags.length > 0) && (
                     <div className="flex flex-wrap gap-1.5">
-                      {allTags.map(tag => (
+                      {allTags.length > 0 ? allTags.map(tag => (
                         <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
                           className={cn("px-2.5 py-1 rounded-full text-[11px] border transition-colors",
                             selectedContactTags.includes(tag)
                               ? "bg-primary/10 text-primary border-primary/30"
                               : "bg-muted/30 text-muted-foreground border-border/30 hover:border-primary/20"
                           )}>{tag}</button>
-                      ))}
+                      )) : (
+                        <p className="text-[11px] text-muted-foreground/50">Nenhuma tag encontrada nos contatos</p>
+                      )}
                     </div>
                   )}
 
