@@ -405,13 +405,16 @@ const Contacts = () => {
           <h1 className="text-2xl font-bold text-foreground">Contatos</h1>
           <p className="text-sm text-muted-foreground">Importe, organize e filtre seus contatos</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3.5 h-3.5" /> Importar
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Planilha
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
-            <Download className="w-3.5 h-3.5" /> Exportar
+            <Database className="w-3.5 h-3.5" /> Base
+          </Button>
+          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
+            <UserRoundPlus className="w-3.5 h-3.5" /> Manual
           </Button>
           {selectMode ? (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setSelectMode(false); setSelected(new Set()); }}>
@@ -422,9 +425,6 @@ const Contacts = () => {
               <CheckSquare className="w-3.5 h-3.5" /> Selecionar
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
-            <UserPlus className="w-3.5 h-3.5" /> Adicionar
-          </Button>
         </div>
       </div>
 
