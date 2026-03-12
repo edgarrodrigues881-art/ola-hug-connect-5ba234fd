@@ -259,7 +259,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(20);
+    .limit(50);
 
   if (fetchErr) throw fetchErr;
 
@@ -787,26 +787,25 @@ async function handleTick(db: any) {
             .lt("run_at", nowIso)
             .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-          // Set budgets based on chip_state + phase (calibrated for realistic daily throughput)
+          // Set budgets based on chip_state + phase — grupo não dá ban, volume agressivo
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
             budgetMin = 3; budgetMax = 8;
           } else if (chipState === "unstable") {
-            // Ultra-conservative for unstable
             if (newPhase === "groups_only") { budgetMin = 50; budgetMax = 120; }
             else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 228; }
-            else { budgetMin = 170; budgetMax = 410; } // community_light max
+            else { budgetMin = 170; budgetMax = 410; }
           } else if (chipState === "recovered") {
             if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 120; budgetMax = 260; }
-            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 340; }
-            else { budgetMin = 180; budgetMax = 460; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 260; }
+            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 400; }
+            else { budgetMin = 200; budgetMax = 530; }
           } else {
-            // Chip novo: keep targets feasible for the daily window
-            if (newPhase === "groups_only") { budgetMin = 60; budgetMax = 100; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 76; budgetMax = 105; }
-            else if (newPhase === "community_light") { budgetMin = 90; budgetMax = 125; }
-            else { budgetMin = 100; budgetMax = 135; }
+            // Chip novo: volume agressivo em grupos
+            if (newPhase === "groups_only") { budgetMin = 150; budgetMax = 250; }
+            else if (newPhase === "autosave_enabled") { budgetMin = 206; budgetMax = 306; }
+            else if (newPhase === "community_light") { budgetMin = 232; budgetMax = 403; }
+            else { budgetMin = 310; budgetMax = 510; }
           }
 
           const newTarget = randInt(budgetMin, budgetMax);
@@ -929,13 +928,14 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 function getVolumesNew(phase: string): DayVolumes {
   const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
 
+  // Mensagem em grupo NÃO dá ban — volume agressivo
   if (phase === "groups_only") {
-    v.groupMsgs = randInt(60, 100);
+    v.groupMsgs = randInt(150, 250);
     return v;
   }
 
   if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(70, 95);
+    v.groupMsgs = randInt(200, 300);
     v.autosaveContacts = 3;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 6;
@@ -943,22 +943,22 @@ function getVolumesNew(phase: string): DayVolumes {
   }
 
   if (phase === "community_light") {
-    v.groupMsgs = randInt(70, 90);
+    v.groupMsgs = randInt(200, 350);
     v.autosaveContacts = 4;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 8;
     v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(6, 10);
+    v.communityMsgsPerPair = randInt(8, 15);
     return v;
   }
 
   if (phase === "community_enabled") {
-    v.groupMsgs = randInt(75, 95);
+    v.groupMsgs = randInt(250, 400);
     v.autosaveContacts = 5;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(6, 10);
+    v.communityPairs = randInt(3, 5);
+    v.communityMsgsPerPair = randInt(10, 20);
     return v;
   }
 

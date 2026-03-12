@@ -517,17 +517,17 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   return getVolumesNew(phase);
 }
 
-// CHIP_NOVO volumes (calibrated to be feasible within daily window)
+// CHIP_NOVO volumes — grupo NÃO dá ban, volume agressivo
 function getVolumesNew(phase: string): DayVolumes {
   const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0 };
 
   if (phase === "groups_only") {
-    v.groupMsgs = randInt(60, 100);
+    v.groupMsgs = randInt(150, 250);
     return v;
   }
 
   if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(70, 95);
+    v.groupMsgs = randInt(200, 300);
     v.autosaveContacts = 3;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 6;
@@ -535,22 +535,22 @@ function getVolumesNew(phase: string): DayVolumes {
   }
 
   if (phase === "community_light") {
-    v.groupMsgs = randInt(70, 90);
+    v.groupMsgs = randInt(200, 350);
     v.autosaveContacts = 4;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 8;
     v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(6, 10);
+    v.communityMsgsPerPair = randInt(8, 15);
     return v;
   }
 
   if (phase === "community_enabled") {
-    v.groupMsgs = randInt(75, 95);
+    v.groupMsgs = randInt(250, 400);
     v.autosaveContacts = 5;
     v.autosaveMsgsPerContact = 2;
     v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 3);
-    v.communityMsgsPerPair = randInt(6, 10);
+    v.communityPairs = randInt(3, 5);
+    v.communityMsgsPerPair = randInt(10, 20);
     return v;
   }
 
