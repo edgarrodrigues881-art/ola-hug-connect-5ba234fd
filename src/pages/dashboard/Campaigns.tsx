@@ -1519,30 +1519,79 @@ const Campaigns = () => {
             </SurfaceCard>
 
             {/* ── Import from saved contacts dialog ── */}
-            <Dialog open={importFromContacts} onOpenChange={setImportFromContacts}>
-              <DialogContent className="max-w-md">
+            <Dialog open={importFromContacts} onOpenChange={(open) => { setImportFromContacts(open); if (!open) { setSelectedSavedContactIds(new Set()); setImportContactSearch(""); } }}>
+              <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
                 <DialogHeader><DialogTitle>Importar da Base</DialogTitle></DialogHeader>
-                <div className="space-y-4">
+                <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input placeholder="Buscar por nome ou número..." value={importContactSearch} onChange={e => setImportContactSearch(e.target.value)} className="pl-9 h-9 text-xs" />
+                  </div>
+
+                  {/* Tags filter */}
                   {allTags.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Filtrar por tags</Label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {allTags.map(tag => (
-                          <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                            className={cn("px-2.5 py-1 rounded-full text-[11px] border transition-colors",
-                              selectedContactTags.includes(tag)
-                                ? "bg-primary/10 text-primary border-primary/30"
-                                : "bg-muted/30 text-muted-foreground border-border/30 hover:border-primary/20"
-                            )}>{tag}</button>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allTags.map(tag => (
+                        <button key={tag} onClick={() => setSelectedContactTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                          className={cn("px-2.5 py-1 rounded-full text-[11px] border transition-colors",
+                            selectedContactTags.includes(tag)
+                              ? "bg-primary/10 text-primary border-primary/30"
+                              : "bg-muted/30 text-muted-foreground border-border/30 hover:border-primary/20"
+                          )}>{tag}</button>
+                      ))}
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground">{savedContacts.length} contatos disponíveis</p>
+
+                  {/* Select all / count */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <button className="hover:text-foreground transition-colors" onClick={() => {
+                      if (selectedSavedContactIds.size === filteredSavedContacts.length) setSelectedSavedContactIds(new Set());
+                      else setSelectedSavedContactIds(new Set(filteredSavedContacts.map(c => c.id)));
+                    }}>
+                      {selectedSavedContactIds.size === filteredSavedContacts.length && filteredSavedContacts.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                    </button>
+                    <span className="tabular-nums">
+                      {selectedSavedContactIds.size > 0 ? `${selectedSavedContactIds.size} selecionado(s)` : `${filteredSavedContacts.length} contato(s)`}
+                    </span>
+                  </div>
+
+                  {/* Contact list */}
+                  <div className="flex-1 min-h-0 overflow-y-auto border border-border/20 rounded-lg divide-y divide-border/10 max-h-[300px]">
+                    {filteredSavedContacts.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-muted-foreground">Nenhum contato encontrado</div>
+                    ) : (
+                      filteredSavedContacts.map(c => {
+                        const isSelected = selectedSavedContactIds.has(c.id);
+                        return (
+                          <button key={c.id} onClick={() => setSelectedSavedContactIds(prev => {
+                            const next = new Set(prev);
+                            next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                            return next;
+                          })} className={cn("w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/10 transition-colors", isSelected && "bg-primary/5")}>
+                            <Checkbox checked={isSelected} className="pointer-events-none" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{c.name}</p>
+                              <p className="text-[11px] text-muted-foreground font-mono truncate">{c.phone}</p>
+                            </div>
+                            {(c.tags || []).length > 0 && (
+                              <div className="flex gap-1 shrink-0">
+                                {(c.tags || []).slice(0, 2).map(t => (
+                                  <Badge key={t} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="pt-2">
                   <Button variant="outline" onClick={() => setImportFromContacts(false)} size="sm">Cancelar</Button>
-                  <Button onClick={handleImportFromDB} size="sm" className="font-semibold">Importar</Button>
+                  <Button onClick={handleImportFromDB} size="sm" className="font-semibold">
+                    Importar {selectedSavedContactIds.size > 0 ? selectedSavedContactIds.size : filteredSavedContacts.length}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
