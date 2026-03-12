@@ -122,6 +122,10 @@ const Contacts = () => {
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
   const [removeTagDialogOpen, setRemoveTagDialogOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportTagFilter, setExportTagFilter] = useState<string>("all");
+  const [exportIncludeVars, setExportIncludeVars] = useState(true);
+  const [exportLimit, setExportLimit] = useState<string>("");
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
