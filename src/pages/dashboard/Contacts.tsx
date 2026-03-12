@@ -58,7 +58,7 @@ interface ContactRowProps {
 
 const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div style={{ minWidth: 1430 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ minWidth: 1430, transform: 'translateZ(0)' }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
@@ -489,7 +489,7 @@ const Contacts = () => {
       </Card>
 
       {/* Contact Table */}
-      <Card className="glass-card overflow-x-auto scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <Card className="glass-card overflow-x-auto will-change-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header row */}
         <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1430 }}>
           <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
