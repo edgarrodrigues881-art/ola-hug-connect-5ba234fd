@@ -844,7 +844,7 @@ Deno.serve(async (req) => {
                   continue;
                 }
               }
-              await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString(), device_id: dev.id }).eq("id", contact.id);
               devSent++;
 
               const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
