@@ -491,44 +491,27 @@ const Contacts = () => {
       </Card>
 
       {/* Contact Table */}
-      <Card className="glass-card overflow-x-auto will-change-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <Card className="glass-card overflow-hidden">
         {/* Header row */}
-        <div className="flex items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: 1430 }}>
-          <div className="p-3 w-10 shrink-0"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
-          <div className="p-3 w-[140px] shrink-0">Nome</div>
-          <div className="p-3 w-[140px] shrink-0">Telefone</div>
-          <div className="p-3 w-[120px] shrink-0">Tags</div>
+        <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+          <div className="p-2"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
+          <div className="p-2 truncate">Nome</div>
+          <div className="p-2 truncate">Telefone</div>
+          <div className="p-2 truncate">Tags</div>
           {VAR_KEYS.map((_, i) => (
-            <div key={i} className="p-3 w-[100px] shrink-0">Var {i + 1}</div>
+            <div key={i} className="p-2 truncate">Var {i + 1}</div>
           ))}
-          <div className="p-3 w-10 shrink-0"></div>
+          <div className="p-2"></div>
         </div>
         {isLoading ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
-        ) : filtered.length <= 10 ? (
-          <div style={{ minWidth: 1430 }}>
+        ) : (
+          <div style={{ maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? 'auto' : undefined }}>
             {filtered.map((contact) => (
               <ContactRow key={contact.id} contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
             ))}
-          </div>
-        ) : (
-          <div style={{ minWidth: 1430 }}>
-            <List
-              rowCount={filtered.length}
-              rowHeight={44}
-              style={{ height: Math.min(filtered.length * 44, 480), overflowY: 'auto' }}
-              rowComponent={({ rowIndex, style: rowStyle }: { rowIndex: number; style: CSSProperties }) => {
-                const contact = filtered[rowIndex];
-                return (
-                  <div style={rowStyle}>
-                    <ContactRow contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
-                  </div>
-                );
-              }}
-              rowProps={{} as any}
-            />
           </div>
         )}
       </Card>
