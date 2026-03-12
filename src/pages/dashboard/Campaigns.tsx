@@ -896,12 +896,13 @@ const Campaigns = () => {
           setImportProgress(null);
 
           const parts: string[] = [];
-          if (totalDuplicates > 0) parts.push(`${totalDuplicates} duplicado(s) ignorado(s)`);
-          if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) descartado(s)`);
+          if (batchDuplicates > 0) parts.push(`${batchDuplicates} duplicado(s) na planilha`);
+          if (existingDuplicates > 0) parts.push(`${existingDuplicates} já na lista`);
+          if (invalidCount > 0) parts.push(`${invalidCount} inválido(s) (< 8 dígitos)`);
 
           toast({ 
-            title: `${finalContacts.length} contatos adicionados com sucesso`,
-            description: parts.length > 0 ? parts.join(". ") + "." : undefined,
+            title: `✅ ${finalContacts.length} de ${totalImported} contatos importados`,
+            description: parts.length > 0 ? `Removidos: ${parts.join(", ")}.` : undefined,
           });
         }, 300);
       }
