@@ -9,6 +9,16 @@ export interface Contact {
   email: string | null;
   tags: string[];
   notes: string | null;
+  var1: string;
+  var2: string;
+  var3: string;
+  var4: string;
+  var5: string;
+  var6: string;
+  var7: string;
+  var8: string;
+  var9: string;
+  var10: string;
   created_at: string;
   updated_at: string;
 }
