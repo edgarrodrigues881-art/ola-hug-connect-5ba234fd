@@ -216,6 +216,7 @@ const Campaigns = () => {
   const [selectedContactTags, setSelectedContactTags] = useState<string[]>([]);
   const [selectedSavedContactIds, setSelectedSavedContactIds] = useState<Set<string>>(new Set());
   const [importContactSearch, setImportContactSearch] = useState("");
+  const [importSearchMode, setImportSearchMode] = useState<"name" | "phone" | "tag">("name");
   const [showInstancePicker, setShowInstancePicker] = useState(false);
   const [showContactTools, setShowContactTools] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
