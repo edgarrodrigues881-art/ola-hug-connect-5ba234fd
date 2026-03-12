@@ -1046,34 +1046,23 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas para post_status");
           }
 
-          // Randomly decide: text status (60%) or image status (40%)
-          const statusType = Math.random() < 0.6 ? "text" : "image";
-          let statusContent = pickRandom(STATUS_TEXTS);
-          let statusImgUrl: string | undefined;
-
-          if (statusType === "image") {
-            statusImgUrl = pickRandom(IMAGE_POOL);
-            statusContent = pickRandom(IMAGE_CAPTIONS);
-          }
+          // Always use image from bucket + caption
+          const statusImgUrl = pickRandom(IMAGE_POOL);
+          let statusContent = pickRandom(STATUS_CAPTIONS);
 
           try {
-            await uazapiPostStatus(baseUrl, token, statusType as "text" | "image", statusContent, statusImgUrl);
+            await uazapiPostStatus(baseUrl, token, "image", statusContent, statusImgUrl);
           } catch (statusErr) {
-            // If image status fails, try text status as fallback
-            if (statusType === "image") {
-              console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
-              statusContent = pickRandom(STATUS_TEXTS);
-              await uazapiPostStatus(baseUrl, token, "text", statusContent);
-            } else {
-              throw statusErr;
-            }
+            // If image status fails, try text-only as last resort
+            console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
+            await uazapiPostStatus(baseUrl, token, "text", statusContent);
           }
 
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "status_posted",
-            message: `Status postado [${statusType}]: "${statusContent.substring(0, 50)}"`,
-            meta: { status_type: statusType, content: statusContent },
+            message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
+            meta: { status_type: "image", content: statusContent, image_url: statusImgUrl },
           });
           break;
         }
