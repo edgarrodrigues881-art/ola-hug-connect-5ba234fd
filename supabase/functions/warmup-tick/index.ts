@@ -736,10 +736,6 @@ async function handleTick(db: any) {
               await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
               message = `[IMG] ${caption}`;
               mediaLabel = "imagem";
-            } else if (mediaType === "audio") {
-              await uazapiSendAudio(baseUrl, token, groupJid);
-              message = `[PTT] ${pickRandom(AUDIO_CAPTIONS)}`;
-              mediaLabel = "áudio";
             } else {
               await uazapiSendText(baseUrl, token, groupJid, message);
             }
