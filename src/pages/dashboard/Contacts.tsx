@@ -465,14 +465,10 @@ const Contacts = () => {
           { label: "DDI 55", value: stats.ddi55, icon: Phone, color: "text-blue-500" },
         ].map((s) => (
           <Card key={s.label} className="glass-card">
-            <CardContent className="p-3 flex items-center gap-2">
-              <div className={cn("w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0")}>
-                <s.icon className={cn("w-3.5 h-3.5", s.color)} />
-              </div>
-              <div>
-                <p className="text-base font-bold text-foreground">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
-              </div>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-1">
+              <s.icon className={cn("w-4 h-4", s.color)} />
+              <p className="text-lg font-bold text-foreground leading-none">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
             </CardContent>
           </Card>
         ))}
