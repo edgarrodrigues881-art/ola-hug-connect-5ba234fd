@@ -7,33 +7,32 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorCount: number;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false };
+  state: State = { hasError: false, errorCount: 0 };
 
-  static getDerivedStateFromError(): State {
+  static getDerivedStateFromError(): Partial<State> {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error) {
-    const isTranslationError =
-      error.message?.includes("removeChild") ||
-      error.message?.includes("insertBefore") ||
-      error.message?.includes("appendChild") ||
-      error.message?.includes("NotFoundError") ||
-      error.message?.includes("not a child");
+    console.error("[ErrorBoundary]", error.message);
 
-    if (isTranslationError) {
-      console.warn("[ErrorBoundary] DOM corruption detected (likely browser translation). Recovering...");
-      setTimeout(() => this.setState({ hasError: false }), 100);
-    } else {
-      console.error("[ErrorBoundary]", error);
+    // Auto-recover up to 3 times
+    if (this.state.errorCount < 3) {
+      setTimeout(() => {
+        this.setState((prev) => ({
+          hasError: false,
+          errorCount: prev.errorCount + 1,
+        }));
+      }, 200);
     }
   }
 
   render() {
-    if (this.state.hasError) {
+    if (this.state.hasError && this.state.errorCount >= 3) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-background">
           <div className="text-center space-y-4 p-8 max-w-sm">
