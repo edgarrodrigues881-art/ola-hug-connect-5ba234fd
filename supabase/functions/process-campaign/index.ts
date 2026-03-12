@@ -959,7 +959,7 @@ Deno.serve(async (req) => {
 
           const phone = contact.phone.replace(/\D/g, "");
           if (phone.length < 10) {
-            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             continue;
