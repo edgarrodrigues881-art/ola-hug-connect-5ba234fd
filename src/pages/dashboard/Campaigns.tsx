@@ -425,7 +425,7 @@ const Campaigns = () => {
     toast({ title: "Formulário limpo", description: "Todos os campos foram resetados." });
   };
 
-  const allTags = Array.from(new Set(savedContacts.flatMap(c => c.tags || [])));
+  const allTags = useMemo(() => Array.from(new Set(savedContacts.flatMap(c => c.tags || []))), [savedContacts]);
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
   const selectedDeviceData = selectedDevicesData[0];
   const validContacts = useMemo(() => contacts.filter(c => c.numero.trim()), [contacts]);
