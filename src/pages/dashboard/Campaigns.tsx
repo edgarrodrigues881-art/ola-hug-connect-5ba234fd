@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   Plus, Upload, Download, Eye, Send, Trash2, Bold, Italic, Strikethrough,
@@ -1485,15 +1486,24 @@ const Campaigns = () => {
                 {contacts.length > 0 && (
                   <>
                     <div className="h-5 w-px bg-border/15 mx-1" />
-                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={removeDuplicates}>
-                      <Copy className="w-3 h-3" /> Duplicados
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={removeInvalid}>
-                      <XCircle className="w-3 h-3" /> Inválidos
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30" onClick={() => addPrefixToNumbers("55")}>
-                      <Phone className="w-3 h-3" /> DDI (55)
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-[11px] h-8 border-border/20 gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/30">
+                          <Settings2 className="w-3 h-3" /> Ferramentas
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem className="text-xs gap-2" onClick={removeDuplicates}>
+                          <Copy className="w-3.5 h-3.5" /> Remover Duplicados
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs gap-2" onClick={removeInvalid}>
+                          <XCircle className="w-3.5 h-3.5" /> Remover Inválidos
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs gap-2" onClick={() => addPrefixToNumbers("55")}>
+                          <Phone className="w-3.5 h-3.5" /> Adicionar DDI (55)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 )}
 
