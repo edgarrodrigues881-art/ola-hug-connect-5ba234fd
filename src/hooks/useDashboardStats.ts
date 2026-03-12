@@ -100,22 +100,22 @@ export function useDashboardStats() {
       const proxyMap: Record<string, string> = {};
       proxies.forEach((p) => { proxyMap[p.id] = p.host; });
 
-      // Combine old warmup_logs + new warmup_audit_logs for evolution chart
-      // Old logs: status "sent" / "error"
-      // New audit logs: event_type contains interaction events, level "info"/"error"
+      // Only count logs from non-report_wa devices
+      const validDeviceIds = new Set(devices.map((d) => d.id));
+
       const interactionEvents = new Set([
         "autosave_interaction", "community_interaction", "group_interaction",
         "group_msg_sent", "autosave_msg_sent", "community_msg_sent",
       ]);
 
-      // Count sent/failed from both systems
       let totalSent = 0;
       let totalFailed = 0;
 
       const allDayLogs: { date: string; sent: boolean }[] = [];
 
-      // New system audit logs (interaction events = "sent")
+      // Filter audit logs to only include devices from the instances panel
       auditLogs.forEach((l) => {
+        if (!validDeviceIds.has(l.device_id)) return; // skip report_wa devices
         if (interactionEvents.has(l.event_type)) {
           const isSent = l.level === "info";
           const isFailed = l.level === "error";
