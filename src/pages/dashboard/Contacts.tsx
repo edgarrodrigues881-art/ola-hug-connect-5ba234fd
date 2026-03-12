@@ -504,7 +504,7 @@ const Contacts = () => {
 
       {/* Add Contact Dialog */}
       <Dialog open={addContactOpen} onOpenChange={(open) => { setAddContactOpen(open); if (!open) setShowAddVars(false); }}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>Adicionar contato</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -547,7 +547,7 @@ const Contacts = () => {
 
       {/* Edit Contact Dialog */}
       <Dialog open={editContactOpen} onOpenChange={(open) => { setEditContactOpen(open); if (!open) { setEditContact(null); setShowEditVars(false); } }}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>Editar contato</DialogTitle></DialogHeader>
           {editContact && (
             <div className="space-y-3">
