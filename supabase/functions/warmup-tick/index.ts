@@ -681,8 +681,32 @@ async function handleTick(db: any) {
             break;
           }
 
-          const message = getGroupMsg();
-          await uazapiSendText(baseUrl, token, groupJid, message);
+          // Pick media type: text, image, or audio
+          const mediaType = pickMediaType();
+          let message = getGroupMsg();
+          let mediaLabel = "texto";
+
+          try {
+            if (mediaType === "image") {
+              const imgUrl = pickRandom(IMAGE_POOL);
+              const caption = pickRandom(IMAGE_CAPTIONS);
+              await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
+              message = `[IMG] ${caption}`;
+              mediaLabel = "imagem";
+            } else if (mediaType === "audio") {
+              await uazapiSendAudio(baseUrl, token, groupJid);
+              message = `[PTT] ${pickRandom(AUDIO_CAPTIONS)}`;
+              mediaLabel = "áudio";
+            } else {
+              await uazapiSendText(baseUrl, token, groupJid, message);
+            }
+          } catch (mediaErr) {
+            // Fallback to text if media fails
+            console.warn(`[group_interaction] ${mediaType} failed, fallback to text:`, mediaErr.message);
+            message = getGroupMsg();
+            mediaLabel = "texto (fallback)";
+            await uazapiSendText(baseUrl, token, groupJid, message);
+          }
 
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -691,8 +715,8 @@ async function handleTick(db: any) {
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
-            message: `Msg enviada no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
-            meta: { group_name: poolGroup?.name, group_jid: groupJid },
+            message: `[${mediaLabel}] Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
+            meta: { group_name: poolGroup?.name, group_jid: groupJid, media_type: mediaType },
           });
           break;
         }
