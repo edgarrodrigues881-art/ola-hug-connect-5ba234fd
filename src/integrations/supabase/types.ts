@@ -154,6 +154,7 @@ export type Database = {
           campaign_id: string
           contact_id: string | null
           created_at: string
+          device_id: string | null
           error_message: string | null
           id: string
           name: string | null
@@ -175,6 +176,7 @@ export type Database = {
           campaign_id: string
           contact_id?: string | null
           created_at?: string
+          device_id?: string | null
           error_message?: string | null
           id?: string
           name?: string | null
@@ -196,6 +198,7 @@ export type Database = {
           campaign_id?: string
           contact_id?: string | null
           created_at?: string
+          device_id?: string | null
           error_message?: string | null
           id?: string
           name?: string | null
@@ -226,6 +229,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
             referencedColumns: ["id"]
           },
         ]

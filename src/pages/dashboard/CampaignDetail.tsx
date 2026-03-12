@@ -134,7 +134,7 @@ const CampaignDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("campaign_contacts")
-        .select("id, campaign_id, phone, name, status, sent_at, error_message, created_at")
+        .select("id, campaign_id, phone, name, status, sent_at, error_message, created_at, device_id")
         .eq("campaign_id", id!)
         .order("created_at", { ascending: true })
         .limit(500);
@@ -307,13 +307,17 @@ const CampaignDetail = () => {
   const handleExportConfirm = async () => {
     const XLSX = await import("xlsx");
     const toRows = (list: typeof contacts) =>
-      list.map(c => ({
-        Nome: c.name || "—",
-        Telefone: c.phone,
-        Status: contactStatusConfig[c.status]?.label || c.status,
-        Horário: c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "",
-        Erro: c.error_message || "",
-      }));
+      list.map(c => {
+        const dev = (c as any).device_id ? devices.find(d => d.id === (c as any).device_id) : null;
+        return {
+          Nome: c.name || "—",
+          Telefone: c.phone,
+          Status: contactStatusConfig[c.status]?.label || c.status,
+          Horário: c.sent_at ? format(new Date(c.sent_at), "dd/MM/yyyy HH:mm:ss") : "",
+          Erro: c.error_message || "",
+          "Enviado por": dev ? (dev.number || dev.name) : "",
+        };
+      });
 
     const wb = XLSX.utils.book_new();
     let total = 0;
@@ -636,20 +640,21 @@ const CampaignDetail = () => {
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest text-center w-[100px]">Status</TableHead>
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[120px]">Horário</TableHead>
                   <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest">Erro</TableHead>
+                  <TableHead className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-widest w-[140px]">Enviado por</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contactsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 5 }).map((_, j) => (
+                      {Array.from({ length: 6 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-3.5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filteredContacts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-[11px] text-muted-foreground/50 py-14">
+                    <TableCell colSpan={6} className="text-center text-[11px] text-muted-foreground/50 py-14">
                       Nenhum registro encontrado
                     </TableCell>
                   </TableRow>
@@ -685,6 +690,13 @@ const CampaignDetail = () => {
                               </TooltipContent>
                             </Tooltip>
                           ) : <span className="text-muted-foreground/20">—</span>}
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground/60 py-2.5 font-mono tracking-tight">
+                          {(() => {
+                            const dev = (c as any).device_id ? devices.find(d => d.id === (c as any).device_id) : null;
+                            if (dev) return dev.number ? formatPhoneDisplay(dev.number) : dev.name;
+                            return <span className="text-muted-foreground/20">—</span>;
+                          })()}
                         </TableCell>
                       </TableRow>
                     );

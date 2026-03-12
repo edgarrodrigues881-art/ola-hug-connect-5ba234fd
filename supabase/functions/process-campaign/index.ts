@@ -775,7 +775,7 @@ Deno.serve(async (req) => {
 
             const phone = contact.phone.replace(/\D/g, "");
             if (phone.length < 10) {
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido", device_id: dev.id }).eq("id", contact.id);
               devFailed++;
               continue;
             }
@@ -788,7 +788,7 @@ Deno.serve(async (req) => {
               const normalized = normalizeBrazilianPhone(phone);
               const check = await checkNumberExists(devBaseUrl, devToken, normalized);
               if (!check.exists) {
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido", device_id: dev.id }).eq("id", contact.id);
                 devFailed++;
                 if (check.error === "WhatsApp desconectado") {
                   const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
@@ -809,7 +809,7 @@ Deno.serve(async (req) => {
                     allSendFailed = true;
                     const translated = translateErrorMessage(result.error || "Erro");
                     console.error(`[P-${devIdx}] Failed ${normalized} after ${result.attempts} attempts: ${translated}`);
-                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: dev.id }).eq("id", contact.id);
                     devFailed++;
                     if (isDisconnectError(result.error || "")) {
                       const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
@@ -832,7 +832,7 @@ Deno.serve(async (req) => {
                 if (!result.success) {
                   const translated = translateErrorMessage(result.error || "Erro");
                   console.error(`[P-${devIdx}] Failed ${normalized} after ${result.attempts} attempts: ${translated}`);
-                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: dev.id }).eq("id", contact.id);
                   devFailed++;
                   if (isDisconnectError(result.error || "")) {
                     const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
@@ -844,7 +844,7 @@ Deno.serve(async (req) => {
                   continue;
                 }
               }
-              await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString(), device_id: dev.id }).eq("id", contact.id);
               devSent++;
 
               const isLastInChunk = chunk.indexOf(contact) === chunk.length - 1;
@@ -857,7 +857,7 @@ Deno.serve(async (req) => {
               }
             } catch (err) {
               const translated = translateErrorMessage(err.message || "Erro");
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated, device_id: dev.id }).eq("id", contact.id);
               devFailed++;
               await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, allDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
               if (isDisconnectError(err.message || "")) {
@@ -959,7 +959,7 @@ Deno.serve(async (req) => {
 
           const phone = contact.phone.replace(/\D/g, "");
           if (phone.length < 10) {
-            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido" }).eq("id", contact.id);
+            await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             continue;
@@ -987,7 +987,7 @@ Deno.serve(async (req) => {
 
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
             if (!check.exists) {
-              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido" }).eq("id", contact.id);
+              await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
               failedCount++;
               await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
@@ -1008,7 +1008,7 @@ Deno.serve(async (req) => {
                   allSendFailed = true;
                   const translated = translateErrorMessage(result.error || "Erro ao enviar");
                   console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
-                  await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                    await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: activeDevice.id }).eq("id", contact.id);
                   failedCount++;
                   await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                   if (isDisconnectError(result.error || "")) {
@@ -1032,7 +1032,7 @@ Deno.serve(async (req) => {
               if (!result.success) {
                 const translated = translateErrorMessage(result.error || "Erro ao enviar");
                 console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
-                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)` }).eq("id", contact.id);
+                await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: activeDevice.id }).eq("id", contact.id);
                 failedCount++;
                 await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
@@ -1042,7 +1042,7 @@ Deno.serve(async (req) => {
                 continue;
               }
             }
-            await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", contact.id);
+            await serviceClient.from("campaign_contacts").update({ status: "sent", sent_at: new Date().toISOString(), device_id: activeDevice.id }).eq("id", contact.id);
             sentCount++;
             batchSent++;
             instanceMsgCount++;
