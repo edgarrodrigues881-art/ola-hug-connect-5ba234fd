@@ -651,28 +651,23 @@ const Contacts = () => {
       <Dialog open={addTagDialogOpen} onOpenChange={setAddTagDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Adicionar tag</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            {customTags.length > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tags existentes</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {customTags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant={newTagName === tag ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                      onClick={() => setNewTagName(tag)}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Ou digite uma nova</Label>
-              <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Ex: cliente, vip" />
+          <div className="space-y-2">
+            <Label className="text-xs">Selecione a tag</Label>
+            <div className="flex flex-wrap gap-2">
+              {customTags.map(tag => (
+                <Badge
+                  key={tag}
+                  variant={newTagName === tag ? "default" : "outline"}
+                  className="cursor-pointer text-xs px-3 py-1.5"
+                  onClick={() => setNewTagName(prev => prev === tag ? "" : tag)}
+                >
+                  {tag}
+                </Badge>
+              ))}
             </div>
+            {customTags.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhuma tag criada. Crie tags no filtro de tags acima.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddTagDialogOpen(false)}>Cancelar</Button>
