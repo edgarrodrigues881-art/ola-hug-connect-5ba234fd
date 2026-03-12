@@ -508,7 +508,7 @@ const Contacts = () => {
       <Card className="glass-card overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header row */}
         <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
-          <div className="p-2"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
+          <div className="p-2 text-center">#</div>
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
           <div className="p-2 truncate">Tags</div>
