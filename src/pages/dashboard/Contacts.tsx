@@ -22,7 +22,8 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
-// 14 columns: edit(40px) + name + phone + tags + 10 vars(1fr each) + actions(40px)
+// Fixed min-width ensures scrollbar on small screens, fits on large screens
+const TABLE_MIN_WIDTH = 1200;
 const TABLE_GRID_COLS = "40px minmax(100px,1.4fr) minmax(100px,1.2fr) minmax(80px,1fr) repeat(10,minmax(60px,1fr)) 40px";
 
 const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
@@ -59,7 +60,7 @@ interface ContactRowProps {
 
 const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+    <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
       <div className="p-2 overflow-hidden"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
@@ -503,9 +504,9 @@ const Contacts = () => {
       </Card>
 
       {/* Contact Table */}
-      <Card className="glass-card overflow-hidden">
+      <Card className="glass-card overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header row */}
-        <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ gridTemplateColumns: TABLE_GRID_COLS }}>
+        <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
           <div className="p-2"><Pencil className="w-3.5 h-3.5 text-muted-foreground/50" /></div>
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
