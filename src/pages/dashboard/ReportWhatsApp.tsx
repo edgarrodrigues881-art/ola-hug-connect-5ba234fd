@@ -108,7 +108,16 @@ export default function ReportWhatsApp() {
   // Ensure a report_wa device exists, creating one if needed
   const ensureReportDevice = async (): Promise<string | null> => {
     if (reportDevice?.id) return reportDevice.id;
-    // Create a new report_wa device
+    
+    // Fetch monitor token from profile to pre-fill the device
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("whatsapp_monitor_token")
+      .eq("id", user!.id)
+      .maybeSingle();
+    
+    const hasMonitorToken = !!profile?.whatsapp_monitor_token;
+    
     const { data, error } = await supabase
       .from("devices")
       .insert({
@@ -117,6 +126,7 @@ export default function ReportWhatsApp() {
         login_type: "report_wa",
         status: "Disconnected",
         instance_type: "report",
+        ...(hasMonitorToken ? { uazapi_token: profile.whatsapp_monitor_token } : {}),
       })
       .select("id")
       .single();
