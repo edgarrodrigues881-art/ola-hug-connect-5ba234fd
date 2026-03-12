@@ -84,8 +84,8 @@ const CampaignDetail = () => {
   const [countdown, setCountdown] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
   const [resendOpen, setResendOpen] = useState(false);
-  const [resendFailed, setResendFailed] = useState(true);
-  const [resendPending, setResendPending] = useState(true);
+  const [resendFailed, setResendFailed] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSent, setExportSent] = useState(true);
   const [exportFailed, setExportFailed] = useState(true);
