@@ -358,6 +358,10 @@ const Contacts = () => {
     }
   }, [contacts, updateContact]);
 
+  const handleDeleteIds = useCallback((ids: string[]) => {
+    deleteContacts.mutate(ids, { onSuccess: () => toast({ title: "Contato removido" }) });
+  }, [deleteContacts, toast]);
+
   const stats = {
     total: contacts.length,
     active: contacts.length,
