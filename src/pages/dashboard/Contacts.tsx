@@ -324,13 +324,11 @@ const Contacts = () => {
   };
 
   const removeTagFromSelected = () => {
-    if (!removeTagName) return;
-    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).includes(removeTagName));
+    const toUpdate = contacts.filter(c => selected.has(c.id) && (c.tags || []).length > 0);
     toUpdate.forEach(c => {
-      updateContact.mutate({ id: c.id, tags: (c.tags || []).filter(t => t !== removeTagName) });
+      updateContact.mutate({ id: c.id, tags: [] });
     });
-    toast({ title: "Tag removida", description: `Tag "${removeTagName}" removida de ${toUpdate.length} contatos.` });
-    setRemoveTagName("");
+    toast({ title: "Tags removidas", description: `Tags removidas de ${toUpdate.length} contatos.` });
     setRemoveTagDialogOpen(false);
   };
 
@@ -677,23 +675,13 @@ const Contacts = () => {
       {/* Remove Tag Dialog */}
       <Dialog open={removeTagDialogOpen} onOpenChange={setRemoveTagDialogOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Remover tag</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Label className="text-xs">Selecione a tag para remover dos {selected.size} contatos selecionados</Label>
-            <Select value={removeTagName} onValueChange={setRemoveTagName}>
-              <SelectTrigger><SelectValue placeholder="Escolha uma tag" /></SelectTrigger>
-              <SelectContent>
-                {Array.from(new Set(
-                  contacts.filter(c => selected.has(c.id)).flatMap(c => c.tags || [])
-                )).map(t => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <DialogHeader><DialogTitle>Remover tags</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja remover todas as tags dos {selected.size} contatos selecionados?
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemoveTagDialogOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={removeTagFromSelected} disabled={!removeTagName}>Remover</Button>
+            <Button variant="destructive" onClick={removeTagFromSelected}>Remover</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
