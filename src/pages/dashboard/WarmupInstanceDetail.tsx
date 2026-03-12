@@ -923,107 +923,71 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
-          {/* ── Audit Logs grouped by day ── */}
+          {/* ── Resumo da Timeline ── */}
           <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                 <ScrollText className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-foreground">Timeline do Aquecimento</span>
+                <span className="text-sm font-bold text-foreground">Histórico</span>
                 {auditLogs.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground">{auditLogs.length} evento{auditLogs.length !== 1 ? "s" : ""} registrado{auditLogs.length !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground">{auditLogs.length} evento{auditLogs.length !== 1 ? "s" : ""} em {dayGroups.length} dia{dayGroups.length !== 1 ? "s" : ""}</p>
                 )}
               </div>
-              {dayGroups.length > 0 && (
-                <Badge className="text-[9px] h-5 rounded-lg font-bold bg-primary/10 text-primary border-0 hover:bg-primary/10">
-                  {dayGroups.length} dia{dayGroups.length !== 1 ? "s" : ""}
-                </Badge>
-              )}
             </div>
             {auditLogs.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-muted/10 flex items-center justify-center mx-auto mb-3">
-                  <ScrollText className="w-5 h-5 text-muted-foreground/25" />
-                </div>
-                <p className="text-xs font-medium text-muted-foreground/40">Nenhum log registrado ainda</p>
-                <p className="text-[10px] text-muted-foreground/25 mt-1">Os eventos aparecerão aqui conforme o ciclo avança</p>
+              <div className="p-8 text-center">
+                <ScrollText className="w-5 h-5 text-muted-foreground/25 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/40">Nenhum evento ainda</p>
               </div>
             ) : (
-              <div className="max-h-[500px] overflow-y-auto">
-                {dayGroups.map(({ day, logs }, groupIdx) => (
-                  <div key={day}>
-                    {/* Day header */}
-                    <div className="sticky top-0 z-10 px-5 py-2.5 bg-card/95 backdrop-blur-md border-b border-border/10 flex items-center gap-2.5">
+              <div className="divide-y divide-border/10">
+                {dayGroups.map(({ day, logs }, groupIdx) => {
+                  const errorCount = logs.filter(l => l.level === "error").length;
+                  const warnCount = logs.filter(l => l.level === "warn").length;
+                  const infoCount = logs.filter(l => l.level === "info").length;
+                  // Summarize by event_type
+                  const typeCounts: Record<string, number> = {};
+                  logs.forEach(l => { typeCounts[l.event_type] = (typeCounts[l.event_type] || 0) + 1; });
+                  const dateStr = cycleStartedAt ? format(new Date(cycleStartedAt.getTime() + (day - 1) * 86400000), "dd/MM", { locale: ptBR }) : "";
+
+                  return (
+                    <div key={day} className="px-5 py-3 flex items-center gap-3">
                       <div className={cn(
-                        "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-extrabold",
-                        groupIdx === 0
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted/20 text-muted-foreground"
+                        "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold shrink-0",
+                        groupIdx === 0 ? "bg-primary/15 text-primary" : "bg-muted/20 text-muted-foreground"
                       )}>
                         {day}
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
-                        <span className="text-[10px] text-muted-foreground/40">
-                          {cycleStartedAt && format(
-                            new Date(cycleStartedAt.getTime() + (day - 1) * 86400000),
-                            "dd/MM",
-                            { locale: ptBR }
-                          )}
-                        </span>
-                      </div>
-                      <span className="text-[9px] text-muted-foreground/40 ml-auto font-medium">
-                        {logs.length} {logs.length === 1 ? "evento" : "eventos"}
-                      </span>
-                    </div>
-                    {/* Day logs with timeline line */}
-                    <div className="relative">
-                      {/* vertical timeline line */}
-                      <div className="absolute left-[29px] top-0 bottom-0 w-px bg-border/10" />
-                      {logs.map((log, idx) => (
-                        <div
-                          key={log.id}
-                          className={cn(
-                            "relative px-5 py-3.5 flex items-start gap-3.5 hover:bg-muted/5 transition-colors group",
-                          )}
-                        >
-                          {/* timeline dot */}
-                          <div className="relative z-[1] mt-1 shrink-0 w-[18px] flex items-center justify-center">
-                            <div className={cn(
-                              "w-2.5 h-2.5 rounded-full ring-[3px] ring-card transition-all",
-                              log.level === "error"
-                                ? "bg-destructive shadow-[0_0_8px_hsl(var(--destructive)/0.4)]"
-                                : log.level === "warn"
-                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.3)]"
-                                  : "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.2)]"
-                            )} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span
-                                className={cn(
-                                  "text-[9px] font-bold px-2 py-0.5 rounded-md",
-                                  log.level === "error"
-                                    ? "text-destructive bg-destructive/10"
-                                    : log.level === "warn"
-                                      ? "text-amber-400 bg-amber-400/10"
-                                      : "text-emerald-400 bg-emerald-400/10"
-                                )}
-                              >
-                                {log.event_type}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground/30 font-mono">
-                                {format(new Date(log.created_at), "HH:mm", { locale: ptBR })}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-relaxed group-hover:text-muted-foreground transition-colors">{log.message}</p>
-                          </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-foreground">Dia {day}</span>
+                          <span className="text-[10px] text-muted-foreground/40">{dateStr}</span>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {Object.entries(typeCounts).slice(0, 4).map(([type, count]) => (
+                            <span key={type} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/15 text-muted-foreground/70">
+                              {type} <span className="font-bold text-foreground/60">×{count}</span>
+                            </span>
+                          ))}
+                          {Object.keys(typeCounts).length > 4 && (
+                            <span className="text-[9px] text-muted-foreground/40">+{Object.keys(typeCounts).length - 4}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {errorCount > 0 && (
+                          <span className="text-[9px] font-bold text-destructive">{errorCount} erro{errorCount !== 1 ? "s" : ""}</span>
+                        )}
+                        {warnCount > 0 && (
+                          <span className="text-[9px] font-bold text-amber-400">{warnCount} aviso{warnCount !== 1 ? "s" : ""}</span>
+                        )}
+                        <span className="text-[9px] text-muted-foreground/40">{logs.length}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
