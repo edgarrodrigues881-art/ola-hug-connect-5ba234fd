@@ -249,7 +249,17 @@ function replaceVariables(template: string, contact: any, rand4: string, rand3: 
     .replace(/\{\{numero\}\}/gi, contact.phone || "")
     .replace(/\{\{telefone\}\}/gi, contact.phone || "")
     .replace(/\{\{rand4\}\}/gi, rand4)
-    .replace(/\{\{rand3\}\}/gi, rand3);
+    .replace(/\{\{rand3\}\}/gi, rand3)
+    .replace(/\{\{var1\}\}/gi, contact.var1 || "")
+    .replace(/\{\{var2\}\}/gi, contact.var2 || "")
+    .replace(/\{\{var3\}\}/gi, contact.var3 || "")
+    .replace(/\{\{var4\}\}/gi, contact.var4 || "")
+    .replace(/\{\{var5\}\}/gi, contact.var5 || "")
+    .replace(/\{\{var6\}\}/gi, contact.var6 || "")
+    .replace(/\{\{var7\}\}/gi, contact.var7 || "")
+    .replace(/\{\{var8\}\}/gi, contact.var8 || "")
+    .replace(/\{\{var9\}\}/gi, contact.var9 || "")
+    .replace(/\{\{var10\}\}/gi, contact.var10 || "");
 }
 
 function randomBetween(min: number, max: number): number {
@@ -660,7 +670,7 @@ Deno.serve(async (req) => {
       // Get pending contacts (batch of 100)
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
-        .select("id, phone, name, status, campaign_id")
+        .select("id, phone, name, status, campaign_id, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10")
         .eq("campaign_id", campaignId)
         .eq("status", "pending")
         .order("created_at", { ascending: true })

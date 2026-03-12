@@ -513,7 +513,7 @@ const Campaigns = () => {
       name: campaignName, message_type: computedMessageType, message_content: combinedMessage,
       media_url: mediaUrl || undefined,
       buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
-      contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined })),
+      contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined, var1: c.var1 || "", var2: c.var2 || "", var3: c.var3 || "", var4: c.var4 || "", var5: c.var5 || "", var6: c.var6 || "", var7: c.var7 || "", var8: c.var8 || "", var9: c.var9 || "", var10: c.var10 || "" })),
       scheduled_at: scheduleEnabled && scheduleDate ? new Date(scheduleDate).toISOString() : undefined,
       min_delay_seconds: minDelay,
       max_delay_seconds: maxDelay,

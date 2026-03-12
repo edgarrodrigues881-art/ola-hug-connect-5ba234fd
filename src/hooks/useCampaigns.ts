@@ -102,7 +102,7 @@ export function useCreateCampaign() {
       device_id?: string;
       device_ids?: string[];
       messages_per_instance?: number;
-      contacts: { phone: string; name?: string }[];
+      contacts: { phone: string; name?: string; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[];
     }) => {
       const { contacts, ...campaignData } = campaign;
 
@@ -151,6 +151,16 @@ export function useCreateCampaign() {
           campaign_id: newCampaign.id,
           phone: c.phone,
           name: c.name || null,
+          var1: c.var1 || "",
+          var2: c.var2 || "",
+          var3: c.var3 || "",
+          var4: c.var4 || "",
+          var5: c.var5 || "",
+          var6: c.var6 || "",
+          var7: c.var7 || "",
+          var8: c.var8 || "",
+          var9: c.var9 || "",
+          var10: c.var10 || "",
         }));
         const { error: contactsError } = await supabase
           .from("campaign_contacts")
