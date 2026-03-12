@@ -54,7 +54,7 @@ export function useDashboardStats() {
       .on("postgres_changes", { event: "*", schema: "public", table: "devices", filter: `user_id=eq.${user.id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "warmup_sessions", filter: `user_id=eq.${user.id}` }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "warmup_cycles", filter: `user_id=eq.${user.id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
       })
       .subscribe();
@@ -66,46 +66,61 @@ export function useDashboardStats() {
     queryFn: async (): Promise<DashboardStats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [devicesRes, warmupsRes, logsRes, proxiesRes] = await Promise.all([
+      const [devicesRes, cyclesRes, auditLogsRes, proxiesRes, oldLogsRes] = await Promise.all([
         supabase.from("devices").select("id, name, number, status, proxy_id, profile_picture").eq("user_id", user!.id).neq("login_type", "report_wa"),
-        supabase.from("warmup_sessions").select("id, device_id, status, messages_sent_today, messages_sent_total, current_day, total_days, last_executed_at"),
-        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo).limit(500),
+        supabase.from("warmup_cycles").select("id, device_id, is_running, phase, day_index, days_total, daily_interaction_budget_used, daily_interaction_budget_target, updated_at").eq("user_id", user!.id),
+        supabase.from("warmup_audit_logs").select("device_id, level, event_type, created_at").eq("user_id", user!.id).gte("created_at", sevenDaysAgo).limit(1000),
         supabase.from("proxies").select("id, host"),
+        supabase.from("warmup_logs").select("device_id, status, created_at").gte("created_at", sevenDaysAgo).limit(500),
       ]);
 
       const devices = devicesRes.data || [];
-      const warmups = warmupsRes.data || [];
-      const logs = logsRes.data || [];
+      const cycles = cyclesRes.data || [];
+      const auditLogs = auditLogsRes.data || [];
       const proxies = proxiesRes.data || [];
+      const oldLogs = oldLogsRes.data || [];
 
       const proxyMap: Record<string, string> = {};
       proxies.forEach((p) => { proxyMap[p.id] = p.host; });
 
-      // Logs aggregation
-      const sentByDevice: Record<string, number> = {};
-      const failsByDevice: Record<string, number> = {};
+      // Combine old warmup_logs + new warmup_audit_logs for evolution chart
+      // Old logs: status "sent" / "error"
+      // New audit logs: event_type contains interaction events, level "info"/"error"
+      const interactionEvents = new Set(["autosave_interaction", "community_interaction", "group_interaction"]);
+
+      // Count sent/failed from both systems
       let totalSent = 0;
       let totalFailed = 0;
 
-      logs.forEach((l) => {
-        if (l.status === "sent") {
-          sentByDevice[l.device_id] = (sentByDevice[l.device_id] || 0) + 1;
-          totalSent++;
+      // Old system logs
+      const allDayLogs: { date: string; sent: boolean }[] = [];
+      oldLogs.forEach((l) => {
+        const isSent = l.status === "sent";
+        const isFailed = l.status === "error" || l.status === "failed";
+        if (isSent) totalSent++;
+        if (isFailed) totalFailed++;
+        if (isSent || isFailed) {
+          allDayLogs.push({ date: new Date(l.created_at).toDateString(), sent: isSent });
         }
-        if (l.status === "error" || l.status === "failed") {
-          failsByDevice[l.device_id] = (failsByDevice[l.device_id] || 0) + 1;
-          totalFailed++;
+      });
+
+      // New system audit logs (interaction events = "sent")
+      auditLogs.forEach((l) => {
+        if (interactionEvents.has(l.event_type)) {
+          const isSent = l.level === "info";
+          const isFailed = l.level === "error";
+          if (isSent) totalSent++;
+          if (isFailed) totalFailed++;
+          allDayLogs.push({ date: new Date(l.created_at).toDateString(), sent: isSent });
         }
       });
 
       const totalMessages = totalSent + totalFailed;
 
-      // Build chips
+      // Build chips — prefer warmup_cycles over warmup_sessions
       const chips: ChipInfo[] = devices.map((d) => {
-        const warmup = warmups.find((w) => w.device_id === d.id && (w.status === "running" || w.status === "paused"));
-        const lastLog = logs
-          .filter((l) => l.device_id === d.id)
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const cycle = cycles.find((c) => c.device_id === d.id && c.is_running);
+        const activeCycle = cycle || cycles.find((c) => c.device_id === d.id && c.phase === "paused");
 
         return {
           id: d.id,
@@ -113,12 +128,12 @@ export function useDashboardStats() {
           number: d.number,
           status: d.status,
           connected: d.status === "Ready",
-          volumeToday: warmup?.messages_sent_today || 0,
-          lastActivity: lastLog?.created_at || warmup?.last_executed_at || null,
+          volumeToday: activeCycle?.daily_interaction_budget_used || 0,
+          lastActivity: activeCycle?.updated_at || null,
           proxyHost: d.proxy_id ? (proxyMap[d.proxy_id] || "Configurado") : null,
-          warmupStatus: warmup?.status || null,
-          warmupDay: warmup?.current_day || null,
-          warmupTotal: warmup?.total_days || null,
+          warmupStatus: activeCycle ? (activeCycle.is_running ? "running" : "paused") : null,
+          warmupDay: activeCycle?.day_index || null,
+          warmupTotal: activeCycle?.days_total || null,
           profilePicture: d.profile_picture,
         };
       });
@@ -127,16 +142,14 @@ export function useDashboardStats() {
       const chipsActive = chips.filter((c) => c.warmupStatus === "running" || c.volumeToday > 0).length;
       const chipsInactive = chips.filter((c) => !c.connected && !c.warmupStatus).length;
 
-      const totalDailyVolume = warmups
-        .filter((w) => w.status === "running")
-        .reduce((a, w) => a + (w.messages_sent_today || 0), 0);
-      const activeWarmups = warmups.filter((w) => w.status === "running").length;
-      const avgMessagesPerDay = activeWarmups > 0 ? Math.round(totalDailyVolume / activeWarmups) : 0;
+      const runningCycles = cycles.filter((c) => c.is_running);
+      const totalDailyVolume = runningCycles.reduce((a, c) => a + (c.daily_interaction_budget_used || 0), 0);
+      const avgMessagesPerDay = runningCycles.length > 0 ? Math.round(totalDailyVolume / runningCycles.length) : 0;
 
       const avgDeliveryRate = totalMessages > 0 ? Math.round((totalSent / totalMessages) * 100) : 100;
       const avgFailRate = totalMessages > 0 ? Math.round((totalFailed / totalMessages) * 100) : 0;
 
-      // Warmup evolution
+      // Warmup evolution — 7 days
       const now = new Date();
       const warmupEvolution: WarmupEvolutionPoint[] = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(now);
@@ -144,11 +157,11 @@ export function useDashboardStats() {
         const dayStr = d.toDateString();
         const dayLabel = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
 
-        const dayLogs = logs.filter((l) => new Date(l.created_at).toDateString() === dayStr);
-        const sent = dayLogs.filter((l) => l.status === "sent").length;
-        const failed = dayLogs.filter((l) => l.status === "error" || l.status === "failed").length;
+        const dayItems = allDayLogs.filter((l) => l.date === dayStr);
+        const sent = dayItems.filter((l) => l.sent).length;
+        const total = dayItems.length;
 
-        return { label: dayLabel, volume: sent + failed, entregas: sent, crescimento: 0 };
+        return { label: dayLabel, volume: total, entregas: sent, crescimento: 0 };
       });
 
       for (let i = 1; i < warmupEvolution.length; i++) {
@@ -157,11 +170,9 @@ export function useDashboardStats() {
         warmupEvolution[i].crescimento = prev > 0 ? Math.round(((curr - prev) / prev) * 100) : 0;
       }
 
-      // Growth last 7 days
       const firstDayVol = warmupEvolution[0]?.volume || 0;
       const lastDayVol = warmupEvolution[6]?.volume || 0;
       const growthLast7Days = firstDayVol > 0 ? Math.round(((lastDayVol - firstDayVol) / firstDayVol) * 100) : 0;
-
       const avgDailyVolume = Math.round(warmupEvolution.reduce((a, p) => a + p.volume, 0) / 7);
 
       return {
@@ -180,7 +191,6 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    // Realtime handles instant updates; polling is just a safety net
     refetchInterval: 60000,
   });
 }
