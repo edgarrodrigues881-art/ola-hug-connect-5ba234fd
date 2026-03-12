@@ -177,7 +177,8 @@ export function useDashboardStats() {
       for (let i = 1; i < warmupEvolution.length; i++) {
         const prev = warmupEvolution[i - 1].volume;
         const curr = warmupEvolution[i].volume;
-        warmupEvolution[i].crescimento = prev > 0 ? Math.round(((curr - prev) / prev) * 100) : 0;
+        const raw = prev > 0 ? Math.round(((curr - prev) / prev) * 100) : (curr > 0 ? 100 : 0);
+        warmupEvolution[i].crescimento = Math.max(-100, Math.min(raw, 500));
       }
 
       const firstDayVol = warmupEvolution[0]?.volume || 0;
