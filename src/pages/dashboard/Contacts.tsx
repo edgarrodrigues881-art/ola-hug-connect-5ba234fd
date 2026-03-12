@@ -45,7 +45,6 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
   { value: "ignorar", label: "Ignorar" },
   { value: "nome", label: "Nome" },
   { value: "numero", label: "Número" },
-  { value: "tags", label: "Tags" },
   ...VAR_KEYS.map((k, i) => ({ value: k as ContactColumnMapping, label: `Variável ${i + 1}` })),
 ];
 
