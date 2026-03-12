@@ -87,7 +87,7 @@ export function useUpdateContact() {
         .from("contacts")
         .update(updates)
         .eq("id", id)
-        .select("id, name, phone, email, tags, notes, created_at, updated_at")
+        .select("id, name, phone, email, tags, notes, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, created_at, updated_at")
         .single();
       if (error) throw error;
       return data;
