@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable, ArrowRight, Loader2,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable, ArrowRight, Loader2, CheckSquare,
 } from "lucide-react";
 import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts, type Contact } from "@/hooks/useContacts";
 import { cn } from "@/lib/utils";
@@ -54,15 +54,24 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
 interface ContactRowProps {
   contact: Contact;
   index: number;
+  selectMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
   onRemoveTag: (contactId: string, tag: string) => void;
   onDelete: (ids: string[]) => void;
   onEdit: (contact: Contact) => void;
 }
 
-const ContactRow = memo(function ContactRow({ contact, index, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
+const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
     <div className="grid items-center border-b border-border/50 hover:bg-muted/20 text-sm" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
-      <div className="p-2 text-center text-xs text-muted-foreground tabular-nums">{index}</div>
+      <div className="p-2 flex items-center justify-center">
+        {selectMode ? (
+          <Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(contact.id)} />
+        ) : (
+          <span className="text-xs text-muted-foreground tabular-nums">{index}</span>
+        )}
+      </div>
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
       <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
@@ -107,6 +116,7 @@ const Contacts = () => {
   const deleteContacts = useDeleteContacts();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [addTagDialogOpen, setAddTagDialogOpen] = useState(false);
@@ -402,6 +412,15 @@ const Contacts = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
             <Download className="w-3.5 h-3.5" /> Exportar
           </Button>
+          {selectMode ? (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setSelectMode(false); setSelected(new Set()); }}>
+              <X className="w-3.5 h-3.5" /> Cancelar
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setSelectMode(true)}>
+              <CheckSquare className="w-3.5 h-3.5" /> Selecionar
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => setAddContactOpen(true)}>
             <UserPlus className="w-3.5 h-3.5" /> Adicionar
           </Button>
@@ -508,7 +527,13 @@ const Contacts = () => {
       <Card className="glass-card overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header row */}
         <div className="grid items-center border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
-          <div className="p-2 text-center">#</div>
+          <div className="p-2 flex items-center justify-center">
+            {selectMode ? (
+              <Checkbox checked={selected.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
+            ) : (
+              <span>#</span>
+            )}
+          </div>
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
           <div className="p-2 truncate">Tags</div>
@@ -524,7 +549,7 @@ const Contacts = () => {
         ) : (
           <div style={{ maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? 'auto' : undefined }}>
             {filtered.map((contact, i) => (
-              <ContactRow key={contact.id} contact={contact} index={i + 1} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
+              <ContactRow key={contact.id} contact={contact} index={i + 1} selectMode={selectMode} isSelected={selected.has(contact.id)} onToggleSelect={toggleSelect} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
             ))}
           </div>
         )}
