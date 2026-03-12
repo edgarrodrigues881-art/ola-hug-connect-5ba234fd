@@ -97,6 +97,42 @@ const FRASES_GRUPO = [
   "quem mais tá acompanhando",
 ];
 
+// ── Temas variados para enriquecer conversas ──
+const OPINIOES = [
+  "acho que esse ano vai ser diferente", "to otimista com o futuro",
+  "cada vez mais difícil achar coisa boa", "o mercado tá complicado",
+  "tô repensando muita coisa na vida", "preciso descansar mais",
+  "quero viajar mais esse ano", "preciso focar na saúde",
+  "tô curtindo mais ficar em casa", "o tempo tá passando rápido demais",
+  "tô aprendendo a ter mais paciência", "as coisas estão melhorando",
+  "cada dia é uma conquista", "tô mais seletivo com meu tempo",
+  "quero investir mais em mim", "o importante é ter paz",
+  "tô priorizando o que importa", "a vida tá mudando pra melhor",
+];
+
+const DICAS_GERAIS = [
+  "vi um restaurante bom pra indicar", "descobri um app muito bom",
+  "tem uma série nova que vale a pena", "aprendi um truque legal ontem",
+  "achei um lugar ótimo pra passear", "tem uma promoção boa hoje",
+  "recomendo demais aquele livro", "testei uma receita incrível",
+  "achei um canal no youtube muito bom", "descobri um café ótimo aqui perto",
+  "tem um podcast bom sobre isso", "vi um documentário sensacional",
+  "tem uma loja nova no bairro", "encontrei uma academia boa e barata",
+  "descobri um atalho no celular", "achei uma playlist ótima",
+];
+
+const COTIDIANO = [
+  "acabei de almoçar agora", "tô no trânsito parado", "choveu demais aqui",
+  "acordei cedo hoje", "café da manhã top hoje", "fui na feira agora cedo",
+  "limpei a casa inteira", "fiz um churrasco ontem", "passei no mercado agora",
+  "tô esperando o delivery", "acabei de sair da academia", "lavei o carro hoje",
+  "fiz um bolo caseiro", "tô estudando uma coisa nova", "voltei a ler",
+  "comecei a caminhar de manhã", "troquei a tela do celular",
+  "arrumei o quarto todo", "cozinhei pela primeira vez em semanas",
+  "tô assistindo uma série boa", "fui cortar o cabelo", "dormi super bem ontem",
+  "tomei um açaí agora", "pedi uma pizza pra comemorar", "fiz uma compra online",
+];
+
 // Track recent messages to avoid repetition
 const recentMsgs: string[] = [];
 const MAX_RECENT = 200;
@@ -129,23 +165,27 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
 }
 
 function buildMsg(ctx: MsgCtx): string {
-  const s = randInt(1, 10);
-  if (s <= 3) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
-  if (s <= 5) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  if (s <= 7) {
+  const s = randInt(1, 16);
+  if (s <= 2) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
+  if (s <= 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+  if (s <= 6) {
     let m = pickRandom(COMENTARIOS);
     if (Math.random() < 0.3) m += `, ${pickRandom(COMPLEMENTOS)}`;
     return cap(maybeEmoji(m));
   }
-  if (s === 8) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
-  if (s === 9) {
+  if (s <= 8) return cap(maybeEmoji(pickRandom(OPINIOES)));
+  if (s <= 10) return cap(maybeEmoji(pickRandom(COTIDIANO)));
+  if (s <= 12) return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
+  if (s === 13) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}`));
+  if (s === 14) {
     const f = pickRandom(FRASES_NUMERO).replace("{n}", String(randInt(2, 15))).replace("{a}", String(randInt(2019, 2025)));
     return cap(maybeEmoji(f));
   }
-  // s === 10: context-specific
+  if (s === 15) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
+  // s === 16: context-specific
   if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
-  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
-  return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  if (ctx === "community") return Math.random() < 0.4 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(`${pickRandom(COTIDIANO)}`));
+  return cap(maybeEmoji(pickRandom(DICAS_GERAIS)));
 }
 
 Deno.serve(async (req) => {
@@ -276,25 +316,44 @@ function getImagePool(): string[] {
 const IMAGE_POOL = getImagePool();
 
 const IMAGE_CAPTIONS = [
-  "📸", "Olha isso!", "Show 🔥", "Top demais!", "😍",
-  "Que legal", "Sensacional!", "Massa!", "👀", "Curti muito",
-  "Bom demais 🙌", "Olha que bacana", "💯", "Registro do dia",
-  "Achei interessante", "😄", "Boa!", "Que foto!", "🌟",
+  "Olha que lindo isso 📸", "Registro do dia ✨", "Momento especial 🙌",
+  "Curti demais essa foto", "Olha que coisa boa 🔥", "Isso aqui tá demais",
+  "Que cenário incrível", "Achei muito bonito isso", "Olha o que encontrei hoje",
+  "Dia abençoado 🙏", "Vale a pena registrar", "Momento de paz ☀️",
+  "Cada dia uma conquista", "Simplesmente perfeito 💯", "A vida é boa demais",
+  "Natureza sempre surpreende 🌿", "Que energia boa", "Olha essa beleza",
+  "Pra guardar na memória", "Isso me faz feliz 😊", "Olha que show",
+  "Tô apaixonado por isso", "Que vista maravilhosa", "Mais um dia incrível",
+  "Gratidão por tudo 🙏", "Melhor momento do dia", "Isso é viver bem",
+  "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-const AUDIO_CAPTIONS = [
-  "Tá aí o áudio", "Ouve aí", "Escuta isso", "Áudio rapidão",
-  "Falei aqui rapidinho", "Tá aí ó", "Ouve quando puder",
-];
-
-const STATUS_TEXTS = [
-  "Bom dia! ☀️", "Boa tarde pessoal! 🌤️", "Boa noite! 🌙",
-  "Dia produtivo 💪", "Mais um dia de luta 🔥", "Gratidão 🙏",
-  "Trabalhando duro 💼", "Foco total 🎯", "Semana abençoada ✨",
-  "Vamos que vamos 🚀", "Dia lindo hoje ☀️", "Sexta-feira 🎉",
-  "Deus é bom o tempo todo 🙌", "Sextou! 🥳", "Segunda-feira produtiva 💪",
-  "Confiança no processo 🧠", "Sempre em frente ➡️", "Dia de conquistas 🏆",
-  "Tranquilidade sempre 🧘", "Bora trabalhar! 💰",
+const STATUS_CAPTIONS = [
+  "Bom dia! ☀️ Que seu dia seja incrível",
+  "Boa tarde pessoal! 🌤️ Seguimos firmes",
+  "Boa noite! 🌙 Descansem bem",
+  "Dia produtivo demais 💪 Gratidão",
+  "Mais um dia de luta e conquista 🔥",
+  "Gratidão por tudo que tenho 🙏",
+  "Trabalhando duro pra conquistar 💼",
+  "Foco total no objetivo 🎯",
+  "Semana abençoada pra todos ✨",
+  "Vamos que vamos, sem parar 🚀",
+  "Dia lindo pra ser feliz ☀️",
+  "Sextou com estilo 🎉",
+  "Deus é bom o tempo todo 🙌",
+  "Confiança no processo sempre 🧠",
+  "Sempre em frente, nunca pra trás ➡️",
+  "Dia de conquistas e vitórias 🏆",
+  "Tranquilidade e paz interior 🧘",
+  "Bora trabalhar e fazer acontecer 💰",
+  "A natureza é perfeita 🌿",
+  "Momentos que valem a pena registrar 📸",
+  "Cada dia é um presente 🎁",
+  "O melhor tá por vir ✨",
+  "Tudo no tempo de Deus 🙏",
+  "Energia positiva sempre 🌟",
+  "A vida é feita de momentos assim 💛",
 ];
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
@@ -323,34 +382,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   }
 }
 
-async function uazapiSendAudio(baseUrl: string, token: string, number: string) {
-  // Send a PTT (voice note) — UAZAPI supports /send/ptt with a URL or base64
-  // We'll use a short TTS-generated audio via a public URL
-  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=${encodeURIComponent(pickRandom(AUDIO_CAPTIONS))}`;
-  
-  const endpoints = ["/send/ptt", "/send/audio"];
-  for (const ep of endpoints) {
-    try {
-      const payload: any = ep === "/send/ptt"
-        ? { number, audio: audioUrl }
-        : { number, audioUrl, ptt: true };
-      const res = await fetch(`${baseUrl}${ep}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.status === 405) continue;
-      if (!res.ok) {
-        const errText = await res.text();
-        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
-        continue;
-      }
-      return await res.json();
-    } catch (e) {
-      if (ep === endpoints[endpoints.length - 1]) throw e;
-    }
-  }
-}
+// Audio removed — only text + image
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoints = ["/status/post", "/sendStories"];
@@ -377,13 +409,10 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
   }
 }
 
-// Decide media type for group interaction: 70% text, 15% image, 10% audio, 5% skip (natural)
-type MediaType = "text" | "image" | "audio";
+// Decide media type for group interaction: 75% text, 25% image (no audio)
+type MediaType = "text" | "image";
 function pickMediaType(): MediaType {
-  const r = Math.random();
-  if (r < 0.70) return "text";
-  if (r < 0.85) return "image";
-  return "audio";
+  return Math.random() < 0.75 ? "text" : "image";
 }
 
 // ════════════════════════════════════════
@@ -707,10 +736,6 @@ async function handleTick(db: any) {
               await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
               message = `[IMG] ${caption}`;
               mediaLabel = "imagem";
-            } else if (mediaType === "audio") {
-              await uazapiSendAudio(baseUrl, token, groupJid);
-              message = `[PTT] ${pickRandom(AUDIO_CAPTIONS)}`;
-              mediaLabel = "áudio";
             } else {
               await uazapiSendText(baseUrl, token, groupJid, message);
             }
@@ -1021,34 +1046,23 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas para post_status");
           }
 
-          // Randomly decide: text status (60%) or image status (40%)
-          const statusType = Math.random() < 0.6 ? "text" : "image";
-          let statusContent = pickRandom(STATUS_TEXTS);
-          let statusImgUrl: string | undefined;
-
-          if (statusType === "image") {
-            statusImgUrl = pickRandom(IMAGE_POOL);
-            statusContent = pickRandom(IMAGE_CAPTIONS);
-          }
+          // Always use image from bucket + caption
+          const statusImgUrl = pickRandom(IMAGE_POOL);
+          let statusContent = pickRandom(STATUS_CAPTIONS);
 
           try {
-            await uazapiPostStatus(baseUrl, token, statusType as "text" | "image", statusContent, statusImgUrl);
+            await uazapiPostStatus(baseUrl, token, "image", statusContent, statusImgUrl);
           } catch (statusErr) {
-            // If image status fails, try text status as fallback
-            if (statusType === "image") {
-              console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
-              statusContent = pickRandom(STATUS_TEXTS);
-              await uazapiPostStatus(baseUrl, token, "text", statusContent);
-            } else {
-              throw statusErr;
-            }
+            // If image status fails, try text-only as last resort
+            console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
+            await uazapiPostStatus(baseUrl, token, "text", statusContent);
           }
 
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "status_posted",
-            message: `Status postado [${statusType}]: "${statusContent.substring(0, 50)}"`,
-            meta: { status_type: statusType, content: statusContent },
+            message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
+            meta: { status_type: "image", content: statusContent, image_url: statusImgUrl },
           });
           break;
         }
