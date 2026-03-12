@@ -755,7 +755,7 @@ const WarmupInstanceDetail = () => {
                           <span className="text-[10px] text-destructive font-mono">({summary.failed}✗)</span>
                         )}
                         {summary.next && (
-                          <span className="text-[10px] text-muted-foreground/40 font-mono ml-1">{format(summary.next, "HH:mm")}</span>
+                          <span className="text-[10px] text-muted-foreground/40 font-mono ml-1">{formatBrt(summary.next, "HH:mm")}</span>
                         )}
                       </div>
                     );
