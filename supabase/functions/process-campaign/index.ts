@@ -293,7 +293,7 @@ class RandomPicker {
     if (this.total <= 1) return 0;
     let picked: number;
     do {
-      picked = Math.floor(Math.random() * this.total);
+      picked = Math.floor(secureRandom() * this.total);
     } while (picked === this.lastPicked && this.total > 1);
     this.lastPicked = picked;
     return picked;
