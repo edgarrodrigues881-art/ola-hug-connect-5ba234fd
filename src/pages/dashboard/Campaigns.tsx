@@ -683,7 +683,7 @@ const Campaigns = () => {
       ? savedContacts.filter(c => selectedSavedContactIds.has(c.id))
       : filteredSavedContacts;
     const imported: Contact[] = toImport.map((c, i) => ({
-      id: Date.now() + i, nome: c.name, numero: c.phone,
+      id: Date.now() + i, nome: c.name, numero: c.phone.replace(/\D/g, ""),
       var1: c.var1 || "", var2: c.var2 || "", var3: c.var3 || "", var4: c.var4 || "", var5: c.var5 || "",
       var6: c.var6 || "", var7: c.var7 || "", var8: c.var8 || "", var9: c.var9 || "", var10: c.var10 || "",
     }));
