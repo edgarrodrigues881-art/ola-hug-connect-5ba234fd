@@ -740,7 +740,13 @@ const WarmupInstanceDetail = () => {
                 </div>
 
                 {/* Summary by type */}
-                <div className="px-5 py-3 space-y-2">
+                <div className="px-5 py-3 space-y-2.5">
+                  <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-1">
+                    <span className="flex-1">Tipo</span>
+                    <span className="w-16 text-right">Feitas</span>
+                    <span className="w-16 text-right">Total</span>
+                    <span className="w-14 text-right">Próx.</span>
+                  </div>
                   {Object.entries(typeSummary).map(([type, summary]) => {
                     const cfg = jobTypeLabels[type] || { label: type, icon: Target, color: "text-muted-foreground" };
                     const Icon = cfg.icon;
@@ -748,19 +754,19 @@ const WarmupInstanceDetail = () => {
                       <div key={type} className="flex items-center gap-2.5">
                         <Icon className={cn("w-3.5 h-3.5 shrink-0", cfg.color)} />
                         <span className="text-[11px] font-medium text-foreground flex-1">{cfg.label}</span>
-                        <span className="text-[10px] text-emerald-500 font-mono">{summary.done}</span>
-                        <span className="text-[10px] text-muted-foreground/30">/</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">{summary.total}</span>
+                        <span className="w-16 text-right text-[10px] text-emerald-500 font-mono font-bold">{summary.done}</span>
+                        <span className="w-16 text-right text-[10px] text-muted-foreground font-mono">{summary.total}</span>
+                        <span className="w-14 text-right text-[10px] text-muted-foreground/40 font-mono">
+                          {summary.next ? formatBrt(summary.next, "HH:mm") : "—"}
+                        </span>
                         {summary.failed > 0 && (
                           <span className="text-[10px] text-destructive font-mono">({summary.failed}✗)</span>
-                        )}
-                        {summary.next && (
-                          <span className="text-[10px] text-muted-foreground/40 font-mono ml-1">{formatBrt(summary.next, "HH:mm")}</span>
                         )}
                       </div>
                     );
                   })}
                 </div>
+
 
                 {/* Future jobs */}
                 {futureJobs.length > 0 && (
