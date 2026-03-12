@@ -24,8 +24,30 @@ import {
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
   CalendarDays, Target, UserPlus, Send, RotateCcw,
-  FastForward, SkipForward,
+  FastForward, SkipForward, ChevronDown,
 } from "lucide-react";
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  cycle_started: "Ciclo iniciado",
+  cycle_paused: "Ciclo pausado",
+  cycle_resumed: "Ciclo retomado",
+  cycle_stopped: "Ciclo encerrado",
+  group_joined: "Entrou no grupo",
+  group_msg_sent: "Msg em grupo",
+  group_interaction: "Interação grupo",
+  autosave_interaction: "Auto Save",
+  community_interaction: "Comunidade",
+  daily_reset: "Reset diário",
+  phase_transition: "Mudança de fase",
+  health_check: "Verificação",
+  enable_autosave: "Ativou Auto Save",
+  enable_community: "Ativou Comunidade",
+  join_group: "Entrada em grupo",
+  error: "Erro",
+};
+function translateEventType(type: string) {
+  return EVENT_TYPE_LABELS[type] || type.replace(/_/g, " ");
+}
 import { formatDistanceToNow, differenceInCalendarDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
