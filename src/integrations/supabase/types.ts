@@ -493,6 +493,16 @@ export type Database = {
           tags: string[] | null
           updated_at: string
           user_id: string
+          var1: string
+          var10: string
+          var2: string
+          var3: string
+          var4: string
+          var5: string
+          var6: string
+          var7: string
+          var8: string
+          var9: string
         }
         Insert: {
           created_at?: string
@@ -504,6 +514,16 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           user_id: string
+          var1?: string
+          var10?: string
+          var2?: string
+          var3?: string
+          var4?: string
+          var5?: string
+          var6?: string
+          var7?: string
+          var8?: string
+          var9?: string
         }
         Update: {
           created_at?: string
@@ -515,6 +535,16 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           user_id?: string
+          var1?: string
+          var10?: string
+          var2?: string
+          var3?: string
+          var4?: string
+          var5?: string
+          var6?: string
+          var7?: string
+          var8?: string
+          var9?: string
         }
         Relationships: []
       }
