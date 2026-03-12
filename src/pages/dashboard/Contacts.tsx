@@ -47,12 +47,17 @@ const MAPPING_OPTIONS: { value: ContactColumnMapping; label: string }[] = [
   ...VAR_KEYS.map((k, i) => ({ value: k as ContactColumnMapping, label: `Variável ${i + 1}` })),
 ];
 
-// Virtualized row for contacts list
-function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemoveTag, onDelete, onEdit, toast, deleteContacts, ariaAttributes, showTableVars }: any): ReactElement | null {
-  const contact = filtered[index];
-  if (!contact) return null;
+// Linha da tabela de contatos (memoizada)
+interface ContactRowProps {
+  contact: Contact;
+  onRemoveTag: (contactId: string, tag: string) => void;
+  onDelete: (ids: string[]) => void;
+  onEdit: (contact: Contact) => void;
+}
+
+const ContactRow = memo(function ContactRow({ contact, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
   return (
-    <div style={{ ...style, minWidth: 1430 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
+    <div style={{ minWidth: 1430 }} className="flex items-center border-b border-border/50 hover:bg-muted/20 text-sm">
       <div className="p-3 w-10 shrink-0"><button onClick={() => onEdit(contact)} className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-muted-foreground hover:text-primary transition-colors"><Pencil className="w-3.5 h-3.5" /></button></div>
       <div className="p-3 w-[140px] shrink-0 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-3 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">{contact.phone}</div>
@@ -86,7 +91,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
       </div>
     </div>
   );
-}
+});
 
 const Contacts = () => {
   const { toast } = useToast();
