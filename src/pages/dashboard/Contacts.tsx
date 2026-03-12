@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo, memo, type ReactElement } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo, type ReactElement, type CSSProperties } from "react";
+import { List } from "react-window";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -504,17 +505,28 @@ const Contacts = () => {
           <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">Nenhum contato encontrado</div>
-        ) : (
-          <div style={{ minWidth: 1430, maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? "auto" : undefined }}>
+        ) : filtered.length <= 10 ? (
+          <div style={{ minWidth: 1430 }}>
             {filtered.map((contact) => (
-              <ContactRow
-                key={contact.id}
-                contact={contact}
-                onRemoveTag={removeTag}
-                onDelete={handleDeleteIds}
-                onEdit={openEditDialog}
-              />
+              <ContactRow key={contact.id} contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
             ))}
+          </div>
+        ) : (
+          <div style={{ minWidth: 1430 }}>
+            <List
+              rowCount={filtered.length}
+              rowHeight={44}
+              style={{ height: Math.min(filtered.length * 44, 480), overflowY: 'auto' }}
+              rowComponent={({ rowIndex, style: rowStyle }: { rowIndex: number; style: CSSProperties }) => {
+                const contact = filtered[rowIndex];
+                return (
+                  <div style={rowStyle}>
+                    <ContactRow contact={contact} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
+                  </div>
+                );
+              }}
+              rowProps={{} as any}
+            />
           </div>
         )}
       </Card>
