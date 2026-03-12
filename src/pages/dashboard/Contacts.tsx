@@ -66,7 +66,7 @@ function ContactRow({ index, style, filtered, selected, onToggleSelect, onRemove
           </Badge>
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
-      {VAR_KEYS.map(k => (
+      {showTableVars && VAR_KEYS.map(k => (
         <div key={k} className="p-3 w-[100px] shrink-0 text-xs text-muted-foreground truncate">
           {contact[k]?.trim() || "—"}
         </div>
