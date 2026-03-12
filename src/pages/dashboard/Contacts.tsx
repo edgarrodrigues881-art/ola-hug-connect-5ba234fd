@@ -562,26 +562,41 @@ const Contacts = () => {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Tags</Label>
-                <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-md border border-border/50 bg-background">
-                  {(editContact.tags || []).map((tag: string) => (
-                    <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p)}>
-                      {tag}
-                      <X className="w-2.5 h-2.5" />
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {customTags.filter(t => !(editContact.tags || []).includes(t)).map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="text-[10px] cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-colors"
-                      onClick={() => setEditContact(p => p ? { ...p, tags: [...(p.tags || []), tag] } : p)}
-                    >
-                      + {tag}
-                    </Badge>
-                  ))}
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button type="button" className="w-full flex flex-wrap items-center gap-1.5 min-h-[36px] p-2 rounded-md border border-border/50 bg-background text-xs hover:border-primary/30 transition-colors cursor-pointer">
+                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => (
+                        <Badge key={tag} variant="outline" className="text-[10px] gap-1" onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
+                          {tag}
+                          <X className="w-2.5 h-2.5" />
+                        </Badge>
+                      )) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="start">
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {customTags.map(tag => {
+                        const isSelected = (editContact.tags || []).includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setEditContact(p => {
+                              if (!p) return p;
+                              const tags = p.tags || [];
+                              return { ...p, tags: isSelected ? tags.filter(t => t !== tag) : [...tags, tag] };
+                            })}
+                            className={cn("w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 hover:bg-muted transition-colors", isSelected && "bg-muted font-medium")}
+                          >
+                            <Checkbox checked={isSelected} className="h-3.5 w-3.5 pointer-events-none" />
+                            {tag}
+                          </button>
+                        );
+                      })}
+                      {customTags.length === 0 && <p className="text-xs text-muted-foreground p-2">Nenhuma tag criada</p>}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Variables toggle */}
