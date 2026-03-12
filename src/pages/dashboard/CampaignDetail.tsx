@@ -732,7 +732,7 @@ const CampaignDetail = () => {
               <Checkbox checked={resendFailed} onCheckedChange={(v) => setResendFailed(!!v)} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Falhas</p>
-                <p className="text-[10px] text-muted-foreground">Contatos que falharam no envio ({stats.failed})</p>
+                <p className="text-[10px] text-muted-foreground">Contatos que falharam no envio, exceto números inválidos ({contacts.filter(c => (c.status === "failed" || c.status === "error") && !(c.error_message || "").toLowerCase().includes("número inválido") && !(c.error_message || "").toLowerCase().includes("not on whats") && !(c.error_message || "").toLowerCase().includes("not registered") && !(c.error_message || "").toLowerCase().includes("not_exists")).length})</p>
               </div>
               <XCircle className="w-4 h-4 text-destructive/60" />
             </label>
