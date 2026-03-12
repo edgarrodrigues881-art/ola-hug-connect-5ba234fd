@@ -316,25 +316,44 @@ function getImagePool(): string[] {
 const IMAGE_POOL = getImagePool();
 
 const IMAGE_CAPTIONS = [
-  "📸", "Olha isso!", "Show 🔥", "Top demais!", "😍",
-  "Que legal", "Sensacional!", "Massa!", "👀", "Curti muito",
-  "Bom demais 🙌", "Olha que bacana", "💯", "Registro do dia",
-  "Achei interessante", "😄", "Boa!", "Que foto!", "🌟",
+  "Olha que lindo isso 📸", "Registro do dia ✨", "Momento especial 🙌",
+  "Curti demais essa foto", "Olha que coisa boa 🔥", "Isso aqui tá demais",
+  "Que cenário incrível", "Achei muito bonito isso", "Olha o que encontrei hoje",
+  "Dia abençoado 🙏", "Vale a pena registrar", "Momento de paz ☀️",
+  "Cada dia uma conquista", "Simplesmente perfeito 💯", "A vida é boa demais",
+  "Natureza sempre surpreende 🌿", "Que energia boa", "Olha essa beleza",
+  "Pra guardar na memória", "Isso me faz feliz 😊", "Olha que show",
+  "Tô apaixonado por isso", "Que vista maravilhosa", "Mais um dia incrível",
+  "Gratidão por tudo 🙏", "Melhor momento do dia", "Isso é viver bem",
+  "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-const AUDIO_CAPTIONS = [
-  "Tá aí o áudio", "Ouve aí", "Escuta isso", "Áudio rapidão",
-  "Falei aqui rapidinho", "Tá aí ó", "Ouve quando puder",
-];
-
-const STATUS_TEXTS = [
-  "Bom dia! ☀️", "Boa tarde pessoal! 🌤️", "Boa noite! 🌙",
-  "Dia produtivo 💪", "Mais um dia de luta 🔥", "Gratidão 🙏",
-  "Trabalhando duro 💼", "Foco total 🎯", "Semana abençoada ✨",
-  "Vamos que vamos 🚀", "Dia lindo hoje ☀️", "Sexta-feira 🎉",
-  "Deus é bom o tempo todo 🙌", "Sextou! 🥳", "Segunda-feira produtiva 💪",
-  "Confiança no processo 🧠", "Sempre em frente ➡️", "Dia de conquistas 🏆",
-  "Tranquilidade sempre 🧘", "Bora trabalhar! 💰",
+const STATUS_CAPTIONS = [
+  "Bom dia! ☀️ Que seu dia seja incrível",
+  "Boa tarde pessoal! 🌤️ Seguimos firmes",
+  "Boa noite! 🌙 Descansem bem",
+  "Dia produtivo demais 💪 Gratidão",
+  "Mais um dia de luta e conquista 🔥",
+  "Gratidão por tudo que tenho 🙏",
+  "Trabalhando duro pra conquistar 💼",
+  "Foco total no objetivo 🎯",
+  "Semana abençoada pra todos ✨",
+  "Vamos que vamos, sem parar 🚀",
+  "Dia lindo pra ser feliz ☀️",
+  "Sextou com estilo 🎉",
+  "Deus é bom o tempo todo 🙌",
+  "Confiança no processo sempre 🧠",
+  "Sempre em frente, nunca pra trás ➡️",
+  "Dia de conquistas e vitórias 🏆",
+  "Tranquilidade e paz interior 🧘",
+  "Bora trabalhar e fazer acontecer 💰",
+  "A natureza é perfeita 🌿",
+  "Momentos que valem a pena registrar 📸",
+  "Cada dia é um presente 🎁",
+  "O melhor tá por vir ✨",
+  "Tudo no tempo de Deus 🙏",
+  "Energia positiva sempre 🌟",
+  "A vida é feita de momentos assim 💛",
 ];
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
