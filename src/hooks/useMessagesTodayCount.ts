@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 
 /**
  * Lightweight hook that polls only the warmup message count for today.
- * Runs every 5s with a single aggregate query — no heavy joins.
+ * Filters out report_wa devices to match the instances panel.
  */
 export function useMessagesTodayCount() {
   const { user } = useAuth();
@@ -15,10 +15,21 @@ export function useMessagesTodayCount() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
+      // Get valid device IDs (non-report_wa)
+      const { data: devices } = await supabase
+        .from("devices")
+        .select("id")
+        .eq("user_id", user!.id)
+        .neq("login_type", "report_wa");
+
+      const validIds = (devices || []).map((d) => d.id);
+      if (validIds.length === 0) return 0;
+
       const { count } = await supabase
         .from("warmup_audit_logs")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user!.id)
+        .in("device_id", validIds)
         .in("event_type", [
           "group_msg_sent",
           "autosave_msg_sent",
