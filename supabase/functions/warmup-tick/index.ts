@@ -440,9 +440,33 @@ function pickMediaType(): MediaType {
 // ════════════════════════════════════════
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
+
+// Check if current time is within the warmup operating window (07:00-19:00 BRT)
+function isWithinOperatingWindow(): boolean {
+  const nowUtc = new Date();
+  // BRT = UTC-3
+  const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
+  return brtHour >= 7 && brtHour < 19;
+}
+
+// Interaction job types that should respect the time window
+const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
+
 async function handleTick(db: any) {
   const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
   const now = new Date().toISOString();
+  const withinWindow = isWithinOperatingWindow();
+
+  // If outside operating window, cancel all pending interaction jobs with past run_at
+  if (!withinWindow) {
+    const cancelledTypes = INTERACTION_JOB_TYPES;
+    const { count } = await db.from("warmup_jobs")
+      .update({ status: "cancelled", last_error: "Cancelado: fora da janela 07-19 BRT" })
+      .eq("status", "pending")
+      .lte("run_at", now)
+      .in("job_type", cancelledTypes);
+    console.log(`[warmup-tick] Outside 07-19 BRT window, cancelled ${count || 0} stale interaction jobs`);
+  }
 
   // Recover stale "running" jobs (stuck for >5 minutes) back to pending
   const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
