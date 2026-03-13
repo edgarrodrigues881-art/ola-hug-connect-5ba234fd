@@ -868,8 +868,7 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          const igKey = `${job.device_id}:${cycle.id}`;
-          const allIGs = instanceGroupsMap[igKey] || [];
+          const allIGs = instanceGroupsMap[job.device_id] || [];
           const joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
 
           if (joinedGroups.length === 0) {
