@@ -840,16 +840,17 @@ const WarmupInstanceDetail = () => {
 
             rows.push({ day: `Dia ${autosaveDay}`, phase: "Auto Save", phaseKey: "autosave_enabled", activities: ["Msgs em grupos (200-500)", "5 contatos × 3 rodadas", "5 status/dia"], volume: "200-500 + 15" });
 
-            const communityScale = [3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-            const commDays = communityScale.map((msgs, i) => ({
-              label: i === communityScale.length - 1 ? `Dia ${communityStartDay + i}+` : `Dia ${communityStartDay + i}`,
-              msgs,
+            const peerScale = [3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
+            const commDays = peerScale.map((peers, i) => ({
+              label: i === peerScale.length - 1 ? `Dia ${communityStartDay + i}+` : `Dia ${communityStartDay + i}`,
+              peers,
+              totalMsgs: `${peers * 30}-${peers * 50}`,
             }));
             for (const cd of commDays) {
               rows.push({
                 day: cd.label, phase: "Comunidade", phaseKey: "community_enabled",
-                activities: ["Grupos + Auto Save + Comunidade", `Comunitário: ${cd.msgs} msgs`, "5 status/dia"],
-                volume: `200-500 + 15 + ${cd.msgs}`,
+                activities: ["Grupos + Auto Save + Comunidade", `${cd.peers} peers × 30-50 msgs cada`, "25% imagens + texto", "5 status/dia"],
+                volume: `200-500 + 15 + ${cd.totalMsgs}`,
               });
             }
 
