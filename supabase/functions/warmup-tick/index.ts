@@ -1008,10 +1008,13 @@ async function handleTick(db: any) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
-          // Use cached user messages
+          // Mix custom pool (30%) with generated messages (70%) for variety
           const cachedMsgs = userMsgsMap[job.user_id];
-          const useCustomPool = cachedMsgs && cachedMsgs.length > 0;
-          const getGroupMsg = () => useCustomPool ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
+          const hasCustomPool = cachedMsgs && cachedMsgs.length > 0;
+          const getGroupMsg = () => {
+            if (hasCustomPool && Math.random() < 0.3) return pickRandom(cachedMsgs);
+            return generateNaturalMessage("group");
+          };
 
           const targetGroupRecord = pickRandom(joinedGroups);
           const poolGroup = groupsPoolMap[targetGroupRecord.group_id];
