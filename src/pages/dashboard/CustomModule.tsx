@@ -214,16 +214,16 @@ const CustomModule = () => {
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">A intensidade do aquecimento deve considerar:</p>
+                <p className="text-sm text-muted-foreground">A escolha da intensidade deve levar em conta três fatores do chip:</p>
                 <div className="grid grid-cols-3 gap-3 text-sm text-muted-foreground">
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Idade do número</p>
+                    <p className="text-foreground font-medium">Tempo de vida</p>
                   </div>
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Histórico do chip</p>
+                    <p className="text-foreground font-medium">Histórico de uso</p>
                   </div>
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Estado atual</p>
+                    <p className="text-foreground font-medium">Situação atual</p>
                   </div>
                 </div>
 
