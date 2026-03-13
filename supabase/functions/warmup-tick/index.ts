@@ -366,32 +366,49 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 }
 
 // ── Media pools for warmup variety ──
-// Uses images from the 'media' storage bucket under warmup-media/ folder.
-// Upload 10-20 varied images (landscapes, food, pets, etc.) there.
-// Falls back to public stock URLs if bucket images aren't available.
+// Dynamically loads images from storage bucket at tick time
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-function getImagePool(): string[] {
-  const bucketBase = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-media`;
-  // Pool of filenames expected in the bucket (upload manually: 01.jpg, 02.jpg, etc.)
-  const bucketImages = Array.from({ length: 30 }, (_, i) => 
-    `${bucketBase}/${String(i + 1).padStart(2, "0")}.jpg`
-  );
-  // Fallback stock images (free, no attribution needed)
-  const fallbackImages = [
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
-    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80",
-    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80",
-    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
-    "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&q=80",
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80",
-    "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&q=80",
-    "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&q=80",
-    "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80",
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
-  ];
-  return [...bucketImages, ...fallbackImages];
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80",
+  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
+  "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&q=80",
+  "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80",
+  "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&q=80",
+  "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&q=80",
+  "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
+];
+
+// Cache loaded pool per invocation
+let _imagePoolCache: string[] | null = null;
+
+async function getImagePool(db: any): Promise<string[]> {
+  if (_imagePoolCache) return _imagePoolCache;
+  
+  try {
+    // List actual files in warmup-media/ folder
+    const { data: files, error } = await db.storage.from("media").list("warmup-media", { limit: 100 });
+    if (!error && files && files.length > 0) {
+      const bucketBase = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-media`;
+      const bucketImages = files
+        .filter((f: any) => f.name && !f.name.startsWith(".") && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name))
+        .map((f: any) => `${bucketBase}/${encodeURIComponent(f.name)}`);
+      
+      console.log(`[warmup-tick] Found ${bucketImages.length} images in storage bucket`);
+      if (bucketImages.length > 0) {
+        _imagePoolCache = [...bucketImages, ...FALLBACK_IMAGES];
+        return _imagePoolCache;
+      }
+    }
+  } catch (e) {
+    console.log(`[warmup-tick] Failed to list bucket images: ${e.message}`);
+  }
+  
+  _imagePoolCache = FALLBACK_IMAGES;
+  return _imagePoolCache;
 }
-const IMAGE_POOL = getImagePool();
 
 const IMAGE_CAPTIONS = [
   "Olha que lindo isso 📸", "Registro do dia ✨", "Momento especial 🙌",
