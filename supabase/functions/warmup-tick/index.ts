@@ -513,7 +513,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(2000);
+    .limit(800);
 
   if (fetchErr) throw fetchErr;
 
@@ -629,7 +629,7 @@ async function handleTick(db: any) {
     jobsByDevice[job.device_id].push(job);
   }
 
-  const MAX_PARALLEL_DEVICES = 20; // Process up to 20 devices simultaneously
+  const MAX_PARALLEL_DEVICES = 10; // Process up to 10 devices simultaneously (safe for ~300 instances)
   const deviceIds = Object.keys(jobsByDevice);
   let succeeded = 0;
   let failed = 0;
