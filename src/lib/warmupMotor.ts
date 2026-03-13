@@ -77,7 +77,7 @@ export const PROFILES: Record<QualityProfile, ProfileConfig> = {
   },
 };
 
-export const DURATION_OPTIONS = [3, 7, 14, 21, 30] as const;
+export const DURATION_OPTIONS = [7, 14, 21, 30] as const;
 
 /**
  * Generate a non-linear growth curve with natural oscillation.
