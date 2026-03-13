@@ -244,8 +244,8 @@ const Plans = () => {
             </div>
             <ul className="space-y-3 mb-7">
               {["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/60 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
+              <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/50 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))]/80 flex-shrink-0" />{item}
                 </li>
               ))}
               <li className="flex items-center gap-2.5 text-[13px] font-medium">
