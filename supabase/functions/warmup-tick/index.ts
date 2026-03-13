@@ -743,38 +743,11 @@ async function handleTick(db: any) {
         case "phase_transition": {
           const targetPhase = job.payload?.target_phase || "groups_only";
           await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
-          
-          // When transitioning to groups_only (Day 2), schedule join_group jobs
+
           if (targetPhase === "groups_only") {
-            const { data: pendingGroups } = await db
-              .from("warmup_instance_groups")
-              .select("group_id, warmup_groups_pool(id, name)")
-              .eq("device_id", job.device_id)
-              .eq("cycle_id", cycle.id)
-              .eq("join_status", "pending");
-
-            if (pendingGroups && pendingGroups.length > 0) {
-              const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
-              const joinWindowMs = 4 * 60 * 60 * 1000; // 4h window
-              const joinSpacing = joinWindowMs / (shuffled.length + 1);
-              const joinJobs: any[] = [];
-              const nowMs = Date.now();
-
-              for (let i = 0; i < shuffled.length; i++) {
-                const g = shuffled[i];
-                const groupName = g.warmup_groups_pool?.name || "Grupo";
-                const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
-                const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
-                joinJobs.push({
-                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                  job_type: "join_group",
-                  payload: { group_id: g.group_id, group_name: groupName },
-                  run_at: runAt.toISOString(), status: "pending",
-                });
-              }
-              if (joinJobs.length > 0) {
-                await db.from("warmup_jobs").insert(joinJobs);
-              }
+            const joinScheduled = await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+            if (joinScheduled > 0) {
+              console.log(`[phase_transition] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
             }
 
             // Also schedule today's group interaction jobs
