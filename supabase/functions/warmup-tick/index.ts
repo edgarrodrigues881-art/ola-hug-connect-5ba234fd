@@ -435,29 +435,37 @@ const STATUS_CAPTIONS = [
 ];
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Try /send/image first, then /send/media as fallback
-  const endpoints = ["/send/image", "/send/media"];
+  // UAZAPI V2 expects "file" field for image URL
+  const endpoints = [
+    { path: "/send/image", body: { number, file: imageUrl, caption } },
+    { path: "/send/image", body: { number, image: imageUrl, caption } },
+    { path: "/send/media", body: { number, file: imageUrl, caption, type: "image" } },
+    { path: "/send/media", body: { number, mediaUrl: imageUrl, caption, type: "image" } },
+  ];
+  let lastErr: any = null;
   for (const ep of endpoints) {
     try {
-      const payload: any = ep === "/send/image" 
-        ? { number, image: imageUrl, caption }
-        : { number, mediaUrl: imageUrl, caption, type: "image" };
-      const res = await fetch(`${baseUrl}${ep}`, {
+      const res = await fetch(`${baseUrl}${ep.path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(ep.body),
       });
       if (res.status === 405) continue;
+      const txt = await res.text();
       if (!res.ok) {
-        const errText = await res.text();
-        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        lastErr = new Error(`API ${res.status}: ${txt}`);
+        // If it's "missing file field", try next variant
+        if (txt.includes("missing file") || txt.includes("missing image")) continue;
+        if (ep === endpoints[endpoints.length - 1]) throw lastErr;
         continue;
       }
-      return await res.json();
+      try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
     } catch (e) {
-      if (ep === endpoints[endpoints.length - 1]) throw e;
+      lastErr = e;
+      continue;
     }
   }
+  throw lastErr || new Error("All image send endpoints failed");
 }
 
 // Audio removed — only text + image
