@@ -512,7 +512,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(50);
+    .limit(300);
 
   if (fetchErr) throw fetchErr;
 
