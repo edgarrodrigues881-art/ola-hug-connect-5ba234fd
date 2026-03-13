@@ -164,9 +164,9 @@ const HowItWorks = () => (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {steps.map((s, i) => (
         <motion.div key={s.num} variants={fadeUp} className="relative text-center md:text-left">
-          <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/25 block mb-3 font-mono">{s.num}</span>
+          <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/20 block mb-3 font-mono">{s.num}</span>
           <h3 className="text-[15px] font-bold text-white mb-2">{s.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{s.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{s.desc}</p>
           {i < 3 && <div className="hidden md:block absolute top-8 -right-4 w-8 border-t border-dashed border-white/10" />}
         </motion.div>
       ))}
