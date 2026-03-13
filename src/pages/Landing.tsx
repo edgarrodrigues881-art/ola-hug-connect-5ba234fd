@@ -231,7 +231,7 @@ const Plans = () => {
           >
             {p.popular && (
               <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-[hsl(var(--primary))] text-white px-4 py-1.5 rounded-full shadow-lg shadow-[hsl(var(--primary))]/30">
-                Popular
+                Mais escolhido
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
