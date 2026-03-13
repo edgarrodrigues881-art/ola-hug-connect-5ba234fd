@@ -175,11 +175,11 @@ const CustomModule = () => {
                   A saúde da conta não depende só do comportamento de envio — <strong className="text-foreground">depende também da infraestrutura.</strong>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <CheckItem label="IP estável?" />
-                  <CheckItem label="Proxy é residencial?" />
-                  <CheckItem label="Proxy não é data center?" />
-                  <CheckItem label="A conexão oscila?" invert />
-                  <CheckItem label="O IP já foi usado para spam?" invert />
+                  <CheckItem label="IP fixo e estável" />
+                  <CheckItem label="Proxy residencial ativo" />
+                  <CheckItem label="Proxy fora de data center" />
+                  <CheckItem label="Conexão instável ou oscilando" invert />
+                  <CheckItem label="IP com histórico de spam" invert />
                 </div>
                 <p className="text-xs text-muted-foreground italic">
                   Infraestrutura fraca compromete qualquer aquecimento.
