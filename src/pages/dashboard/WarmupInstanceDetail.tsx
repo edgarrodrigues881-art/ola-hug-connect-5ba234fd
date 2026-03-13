@@ -65,10 +65,14 @@ const phaseConfig: Record<string, { label: string; color: string; icon: typeof C
 
 const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
 
-/* ── Helper: community start day based on chip_state ── */
+/* ── Helper: autosave / community start day based on chip_state ── */
+function getAutosaveStartDay(chipState: string): number {
+  const groupsEnd = chipState === "unstable" ? 7 : 4;
+  return groupsEnd + 1;
+}
 function getCommunityStartDay(chipState: string): number {
   const groupsEnd = chipState === "unstable" ? 7 : 4;
-  return groupsEnd + 2; // autosave is groupsEnd+1, community is groupsEnd+2
+  return groupsEnd + 2;
 }
 
 /* ── component ── */
