@@ -40,15 +40,15 @@ const CustomModule = () => {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">Guia de Aquecimento</h1>
         <p className="text-sm text-muted-foreground">
-          Passo a passo para preparar, configurar e aquecer seus números com segurança.
+          Orientações completas para preparar o aparelho, configurar a rede e conduzir o aquecimento de forma segura e organizada.
         </p>
       </div>
 
       {/* Indicador de estado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatusIndicator color="emerald" label="Conta Estável" description="Pode escalar o volume com segurança" />
-        <StatusIndicator color="amber" label="Conta Sensível" description="Exige progressão lenta e monitoramento" />
-        <StatusIndicator color="red" label="Conta Crítica" description="Risco elevado — estabilize antes de prosseguir" />
+        <StatusIndicator color="emerald" label="Conta Estável" description="Pronta para aumentar volume gradualmente" />
+        <StatusIndicator color="amber" label="Conta Sensível" description="Precisa de progressão lenta e acompanhamento constante" />
+        <StatusIndicator color="red" label="Conta Crítica" description="Risco alto — foque em estabilizar antes de qualquer envio" />
       </div>
 
       <Accordion type="multiple" className="space-y-4">
@@ -64,18 +64,18 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                 <p>
-                  Com as atualizações recentes do WhatsApp, conectar o QR Code sem nenhum uso manual prévio pode gerar
-                  restrições logo nos primeiros dias de aquecimento.
+                  Após as atualizações recentes do WhatsApp, chips que conectam o QR Code sem nenhuma atividade manual prévia
+                  têm maior chance de sofrer restrições logo nos primeiros dias de uso.
                 </p>
                 <p>
-                  <strong className="text-foreground font-medium">Ação necessária:</strong> Antes de escanear o QR Code, 
-                  envie de <strong className="text-foreground font-medium">1 a 3 mensagens manualmente</strong> pelo 
-                  aparelho. Isso cria um histórico mínimo de uso real.
+                  <strong className="text-foreground font-medium">O que fazer antes:</strong> Use o aparelho normalmente por alguns minutos — 
+                  envie de <strong className="text-foreground font-medium">1 a 3 mensagens reais</strong> para contatos conhecidos. 
+                  Isso gera um histórico mínimo de atividade humana que ajuda a proteger o número.
                 </p>
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex gap-2.5">
                   <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-400">
-                    Esse passo simples reduz consideravelmente o risco de bloqueio nos primeiros dias.
+                    Essa etapa leva menos de 5 minutos e reduz consideravelmente o risco de bloqueio nos primeiros dias de aquecimento.
                   </p>
                 </div>
               </div>
@@ -96,62 +96,62 @@ const CustomModule = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Passo 1 */}
                 <StepCard step={1} title="Formatação do aparelho" icon={<RotateCcw className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Formate o celular obrigatoriamente se:</p>
+                  <p className="text-sm text-muted-foreground mb-2">A formatação é obrigatória quando o aparelho:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Já foi usado para disparos em massa</li>
-                    <li>Já sofreu bloqueio ou restrição</li>
-                    <li>Teve mais de um número operando</li>
-                    <li>Teve algum app modificado instalado</li>
+                    <li>Já foi usado para envios em massa ou automação</li>
+                    <li>Já teve algum número bloqueado ou restrito</li>
+                    <li>Operou com mais de um chip ao mesmo tempo</li>
+                    <li>Teve apps modificados (GB WhatsApp, clones etc.)</li>
                   </ul>
-                  <p className="text-sm text-muted-foreground mt-3 mb-1">O que a formatação elimina:</p>
+                  <p className="text-sm text-muted-foreground mt-3 mb-1">A formatação completa elimina:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Resíduos de sessões anteriores</li>
-                    <li>Tokens e credenciais antigas</li>
-                    <li>Cache acumulado de aplicativos</li>
-                    <li>Configurações que podem conflitar</li>
+                    <li>Resíduos de sessões e conexões anteriores</li>
+                    <li>Tokens e credenciais armazenados</li>
+                    <li>Cache de apps que pode causar conflitos</li>
+                    <li>Configurações residuais de uso anterior</li>
                   </ul>
                   <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-400">Sempre faça o reset completo de fábrica. Formatação parcial não é suficiente.</p>
+                    <p className="text-xs text-amber-400">Faça sempre o reset completo de fábrica. Uma formatação parcial não remove todos os rastros e pode comprometer o processo.</p>
                   </div>
                 </StepCard>
 
                 {/* Passo 2 */}
-                <StepCard step={2} title="Instalação mínima" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Siga esta ordem:</p>
+                <StepCard step={2} title="Instalação limpa" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Após formatar, siga esta ordem de instalação:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Faça login com uma conta Google</li>
-                    <li>Instale somente o WhatsApp oficial da Play Store</li>
-                    <li>Confirme que a versão é a oficial (não modded)</li>
-                    <li>Remova a conta Google após a instalação, se fizer parte da sua estratégia</li>
-                    <li>Não instale outros apps de mensagens ou automação</li>
+                    <li>Faça login com uma conta Google limpa</li>
+                    <li>Baixe apenas o WhatsApp oficial pela Play Store</li>
+                    <li>Verifique se a versão instalada é a original (não modificada)</li>
+                    <li>Se fizer parte da sua estratégia, remova a conta Google após instalar</li>
+                    <li>Não instale nenhum outro app de mensagens, clones ou ferramentas de automação</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-3 italic">
-                    Quanto menos aplicativos no aparelho, menor o risco de associação cruzada.
+                    Quanto mais limpo o ambiente do aparelho, menor a chance de o WhatsApp associar seu número a comportamentos suspeitos.
                   </p>
                 </StepCard>
 
                 {/* Passo 3 */}
-                <StepCard step={3} title="Tipo de conexão" icon={<Signal className="w-4 h-4 text-emerald-500" />}>
+                <StepCard step={3} title="Escolha da conexão" icon={<Signal className="w-4 h-4 text-emerald-500" />}>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <p><strong className="text-foreground">Sem histórico negativo:</strong> Wi-Fi pode ser usado na instalação.</p>
-                    <p><strong className="text-foreground">Com histórico de bloqueio:</strong> Use dados móveis (4G) desde o início.</p>
-                    <p><strong className="text-foreground">Após a configuração:</strong> Mantenha o aparelho preferencialmente no 4G.</p>
-                    <p className="text-xs italic mt-2">Evite alternar entre Wi-Fi e 4G com frequência — isso pode levantar suspeitas.</p>
+                    <p><strong className="text-foreground">Chip sem histórico negativo:</strong> Pode usar Wi-Fi durante a instalação inicial sem problemas.</p>
+                    <p><strong className="text-foreground">Chip com histórico de bloqueio:</strong> Use dados móveis (4G) desde o primeiro momento para evitar associação com IPs problemáticos.</p>
+                    <p><strong className="text-foreground">Após configurar tudo:</strong> Mantenha o aparelho conectado preferencialmente via 4G durante toda a operação.</p>
+                    <p className="text-xs italic mt-2">Alternar frequentemente entre Wi-Fi e 4G pode gerar inconsistências de IP que levantam suspeitas no WhatsApp.</p>
                   </div>
                 </StepCard>
 
                 {/* Passo 4 */}
-                <StepCard step={4} title="Organização dos aparelhos" icon={<Layers className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Práticas a evitar:</p>
+                <StepCard step={4} title="Separação de aparelhos" icon={<Layers className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Evite as seguintes práticas:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Rodar 3 ou mais WhatsApps no mesmo celular</li>
-                    <li>Misturar conta saudável com conta restrita</li>
-                    <li>Usar o aparelho principal para contingência</li>
+                    <li>Manter 3 ou mais WhatsApps ativos no mesmo aparelho</li>
+                    <li>Colocar contas saudáveis junto com contas já restritas</li>
+                    <li>Usar o aparelho principal da operação como contingência</li>
                   </ul>
                   <div className="mt-3 rounded-md border border-border/30 bg-muted/30 p-3">
                     <p className="text-xs text-muted-foreground">
-                      <strong className="text-foreground">Regra prática:</strong> Quanto menos números por aparelho, melhor. Uma conta restrita pode comprometer as demais por efeito cascata.
+                      <strong className="text-foreground">Regra de ouro:</strong> Mantenha o mínimo de números por aparelho. Se uma conta restrita for bloqueada, ela pode arrastar as outras junto — é o chamado efeito cascata.
                     </p>
                   </div>
                 </StepCard>
@@ -172,7 +172,7 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  A saúde da conta não depende só do comportamento de envio — <strong className="text-foreground">depende também da infraestrutura.</strong>
+                  O aquecimento não depende apenas de como você envia — <strong className="text-foreground">a qualidade da sua rede e infraestrutura é igualmente determinante.</strong>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <CheckItem label="IP fixo e estável" />
@@ -182,20 +182,20 @@ const CustomModule = () => {
                   <CheckItem label="IP com histórico de spam" invert />
                 </div>
                 <p className="text-xs text-muted-foreground italic">
-                  Uma infraestrutura mal configurada invalida qualquer processo de aquecimento.
+                  Se a infraestrutura estiver mal configurada, nenhum processo de aquecimento será eficiente — mesmo com a melhor estratégia de envio.
                 </p>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Em caso de bloqueio temporário
+                    O que fazer em caso de bloqueio temporário
                   </p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Ative o modo avião por alguns minutos</li>
-                    <li>Reative os dados móveis para forçar a renovação do IP</li>
+                    <li>Ative o modo avião por 3 a 5 minutos para liberar a conexão</li>
+                    <li>Reative os dados móveis — isso força a renovação do IP automaticamente</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Se o bloqueio persistir: <strong className="text-foreground">não force novos envios</strong>. Revise toda a estrutura antes de tentar novamente.
+                    Se o problema continuar após renovar o IP: <strong className="text-foreground">pare os envios imediatamente</strong>. Revise toda a infraestrutura (proxy, aparelho, isolamento de contas) antes de tentar novamente.
                   </p>
                 </div>
               </div>
@@ -209,41 +209,41 @@ const CustomModule = () => {
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <Activity className="w-5 h-5 text-emerald-500 shrink-0" />
-                Modelagem do Aquecimento
+                Estratégia de Aquecimento
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">A intensidade do aquecimento deve considerar:</p>
+                <p className="text-sm text-muted-foreground">A escolha da intensidade deve levar em conta três fatores do chip:</p>
                 <div className="grid grid-cols-3 gap-3 text-sm text-muted-foreground">
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Idade do número</p>
+                    <p className="text-foreground font-medium">Tempo de vida</p>
                   </div>
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Histórico do chip</p>
+                    <p className="text-foreground font-medium">Histórico de uso</p>
                   </div>
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
-                    <p className="text-foreground font-medium">Estado atual</p>
+                    <p className="text-foreground font-medium">Situação atual</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Ideal para contas novas ou sensíveis. Baixa frequência com progressão lenta." />
-                  <IntensityCard label="Moderado" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para contas estáveis. Volume controlado com crescimento gradual." />
-                  <IntensityCard label="Intenso" icon={<Zap className="w-4 h-4" />} color="red" description="Somente para contas maduras com histórico comprovadamente limpo." />
+                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Indicado para chips novos ou sensíveis. Frequência baixa com aumento muito gradual ao longo dos dias." />
+                  <IntensityCard label="Moderado" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para chips estáveis e sem histórico negativo. Volume controlado com crescimento progressivo e monitorado." />
+                  <IntensityCard label="Intenso" icon={<Zap className="w-4 h-4" />} color="red" description="Exclusivo para chips maduros, com semanas de uso consistente e nenhum registro de restrição anterior." />
                 </div>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-amber-400">Não existe aquecimento eficaz em 24 horas.</strong> Aquecer é um processo de maturação — tentar acelerar gera restrições.
+                    <strong className="text-amber-400">Aquecimento não se resolve em 24 horas.</strong> É um processo de maturação que exige paciência. Pular etapas ou acelerar o ritmo quase sempre leva a restrições.
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 flex gap-3">
                   <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    A progressão gradual é o que garante estabilidade a longo prazo. Só aumente a intensidade quando a conta estiver comprovadamente estável.
+                    A chave é a consistência: aumente a intensidade somente quando o chip estiver estável por vários dias consecutivos. Progressão controlada garante resultados duradouros.
                   </p>
                 </div>
               </div>
@@ -257,7 +257,7 @@ const CustomModule = () => {
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <AlertTriangle className="w-5 h-5 text-emerald-500 shrink-0" />
-                Diagnóstico e Estado Crítico
+                Diagnóstico e Recuperação
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
@@ -266,19 +266,19 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <Search className="w-4 h-4" />
-                    A conta não consegue enviar nem 1 mensagem?
+                    O chip não consegue enviar sequer uma mensagem?
                   </p>
-                  <p className="text-xs text-muted-foreground">Isso geralmente indica:</p>
+                  <p className="text-xs text-muted-foreground">Esse comportamento geralmente aponta para um ou mais dos seguintes problemas:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Infraestrutura comprometida</li>
-                    <li>IP ou proxy com reputação negativa</li>
-                    <li>Compartilhamento com contas já restritas</li>
-                    <li>Histórico acumulado de infrações</li>
+                    <li>Infraestrutura de rede comprometida (IP, proxy, conexão)</li>
+                    <li>IP ou proxy já associado a atividades de spam</li>
+                    <li>Chip compartilhando aparelho com contas já restritas</li>
+                    <li>Acúmulo de infrações anteriores no número</li>
                   </ul>
-                  <p className="text-xs text-muted-foreground mt-2">Antes de tentar qualquer envio, verifique:</p>
+                  <p className="text-xs text-muted-foreground mt-2">Antes de fazer qualquer tentativa de envio, valide cada um desses pontos:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                     <MiniCheck label="IP e reputação" />
-                    <MiniCheck label="Proxy e tipo" />
+                    <MiniCheck label="Tipo de proxy" />
                     <MiniCheck label="Estado do aparelho" />
                     <MiniCheck label="Isolamento de contas" />
                   </div>
@@ -288,21 +288,21 @@ const CustomModule = () => {
                 <div className="rounded-lg border-2 border-red-500/40 bg-red-500/5 p-4 space-y-3">
                   <p className="text-sm font-semibold text-red-400 flex items-center gap-2">
                     <Ban className="w-4 h-4" />
-                    Conta em estado crítico
+                    Chip em estado crítico — como agir
                   </p>
-                  <p className="text-xs text-red-300/70">Não force envios. Aplique os seguintes ajustes:</p>
+                  <p className="text-xs text-red-300/70">Nesta situação, forçar envios só vai piorar. Aplique imediatamente:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Reduza a intensidade ao mínimo possível</li>
-                    <li>Aumente os intervalos entre mensagens</li>
-                    <li>Elimine qualquer pico de volume</li>
-                    <li>Suspenda envios manuais paralelos</li>
+                    <li>Reduza a intensidade do aquecimento ao mínimo absoluto</li>
+                    <li>Aumente consideravelmente os intervalos entre mensagens</li>
+                    <li>Elimine qualquer pico de volume — mantenha envios constantes e baixos</li>
+                    <li>Suspenda completamente envios manuais ou paralelos neste chip</li>
                   </ul>
                   <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
                     <p className="text-xs text-red-300 font-medium">
-                      Objetivo nesta fase: <strong>estabilizar, não escalar.</strong>
+                      O único objetivo nesta fase é <strong>estabilizar o chip</strong> — não tentar escalar.
                     </p>
                     <p className="text-xs text-red-300/60 mt-1">
-                      Forçar envios em número crítico quase sempre resulta em bloqueio permanente.
+                      Insistir em enviar com um chip em estado crítico leva, na grande maioria dos casos, ao bloqueio definitivo da conta.
                     </p>
                   </div>
                 </div>
@@ -317,15 +317,15 @@ const CustomModule = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            Checklist antes de iniciar
+            Checklist — Confirme antes de iniciar o aquecimento
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
-              { key: "formatted" as const, label: "Aparelho formatado com reset de fábrica" },
-              { key: "whatsapp" as const, label: "WhatsApp oficial instalado e verificado" },
-              { key: "structure" as const, label: "Infraestrutura de rede validada (IP/Proxy)" },
-              { key: "intensity" as const, label: "Intensidade ajustada ao estado da conta" },
-              { key: "noMix" as const, label: "Contas restritas isoladas de contas saudáveis" },
+              { key: "formatted" as const, label: "Aparelho passou por reset completo de fábrica" },
+              { key: "whatsapp" as const, label: "WhatsApp oficial instalado e versão verificada" },
+              { key: "structure" as const, label: "Rede validada: IP estável, proxy residencial ativo" },
+              { key: "intensity" as const, label: "Intensidade do aquecimento compatível com o estado do chip" },
+              { key: "noMix" as const, label: "Chips restritos separados fisicamente dos saudáveis" },
             ]).map((item) => (
               <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
                 <Checkbox
