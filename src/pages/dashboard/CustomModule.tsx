@@ -266,19 +266,19 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <Search className="w-4 h-4" />
-                    A conta não consegue enviar nem 1 mensagem?
+                    O chip não consegue enviar sequer uma mensagem?
                   </p>
-                  <p className="text-xs text-muted-foreground">Isso geralmente indica:</p>
+                  <p className="text-xs text-muted-foreground">Esse comportamento geralmente aponta para um ou mais dos seguintes problemas:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Infraestrutura comprometida</li>
-                    <li>IP ou proxy com reputação negativa</li>
-                    <li>Compartilhamento com contas já restritas</li>
-                    <li>Histórico acumulado de infrações</li>
+                    <li>Infraestrutura de rede comprometida (IP, proxy, conexão)</li>
+                    <li>IP ou proxy já associado a atividades de spam</li>
+                    <li>Chip compartilhando aparelho com contas já restritas</li>
+                    <li>Acúmulo de infrações anteriores no número</li>
                   </ul>
-                  <p className="text-xs text-muted-foreground mt-2">Antes de tentar qualquer envio, verifique:</p>
+                  <p className="text-xs text-muted-foreground mt-2">Antes de fazer qualquer tentativa de envio, valide cada um desses pontos:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                     <MiniCheck label="IP e reputação" />
-                    <MiniCheck label="Proxy e tipo" />
+                    <MiniCheck label="Tipo de proxy" />
                     <MiniCheck label="Estado do aparelho" />
                     <MiniCheck label="Isolamento de contas" />
                   </div>
