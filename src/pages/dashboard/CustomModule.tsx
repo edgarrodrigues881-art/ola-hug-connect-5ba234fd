@@ -321,11 +321,11 @@ const CustomModule = () => {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
-              { key: "formatted" as const, label: "Aparelho formatado corretamente" },
-              { key: "whatsapp" as const, label: "WhatsApp oficial confirmado" },
-              { key: "structure" as const, label: "Estrutura validada" },
-              { key: "intensity" as const, label: "Intensidade configurada de acordo com estado" },
-              { key: "noMix" as const, label: "Nenhuma conta crítica misturada" },
+              { key: "formatted" as const, label: "Aparelho formatado com reset de fábrica" },
+              { key: "whatsapp" as const, label: "WhatsApp oficial instalado e verificado" },
+              { key: "structure" as const, label: "Infraestrutura de rede validada (IP/Proxy)" },
+              { key: "intensity" as const, label: "Intensidade ajustada ao estado da conta" },
+              { key: "noMix" as const, label: "Contas restritas isoladas de contas saudáveis" },
             ]).map((item) => (
               <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
                 <Checkbox
