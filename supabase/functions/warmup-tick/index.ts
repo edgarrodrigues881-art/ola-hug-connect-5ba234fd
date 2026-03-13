@@ -743,38 +743,11 @@ async function handleTick(db: any) {
         case "phase_transition": {
           const targetPhase = job.payload?.target_phase || "groups_only";
           await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
-          
-          // When transitioning to groups_only (Day 2), schedule join_group jobs
+
           if (targetPhase === "groups_only") {
-            const { data: pendingGroups } = await db
-              .from("warmup_instance_groups")
-              .select("group_id, warmup_groups_pool(id, name)")
-              .eq("device_id", job.device_id)
-              .eq("cycle_id", cycle.id)
-              .eq("join_status", "pending");
-
-            if (pendingGroups && pendingGroups.length > 0) {
-              const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
-              const joinWindowMs = 4 * 60 * 60 * 1000; // 4h window
-              const joinSpacing = joinWindowMs / (shuffled.length + 1);
-              const joinJobs: any[] = [];
-              const nowMs = Date.now();
-
-              for (let i = 0; i < shuffled.length; i++) {
-                const g = shuffled[i];
-                const groupName = g.warmup_groups_pool?.name || "Grupo";
-                const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
-                const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
-                joinJobs.push({
-                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                  job_type: "join_group",
-                  payload: { group_id: g.group_id, group_name: groupName },
-                  run_at: runAt.toISOString(), status: "pending",
-                });
-              }
-              if (joinJobs.length > 0) {
-                await db.from("warmup_jobs").insert(joinJobs);
-              }
+            const joinScheduled = await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+            if (joinScheduled > 0) {
+              console.log(`[phase_transition] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
             }
 
             // Also schedule today's group interaction jobs
@@ -1178,6 +1151,13 @@ async function handleTick(db: any) {
             meta: { day: newDay, phase: newPhase, budget_target: newTarget, chip_state: chipState },
           });
 
+          if (newPhase === "groups_only") {
+            const joinScheduled = await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+            if (joinScheduled > 0) {
+              console.log(`[daily_reset] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
+            }
+          }
+
           await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
           const nextReset = new Date();
@@ -1343,6 +1323,68 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   }
 
   return v;
+}
+
+// ════════════════════════════════════════
+// Ensure join_group jobs are scheduled for pending groups
+// ════════════════════════════════════════
+async function ensureJoinGroupJobs(
+  db: any,
+  cycleId: string,
+  userId: string,
+  deviceId: string,
+) {
+  const { data: existingJoinJobs } = await db
+    .from("warmup_jobs")
+    .select("id")
+    .eq("cycle_id", cycleId)
+    .eq("job_type", "join_group")
+    .in("status", ["pending", "running"])
+    .limit(1);
+
+  if (existingJoinJobs && existingJoinJobs.length > 0) {
+    return 0;
+  }
+
+  const { data: pendingGroups } = await db
+    .from("warmup_instance_groups")
+    .select("group_id, warmup_groups_pool(id, name)")
+    .eq("device_id", deviceId)
+    .eq("cycle_id", cycleId)
+    .eq("join_status", "pending");
+
+  if (!pendingGroups || pendingGroups.length === 0) {
+    return 0;
+  }
+
+  const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
+  const joinWindowMs = 4 * 60 * 60 * 1000;
+  const joinSpacing = joinWindowMs / (shuffled.length + 1);
+  const nowMs = Date.now();
+  const joinJobs: any[] = [];
+
+  for (let i = 0; i < shuffled.length; i++) {
+    const g = shuffled[i];
+    const groupName = g.warmup_groups_pool?.name || "Grupo";
+    const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
+    const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+
+    joinJobs.push({
+      user_id: userId,
+      device_id: deviceId,
+      cycle_id: cycleId,
+      job_type: "join_group",
+      payload: { group_id: g.group_id, group_name: groupName },
+      run_at: runAt.toISOString(),
+      status: "pending",
+    });
+  }
+
+  if (joinJobs.length > 0) {
+    await db.from("warmup_jobs").insert(joinJobs);
+  }
+
+  return joinJobs.length;
 }
 
 // ════════════════════════════════════════
