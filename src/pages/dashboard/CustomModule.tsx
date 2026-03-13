@@ -317,7 +317,7 @@ const CustomModule = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            Checklist Final
+            Checklist antes de iniciar
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
