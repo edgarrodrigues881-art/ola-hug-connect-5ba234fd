@@ -122,7 +122,7 @@ export function useDeviceCycle(deviceId: string) {
         .from("warmup_cycles" as any)
         .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
         .eq("device_id", deviceId)
-        .in("phase", ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "community_light", "paused"])
+        .in("phase", ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "community_light", "completed", "paused", "error"])
         .order("created_at", { ascending: false })
         .limit(1);
       if (error) throw error;
