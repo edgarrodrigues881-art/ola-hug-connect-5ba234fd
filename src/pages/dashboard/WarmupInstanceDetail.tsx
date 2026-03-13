@@ -888,7 +888,6 @@ const WarmupInstanceDetail = () => {
               "group_interaction",
               "autosave_interaction",
               "community_interaction",
-              "post_status",
             ]);
 
             const sortedJobs = [...scheduledJobs]
