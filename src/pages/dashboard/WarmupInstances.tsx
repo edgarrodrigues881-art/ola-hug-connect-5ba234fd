@@ -371,7 +371,7 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(null);
     toast({ title: "Aquecimento cancelado" });
     engine.mutate(
-      { action: "cancel", device_id: deviceId },
+      { action: "stop", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao cancelar", variant: "destructive" }); } }
     );
   };
