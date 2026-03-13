@@ -1176,7 +1176,7 @@ async function handleTick(db: any) {
 
           // Send image or text
           if (isImage) {
-            const imageUrl = pickRandom(IMAGE_POOL);
+            const imageUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
             try {
               await uazapiSendImage(baseUrl, token, targetPhone, imageUrl, caption);
