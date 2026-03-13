@@ -1094,7 +1094,7 @@ async function handleTick(db: any) {
             last_daily_reset_at: new Date().toISOString(),
           }).eq("id", cycle.id);
 
-          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "RECUPERAÇÃO", unstable: "SENSÍVEL" };
+          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
           const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
