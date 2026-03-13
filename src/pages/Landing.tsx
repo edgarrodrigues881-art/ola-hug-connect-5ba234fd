@@ -101,7 +101,7 @@ const Hero = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima estabilidade</span>
           </motion.h1>
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
-            Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar com segurança.
+            Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar sua operação com segurança.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm font-semibold px-8 h-12 gap-2 shadow-lg shadow-[hsl(var(--primary))]/20">
