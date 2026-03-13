@@ -326,11 +326,11 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       const testText = `Teste status ✅ ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
       const textPayload = {
-        to: "status@broadcast",
         type: "text",
         text: testText,
-        backgroundColor: "#25D366",
-        font: 1,
+        background_color: randInt(4, 9),
+        font: randInt(0, 4),
+        async: false,
       };
 
       let postedMessageId: string | null = null;
@@ -707,11 +707,11 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
   // Text status
   if (type === "text") {
     const payload = {
-      to: "status@broadcast",
       type: "text",
       text: content,
-      backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]),
-      font: randInt(0, 4),
+      background_color: randInt(1, 19),
+      font: randInt(0, 8),
+      async: false,
     };
 
     const res = await fetch(`${baseUrl}${endpoint}`, {
@@ -743,9 +743,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       const dataUri = `data:${mimeType};base64,${base64}`;
 
       const fieldVariants = [
-        { to: "status@broadcast", type: "image", file: dataUri, caption: content },
-        { to: "status@broadcast", type: "image", image: dataUri, caption: content },
-        { to: "status@broadcast", type: "image", media: dataUri, caption: content },
+        { type: "image", file: dataUri, text: content, mimetype: mimeType, async: false },
+        { type: "image", file: dataUri, text: content, async: false },
+        { type: "image", file: dataUri, caption: content, async: false },
       ];
 
       for (const payload of fieldVariants) {
@@ -759,7 +759,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
           console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
           if (!res.ok) continue;
           return parseAndValidate(txt, "image");
-        } catch (_e) {
+        } catch (e) {
+          const errMsg = e instanceof Error ? e.message : String(e);
+          if (errMsg.includes("pendente no provedor")) throw e;
           continue;
         }
       }
@@ -768,10 +770,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     }
 
     const urlVariants = [
-      { to: "status@broadcast", type: "image", image: imageUrl, caption: content },
-      { to: "status@broadcast", type: "image", url: imageUrl, caption: content },
-      { to: "status@broadcast", type: "image", media: imageUrl, caption: content },
-      { to: "status@broadcast", type: "image", file: imageUrl, caption: content },
+      { type: "image", file: imageUrl, text: content, async: false },
+      { type: "image", file: imageUrl, caption: content, async: false },
+      { type: "image", image: imageUrl, text: content, async: false },
     ];
 
     for (const payload of urlVariants) {
@@ -785,7 +786,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
         console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
         if (!res.ok) continue;
         return parseAndValidate(txt, "image");
-      } catch (_e) {
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        if (errMsg.includes("pendente no provedor")) throw e;
         continue;
       }
     }
