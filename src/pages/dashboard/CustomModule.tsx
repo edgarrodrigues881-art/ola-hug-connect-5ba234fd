@@ -266,16 +266,16 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <Search className="w-4 h-4" />
-                    Se a conta não aguenta enviar 1 mensagem
+                    A conta não consegue enviar nem 1 mensagem?
                   </p>
-                  <p className="text-xs text-muted-foreground">Isso indica:</p>
+                  <p className="text-xs text-muted-foreground">Isso geralmente indica:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Estrutura comprometida</li>
-                    <li>IP suspeito</li>
-                    <li>Mistura com contas ruins</li>
-                    <li>Histórico muito negativo</li>
+                    <li>Infraestrutura comprometida</li>
+                    <li>IP ou proxy com reputação negativa</li>
+                    <li>Compartilhamento com contas já restritas</li>
+                    <li>Histórico acumulado de infrações</li>
                   </ul>
-                  <p className="text-xs text-muted-foreground mt-2">Antes de qualquer envio:</p>
+                  <p className="text-xs text-muted-foreground mt-2">Antes de tentar qualquer envio, verifique:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                     <MiniCheck label="Verificar IP" />
                     <MiniCheck label="Verificar proxy" />
