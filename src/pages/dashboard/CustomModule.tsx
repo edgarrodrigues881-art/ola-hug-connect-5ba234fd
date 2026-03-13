@@ -172,7 +172,7 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  A saúde da conta não depende só do comportamento de envio — <strong className="text-foreground">depende também da infraestrutura.</strong>
+                  O aquecimento não depende apenas de como você envia — <strong className="text-foreground">a qualidade da sua rede e infraestrutura é igualmente determinante.</strong>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <CheckItem label="IP fixo e estável" />
@@ -182,20 +182,20 @@ const CustomModule = () => {
                   <CheckItem label="IP com histórico de spam" invert />
                 </div>
                 <p className="text-xs text-muted-foreground italic">
-                  Uma infraestrutura mal configurada invalida qualquer processo de aquecimento.
+                  Se a infraestrutura estiver mal configurada, nenhum processo de aquecimento será eficiente — mesmo com a melhor estratégia de envio.
                 </p>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Em caso de bloqueio temporário
+                    O que fazer em caso de bloqueio temporário
                   </p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Ative o modo avião por alguns minutos</li>
-                    <li>Reative os dados móveis para forçar a renovação do IP</li>
+                    <li>Ative o modo avião por 3 a 5 minutos para liberar a conexão</li>
+                    <li>Reative os dados móveis — isso força a renovação do IP automaticamente</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Se o bloqueio persistir: <strong className="text-foreground">não force novos envios</strong>. Revise toda a estrutura antes de tentar novamente.
+                    Se o problema continuar após renovar o IP: <strong className="text-foreground">pare os envios imediatamente</strong>. Revise toda a infraestrutura (proxy, aparelho, isolamento de contas) antes de tentar novamente.
                   </p>
                 </div>
               </div>
