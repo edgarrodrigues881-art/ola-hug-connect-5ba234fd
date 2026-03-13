@@ -262,7 +262,7 @@ const Plans = () => {
                   : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
               }`}
             >
-              Contratar plano
+              Começar agora
             </Button>
           </motion.div>
         ))}
