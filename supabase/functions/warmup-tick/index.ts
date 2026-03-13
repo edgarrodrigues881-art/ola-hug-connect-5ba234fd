@@ -439,6 +439,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   const endpoints = [
     { path: "/send/image", body: { number, file: imageUrl, caption } },
     { path: "/send/image", body: { number, image: imageUrl, caption } },
+    { path: "/send/image", body: { number, url: imageUrl, caption } },
     { path: "/send/media", body: { number, file: imageUrl, caption, type: "image" } },
     { path: "/send/media", body: { number, mediaUrl: imageUrl, caption, type: "image" } },
   ];
