@@ -687,6 +687,44 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   throw new Error("Image send failed");
 }
 
+// Per-tick cache for privacy config to avoid calling GET /instance/privacy every job
+const _privacyConfigured = new Set<string>();
+
+async function ensureStatusPrivacyAll(baseUrl: string, token: string) {
+  const cacheKey = `${baseUrl}:${token}`;
+  if (_privacyConfigured.has(cacheKey)) return;
+
+  try {
+    // Check current privacy
+    const getRes = await fetch(`${baseUrl}/instance/privacy`, {
+      method: "GET",
+      headers: { token, Accept: "application/json" },
+    });
+    if (getRes.ok) {
+      const privacy = await getRes.json();
+      const statusPrivacy = privacy?.status || privacy?.StatusPrivacy || privacy?.statusPrivacy || "";
+      console.log(`[privacy] Current status privacy: ${JSON.stringify(privacy)}`);
+
+      if (statusPrivacy !== "all") {
+        // Set privacy to "all" for status
+        const setRes = await fetch(`${baseUrl}/instance/privacy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify({ status: "all" }),
+        });
+        const setTxt = await setRes.text();
+        console.log(`[privacy] Set status privacy to 'all' → ${setRes.status}: ${setTxt.substring(0, 200)}`);
+      }
+    } else {
+      console.warn(`[privacy] GET /instance/privacy → ${getRes.status}`);
+    }
+  } catch (e) {
+    console.warn(`[privacy] Error configuring privacy:`, (e as Error).message);
+  }
+
+  _privacyConfigured.add(cacheKey);
+}
+
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoint = "/send/status";
 
