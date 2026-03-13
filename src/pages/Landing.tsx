@@ -310,7 +310,7 @@ const FooterSection = () => (
         <span className="text-sm font-semibold text-white">DG Contingência</span>
       </div>
       <p className="text-[11px] text-white/35 text-center max-w-lg leading-relaxed">
-        Os resultados dependem da estratégia aplicada pelo operador. A plataforma fornece infraestrutura, ferramentas de gestão e suporte técnico.
+        Os resultados dependem da estratégia do operador. A plataforma fornece infraestrutura, ferramentas e suporte técnico.
       </p>
       <p className="text-[11px] text-white/25">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
     </div>
