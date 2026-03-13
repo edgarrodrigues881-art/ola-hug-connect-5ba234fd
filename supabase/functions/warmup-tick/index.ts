@@ -1040,34 +1040,45 @@ async function handleTick(db: any) {
 
           const newPhase = getPhaseForDay(newDay, chipState);
 
-          // Cancel overdue interaction jobs from previous day to avoid impossible carry-over backlog
+          // If phase is completed, finish the cycle
+          if (newPhase === "completed") {
+            await db.from("warmup_cycles").update({
+              is_running: false, phase: "completed",
+              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+            }).eq("id", cycle.id);
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "cycle_completed",
+              message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+            });
+            break;
+          }
+
+          // Cancel overdue interaction jobs from previous day
           const nowIso = new Date().toISOString();
           await db.from("warmup_jobs")
             .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
             .eq("cycle_id", cycle.id)
             .eq("status", "pending")
             .lt("run_at", nowIso)
-            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction", "post_status"]);
+            .in("job_type", ["group_interaction", "post_status"]);
 
-          // Set budgets based on chip_state + phase — grupo não dá ban, volume agressivo
+          // Set budgets based on chip_state + day
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
-            budgetMin = 3; budgetMax = 8;
+            budgetMin = 0; budgetMax = 0;
           } else if (chipState === "unstable") {
-            if (newPhase === "groups_only") { budgetMin = 50; budgetMax = 120; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 228; }
-            else { budgetMin = 170; budgetMax = 410; }
+            // Very light: 20-120 across days 2-7
+            budgetMin = 20 + (newDay - 2) * 10;
+            budgetMax = 40 + (newDay - 2) * 16;
           } else if (chipState === "recovered") {
-            if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 260; }
-            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 400; }
-            else { budgetMin = 200; budgetMax = 530; }
+            // Light: 40-150 across days 2-4
+            budgetMin = 40 + (newDay - 2) * 20;
+            budgetMax = 80 + (newDay - 2) * 35;
           } else {
-            // Chip novo: volume agressivo em grupos
-            if (newPhase === "groups_only") { budgetMin = 150; budgetMax = 250; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 206; budgetMax = 306; }
-            else if (newPhase === "community_light") { budgetMin = 232; budgetMax = 403; }
-            else { budgetMin = 310; budgetMax = 510; }
+            // Chip novo: 80-250 across days 2-4
+            budgetMin = 80 + (newDay - 2) * 35;
+            budgetMax = 150 + (newDay - 2) * 50;
           }
 
           const newTarget = randInt(budgetMin, budgetMax);
