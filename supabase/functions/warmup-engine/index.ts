@@ -20,28 +20,23 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 // ── Phase rules per chip_state ──
-// CHIP NOVO:       Day 1 OFF, Days 2-4 groups_only (4 days)
-// CHIP RECUPERADO: Day 1 OFF, Days 2-4 groups_only (4 days, lighter)
-// CHIP INSTÁVEL:   Day 1 OFF, Days 2-7 groups_only (7 days, very light)
-function getPhaseForDay(day: number, chipState: string): string {
-  // Day 1 is always OFF (pre_24h = no actions)
-  if (day <= 1) return "pre_24h";
-  
-  // All profiles: groups_only from day 2 onwards
-  if (chipState === "unstable") {
-    // Days 2-7 groups, then completed
-    if (day <= 7) return "groups_only";
-    return "completed";
-  }
-  // new & recovered: Days 2-4 groups, then completed
-  if (day <= 4) return "groups_only";
-  return "completed";
+// All chips: Day 1 OFF, then groups_only, then autosave_enabled (1 day), then community_enabled
+// New/Recovered: Days 2-4 groups → Day 5 autosave → Day 6+ community
+// Unstable:      Days 2-7 groups → Day 8 autosave → Day 9+ community
+function getGroupsEndDay(chipState: string): number {
+  return chipState === "unstable" ? 7 : 4;
 }
 
-// Get total days for each chip state
-function getTotalDays(chipState: string): number {
-  if (chipState === "unstable") return 7;
-  return 4; // new & recovered
+function getPhaseForDay(day: number, chipState: string): string {
+  if (day <= 1) return "pre_24h";
+  const groupsEnd = getGroupsEndDay(chipState);
+  if (day <= groupsEnd) return "groups_only";
+  if (day === groupsEnd + 1) return "autosave_enabled";
+  return "community_enabled";
+}
+
+function getTotalDays(_chipState: string): number {
+  return 30; // All profiles run for 30 days
 }
 
 Deno.serve(async (req) => {
@@ -179,10 +174,11 @@ Deno.serve(async (req) => {
 
       const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Banido/Recuperação", unstable: "Chip Crítico/Instável" };
       const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
+      const groupsEnd = getGroupsEndDay(resolvedChipState);
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1 = OFF (descanso). ${allGroups.length} grupos registrados.`,
+        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=OFF, Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos registrados.`,
         meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays },
       });
 
@@ -269,8 +265,8 @@ Deno.serve(async (req) => {
         job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
       });
 
-      // Schedule today's jobs if in groups_only phase
-      if (resumePhase === "groups_only") {
+      // Schedule today's jobs for the current phase
+      if (resumePhase !== "pre_24h" && resumePhase !== "completed") {
         await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
       }
 
@@ -395,7 +391,7 @@ async function scheduleDayJobs(
   const jobs: any[] = [];
 
   // Day 1 = OFF, no jobs
-  if (phase === "pre_24h") return 0;
+  if (phase === "pre_24h" || phase === "completed") return 0;
 
   // Activity window: 07:00-19:00 BRT = 10:00-22:00 UTC
   const today = new Date(now);
@@ -428,6 +424,50 @@ async function scheduleDayJobs(
     }
   }
 
+  // ── AUTOSAVE INTERACTIONS ──
+  // 5 contacts × 3 rounds = 15 messages, sequential: c1,c2,c3,c4,c5,c1,c2,c3,c4,c5,c1,c2,c3,c4,c5
+  if (volumes.autosaveContacts > 0) {
+    const totalAutosave = volumes.autosaveContacts * volumes.autosaveRounds;
+    // Schedule after groups finish (last 3 hours of window)
+    const autosaveWindowStart = effectiveEnd - 3 * 60 * 60 * 1000;
+    const asStart = Math.max(autosaveWindowStart, effectiveStart);
+    const asWindowMs = effectiveEnd - asStart;
+    const asSpacingMs = asWindowMs / (totalAutosave + 1);
+
+    for (let round = 0; round < volumes.autosaveRounds; round++) {
+      for (let c = 0; c < volumes.autosaveContacts; c++) {
+        const idx = round * volumes.autosaveContacts + c;
+        const baseOffset = asSpacingMs * (idx + 1);
+        const jitter = randInt(0, Math.floor(asSpacingMs * 0.3));
+        const runAt = new Date(asStart + baseOffset + jitter);
+        if (runAt.getTime() > effectiveEnd) break;
+        jobs.push({
+          user_id: userId, device_id: deviceId, cycle_id: cycleId,
+          job_type: "autosave_interaction",
+          payload: { recipient_index: c, msg_index: round },
+          run_at: runAt.toISOString(), status: "pending",
+        });
+      }
+    }
+  }
+
+  // ── COMMUNITY INTERACTIONS ──
+  if (volumes.communityMsgs > 0) {
+    const cmSpacingMs = windowMs / (volumes.communityMsgs + 1);
+    for (let i = 0; i < volumes.communityMsgs; i++) {
+      const baseOffset = cmSpacingMs * (i + 1);
+      const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
+      const runAt = new Date(effectiveStart + baseOffset + jitter);
+      if (runAt.getTime() > effectiveEnd) break;
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "community_interaction",
+        payload: {},
+        run_at: runAt.toISOString(), status: "pending",
+      });
+    }
+  }
+
   // ── STATUS POSTS ──
   if (volumes.statusPosts > 0) {
     const stSpacingMs = windowMs / (volumes.statusPosts + 1);
@@ -455,22 +495,59 @@ async function scheduleDayJobs(
 }
 
 // ════════════════════════════════════════
-// Volume configuration per chip_state
-// Only groups — no autosave, no community
+// Volume configuration
+// Groups: 200-500 always
+// AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
+// Community: progressive 5→10→15→20→30→40 max (from community_enabled phase onwards)
+// Status: 5 per day always
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
   statusPosts: number;
+  autosaveContacts: number;
+  autosaveRounds: number;
+  communityMsgs: number;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0 };
+  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0, autosaveContacts: 0, autosaveRounds: 0, communityMsgs: 0 };
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
-  // Todos os chips: 200-500 mensagens em grupo + 5 status por dia
+  // Groups + Status: always active after day 1
   v.groupMsgs = randInt(200, 500);
   v.statusPosts = 5;
+
+  // AutoSave: active from autosave_enabled onwards
+  if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
+    v.autosaveContacts = 5; // 5 different contacts
+    v.autosaveRounds = 3;   // 3 rounds each
+  }
+
+  // Community: active from community_enabled onwards, progressive
+  if (phase === "community_enabled" || phase === "community_light") {
+    const groupsEnd = getGroupsEndDay(chipState);
+    // communityDay = how many days since community started
+    // community starts at groupsEnd + 2
+    const communityStartDay = groupsEnd + 2;
+    const communityDay = dayIndex - communityStartDay + 1;
+
+    if (communityDay <= 0) {
+      v.communityMsgs = 0;
+    } else if (communityDay === 1) {
+      v.communityMsgs = 5;
+    } else if (communityDay === 2) {
+      v.communityMsgs = 10;
+    } else if (communityDay === 3) {
+      v.communityMsgs = 15;
+    } else if (communityDay === 4) {
+      v.communityMsgs = 20;
+    } else if (communityDay === 5) {
+      v.communityMsgs = 30;
+    } else {
+      v.communityMsgs = 40; // max 40, never more
+    }
+  }
 
   return v;
 }
