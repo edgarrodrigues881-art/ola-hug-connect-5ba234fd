@@ -654,6 +654,12 @@ async function handleTick(db: any) {
     const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
     const token = device.uazapi_token || "";
 
+      // ── Guard: skip interaction jobs outside 07-19 BRT window ──
+      if (INTERACTION_JOB_TYPES.includes(job.job_type) && !withinWindow) {
+        await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
+        return false;
+      }
+
       // ── Process job by type ──
       switch (job.job_type) {
         case "join_group": {
