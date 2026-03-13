@@ -117,17 +117,17 @@ const CustomModule = () => {
                 </StepCard>
 
                 {/* Passo 2 */}
-                <StepCard step={2} title="Instalar apenas o necessário" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Fluxo correto:</p>
+                <StepCard step={2} title="Instalação mínima" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Siga esta ordem:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Login com conta Google</li>
-                    <li>Baixar apenas o WhatsApp oficial</li>
-                    <li>Confirmar que é versão oficial</li>
-                    <li>Remover conta Google após instalação (se for parte da sua estratégia)</li>
-                    <li>Evitar instalar apps paralelos</li>
+                    <li>Faça login com uma conta Google</li>
+                    <li>Instale somente o WhatsApp oficial da Play Store</li>
+                    <li>Confirme que a versão é a oficial (não modded)</li>
+                    <li>Remova a conta Google após a instalação, se fizer parte da sua estratégia</li>
+                    <li>Não instale outros apps de mensagens ou automação</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-3 italic">
-                    Quanto mais limpo o ambiente, menor o risco de cruzamento.
+                    Quanto menos aplicativos no aparelho, menor o risco de associação cruzada.
                   </p>
                 </StepCard>
 
