@@ -775,7 +775,7 @@ async function handleTick(db: any) {
               .eq("device_id", job.device_id)
               .eq("group_id", groupId);
 
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "group_joined",
               message: `Entrou no grupo ${groupName} via API${joinJid ? ` (JID: ${joinJid})` : ""}`,
@@ -834,7 +834,7 @@ async function handleTick(db: any) {
             await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
           }
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
             message: `Fase alterada: ${cycle.phase} → ${targetPhase}`,
@@ -907,7 +907,7 @@ async function handleTick(db: any) {
           }
 
           if (!groupJid) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "group_no_jid",
               message: `Grupo sem JID resolvido: ${poolGroup?.name || targetGroupRecord.group_id}. Não é possível enviar mensagem.`,
@@ -942,7 +942,7 @@ async function handleTick(db: any) {
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
             message: `[${mediaLabel}] Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
@@ -992,7 +992,7 @@ async function handleTick(db: any) {
           }).eq("id", cycle.id);
 
           const msgsPerContact = cycle.chip_state === "recovered" ? 2 : 3;
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "autosave_msg_sent",
             message: `Auto Save: msg ${msgIndex + 1}/${msgsPerContact} para ${contact.contact_name || phoneNumber}`,
@@ -1045,7 +1045,7 @@ async function handleTick(db: any) {
           }
 
           if (peerCandidates.length === 0) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_no_peers",
               message: "Nenhuma instância online encontrada — conversa comunitária adiada",
@@ -1060,7 +1060,7 @@ async function handleTick(db: any) {
           const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
           if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
             // Peer offline, skip silently
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_peer_offline",
               message: `Peer ${peerIndex} offline, msg ${job.payload?.msg_index ?? 0} adiada`,
@@ -1091,7 +1091,7 @@ async function handleTick(db: any) {
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "community_msg_sent",
             message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} msg ${job.payload?.msg_index ?? 0} → ${targetPhone.substring(0, 6)}...`,
@@ -1124,14 +1124,14 @@ async function handleTick(db: any) {
               }).eq("id", existingMembership.id);
             }
 
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "phase_changed",
               message: `Auto Save habilitado (${count} contatos ativos) — inscrito no comunitário (somente receber)`,
               meta: { active_contacts: count, auto_enrolled_community: true },
             });
           } else {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_missing",
               message: "Auto Save não habilitado: nenhum contato ativo",
@@ -1147,7 +1147,7 @@ async function handleTick(db: any) {
 
         case "enable_community": {
           if (!["autosave_enabled", "community_light"].includes(cycle.phase)) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_blocked",
               message: "Comunidade bloqueada: fase pré-requisito não ativa",
@@ -1156,7 +1156,7 @@ async function handleTick(db: any) {
           }
           const enableTargetPhase = job.payload?.target_phase || "community_light";
           await db.from("warmup_cycles").update({ phase: enableTargetPhase }).eq("id", cycle.id);
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
             message: `Comunidade habilitada: ${enableTargetPhase}`,
@@ -1173,7 +1173,7 @@ async function handleTick(db: any) {
               is_running: false, phase: "completed",
               daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
             }).eq("id", cycle.id);
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "cycle_completed",
               message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
@@ -1188,7 +1188,7 @@ async function handleTick(db: any) {
               is_running: false, phase: "completed",
               daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
             }).eq("id", cycle.id);
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "cycle_completed",
               message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
@@ -1222,7 +1222,7 @@ async function handleTick(db: any) {
 
           const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
           const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "daily_reset",
             message: `Reset diário [${chipLabel}]: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, budget: ${newTarget}`,
@@ -1258,7 +1258,7 @@ async function handleTick(db: any) {
             await uazapiPostStatus(baseUrl, token, "text", statusContent);
           }
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "status_posted",
             message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
@@ -1268,7 +1268,7 @@ async function handleTick(db: any) {
         }
 
         case "health_check": {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "health_check", message: "Health check OK",
           });
@@ -1276,7 +1276,7 @@ async function handleTick(db: any) {
         }
 
         default: {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "unknown_job_type",
             message: `Tipo desconhecido: ${job.job_type}`,
@@ -1312,7 +1312,7 @@ async function handleTick(db: any) {
           }).eq("id", job.id);
         }
         try {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "error", event_type: "job_failed",
             message: `Job ${job.job_type} falhou: ${jobErr.message}`,
