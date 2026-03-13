@@ -980,6 +980,16 @@ const WarmupInstances = () => {
                       <Flame className="w-3.5 h-3.5" /> Aquecer
                     </Button>
                   ) : null}
+                  {cycle && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+                      onClick={(e) => { e.stopPropagation(); setCancelConfirmDevice(device.id); }}
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -994,6 +1004,29 @@ const WarmupInstances = () => {
           })}
         </div>
       )}
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={!!cancelConfirmDevice} onOpenChange={(open) => { if (!open) setCancelConfirmDevice(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Cancelar aquecimento?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Essa ação irá encerrar o ciclo de aquecimento desta instância. Todo o progresso será perdido e você precisará iniciar um novo aquecimento.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCancelConfirmDevice(null)}>
+              Voltar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => cancelConfirmDevice && handleCancel(cancelConfirmDevice)}>
+              Sim, cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
