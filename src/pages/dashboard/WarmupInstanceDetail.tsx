@@ -915,25 +915,26 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Confirm advance phase dialog */}
+          {/* Confirm advance day dialog */}
           <Dialog open={showAdvanceConfirm} onOpenChange={setShowAdvanceConfirm}>
             <DialogContent className="max-w-sm">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-foreground">
                   <AlertTriangle className="w-5 h-5 text-amber-400" />
-                  Pular fase?
+                  Pular dia?
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Avançar a fase manualmente <strong className="text-foreground">pode comprometer a segurança do chip</strong>.</p>
+                <p>Avançar o dia manualmente <strong className="text-foreground">cancela as tarefas pendentes do dia atual</strong> e agenda novas para o próximo dia.</p>
                 <p>O aquecimento gradual existe para proteger seu número contra restrições e banimentos do WhatsApp.</p>
                 {cycle && (
                   <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                    <span className="font-semibold text-foreground">{phaseConfig[cycle.phase]?.label}</span>
+                    <span className="font-semibold text-foreground">Dia {cycle.day_index}</span>
                     <span className="mx-1.5">→</span>
                     <span className="font-semibold text-foreground">
-                      {phaseConfig[phaseSteps[(phaseSteps.indexOf(cycle.phase as any) + 1)] || ""]?.label || "Próxima"}
+                      {cycle.day_index + 1 > cycle.days_total ? "Concluído" : `Dia ${cycle.day_index + 1}`}
                     </span>
+                    <span className="text-muted-foreground/60 ml-1">/ {cycle.days_total}</span>
                   </p>
                 )}
               </div>
