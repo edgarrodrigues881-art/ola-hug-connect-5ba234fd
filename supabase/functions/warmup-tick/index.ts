@@ -741,9 +741,11 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       const dataUri = `data:${mimeType};base64,${base64}`;
 
       const fieldVariants = [
+        { type: "image", file: dataUri, text: content, mimetype: mimeType },
+        { type: "image", file: dataUri, text: content },
+        { type: "image", file: dataUri, caption: content },
+        // Legacy fallback
         { to: "status@broadcast", type: "image", file: dataUri, caption: content },
-        { to: "status@broadcast", type: "image", image: dataUri, caption: content },
-        { to: "status@broadcast", type: "image", media: dataUri, caption: content },
       ];
 
       for (const payload of fieldVariants) {
