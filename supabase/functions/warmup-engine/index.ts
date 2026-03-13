@@ -142,12 +142,26 @@ Deno.serve(async (req) => {
       const allGroups = shuffleArray(poolGroups || []);
       const jobs: any[] = [];
 
-      // Register groups for this cycle (will join on Day 2)
-      for (const g of allGroups) {
-        await db.from("warmup_instance_groups").insert({
-          user_id: callerUserId, device_id,
-          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-        });
+      // Check if device already has joined groups from a previous cycle
+      const { data: existingGroups } = await db
+        .from("warmup_instance_groups")
+        .select("id, group_id, join_status")
+        .eq("device_id", device_id)
+        .eq("join_status", "joined");
+
+      if (existingGroups && existingGroups.length > 0) {
+        // Update existing groups to reference the new cycle
+        await db.from("warmup_instance_groups")
+          .update({ cycle_id: cycle.id })
+          .eq("device_id", device_id);
+      } else {
+        // Register groups for this cycle (will join on Day 2)
+        for (const g of allGroups) {
+          await db.from("warmup_instance_groups").insert({
+            user_id: callerUserId, device_id,
+            group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+          });
+        }
       }
 
       // Schedule phase_transition to groups_only at 24h mark (Day 2 start)
