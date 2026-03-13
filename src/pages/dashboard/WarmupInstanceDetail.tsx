@@ -55,16 +55,21 @@ import { ptBR } from "date-fns/locale";
 const phaseConfig: Record<string, { label: string; color: string; icon: typeof Clock; step: number }> = {
   pre_24h:            { label: "Primeiras 24h",  color: "text-amber-400",           icon: Timer,        step: 1 },
   groups_only:        { label: "Grupos",          color: "text-teal-400",            icon: Users,        step: 2 },
-  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 3 },
+  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 3 },
+  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 4 },
+  community_light:    { label: "Comunidade Light", color: "text-purple-400",          icon: Globe,        step: 4 },
+  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 5 },
   paused:             { label: "Pausado",          color: "text-amber-400",           icon: Pause,        step: 0 },
   error:              { label: "Erro",             color: "text-destructive",         icon: AlertTriangle, step: 0 },
-  // Legacy phases — kept for backward compatibility with old cycles
-  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 2 },
-  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 2 },
-  community_light:    { label: "Comunidade Light", color: "text-purple-400",          icon: Globe,        step: 2 },
 };
 
-const phaseSteps = ["pre_24h", "groups_only", "completed"] as const;
+const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
+
+/* ── Helper: community start day based on chip_state ── */
+function getCommunityStartDay(chipState: string): number {
+  const groupsEnd = chipState === "unstable" ? 7 : 4;
+  return groupsEnd + 2; // autosave is groupsEnd+1, community is groupsEnd+2
+}
 
 /* ── component ── */
 const WarmupInstanceDetail = () => {
@@ -138,6 +143,16 @@ const WarmupInstanceDetail = () => {
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+
+  // Auto-enable community when community day is reached
+  useEffect(() => {
+    if (!cycle || !deviceId || !user) return;
+    const communityDay = getCommunityStartDay(cycle.chip_state || "new");
+    if (cycle.day_index >= communityDay && community === null) {
+      // No membership record yet — auto-enable
+      toggleCommunity.mutate({ deviceId, cycleId: cycle.id, enable: true });
+    }
+  }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
   /* accelerate: set ALL pending jobs to run NOW */
   const handleAccelerate = async () => {
@@ -676,7 +691,67 @@ const WarmupInstanceDetail = () => {
             </div>
           </div>
 
-          {/* ── Tarefas agendadas para hoje ── */}
+          {/* ── Comunitário Toggle ── */}
+          {(() => {
+            const communityDay = getCommunityStartDay(cycle.chip_state || "new");
+            const isUnlocked = cycle.day_index >= communityDay;
+            const isCommunityPhase = ["community_enabled", "community_light"].includes(cycle.phase);
+            const isEnabled = community?.is_enabled ?? false;
+
+            // Auto-enable community on the first render of community day if not yet toggled
+            const shouldAutoEnable = isUnlocked && !community && !isCommunityPhase;
+
+            return (
+              <div className={cn(
+                "rounded-xl border bg-card overflow-hidden transition-all",
+                isUnlocked ? "border-purple-500/30" : "border-border/20 opacity-60"
+              )}>
+                <div className="px-5 py-4 flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center",
+                    isUnlocked ? "bg-purple-500/10" : "bg-muted/20"
+                  )}>
+                    <Globe className={cn("w-4 h-4", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-sm font-bold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
+                      Comunitário
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isUnlocked
+                        ? isEnabled || isCommunityPhase
+                          ? "Ativo — trocando mensagens com outros chips do sistema"
+                          : "Desativado — este chip não participa do comunitário"
+                        : `🔒 Disponível a partir do Dia ${communityDay}`
+                      }
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isEnabled || isCommunityPhase || shouldAutoEnable}
+                    disabled={!isUnlocked || toggleCommunity.isPending}
+                    onCheckedChange={(checked) => {
+                      toggleCommunity.mutate({
+                        deviceId: deviceId!,
+                        cycleId: cycle.id,
+                        enable: checked,
+                      });
+                    }}
+                  />
+                </div>
+                {!isUnlocked && (
+                  <div className="px-5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-1.5 flex-1" />
+                      <span className="text-[9px] text-muted-foreground font-mono">
+                        Dia {cycle.day_index}/{communityDay}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {(() => {
             // Use São Paulo timezone day buckets to avoid client timezone drift
             const nowUtc = new Date();
