@@ -273,11 +273,11 @@ const Plans = () => {
 
 // ─── 7. FAQ ───
 const faqs = [
-  { q: "Preciso de um servidor próprio?", a: "Não. Toda a infraestrutura roda na nuvem. Basta criar sua conta e conectar suas instâncias." },
-  { q: "Como funciona o aquecimento?", a: "O warmup é automático. O sistema envia interações progressivas para aquecer o chip antes de disparos em massa." },
-  { q: "Posso cancelar a qualquer momento?", a: "Sim. Não há fidelidade. Você pode cancelar ou trocar de plano quando quiser." },
-  { q: "O que são relatórios via WhatsApp?", a: "É um addon que envia alertas e métricas diretamente no seu WhatsApp, como desconexões e fim de campanhas." },
-  { q: "Quantas instâncias posso conectar?", a: "Depende do seu plano: Start (10), Pro (30), Scale (50) ou Elite (100)." },
+  { q: "Preciso de um servidor próprio?", a: "Não. Toda a infraestrutura roda na nuvem. Basta criar sua conta, conectar suas instâncias e começar a operar." },
+  { q: "Como funciona o aquecimento?", a: "O warmup é totalmente automatizado. O sistema realiza interações progressivas para amadurecer o chip antes dos disparos em massa." },
+  { q: "Posso cancelar a qualquer momento?", a: "Sim. Não exigimos fidelidade. Você pode cancelar ou trocar de plano sempre que desejar." },
+  { q: "O que são relatórios via WhatsApp?", a: "É um recurso adicional que envia alertas e métricas diretamente no seu WhatsApp, como desconexões, fim de campanhas e falhas críticas." },
+  { q: "Quantas instâncias posso conectar?", a: "Depende do plano contratado: Start (10), Pro (30), Scale (50) ou Elite (100 instâncias)." },
 ];
 
 const FAQ = () => (
