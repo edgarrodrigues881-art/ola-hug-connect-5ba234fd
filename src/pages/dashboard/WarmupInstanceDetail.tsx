@@ -136,11 +136,18 @@ const WarmupInstanceDetail = () => {
       (job) => job.job_type === "post_status" && toBrtDateKey(job.run_at) === todayBrt
     );
 
+    // Find last succeeded status from audit logs
+    const lastStatusLog = auditLogs.find(
+      (log) => log.event_type === "status_posted"
+    );
+
     return {
       done: todayStatusJobs.filter((job) => job.status === "succeeded").length,
       total: todayStatusJobs.filter((job) => job.status !== "cancelled").length,
+      lastPostedAt: lastStatusLog?.created_at || null,
+      lastCaption: lastStatusLog?.message || null,
     };
-  }, [scheduledJobs]);
+  }, [scheduledJobs, auditLogs]);
 
   // Group audit logs by warmup day
   const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
