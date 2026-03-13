@@ -452,8 +452,8 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
       });
       if (res.status === 405) continue;
       const txt = await res.text();
+      console.log(`[sendImage] ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
       if (!res.ok) {
-        lastErr = new Error(`API ${res.status}: ${txt}`);
         // If it's "missing file field", try next variant
         if (txt.includes("missing file") || txt.includes("missing image")) continue;
         if (ep === endpoints[endpoints.length - 1]) throw lastErr;
