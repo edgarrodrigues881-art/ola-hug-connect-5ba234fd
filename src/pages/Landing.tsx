@@ -97,11 +97,11 @@ const Hero = () => {
             </span>
           </motion.div>
           <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
-            Gerencie seus disparos com{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima estabilidade</span>
+            Opere múltiplos chips com{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">controle total</span>
           </motion.h1>
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
-            Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar sua operação com segurança.
+            Aquecimento, disparo e monitoramento em uma única plataforma. Escale com organização e reduza riscos.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm font-semibold px-8 h-12 gap-2 shadow-lg shadow-[hsl(var(--primary))]/20">
