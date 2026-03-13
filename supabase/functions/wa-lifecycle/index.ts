@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
       for (const [userId, sub] of latestSubs) {
         const expiresAt = new Date(sub.expires_at);
         const diffMs = expiresAt.getTime() - now.getTime();
-        const daysLeft = Math.ceil(diffMs / 86400000);
+        const daysLeft = Math.floor(diffMs / 86400000);
 
         // Find matching lifecycle stage
         let matchedKey: string | null = null;
