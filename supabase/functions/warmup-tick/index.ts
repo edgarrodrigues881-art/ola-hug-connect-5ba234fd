@@ -743,11 +743,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       const dataUri = `data:${mimeType};base64,${base64}`;
 
       const fieldVariants = [
-        { type: "image", file: dataUri, text: content, mimetype: mimeType },
-        { type: "image", file: dataUri, text: content },
-        { type: "image", file: dataUri, caption: content },
-        // Legacy fallback
-        { to: "status@broadcast", type: "image", file: dataUri, caption: content },
+        { type: "image", file: dataUri, text: content, mimetype: mimeType, async: false },
+        { type: "image", file: dataUri, text: content, async: false },
+        { type: "image", file: dataUri, caption: content, async: false },
       ];
 
       for (const payload of fieldVariants) {
@@ -761,7 +759,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
           console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
           if (!res.ok) continue;
           return parseAndValidate(txt, "image");
-        } catch (_e) {
+        } catch (e) {
+          const errMsg = e instanceof Error ? e.message : String(e);
+          if (errMsg.includes("pendente no provedor")) throw e;
           continue;
         }
       }
@@ -770,12 +770,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     }
 
     const urlVariants = [
-      { type: "image", file: imageUrl, text: content },
-      { type: "image", file: imageUrl, caption: content },
-      { type: "image", image: imageUrl, text: content },
-      // Legacy fallbacks
-      { to: "status@broadcast", type: "image", media: imageUrl, caption: content },
-      { to: "status@broadcast", type: "image", file: imageUrl, caption: content },
+      { type: "image", file: imageUrl, text: content, async: false },
+      { type: "image", file: imageUrl, caption: content, async: false },
+      { type: "image", image: imageUrl, text: content, async: false },
     ];
 
     for (const payload of urlVariants) {
@@ -789,7 +786,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
         console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
         if (!res.ok) continue;
         return parseAndValidate(txt, "image");
-      } catch (_e) {
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        if (errMsg.includes("pendente no provedor")) throw e;
         continue;
       }
     }
