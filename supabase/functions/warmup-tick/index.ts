@@ -497,6 +497,7 @@ function pickMediaType(): MediaType {
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
 async function handleTick(db: any) {
+  const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
   const now = new Date().toISOString();
 
   // Recover stale "running" jobs (stuck for >5 minutes) back to pending
@@ -512,7 +513,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(300);
+    .limit(500);
 
   if (fetchErr) throw fetchErr;
 
@@ -527,55 +528,102 @@ async function handleTick(db: any) {
     return json({ ok: true, processed_jobs_count: 0, succeeded: 0, failed: 0, next_pending_run_at: nextPending?.[0]?.run_at || null });
   }
 
-  // Mark as running
+  // Mark as running in batches of 200 (Supabase .in() limit)
   const jobIds = pendingJobs.map((j: any) => j.id);
-  await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds);
+  for (let i = 0; i < jobIds.length; i += 200) {
+    await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds.slice(i, i + 200));
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // BATCH PRE-LOAD: Load all cycles, subscriptions, profiles, and devices at once
+  // instead of N+1 queries per job
+  // ══════════════════════════════════════════════════════════════
+  const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
+  const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
+  const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
+
+  // Batch load cycles (paginated if >200)
+  const cyclesMap: Record<string, any> = {};
+  for (let i = 0; i < uniqueCycleIds.length; i += 200) {
+    const { data: cycles } = await db
+      .from("warmup_cycles")
+      .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
+      .in("id", uniqueCycleIds.slice(i, i + 200));
+    if (cycles) cycles.forEach((c: any) => { cyclesMap[c.id] = c; });
+  }
+
+  // Batch load subscriptions (latest per user)
+  const subsMap: Record<string, any> = {};
+  for (let i = 0; i < uniqueUserIds.length; i += 200) {
+    const { data: subs } = await db
+      .from("subscriptions")
+      .select("user_id, expires_at, created_at")
+      .in("user_id", uniqueUserIds.slice(i, i + 200))
+      .order("created_at", { ascending: false });
+    if (subs) {
+      for (const s of subs) {
+        if (!subsMap[s.user_id]) subsMap[s.user_id] = s; // first = latest
+      }
+    }
+  }
+
+  // Batch load profiles
+  const profilesMap: Record<string, any> = {};
+  for (let i = 0; i < uniqueUserIds.length; i += 200) {
+    const { data: profiles } = await db
+      .from("profiles")
+      .select("id, status")
+      .in("id", uniqueUserIds.slice(i, i + 200));
+    if (profiles) profiles.forEach((p: any) => { profilesMap[p.id] = p; });
+  }
+
+  // Batch load devices
+  const devicesMap: Record<string, any> = {};
+  for (let i = 0; i < uniqueDeviceIds.length; i += 200) {
+    const { data: devices } = await db
+      .from("devices")
+      .select("id, status, uazapi_token, uazapi_base_url, number")
+      .in("id", uniqueDeviceIds.slice(i, i + 200));
+    if (devices) devices.forEach((d: any) => { devicesMap[d.id] = d; });
+  }
+
+  console.log(`[warmup-tick] Batch loaded: ${Object.keys(cyclesMap).length} cycles, ${Object.keys(subsMap).length} subs, ${Object.keys(profilesMap).length} profiles, ${Object.keys(devicesMap).length} devices for ${pendingJobs.length} jobs`);
+
+  // Track cycles already paused in this tick to avoid duplicate updates
+  const pausedCycles = new Set<string>();
 
   let succeeded = 0;
   let failed = 0;
 
   for (const job of pendingJobs) {
     try {
-      // ── Get cycle ──
-      const { data: cycle } = await db
-        .from("warmup_cycles")
-        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
-        .eq("id", job.cycle_id)
-        .single();
+      // ── Get cycle from cache ──
+      const cycle = cyclesMap[job.cycle_id];
 
-      if (!cycle || !cycle.is_running) {
+      if (!cycle || !cycle.is_running || pausedCycles.has(cycle.id)) {
         await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
         continue;
       }
 
-      // ── PLAN CHECK ──
-      const { data: userSub } = await db
-        .from("subscriptions")
-        .select("expires_at")
-        .eq("user_id", cycle.user_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const { data: userProf } = await db.from("profiles").select("status").eq("id", cycle.user_id).maybeSingle();
+      // ── PLAN CHECK from cache ──
+      const userSub = subsMap[cycle.user_id];
+      const userProf = profilesMap[cycle.user_id];
       if (!userSub || new Date(userSub.expires_at) < new Date() || userProf?.status === "suspended" || userProf?.status === "cancelled") {
         await db.from("warmup_cycles").update({
           is_running: false, phase: "paused", previous_phase: cycle.phase,
           last_error: "Auto-pausado: plano inativo",
         }).eq("id", cycle.id);
+        pausedCycles.add(cycle.id);
+        cycle.is_running = false;
         await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
         continue;
       }
 
-      // ── Device check ──
-      const { data: device } = await db
-        .from("devices")
-        .select("status, uazapi_token, uazapi_base_url")
-        .eq("id", job.device_id)
-        .single();
+      // ── Device check from cache ──
+      const device = devicesMap[job.device_id];
 
-      const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
       if (!device || !CONNECTED_STATUSES.includes(device.status)) {
-        if (cycle.phase !== "paused") {
+        if (cycle.phase !== "paused" && !pausedCycles.has(cycle.id)) {
           await db.from("warmup_cycles").update({
             is_running: false, phase: "paused", previous_phase: cycle.phase,
             last_error: "Auto-pausado: instância desconectada",
@@ -586,6 +634,8 @@ async function handleTick(db: any) {
             level: "warn", event_type: "auto_paused_disconnected",
             message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
           });
+          pausedCycles.add(cycle.id);
+          cycle.is_running = false;
         }
         await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
         continue;
