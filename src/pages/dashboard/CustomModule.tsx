@@ -236,7 +236,7 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-amber-400">Não existe aquecimento real em 24 horas.</strong> Aquecimento é processo de maturação. Pressa gera restrição.
+                    <strong className="text-amber-400">Não existe aquecimento eficaz em 24 horas.</strong> Aquecer é um processo de maturação — tentar acelerar gera restrições.
                   </p>
                 </div>
 
