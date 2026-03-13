@@ -324,33 +324,18 @@ function backoffMinutes(attempt: number): number {
 }
 
 // ── Phase rules per chip_state ──
-function getPhaseForDayNew(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 2) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 6) return "community_light";
-  return "community_enabled";
-}
-
-function getPhaseForDayRecovered(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 3) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 7) return "community_light";
-  return "community_enabled";
-}
-
-function getPhaseForDayUnstable(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 5) return "groups_only";
-  if (day <= 10) return "autosave_enabled";
-  return "community_light";
-}
-
+// CHIP NOVO:       Day 1 OFF, Days 2-4 groups_only
+// CHIP RECUPERADO: Day 1 OFF, Days 2-4 groups_only (lighter)
+// CHIP INSTÁVEL:   Day 1 OFF, Days 2-7 groups_only (very light)
 function getPhaseForDay(day: number, chipState: string): string {
-  if (chipState === "recovered") return getPhaseForDayRecovered(day);
-  if (chipState === "unstable") return getPhaseForDayUnstable(day);
-  return getPhaseForDayNew(day);
+  if (day <= 1) return "pre_24h";
+  if (chipState === "unstable") {
+    if (day <= 7) return "groups_only";
+    return "completed";
+  }
+  // new & recovered
+  if (day <= 4) return "groups_only";
+  return "completed";
 }
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
