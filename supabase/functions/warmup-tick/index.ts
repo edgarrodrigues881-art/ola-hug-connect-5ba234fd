@@ -1191,30 +1191,11 @@ async function handleTick(db: any) {
         }
 
         case "post_status": {
-          if (!baseUrl || !token) {
-            throw new Error("Credenciais UAZAPI não configuradas para post_status");
-          }
-
-          // Ensure status privacy is set to "all" so everyone can see
-          await ensureStatusPrivacyAll(baseUrl, token);
-
-          // Always use image from bucket + caption
-          const statusImgUrl = pickRandom(imagePool);
-          let statusContent = pickRandom(STATUS_CAPTIONS);
-
-          try {
-            await uazapiPostStatus(baseUrl, token, "image", statusContent, statusImgUrl);
-          } catch (statusErr) {
-            // If image status fails, try text-only as last resort
-            console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
-            await uazapiPostStatus(baseUrl, token, "text", statusContent);
-          }
-
+          // UAZAPI v2 does not support status posting — skip silently
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-            level: "info", event_type: "status_posted",
-            message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
-            meta: { status_type: "image", content: statusContent, image_url: statusImgUrl },
+            level: "warn", event_type: "status_skipped",
+            message: "post_status ignorado — UAZAPI v2 não suporta postagem de status",
           });
           break;
         }
