@@ -1387,12 +1387,6 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   return v;
 }
 
-// ════════════════════════════════════════
-// Schedule jobs for a specific day/phase
-// ════════════════════════════════════════
-async function scheduleDayJobs(
-  db: any,
-  cycleId: string,
   userId: string,
   deviceId: string,
   dayIndex: number,
