@@ -125,29 +125,7 @@ const WarmupInstanceDetail = () => {
     refetchInterval: 30_000,
   });
 
-  const statusToday = useMemo(() => {
-    const toBrtDateKey = (iso?: string | null) => {
-      if (!iso) return "";
-      return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-    };
-
-    const todayBrt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-    const todayStatusJobs = scheduledJobs.filter(
-      (job) => job.job_type === "post_status" && toBrtDateKey(job.run_at) === todayBrt
-    );
-
-    // Find last succeeded status from audit logs
-    const lastStatusLog = auditLogs.find(
-      (log) => log.event_type === "status_posted"
-    );
-
-    return {
-      done: todayStatusJobs.filter((job) => job.status === "succeeded").length,
-      total: todayStatusJobs.filter((job) => job.status !== "cancelled").length,
-      lastPostedAt: lastStatusLog?.created_at || null,
-      lastCaption: lastStatusLog?.message || null,
-    };
-  }, [scheduledJobs, auditLogs]);
+  // statusToday removed — UAZAPI v2 does not support status posting
 
   // Group audit logs by warmup day
   const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
@@ -765,21 +743,6 @@ const WarmupInstanceDetail = () => {
                   <p className="text-[8px] text-muted-foreground/60 mt-0.5">Ingressados</p>
                 )}
               </div>
-              <div className="px-3 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Status</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
-                  {statusToday.done}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{statusToday.total}</span>
-                </p>
-                {statusToday.lastPostedAt && (
-                  <p className="text-[8px] text-emerald-400 mt-0.5 truncate max-w-[120px]" title={statusToday.lastCaption || ""}>
-                    Último: {new Date(statusToday.lastPostedAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
-                {!statusToday.lastPostedAt && (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
-                )}
-              </div>
             </div>
           </div>
 
@@ -925,7 +888,6 @@ const WarmupInstanceDetail = () => {
               "group_interaction",
               "autosave_interaction",
               "community_interaction",
-              "post_status",
             ]);
 
             const sortedJobs = [...scheduledJobs]
@@ -951,7 +913,7 @@ const WarmupInstanceDetail = () => {
               group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
-              post_status: { label: "Postar status", icon: ImageIcon, color: "text-pink-400" },
+              post_status: { label: "Status (desativado)", icon: ImageIcon, color: "text-muted-foreground" },
               phase_transition: { label: "Avançar fase", icon: Zap, color: "text-amber-400" },
               daily_reset: { label: "Reset diário", icon: RotateCcw, color: "text-muted-foreground" },
               health_check: { label: "Verificação de saúde", icon: Shield, color: "text-emerald-400" },

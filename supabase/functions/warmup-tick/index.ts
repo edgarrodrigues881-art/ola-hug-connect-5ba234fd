@@ -1,4 +1,4 @@
-// warmup-tick v3.3 — fixed: /send/status endpoint + base64 file field
+// warmup-tick v3.4 — removed post_status (UAZAPI v2 does not support status posting)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -315,179 +315,7 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      const deviceId = body.device_id;
-      let baseUrl = (body.base_url || "").replace(/\/+$/, "");
-      let tkn = body.token || "";
-
-      // If device_id provided, look up credentials from DB
-      if (deviceId && (!baseUrl || !tkn)) {
-        const { data: dev } = await db.from("devices").select("uazapi_base_url, uazapi_token").eq("id", deviceId).single();
-        if (dev) {
-          baseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
-          tkn = dev.uazapi_token || "";
-        }
-      }
-
-      if (!baseUrl || !tkn) {
-        return new Response(JSON.stringify({ error: "need device_id or base_url+token" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const results: any[] = [];
-      const testText = `Teste status ✅ ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
-      const textPayload = {
-        type: "text",
-        text: testText,
-        background_color: randInt(4, 9),
-        font: randInt(0, 4),
-        async: false,
-      };
-
-      let postedMessageId: string | null = null;
-
-      // 0) Instance connectivity
-      try {
-        const sr = await fetch(`${baseUrl}/instance/status`, {
-          method: "GET",
-          headers: { token: tkn, Accept: "application/json" },
-        });
-        const stxt = await sr.text();
-        results.push({ step: "instance_status", status: sr.status, body: stxt.substring(0, 500) });
-      } catch (e) {
-        results.push({ step: "instance_status", error: e.message });
-      }
-
-      // 0.5) Check and fix privacy settings
-      try {
-        const privRes = await fetch(`${baseUrl}/instance/privacy`, {
-          method: "GET",
-          headers: { token: tkn, Accept: "application/json" },
-        });
-        const privTxt = await privRes.text();
-        let privData: any = null;
-        try { privData = JSON.parse(privTxt); } catch (_e) {}
-        results.push({ step: "get_privacy", status: privRes.status, body: privTxt.substring(0, 500) });
-
-        const statusPrivacy = privData?.status || privData?.StatusPrivacy || privData?.statusPrivacy || "";
-        if (statusPrivacy !== "all") {
-          const setPrivRes = await fetch(`${baseUrl}/instance/privacy`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
-            body: JSON.stringify({ status: "all" }),
-          });
-          const setPrivTxt = await setPrivRes.text();
-          results.push({ step: "set_privacy_all", status: setPrivRes.status, body: setPrivTxt.substring(0, 500), previous_status_privacy: statusPrivacy });
-        } else {
-          results.push({ step: "privacy_ok", status_privacy: "all" });
-        }
-      } catch (e) {
-        results.push({ step: "privacy_check", error: (e as Error).message });
-      }
-
-      // 1) Post status
-      try {
-        const r = await fetch(`${baseUrl}/send/status`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
-          body: JSON.stringify(textPayload),
-        });
-        const txt = await r.text();
-        let parsed: any = null;
-        try { parsed = JSON.parse(txt); } catch (_e) { parsed = null; }
-
-        postedMessageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
-
-        results.push({
-          step: "post_status",
-          status: r.status,
-          message_id: postedMessageId,
-          body: txt.substring(0, 500),
-          sent_text: testText,
-        });
-      } catch (e) {
-        results.push({ step: "post_status", error: e.message, sent_text: testText });
-      }
-
-      // 2) Try alternative status send endpoints (diagnostic only)
-      const altSendAttempts = [
-        { path: "/chat/send-text", body: { to: "status@broadcast", body: testText } },
-        { path: "/send/text", body: { number: "status@broadcast", text: testText } },
-        { path: "/message/sendText", body: { chatId: "status@broadcast", text: testText } },
-        { path: "/message/sendText", body: { to: "status@broadcast", text: testText } },
-      ];
-
-      for (const attempt of altSendAttempts) {
-        try {
-          const ar = await fetch(`${baseUrl}${attempt.path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
-            body: JSON.stringify(attempt.body),
-          });
-          const atxt = await ar.text();
-          results.push({
-            step: "alt_send",
-            endpoint: attempt.path,
-            status: ar.status,
-            body: atxt.substring(0, 500),
-          });
-        } catch (e) {
-          results.push({ step: "alt_send", endpoint: attempt.path, error: e.message });
-        }
-      }
-
-      // 3) Check status chat history for the just-posted message
-      const historyEndpoints = [
-        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&count=30`,
-        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&limit=30`,
-      ];
-      for (const ep of historyEndpoints) {
-        try {
-          const hr = await fetch(`${baseUrl}${ep}`, {
-            method: "GET",
-            headers: { token: tkn, Accept: "application/json" },
-          });
-          const htxt = await hr.text();
-          let parsed: any = null;
-          try { parsed = JSON.parse(htxt); } catch (_e) { parsed = null; }
-
-          const msgs = Array.isArray(parsed?.messages)
-            ? parsed.messages
-            : Array.isArray(parsed?.data)
-            ? parsed.data
-            : Array.isArray(parsed)
-            ? parsed
-            : [];
-
-          const foundByText = msgs.some((m: any) => {
-            const txt = m?.text || m?.body || m?.content?.text || m?.message?.conversation || "";
-            return typeof txt === "string" && txt.includes(testText);
-          });
-
-          const foundById = postedMessageId
-            ? msgs.some((m: any) => {
-                const id = m?.id || m?.messageId || m?.key?.id || m?.ID;
-                return id === postedMessageId;
-              })
-            : false;
-
-          results.push({
-            step: "check_status_history",
-            endpoint: ep,
-            status: hr.status,
-            total_messages: msgs.length,
-            found_by_text: foundByText,
-            found_by_id: foundById,
-            body: htxt.substring(0, 500),
-          });
-
-          if (hr.ok && (foundByText || foundById)) break;
-        } catch (e) {
-          results.push({ step: "check_status_history", endpoint: ep, error: e.message });
-        }
-      }
-
-      return new Response(JSON.stringify({ results }, null, 2), {
+      return new Response(JSON.stringify({ error: "post_status removido — UAZAPI v2 não suporta postagem de status" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -601,273 +429,7 @@ const IMAGE_CAPTIONS = [
   "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-const STATUS_CAPTIONS = [
-  // Bom dia / Boa tarde / Boa noite
-  "Bom dia! ☀️ Que seu dia seja incrível",
-  "Boa tarde pessoal! 🌤️ Seguimos firmes",
-  "Boa noite! 🌙 Descansem bem",
-  "Bom dia, família! 🌅 Mais um dia abençoado",
-  "Boa tarde! ☕ Energia renovada pra segunda metade do dia",
-  "Boa noite, galera 🌃 Amanhã tem mais",
-  "Acordei grato demais hoje ☀️",
-  // Motivacionais
-  "Dia produtivo demais 💪 Gratidão",
-  "Mais um dia de luta e conquista 🔥",
-  "Gratidão por tudo que tenho 🙏",
-  "Trabalhando duro pra conquistar 💼",
-  "Foco total no objetivo 🎯",
-  "Vamos que vamos, sem parar 🚀",
-  "Confiança no processo sempre 🧠",
-  "Sempre em frente, nunca pra trás ➡️",
-  "Dia de conquistas e vitórias 🏆",
-  "Bora trabalhar e fazer acontecer 💰",
-  "O melhor tá por vir ✨",
-  "Quem acredita sempre alcança 🌟",
-  "Disciplina é liberdade 🏋️",
-  "Sonho grande, esforço maior 💎",
-  "Não foi sorte, foi dedicação 🔥",
-  "Levanta, sacode a poeira e vai 💪",
-  "Enquanto descansam, eu construo 🧱",
-  "Resultados falam mais que promessas 📈",
-  "A jornada é longa mas a vista compensa 🏔️",
-  "Plante hoje, colha amanhã 🌱",
-  "Se tá difícil, tá no caminho certo 🛤️",
-  // Fé e espiritualidade
-  "Deus é bom o tempo todo 🙌",
-  "Tudo no tempo de Deus 🙏",
-  "Fé maior que o medo ✝️",
-  "Deus sabe de todas as coisas 🕊️",
-  "Obrigado Senhor por mais um dia 🙏☀️",
-  // Dia a dia e rotina
-  "Semana abençoada pra todos ✨",
-  "Dia lindo pra ser feliz ☀️",
-  "Sextou com estilo 🎉",
-  "Tranquilidade e paz interior 🧘",
-  "A natureza é perfeita 🌿",
-  "Momentos que valem a pena registrar 📸",
-  "Cada dia é um presente 🎁",
-  "Energia positiva sempre 🌟",
-  "A vida é feita de momentos assim 💛",
-  "Café feito, dia começou ☕",
-  "Treino do dia concluído ✅💪",
-  "Nada como um bom descanso merecido 😴",
-  "Cozinhando algo especial hoje 🍳",
-  "Passeio bom demais 🚶‍♂️🌳",
-  "Fim de semana é sagrado 🛋️",
-  "Voltando pra rotina com tudo 🔄",
-  "Almoço top hoje 🍽️",
-  "Aquele pôr do sol que só Deus explica 🌅",
-  "Playlist boa e foco no trabalho 🎧",
-  // Humor leve
-  "Tô on, tô de pé, tô no corre 🏃",
-  "Segunda-feira? Bora dominar a semana 🦁",
-  "Modo silencioso: trabalhando 🤫💼",
-  "Menos reclamação, mais ação 😤🔥",
-  "A meta é não ter meta... brincadeira, foco total 🎯😂",
-  // Reflexão
-  "Valorize quem tá do seu lado 🤝",
-  "A vida passa rápido, aproveite cada segundo ⏳",
-  "Simplicidade é a sofisticação máxima ✨",
-  "Nem todo dia é fácil, mas todo dia vale a pena 🌻",
-  "Seja a mudança que você quer ver no mundo 🌍",
-  "Quem tem paz, tem tudo 🕊️",
-];
-
-// In-memory blob cache: avoids re-downloading the same image within a single tick
-const _blobCache = new Map<string, { blob: Blob; filename: string }>();
-
-// Download image and return as Blob for FormData upload (cached per tick)
-async function downloadImageBlob(imageUrl: string): Promise<{ blob: Blob; filename: string }> {
-  const cached = _blobCache.get(imageUrl);
-  if (cached) {
-    console.log(`[downloadImage] Cache hit for ${cached.filename}`);
-    return cached;
-  }
-
-  const res = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
-  const blob = await res.blob();
-  const urlPath = new URL(imageUrl).pathname;
-  const rawName = decodeURIComponent(urlPath.split("/").pop() || "image.jpg");
-  const filename = rawName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const entry = { blob, filename };
-  _blobCache.set(imageUrl, entry);
-  console.log(`[downloadImage] Downloaded & cached ${filename} (${(blob.size / 1024).toFixed(0)}KB)`);
-  return entry;
-}
-
-async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Base64 via /send/media with "file" field — proven working strategy for UAZAPI V2
-  try {
-    const { blob } = await downloadImageBlob(imageUrl);
-    const arrayBuffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    const base64 = btoa(binary);
-    const mimeType = blob.type || 'image/jpeg';
-    const dataUri = `data:${mimeType};base64,${base64}`;
-
-    const res = await fetch(`${baseUrl}/send/media`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-      body: JSON.stringify({ number, file: dataUri, caption, type: "image" }),
-    });
-    const txt = await res.text();
-    console.log(`[sendImage] b64 /send/media → ${res.status}: ${txt.substring(0, 200)}`);
-    if (res.ok) {
-      try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
-    }
-  } catch (dlErr) {
-    console.log(`[sendImage] base64 failed: ${dlErr.message}`);
-  }
-
-  throw new Error("Image send failed");
-}
-
-// Per-tick cache for privacy config to avoid calling GET /instance/privacy every job
-const _privacyConfigured = new Set<string>();
-
-async function ensureStatusPrivacyAll(baseUrl: string, token: string) {
-  const cacheKey = `${baseUrl}:${token}`;
-  if (_privacyConfigured.has(cacheKey)) return;
-
-  try {
-    // Check current privacy
-    const getRes = await fetch(`${baseUrl}/instance/privacy`, {
-      method: "GET",
-      headers: { token, Accept: "application/json" },
-    });
-    if (getRes.ok) {
-      const privacy = await getRes.json();
-      const statusPrivacy = privacy?.status || privacy?.StatusPrivacy || privacy?.statusPrivacy || "";
-      console.log(`[privacy] Current status privacy: ${JSON.stringify(privacy)}`);
-
-      if (statusPrivacy !== "all") {
-        // Set privacy to "all" for status
-        const setRes = await fetch(`${baseUrl}/instance/privacy`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify({ status: "all" }),
-        });
-        const setTxt = await setRes.text();
-        console.log(`[privacy] Set status privacy to 'all' → ${setRes.status}: ${setTxt.substring(0, 200)}`);
-      }
-    } else {
-      console.warn(`[privacy] GET /instance/privacy → ${getRes.status}`);
-    }
-  } catch (e) {
-    console.warn(`[privacy] Error configuring privacy:`, (e as Error).message);
-  }
-
-  _privacyConfigured.add(cacheKey);
-}
-
-async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
-  const endpoint = "/send/status";
-
-  const parseAndValidate = (txt: string, mode: "text" | "image") => {
-    let parsed: any = null;
-    try { parsed = JSON.parse(txt); } catch (_e) { parsed = { raw: txt }; }
-
-    const messageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
-    console.log(`[postStatus] Validated ${mode} status, messageId: ${messageId}`);
-
-    return parsed;
-  };
-
-  // Text status
-  if (type === "text") {
-    const payload = {
-      type: "text",
-      text: content,
-      background_color: randInt(1, 19),
-      font: randInt(0, 8),
-      async: false,
-    };
-
-    const res = await fetch(`${baseUrl}${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const txt = await res.text();
-    console.log(`[postStatus] text ${endpoint} → ${res.status}: ${txt.substring(0, 250)}`);
-
-    if (!res.ok) {
-      throw new Error(`Text status failed: ${res.status} ${txt.substring(0, 120)}`);
-    }
-
-    return parseAndValidate(txt, "text");
-  }
-
-  // Image status: try base64 first, then URL
-  if (imageUrl) {
-    try {
-      const { blob } = await downloadImageBlob(imageUrl);
-      const arrayBuffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
-      const mimeType = blob.type || "image/jpeg";
-      const dataUri = `data:${mimeType};base64,${base64}`;
-
-      const fieldVariants = [
-        { type: "image", file: dataUri, text: content, mimetype: mimeType, async: false },
-        { type: "image", file: dataUri, text: content, async: false },
-        { type: "image", file: dataUri, caption: content, async: false },
-      ];
-
-      for (const payload of fieldVariants) {
-        try {
-          const res = await fetch(`${baseUrl}${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const txt = await res.text();
-          console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
-          if (!res.ok) continue;
-          return parseAndValidate(txt, "image");
-        } catch (e) {
-          const errMsg = e instanceof Error ? e.message : String(e);
-          if (errMsg.includes("pendente no provedor")) throw e;
-          continue;
-        }
-      }
-    } catch (dlErr) {
-      console.log(`[postStatus] base64 download failed: ${dlErr.message}`);
-    }
-
-    const urlVariants = [
-      { type: "image", file: imageUrl, text: content, async: false },
-      { type: "image", file: imageUrl, caption: content, async: false },
-      { type: "image", image: imageUrl, text: content, async: false },
-    ];
-
-    for (const payload of urlVariants) {
-      try {
-        const res = await fetch(`${baseUrl}${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const txt = await res.text();
-        console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
-        if (!res.ok) continue;
-        return parseAndValidate(txt, "image");
-      } catch (e) {
-        const errMsg = e instanceof Error ? e.message : String(e);
-        if (errMsg.includes("pendente no provedor")) throw e;
-        continue;
-      }
-    }
-  }
-
-  throw new Error("All status post attempts failed");
-}
+// STATUS_CAPTIONS, ensureStatusPrivacyAll, uazapiPostStatus removed — UAZAPI v2 does not support status posting
 
 // Decide media type for group interaction: 75% text, 25% image (no audio)
 type MediaType = "text" | "image";
@@ -987,38 +549,7 @@ async function handleTick(db: any) {
   const groupsPoolMap: Record<string, any> = {};
   groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
 
-  // Self-heal: guarantee at least one status post in pre_24h cycles
-  const pre24hCycles = cyclesArr.filter((c: any) => c.is_running && c.phase === "pre_24h");
-  if (pre24hCycles.length > 0) {
-    const pre24hCycleIds = pre24hCycles.map((c: any) => c.id);
-    const pre24hStatusJobs = await batchLoad<any>(
-      "warmup_jobs",
-      "cycle_id, status",
-      "cycle_id",
-      pre24hCycleIds,
-      (q: any) => q.eq("job_type", "post_status").in("status", ["pending", "running", "succeeded"]),
-    );
-
-    const cyclesWithStatus = new Set(pre24hStatusJobs.map((j: any) => j.cycle_id));
-    const introStatusJobs = pre24hCycles
-      .filter((c: any) => !cyclesWithStatus.has(c.id))
-      .map((c: any) => ({
-        user_id: c.user_id,
-        device_id: c.device_id,
-        cycle_id: c.id,
-        job_type: "post_status",
-        payload: { pre24h_intro: true },
-        run_at: new Date(Date.now() + randInt(2, 10) * 60 * 1000).toISOString(),
-        status: "pending",
-      }));
-
-    if (introStatusJobs.length > 0) {
-      for (let i = 0; i < introStatusJobs.length; i += 100) {
-        await db.from("warmup_jobs").insert(introStatusJobs.slice(i, i + 100));
-      }
-      console.log(`[warmup-tick] Scheduled ${introStatusJobs.length} intro post_status jobs for pre_24h cycles`);
-    }
-  }
+  // post_status scheduling removed — UAZAPI v2 does not support status posting
 
   // Audit log buffer for batch insert
   const auditLogBuffer: any[] = [];
@@ -1621,7 +1152,7 @@ async function handleTick(db: any) {
             .eq("cycle_id", cycle.id)
             .eq("status", "pending")
             .lt("run_at", nowIso)
-            .in("job_type", ["group_interaction", "post_status", "autosave_interaction", "community_interaction"]);
+            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
           const budgetMin = 200;
           const budgetMax = 500;
@@ -1660,30 +1191,11 @@ async function handleTick(db: any) {
         }
 
         case "post_status": {
-          if (!baseUrl || !token) {
-            throw new Error("Credenciais UAZAPI não configuradas para post_status");
-          }
-
-          // Ensure status privacy is set to "all" so everyone can see
-          await ensureStatusPrivacyAll(baseUrl, token);
-
-          // Always use image from bucket + caption
-          const statusImgUrl = pickRandom(imagePool);
-          let statusContent = pickRandom(STATUS_CAPTIONS);
-
-          try {
-            await uazapiPostStatus(baseUrl, token, "image", statusContent, statusImgUrl);
-          } catch (statusErr) {
-            // If image status fails, try text-only as last resort
-            console.warn(`[post_status] Image status failed, trying text:`, statusErr.message);
-            await uazapiPostStatus(baseUrl, token, "text", statusContent);
-          }
-
+          // UAZAPI v2 does not support status posting — skip silently
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-            level: "info", event_type: "status_posted",
-            message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
-            meta: { status_type: "image", content: statusContent, image_url: statusImgUrl },
+            level: "warn", event_type: "status_skipped",
+            message: "post_status ignorado — UAZAPI v2 não suporta postagem de status",
           });
           break;
         }
@@ -1802,21 +1314,19 @@ interface DayVolumes {
   autosaveRounds: number;
   communityPeers: number;
   communityMsgsPerPeer: number;
-  statusPosts: number;
+  
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0, statusPosts: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
 
   if (phase === "completed") return v;
 
   if (phase === "pre_24h") {
-    v.statusPosts = 1;
     return v;
   }
 
   v.groupMsgs = randInt(200, 500);
-  v.statusPosts = 5;
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
     v.autosaveContacts = 5;
@@ -1903,16 +1413,7 @@ async function scheduleDayJobs(
     }
   }
 
-  if (volumes.statusPosts > 0) {
-    const stSpacingMs = windowMs / (volumes.statusPosts + 1);
-    for (let i = 0; i < volumes.statusPosts; i++) {
-      const baseOffset = stSpacingMs * (i + 1);
-      const jitter = randInt(-30, 30) * 60 * 1000;
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd || runAt.getTime() < effectiveStart) continue;
-      jobs.push({ user_id: userId, device_id: deviceId, cycle_id: cycleId, job_type: "post_status", payload: {}, run_at: runAt.toISOString(), status: "pending" });
-    }
-  }
+  // post_status scheduling removed — UAZAPI v2 does not support status posting
 
   if (jobs.length > 0) {
     for (let i = 0; i < jobs.length; i += 100) {
