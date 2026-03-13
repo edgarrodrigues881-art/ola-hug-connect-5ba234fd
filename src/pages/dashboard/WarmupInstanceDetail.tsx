@@ -351,6 +351,7 @@ const WarmupInstanceDetail = () => {
   const pendingGroups = pendingGroupIds.size;
   const activeContacts = autosaveContacts.filter(c => c.is_active).length;
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
+  const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-8">
@@ -413,7 +414,7 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* action row */}
-          {cycle && cycle.phase !== "completed" && (
+          {cycle && !isTerminalCycle && (
             <div className="px-5 pb-5 space-y-2">
               {cycle.is_running ? (
                 <Button
@@ -462,7 +463,7 @@ const WarmupInstanceDetail = () => {
       </div>
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
-      {!cycle && !cycleLoading && (
+      {(!cycle || isTerminalCycle) && !cycleLoading && (
         <div className="space-y-5">
           {/* chip state selector */}
           <div className="space-y-3">
@@ -535,7 +536,7 @@ const WarmupInstanceDetail = () => {
             ) : (
               <Flame className="w-4 h-4" />
             )}
-            Começar Aquecimento
+            {isTerminalCycle ? "Começar Novo Aquecimento" : "Começar Aquecimento"}
           </Button>
           {!isConnected && (
             <p className="text-[11px] text-amber-400 text-center -mt-2">⚠ Conecte a instância primeiro para iniciar</p>
@@ -544,7 +545,7 @@ const WarmupInstanceDetail = () => {
       )}
 
       {/* ═══════════ ACTIVE CYCLE ═══════════ */}
-      {cycle && (
+      {cycle && !isTerminalCycle && (
         <div className="space-y-5">
 
           {/* Phase stepper + day progress */}
