@@ -989,7 +989,7 @@ async function handleTick(db: any) {
 
           // Resolve phone number
           const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
-          if (!pd?.number || pd.status !== "Ready") {
+          if (!pd?.number || !["Ready", "Connected", "authenticated"].includes(pd.status)) {
             // Peer offline, skip silently
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
