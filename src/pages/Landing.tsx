@@ -217,8 +217,8 @@ const Plans = () => {
     <Section id="planos">
       <div className="text-center mb-10">
         <SectionLabel>Planos</SectionLabel>
-        <SectionTitle>Escolha o plano ideal</SectionTitle>
-        <SectionSub>Todos os planos incluem acesso completo à plataforma.</SectionSub>
+        <SectionTitle>Escolha o plano ideal para sua operação</SectionTitle>
+        <SectionSub>Todos os planos incluem acesso completo à plataforma. A diferença está na capacidade.</SectionSub>
       </div>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
         {plans.map((p) => (
