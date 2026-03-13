@@ -52,6 +52,37 @@ const CustomModule = () => {
       </div>
 
       <Accordion type="multiple" className="space-y-4">
+        {/* ───── 0. Antes de QR Code — Chip novo ───── */}
+        <AccordionItem value="before-qr" className="border-0">
+          <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
+            <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-amber-500">
+              <span className="flex items-center gap-3 text-base font-semibold text-foreground">
+                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                Antes de QR Code — Chip novo
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-5 pb-5">
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  Após as atualizações do WhatsApp, se você conectar um QR Code sem usar o WhatsApp manualmente antes, 
+                  o número pode sofrer restrições durante o aquecimento.
+                </p>
+                <p>
+                  <strong className="text-foreground font-medium">O que fazer:</strong> Antes de escanear o QR Code, 
+                  envie pelo menos <strong className="text-foreground font-medium">1 a 3 mensagens manualmente</strong> pelo 
+                  aparelho para criar um histórico mínimo de uso humano.
+                </p>
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex gap-2.5">
+                  <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-400">
+                    Essa etapa simples reduz significativamente o risco de bloqueio nos primeiros dias de aquecimento.
+                  </p>
+                </div>
+              </div>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+
         {/* ───── 1. Preparação do Aparelho ───── */}
         <AccordionItem value="prep" className="border-0">
             <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
