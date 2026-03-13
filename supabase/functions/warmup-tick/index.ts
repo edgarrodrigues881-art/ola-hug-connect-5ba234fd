@@ -315,10 +315,21 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      const baseUrl = (body.base_url || "").replace(/\/+$/, "");
-      const tkn = body.token || "";
+      const deviceId = body.device_id;
+      let baseUrl = (body.base_url || "").replace(/\/+$/, "");
+      let tkn = body.token || "";
+
+      // If device_id provided, look up credentials from DB
+      if (deviceId && (!baseUrl || !tkn)) {
+        const { data: dev } = await db.from("devices").select("uazapi_base_url, uazapi_token").eq("id", deviceId).single();
+        if (dev) {
+          baseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
+          tkn = dev.uazapi_token || "";
+        }
+      }
+
       if (!baseUrl || !tkn) {
-        return new Response(JSON.stringify({ error: "need base_url and token" }), {
+        return new Response(JSON.stringify({ error: "need device_id or base_url+token" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
