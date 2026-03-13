@@ -435,56 +435,76 @@ const STATUS_CAPTIONS = [
 ];
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Try /send/image first, then /send/media as fallback
-  const endpoints = ["/send/image", "/send/media"];
+  // UAZAPI V2: field is "media" (confirmed from evolution-connect and process-campaign)
+  const endpoints = [
+    { path: "/send/media", body: { number, media: imageUrl, caption, type: "image" } },
+    { path: "/send/image", body: { number, media: imageUrl, caption } },
+    { path: "/send/image", body: { number, file: imageUrl, caption } },
+  ];
+  let lastErr: any = null;
   for (const ep of endpoints) {
     try {
-      const payload: any = ep === "/send/image" 
-        ? { number, image: imageUrl, caption }
-        : { number, mediaUrl: imageUrl, caption, type: "image" };
-      const res = await fetch(`${baseUrl}${ep}`, {
+      const res = await fetch(`${baseUrl}${ep.path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(ep.body),
       });
       if (res.status === 405) continue;
+      const txt = await res.text();
+      console.log(`[sendImage] ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
       if (!res.ok) {
-        const errText = await res.text();
-        if (ep === endpoints[endpoints.length - 1]) throw new Error(`API ${res.status}: ${errText}`);
+        // If it's "missing file field", try next variant
+        if (txt.includes("missing file") || txt.includes("missing image")) continue;
+        if (ep === endpoints[endpoints.length - 1]) throw lastErr;
         continue;
       }
-      return await res.json();
+      try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
     } catch (e) {
-      if (ep === endpoints[endpoints.length - 1]) throw e;
+      lastErr = e;
+      continue;
     }
   }
+  throw lastErr || new Error("All image send endpoints failed");
 }
 
 // Audio removed — only text + image
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoints = ["/status/post", "/sendStories"];
+  let lastErr: any = null;
   for (const ep of endpoints) {
-    try {
-      const payload: any = type === "text"
-        ? { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }
-        : { type: "image", image: imageUrl, caption: content };
-      const res = await fetch(`${baseUrl}${ep}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.status === 405) continue;
-      if (!res.ok) {
-        const errText = await res.text();
-        if (ep === endpoints[endpoints.length - 1]) throw new Error(`Status API ${res.status}: ${errText}`);
+    // For image status, try multiple field names (file, image)
+    const payloadVariants: any[] = type === "text"
+      ? [{ type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }]
+      : [
+          { type: "image", media: imageUrl, caption: content },
+          { type: "image", file: imageUrl, caption: content },
+          { type: "image", image: imageUrl, caption: content },
+        ];
+
+    for (const payload of payloadVariants) {
+      try {
+        const res = await fetch(`${baseUrl}${ep}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 405) break; // endpoint not supported, try next
+        const txt = await res.text();
+        console.log(`[postStatus] ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
+        if (!res.ok) {
+          if (txt.includes("missing file") || txt.includes("missing image")) continue;
+          if (ep === endpoints[endpoints.length - 1] && payload === payloadVariants[payloadVariants.length - 1]) throw lastErr;
+          continue;
+        }
+        try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
+      } catch (e) {
+        lastErr = e;
         continue;
       }
-      return await res.json();
-    } catch (e) {
-      if (ep === endpoints[endpoints.length - 1]) throw e;
     }
   }
+  throw lastErr || new Error("All status post endpoints failed");
 }
 
 // Decide media type for group interaction: 75% text, 25% image (no audio)
