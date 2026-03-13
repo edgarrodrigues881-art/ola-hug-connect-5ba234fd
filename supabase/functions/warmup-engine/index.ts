@@ -498,7 +498,7 @@ async function scheduleDayJobs(
 // Volume configuration
 // Groups: 200-500 always
 // AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
-// Community: progressive 5→10→15→20→30→40 max (from community_enabled phase onwards)
+// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs (conversation burst)
 // Status: 5 per day always
 // ════════════════════════════════════════
 interface DayVolumes {
@@ -506,34 +506,31 @@ interface DayVolumes {
   statusPosts: number;
   autosaveContacts: number;
   autosaveRounds: number;
-  communityMsgs: number;
+  communityPeers: number;
+  communityMsgsPerPeer: number;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0, autosaveContacts: 0, autosaveRounds: 0, communityMsgs: 0 };
+  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
-  // Groups + Status: always active after day 1
   v.groupMsgs = randInt(200, 500);
   v.statusPosts = 5;
 
-  // AutoSave: active from autosave_enabled onwards
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
-    v.autosaveContacts = 5; // 5 different contacts
-    v.autosaveRounds = 3;   // 3 rounds each
+    v.autosaveContacts = 5;
+    v.autosaveRounds = 3;
   }
 
-  // Community: active from community_enabled onwards, progressive
   if (phase === "community_enabled" || phase === "community_light") {
     const groupsEnd = getGroupsEndDay(chipState);
-    // communityDay = how many days since community started
-    // community starts at groupsEnd + 2
     const communityStartDay = groupsEnd + 2;
     const communityDay = dayIndex - communityStartDay + 1;
 
-    const communityScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-    v.communityMsgs = communityDay <= 0 ? 0 : (communityScale[Math.min(communityDay, communityScale.length - 1)]);
+    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
+    v.communityPeers = communityDay <= 0 ? 0 : peerScale[Math.min(communityDay, peerScale.length - 1)];
+    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
   }
 
   return v;
