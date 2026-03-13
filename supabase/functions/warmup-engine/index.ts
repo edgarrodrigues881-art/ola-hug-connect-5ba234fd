@@ -377,6 +377,13 @@ Deno.serve(async (req) => {
       const { device_id, cycle_id, day_index, phase, chip_state } = body;
       if (!cycle_id || !device_id) throw new Error("cycle_id and device_id required");
 
+      // Cancel existing pending interaction jobs before scheduling new ones
+      await db.from("warmup_jobs")
+        .update({ status: "cancelled", last_error: "Cancelado: reagendamento manual" })
+        .eq("cycle_id", cycle_id)
+        .eq("status", "pending")
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
       const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, phase || "groups_only", chip_state || "new", true);
 
       return new Response(JSON.stringify({ ok: true, jobs_scheduled: jobCount || 0 }), {
