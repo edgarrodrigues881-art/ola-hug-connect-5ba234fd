@@ -501,6 +501,22 @@ async function scheduleDayJobs(
     }
   }
 
+  // Update the cycle's daily budget to reflect the scheduled volume
+  const totalInteractions = (volumes.groupMsgs || 0)
+    + (volumes.autosaveContacts * volumes.autosaveRounds || 0)
+    + (volumes.communityPeers * volumes.communityMsgsPerPeer || 0)
+    + (volumes.statusPosts || 0);
+  
+  await db.from("warmup_cycles").update({
+    daily_interaction_budget_target: totalInteractions,
+    daily_interaction_budget_min: Math.floor(totalInteractions * 0.8),
+    daily_interaction_budget_max: Math.ceil(totalInteractions * 1.2),
+    daily_interaction_budget_used: 0,
+    daily_unique_recipients_used: 0,
+    phase: phase,
+    updated_at: new Date().toISOString(),
+  }).eq("id", cycleId);
+
   return jobs.length;
 }
 
