@@ -55,16 +55,21 @@ import { ptBR } from "date-fns/locale";
 const phaseConfig: Record<string, { label: string; color: string; icon: typeof Clock; step: number }> = {
   pre_24h:            { label: "Primeiras 24h",  color: "text-amber-400",           icon: Timer,        step: 1 },
   groups_only:        { label: "Grupos",          color: "text-teal-400",            icon: Users,        step: 2 },
-  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 3 },
+  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 3 },
+  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 4 },
+  community_light:    { label: "Comunidade Light", color: "text-purple-400",          icon: Globe,        step: 4 },
+  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 5 },
   paused:             { label: "Pausado",          color: "text-amber-400",           icon: Pause,        step: 0 },
   error:              { label: "Erro",             color: "text-destructive",         icon: AlertTriangle, step: 0 },
-  // Legacy phases — kept for backward compatibility with old cycles
-  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 2 },
-  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 2 },
-  community_light:    { label: "Comunidade Light", color: "text-purple-400",          icon: Globe,        step: 2 },
 };
 
-const phaseSteps = ["pre_24h", "groups_only", "completed"] as const;
+const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
+
+/* ── Helper: community start day based on chip_state ── */
+function getCommunityStartDay(chipState: string): number {
+  const groupsEnd = chipState === "unstable" ? 7 : 4;
+  return groupsEnd + 2; // autosave is groupsEnd+1, community is groupsEnd+2
+}
 
 /* ── component ── */
 const WarmupInstanceDetail = () => {
