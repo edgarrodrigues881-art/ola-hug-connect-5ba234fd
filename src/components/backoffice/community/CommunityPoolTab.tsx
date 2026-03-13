@@ -202,8 +202,11 @@ const CommunityPoolTab = () => {
 
       {/* ═══ DESKTOP: Table layout ═══ */}
       <div className="border border-border rounded-lg overflow-hidden hidden sm:block">
-        <ScrollArea className="max-h-[calc(100vh-280px)]" style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}>
-          <table className="w-full text-sm">
+        <div
+          className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto"
+          style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}
+        >
+          <table className="w-full text-sm min-w-[980px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Usuário</th>
@@ -254,8 +257,7 @@ const CommunityPoolTab = () => {
               ))}
             </tbody>
           </table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
