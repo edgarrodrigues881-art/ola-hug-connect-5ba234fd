@@ -158,8 +158,8 @@ const HowItWorks = () => (
   <Section id="como-funciona">
     <div className="text-center mb-10">
       <SectionLabel>Como funciona</SectionLabel>
-      <SectionTitle>4 passos para começar</SectionTitle>
-      <SectionSub>Do cadastro ao primeiro disparo em minutos.</SectionSub>
+      <SectionTitle>Comece em 4 passos</SectionTitle>
+      <SectionSub>Do cadastro ao primeiro disparo em poucos minutos.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {steps.map((s, i) => (
