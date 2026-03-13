@@ -1350,7 +1350,7 @@ async function handleTick(db: any) {
           }
 
           // Always use image from bucket + caption
-          const statusImgUrl = pickRandom(IMAGE_POOL);
+          const statusImgUrl = pickRandom(imagePool);
           let statusContent = pickRandom(STATUS_CAPTIONS);
 
           try {
