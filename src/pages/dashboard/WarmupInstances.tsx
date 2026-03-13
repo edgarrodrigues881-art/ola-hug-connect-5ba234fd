@@ -385,29 +385,29 @@ const WarmupInstances = () => {
         <DialogContent className="max-w-lg rounded-xl border-border/30 bg-card p-6" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
           <div className="space-y-5">
             <div className="space-y-1">
-              <h2 className="text-base font-bold text-foreground">Aviso importante — Chips novos</h2>
-              <p className="text-xs text-muted-foreground">Leia antes de prosseguir</p>
+              <h2 className="text-base font-bold text-foreground">Aviso importante para chips novos</h2>
+              <p className="text-xs text-muted-foreground">Leia com atenção antes de continuar.</p>
             </div>
 
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
               <p>
-                Certifique-se de que já tenha feito alguma <strong className="text-foreground">interação manualmente</strong> antes 
-                de ter conectado a qualquer QR Code. Caso contrário, existirá uma grande chance de ser 
-                <strong className="text-foreground"> restringido no meio do processo</strong> de aquecimento.
+                Antes de conectar o chip ao QR Code, faça ao menos uma <strong className="text-foreground">interação manual</strong> no aparelho.
+              </p>
+              <p>
+                Sem essa etapa, o número pode apresentar <strong className="text-foreground">restrição durante o processo</strong> de aquecimento.
               </p>
             </div>
 
             <div className="rounded-lg border border-border/20 bg-muted/20 px-4 py-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Isenção de responsabilidade:</strong> Não nos responsabilizamos pelo mau uso da ferramenta. 
-                O aquecimento é uma ferramenta de apoio e deve ser usado com responsabilidade seguindo as boas práticas recomendadas.
+                <strong className="text-foreground">Uso responsável</strong> — Esta ferramenta foi desenvolvida para apoiar o processo de aquecimento. O uso deve seguir boas práticas e é de responsabilidade do usuário.
               </p>
             </div>
 
             <div className="flex items-start gap-2.5 pt-1">
               <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} className="mt-0.5" />
               <label htmlFor="agreeResponsibility" className="text-sm text-muted-foreground cursor-pointer select-none leading-relaxed">
-                Estou de acordo e assumo total responsabilidade pelo uso da ferramenta.
+                Li as orientações e assumo a responsabilidade pelo uso da ferramenta.
               </label>
             </div>
 
@@ -424,7 +424,7 @@ const WarmupInstances = () => {
                 setShowWarning(false);
               }}
             >
-              Entendi e concordo
+              Entendi e continuar
             </Button>
           </div>
         </DialogContent>
