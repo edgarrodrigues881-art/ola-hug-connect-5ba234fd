@@ -226,11 +226,11 @@
   }
 
   .sidebar-premium {
-    box-shadow: 1px 0 0 0 hsl(var(--sidebar-border)), 2px 0 8px -2px hsl(0 0% 0% / 0.04);
+    box-shadow: 1px 0 0 0 hsl(var(--sidebar-border)), 2px 0 10px -2px hsl(0 0% 0% / 0.06);
   }
 
   :is(.dark) .sidebar-premium {
-    box-shadow: 1px 0 0 0 hsl(220 12% 12%), 4px 0 12px -2px hsl(0 0% 0% / 0.15);
+    box-shadow: 1px 0 0 0 hsl(222 14% 14%), 4px 0 16px -2px hsl(0 0% 0% / 0.2);
   }
 
   .sidebar-nav-item {
