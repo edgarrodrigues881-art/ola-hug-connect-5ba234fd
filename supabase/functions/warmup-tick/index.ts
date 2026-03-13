@@ -772,6 +772,14 @@ async function handleTick(db: any) {
 
         case "phase_transition": {
           const targetPhase = job.payload?.target_phase || "groups_only";
+
+          // Cancel all old pending interaction jobs before scheduling new ones
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Cancelado: transição de fase" })
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .in("job_type", INTERACTION_JOB_TYPES);
+
           await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
 
           if (targetPhase === "groups_only") {
@@ -779,10 +787,10 @@ async function handleTick(db: any) {
             if (joinScheduled > 0) {
               console.log(`[phase_transition] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
             }
-
-            // Also schedule today's group interaction jobs
-            await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
           }
+
+          // Schedule new jobs only for remaining time window
+          await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
 
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
