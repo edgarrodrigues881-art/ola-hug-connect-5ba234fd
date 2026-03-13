@@ -435,13 +435,11 @@ const STATUS_CAPTIONS = [
 ];
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // UAZAPI V2 expects "file" field for image URL
+  // UAZAPI V2: field is "media" (confirmed from evolution-connect and process-campaign)
   const endpoints = [
+    { path: "/send/media", body: { number, media: imageUrl, caption, type: "image" } },
+    { path: "/send/image", body: { number, media: imageUrl, caption } },
     { path: "/send/image", body: { number, file: imageUrl, caption } },
-    { path: "/send/image", body: { number, image: imageUrl, caption } },
-    { path: "/send/image", body: { number, url: imageUrl, caption } },
-    { path: "/send/media", body: { number, file: imageUrl, caption, type: "image" } },
-    { path: "/send/media", body: { number, mediaUrl: imageUrl, caption, type: "image" } },
   ];
   let lastErr: any = null;
   for (const ep of endpoints) {
