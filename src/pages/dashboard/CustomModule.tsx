@@ -134,10 +134,10 @@ const CustomModule = () => {
                 {/* Passo 3 */}
                 <StepCard step={3} title="Tipo de conexão" icon={<Signal className="w-4 h-4 text-emerald-500" />}>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <p><strong className="text-foreground">Nunca usado para spam:</strong> Pode usar Wi-Fi na instalação.</p>
-                    <p><strong className="text-foreground">Histórico problemático:</strong> Use 4G desde o início.</p>
-                    <p><strong className="text-foreground">Após configurar:</strong> Operar preferencialmente em 4G.</p>
-                    <p className="text-xs italic mt-2">Evite alternar Wi-Fi e 4G com frequência.</p>
+                    <p><strong className="text-foreground">Sem histórico negativo:</strong> Wi-Fi pode ser usado na instalação.</p>
+                    <p><strong className="text-foreground">Com histórico de bloqueio:</strong> Use dados móveis (4G) desde o início.</p>
+                    <p><strong className="text-foreground">Após a configuração:</strong> Mantenha o aparelho preferencialmente no 4G.</p>
+                    <p className="text-xs italic mt-2">Evite alternar entre Wi-Fi e 4G com frequência — isso pode levantar suspeitas.</p>
                   </div>
                 </StepCard>
 
