@@ -379,34 +379,44 @@ const WarmupInstances = () => {
 
   return (
     <div className="space-y-5">
-      {/* Warning popup */}
+      {/* Warning popup - chips novos */}
       <Dialog open={showWarning} onOpenChange={(open) => { if (!open && agreedResponsibility) setShowWarning(false); }}>
-        <DialogContent className="max-w-md" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Aviso importante
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-            <p><strong className="text-foreground">Certifique-se de que já tenha feito alguma interação manualmente antes de ter conectado a qualquer QR Code.</strong></p>
-            <p>Caso contrário, existirá uma <strong className="text-foreground">grande chance de ser restringido</strong> no meio do processo de aquecimento.</p>
-            <p className="text-xs text-muted-foreground/60 mt-4 border-t border-border/20 pt-3">
-              ⚠️ <strong className="text-foreground">Não nos responsabilizamos pelo mau uso da ferramenta.</strong> O aquecimento é uma ferramenta de apoio e deve ser usado com responsabilidade seguindo as boas práticas recomendadas.
-            </p>
-          </div>
-          <div className="flex items-start gap-2 mt-1">
-            <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} />
-            <label htmlFor="agreeResponsibility" className="text-xs text-muted-foreground cursor-pointer select-none leading-relaxed">
-              Estou de acordo e assumo total responsabilidade pelo uso da ferramenta.
-            </label>
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Checkbox id="dontShowAgainV2" checked={dontShowAgain} onCheckedChange={(v) => setDontShowAgain(!!v)} />
-            <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">Não mostrar novamente</label>
-          </div>
-          <DialogFooter>
+        <DialogContent className="max-w-lg rounded-xl border-border/30 bg-card p-6" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
+          <div className="space-y-5">
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-foreground">Aviso importante — Chips novos</h2>
+              <p className="text-xs text-muted-foreground">Leia antes de prosseguir</p>
+            </div>
+
+            <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+              <p>
+                Certifique-se de que já tenha feito alguma <strong className="text-foreground">interação manualmente</strong> antes 
+                de ter conectado a qualquer QR Code. Caso contrário, existirá uma grande chance de ser 
+                <strong className="text-foreground"> restringido no meio do processo</strong> de aquecimento.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border/20 bg-muted/20 px-4 py-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Isenção de responsabilidade:</strong> Não nos responsabilizamos pelo mau uso da ferramenta. 
+                O aquecimento é uma ferramenta de apoio e deve ser usado com responsabilidade seguindo as boas práticas recomendadas.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2.5 pt-1">
+              <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} className="mt-0.5" />
+              <label htmlFor="agreeResponsibility" className="text-sm text-muted-foreground cursor-pointer select-none leading-relaxed">
+                Estou de acordo e assumo total responsabilidade pelo uso da ferramenta.
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox id="dontShowAgainV2" checked={dontShowAgain} onCheckedChange={(v) => setDontShowAgain(!!v)} />
+              <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">Não mostrar novamente</label>
+            </div>
+
             <Button
+              className="w-full h-10 text-sm font-semibold"
               disabled={!agreedResponsibility}
               onClick={() => {
                 if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
@@ -415,7 +425,7 @@ const WarmupInstances = () => {
             >
               Entendi e concordo
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
