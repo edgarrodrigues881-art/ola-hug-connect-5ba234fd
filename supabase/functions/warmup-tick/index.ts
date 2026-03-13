@@ -1189,8 +1189,8 @@ async function handleTick(db: any) {
             .lt("run_at", nowIso)
             .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-          const budgetMin = 200;
-          const budgetMax = 500;
+          const budgetMin = 50;
+          const budgetMax = 150;
           const newTarget = randInt(budgetMin, budgetMax);
 
           await db.from("warmup_cycles").update({
