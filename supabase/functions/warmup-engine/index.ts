@@ -468,32 +468,9 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
-  // CHIP NOVO: Days 2-4 — mensagens naturais e curtas, intervalos aleatórios
-  if (chipState === "new") {
-    if (dayIndex === 2) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(120, 200); v.statusPosts = randInt(1, 3); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(150, 250); v.statusPosts = randInt(2, 3); }
-    return v;
-  }
-
-  // CHIP RECUPERADO (banido): Days 2-4 — interações leves, baixa quantidade, intervalos maiores
-  if (chipState === "recovered") {
-    if (dayIndex === 2) { v.groupMsgs = randInt(40, 80); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(60, 120); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
-    return v;
-  }
-
-  // CHIP INSTÁVEL (crítico): Days 2-7 — interações muito leves, poucas mensagens, intervalos longos
-  if (chipState === "unstable") {
-    if (dayIndex === 2) { v.groupMsgs = randInt(20, 40); v.statusPosts = 0; }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(30, 50); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(40, 70); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 5) { v.groupMsgs = randInt(50, 90); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 6) { v.groupMsgs = randInt(60, 100); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 7) { v.groupMsgs = randInt(70, 120); v.statusPosts = randInt(1, 2); }
-    return v;
-  }
+  // Todos os chips: 200-500 mensagens em grupo + 5 status por dia
+  v.groupMsgs = randInt(200, 500);
+  v.statusPosts = 5;
 
   return v;
 }
