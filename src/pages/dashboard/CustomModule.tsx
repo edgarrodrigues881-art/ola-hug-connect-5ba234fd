@@ -40,7 +40,7 @@ const CustomModule = () => {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">Guia de Aquecimento</h1>
         <p className="text-sm text-muted-foreground">
-          Passo a passo para preparar, configurar e aquecer seus números com segurança.
+          Orientações completas para preparar o aparelho, configurar a rede e conduzir o aquecimento de forma segura e organizada.
         </p>
       </div>
 
