@@ -1137,19 +1137,6 @@ async function handleTick(db: any) {
           break;
         }
 
-            await db.from("warmup_cycles").update({
-              is_running: false, phase: "completed",
-              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
-            }).eq("id", cycle.id);
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "cycle_completed",
-              message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
-            });
-            break;
-          }
-
-          const newPhase = getPhaseForDay(newDay, chipState);
 
           // If phase is completed, finish the cycle
           if (newPhase === "completed") {
