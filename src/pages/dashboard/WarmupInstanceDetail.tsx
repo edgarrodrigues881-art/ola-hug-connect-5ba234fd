@@ -803,7 +803,7 @@ const WarmupInstanceDetail = () => {
                   {nextPendingJob && (
                     <div className="text-right">
                       <p className="text-[9px] text-muted-foreground uppercase">Próxima</p>
-                      <p className="text-xs font-bold text-foreground font-mono">{formatBrt(new Date(nextPendingJob.run_at), "HH:mm")}</p>
+                      <p className="text-xs font-bold text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
                     </div>
                   )}
                 </div>
