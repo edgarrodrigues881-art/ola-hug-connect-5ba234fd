@@ -330,6 +330,7 @@ Deno.serve(async (req) => {
         text: testText,
         background_color: randInt(4, 9),
         font: randInt(0, 4),
+        async: false,
       };
 
       let postedMessageId: string | null = null;
