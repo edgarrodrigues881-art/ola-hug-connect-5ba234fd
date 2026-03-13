@@ -209,7 +209,7 @@ const CustomModule = () => {
             <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
               <span className="flex items-center gap-3 text-base font-semibold text-foreground">
                 <Activity className="w-5 h-5 text-emerald-500 shrink-0" />
-                Modelagem do Aquecimento
+                Estratégia de Aquecimento
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
