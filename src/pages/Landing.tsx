@@ -188,8 +188,8 @@ const Features = () => (
   <Section id="recursos">
     <div className="text-center mb-10">
       <SectionLabel>Recursos</SectionLabel>
-      <SectionTitle>Tudo que você precisa em um só lugar</SectionTitle>
-      <SectionSub>Ferramentas pensadas para quem opera de forma profissional.</SectionSub>
+      <SectionTitle>Recursos inclusos na plataforma</SectionTitle>
+      <SectionSub>Todas as ferramentas que você precisa para operar com organização.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {features.map((f) => (
