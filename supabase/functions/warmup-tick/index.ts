@@ -315,35 +315,105 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      const baseUrl = body.base_url || "";
+      const baseUrl = (body.base_url || "").replace(/\/+$/, "");
       const tkn = body.token || "";
-      if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!baseUrl || !tkn) {
+        return new Response(JSON.stringify({ error: "need base_url and token" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       const results: any[] = [];
+      const testText = `Teste status ✅ ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
+      const textPayload = {
+        to: "status@broadcast",
+        type: "text",
+        text: testText,
+        backgroundColor: "#25D366",
+        font: 1,
+      };
 
-      // 1. Check privacy settings
-      try {
-        const privRes = await fetch(`${baseUrl}/privacy`, { method: "GET", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" } });
-        const privTxt = await privRes.text();
-        results.push({ step: "privacy_check", status: privRes.status, body: privTxt.substring(0, 500) });
-      } catch (e) { results.push({ step: "privacy_check", error: e.message }); }
+      let postedMessageId: string | null = null;
 
-      // 2. Try to set status privacy to "all" (contacts)
+      // 1) Post status
       try {
-        const setPRes = await fetch(`${baseUrl}/privacy`, { method: "PUT", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify({ status: "all" }) });
-        const setPTxt = await setPRes.text();
-        results.push({ step: "privacy_set_all", status: setPRes.status, body: setPTxt.substring(0, 500) });
-      } catch (e) { results.push({ step: "privacy_set_all", error: e.message }); }
-
-      // 3. Post test status
-      const textPayload = { type: "text", text: "Teste status ✅ " + new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }), backgroundColor: "#25D366", font: 1 };
-      try {
-        const r = await fetch(`${baseUrl}/send/status`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
+        const r = await fetch(`${baseUrl}/send/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+          body: JSON.stringify(textPayload),
+        });
         const txt = await r.text();
-        results.push({ step: "post_status", status: r.status, body: txt.substring(0, 300) });
-      } catch (e) { results.push({ step: "post_status", error: e.message }); }
+        let parsed: any = null;
+        try { parsed = JSON.parse(txt); } catch (_e) { parsed = null; }
 
-      return new Response(JSON.stringify({ results }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        postedMessageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
+
+        results.push({
+          step: "post_status",
+          status: r.status,
+          message_id: postedMessageId,
+          body: txt.substring(0, 500),
+          sent_text: testText,
+        });
+      } catch (e) {
+        results.push({ step: "post_status", error: e.message, sent_text: testText });
+      }
+
+      // 2) Check status chat history for the just-posted message
+      const historyEndpoints = [
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&count=30`,
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&limit=30`,
+      ];
+
+      for (const ep of historyEndpoints) {
+        try {
+          const hr = await fetch(`${baseUrl}${ep}`, {
+            method: "GET",
+            headers: { token: tkn, Accept: "application/json" },
+          });
+          const htxt = await hr.text();
+          let parsed: any = null;
+          try { parsed = JSON.parse(htxt); } catch (_e) { parsed = null; }
+
+          const msgs = Array.isArray(parsed?.messages)
+            ? parsed.messages
+            : Array.isArray(parsed?.data)
+            ? parsed.data
+            : Array.isArray(parsed)
+            ? parsed
+            : [];
+
+          const foundByText = msgs.some((m: any) => {
+            const txt = m?.text || m?.body || m?.content?.text || m?.message?.conversation || "";
+            return typeof txt === "string" && txt.includes(testText);
+          });
+
+          const foundById = postedMessageId
+            ? msgs.some((m: any) => {
+                const id = m?.id || m?.messageId || m?.key?.id || m?.ID;
+                return id === postedMessageId;
+              })
+            : false;
+
+          results.push({
+            step: "check_status_history",
+            endpoint: ep,
+            status: hr.status,
+            total_messages: msgs.length,
+            found_by_text: foundByText,
+            found_by_id: foundById,
+            body: htxt.substring(0, 500),
+          });
+
+          if (hr.ok && (foundByText || foundById)) break;
+        } catch (e) {
+          results.push({ step: "check_status_history", endpoint: ep, error: e.message });
+        }
+      }
+
+      return new Response(JSON.stringify({ results }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     return await handleTick(db);
   } catch (err) {
