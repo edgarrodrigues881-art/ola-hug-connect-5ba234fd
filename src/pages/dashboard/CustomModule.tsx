@@ -243,7 +243,7 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 flex gap-3">
                   <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    A progressão gradual é a chave para estabilidade a longo prazo. Aumente a intensidade somente quando a conta estiver estável.
+                    A progressão gradual é o que garante estabilidade a longo prazo. Só aumente a intensidade quando a conta estiver comprovadamente estável.
                   </p>
                 </div>
               </div>
