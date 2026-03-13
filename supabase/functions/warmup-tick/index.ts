@@ -535,59 +535,85 @@ async function handleTick(db: any) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // BATCH PRE-LOAD: Load all cycles, subscriptions, profiles, and devices at once
-  // instead of N+1 queries per job
+  // BATCH PRE-LOAD: Load ALL data in parallel to eliminate N+1 queries
   // ══════════════════════════════════════════════════════════════
   const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
   const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
   const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
 
-  // Batch load cycles (paginated if >200)
-  const cyclesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueCycleIds.length; i += 200) {
-    const { data: cycles } = await db
-      .from("warmup_cycles")
-      .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
-      .in("id", uniqueCycleIds.slice(i, i + 200));
-    if (cycles) cycles.forEach((c: any) => { cyclesMap[c.id] = c; });
+  // Helper to batch-load with pagination
+  async function batchLoad<T>(table: string, selectCols: string, field: string, ids: string[], extra?: (q: any) => any): Promise<T[]> {
+    const results: T[] = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      let q = db.from(table).select(selectCols).in(field, ids.slice(i, i + 200));
+      if (extra) q = extra(q);
+      const { data } = await q;
+      if (data) results.push(...data);
+    }
+    return results;
   }
 
-  // Batch load subscriptions (latest per user)
+  // Run ALL batch loads in parallel
+  const [cyclesArr, subsArr, profilesArr, devicesArr, userMsgsArr, autosaveArr, instanceGroupsArr, groupsPoolArr] = await Promise.all([
+    batchLoad<any>("warmup_cycles", "id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id", "id", uniqueCycleIds),
+    batchLoad<any>("subscriptions", "user_id, expires_at, created_at", "user_id", uniqueUserIds, q => q.order("created_at", { ascending: false })),
+    batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
+    batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
+    batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("created_at", { ascending: true })),
+    batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status", "device_id", uniqueDeviceIds),
+    db.from("warmup_groups_pool").select("id, external_group_ref, name").eq("is_active", true).then((r: any) => r.data || []),
+  ]);
+
+  // Index into maps
+  const cyclesMap: Record<string, any> = {};
+  cyclesArr.forEach((c: any) => { cyclesMap[c.id] = c; });
+
   const subsMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueUserIds.length; i += 200) {
-    const { data: subs } = await db
-      .from("subscriptions")
-      .select("user_id, expires_at, created_at")
-      .in("user_id", uniqueUserIds.slice(i, i + 200))
-      .order("created_at", { ascending: false });
-    if (subs) {
-      for (const s of subs) {
-        if (!subsMap[s.user_id]) subsMap[s.user_id] = s; // first = latest
-      }
+  subsArr.forEach((s: any) => { if (!subsMap[s.user_id]) subsMap[s.user_id] = s; });
+
+  const profilesMap: Record<string, any> = {};
+  profilesArr.forEach((p: any) => { profilesMap[p.id] = p; });
+
+  const devicesMap: Record<string, any> = {};
+  devicesArr.forEach((d: any) => { devicesMap[d.id] = d; });
+
+  // User messages indexed by user_id
+  const userMsgsMap: Record<string, string[]> = {};
+  userMsgsArr.forEach((m: any) => {
+    if (!userMsgsMap[m.user_id]) userMsgsMap[m.user_id] = [];
+    userMsgsMap[m.user_id].push(m.content);
+  });
+
+  // Autosave contacts indexed by user_id
+  const autosaveMap: Record<string, any[]> = {};
+  autosaveArr.forEach((c: any) => {
+    if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
+    autosaveMap[c.user_id].push(c);
+  });
+
+  // Instance groups indexed by "device_id:cycle_id"
+  const instanceGroupsMap: Record<string, any[]> = {};
+  instanceGroupsArr.forEach((ig: any) => {
+    const key = `${ig.device_id}:${ig.cycle_id}`;
+    if (!instanceGroupsMap[key]) instanceGroupsMap[key] = [];
+    instanceGroupsMap[key].push(ig);
+  });
+
+  // Groups pool indexed by id
+  const groupsPoolMap: Record<string, any> = {};
+  groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
+
+  // Audit log buffer for batch insert
+  const auditLogBuffer: any[] = [];
+  function bufferAuditLog(log: any) { auditLogBuffer.push(log); }
+  async function flushAuditLogs() {
+    for (let i = 0; i < auditLogBuffer.length; i += 100) {
+      await db.from("warmup_audit_logs").insert(auditLogBuffer.slice(i, i + 100));
     }
   }
 
-  // Batch load profiles
-  const profilesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueUserIds.length; i += 200) {
-    const { data: profiles } = await db
-      .from("profiles")
-      .select("id, status")
-      .in("id", uniqueUserIds.slice(i, i + 200));
-    if (profiles) profiles.forEach((p: any) => { profilesMap[p.id] = p; });
-  }
-
-  // Batch load devices
-  const devicesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueDeviceIds.length; i += 200) {
-    const { data: devices } = await db
-      .from("devices")
-      .select("id, status, uazapi_token, uazapi_base_url, number")
-      .in("id", uniqueDeviceIds.slice(i, i + 200));
-    if (devices) devices.forEach((d: any) => { devicesMap[d.id] = d; });
-  }
-
-  console.log(`[warmup-tick] Batch loaded: ${Object.keys(cyclesMap).length} cycles, ${Object.keys(subsMap).length} subs, ${Object.keys(profilesMap).length} profiles, ${Object.keys(devicesMap).length} devices for ${pendingJobs.length} jobs`);
+  console.log(`[warmup-tick] Batch loaded: ${cyclesArr.length} cycles, ${subsArr.length} subs, ${profilesArr.length} profiles, ${devicesArr.length} devices, ${userMsgsArr.length} msgs, ${autosaveArr.length} autosave, ${instanceGroupsArr.length} igroups, ${groupsPoolArr.length} pool for ${pendingJobs.length} jobs`);
 
   // Track cycles already paused in this tick to avoid duplicate updates
   const pausedCycles = new Set<string>();
@@ -642,11 +668,11 @@ async function handleTick(db: any) {
           last_error: "Auto-pausado: instância desconectada",
         }).eq("id", cycle.id);
         await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
-        await db.from("warmup_audit_logs").insert({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "warn", event_type: "auto_paused_disconnected",
-          message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
-        });
+        bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "auto_paused_disconnected",
+            message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
+          });
         pausedCycles.add(cycle.id);
         cycle.is_running = false;
       }
@@ -667,12 +693,8 @@ async function handleTick(db: any) {
           const groupId = job.payload?.group_id;
           const groupName = job.payload?.group_name || groupId;
 
-          // Get the invite link from pool
-          const { data: poolGroupJoin } = await db
-            .from("warmup_groups_pool")
-            .select("external_group_ref, name")
-            .eq("id", groupId)
-            .single();
+          // Get the invite link from cached pool
+          const poolGroupJoin = groupsPoolMap[groupId];
 
           if (!poolGroupJoin?.external_group_ref) {
             throw new Error(`Grupo ${groupName} sem link de convite`);
@@ -753,7 +775,7 @@ async function handleTick(db: any) {
               .eq("device_id", job.device_id)
               .eq("group_id", groupId);
 
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "group_joined",
               message: `Entrou no grupo ${groupName} via API${joinJid ? ` (JID: ${joinJid})` : ""}`,
@@ -812,7 +834,7 @@ async function handleTick(db: any) {
             await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
           }
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
             message: `Fase alterada: ${cycle.phase} → ${targetPhase}`,
@@ -826,32 +848,21 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          const { data: joinedGroups } = await db
-            .from("warmup_instance_groups")
-            .select("group_id, group_jid")
-            .eq("device_id", job.device_id)
-            .eq("cycle_id", cycle.id)
-            .eq("join_status", "joined");
+          const igKey = `${job.device_id}:${cycle.id}`;
+          const allIGs = instanceGroupsMap[igKey] || [];
+          const joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
 
-          if (!joinedGroups || joinedGroups.length === 0) {
+          if (joinedGroups.length === 0) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
-          // Use user custom messages if available, otherwise combinatorial generator
-          const { data: userMsgs } = await db
-            .from("warmup_messages")
-            .select("content")
-            .eq("user_id", job.user_id);
-
-          const useCustomPool = userMsgs && userMsgs.length > 0;
-          const getGroupMsg = () => useCustomPool ? pickRandom(userMsgs.map((m: any) => m.content)) : generateNaturalMessage("group");
+          // Use cached user messages
+          const cachedMsgs = userMsgsMap[job.user_id];
+          const useCustomPool = cachedMsgs && cachedMsgs.length > 0;
+          const getGroupMsg = () => useCustomPool ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
 
           const targetGroupRecord = pickRandom(joinedGroups);
-          const { data: poolGroup } = await db
-            .from("warmup_groups_pool")
-            .select("external_group_ref, name")
-            .eq("id", targetGroupRecord.group_id)
-            .single();
+          const poolGroup = groupsPoolMap[targetGroupRecord.group_id];
 
           // Resolve the actual JID: prefer stored group_jid, then external_group_ref if it looks like a JID
           let groupJid = targetGroupRecord.group_jid;
@@ -896,7 +907,7 @@ async function handleTick(db: any) {
           }
 
           if (!groupJid) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "group_no_jid",
               message: `Grupo sem JID resolvido: ${poolGroup?.name || targetGroupRecord.group_id}. Não é possível enviar mensagem.`,
@@ -931,7 +942,7 @@ async function handleTick(db: any) {
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_msg_sent",
             message: `[${mediaLabel}] Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
@@ -948,15 +959,10 @@ async function handleTick(db: any) {
           const recipientIndex = job.payload?.recipient_index ?? 0;
           const msgIndex = job.payload?.msg_index ?? 0;
 
-          const { data: contacts } = await db
-            .from("warmup_autosave_contacts")
-            .select("id, phone_e164, contact_name")
-            .eq("user_id", job.user_id)
-            .eq("is_active", true)
-            .order("created_at", { ascending: true });
+          const contacts = autosaveMap[job.user_id] || [];
 
-          if (!contacts || contacts.length === 0) {
-            await db.from("warmup_audit_logs").insert({
+          if (contacts.length === 0) {
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_no_contacts",
               message: "Nenhum contato Auto Save ativo",
@@ -986,7 +992,7 @@ async function handleTick(db: any) {
           }).eq("id", cycle.id);
 
           const msgsPerContact = cycle.chip_state === "recovered" ? 2 : 3;
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "autosave_msg_sent",
             message: `Auto Save: msg ${msgIndex + 1}/${msgsPerContact} para ${contact.contact_name || phoneNumber}`,
@@ -1039,7 +1045,7 @@ async function handleTick(db: any) {
           }
 
           if (peerCandidates.length === 0) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_no_peers",
               message: "Nenhuma instância online encontrada — conversa comunitária adiada",
@@ -1054,7 +1060,7 @@ async function handleTick(db: any) {
           const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
           if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
             // Peer offline, skip silently
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_peer_offline",
               message: `Peer ${peerIndex} offline, msg ${job.payload?.msg_index ?? 0} adiada`,
@@ -1085,7 +1091,7 @@ async function handleTick(db: any) {
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "community_msg_sent",
             message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} msg ${job.payload?.msg_index ?? 0} → ${targetPhone.substring(0, 6)}...`,
@@ -1118,14 +1124,14 @@ async function handleTick(db: any) {
               }).eq("id", existingMembership.id);
             }
 
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "phase_changed",
               message: `Auto Save habilitado (${count} contatos ativos) — inscrito no comunitário (somente receber)`,
               meta: { active_contacts: count, auto_enrolled_community: true },
             });
           } else {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_missing",
               message: "Auto Save não habilitado: nenhum contato ativo",
@@ -1141,7 +1147,7 @@ async function handleTick(db: any) {
 
         case "enable_community": {
           if (!["autosave_enabled", "community_light"].includes(cycle.phase)) {
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_blocked",
               message: "Comunidade bloqueada: fase pré-requisito não ativa",
@@ -1150,7 +1156,7 @@ async function handleTick(db: any) {
           }
           const enableTargetPhase = job.payload?.target_phase || "community_light";
           await db.from("warmup_cycles").update({ phase: enableTargetPhase }).eq("id", cycle.id);
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
             message: `Comunidade habilitada: ${enableTargetPhase}`,
@@ -1167,7 +1173,7 @@ async function handleTick(db: any) {
               is_running: false, phase: "completed",
               daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
             }).eq("id", cycle.id);
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "cycle_completed",
               message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
@@ -1182,7 +1188,7 @@ async function handleTick(db: any) {
               is_running: false, phase: "completed",
               daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
             }).eq("id", cycle.id);
-            await db.from("warmup_audit_logs").insert({
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "cycle_completed",
               message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
@@ -1216,7 +1222,7 @@ async function handleTick(db: any) {
 
           const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
           const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "daily_reset",
             message: `Reset diário [${chipLabel}]: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, budget: ${newTarget}`,
@@ -1252,7 +1258,7 @@ async function handleTick(db: any) {
             await uazapiPostStatus(baseUrl, token, "text", statusContent);
           }
 
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "status_posted",
             message: `Status postado [imagem]: "${statusContent.substring(0, 50)}"`,
@@ -1262,7 +1268,7 @@ async function handleTick(db: any) {
         }
 
         case "health_check": {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "health_check", message: "Health check OK",
           });
@@ -1270,7 +1276,7 @@ async function handleTick(db: any) {
         }
 
         default: {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "unknown_job_type",
             message: `Tipo desconhecido: ${job.job_type}`,
@@ -1306,7 +1312,7 @@ async function handleTick(db: any) {
           }).eq("id", job.id);
         }
         try {
-          await db.from("warmup_audit_logs").insert({
+          bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "error", event_type: "job_failed",
             message: `Job ${job.job_type} falhou: ${jobErr.message}`,
@@ -1338,6 +1344,13 @@ async function handleTick(db: any) {
     }
   }
 
+  // Flush all buffered audit logs in one batch
+  try {
+    await flushAuditLogs();
+  } catch (flushErr: any) {
+    console.error(`[warmup-tick] Failed to flush audit logs (${auditLogBuffer.length} entries):`, flushErr.message);
+  }
+
   const { data: nextPending } = await db
     .from("warmup_jobs")
     .select("run_at")
@@ -1345,7 +1358,7 @@ async function handleTick(db: any) {
     .order("run_at", { ascending: true })
     .limit(1);
 
-  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}`);
+  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}, audit_logs: ${auditLogBuffer.length}`);
 
   return json({
     ok: true,
