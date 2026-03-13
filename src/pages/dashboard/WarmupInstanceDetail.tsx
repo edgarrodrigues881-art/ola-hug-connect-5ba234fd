@@ -545,7 +545,7 @@ const WarmupInstanceDetail = () => {
       )}
 
       {/* ═══════════ ACTIVE CYCLE ═══════════ */}
-      {cycle && (
+      {cycle && !isTerminalCycle && (
         <div className="space-y-5">
 
           {/* Phase stepper + day progress */}
