@@ -1318,17 +1318,15 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0, statusPosts: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
 
   if (phase === "completed") return v;
 
   if (phase === "pre_24h") {
-    v.statusPosts = 1;
     return v;
   }
 
   v.groupMsgs = randInt(200, 500);
-  v.statusPosts = 5;
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
     v.autosaveContacts = 5;
