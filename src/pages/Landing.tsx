@@ -235,7 +235,7 @@ const Plans = () => {
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
-            <p className="text-[13px] text-white/50 font-medium mb-4">{p.instances} instâncias</p>
+            <p className="text-[13px] text-white/50 font-medium mb-4">até {p.instances} instâncias</p>
             <div className="flex items-baseline gap-1 mb-6">
               <span className="text-sm font-medium text-white/40">R$</span>
               <span className="text-3xl font-extrabold text-white">{p.price.split(",")[0]}</span>
