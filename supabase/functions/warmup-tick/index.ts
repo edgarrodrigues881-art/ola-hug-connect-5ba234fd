@@ -1079,6 +1079,78 @@ async function handleTick(db: any) {
 
           const newPhase = getPhaseForDay(newDay, chipState);
 
+          if (newPhase === "completed") {
+            await db.from("warmup_cycles").update({
+              is_running: false, phase: "completed",
+              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+            }).eq("id", cycle.id);
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "cycle_completed",
+              message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+            });
+            break;
+          }
+
+          // Cancel overdue interaction jobs from previous day
+          const nowIso = new Date().toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .lt("run_at", nowIso)
+            .in("job_type", ["group_interaction", "post_status", "autosave_interaction", "community_interaction"]);
+
+          const budgetMin = 200;
+          const budgetMax = 500;
+          const newTarget = randInt(budgetMin, budgetMax);
+
+          await db.from("warmup_cycles").update({
+            daily_interaction_budget_used: 0,
+            daily_unique_recipients_used: 0,
+            daily_interaction_budget_target: newTarget,
+            daily_interaction_budget_min: budgetMin,
+            daily_interaction_budget_max: budgetMax,
+            day_index: newDay,
+            phase: newPhase,
+            last_daily_reset_at: new Date().toISOString(),
+          }).eq("id", cycle.id);
+
+          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
+          const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
+          await db.from("warmup_audit_logs").insert({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "daily_reset",
+            message: `Reset diário [${chipLabel}]: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, budget: ${newTarget}`,
+            meta: { day: newDay, phase: newPhase, budget_target: newTarget, chip_state: chipState },
+          });
+
+          await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
+
+          const nextReset = new Date();
+          nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+          nextReset.setUTCHours(3, 5, 0, 0);
+          await db.from("warmup_jobs").insert({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
+          });
+          break;
+        }
+          if (newDay > cycle.days_total) {
+            await db.from("warmup_cycles").update({
+              is_running: false, phase: "completed",
+              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+            }).eq("id", cycle.id);
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "cycle_completed",
+              message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+            });
+            break;
+          }
+
+          const newPhase = getPhaseForDay(newDay, chipState);
+
           // If phase is completed, finish the cycle
           if (newPhase === "completed") {
             await db.from("warmup_cycles").update({
