@@ -548,7 +548,13 @@ const WarmupInstanceDetail = () => {
           {/* CTA */}
           <Button
             className="w-full gap-2 h-12 rounded-xl text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20"
-            onClick={handleStartWarmup}
+            onClick={() => {
+              if (Number(daysTotal) <= 7) {
+                setShowShortDaysWarning(true);
+              } else {
+                handleStartWarmup();
+              }
+            }}
             disabled={!isConnected || engine.isPending}
           >
             {engine.isPending ? (
@@ -557,6 +563,7 @@ const WarmupInstanceDetail = () => {
               <Flame className="w-4 h-4" />
             )}
             {isTerminalCycle ? "Começar Novo Aquecimento" : "Começar Aquecimento"}
+          </Button>
           </Button>
           {!isConnected && (
             <p className="text-[11px] text-amber-400 text-center -mt-2">⚠ Conecte a instância primeiro para iniciar</p>
