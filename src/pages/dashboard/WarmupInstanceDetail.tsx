@@ -457,14 +457,7 @@ const WarmupInstanceDetail = () => {
                 </div>
               )}
 
-              {/* Encerrar ciclo */}
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-9 rounded-xl text-xs border-destructive/30 text-destructive hover:bg-destructive/10 font-semibold"
-                onClick={() => setShowFinishConfirm(true)}
-              >
-                <Square className="w-3.5 h-3.5" /> Encerrar ciclo
-              </Button>
+              )}
             </div>
           )}
         </div>

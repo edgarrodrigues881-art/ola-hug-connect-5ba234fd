@@ -139,7 +139,7 @@ export function useCreateCycle() {
   return useMutation({
     mutationFn: async (params: {
       device_id: string;
-      chip_state: "new" | "recovered";
+      chip_state: "new" | "recovered" | "unstable";
       days_total: number;
       plan_id?: string;
     }) => {
