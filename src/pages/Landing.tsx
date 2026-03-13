@@ -37,7 +37,7 @@ const Navbar = () => {
   const scroll = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#181c24]/90 border-b border-white/[0.08]">
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[hsl(222,22%,6%)]/90 border-b border-white/[0.06]">
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-5">
         <div className="flex items-center gap-2.5">
           <img src={logo} alt="DG" width={32} height={32} className="rounded-lg" />
