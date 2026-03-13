@@ -959,12 +959,10 @@ const WarmupInstanceDetail = () => {
               }
             }
 
-            const doneToday = displayJobs.filter((j) => j.status === "succeeded").length;
+            const doneToday = cycle?.daily_interaction_budget_used ?? displayJobs.filter((j) => j.status === "succeeded").length;
             const failedToday = displayJobs.filter((j) => j.status === "failed").length;
-            const actionableJobsCount = displayJobs.filter((j) => actionableTypes.has(j.job_type)).length;
-            const totalDisplay = Math.max(
-              cycle?.daily_interaction_budget_target || 0,
-              actionableJobsCount,
+            const totalDisplay = cycle?.daily_interaction_budget_target || Math.max(
+              displayJobs.filter((j) => actionableTypes.has(j.job_type)).length,
               displayJobs.length,
             );
             const nextPendingJob =
