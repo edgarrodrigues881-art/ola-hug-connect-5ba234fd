@@ -711,6 +711,7 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       text: content,
       background_color: randInt(1, 19),
       font: randInt(0, 8),
+      async: false,
     };
 
     const res = await fetch(`${baseUrl}${endpoint}`, {
