@@ -463,7 +463,7 @@ const WarmupInstanceDetail = () => {
       </div>
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
-      {!cycle && !cycleLoading && (
+      {(!cycle || isTerminalCycle) && !cycleLoading && (
         <div className="space-y-5">
           {/* chip state selector */}
           <div className="space-y-3">
