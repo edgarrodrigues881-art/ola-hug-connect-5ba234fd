@@ -382,48 +382,69 @@ const WarmupInstances = () => {
     <div className="space-y-5">
       {/* Warning popup - chips novos */}
       <Dialog open={showWarning} onOpenChange={(open) => { if (!open && agreedResponsibility) setShowWarning(false); }}>
-        <DialogContent className="max-w-lg rounded-xl border-border/30 bg-card p-6" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
-          <div className="space-y-5">
-            <div className="space-y-1">
-              <h2 className="text-base font-bold text-foreground">Aviso importante para chips novos</h2>
-              <p className="text-xs text-muted-foreground">Leia com atenção antes de continuar.</p>
+        <DialogContent className="max-w-md rounded-2xl border-border/20 bg-card p-0 overflow-hidden" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
+          {/* Accent header strip */}
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.07] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="space-y-0.5">
+                <h2 className="text-[15px] font-bold text-foreground tracking-tight">Aviso importante para chips novos</h2>
+                <p className="text-xs text-muted-foreground">Leia com atenção antes de continuar.</p>
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          {/* Divider */}
+          <div className="h-px bg-border/20 mx-6" />
+
+          {/* Body */}
+          <div className="px-6 py-5 space-y-5">
+            <div className="space-y-3 text-[13px] text-muted-foreground leading-relaxed">
               <p>
-                Antes de conectar o chip ao QR Code, faça ao menos uma <strong className="text-foreground">interação manual</strong> no aparelho.
+                Antes de conectar o chip ao QR Code, faça ao menos uma <strong className="text-foreground font-medium">interação manual</strong> no aparelho.
               </p>
               <p>
-                Sem essa etapa, o número pode apresentar <strong className="text-foreground">restrição durante o processo</strong> de aquecimento.
+                Sem essa etapa, o número pode apresentar <strong className="text-foreground font-medium">restrição durante o processo</strong> de aquecimento.
               </p>
             </div>
 
-            <div className="rounded-lg border border-border/20 bg-muted/20 px-4 py-3">
+            <div className="rounded-xl border border-border/15 bg-muted/30 px-4 py-3.5 flex items-start gap-3">
+              <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Uso responsável</strong> — Esta ferramenta foi desenvolvida para apoiar o processo de aquecimento. O uso deve seguir boas práticas e é de responsabilidade do usuário.
+                <strong className="text-foreground font-medium">Uso responsável</strong> — Esta ferramenta foi desenvolvida para apoiar o processo de aquecimento. O uso deve seguir boas práticas e é de responsabilidade do usuário.
               </p>
             </div>
 
-            <div className="flex items-start gap-2.5 pt-1">
-              <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} className="mt-0.5" />
-              <label htmlFor="agreeResponsibility" className="text-sm text-muted-foreground cursor-pointer select-none leading-relaxed">
-                Li as orientações e assumo a responsabilidade pelo uso da ferramenta.
-              </label>
-            </div>
+            {/* Checkboxes */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-start gap-2.5 rounded-lg border border-border/15 bg-muted/15 px-3.5 py-3 cursor-pointer transition-colors hover:bg-muted/30" onClick={() => setAgreedResponsibility(!agreedResponsibility)}>
+                <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} className="mt-0.5" />
+                <label htmlFor="agreeResponsibility" className="text-[13px] text-muted-foreground cursor-pointer select-none leading-relaxed">
+                  Li as orientações e assumo a responsabilidade pelo uso da ferramenta.
+                </label>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox id="dontShowAgainV2" checked={dontShowAgain} onCheckedChange={(v) => setDontShowAgain(!!v)} />
-              <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">Não mostrar novamente</label>
+              <div className="flex items-center gap-2 pl-1">
+                <Checkbox id="dontShowAgainV2" checked={dontShowAgain} onCheckedChange={(v) => setDontShowAgain(!!v)} />
+                <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground/70 cursor-pointer select-none">Não mostrar novamente</label>
+              </div>
             </div>
+          </div>
 
+          {/* Footer */}
+          <div className="px-6 pb-6">
             <Button
-              className="w-full h-10 text-sm font-semibold"
+              className="w-full h-11 text-sm font-semibold rounded-xl transition-all duration-200"
               disabled={!agreedResponsibility}
               onClick={() => {
                 if (dontShowAgain) localStorage.setItem(WARNING_DISMISS_KEY, "true");
                 setShowWarning(false);
               }}
             >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
               Entendi e continuar
             </Button>
           </div>
