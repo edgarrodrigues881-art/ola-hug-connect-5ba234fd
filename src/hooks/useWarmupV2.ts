@@ -290,6 +290,39 @@ export function useToggleCommunity() {
   });
 }
 
+// ── Toggle Autosave ──
+export function useToggleAutosave() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ deviceId, cycleId, enable }: { deviceId: string; cycleId: string | null; enable: boolean }) => {
+      const now = new Date().toISOString();
+      // Update cycle phase based on toggle
+      if (cycleId) {
+        const newPhase = enable ? "autosave_enabled" : "groups_only";
+        await supabase
+          .from("warmup_cycles")
+          .update({ phase: newPhase, updated_at: now })
+          .eq("id", cycleId);
+      }
+      // Audit log
+      await supabase.from("warmup_audit_logs" as any).insert({
+        user_id: user!.id,
+        device_id: deviceId,
+        cycle_id: cycleId,
+        event_type: enable ? "autosave_enabled" : "autosave_disabled",
+        level: "info",
+        message: enable ? "Auto Save habilitado pelo usuário" : "Auto Save desabilitado pelo usuário",
+        meta: { toggled_at: now },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["warmup_cycle"] });
+      qc.invalidateQueries({ queryKey: ["warmup_audit_logs"] });
+    },
+  });
+}
+
 // ── Placeholder: Create Pairs for Day ──
 export async function createPairsForDay(cycleId: string): Promise<{ wouldCreate: number }> {
   // Placeholder: logs that pairing would happen but does not execute conversations

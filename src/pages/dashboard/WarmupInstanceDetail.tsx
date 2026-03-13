@@ -729,7 +729,14 @@ const WarmupInstanceDetail = () => {
                   </div>
                   <Switch
                     checked={autosaveActive}
-                    disabled={true}
+                    disabled={!isUnlockedAS}
+                    onCheckedChange={(checked) => {
+                      toggleAutosave.mutate({
+                        deviceId: deviceId!,
+                        cycleId: cycle.id,
+                        enable: checked,
+                      });
+                    }}
                   />
                 </div>
                 {!isUnlockedAS && (
