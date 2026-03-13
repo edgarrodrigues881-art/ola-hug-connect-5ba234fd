@@ -848,32 +848,21 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          const { data: joinedGroups } = await db
-            .from("warmup_instance_groups")
-            .select("group_id, group_jid")
-            .eq("device_id", job.device_id)
-            .eq("cycle_id", cycle.id)
-            .eq("join_status", "joined");
+          const igKey = `${job.device_id}:${cycle.id}`;
+          const allIGs = instanceGroupsMap[igKey] || [];
+          const joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
 
-          if (!joinedGroups || joinedGroups.length === 0) {
+          if (joinedGroups.length === 0) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
-          // Use user custom messages if available, otherwise combinatorial generator
-          const { data: userMsgs } = await db
-            .from("warmup_messages")
-            .select("content")
-            .eq("user_id", job.user_id);
-
-          const useCustomPool = userMsgs && userMsgs.length > 0;
-          const getGroupMsg = () => useCustomPool ? pickRandom(userMsgs.map((m: any) => m.content)) : generateNaturalMessage("group");
+          // Use cached user messages
+          const cachedMsgs = userMsgsMap[job.user_id];
+          const useCustomPool = cachedMsgs && cachedMsgs.length > 0;
+          const getGroupMsg = () => useCustomPool ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
 
           const targetGroupRecord = pickRandom(joinedGroups);
-          const { data: poolGroup } = await db
-            .from("warmup_groups_pool")
-            .select("external_group_ref, name")
-            .eq("id", targetGroupRecord.group_id)
-            .single();
+          const poolGroup = groupsPoolMap[targetGroupRecord.group_id];
 
           // Resolve the actual JID: prefer stored group_jid, then external_group_ref if it looks like a JID
           let groupJid = targetGroupRecord.group_jid;
