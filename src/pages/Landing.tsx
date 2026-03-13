@@ -176,12 +176,12 @@ const HowItWorks = () => (
 
 // ─── 4. Recursos ───
 const features = [
-  { icon: Smartphone, title: "Multi-instância", desc: "Conecte e gerencie dezenas de chips simultaneamente." },
-  { icon: Layers, title: "Warmup inteligente", desc: "Aquecimento automático com fases progressivas." },
-  { icon: MessageSquare, title: "Disparos em massa", desc: "Campanhas com delays, pausas e rotação de instâncias." },
-  { icon: Users, title: "Gestão de contatos", desc: "Importe, organize e segmente sua base." },
-  { icon: Settings, title: "Templates", desc: "Crie e reutilize modelos de mensagem com variáveis." },
-  { icon: Lock, title: "Relatórios WhatsApp", desc: "Receba alertas e relatórios direto no seu WhatsApp." },
+  { icon: Smartphone, title: "Multi-instância", desc: "Conecte e gerencie dezenas de chips simultaneamente em um único painel." },
+  { icon: Layers, title: "Warmup inteligente", desc: "Aquecimento automático com fases progressivas e controle de risco." },
+  { icon: MessageSquare, title: "Disparos em massa", desc: "Campanhas com intervalos, pausas automáticas e rotação de instâncias." },
+  { icon: Users, title: "Gestão de contatos", desc: "Importe, organize e segmente sua base de contatos com facilidade." },
+  { icon: Settings, title: "Templates reutilizáveis", desc: "Crie modelos de mensagem com variáveis dinâmicas e reutilize em campanhas." },
+  { icon: Lock, title: "Relatórios via WhatsApp", desc: "Receba alertas e relatórios de desempenho diretamente no seu WhatsApp." },
 ];
 
 const Features = () => (
