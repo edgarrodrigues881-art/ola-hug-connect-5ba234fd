@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import {
   useDeviceCycle,
   useInstanceGroups, useAutosaveContacts, useCommunityMembership,
-  useWarmupAuditLogs, useWarmupPlans, useToggleCommunity,
+  useWarmupAuditLogs, useWarmupPlans, useToggleCommunity, useToggleAutosave,
   type WarmupCycle,
 } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
@@ -100,6 +100,7 @@ const WarmupInstanceDetail = () => {
   const { data: cycle, isLoading: cycleLoading } = useDeviceCycle(deviceId!);
   const engine = useWarmupEngine();
   const toggleCommunity = useToggleCommunity();
+  const toggleAutosave = useToggleAutosave();
 
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
   const { data: autosaveContacts = [] } = useAutosaveContacts();
@@ -729,7 +730,14 @@ const WarmupInstanceDetail = () => {
                   </div>
                   <Switch
                     checked={autosaveActive}
-                    disabled={true}
+                    disabled={!isUnlockedAS}
+                    onCheckedChange={(checked) => {
+                      toggleAutosave.mutate({
+                        deviceId: deviceId!,
+                        cycleId: cycle.id,
+                        enable: checked,
+                      });
+                    }}
                   />
                 </div>
                 {!isUnlockedAS && (
