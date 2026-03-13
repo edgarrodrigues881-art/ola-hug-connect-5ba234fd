@@ -139,7 +139,7 @@ const Benefits = () => (
             <b.icon className="w-5 h-5 text-[hsl(var(--primary))]" />
           </div>
           <h3 className="text-[15px] font-bold text-white mb-2">{b.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{b.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{b.desc}</p>
         </motion.div>
       ))}
     </motion.div>
