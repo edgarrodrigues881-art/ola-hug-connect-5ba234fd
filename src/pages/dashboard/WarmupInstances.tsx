@@ -362,6 +362,20 @@ const WarmupInstances = () => {
     );
   };
 
+  const [cancelConfirmDevice, setCancelConfirmDevice] = useState<string | null>(null);
+
+  const handleCancel = (deviceId: string) => {
+    qc.setQueryData(["warmup_cycles"], (old: any[]) =>
+      old?.filter((c: any) => c.device_id !== deviceId)
+    );
+    setCancelConfirmDevice(null);
+    toast({ title: "Aquecimento cancelado" });
+    engine.mutate(
+      { action: "cancel", device_id: deviceId },
+      { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao cancelar", variant: "destructive" }); } }
+    );
+  };
+
   return (
     <div className="space-y-5">
       {/* Warning popup */}
