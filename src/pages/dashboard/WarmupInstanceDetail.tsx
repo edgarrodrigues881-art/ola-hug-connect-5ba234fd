@@ -125,6 +125,23 @@ const WarmupInstanceDetail = () => {
     refetchInterval: 30_000,
   });
 
+  const brtDateKey = (iso?: string | null) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  };
+
+  const statusToday = useMemo(() => {
+    const todayBrt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const todayStatusJobs = scheduledJobs.filter(
+      (job) => job.job_type === "post_status" && brtDateKey(job.run_at) === todayBrt
+    );
+
+    return {
+      done: todayStatusJobs.filter((job) => job.status === "succeeded").length,
+      total: todayStatusJobs.filter((job) => job.status !== "cancelled").length,
+    };
+  }, [scheduledJobs]);
+
   // Group audit logs by warmup day
   const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
   const dayGroups = useMemo(() => {
