@@ -358,6 +358,33 @@ Deno.serve(async (req) => {
         results.push({ step: "instance_status", error: e.message });
       }
 
+      // 0.5) Check and fix privacy settings
+      try {
+        const privRes = await fetch(`${baseUrl}/instance/privacy`, {
+          method: "GET",
+          headers: { token: tkn, Accept: "application/json" },
+        });
+        const privTxt = await privRes.text();
+        let privData: any = null;
+        try { privData = JSON.parse(privTxt); } catch (_e) {}
+        results.push({ step: "get_privacy", status: privRes.status, body: privTxt.substring(0, 500) });
+
+        const statusPrivacy = privData?.status || privData?.StatusPrivacy || privData?.statusPrivacy || "";
+        if (statusPrivacy !== "all") {
+          const setPrivRes = await fetch(`${baseUrl}/instance/privacy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+            body: JSON.stringify({ status: "all" }),
+          });
+          const setPrivTxt = await setPrivRes.text();
+          results.push({ step: "set_privacy_all", status: setPrivRes.status, body: setPrivTxt.substring(0, 500), previous_status_privacy: statusPrivacy });
+        } else {
+          results.push({ step: "privacy_ok", status_privacy: "all" });
+        }
+      } catch (e) {
+        results.push({ step: "privacy_check", error: (e as Error).message });
+      }
+
       // 1) Post status
       try {
         const r = await fetch(`${baseUrl}/send/status`, {
