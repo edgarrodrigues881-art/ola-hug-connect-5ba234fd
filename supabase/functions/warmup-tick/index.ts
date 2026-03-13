@@ -314,6 +314,23 @@ Deno.serve(async (req) => {
     if (action === "daily") {
       return await handleDailyReset(db);
     }
+    if (action === "debug_status") {
+      // Direct test of all status endpoints for diagnostics
+      const baseUrl = body.base_url || "";
+      const tkn = body.token || "";
+      if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const results: any[] = [];
+      const endpoints = ["/send/stories", "/sendStories", "/status/post", "/send/status"];
+      const textPayload = { type: "text", content: "Teste status ✅", backgroundColor: "#25D366", font: 1 };
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(`${baseUrl}${ep}`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
+          const txt = await r.text();
+          results.push({ ep, status: r.status, body: txt.substring(0, 300) });
+        } catch (e) { results.push({ ep, error: e.message }); }
+      }
+      return new Response(JSON.stringify({ results }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return await handleTick(db);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
