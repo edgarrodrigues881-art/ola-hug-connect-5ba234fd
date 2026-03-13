@@ -1352,40 +1352,7 @@ async function scheduleDayJobs(
   console.log(`[warmup-tick] Scheduled ${jobs.length} jobs for day ${dayIndex} (${phase}, chip: ${chipState})`);
   return jobs.length;
 }
-function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 0, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
-
-  if (phase === "pre_24h" || phase === "completed") return v;
-
-  // CHIP NOVO: Days 2-4
-  if (chipState === "new" || (!["recovered", "unstable"].includes(chipState))) {
-    if (dayIndex === 2) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(120, 200); v.statusPosts = randInt(1, 3); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(150, 250); v.statusPosts = randInt(2, 3); }
-    return v;
-  }
-
-  // CHIP RECUPERADO: Days 2-4 (lighter)
-  if (chipState === "recovered") {
-    if (dayIndex === 2) { v.groupMsgs = randInt(40, 80); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(60, 120); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
-    return v;
-  }
-
-  // CHIP INSTÁVEL: Days 2-7 (very light)
-  if (chipState === "unstable") {
-    if (dayIndex === 2) { v.groupMsgs = randInt(20, 40); v.statusPosts = 0; }
-    else if (dayIndex === 3) { v.groupMsgs = randInt(30, 50); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 4) { v.groupMsgs = randInt(40, 70); v.statusPosts = randInt(0, 1); }
-    else if (dayIndex === 5) { v.groupMsgs = randInt(50, 90); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 6) { v.groupMsgs = randInt(60, 100); v.statusPosts = randInt(1, 2); }
-    else if (dayIndex === 7) { v.groupMsgs = randInt(70, 120); v.statusPosts = randInt(1, 2); }
-    return v;
-  }
-
-  return v;
-}
+// (duplicate getVolumes removed — using the one defined at line 1246)
 
 
 // ════════════════════════════════════════
