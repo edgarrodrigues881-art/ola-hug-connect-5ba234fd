@@ -220,20 +220,32 @@ function cap(s: string): string {
 type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
+  const maxLen = context === "autosave" ? 40 : 250;
   for (let attempt = 0; attempt < 80; attempt++) {
     const msg = buildMsg(context);
-    if (msg.length >= 5 && msg.length <= 250 && !recentMsgs.includes(msg)) {
+    if (msg.length >= 5 && msg.length <= maxLen && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
       if (recentMsgs.length > MAX_RECENT) recentMsgs.shift();
       return msg;
     }
   }
   // Fallback
-  const fb = context === "community" ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
-  return fb.substring(0, 250);
+  const fb = (context === "community" || context === "autosave") ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
+  return fb.substring(0, maxLen);
 }
 
 function buildMsg(ctx: MsgCtx): string {
+  // Auto Save: only short messages (5-40 chars) — quick casual chat
+  if (ctx === "autosave") {
+    const s = randInt(1, 6);
+    if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
+    if (s === 2) return cap(maybeEmoji(pickRandom(SAUDACOES)));
+    if (s === 3) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(PERGUNTAS)}?`));
+    if (s === 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+    if (s === 5) return pickRandom(RESPOSTAS_CURTAS) + " " + pickRandom(EMOJIS_POOL);
+    return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  }
+
   const s = randInt(1, 24);
   // Curtas (5-30 chars)
   if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
