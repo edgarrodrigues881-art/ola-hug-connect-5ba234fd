@@ -57,7 +57,17 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const isNoPlan = planName === "Sem plano";
   const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
   const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0);
-  const [manualPrice, setManualPrice] = useState<string>("");
+  // Initialize manualPrice from saved subscription if it differs from auto-calculated value
+  const [manualPrice, setManualPrice] = useState<string>(() => {
+    if (sub?.plan_price != null) {
+      const savedPrice = Number(sub.plan_price);
+      // If saved price differs from auto, treat as manual override
+      if (savedPrice !== autoTotal) {
+        return savedPrice.toFixed(2);
+      }
+    }
+    return "";
+  });
   const totalPrice = manualPrice !== "" ? (Number(manualPrice.replace(",", ".")) || 0) : autoTotal;
   const cycleDays = isTrial ? trialDays : 30;
   
