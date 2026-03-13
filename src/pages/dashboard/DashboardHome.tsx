@@ -65,7 +65,7 @@ const DashboardHome = () => {
       {/* Top Status Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {topCards.map((s) => (
-          <Card key={s.label} className="border-border/50 bg-card hover:border-border/80 transition-colors">
+          <Card key={s.label} className="border-border bg-card shadow-sm hover:shadow-md hover:border-border transition-all">
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${s.bgClass} flex items-center justify-center`}>
