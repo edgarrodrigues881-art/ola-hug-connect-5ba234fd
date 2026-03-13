@@ -315,20 +315,34 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      // Direct test of all status endpoints for diagnostics
       const baseUrl = body.base_url || "";
       const tkn = body.token || "";
       if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
       const results: any[] = [];
-      const endpoints = ["/send/status"];
-      const textPayload = { type: "text", text: "Teste status ✅", backgroundColor: "#25D366", font: 1 };
-      for (const ep of endpoints) {
-        try {
-          const r = await fetch(`${baseUrl}${ep}`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
-          const txt = await r.text();
-          results.push({ ep, status: r.status, body: txt.substring(0, 300) });
-        } catch (e) { results.push({ ep, error: e.message }); }
-      }
+
+      // 1. Check privacy settings
+      try {
+        const privRes = await fetch(`${baseUrl}/privacy`, { method: "GET", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" } });
+        const privTxt = await privRes.text();
+        results.push({ step: "privacy_check", status: privRes.status, body: privTxt.substring(0, 500) });
+      } catch (e) { results.push({ step: "privacy_check", error: e.message }); }
+
+      // 2. Try to set status privacy to "all" (contacts)
+      try {
+        const setPRes = await fetch(`${baseUrl}/privacy`, { method: "PUT", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify({ status: "all" }) });
+        const setPTxt = await setPRes.text();
+        results.push({ step: "privacy_set_all", status: setPRes.status, body: setPTxt.substring(0, 500) });
+      } catch (e) { results.push({ step: "privacy_set_all", error: e.message }); }
+
+      // 3. Post test status
+      const textPayload = { type: "text", text: "Teste status ✅ " + new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }), backgroundColor: "#25D366", font: 1 };
+      try {
+        const r = await fetch(`${baseUrl}/send/status`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
+        const txt = await r.text();
+        results.push({ step: "post_status", status: r.status, body: txt.substring(0, 300) });
+      } catch (e) { results.push({ step: "post_status", error: e.message }); }
+
       return new Response(JSON.stringify({ results }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     return await handleTick(db);
