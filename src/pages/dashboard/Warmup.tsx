@@ -754,6 +754,12 @@ const Warmup = () => {
                   </button>
                 ))}
               </div>
+              {formDuration === 7 && (
+                <div className="flex items-start gap-2 text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/15 rounded-md px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>O aquecimento de 7 dias <strong>não é o ideal</strong>. Para melhores resultados, recomendamos ciclos de 14 dias ou mais, garantindo uma progressão gradual e segura do chip.</span>
+                </div>
+              )}
             </div>
 
             {/* Quality Profile — enriched cards */}
