@@ -70,6 +70,7 @@ const WarmupInstanceDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: device } = useQuery({
     queryKey: ["device-detail-warmup", deviceId],
