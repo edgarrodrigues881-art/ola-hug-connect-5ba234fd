@@ -234,6 +234,17 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
 }
 
 function buildMsg(ctx: MsgCtx): string {
+  // Auto Save: only short messages (5-40 chars) — quick casual chat
+  if (ctx === "autosave") {
+    const s = randInt(1, 6);
+    if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
+    if (s === 2) return cap(maybeEmoji(pickRandom(SAUDACOES)));
+    if (s === 3) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(PERGUNTAS)}?`));
+    if (s === 4) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
+    if (s === 5) return pickRandom(RESPOSTAS_CURTAS) + " " + pickRandom(EMOJIS_POOL);
+    return cap(maybeEmoji(pickRandom(SAUDACOES)));
+  }
+
   const s = randInt(1, 24);
   // Curtas (5-30 chars)
   if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
