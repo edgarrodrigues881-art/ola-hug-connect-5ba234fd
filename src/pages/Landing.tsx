@@ -148,10 +148,10 @@ const Benefits = () => (
 
 // ─── 3. Como funciona ───
 const steps = [
-  { num: "01", title: "Crie sua conta", desc: "Cadastro rápido, sem burocracia e pronto para usar." },
-  { num: "02", title: "Conecte suas instâncias", desc: "Vincule seus chips via QR Code em poucos segundos." },
-  { num: "03", title: "Configure suas campanhas", desc: "Defina mensagens, intervalos, contatos e regras de envio." },
-  { num: "04", title: "Escale com segurança", desc: "Acompanhe métricas em tempo real e otimize sua operação." },
+  { num: "01", title: "Crie sua conta", desc: "Cadastro simples e liberação imediata do painel." },
+  { num: "02", title: "Conecte seus chips", desc: "Vincule instâncias via QR Code em poucos segundos." },
+  { num: "03", title: "Monte suas campanhas", desc: "Defina mensagens, intervalos, contatos e regras de envio." },
+  { num: "04", title: "Acompanhe e escale", desc: "Monitore métricas em tempo real e ajuste conforme necessário." },
 ];
 
 const HowItWorks = () => (
