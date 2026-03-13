@@ -125,6 +125,23 @@ const WarmupInstanceDetail = () => {
     refetchInterval: 30_000,
   });
 
+  const statusToday = useMemo(() => {
+    const toBrtDateKey = (iso?: string | null) => {
+      if (!iso) return "";
+      return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    };
+
+    const todayBrt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const todayStatusJobs = scheduledJobs.filter(
+      (job) => job.job_type === "post_status" && toBrtDateKey(job.run_at) === todayBrt
+    );
+
+    return {
+      done: todayStatusJobs.filter((job) => job.status === "succeeded").length,
+      total: todayStatusJobs.filter((job) => job.status !== "cancelled").length,
+    };
+  }, [scheduledJobs]);
+
   // Group audit logs by warmup day
   const cycleStartedAt = cycle?.started_at ? new Date(cycle.started_at) : null;
   const dayGroups = useMemo(() => {
@@ -744,12 +761,8 @@ const WarmupInstanceDetail = () => {
               <div className="px-3 py-3.5 text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Status</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
-                  {(() => {
-                    const statusJobs = scheduledJobs.filter(j => j.job_type === "post_status");
-                    const done = statusJobs.filter(j => j.status === "succeeded").length;
-                    const total = statusJobs.filter(j => j.status !== "cancelled").length;
-                    return <>{done}<span className="text-xs text-muted-foreground/40 font-normal">/{total}</span></>;
-                  })()}
+                  {statusToday.done}
+                  <span className="text-xs text-muted-foreground/40 font-normal">/{statusToday.total}</span>
                 </p>
                 <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
               </div>
