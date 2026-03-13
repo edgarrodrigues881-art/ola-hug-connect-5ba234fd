@@ -612,10 +612,10 @@ async function handleTick(db: any) {
     autosaveMap[c.user_id].push(c);
   });
 
-  // Instance groups indexed by "device_id:cycle_id"
+  // Instance groups indexed by device_id (groups persist across cycles)
   const instanceGroupsMap: Record<string, any[]> = {};
   instanceGroupsArr.forEach((ig: any) => {
-    const key = `${ig.device_id}:${ig.cycle_id}`;
+    const key = ig.device_id;
     if (!instanceGroupsMap[key]) instanceGroupsMap[key] = [];
     instanceGroupsMap[key].push(ig);
   });
