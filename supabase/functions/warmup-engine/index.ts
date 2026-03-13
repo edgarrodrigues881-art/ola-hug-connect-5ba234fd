@@ -532,21 +532,8 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     const communityStartDay = groupsEnd + 2;
     const communityDay = dayIndex - communityStartDay + 1;
 
-    if (communityDay <= 0) {
-      v.communityMsgs = 0;
-    } else if (communityDay === 1) {
-      v.communityMsgs = 5;
-    } else if (communityDay === 2) {
-      v.communityMsgs = 10;
-    } else if (communityDay === 3) {
-      v.communityMsgs = 15;
-    } else if (communityDay === 4) {
-      v.communityMsgs = 20;
-    } else if (communityDay === 5) {
-      v.communityMsgs = 30;
-    } else {
-      v.communityMsgs = 40; // max 40, never more
-    }
+    const communityScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
+    v.communityMsgs = communityDay <= 0 ? 0 : (communityScale[Math.min(communityDay, communityScale.length - 1)]);
   }
 
   return v;
