@@ -230,7 +230,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
     return (
       <div className="min-h-screen bg-background">
         <Suspense fallback={<TabLoader />}>
-          <AdminClientDetail client={selectedClient} onBack={handleBack} />
+          <AdminClientDetail client={selectedClient} onBack={() => { setSelectedClient(null); }} />
         </Suspense>
       </div>
     );

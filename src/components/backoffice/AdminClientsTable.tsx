@@ -218,6 +218,16 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.email}</p>
                 </div>
+                {!u.roles.includes("admin") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 p-1.5 h-auto shrink-0"
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); }}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-[11px]">
