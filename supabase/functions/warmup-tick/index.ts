@@ -493,8 +493,8 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
         });
         if (res.status === 405) break; // endpoint not supported, try next
         const txt = await res.text();
+        console.log(`[postStatus] ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
         if (!res.ok) {
-          lastErr = new Error(`Status API ${res.status}: ${txt}`);
           if (txt.includes("missing file") || txt.includes("missing image")) continue;
           if (ep === endpoints[endpoints.length - 1] && payload === payloadVariants[payloadVariants.length - 1]) throw lastErr;
           continue;
