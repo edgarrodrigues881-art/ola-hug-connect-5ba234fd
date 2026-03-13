@@ -64,18 +64,18 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                 <p>
-                  Com as atualizações recentes do WhatsApp, conectar o QR Code sem nenhum uso manual prévio pode gerar
-                  restrições logo nos primeiros dias de aquecimento.
+                  Após as atualizações recentes do WhatsApp, chips que conectam o QR Code sem nenhuma atividade manual prévia
+                  têm maior chance de sofrer restrições logo nos primeiros dias de uso.
                 </p>
                 <p>
-                  <strong className="text-foreground font-medium">Ação necessária:</strong> Antes de escanear o QR Code, 
-                  envie de <strong className="text-foreground font-medium">1 a 3 mensagens manualmente</strong> pelo 
-                  aparelho. Isso cria um histórico mínimo de uso real.
+                  <strong className="text-foreground font-medium">O que fazer antes:</strong> Use o aparelho normalmente por alguns minutos — 
+                  envie de <strong className="text-foreground font-medium">1 a 3 mensagens reais</strong> para contatos conhecidos. 
+                  Isso gera um histórico mínimo de atividade humana que ajuda a proteger o número.
                 </p>
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex gap-2.5">
                   <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-400">
-                    Esse passo simples reduz consideravelmente o risco de bloqueio nos primeiros dias.
+                    Essa etapa leva menos de 5 minutos e reduz consideravelmente o risco de bloqueio nos primeiros dias de aquecimento.
                   </p>
                 </div>
               </div>
