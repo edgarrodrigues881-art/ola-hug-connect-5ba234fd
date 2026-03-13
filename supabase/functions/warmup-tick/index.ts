@@ -220,17 +220,18 @@ function cap(s: string): string {
 type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
+  const maxLen = context === "autosave" ? 40 : 250;
   for (let attempt = 0; attempt < 80; attempt++) {
     const msg = buildMsg(context);
-    if (msg.length >= 5 && msg.length <= 250 && !recentMsgs.includes(msg)) {
+    if (msg.length >= 5 && msg.length <= maxLen && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
       if (recentMsgs.length > MAX_RECENT) recentMsgs.shift();
       return msg;
     }
   }
   // Fallback
-  const fb = context === "community" ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
-  return fb.substring(0, 250);
+  const fb = (context === "community" || context === "autosave") ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
+  return fb.substring(0, maxLen);
 }
 
 function buildMsg(ctx: MsgCtx): string {
