@@ -564,7 +564,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 }
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
-  const endpoints = ["/status/post", "/sendStories", "/send/stories"];
+  const endpoints = ["/send/stories", "/sendStories", "/status/post"];
   
   // Text status
   if (type === "text") {
@@ -585,12 +585,52 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     throw new Error("All text status endpoints failed");
   }
   
-  // Image status: try JSON with URL first (matches UAZAPI V2 pattern)
+  // Image status: use base64 first (proven working pattern from sendImage)
   if (imageUrl) {
+    try {
+      const { blob } = await downloadImageBlob(imageUrl);
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      const mimeType = blob.type || 'image/jpeg';
+      const dataUri = `data:${mimeType};base64,${base64}`;
+
+      // base64 variants — same pattern that works for /send/media
+      const b64Variants = [
+        { path: "/send/stories", body: { type: "image", file: dataUri, caption: content } },
+        { path: "/send/stories", body: { type: "image", image: dataUri, caption: content } },
+        { path: "/send/stories", body: { type: "image", media: dataUri, caption: content } },
+        { path: "/sendStories", body: { type: "image", file: dataUri, caption: content } },
+        { path: "/sendStories", body: { type: "image", image: dataUri, caption: content } },
+        { path: "/status/post", body: { type: "image", file: dataUri, caption: content } },
+        { path: "/status/post", body: { type: "image", image: dataUri, caption: content } },
+      ];
+
+      for (const ep of b64Variants) {
+        try {
+          const res = await fetch(`${baseUrl}${ep.path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+            body: JSON.stringify(ep.body),
+          });
+          if (res.status === 405) continue;
+          const txt = await res.text();
+          console.log(`[postStatus] base64 ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
+          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+        } catch (_e) { continue; }
+      }
+    } catch (dlErr) {
+      console.log(`[postStatus] base64 download failed: ${dlErr.message}`);
+    }
+
+    // JSON with URL fallback
     const jsonPayloads = [
       { type: "image", image: imageUrl, caption: content },
       { type: "image", url: imageUrl, caption: content },
       { type: "image", media: imageUrl, caption: content },
+      { type: "image", file: imageUrl, caption: content },
     ];
     for (const ep of endpoints) {
       for (const payload of jsonPayloads) {
@@ -604,36 +644,8 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
           const txt = await res.text();
           console.log(`[postStatus] JSON ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
           if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-          if (txt.includes("missing file")) break; // need base64
         } catch (_e) { continue; }
       }
-    }
-
-    // base64 fallback for status
-    try {
-      const { blob } = await downloadImageBlob(imageUrl);
-      const arrayBuffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
-      const mimeType = blob.type || 'image/jpeg';
-
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(`${baseUrl}${ep}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-            body: JSON.stringify({ type: "image", image: `data:${mimeType};base64,${base64}`, caption: content }),
-          });
-          if (res.status === 405) continue;
-          const txt = await res.text();
-          console.log(`[postStatus] base64 ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
-          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-        } catch (_e) { continue; }
-      }
-    } catch (dlErr) {
-      console.log(`[postStatus] base64 failed: ${dlErr.message}`);
     }
   }
   throw new Error("All status post endpoints failed");
