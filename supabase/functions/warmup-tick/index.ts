@@ -1318,14 +1318,22 @@ async function scheduleDayJobs(
     }
   }
 
-  if (volumes.communityMsgs > 0) {
-    const cmSpacingMs = windowMs / (volumes.communityMsgs + 1);
-    for (let i = 0; i < volumes.communityMsgs; i++) {
-      const baseOffset = cmSpacingMs * (i + 1);
-      const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd) break;
-      jobs.push({ user_id: userId, device_id: deviceId, cycle_id: cycleId, job_type: "community_interaction", payload: {}, run_at: runAt.toISOString(), status: "pending" });
+  // ── COMMUNITY (conversation bursts: each peer gets 30-50 msgs) ──
+  if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
+    const totalPeers = volumes.communityPeers;
+    const msgsPerPeer = volumes.communityMsgsPerPeer;
+    const peerWindowMs = windowMs / totalPeers;
+
+    for (let p = 0; p < totalPeers; p++) {
+      const peerStart = effectiveStart + (peerWindowMs * p);
+      const convStart = peerStart + randInt(0, Math.floor(peerWindowMs * 0.1));
+      for (let m = 0; m < msgsPerPeer; m++) {
+        const msgOffset = m * randInt(30, 120) * 1000;
+        const runAt = new Date(convStart + msgOffset);
+        if (runAt.getTime() > effectiveEnd) break;
+        const isImage = Math.random() < 0.25;
+        jobs.push({ user_id: userId, device_id: deviceId, cycle_id: cycleId, job_type: "community_interaction", payload: { peer_index: p, msg_index: m, is_image: isImage }, run_at: runAt.toISOString(), status: "pending" });
+      }
     }
   }
 
