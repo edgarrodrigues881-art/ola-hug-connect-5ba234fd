@@ -371,6 +371,20 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
+  const url = `${baseUrl}/send/image`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify({ number, image: imageUrl, caption }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`API ${res.status}: ${errText}`);
+  }
+  return await res.json();
+}
+
 // ── Media pools for warmup variety ──
 // Dynamically loads images from storage bucket at tick time
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
