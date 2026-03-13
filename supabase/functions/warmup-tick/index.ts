@@ -440,9 +440,33 @@ function pickMediaType(): MediaType {
 // ════════════════════════════════════════
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
+
+// Check if current time is within the warmup operating window (07:00-19:00 BRT)
+function isWithinOperatingWindow(): boolean {
+  const nowUtc = new Date();
+  // BRT = UTC-3
+  const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
+  return brtHour >= 7 && brtHour < 19;
+}
+
+// Interaction job types that should respect the time window
+const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
+
 async function handleTick(db: any) {
   const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
   const now = new Date().toISOString();
+  const withinWindow = isWithinOperatingWindow();
+
+  // If outside operating window, cancel all pending interaction jobs with past run_at
+  if (!withinWindow) {
+    const cancelledTypes = INTERACTION_JOB_TYPES;
+    const { count } = await db.from("warmup_jobs")
+      .update({ status: "cancelled", last_error: "Cancelado: fora da janela 07-19 BRT" })
+      .eq("status", "pending")
+      .lte("run_at", now)
+      .in("job_type", cancelledTypes);
+    console.log(`[warmup-tick] Outside 07-19 BRT window, cancelled ${count || 0} stale interaction jobs`);
+  }
 
   // Recover stale "running" jobs (stuck for >5 minutes) back to pending
   const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -630,6 +654,12 @@ async function handleTick(db: any) {
     const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
     const token = device.uazapi_token || "";
 
+      // ── Guard: skip interaction jobs outside 07-19 BRT window ──
+      if (INTERACTION_JOB_TYPES.includes(job.job_type) && !withinWindow) {
+        await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
+        return false;
+      }
+
       // ── Process job by type ──
       switch (job.job_type) {
         case "join_group": {
@@ -742,6 +772,14 @@ async function handleTick(db: any) {
 
         case "phase_transition": {
           const targetPhase = job.payload?.target_phase || "groups_only";
+
+          // Cancel all old pending interaction jobs before scheduling new ones
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Cancelado: transição de fase" })
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .in("job_type", INTERACTION_JOB_TYPES);
+
           await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
 
           if (targetPhase === "groups_only") {
@@ -749,10 +787,10 @@ async function handleTick(db: any) {
             if (joinScheduled > 0) {
               console.log(`[phase_transition] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
             }
-
-            // Also schedule today's group interaction jobs
-            await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
           }
+
+          // Schedule new jobs only for remaining time window
+          await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
 
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
