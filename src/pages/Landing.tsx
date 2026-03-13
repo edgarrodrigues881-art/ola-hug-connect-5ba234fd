@@ -100,7 +100,7 @@ const Hero = () => {
             Opere múltiplos chips com{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">controle total</span>
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
+          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/40 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
             Aquecimento, disparo e monitoramento em uma única plataforma. Escale com organização e reduza riscos.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
