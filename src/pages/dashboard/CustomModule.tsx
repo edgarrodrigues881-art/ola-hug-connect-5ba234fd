@@ -214,7 +214,7 @@ const CustomModule = () => {
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">A intensidade deve respeitar:</p>
+                <p className="text-sm text-muted-foreground">A intensidade do aquecimento deve considerar:</p>
                 <div className="grid grid-cols-3 gap-3 text-sm text-muted-foreground">
                   <div className="rounded-md border border-border/30 bg-muted/30 p-3 text-center">
                     <p className="text-foreground font-medium">Idade do número</p>
