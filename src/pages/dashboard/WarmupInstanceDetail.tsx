@@ -67,11 +67,12 @@ const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_ena
 
 /* ── Helper: autosave / community start day based on chip_state ── */
 function getAutosaveStartDay(chipState: string): number {
-  const groupsEnd = chipState === "unstable" ? 7 : 4;
+  // Estável (new/recovered) = dia 5, Banido (unstable) = dia 7
+  const groupsEnd = chipState === "unstable" ? 6 : 4;
   return groupsEnd + 1;
 }
 function getCommunityStartDay(chipState: string): number {
-  const groupsEnd = chipState === "unstable" ? 7 : 4;
+  const groupsEnd = chipState === "unstable" ? 6 : 4;
   return groupsEnd + 2;
 }
 
@@ -220,7 +221,7 @@ const WarmupInstanceDetail = () => {
       // Day 1 = pre_24h, Days 2-4(new/recovered) or 2-7(unstable) = groups_only,
       // Next day = autosave_enabled, Then = community_enabled
       const chip = latestCycle.chip_state || "new";
-      const groupsEndDay = chip === "unstable" ? 7 : 4;
+      const groupsEndDay = chip === "unstable" ? 6 : 4;
       const getPhaseForDay = (day: number) => {
         if (day <= 1) return "pre_24h";
         if (day <= groupsEndDay) return "groups_only";
