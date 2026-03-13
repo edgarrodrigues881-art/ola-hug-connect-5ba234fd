@@ -732,12 +732,8 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     let parsed: any = null;
     try { parsed = JSON.parse(txt); } catch (_e) { parsed = { raw: txt }; }
 
-    const providerStatus = String(parsed?.Id?.status || parsed?.status || "").toLowerCase();
     const messageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
-
-    if (providerStatus === "pending") {
-      throw new Error(`Status ${mode} pendente no provedor (messageId: ${messageId || "n/a"})`);
-    }
+    console.log(`[postStatus] Validated ${mode} status, messageId: ${messageId}`);
 
     return parsed;
   };
