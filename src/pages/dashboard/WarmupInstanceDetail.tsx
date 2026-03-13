@@ -912,6 +912,7 @@ const WarmupInstanceDetail = () => {
               group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
+              post_status: { label: "Postar status", icon: ImageIcon, color: "text-pink-400" },
               phase_transition: { label: "Avançar fase", icon: Zap, color: "text-amber-400" },
               daily_reset: { label: "Reset diário", icon: RotateCcw, color: "text-muted-foreground" },
               health_check: { label: "Verificação de saúde", icon: Shield, color: "text-emerald-400" },
