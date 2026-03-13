@@ -66,6 +66,7 @@ const WarmupInstances = () => {
     localStorage.getItem("warmup_v2_warning_dismissed") !== "true"
   );
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [agreedResponsibility, setAgreedResponsibility] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -379,8 +380,8 @@ const WarmupInstances = () => {
   return (
     <div className="space-y-5">
       {/* Warning popup */}
-      <Dialog open={showWarning} onOpenChange={(open) => { if (!open) setShowWarning(false); }}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showWarning} onOpenChange={(open) => { if (!open && agreedResponsibility) setShowWarning(false); }}>
+        <DialogContent className="max-w-md" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -388,20 +389,32 @@ const WarmupInstances = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-            <p><strong className="text-foreground">Evite colocar números que estão caindo ou sendo restringidos com apenas 1 mensagem no WhatsApp.</strong></p>
-            <p>Faça uma limpeza antes de começar. No módulo <strong className="text-foreground">Ajuda</strong> existem orientações.</p>
-            <p>O aquecimento é gradual para fortalecer chips saudáveis. Números já restringidos têm chances altas de serem bloqueados novamente.</p>
-            <p className="text-xs text-muted-foreground/60">Recomendamos chips novos ou estáveis para melhores resultados.</p>
+            <p><strong className="text-foreground">Certifique-se de que já tenha feito alguma interação manualmente antes de ter conectado a qualquer QR Code.</strong></p>
+            <p>Caso contrário, existirá uma <strong className="text-foreground">grande chance de ser restringido</strong> no meio do processo de aquecimento.</p>
+            <p className="text-xs text-muted-foreground/60 mt-4 border-t border-border/20 pt-3">
+              ⚠️ <strong className="text-foreground">Não nos responsabilizamos pelo mau uso da ferramenta.</strong> O aquecimento é uma ferramenta de apoio e deve ser usado com responsabilidade seguindo as boas práticas recomendadas.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2 mt-1">
+            <Checkbox id="agreeResponsibility" checked={agreedResponsibility} onCheckedChange={(v) => setAgreedResponsibility(!!v)} />
+            <label htmlFor="agreeResponsibility" className="text-xs text-muted-foreground cursor-pointer select-none leading-relaxed">
+              Estou de acordo e assumo total responsabilidade pelo uso da ferramenta.
+            </label>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
             <Checkbox id="dontShowAgainV2" checked={dontShowAgain} onCheckedChange={(v) => setDontShowAgain(!!v)} />
             <label htmlFor="dontShowAgainV2" className="text-xs text-muted-foreground cursor-pointer select-none">Não mostrar novamente</label>
           </div>
           <DialogFooter>
-            <Button onClick={() => {
-              if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
-              setShowWarning(false);
-            }}>Entendi</Button>
+            <Button
+              disabled={!agreedResponsibility}
+              onClick={() => {
+                if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
+                setShowWarning(false);
+              }}
+            >
+              Entendi e concordo
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
