@@ -8,7 +8,7 @@ export interface WarmupCycle {
   user_id: string;
   device_id: string;
   plan_id: string | null;
-  chip_state: "new" | "recovered";
+  chip_state: "new" | "recovered" | "unstable";
   days_total: number;
   started_at: string;
   day_index: number;
