@@ -551,7 +551,7 @@ async function scheduleDayJobs(
 
 // ════════════════════════════════════════
 // Volume configuration
-// Groups: 200-500 always
+// Groups: 50-120/day
 // AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
 // Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs (conversation burst)
 // Status: 5 per day always
@@ -570,7 +570,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
-  v.groupMsgs = randInt(200, 500);
+  v.groupMsgs = randInt(50, 120);
   v.statusPosts = 5;
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
