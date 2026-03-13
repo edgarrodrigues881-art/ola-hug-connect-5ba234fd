@@ -477,9 +477,9 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     const payloadVariants: any[] = type === "text"
       ? [{ type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }]
       : [
+          { type: "image", media: imageUrl, caption: content },
           { type: "image", file: imageUrl, caption: content },
           { type: "image", image: imageUrl, caption: content },
-          { type: "image", url: imageUrl, caption: content },
         ];
 
     for (const payload of payloadVariants) {
