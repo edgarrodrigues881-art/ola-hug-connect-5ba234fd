@@ -414,7 +414,7 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* action row */}
-          {cycle && cycle.phase !== "completed" && (
+          {cycle && !isTerminalCycle && (
             <div className="px-5 pb-5 space-y-2">
               {cycle.is_running ? (
                 <Button
