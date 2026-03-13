@@ -1189,8 +1189,8 @@ async function handleTick(db: any) {
             .lt("run_at", nowIso)
             .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-          const budgetMin = 200;
-          const budgetMax = 500;
+          const budgetMin = 50;
+          const budgetMax = 150;
           const newTarget = randInt(budgetMin, budgetMax);
 
           await db.from("warmup_cycles").update({
@@ -1347,8 +1347,7 @@ async function handleTick(db: any) {
 
 // ════════════════════════════════════════
 // Volume configuration
-// Groups: 200-500 always | AutoSave: 5 contacts × 3 rounds | Community: progressive 5→40
-// Status: 5/day always
+// Groups: 50-120/day | AutoSave: 5 contacts × 3 rounds | Community: progressive 5→40
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
@@ -1368,7 +1367,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     return v;
   }
 
-  v.groupMsgs = randInt(200, 500);
+  v.groupMsgs = randInt(50, 120);
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
     v.autosaveContacts = 5;
