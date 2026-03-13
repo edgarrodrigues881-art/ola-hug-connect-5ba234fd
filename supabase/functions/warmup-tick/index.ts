@@ -693,12 +693,8 @@ async function handleTick(db: any) {
           const groupId = job.payload?.group_id;
           const groupName = job.payload?.group_name || groupId;
 
-          // Get the invite link from pool
-          const { data: poolGroupJoin } = await db
-            .from("warmup_groups_pool")
-            .select("external_group_ref, name")
-            .eq("id", groupId)
-            .single();
+          // Get the invite link from cached pool
+          const poolGroupJoin = groupsPoolMap[groupId];
 
           if (!poolGroupJoin?.external_group_ref) {
             throw new Error(`Grupo ${groupName} sem link de convite`);
