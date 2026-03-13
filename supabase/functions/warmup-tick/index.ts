@@ -1344,6 +1344,13 @@ async function handleTick(db: any) {
     }
   }
 
+  // Flush all buffered audit logs in one batch
+  try {
+    await flushAuditLogs();
+  } catch (flushErr: any) {
+    console.error(`[warmup-tick] Failed to flush audit logs (${auditLogBuffer.length} entries):`, flushErr.message);
+  }
+
   const { data: nextPending } = await db
     .from("warmup_jobs")
     .select("run_at")
@@ -1351,7 +1358,7 @@ async function handleTick(db: any) {
     .order("run_at", { ascending: true })
     .limit(1);
 
-  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}`);
+  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}, audit_logs: ${auditLogBuffer.length}`);
 
   return json({
     ok: true,
