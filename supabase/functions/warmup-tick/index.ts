@@ -1630,6 +1630,9 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas para post_status");
           }
 
+          // Ensure status privacy is set to "all" so everyone can see
+          await ensureStatusPrivacyAll(baseUrl, token);
+
           // Always use image from bucket + caption
           const statusImgUrl = pickRandom(imagePool);
           let statusContent = pickRandom(STATUS_CAPTIONS);
