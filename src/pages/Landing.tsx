@@ -98,7 +98,7 @@ const Hero = () => {
           </motion.div>
           <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
             Gerencie seus disparos com{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima performance</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima estabilidade</span>
           </motion.h1>
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
             Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar com segurança.
