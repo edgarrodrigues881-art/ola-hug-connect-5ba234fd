@@ -19,18 +19,29 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy;
 }
 
-// ── Phase rules per day — UNIFIED for all chip states ──
-// Day 1: pre_24h (join groups, no messages)
-// Day 2: groups_only
-// Day 3-4: autosave_enabled
-// Day 5-6: community_light
-// Day 7-30: community_enabled
-function getPhaseForDay(day: number, _chipState: string): string {
+// ── Phase rules per chip_state ──
+// CHIP NOVO:       Day 1 OFF, Days 2-4 groups_only (4 days)
+// CHIP RECUPERADO: Day 1 OFF, Days 2-4 groups_only (4 days, lighter)
+// CHIP INSTÁVEL:   Day 1 OFF, Days 2-7 groups_only (7 days, very light)
+function getPhaseForDay(day: number, chipState: string): string {
+  // Day 1 is always OFF (pre_24h = no actions)
   if (day <= 1) return "pre_24h";
-  if (day <= 2) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 6) return "community_light";
-  return "community_enabled";
+  
+  // All profiles: groups_only from day 2 onwards
+  if (chipState === "unstable") {
+    // Days 2-7 groups, then completed
+    if (day <= 7) return "groups_only";
+    return "completed";
+  }
+  // new & recovered: Days 2-4 groups, then completed
+  if (day <= 4) return "groups_only";
+  return "completed";
+}
+
+// Get total days for each chip state
+function getTotalDays(chipState: string): number {
+  if (chipState === "unstable") return 7;
+  return 4; // new & recovered
 }
 
 Deno.serve(async (req) => {
@@ -103,17 +114,10 @@ Deno.serve(async (req) => {
       const resolvedChipState = chip_state || "new";
       const now = new Date();
 
-      // Day 1 wait: new=5-8h, recovered=3-6h, unstable=4-7h
-      const waitHoursMap: Record<string, [number, number]> = { new: [5, 8], recovered: [3, 6], unstable: [4, 7] };
-      const [wMin, wMax] = waitHoursMap[resolvedChipState] || [5, 8];
-      const waitHours = randInt(wMin, wMax);
-      const firstActivityAt = new Date(now.getTime() + waitHours * 60 * 60 * 1000);
+      // Day 1 is OFF — no actions at all, just wait 24h
       const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      // Budget for day 1 is minimal
-      const budgetTarget = randInt(3, 8);
-
-      const cycleDays = days_total || 30;
+      const cycleDays = days_total || getTotalDays(resolvedChipState);
       const { data: cycle, error: cycleErr } = await db
         .from("warmup_cycles")
         .insert({
@@ -126,15 +130,15 @@ Deno.serve(async (req) => {
           is_running: true,
           started_at: now.toISOString(),
           first_24h_ends_at: first24hEnds.toISOString(),
-          daily_interaction_budget_target: budgetTarget,
-          daily_interaction_budget_min: 3,
-          daily_interaction_budget_max: 8,
+          daily_interaction_budget_target: 0,
+          daily_interaction_budget_min: 0,
+          daily_interaction_budget_max: 0,
         })
         .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, started_at, first_24h_ends_at, daily_interaction_budget_target, created_at")
         .single();
       if (cycleErr) throw cycleErr;
 
-      // Get ALL 8 groups from pool
+      // Get ALL groups from pool
       const { data: poolGroups } = await db
         .from("warmup_groups_pool")
         .select("id, name")
@@ -143,33 +147,15 @@ Deno.serve(async (req) => {
       const allGroups = shuffleArray(poolGroups || []);
       const jobs: any[] = [];
 
-      // Schedule join_group jobs distributed after wait period
-      const remainingWindowMs = 24 * 60 * 60 * 1000 - waitHours * 60 * 60 * 1000;
-      const joinSpacingMs = remainingWindowMs / (allGroups.length + 1);
-
-      for (let i = 0; i < allGroups.length; i++) {
-        const baseOffset = waitHours * 60 * 60 * 1000 + joinSpacingMs * (i + 1);
-        const jitter = randInt(-15, 15) * 60 * 1000;
-        const offsetMs = Math.max(
-          waitHours * 60 * 60 * 1000 + 10 * 60 * 1000,
-          Math.min(baseOffset + jitter, 23.5 * 60 * 60 * 1000)
-        );
-
-        const runAt = new Date(now.getTime() + offsetMs);
-        jobs.push({
-          user_id: callerUserId, device_id, cycle_id: cycle.id,
-          job_type: "join_group",
-          payload: { group_id: allGroups[i].id, group_name: allGroups[i].name },
-          run_at: runAt.toISOString(), status: "pending",
-        });
-
+      // Register groups for this cycle (will join on Day 2)
+      for (const g of allGroups) {
         await db.from("warmup_instance_groups").insert({
           user_id: callerUserId, device_id,
-          group_id: allGroups[i].id, cycle_id: cycle.id, join_status: "pending",
+          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
         });
       }
 
-      // Schedule phase_transition to groups_only at 24h mark
+      // Schedule phase_transition to groups_only at 24h mark (Day 2 start)
       jobs.push({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         job_type: "phase_transition",
@@ -191,16 +177,16 @@ Deno.serve(async (req) => {
         if (jobErr) throw jobErr;
       }
 
-      const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Recuperado", unstable: "Chip Fraco" };
+      const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Banido/Recuperação", unstable: "Chip Crítico/Instável" };
       const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias, aguardando ${waitHours}h, ${allGroups.length} grupos`,
-        meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), wait_hours: waitHours, budget_target: budgetTarget },
+        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1 = OFF (descanso). ${allGroups.length} grupos registrados.`,
+        meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays },
       });
 
-      return new Response(JSON.stringify({ ok: true, cycle_id: cycle.id, chip_state: resolvedChipState, jobs_scheduled: jobs.length, wait_hours: waitHours }), {
+      return new Response(JSON.stringify({ ok: true, cycle_id: cycle.id, chip_state: resolvedChipState, jobs_scheduled: jobs.length, total_days: cycleDays }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -275,15 +261,18 @@ Deno.serve(async (req) => {
         next_run_at: now.toISOString(),
       }).eq("id", cycle.id);
 
-      const tomorrow = new Date(now);
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-      tomorrow.setUTCHours(3, 5, 0, 0);
+      const nextReset = new Date(now);
+      nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+      nextReset.setUTCHours(3, 5, 0, 0);
       await db.from("warmup_jobs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
-        job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
+        job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
       });
 
-      await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
+      // Schedule today's jobs if in groups_only phase
+      if (resumePhase === "groups_only") {
+        await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
+      }
 
       // ── Re-schedule join_group jobs for groups never joined ──
       const { data: pendingGroups } = await db
@@ -405,7 +394,10 @@ async function scheduleDayJobs(
   const now = new Date();
   const jobs: any[] = [];
 
-  // Activity window: 07:00-19:00 BRT = 10:00-22:00 UTC (all chip states)
+  // Day 1 = OFF, no jobs
+  if (phase === "pre_24h") return 0;
+
+  // Activity window: 07:00-19:00 BRT = 10:00-22:00 UTC
   const today = new Date(now);
   const windowStartUTC = new Date(today);
   windowStartUTC.setUTCHours(10, 0, 0, 0);
@@ -415,10 +407,9 @@ async function scheduleDayJobs(
   const effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
   const effectiveEnd = windowEndUTC.getTime();
 
-  if (effectiveStart >= effectiveEnd) return;
+  if (effectiveStart >= effectiveEnd) return 0;
 
   const windowMs = effectiveEnd - effectiveStart;
-
   const volumes = getVolumes(chipState, dayIndex, phase);
 
   // ── GROUP INTERACTIONS ──
@@ -432,42 +423,6 @@ async function scheduleDayJobs(
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "group_interaction", payload: {},
-        run_at: runAt.toISOString(), status: "pending",
-      });
-    }
-  }
-
-  // ── AUTOSAVE INTERACTIONS ──
-  if (volumes.autosaveTotal > 0) {
-    const asSpacingMs = windowMs / volumes.autosaveTotal;
-    for (let i = 0; i < volumes.autosaveTotal; i++) {
-      const baseOffset = asSpacingMs * i;
-      const jitter = randInt(0, Math.floor(asSpacingMs * 0.4));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd) break;
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "autosave_interaction",
-        payload: { recipient_index: Math.floor(i / volumes.autosaveMsgsPerContact), msg_index: i % volumes.autosaveMsgsPerContact },
-        run_at: runAt.toISOString(), status: "pending",
-      });
-    }
-  }
-
-  // ── COMMUNITY INTERACTIONS ──
-  if (volumes.communityPairs > 0 && volumes.communityMsgsPerPair > 0) {
-    const totalCommunityMsgs = volumes.communityPairs * volumes.communityMsgsPerPair;
-    const cmSpacingMs = windowMs / totalCommunityMsgs;
-    for (let i = 0; i < totalCommunityMsgs; i++) {
-      const pairIndex = Math.floor(i / volumes.communityMsgsPerPair);
-      const baseOffset = cmSpacingMs * i;
-      const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd) break;
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "community_interaction",
-        payload: { pair_index: pairIndex, pairs_total: volumes.communityPairs, msgs_per_pair: volumes.communityMsgsPerPair },
         run_at: runAt.toISOString(), status: "pending",
       });
     }
@@ -500,58 +455,43 @@ async function scheduleDayJobs(
 }
 
 // ════════════════════════════════════════
-// Volume configuration — UNIFIED for all chip states
-// 200-500 messages/day from day 2 to day 30
+// Volume configuration per chip_state
+// Only groups — no autosave, no community
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
-  autosaveContacts: number;
-  autosaveMsgsPerContact: number;
-  autosaveTotal: number;
-  communityPairs: number;
-  communityMsgsPerPair: number;
   statusPosts: number;
 }
 
-function getVolumes(_chipState: string, _dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
+function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0 };
 
-  if (phase === "pre_24h") return v;
+  if (phase === "pre_24h" || phase === "completed") return v;
 
-  if (phase === "groups_only") {
-    v.groupMsgs = randInt(200, 500);
-    v.statusPosts = randInt(1, 3);
+  // CHIP NOVO: Days 2-4 — mensagens naturais e curtas, intervalos aleatórios
+  if (chipState === "new") {
+    if (dayIndex === 2) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(120, 200); v.statusPosts = randInt(1, 3); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(150, 250); v.statusPosts = randInt(2, 3); }
     return v;
   }
 
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(200, 450);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.statusPosts = randInt(2, 4);
+  // CHIP RECUPERADO (banido): Days 2-4 — interações leves, baixa quantidade, intervalos maiores
+  if (chipState === "recovered") {
+    if (dayIndex === 2) { v.groupMsgs = randInt(40, 80); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(60, 120); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
     return v;
   }
 
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(200, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 4);
-    v.communityMsgsPerPair = randInt(10, 20);
-    v.statusPosts = randInt(2, 5);
-    return v;
-  }
-
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(200, 400);
-    v.autosaveContacts = 5;
-    v.autosaveMsgsPerContact = 2;
-    v.autosaveTotal = 10;
-    v.communityPairs = randInt(4, 6);
-    v.communityMsgsPerPair = randInt(15, 25);
-    v.statusPosts = randInt(2, 5);
+  // CHIP INSTÁVEL (crítico): Days 2-7 — interações muito leves, poucas mensagens, intervalos longos
+  if (chipState === "unstable") {
+    if (dayIndex === 2) { v.groupMsgs = randInt(20, 40); v.statusPosts = 0; }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(30, 50); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(40, 70); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 5) { v.groupMsgs = randInt(50, 90); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 6) { v.groupMsgs = randInt(60, 100); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 7) { v.groupMsgs = randInt(70, 120); v.statusPosts = randInt(1, 2); }
     return v;
   }
 

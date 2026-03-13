@@ -324,33 +324,18 @@ function backoffMinutes(attempt: number): number {
 }
 
 // ── Phase rules per chip_state ──
-function getPhaseForDayNew(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 2) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 6) return "community_light";
-  return "community_enabled";
-}
-
-function getPhaseForDayRecovered(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 3) return "groups_only";
-  if (day <= 4) return "autosave_enabled";
-  if (day <= 7) return "community_light";
-  return "community_enabled";
-}
-
-function getPhaseForDayUnstable(day: number): string {
-  if (day <= 1) return "pre_24h";
-  if (day <= 5) return "groups_only";
-  if (day <= 10) return "autosave_enabled";
-  return "community_light";
-}
-
+// CHIP NOVO:       Day 1 OFF, Days 2-4 groups_only
+// CHIP RECUPERADO: Day 1 OFF, Days 2-4 groups_only (lighter)
+// CHIP INSTÁVEL:   Day 1 OFF, Days 2-7 groups_only (very light)
 function getPhaseForDay(day: number, chipState: string): string {
-  if (chipState === "recovered") return getPhaseForDayRecovered(day);
-  if (chipState === "unstable") return getPhaseForDayUnstable(day);
-  return getPhaseForDayNew(day);
+  if (day <= 1) return "pre_24h";
+  if (chipState === "unstable") {
+    if (day <= 7) return "groups_only";
+    return "completed";
+  }
+  // new & recovered
+  if (day <= 4) return "groups_only";
+  return "completed";
 }
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
@@ -712,6 +697,44 @@ async function handleTick(db: any) {
         case "phase_transition": {
           const targetPhase = job.payload?.target_phase || "groups_only";
           await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
+          
+          // When transitioning to groups_only (Day 2), schedule join_group jobs
+          if (targetPhase === "groups_only") {
+            const { data: pendingGroups } = await db
+              .from("warmup_instance_groups")
+              .select("group_id, warmup_groups_pool(id, name)")
+              .eq("device_id", job.device_id)
+              .eq("cycle_id", cycle.id)
+              .eq("join_status", "pending");
+
+            if (pendingGroups && pendingGroups.length > 0) {
+              const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
+              const joinWindowMs = 4 * 60 * 60 * 1000; // 4h window
+              const joinSpacing = joinWindowMs / (shuffled.length + 1);
+              const joinJobs: any[] = [];
+              const nowMs = Date.now();
+
+              for (let i = 0; i < shuffled.length; i++) {
+                const g = shuffled[i];
+                const groupName = g.warmup_groups_pool?.name || "Grupo";
+                const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
+                const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+                joinJobs.push({
+                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                  job_type: "join_group",
+                  payload: { group_id: g.group_id, group_name: groupName },
+                  run_at: runAt.toISOString(), status: "pending",
+                });
+              }
+              if (joinJobs.length > 0) {
+                await db.from("warmup_jobs").insert(joinJobs);
+              }
+            }
+
+            // Also schedule today's group interaction jobs
+            await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, cycle.chip_state || "new");
+          }
+
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
@@ -1055,34 +1078,45 @@ async function handleTick(db: any) {
 
           const newPhase = getPhaseForDay(newDay, chipState);
 
-          // Cancel overdue interaction jobs from previous day to avoid impossible carry-over backlog
+          // If phase is completed, finish the cycle
+          if (newPhase === "completed") {
+            await db.from("warmup_cycles").update({
+              is_running: false, phase: "completed",
+              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+            }).eq("id", cycle.id);
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "cycle_completed",
+              message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+            });
+            break;
+          }
+
+          // Cancel overdue interaction jobs from previous day
           const nowIso = new Date().toISOString();
           await db.from("warmup_jobs")
             .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
             .eq("cycle_id", cycle.id)
             .eq("status", "pending")
             .lt("run_at", nowIso)
-            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction", "post_status"]);
+            .in("job_type", ["group_interaction", "post_status"]);
 
-          // Set budgets based on chip_state + phase — grupo não dá ban, volume agressivo
+          // Set budgets based on chip_state + day
           let budgetMin: number, budgetMax: number;
           if (newPhase === "pre_24h") {
-            budgetMin = 3; budgetMax = 8;
+            budgetMin = 0; budgetMax = 0;
           } else if (chipState === "unstable") {
-            if (newPhase === "groups_only") { budgetMin = 50; budgetMax = 120; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 228; }
-            else { budgetMin = 170; budgetMax = 410; }
+            // Very light: 20-120 across days 2-7
+            budgetMin = 20 + (newDay - 2) * 10;
+            budgetMax = 40 + (newDay - 2) * 16;
           } else if (chipState === "recovered") {
-            if (newPhase === "groups_only") { budgetMin = 80; budgetMax = 150; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 126; budgetMax = 260; }
-            else if (newPhase === "community_light") { budgetMin = 150; budgetMax = 400; }
-            else { budgetMin = 200; budgetMax = 530; }
+            // Light: 40-150 across days 2-4
+            budgetMin = 40 + (newDay - 2) * 20;
+            budgetMax = 80 + (newDay - 2) * 35;
           } else {
-            // Chip novo: volume agressivo em grupos
-            if (newPhase === "groups_only") { budgetMin = 150; budgetMax = 250; }
-            else if (newPhase === "autosave_enabled") { budgetMin = 206; budgetMax = 306; }
-            else if (newPhase === "community_light") { budgetMin = 232; budgetMax = 403; }
-            else { budgetMin = 310; budgetMax = 510; }
+            // Chip novo: 80-250 across days 2-4
+            budgetMin = 80 + (newDay - 2) * 35;
+            budgetMax = 150 + (newDay - 2) * 50;
           }
 
           const newTarget = randInt(budgetMin, budgetMax);
@@ -1098,7 +1132,7 @@ async function handleTick(db: any) {
             last_daily_reset_at: new Date().toISOString(),
           }).eq("id", cycle.id);
 
-          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "RECUPERAÇÃO", unstable: "SENSÍVEL" };
+          const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
           const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
@@ -1214,6 +1248,7 @@ async function handleTick(db: any) {
 
 // ════════════════════════════════════════
 // Volume configuration per chip_state
+// Only groups — no autosave, no community
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
@@ -1226,82 +1261,37 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  if (chipState === "recovered") return getVolumesRecovered(dayIndex, phase);
-  if (chipState === "unstable") return getVolumesUnstable(dayIndex, phase);
-  return getVolumesNew(phase);
-}
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 0, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
 
-function getVolumesNew(phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
+  if (phase === "pre_24h" || phase === "completed") return v;
 
-  if (phase === "groups_only") {
-    v.groupMsgs = randInt(150, 250);
-    v.statusPosts = randInt(1, 3);
+  // CHIP NOVO: Days 2-4
+  if (chipState === "new" || (!["recovered", "unstable"].includes(chipState))) {
+    if (dayIndex === 2) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(120, 200); v.statusPosts = randInt(1, 3); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(150, 250); v.statusPosts = randInt(2, 3); }
     return v;
   }
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(200, 300);
-    v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
-    v.statusPosts = randInt(2, 4);
-    return v;
-  }
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(200, 350);
-    v.autosaveContacts = 4; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 8;
-    v.communityPairs = randInt(2, 3); v.communityMsgsPerPair = randInt(8, 15);
-    v.statusPosts = randInt(2, 5);
-    return v;
-  }
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(250, 400);
-    v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
-    v.communityPairs = randInt(3, 5); v.communityMsgsPerPair = randInt(10, 20);
-    v.statusPosts = randInt(2, 5);
-    return v;
-  }
-  return v;
-}
 
-function getVolumesRecovered(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
-  if (phase === "pre_24h") return v;
-  if (phase === "groups_only") { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); return v; }
-  if (phase === "autosave_enabled") {
-    v.groupMsgs = randInt(120, 250); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
-    v.statusPosts = randInt(1, 3); return v;
+  // CHIP RECUPERADO: Days 2-4 (lighter)
+  if (chipState === "recovered") {
+    if (dayIndex === 2) { v.groupMsgs = randInt(40, 80); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(60, 120); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(80, 150); v.statusPosts = randInt(1, 2); }
+    return v;
   }
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(120, 250); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 4); v.communityMsgsPerPair = randInt(10, 20);
-    v.statusPosts = randInt(2, 4); return v;
-  }
-  if (phase === "community_enabled") {
-    v.groupMsgs = randInt(150, 350); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
-    v.communityPairs = randInt(4, 8); v.communityMsgsPerPair = randInt(15, 25);
-    v.statusPosts = randInt(2, 5); return v;
-  }
-  return v;
-}
 
-function getVolumesUnstable(dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveMsgsPerContact: 2, autosaveTotal: 0, communityPairs: 0, communityMsgsPerPair: 0, statusPosts: 0 };
-  if (phase === "pre_24h") return v;
-  if (phase === "groups_only") { v.groupMsgs = randInt(50, 120); v.statusPosts = randInt(1, 2); return v; }
-  if (phase === "autosave_enabled") {
-    if (dayIndex <= 6) {
-      v.groupMsgs = randInt(120, 200); v.autosaveContacts = 3; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 6;
-    } else {
-      v.groupMsgs = randInt(120, 220);
-      const contacts = randInt(3, 4);
-      v.autosaveContacts = contacts; v.autosaveMsgsPerContact = 2; v.autosaveTotal = contacts * 2;
-    }
-    v.statusPosts = randInt(1, 3); return v;
+  // CHIP INSTÁVEL: Days 2-7 (very light)
+  if (chipState === "unstable") {
+    if (dayIndex === 2) { v.groupMsgs = randInt(20, 40); v.statusPosts = 0; }
+    else if (dayIndex === 3) { v.groupMsgs = randInt(30, 50); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 4) { v.groupMsgs = randInt(40, 70); v.statusPosts = randInt(0, 1); }
+    else if (dayIndex === 5) { v.groupMsgs = randInt(50, 90); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 6) { v.groupMsgs = randInt(60, 100); v.statusPosts = randInt(1, 2); }
+    else if (dayIndex === 7) { v.groupMsgs = randInt(70, 120); v.statusPosts = randInt(1, 2); }
+    return v;
   }
-  if (phase === "community_light") {
-    v.groupMsgs = randInt(150, 300); v.autosaveContacts = 5; v.autosaveMsgsPerContact = 2; v.autosaveTotal = 10;
-    v.communityPairs = randInt(2, 5); v.communityMsgsPerPair = randInt(10, 20);
-    v.statusPosts = randInt(2, 4); return v;
-  }
+
   return v;
 }
 
