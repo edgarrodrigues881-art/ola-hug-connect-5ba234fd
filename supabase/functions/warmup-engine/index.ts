@@ -451,20 +451,30 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── COMMUNITY INTERACTIONS ──
-  if (volumes.communityMsgs > 0) {
-    const cmSpacingMs = windowMs / (volumes.communityMsgs + 1);
-    for (let i = 0; i < volumes.communityMsgs; i++) {
-      const baseOffset = cmSpacingMs * (i + 1);
-      const jitter = randInt(0, Math.floor(cmSpacingMs * 0.3));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd) break;
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "community_interaction",
-        payload: {},
-        run_at: runAt.toISOString(), status: "pending",
-      });
+  // ── COMMUNITY INTERACTIONS (conversation bursts) ──
+  // Each peer gets 30-50 messages clustered together, 25% images
+  if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
+    const totalPeers = volumes.communityPeers;
+    const msgsPerPeer = volumes.communityMsgsPerPeer;
+    const peerWindowMs = windowMs / totalPeers; // time allocated per peer conversation
+
+    for (let p = 0; p < totalPeers; p++) {
+      const peerStart = effectiveStart + (peerWindowMs * p);
+      // Conversation starts with a random offset within first 20% of peer window
+      const convStart = peerStart + randInt(0, Math.floor(peerWindowMs * 0.1));
+      // Messages spaced 30-120 seconds apart within the conversation
+      for (let m = 0; m < msgsPerPeer; m++) {
+        const msgOffset = m * randInt(30, 120) * 1000;
+        const runAt = new Date(convStart + msgOffset);
+        if (runAt.getTime() > effectiveEnd) break;
+        const isImage = Math.random() < 0.25; // 25% images
+        jobs.push({
+          user_id: userId, device_id: deviceId, cycle_id: cycleId,
+          job_type: "community_interaction",
+          payload: { peer_index: p, msg_index: m, is_image: isImage },
+          run_at: runAt.toISOString(), status: "pending",
+        });
+      }
     }
   }
 
