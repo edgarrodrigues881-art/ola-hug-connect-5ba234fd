@@ -695,6 +695,57 @@ const WarmupInstanceDetail = () => {
             </div>
           </div>
 
+          {/* ── Auto Save Toggle ── */}
+          {(() => {
+            const autosaveDay = getAutosaveStartDay(cycle.chip_state || "new");
+            const isUnlockedAS = cycle.day_index >= autosaveDay;
+            const isAutosavePhase = ["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase);
+            const autosaveActive = isUnlockedAS && isAutosavePhase;
+
+            return (
+              <div className={cn(
+                "rounded-xl border bg-card overflow-hidden transition-all",
+                isUnlockedAS ? "border-emerald-500/30" : "border-border/20 opacity-60"
+              )}>
+                <div className="px-5 py-4 flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center",
+                    isUnlockedAS ? "bg-emerald-500/10" : "bg-muted/20"
+                  )}>
+                    <MessageSquare className={cn("w-4 h-4", isUnlockedAS ? "text-emerald-400" : "text-muted-foreground")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-sm font-bold", isUnlockedAS ? "text-foreground" : "text-muted-foreground")}>
+                      Auto Save
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isUnlockedAS
+                        ? autosaveActive
+                          ? "Ativo — salvando contatos automaticamente"
+                          : "Desativado"
+                        : `🔒 Disponível a partir do Dia ${autosaveDay}`
+                      }
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autosaveActive}
+                    disabled={true}
+                  />
+                </div>
+                {!isUnlockedAS && (
+                  <div className="px-5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Progress value={(cycle.day_index / autosaveDay) * 100} className="h-1.5 flex-1" />
+                      <span className="text-[9px] text-muted-foreground font-mono">
+                        Dia {cycle.day_index}/{autosaveDay}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ── Comunitário Toggle ── */}
           {(() => {
             const communityDay = getCommunityStartDay(cycle.chip_state || "new");
