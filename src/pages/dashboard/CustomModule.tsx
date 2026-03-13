@@ -317,15 +317,15 @@ const CustomModule = () => {
         <CardContent className="p-5 space-y-4">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            Checklist antes de iniciar
+            Checklist — Confirme antes de iniciar o aquecimento
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
-              { key: "formatted" as const, label: "Aparelho formatado com reset de fábrica" },
-              { key: "whatsapp" as const, label: "WhatsApp oficial instalado e verificado" },
-              { key: "structure" as const, label: "Infraestrutura de rede validada (IP/Proxy)" },
-              { key: "intensity" as const, label: "Intensidade ajustada ao estado da conta" },
-              { key: "noMix" as const, label: "Contas restritas isoladas de contas saudáveis" },
+              { key: "formatted" as const, label: "Aparelho passou por reset completo de fábrica" },
+              { key: "whatsapp" as const, label: "WhatsApp oficial instalado e versão verificada" },
+              { key: "structure" as const, label: "Rede validada: IP estável, proxy residencial ativo" },
+              { key: "intensity" as const, label: "Intensidade do aquecimento compatível com o estado do chip" },
+              { key: "noMix" as const, label: "Chips restritos separados fisicamente dos saudáveis" },
             ]).map((item) => (
               <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
                 <Checkbox
