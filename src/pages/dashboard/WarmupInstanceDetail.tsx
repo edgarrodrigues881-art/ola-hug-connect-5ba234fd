@@ -100,6 +100,7 @@ const WarmupInstanceDetail = () => {
   const { data: cycle, isLoading: cycleLoading } = useDeviceCycle(deviceId!);
   const engine = useWarmupEngine();
   const toggleCommunity = useToggleCommunity();
+  const toggleAutosave = useToggleAutosave();
 
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
   const { data: autosaveContacts = [] } = useAutosaveContacts();
