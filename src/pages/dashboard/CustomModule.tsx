@@ -277,10 +277,10 @@ const CustomModule = () => {
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">Antes de tentar qualquer envio, verifique:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                    <MiniCheck label="Verificar IP" />
-                    <MiniCheck label="Verificar proxy" />
-                    <MiniCheck label="Verificar aparelho" />
-                    <MiniCheck label="Verificar mistura" />
+                    <MiniCheck label="IP e reputação" />
+                    <MiniCheck label="Proxy e tipo" />
+                    <MiniCheck label="Estado do aparelho" />
+                    <MiniCheck label="Isolamento de contas" />
                   </div>
                 </div>
 
