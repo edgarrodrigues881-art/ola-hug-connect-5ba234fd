@@ -400,7 +400,9 @@ Deno.serve(async (req) => {
 
       // 3) Check status chat history for the just-posted message
       const historyEndpoints = [
-
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&count=30`,
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&limit=30`,
+      ];
       for (const ep of historyEndpoints) {
         try {
           const hr = await fetch(`${baseUrl}${ep}`, {
