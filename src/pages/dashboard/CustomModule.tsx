@@ -38,9 +38,9 @@ const CustomModule = () => {
   return (
     <div className="space-y-6 pb-12">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground">Roteiros de Aquecimento</h1>
+        <h1 className="text-2xl font-bold text-foreground">Guia de Aquecimento</h1>
         <p className="text-sm text-muted-foreground">
-          Guia completo para preparar, estruturar e aquecer suas contas com segurança.
+          Passo a passo para preparar, configurar e aquecer seus números com segurança.
         </p>
       </div>
 
