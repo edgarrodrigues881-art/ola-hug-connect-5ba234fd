@@ -188,8 +188,22 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleSelectClient = useCallback((u: AdminUser) => setSelectedClient(u), []);
+  const handleSelectClient = useCallback((u: AdminUser) => {
+    setSelectedClient(u);
+    window.history.pushState({ backofficeClient: true }, "");
+  }, []);
   const handleBack = useCallback(() => setSelectedClient(null), []);
+
+  // Handle browser back button for client detail
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      if (selectedClient) {
+        setSelectedClient(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [selectedClient]);
 
   const { data: pendingQueueCount = 0 } = useQuery({
     queryKey: ["message-queue-count"],
