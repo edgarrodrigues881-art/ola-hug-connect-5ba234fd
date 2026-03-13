@@ -335,6 +335,18 @@ Deno.serve(async (req) => {
 
       let postedMessageId: string | null = null;
 
+      // 0) Instance connectivity
+      try {
+        const sr = await fetch(`${baseUrl}/instance/status`, {
+          method: "GET",
+          headers: { token: tkn, Accept: "application/json" },
+        });
+        const stxt = await sr.text();
+        results.push({ step: "instance_status", status: sr.status, body: stxt.substring(0, 500) });
+      } catch (e) {
+        results.push({ step: "instance_status", error: e.message });
+      }
+
       // 1) Post status
       try {
         const r = await fetch(`${baseUrl}/send/status`, {
