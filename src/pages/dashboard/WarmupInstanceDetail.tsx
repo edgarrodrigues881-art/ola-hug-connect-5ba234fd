@@ -771,7 +771,14 @@ const WarmupInstanceDetail = () => {
                   {statusToday.done}
                   <span className="text-xs text-muted-foreground/40 font-normal">/{statusToday.total}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
+                {statusToday.lastPostedAt && (
+                  <p className="text-[8px] text-emerald-400 mt-0.5 truncate max-w-[120px]" title={statusToday.lastCaption || ""}>
+                    Último: {new Date(statusToday.lastPostedAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                )}
+                {!statusToday.lastPostedAt && (
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
+                )}
               </div>
             </div>
           </div>
