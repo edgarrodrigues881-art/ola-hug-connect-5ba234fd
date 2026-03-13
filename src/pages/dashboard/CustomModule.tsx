@@ -142,16 +142,16 @@ const CustomModule = () => {
                 </StepCard>
 
                 {/* Passo 4 */}
-                <StepCard step={4} title="Organização de aparelhos" icon={<Layers className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Evite:</p>
+                <StepCard step={4} title="Organização dos aparelhos" icon={<Layers className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Práticas a evitar:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>3 ou 4 WhatsApps no mesmo celular</li>
-                    <li>Misturar conta forte com conta crítica</li>
-                    <li>Operar contingência no mesmo aparelho principal</li>
+                    <li>Rodar 3 ou mais WhatsApps no mesmo celular</li>
+                    <li>Misturar conta saudável com conta restrita</li>
+                    <li>Usar o aparelho principal para contingência</li>
                   </ul>
                   <div className="mt-3 rounded-md border border-border/30 bg-muted/30 p-3">
                     <p className="text-xs text-muted-foreground">
-                      <strong className="text-foreground">Regra prática:</strong> Quanto menos números por aparelho, melhor. Misturar conta crítica com conta estável pode causar efeito cascata.
+                      <strong className="text-foreground">Regra prática:</strong> Quanto menos números por aparelho, melhor. Uma conta restrita pode comprometer as demais por efeito cascata.
                     </p>
                   </div>
                 </StepCard>
