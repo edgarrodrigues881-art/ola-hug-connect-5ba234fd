@@ -1387,14 +1387,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   return v;
 }
 
-  userId: string,
-  deviceId: string,
-  dayIndex: number,
-  phase: string,
-  chipState: string = "new",
-) {
-  const now = new Date();
-  const jobs: any[] = [];
+
 
   // Activity window BRT → UTC: 07:00-19:00 BRT = 10:00-22:00 UTC (unified for all chip states)
   const today = new Date(now);
