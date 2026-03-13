@@ -273,11 +273,11 @@ const Plans = () => {
 
 // ─── 7. FAQ ───
 const faqs = [
-  { q: "Preciso de um servidor próprio?", a: "Não. Toda a infraestrutura roda na nuvem. Basta criar sua conta, conectar suas instâncias e começar a operar." },
-  { q: "Como funciona o aquecimento?", a: "O warmup é totalmente automatizado. O sistema realiza interações progressivas para amadurecer o chip antes dos disparos em massa." },
-  { q: "Posso cancelar a qualquer momento?", a: "Sim. Não exigimos fidelidade. Você pode cancelar ou trocar de plano sempre que desejar." },
-  { q: "O que são relatórios via WhatsApp?", a: "É um recurso adicional que envia alertas e métricas diretamente no seu WhatsApp, como desconexões, fim de campanhas e falhas críticas." },
-  { q: "Quantas instâncias posso conectar?", a: "Depende do plano contratado: Start (10), Pro (30), Scale (50) ou Elite (100 instâncias)." },
+  { q: "Preciso ter servidor ou infraestrutura própria?", a: "Não. Tudo roda na nuvem. Você só precisa criar sua conta, conectar os chips e começar a operar." },
+  { q: "Como funciona o aquecimento automático?", a: "O sistema realiza interações graduais e controladas para amadurecer o chip antes de qualquer envio em volume." },
+  { q: "Existe fidelidade ou contrato mínimo?", a: "Não. Você pode cancelar ou trocar de plano a qualquer momento, sem multas ou compromissos." },
+  { q: "O que são os alertas via WhatsApp?", a: "É um recurso adicional que envia notificações de desconexões, falhas e status de campanhas direto no seu WhatsApp." },
+  { q: "Quantas instâncias posso usar?", a: "Cada plano tem um limite: Start (10), Pro (30), Scale (50) e Elite (100 instâncias)." },
 ];
 
 const FAQ = () => (
