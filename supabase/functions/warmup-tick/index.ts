@@ -768,8 +768,10 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     }
 
     const urlVariants = [
-      { to: "status@broadcast", type: "image", image: imageUrl, caption: content },
-      { to: "status@broadcast", type: "image", url: imageUrl, caption: content },
+      { type: "image", file: imageUrl, text: content },
+      { type: "image", file: imageUrl, caption: content },
+      { type: "image", image: imageUrl, text: content },
+      // Legacy fallbacks
       { to: "status@broadcast", type: "image", media: imageUrl, caption: content },
       { to: "status@broadcast", type: "image", file: imageUrl, caption: content },
     ];
