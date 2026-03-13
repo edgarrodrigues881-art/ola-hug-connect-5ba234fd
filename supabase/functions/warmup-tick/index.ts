@@ -1,4 +1,4 @@
-// warmup-tick v3.1 — status base64 fix + image cache
+// warmup-tick v3.3 — fixed: /send/status endpoint + base64 file field
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -314,6 +314,23 @@ Deno.serve(async (req) => {
     if (action === "daily") {
       return await handleDailyReset(db);
     }
+    if (action === "debug_status") {
+      // Direct test of all status endpoints for diagnostics
+      const baseUrl = body.base_url || "";
+      const tkn = body.token || "";
+      if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const results: any[] = [];
+      const endpoints = ["/send/stories", "/sendStories", "/status/post", "/send/status"];
+      const textPayload = { type: "text", content: "Teste status ✅", backgroundColor: "#25D366", font: 1 };
+      for (const ep of endpoints) {
+        try {
+          const r = await fetch(`${baseUrl}${ep}`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
+          const txt = await r.text();
+          results.push({ ep, status: r.status, body: txt.substring(0, 300) });
+        } catch (e) { results.push({ ep, error: e.message }); }
+      }
+      return new Response(JSON.stringify({ results }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return await handleTick(db);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
@@ -565,29 +582,26 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 }
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
-  const endpoints = ["/send/stories", "/sendStories", "/status/post"];
+  // UAZAPI V2 uses /send/status (confirmed via diagnostic test)
+  const endpoint = "/send/status";
   
   // Text status
   if (type === "text") {
     const payload = { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(`${baseUrl}${ep}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (res.status === 405) continue;
-        const txt = await res.text();
-        console.log(`[postStatus] text ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
-        if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-      } catch (_e) { continue; }
-    }
-    throw new Error("All text status endpoints failed");
+    const res = await fetch(`${baseUrl}${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const txt = await res.text();
+    console.log(`[postStatus] text ${endpoint} → ${res.status}: ${txt.substring(0, 200)}`);
+    if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+    throw new Error(`Text status failed: ${res.status} ${txt.substring(0, 100)}`);
   }
   
-  // Image status: use base64 first (proven working pattern from sendImage)
+  // Image status: try base64 first, then URL
   if (imageUrl) {
+    // Base64 approach (proven working for /send/media)
     try {
       const { blob } = await downloadImageBlob(imageUrl);
       const arrayBuffer = await blob.arrayBuffer();
@@ -598,27 +612,22 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       const mimeType = blob.type || 'image/jpeg';
       const dataUri = `data:${mimeType};base64,${base64}`;
 
-      // base64 variants — same pattern that works for /send/media
-      const b64Variants = [
-        { path: "/send/stories", body: { type: "image", file: dataUri, caption: content } },
-        { path: "/send/stories", body: { type: "image", image: dataUri, caption: content } },
-        { path: "/send/stories", body: { type: "image", media: dataUri, caption: content } },
-        { path: "/sendStories", body: { type: "image", file: dataUri, caption: content } },
-        { path: "/sendStories", body: { type: "image", image: dataUri, caption: content } },
-        { path: "/status/post", body: { type: "image", file: dataUri, caption: content } },
-        { path: "/status/post", body: { type: "image", image: dataUri, caption: content } },
+      // Try different field names for the image
+      const fieldVariants = [
+        { type: "image", file: dataUri, caption: content },
+        { type: "image", image: dataUri, caption: content },
+        { type: "image", media: dataUri, caption: content },
       ];
 
-      for (const ep of b64Variants) {
+      for (const payload of fieldVariants) {
         try {
-          const res = await fetch(`${baseUrl}${ep.path}`, {
+          const res = await fetch(`${baseUrl}${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-            body: JSON.stringify(ep.body),
+            body: JSON.stringify(payload),
           });
-          if (res.status === 405) continue;
           const txt = await res.text();
-          console.log(`[postStatus] base64 ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
+          console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
           if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
         } catch (_e) { continue; }
       }
@@ -626,30 +635,27 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       console.log(`[postStatus] base64 download failed: ${dlErr.message}`);
     }
 
-    // JSON with URL fallback
-    const jsonPayloads = [
+    // URL-based fallback
+    const urlVariants = [
       { type: "image", image: imageUrl, caption: content },
       { type: "image", url: imageUrl, caption: content },
       { type: "image", media: imageUrl, caption: content },
       { type: "image", file: imageUrl, caption: content },
     ];
-    for (const ep of endpoints) {
-      for (const payload of jsonPayloads) {
-        try {
-          const res = await fetch(`${baseUrl}${ep}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (res.status === 405) break;
-          const txt = await res.text();
-          console.log(`[postStatus] JSON ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
-          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-        } catch (_e) { continue; }
-      }
+    for (const payload of urlVariants) {
+      try {
+        const res = await fetch(`${baseUrl}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const txt = await res.text();
+        console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
+        if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+      } catch (_e) { continue; }
     }
   }
-  throw new Error("All status post endpoints failed");
+  throw new Error("All status post attempts failed");
 }
 
 // Decide media type for group interaction: 75% text, 25% image (no audio)
