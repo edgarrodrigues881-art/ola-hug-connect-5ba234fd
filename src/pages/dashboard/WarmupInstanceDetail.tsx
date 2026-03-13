@@ -142,7 +142,7 @@ const WarmupInstanceDetail = () => {
   }, [auditLogs, cycleStartedAt?.getTime()]);
 
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
-  const [daysTotal, setDaysTotal] = useState("3");
+  const [daysTotal, setDaysTotal] = useState("7");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
