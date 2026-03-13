@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense, memo, useMemo } from "react";
+import { useState, useCallback, lazy, Suspense, memo, useMemo, useEffect } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
