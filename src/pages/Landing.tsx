@@ -251,7 +251,7 @@ const Plans = () => {
               <li className="flex items-center gap-2.5 text-[13px] font-medium">
                 <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
                 <span className={p.whatsappReports ? "text-white/60" : "text-white/25"}>
-                  Relatórios WhatsApp {p.whatsappReports ? "incluso" : <span className="text-white/30 ml-1">+R$18,90</span>}
+                  Relatórios WhatsApp {p.whatsappReports ? "incluso" : <span className="text-white/30 ml-1">+ R$ 18,90/mês</span>}
                 </span>
               </li>
             </ul>
