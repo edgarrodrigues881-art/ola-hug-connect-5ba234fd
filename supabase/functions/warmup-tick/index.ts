@@ -1239,12 +1239,13 @@ interface DayVolumes {
   groupMsgs: number;
   autosaveContacts: number;
   autosaveRounds: number;
-  communityMsgs: number;
+  communityPeers: number;
+  communityMsgsPerPeer: number;
   statusPosts: number;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityMsgs: 0, statusPosts: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0, statusPosts: 0 };
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
@@ -1260,8 +1261,9 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     const groupsEnd = getGroupsEndDay(chipState);
     const communityStartDay = groupsEnd + 2;
     const communityDay = dayIndex - communityStartDay + 1;
-    const communityScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-    v.communityMsgs = communityDay <= 0 ? 0 : communityScale[Math.min(communityDay, communityScale.length - 1)];
+    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
+    v.communityPeers = communityDay <= 0 ? 0 : peerScale[Math.min(communityDay, peerScale.length - 1)];
+    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
   }
 
   return v;
