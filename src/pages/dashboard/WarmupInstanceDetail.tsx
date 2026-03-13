@@ -519,7 +519,7 @@ const WarmupInstanceDetail = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[3, 7, 14, 21, 30].map(d => (
+                {[7, 14, 21, 30].map(d => (
                   <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
                 ))}
               </SelectContent>
