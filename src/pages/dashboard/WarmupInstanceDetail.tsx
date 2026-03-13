@@ -817,7 +817,128 @@ const WarmupInstanceDetail = () => {
                       </div>
                     );
                   })}
+          </div>
+
+          {/* ── Roadmap de Fases ── */}
+          {(() => {
+            const chipState = (cycle.chip_state as string) || "new";
+            const groupsEnd = chipState === "unstable" ? 7 : 4;
+            const autosaveDay = groupsEnd + 1;
+            const communityStartDay = groupsEnd + 2;
+
+            const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Banido", unstable: "Chip Crítico" };
+            const chipEmojis: Record<string, string> = { new: "🟢", recovered: "🔴", unstable: "🟡" };
+
+            type RoadmapRow = { day: string; phase: string; phaseKey: string; activities: string[]; volume: string };
+            const rows: RoadmapRow[] = [];
+
+            rows.push({ day: "Dia 1", phase: "OFF", phaseKey: "pre_24h", activities: ["Nenhuma atividade", "Entrada gradual em grupos"], volume: "0 msgs" });
+
+            for (let d = 2; d <= groupsEnd; d++) {
+              rows.push({ day: `Dia ${d}`, phase: "Grupos", phaseKey: "groups_only", activities: ["Msgs em grupos (200-500)", "5 status/dia"], volume: "200-500" });
+            }
+
+            rows.push({ day: `Dia ${autosaveDay}`, phase: "Auto Save", phaseKey: "autosave_enabled", activities: ["Msgs em grupos (200-500)", "5 contatos × 3 rodadas", "5 status/dia"], volume: "200-500 + 15" });
+
+            const commDays = [
+              { label: `Dia ${communityStartDay}`, msgs: 5 },
+              { label: `Dia ${communityStartDay + 1}`, msgs: 10 },
+              { label: `Dia ${communityStartDay + 2}`, msgs: 15 },
+              { label: `Dia ${communityStartDay + 3}`, msgs: 20 },
+              { label: `Dia ${communityStartDay + 4}`, msgs: 30 },
+              { label: `Dia ${communityStartDay + 5}+`, msgs: 40 },
+            ];
+            for (const cd of commDays) {
+              rows.push({
+                day: cd.label, phase: "Comunidade", phaseKey: "community_enabled",
+                activities: ["Grupos + Auto Save + Comunidade", `Comunitário: ${cd.msgs} msgs`, "5 status/dia"],
+                volume: `200-500 + 15 + ${cd.msgs}`,
+              });
+            }
+
+            const phaseColors: Record<string, string> = {
+              pre_24h: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+              groups_only: "bg-teal-500/15 text-teal-400 border-teal-500/20",
+              autosave_enabled: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+              community_enabled: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+            };
+
+            return (
+              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
+                <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                    <ScrollText className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-foreground">Roadmap de Fases</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {chipEmojis[chipState]} {chipLabels[chipState] || chipState} — progressão completa
+                    </p>
+                  </div>
                 </div>
+
+                <div className="divide-y divide-border/10">
+                  {rows.map((row, i) => {
+                    const isCurrent = cycle.day_index === parseInt(row.day.replace(/\D/g, "")) ||
+                      (row.day.includes("+") && cycle.day_index >= parseInt(row.day.replace(/\D/g, "")));
+                    const isPast = cycle.day_index > parseInt(row.day.replace(/\D/g, "")) && !row.day.includes("+");
+
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "px-5 py-3 flex items-start gap-3 transition-colors",
+                          isCurrent && "bg-primary/5 ring-1 ring-inset ring-primary/20",
+                          isPast && "opacity-50"
+                        )}
+                      >
+                        {/* Day indicator */}
+                        <div className="flex flex-col items-center gap-1 pt-0.5 w-12 shrink-0">
+                          <span className={cn(
+                            "text-[10px] font-bold",
+                            isCurrent ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {row.day}
+                          </span>
+                          {isCurrent && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          )}
+                          {isPast && (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500/60" />
+                          )}
+                        </div>
+
+                        {/* Phase badge */}
+                        <div className="flex-1 min-w-0">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] font-bold rounded-md px-2 py-0.5 mb-1.5",
+                              phaseColors[row.phaseKey] || "bg-muted/15 text-muted-foreground border-border/20"
+                            )}
+                          >
+                            {row.phase}
+                          </Badge>
+                          <div className="space-y-0.5">
+                            {row.activities.map((act, j) => (
+                              <p key={j} className="text-[10px] text-muted-foreground leading-relaxed">
+                                {act}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Volume */}
+                        <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0 pt-1">
+                          {row.volume}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
 
                 {/* Future jobs */}
