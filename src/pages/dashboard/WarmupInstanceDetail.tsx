@@ -681,7 +681,67 @@ const WarmupInstanceDetail = () => {
             </div>
           </div>
 
-          {/* ── Tarefas agendadas para hoje ── */}
+          {/* ── Comunitário Toggle ── */}
+          {(() => {
+            const communityDay = getCommunityStartDay(cycle.chip_state || "new");
+            const isUnlocked = cycle.day_index >= communityDay;
+            const isCommunityPhase = ["community_enabled", "community_light"].includes(cycle.phase);
+            const isEnabled = community?.is_enabled ?? false;
+
+            // Auto-enable community on the first render of community day if not yet toggled
+            const shouldAutoEnable = isUnlocked && !community && !isCommunityPhase;
+
+            return (
+              <div className={cn(
+                "rounded-xl border bg-card overflow-hidden transition-all",
+                isUnlocked ? "border-purple-500/30" : "border-border/20 opacity-60"
+              )}>
+                <div className="px-5 py-4 flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center",
+                    isUnlocked ? "bg-purple-500/10" : "bg-muted/20"
+                  )}>
+                    <Globe className={cn("w-4 h-4", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-sm font-bold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
+                      Comunitário
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isUnlocked
+                        ? isEnabled || isCommunityPhase
+                          ? "Ativo — trocando mensagens com outros chips do sistema"
+                          : "Desativado — este chip não participa do comunitário"
+                        : `🔒 Disponível a partir do Dia ${communityDay}`
+                      }
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isEnabled || isCommunityPhase || shouldAutoEnable}
+                    disabled={!isUnlocked || toggleCommunity.isPending}
+                    onCheckedChange={(checked) => {
+                      toggleCommunity.mutate({
+                        deviceId: deviceId!,
+                        cycleId: cycle.id,
+                        enable: checked,
+                      });
+                    }}
+                  />
+                </div>
+                {!isUnlocked && (
+                  <div className="px-5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-1.5 flex-1" />
+                      <span className="text-[9px] text-muted-foreground font-mono">
+                        Dia {cycle.day_index}/{communityDay}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {(() => {
             // Use São Paulo timezone day buckets to avoid client timezone drift
             const nowUtc = new Date();
