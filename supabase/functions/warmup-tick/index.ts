@@ -760,6 +760,39 @@ async function handleTick(db: any) {
   const groupsPoolMap: Record<string, any> = {};
   groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
 
+  // Self-heal: guarantee at least one status post in pre_24h cycles
+  const pre24hCycles = cyclesArr.filter((c: any) => c.is_running && c.phase === "pre_24h");
+  if (pre24hCycles.length > 0) {
+    const pre24hCycleIds = pre24hCycles.map((c: any) => c.id);
+    const pre24hStatusJobs = await batchLoad<any>(
+      "warmup_jobs",
+      "cycle_id, status",
+      "cycle_id",
+      pre24hCycleIds,
+      (q: any) => q.eq("job_type", "post_status").in("status", ["pending", "running", "succeeded"]),
+    );
+
+    const cyclesWithStatus = new Set(pre24hStatusJobs.map((j: any) => j.cycle_id));
+    const introStatusJobs = pre24hCycles
+      .filter((c: any) => !cyclesWithStatus.has(c.id))
+      .map((c: any) => ({
+        user_id: c.user_id,
+        device_id: c.device_id,
+        cycle_id: c.id,
+        job_type: "post_status",
+        payload: { pre24h_intro: true },
+        run_at: new Date(Date.now() + randInt(2, 10) * 60 * 1000).toISOString(),
+        status: "pending",
+      }));
+
+    if (introStatusJobs.length > 0) {
+      for (let i = 0; i < introStatusJobs.length; i += 100) {
+        await db.from("warmup_jobs").insert(introStatusJobs.slice(i, i + 100));
+      }
+      console.log(`[warmup-tick] Scheduled ${introStatusJobs.length} intro post_status jobs for pre_24h cycles`);
+    }
+  }
+
   // Audit log buffer for batch insert
   const auditLogBuffer: any[] = [];
   function bufferAuditLog(log: any) { auditLogBuffer.push(log); }
@@ -1545,7 +1578,12 @@ interface DayVolumes {
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
   const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0, statusPosts: 0 };
 
-  if (phase === "pre_24h" || phase === "completed") return v;
+  if (phase === "completed") return v;
+
+  if (phase === "pre_24h") {
+    v.statusPosts = 1;
+    return v;
+  }
 
   v.groupMsgs = randInt(200, 500);
   v.statusPosts = 5;
