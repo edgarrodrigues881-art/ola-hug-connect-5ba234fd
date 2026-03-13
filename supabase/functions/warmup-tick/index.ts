@@ -1152,7 +1152,7 @@ async function handleTick(db: any) {
             .eq("cycle_id", cycle.id)
             .eq("status", "pending")
             .lt("run_at", nowIso)
-            .in("job_type", ["group_interaction", "post_status", "autosave_interaction", "community_interaction"]);
+            .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
           const budgetMin = 200;
           const budgetMax = 500;
