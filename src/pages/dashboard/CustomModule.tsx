@@ -228,9 +228,9 @@ const CustomModule = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Para contas novas ou sensíveis. Baixa frequência e progressão lenta." />
-                  <IntensityCard label="Intermediário" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para contas estáveis. Volume moderado com crescimento gradual." />
-                  <IntensityCard label="Agressivo" icon={<Zap className="w-4 h-4" />} color="red" description="Apenas para contas maduras e com histórico limpo." />
+                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Ideal para contas novas ou sensíveis. Baixa frequência com progressão lenta." />
+                  <IntensityCard label="Moderado" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para contas estáveis. Volume controlado com crescimento gradual." />
+                  <IntensityCard label="Intenso" icon={<Zap className="w-4 h-4" />} color="red" description="Somente para contas maduras com histórico comprovadamente limpo." />
                 </div>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
