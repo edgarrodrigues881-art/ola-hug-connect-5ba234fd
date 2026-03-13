@@ -512,7 +512,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(50);
+    .limit(300);
 
   if (fetchErr) throw fetchErr;
 
@@ -573,7 +573,8 @@ async function handleTick(db: any) {
         .eq("id", job.device_id)
         .single();
 
-      if (!device || device.status !== "Ready") {
+      const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
+      if (!device || !CONNECTED_STATUSES.includes(device.status)) {
         if (cycle.phase !== "paused") {
           await db.from("warmup_cycles").update({
             is_running: false, phase: "paused", previous_phase: cycle.phase,
@@ -988,7 +989,7 @@ async function handleTick(db: any) {
 
           // Resolve phone number
           const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
-          if (!pd?.number || pd.status !== "Ready") {
+          if (!pd?.number || !["Ready", "Connected", "authenticated"].includes(pd.status)) {
             // Peer offline, skip silently
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
