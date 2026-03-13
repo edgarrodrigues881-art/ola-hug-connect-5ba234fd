@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import {
   useDeviceCycle,
   useInstanceGroups, useAutosaveContacts, useCommunityMembership,
-  useWarmupAuditLogs, useWarmupPlans, useToggleCommunity,
+  useWarmupAuditLogs, useWarmupPlans, useToggleCommunity, useToggleAutosave,
   type WarmupCycle,
 } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
