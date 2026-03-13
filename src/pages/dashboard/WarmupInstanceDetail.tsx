@@ -139,53 +139,32 @@ const WarmupInstanceDetail = () => {
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
-  /* accelerate: run first job now, recalculate delays for the rest */
+  /* accelerate: set ALL pending jobs to run NOW */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
-      // Fetch all pending jobs ordered by run_at
-      const { data: pendingJobs, error: fetchErr } = await supabase
+      const now = new Date().toISOString();
+      // Set all pending jobs for this cycle to run immediately
+      const { data: updated, error } = await supabase
         .from("warmup_jobs")
-        .select("id, run_at")
+        .update({ run_at: now })
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .order("run_at", { ascending: true });
-      if (fetchErr) throw fetchErr;
-      if (!pendingJobs || pendingJobs.length === 0) {
+        .select("id");
+      if (error) throw error;
+
+      const count = updated?.length || 0;
+      if (count === 0) {
         toast({ title: "Nenhum job pendente", description: "Não há tarefas para acelerar." });
         return;
       }
 
-      const now = new Date();
-      // First job runs immediately
-      const { error: firstErr } = await supabase
-        .from("warmup_jobs")
-        .update({ run_at: now.toISOString() })
-        .eq("id", pendingJobs[0].id);
-      if (firstErr) throw firstErr;
-
-      // Remaining jobs: preserve original spacing but shift to start from now
-      if (pendingJobs.length > 1) {
-        const originalFirstRunAt = new Date(pendingJobs[0].run_at).getTime();
-        const updates = pendingJobs.slice(1).map(job => {
-          const originalOffset = new Date(job.run_at).getTime() - originalFirstRunAt;
-          const newRunAt = new Date(now.getTime() + originalOffset);
-          return { id: job.id, run_at: newRunAt.toISOString() };
-        });
-
-        // Batch update in chunks
-        for (const upd of updates) {
-          await supabase
-            .from("warmup_jobs")
-            .update({ run_at: upd.run_at })
-            .eq("id", upd.id);
-        }
-      }
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
       toast({
         title: "⚡ Acelerado!",
-        description: `1º job será executado agora. ${pendingJobs.length - 1} restantes mantêm o delay original.`,
+        description: `${count} tarefa(s) serão executadas agora.`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
