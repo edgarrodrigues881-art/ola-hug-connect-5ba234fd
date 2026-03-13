@@ -67,15 +67,15 @@ const Section = ({ id, children, className = "" }: { id?: string; children: Reac
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-block text-[11px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--primary))] mb-4">{children}</span>
+  <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--primary))]/80 mb-4">{children}</span>
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white/95 tracking-tight mb-4 leading-tight">{children}</h2>
+  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">{children}</h2>
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm md:text-base text-white/60 max-w-2xl leading-relaxed font-medium mx-auto">{children}</p>
+  <p className="text-sm md:text-base text-white/45 max-w-2xl leading-relaxed font-medium mx-auto">{children}</p>
 );
 
 // ─── 1. Hero ───
