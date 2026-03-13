@@ -457,10 +457,10 @@ const WarmupInstanceDetail = () => {
                     variant="outline"
                     className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/30 text-purple-500 hover:bg-purple-500/15 hover:text-purple-400 font-semibold"
                     onClick={() => setShowAdvanceConfirm(true)}
-                    disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
+                    disabled={advancingPhase || cycle.phase === "completed"}
                   >
                     {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
-                    Pular Fase
+                    Pular Dia
                   </Button>
                 </div>
               )}
