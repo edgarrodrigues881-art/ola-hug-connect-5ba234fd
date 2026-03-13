@@ -959,15 +959,10 @@ async function handleTick(db: any) {
           const recipientIndex = job.payload?.recipient_index ?? 0;
           const msgIndex = job.payload?.msg_index ?? 0;
 
-          const { data: contacts } = await db
-            .from("warmup_autosave_contacts")
-            .select("id, phone_e164, contact_name")
-            .eq("user_id", job.user_id)
-            .eq("is_active", true)
-            .order("created_at", { ascending: true });
+          const contacts = autosaveMap[job.user_id] || [];
 
-          if (!contacts || contacts.length === 0) {
-            await db.from("warmup_audit_logs").insert({
+          if (contacts.length === 0) {
+            bufferAuditLog({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_no_contacts",
               message: "Nenhum contato Auto Save ativo",
