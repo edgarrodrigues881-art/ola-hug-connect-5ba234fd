@@ -194,12 +194,12 @@ const WarmupInstanceDetail = () => {
     }
   };
 
-  /* advance phase: skip to next day + phase, cancel current jobs, schedule new ones via engine */
+  /* advance day: skip current day's jobs, move to next day (or complete if last day) */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
     setAdvancingPhase(true);
     try {
-      // Always read latest cycle from DB to avoid stale UI/cache causing repeated day 4
+      // Always read latest cycle from DB to avoid stale UI/cache
       const { data: latestCycle, error: latestErr } = await supabase
         .from("warmup_cycles")
         .select("id, phase, day_index, days_total, chip_state")
@@ -207,22 +207,24 @@ const WarmupInstanceDetail = () => {
         .single();
       if (latestErr) throw latestErr;
 
-      const currentIdx = phaseSteps.indexOf(latestCycle.phase as any);
-      if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) {
-        toast({ title: "Última fase", description: "Este ciclo já está na fase final." });
+      // If already completed, nothing to do
+      if (latestCycle.phase === "completed") {
+        toast({ title: "Ciclo já concluído", description: "Este ciclo já foi finalizado." });
         return;
       }
 
-      const nextPhase = phaseSteps[currentIdx + 1];
-      const newDayIndex = Math.min((latestCycle.day_index || 1) + 1, latestCycle.days_total || 30);
+      const newDayIndex = (latestCycle.day_index || 1) + 1;
+      const isLastDay = newDayIndex > (latestCycle.days_total || 30);
+      const nextPhase = isLastDay ? "completed" : latestCycle.phase;
+      const finalDayIndex = isLastDay ? latestCycle.days_total : newDayIndex;
 
-      // 1) Cancel pending interaction jobs from current phase/day
+      // 1) Cancel pending interaction jobs from current day
       await supabase
         .from("warmup_jobs")
-        .update({ status: "cancelled", last_error: "Fase pulada manualmente" })
+        .update({ status: "cancelled", last_error: "Dia pulado manualmente" })
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction", "post_status"]);
 
       // 2) Persist new day + phase
       const { error } = await supabase
@@ -230,22 +232,23 @@ const WarmupInstanceDetail = () => {
         .update({
           phase: nextPhase,
           previous_phase: latestCycle.phase,
-          day_index: newDayIndex,
+          day_index: finalDayIndex,
           daily_interaction_budget_used: 0,
           daily_unique_recipients_used: 0,
+          is_running: !isLastDay,
           updated_at: new Date().toISOString(),
         })
         .eq("id", cycle.id);
       if (error) throw error;
 
-      // 3) Schedule jobs for new phase/day (skip scheduling when completed)
-      if (nextPhase !== "completed") {
+      // 3) Schedule jobs for new day (skip scheduling when completed)
+      if (!isLastDay) {
         const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
           body: {
             action: "schedule_day",
             device_id: deviceId,
             cycle_id: cycle.id,
-            day_index: newDayIndex,
+            day_index: finalDayIndex,
             phase: nextPhase,
             chip_state: latestCycle.chip_state || "new",
           },
@@ -258,10 +261,12 @@ const WarmupInstanceDetail = () => {
         user_id: user!.id,
         device_id: deviceId,
         cycle_id: cycle.id,
-        event_type: "manual_phase_advance",
+        event_type: "manual_day_advance",
         level: "info",
-        message: `Fase pulada: ${latestCycle.phase} → ${nextPhase} (dia ${latestCycle.day_index} → ${newDayIndex})`,
-        meta: { from_phase: latestCycle.phase, to_phase: nextPhase, from_day: latestCycle.day_index, to_day: newDayIndex },
+        message: isLastDay
+          ? `Ciclo concluído manualmente no dia ${latestCycle.day_index}`
+          : `Dia pulado: ${latestCycle.day_index} → ${finalDayIndex} (fase: ${nextPhase})`,
+        meta: { from_day: latestCycle.day_index, to_day: finalDayIndex, phase: nextPhase },
       });
 
       await Promise.all([
@@ -272,8 +277,10 @@ const WarmupInstanceDetail = () => {
       ]);
 
       toast({
-        title: "🚀 Fase pulada!",
-        description: `Avançou para dia ${newDayIndex}, fase: ${phaseConfig[nextPhase]?.label || nextPhase}`,
+        title: isLastDay ? "✅ Ciclo concluído!" : "🚀 Dia pulado!",
+        description: isLastDay
+          ? "O aquecimento foi finalizado."
+          : `Avançou para dia ${finalDayIndex}/${latestCycle.days_total}`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -450,10 +457,10 @@ const WarmupInstanceDetail = () => {
                     variant="outline"
                     className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/30 text-purple-500 hover:bg-purple-500/15 hover:text-purple-400 font-semibold"
                     onClick={() => setShowAdvanceConfirm(true)}
-                    disabled={advancingPhase || phaseSteps.indexOf(cycle.phase as any) >= phaseSteps.length - 1}
+                    disabled={advancingPhase || cycle.phase === "completed"}
                   >
                     {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
-                    Pular Fase
+                    Pular Dia
                   </Button>
                 </div>
               )}
@@ -908,25 +915,26 @@ const WarmupInstanceDetail = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Confirm advance phase dialog */}
+          {/* Confirm advance day dialog */}
           <Dialog open={showAdvanceConfirm} onOpenChange={setShowAdvanceConfirm}>
             <DialogContent className="max-w-sm">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-foreground">
                   <AlertTriangle className="w-5 h-5 text-amber-400" />
-                  Pular fase?
+                  Pular dia?
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Avançar a fase manualmente <strong className="text-foreground">pode comprometer a segurança do chip</strong>.</p>
+                <p>Avançar o dia manualmente <strong className="text-foreground">cancela as tarefas pendentes do dia atual</strong> e agenda novas para o próximo dia.</p>
                 <p>O aquecimento gradual existe para proteger seu número contra restrições e banimentos do WhatsApp.</p>
                 {cycle && (
                   <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                    <span className="font-semibold text-foreground">{phaseConfig[cycle.phase]?.label}</span>
+                    <span className="font-semibold text-foreground">Dia {cycle.day_index}</span>
                     <span className="mx-1.5">→</span>
                     <span className="font-semibold text-foreground">
-                      {phaseConfig[phaseSteps[(phaseSteps.indexOf(cycle.phase as any) + 1)] || ""]?.label || "Próxima"}
+                      {cycle.day_index + 1 > cycle.days_total ? "Concluído" : `Dia ${cycle.day_index + 1}`}
                     </span>
+                    <span className="text-muted-foreground/60 ml-1">/ {cycle.days_total}</span>
                   </p>
                 )}
               </div>
