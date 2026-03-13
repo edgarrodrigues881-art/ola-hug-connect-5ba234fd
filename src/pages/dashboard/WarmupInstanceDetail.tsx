@@ -142,7 +142,7 @@ const WarmupInstanceDetail = () => {
   }, [auditLogs, cycleStartedAt?.getTime()]);
 
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
-  const [daysTotal, setDaysTotal] = useState("3");
+  const [daysTotal, setDaysTotal] = useState("7");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
@@ -519,7 +519,7 @@ const WarmupInstanceDetail = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[3, 7, 14, 21, 30].map(d => (
+                {[7, 14, 21, 30].map(d => (
                   <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
                 ))}
               </SelectContent>
