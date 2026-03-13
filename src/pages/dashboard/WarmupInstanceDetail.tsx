@@ -678,31 +678,49 @@ const WarmupInstanceDetail = () => {
 
           {/* ── Tarefas agendadas para hoje ── */}
           {(() => {
-            // Convert to BRT (UTC-3) for "today" calculation
+            // Use São Paulo timezone day buckets to avoid client timezone drift
             const nowUtc = new Date();
-            const brtOffset = -3 * 60; // minutes
-            const nowBrt = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
-            const todayStartBrt = new Date(nowBrt.getFullYear(), nowBrt.getMonth(), nowBrt.getDate());
-            const todayEndBrt = new Date(todayStartBrt.getTime() + 86400000);
-            // Convert back to UTC for comparison
-            const todayStartUtc = new Date(todayStartBrt.getTime() - (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
-            const todayEndUtc = new Date(todayEndBrt.getTime() - (nowUtc.getTimezoneOffset() + brtOffset) * 60000);
+            const toBrtDayKey = (date: Date) =>
+              new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/Sao_Paulo",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              }).format(date);
+            const formatBrtTime = (date: Date) =>
+              new Intl.DateTimeFormat("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }).format(date);
 
-            const todayJobs = scheduledJobs.filter(j => {
-              const runAt = new Date(j.run_at);
-              return runAt >= todayStartUtc && runAt < todayEndUtc;
-            });
-            const futureJobs = scheduledJobs.filter(j => {
-              const runAt = new Date(j.run_at);
-              return runAt >= todayEndUtc;
-            });
+            const actionableTypes = new Set([
+              "join_group",
+              "group_interaction",
+              "autosave_interaction",
+              "community_interaction",
+              "post_status",
+            ]);
 
-            // Helper to format a date in BRT
-            const formatBrt = (date: Date, fmt: string) => {
-              const d = new Date(date.getTime() + (date.getTimezoneOffset() + brtOffset) * 60000);
-              return format(d, fmt, { locale: ptBR });
-            };
-            
+            const sortedJobs = [...scheduledJobs]
+              .filter((j) => j.status !== "cancelled")
+              .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+
+            const todayKey = toBrtDayKey(nowUtc);
+            const todayJobs = sortedJobs.filter((j) => toBrtDayKey(new Date(j.run_at)) === todayKey);
+            const futureJobs = sortedJobs.filter((j) => new Date(j.run_at) >= nowUtc);
+
+            // If there is no job for "today" in BRT, show the next planned day
+            let displayJobs = todayJobs;
+            if (displayJobs.length === 0) {
+              const nextPlannedJob = futureJobs.find((j) => actionableTypes.has(j.job_type)) ?? futureJobs[0];
+              if (nextPlannedJob) {
+                const nextDayKey = toBrtDayKey(new Date(nextPlannedJob.run_at));
+                displayJobs = sortedJobs.filter((j) => toBrtDayKey(new Date(j.run_at)) === nextDayKey);
+              }
+            }
+
             const jobTypeLabels: Record<string, { label: string; icon: typeof Target; color: string }> = {
               join_group: { label: "Entrar no grupo", icon: UserPlus, color: "text-teal-400" },
               group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
@@ -723,11 +741,11 @@ const WarmupInstanceDetail = () => {
               return <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />;
             };
 
-            if (todayJobs.length === 0 && futureJobs.length === 0) return null;
+            if (displayJobs.length === 0 && futureJobs.length === 0) return null;
 
-            // Summarize today's jobs by type
+            // Summarize displayed jobs by type
             const typeSummary: Record<string, { total: number; done: number; failed: number; next: Date | null }> = {};
-            for (const job of todayJobs) {
+            for (const job of displayJobs) {
               const key = job.job_type;
               if (!typeSummary[key]) typeSummary[key] = { total: 0, done: 0, failed: 0, next: null };
               if (job.status === "succeeded") {
@@ -738,17 +756,12 @@ const WarmupInstanceDetail = () => {
                 typeSummary[key].failed++;
               } else if (job.status === "pending") {
                 const runAt = new Date(job.run_at);
-                // Only count future pending jobs — stale ones are ignored entirely
-                if (runAt >= nowUtc) {
-                  typeSummary[key].total++;
-                  if (!typeSummary[key].next || runAt < typeSummary[key].next!) {
-                    typeSummary[key].next = runAt;
-                  }
+                typeSummary[key].total++;
+                if (!typeSummary[key].next || runAt < typeSummary[key].next!) {
+                  typeSummary[key].next = runAt;
                 }
               } else if (job.status === "running") {
                 typeSummary[key].total++;
-              } else if (job.status === "cancelled") {
-                // skip cancelled jobs entirely
               }
             }
 
@@ -760,13 +773,18 @@ const WarmupInstanceDetail = () => {
               }
             }
 
-            const doneToday = todayJobs.filter(j => j.status === "succeeded").length;
-            const failedToday = todayJobs.filter(j => j.status === "failed").length;
-            const pendingToday = todayJobs.filter(j => j.status === "pending").length;
-            const totalDisplay = cycle ? Math.min(todayJobs.length, 
-              todayJobs.filter(j => j.job_type !== "group_interaction").length + (cycle.daily_interaction_budget_target || 0)
-            ) : todayJobs.length;
-            const nextPendingJob = todayJobs.find(j => j.status === "pending" && new Date(j.run_at) >= nowUtc);
+            const doneToday = displayJobs.filter((j) => j.status === "succeeded").length;
+            const failedToday = displayJobs.filter((j) => j.status === "failed").length;
+            const actionableJobsCount = displayJobs.filter((j) => actionableTypes.has(j.job_type)).length;
+            const totalDisplay = Math.max(
+              cycle?.daily_interaction_budget_target || 0,
+              actionableJobsCount,
+              displayJobs.length,
+            );
+            const nextPendingJob =
+              displayJobs.find((j) => j.status === "pending" && new Date(j.run_at) >= nowUtc) ||
+              displayJobs.find((j) => j.status === "pending") ||
+              null;
 
             return (
               <>
@@ -785,7 +803,7 @@ const WarmupInstanceDetail = () => {
                   {nextPendingJob && (
                     <div className="text-right">
                       <p className="text-[9px] text-muted-foreground uppercase">Próxima</p>
-                      <p className="text-xs font-bold text-foreground font-mono">{formatBrt(new Date(nextPendingJob.run_at), "HH:mm")}</p>
+                      <p className="text-xs font-bold text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
                     </div>
                   )}
                 </div>
