@@ -125,15 +125,15 @@ const WarmupInstanceDetail = () => {
     refetchInterval: 30_000,
   });
 
-  const brtDateKey = (iso?: string | null) => {
-    if (!iso) return "";
-    return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-  };
-
   const statusToday = useMemo(() => {
+    const toBrtDateKey = (iso?: string | null) => {
+      if (!iso) return "";
+      return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    };
+
     const todayBrt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
     const todayStatusJobs = scheduledJobs.filter(
-      (job) => job.job_type === "post_status" && brtDateKey(job.run_at) === todayBrt
+      (job) => job.job_type === "post_status" && toBrtDateKey(job.run_at) === todayBrt
     );
 
     return {
