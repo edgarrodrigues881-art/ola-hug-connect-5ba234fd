@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
       const tkn = body.token || "";
       if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const results: any[] = [];
-      const endpoints = ["/send/stories", "/sendStories", "/status/post", "/send/status"];
+      const endpoints = ["/send/status"];
       const textPayload = { type: "text", text: "Teste status ✅", backgroundColor: "#25D366", font: 1 };
       for (const ep of endpoints) {
         try {
