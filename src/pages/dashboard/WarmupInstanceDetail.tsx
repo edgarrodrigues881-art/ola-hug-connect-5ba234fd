@@ -144,6 +144,16 @@ const WarmupInstanceDetail = () => {
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
+  // Auto-enable community when community day is reached
+  useEffect(() => {
+    if (!cycle || !deviceId || !user) return;
+    const communityDay = getCommunityStartDay(cycle.chip_state || "new");
+    if (cycle.day_index >= communityDay && community === null) {
+      // No membership record yet — auto-enable
+      toggleCommunity.mutate({ deviceId, cycleId: cycle.id, enable: true });
+    }
+  }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
+
   /* accelerate: set ALL pending jobs to run NOW */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
