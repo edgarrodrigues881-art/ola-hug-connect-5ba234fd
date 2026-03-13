@@ -67,15 +67,15 @@ const Section = ({ id, children, className = "" }: { id?: string; children: Reac
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-block text-[11px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--primary))] mb-4">{children}</span>
+  <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--primary))]/80 mb-4">{children}</span>
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white/95 tracking-tight mb-4 leading-tight">{children}</h2>
+  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">{children}</h2>
 );
 
 const SectionSub = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm md:text-base text-white/60 max-w-2xl leading-relaxed font-medium mx-auto">{children}</p>
+  <p className="text-sm md:text-base text-white/45 max-w-2xl leading-relaxed font-medium mx-auto">{children}</p>
 );
 
 // ─── 1. Hero ───
@@ -100,7 +100,7 @@ const Hero = () => {
             Opere múltiplos chips com{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">controle total</span>
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
+          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/40 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
             Aquecimento, disparo e monitoramento em uma única plataforma. Escale com organização e reduza riscos.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -139,7 +139,7 @@ const Benefits = () => (
             <b.icon className="w-5 h-5 text-[hsl(var(--primary))]" />
           </div>
           <h3 className="text-[15px] font-bold text-white mb-2">{b.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{b.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{b.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -164,9 +164,9 @@ const HowItWorks = () => (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {steps.map((s, i) => (
         <motion.div key={s.num} variants={fadeUp} className="relative text-center md:text-left">
-          <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/25 block mb-3 font-mono">{s.num}</span>
+          <span className="text-5xl font-extrabold text-[hsl(var(--primary))]/20 block mb-3 font-mono">{s.num}</span>
           <h3 className="text-[15px] font-bold text-white mb-2">{s.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{s.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{s.desc}</p>
           {i < 3 && <div className="hidden md:block absolute top-8 -right-4 w-8 border-t border-dashed border-white/10" />}
         </motion.div>
       ))}
@@ -196,7 +196,7 @@ const Features = () => (
         <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-300">
           <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-5" />
           <h3 className="text-[15px] font-bold text-white mb-2">{f.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{f.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{f.desc}</p>
         </motion.div>
       ))}
     </motion.div>
@@ -235,17 +235,17 @@ const Plans = () => {
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
-            <p className="text-[13px] text-white/50 font-medium mb-4">até {p.instances} instâncias</p>
+            <p className="text-[13px] text-white/40 font-medium mb-4">até {p.instances} instâncias</p>
             <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-sm font-medium text-white/40">R$</span>
+              <span className="text-sm font-medium text-white/30">R$</span>
               <span className="text-3xl font-extrabold text-white">{p.price.split(",")[0]}</span>
-              <span className="text-base font-bold text-white/40">,{p.price.split(",")[1]}</span>
-              <span className="text-sm font-medium text-white/35">/mês</span>
+              <span className="text-base font-bold text-white/35">,{p.price.split(",")[1]}</span>
+              <span className="text-sm font-medium text-white/25">/mês</span>
             </div>
             <ul className="space-y-3 mb-7">
               {["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/60 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
+              <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/50 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))]/80 flex-shrink-0" />{item}
                 </li>
               ))}
               <li className="flex items-center gap-2.5 text-[13px] font-medium">
@@ -289,11 +289,11 @@ const FAQ = () => (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
         <motion.details key={f.q} variants={fadeUp} className="group rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-          <summary className="flex items-center justify-between px-6 py-5 cursor-pointer text-[15px] font-semibold text-white/80 hover:text-white transition-colors list-none">
+          <summary className="flex items-center justify-between px-6 py-5 cursor-pointer text-[15px] font-semibold text-white/85 hover:text-white transition-colors list-none">
             {f.q}
-            <ChevronDown className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" />
+            <ChevronDown className="w-4 h-4 text-white/25 group-open:rotate-180 transition-transform" />
           </summary>
-          <p className="px-6 pb-5 text-[13px] text-white/50 leading-relaxed font-medium">{f.a}</p>
+          <p className="px-6 pb-5 text-[13px] text-white/40 leading-relaxed font-medium">{f.a}</p>
         </motion.details>
       ))}
     </motion.div>
