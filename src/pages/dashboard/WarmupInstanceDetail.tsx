@@ -231,13 +231,13 @@ const WarmupInstanceDetail = () => {
       };
       const nextPhase = isLastDay ? "completed" : getPhaseForDay(finalDayIndex);
 
-      // 1) Cancel pending interaction jobs from current day
+      // 1) Cancel ALL pending jobs (including daily_reset, phase_transition)
+      // This prevents the old daily_reset from firing and advancing the day again
       await supabase
         .from("warmup_jobs")
         .update({ status: "cancelled", last_error: "Dia pulado manualmente" })
         .eq("cycle_id", cycle.id)
-        .eq("status", "pending")
-        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction", "post_status"]);
+        .eq("status", "pending");
 
       // 2) Persist new day + phase
       const { error } = await supabase
