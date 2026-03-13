@@ -924,75 +924,97 @@ async function handleTick(db: any) {
             throw new Error("Credenciais UAZAPI não configuradas");
           }
 
-          // 1) Try formal pairs first
+          const peerIndex = job.payload?.peer_index ?? 0;
+          const isImage = job.payload?.is_image === true;
+
+          // Build a stable list of eligible peers for this cycle
+          // 1) Formal pairs
           const { data: pairs } = await db
             .from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
             .eq("cycle_id", cycle.id)
             .eq("status", "active");
 
-          let targetPhone: string | null = null;
-          let targetDeviceId: string | null = null;
-          let pairId: string | null = null;
+          // 2) Other running cycles as fallback peers
+          const { data: otherCycles } = await db
+            .from("warmup_cycles")
+            .select("id, device_id, user_id")
+            .eq("is_running", true)
+            .neq("device_id", job.device_id)
+            .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+            .limit(50);
+
+          // Build peer candidates list
+          const peerCandidates: { deviceId: string; fromPair: boolean; pairId?: string }[] = [];
 
           if (pairs && pairs.length > 0) {
-            const pair = pickRandom(pairs);
-            pairId = pair.id;
-            const isA = pair.instance_id_a === job.device_id;
-            const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
-            const { data: pd } = await db.from("devices").select("number, status").eq("id", partnerId).single();
-            if (pd?.number && pd.status === "Ready") {
-              targetPhone = pd.number.replace(/\+/g, "");
-              targetDeviceId = partnerId;
+            for (const pair of pairs) {
+              const isA = pair.instance_id_a === job.device_id;
+              const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
+              peerCandidates.push({ deviceId: partnerId, fromPair: true, pairId: pair.id });
             }
           }
-
-          // 2) No pair or pair offline → find any eligible community peer
-          if (!targetPhone) {
-            const { data: otherCycles } = await db
-              .from("warmup_cycles")
-              .select("id, device_id, user_id")
-              .eq("is_running", true)
-              .neq("device_id", job.device_id)
-              .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
-              .limit(20);
-
-            if (otherCycles && otherCycles.length > 0) {
-              // Shuffle and try to find an online partner — reuse whoever is available
-              const shuffled = otherCycles.sort(() => Math.random() - 0.5);
-              for (const candidate of shuffled) {
-                const { data: pd } = await db.from("devices").select("number, status").eq("id", candidate.device_id).single();
-                if (pd?.number && pd.status === "Ready") {
-                  targetPhone = pd.number.replace(/\+/g, "");
-                  targetDeviceId = candidate.device_id;
-                  break;
-                }
+          if (otherCycles && otherCycles.length > 0) {
+            for (const oc of otherCycles) {
+              if (!peerCandidates.some(p => p.deviceId === oc.device_id)) {
+                peerCandidates.push({ deviceId: oc.device_id, fromPair: false });
               }
             }
           }
 
-          // 3) Send message if we found anyone
-          if (targetPhone) {
-            const message = generateNaturalMessage("community");
-            await uazapiSendText(baseUrl, token, targetPhone, message);
-
-            await db.from("warmup_cycles").update({
-              daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-            }).eq("id", cycle.id);
-
-            await db.from("warmup_audit_logs").insert({
-              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-              level: "info", event_type: "community_msg_sent",
-              message: `Comunitário: msg para ${pairId ? `parceiro (pair ${pairId.substring(0, 8)})` : `instância (${targetPhone.substring(0, 6)}...)`}`,
-              meta: { pair_id: pairId, partner_device: targetDeviceId },
-            });
-          } else {
+          if (peerCandidates.length === 0) {
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_no_peers",
               message: "Nenhuma instância online encontrada — conversa comunitária adiada",
             });
+            break;
           }
+
+          // Use peerIndex to pick the same peer for the entire conversation
+          const selectedPeer = peerCandidates[peerIndex % peerCandidates.length];
+
+          // Resolve phone number
+          const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
+          if (!pd?.number || pd.status !== "Ready") {
+            // Peer offline, skip silently
+            await db.from("warmup_audit_logs").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "community_peer_offline",
+              message: `Peer ${peerIndex} offline, msg ${job.payload?.msg_index ?? 0} adiada`,
+              meta: { peer_index: peerIndex, partner_device: selectedPeer.deviceId },
+            });
+            break;
+          }
+
+          const targetPhone = pd.number.replace(/\+/g, "");
+
+          // Send image or text
+          if (isImage) {
+            const imageUrl = pickRandom(IMAGE_POOL);
+            const caption = pickRandom(IMAGE_CAPTIONS);
+            try {
+              await uazapiSendImage(baseUrl, token, targetPhone, imageUrl, caption);
+            } catch (_imgErr) {
+              // Fallback to text if image fails
+              const message = generateNaturalMessage("community");
+              await uazapiSendText(baseUrl, token, targetPhone, message);
+            }
+          } else {
+            const message = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, message);
+          }
+
+          await db.from("warmup_cycles").update({
+            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
+          }).eq("id", cycle.id);
+
+          await db.from("warmup_audit_logs").insert({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "community_msg_sent",
+            message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} msg ${job.payload?.msg_index ?? 0} → ${targetPhone.substring(0, 6)}...`,
+            meta: { peer_index: peerIndex, msg_index: job.payload?.msg_index, is_image: isImage, partner_device: selectedPeer.deviceId, pair_id: selectedPeer.pairId },
+          });
           break;
         }
 
