@@ -172,7 +172,7 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  A conta não depende só do comportamento. <strong className="text-foreground">Depende da estrutura.</strong>
+                  A saúde da conta não depende só do comportamento de envio — <strong className="text-foreground">depende também da infraestrutura.</strong>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <CheckItem label="IP estável?" />
