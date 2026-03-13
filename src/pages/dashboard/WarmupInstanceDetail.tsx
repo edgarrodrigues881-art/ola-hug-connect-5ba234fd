@@ -645,7 +645,7 @@ const WarmupInstanceDetail = () => {
             </div>
 
             {/* Quick stats row */}
-            <div className="grid grid-cols-4 divide-x divide-border/10">
+            <div className="grid grid-cols-3 divide-x divide-border/10">
               <div className="px-4 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
@@ -673,21 +673,6 @@ const WarmupInstanceDetail = () => {
                 ) : (
                   <p className="text-[8px] text-muted-foreground/60 mt-0.5">Grupos de aquecimento ingressados</p>
                 )}
-              </div>
-              <div className="px-4 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Contatos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">{activeContacts}</p>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[8px] h-4 rounded px-1.5 font-semibold mt-0.5",
-                    ["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase)
-                      ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5"
-                      : "text-muted-foreground border-border/30"
-                  )}
-                >
-                  {["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase) ? "Ativo" : "Fase futura"}
-                </Badge>
               </div>
             </div>
           </div>
