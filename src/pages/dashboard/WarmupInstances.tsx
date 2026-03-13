@@ -62,8 +62,9 @@ const WarmupInstances = () => {
   const engine = useWarmupEngine();
   const qc = useQueryClient();
 
+  const WARNING_DISMISS_KEY = "warmup_v2_warning_dismissed_v2";
   const [showWarning, setShowWarning] = useState(() =>
-    localStorage.getItem("warmup_v2_warning_dismissed") !== "true"
+    localStorage.getItem(WARNING_DISMISS_KEY) !== "true"
   );
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [agreedResponsibility, setAgreedResponsibility] = useState(false);
