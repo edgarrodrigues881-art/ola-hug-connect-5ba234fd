@@ -475,54 +475,16 @@ async function downloadImageBlob(imageUrl: string): Promise<{ blob: Blob; filena
 }
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Strategy 1: multipart/form-data with actual file upload
-  try {
-    const { blob, filename } = await downloadImageBlob(imageUrl);
-    
-    // Try different field name combinations for multipart
-    const formVariants = [
-      { path: "/send/media", numberField: "to", fileField: "file" },
-      { path: "/send/media", numberField: "number", fileField: "file" },
-      { path: "/send/media", numberField: "chatId", fileField: "file" },
-      { path: "/send/image", numberField: "to", fileField: "file" },
-      { path: "/send/image", numberField: "number", fileField: "file" },
-    ];
-    
-    for (const v of formVariants) {
-      try {
-        const form = new FormData();
-        form.append(v.numberField, number);
-        form.append("caption", caption || "");
-        form.append(v.fileField, blob, filename);
-        
-        const res = await fetch(`${baseUrl}${v.path}`, {
-          method: "POST",
-          headers: { token, Accept: "application/json" },
-          body: form,
-        });
-        if (res.status === 405) continue;
-        const txt = await res.text();
-        console.log(`[sendImage] FormData ${v.path} ${v.numberField}=${number.substring(0,6)}... → ${res.status}: ${txt.substring(0, 200)}`);
-        if (res.ok) {
-          try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
-        }
-        // If "Missing number" or "Missing to", try next variant
-        if (txt.includes("Missing number") || txt.includes("Missing to") || txt.includes("missing")) continue;
-      } catch (e) {
-        console.log(`[sendImage] FormData ${v.path} error: ${e.message}`);
-      }
-    }
-  } catch (dlErr) {
-    console.log(`[sendImage] Download failed: ${dlErr.message}, trying JSON fallback`);
-  }
-  
-  // Strategy 2: JSON with URL field variants
+  // Strategy 1: JSON with URL — most likely format for UAZAPI V2
   const jsonVariants = [
-    { path: "/send/media", body: { to: number, url: imageUrl, caption, type: "image" } },
+    { path: "/send/image", body: { number, image: imageUrl, caption } },
+    { path: "/send/image", body: { number, url: imageUrl, caption } },
+    { path: "/send/image", body: { to: number, image: imageUrl, caption } },
+    { path: "/send/media", body: { number, image: imageUrl, caption, type: "image" } },
     { path: "/send/media", body: { number, url: imageUrl, caption, type: "image" } },
     { path: "/send/media", body: { number, media: imageUrl, caption, type: "image" } },
-    { path: "/send/image", body: { number, url: imageUrl, caption } },
   ];
+  
   for (const ep of jsonVariants) {
     try {
       const res = await fetch(`${baseUrl}${ep.path}`, {
@@ -536,15 +498,75 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
       if (res.ok) {
         try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
       }
+      // If "missing file" error, try base64 strategy below
+      if (txt.includes("missing file")) break;
     } catch (_e) { continue; }
   }
+
+  // Strategy 2: base64 encoded image in JSON (if URL mode fails with "missing file")
+  try {
+    const { blob } = await downloadImageBlob(imageUrl);
+    const arrayBuffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    const mimeType = blob.type || 'image/jpeg';
+
+    const b64Variants = [
+      { path: "/send/image", body: { number, image: `data:${mimeType};base64,${base64}`, caption } },
+      { path: "/send/image", body: { number, image: base64, caption } },
+      { path: "/send/media", body: { number, file: `data:${mimeType};base64,${base64}`, caption, type: "image" } },
+    ];
+
+    for (const ep of b64Variants) {
+      try {
+        const res = await fetch(`${baseUrl}${ep.path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify(ep.body),
+        });
+        if (res.status === 405) continue;
+        const txt = await res.text();
+        console.log(`[sendImage] base64 ${ep.path} → ${res.status}: ${txt.substring(0, 200)}`);
+        if (res.ok) {
+          try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
+        }
+      } catch (_e) { continue; }
+    }
+  } catch (dlErr) {
+    console.log(`[sendImage] base64 fallback failed: ${dlErr.message}`);
+  }
+
+  // Strategy 3: FormData upload as last resort
+  try {
+    const { blob, filename } = await downloadImageBlob(imageUrl);
+    const form = new FormData();
+    form.append("number", number);
+    form.append("caption", caption || "");
+    form.append("file", blob, filename);
+    
+    const res = await fetch(`${baseUrl}/send/image`, {
+      method: "POST",
+      headers: { token, Accept: "application/json" },
+      body: form,
+    });
+    const txt = await res.text();
+    console.log(`[sendImage] FormData /send/image → ${res.status}: ${txt.substring(0, 200)}`);
+    if (res.ok) {
+      try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
+    }
+  } catch (formErr) {
+    console.log(`[sendImage] FormData failed: ${formErr.message}`);
+  }
+
   throw new Error("All image send endpoints failed");
 }
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
-  const endpoints = ["/status/post", "/sendStories"];
+  const endpoints = ["/status/post", "/sendStories", "/send/stories"];
   
-  // Text status: JSON
+  // Text status
   if (type === "text") {
     const payload = { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
     for (const ep of endpoints) {
@@ -563,39 +585,15 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     throw new Error("All text status endpoints failed");
   }
   
-  // Image status: try FormData first
+  // Image status: try JSON with URL first (matches UAZAPI V2 pattern)
   if (imageUrl) {
-    try {
-      const { blob, filename } = await downloadImageBlob(imageUrl);
-      for (const ep of endpoints) {
-        try {
-          const form = new FormData();
-          form.append("type", "image");
-          form.append("caption", content || "");
-          form.append("file", blob, filename);
-          
-          const res = await fetch(`${baseUrl}${ep}`, {
-            method: "POST",
-            headers: { token, Accept: "application/json" },
-            body: form,
-          });
-          if (res.status === 405) continue;
-          const txt = await res.text();
-          console.log(`[postStatus] FormData ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
-          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-        } catch (_e) { continue; }
-      }
-    } catch (dlErr) {
-      console.log(`[postStatus] Download failed: ${dlErr.message}`);
-    }
-    
-    // JSON fallback
+    const jsonPayloads = [
+      { type: "image", image: imageUrl, caption: content },
+      { type: "image", url: imageUrl, caption: content },
+      { type: "image", media: imageUrl, caption: content },
+    ];
     for (const ep of endpoints) {
-      const payloads = [
-        { type: "image", url: imageUrl, caption: content },
-        { type: "image", media: imageUrl, caption: content },
-      ];
-      for (const payload of payloads) {
+      for (const payload of jsonPayloads) {
         try {
           const res = await fetch(`${baseUrl}${ep}`, {
             method: "POST",
@@ -604,11 +602,38 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
           });
           if (res.status === 405) break;
           const txt = await res.text();
-          console.log(`[postStatus] JSON ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
+          console.log(`[postStatus] JSON ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
           if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-          if (txt.includes("missing file") || txt.includes("missing image")) continue;
+          if (txt.includes("missing file")) break; // need base64
         } catch (_e) { continue; }
       }
+    }
+
+    // base64 fallback for status
+    try {
+      const { blob } = await downloadImageBlob(imageUrl);
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      const mimeType = blob.type || 'image/jpeg';
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(`${baseUrl}${ep}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+            body: JSON.stringify({ type: "image", image: `data:${mimeType};base64,${base64}`, caption: content }),
+          });
+          if (res.status === 405) continue;
+          const txt = await res.text();
+          console.log(`[postStatus] base64 ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
+          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+        } catch (_e) { continue; }
+      }
+    } catch (dlErr) {
+      console.log(`[postStatus] base64 failed: ${dlErr.message}`);
     }
   }
   throw new Error("All status post endpoints failed");
@@ -983,10 +1008,13 @@ async function handleTick(db: any) {
             throw new Error("Nenhum grupo joined encontrado");
           }
 
-          // Use cached user messages
+          // Mix custom pool (30%) with generated messages (70%) for variety
           const cachedMsgs = userMsgsMap[job.user_id];
-          const useCustomPool = cachedMsgs && cachedMsgs.length > 0;
-          const getGroupMsg = () => useCustomPool ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
+          const hasCustomPool = cachedMsgs && cachedMsgs.length > 0;
+          const getGroupMsg = () => {
+            if (hasCustomPool && Math.random() < 0.3) return pickRandom(cachedMsgs);
+            return generateNaturalMessage("group");
+          };
 
           const targetGroupRecord = pickRandom(joinedGroups);
           const poolGroup = groupsPoolMap[targetGroupRecord.group_id];
