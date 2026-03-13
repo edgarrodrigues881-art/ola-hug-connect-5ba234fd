@@ -93,15 +93,15 @@ const Hero = () => {
           <motion.div variants={fadeUp}>
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] font-semibold text-white/60 mb-8">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] animate-pulse" />
-              Plataforma profissional de contingência
+              Gestão profissional de WhatsApp
             </span>
           </motion.div>
           <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
-            Gerencie seus disparos com{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">máxima estabilidade</span>
+            Opere múltiplos chips com{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">controle total</span>
           </motion.h1>
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
-            Infraestrutura completa para operar múltiplas instâncias, aquecer chips e escalar sua operação com segurança.
+            Aquecimento, disparo e monitoramento em uma única plataforma. Escale com organização e reduza riscos.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white text-sm font-semibold px-8 h-12 gap-2 shadow-lg shadow-[hsl(var(--primary))]/20">
@@ -119,18 +119,18 @@ const Hero = () => {
 
 // ─── 2. Benefícios ───
 const benefits = [
-  { icon: Zap, title: "Velocidade", desc: "Disparos rápidos com intervalos inteligentes que preservam a saúde das suas instâncias." },
-  { icon: Shield, title: "Proteção", desc: "Aquecimento automatizado e rotação de chips para reduzir o risco de banimento." },
-  { icon: BarChart3, title: "Métricas claras", desc: "Acompanhe taxas de entrega, falhas e desempenho por instância em tempo real." },
-  { icon: Globe, title: "Escalabilidade", desc: "Gerencie de 10 a 100+ instâncias em um único painel centralizado." },
+  { icon: Zap, title: "Envio otimizado", desc: "Intervalos inteligentes entre mensagens para manter suas instâncias saudáveis." },
+  { icon: Shield, title: "Redução de risco", desc: "Aquecimento automático e rotação de chips para minimizar bloqueios." },
+  { icon: BarChart3, title: "Visão em tempo real", desc: "Monitore entregas, falhas e desempenho de cada instância no painel." },
+  { icon: Globe, title: "Escala sob controle", desc: "Opere de 10 a 100+ instâncias em um único ambiente centralizado." },
 ];
 
 const Benefits = () => (
   <Section id="beneficios">
     <div className="text-center mb-10">
       <SectionLabel>Benefícios</SectionLabel>
-      <SectionTitle>Por que escolher a DG Contingência?</SectionTitle>
-      <SectionSub>Infraestrutura robusta para quem opera em grande escala com responsabilidade.</SectionSub>
+      <SectionTitle>O que a plataforma entrega</SectionTitle>
+      <SectionSub>Estrutura pensada para quem precisa de estabilidade, controle e escala.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {benefits.map((b) => (
@@ -148,18 +148,18 @@ const Benefits = () => (
 
 // ─── 3. Como funciona ───
 const steps = [
-  { num: "01", title: "Crie sua conta", desc: "Cadastro rápido, sem burocracia e pronto para usar." },
-  { num: "02", title: "Conecte suas instâncias", desc: "Vincule seus chips via QR Code em poucos segundos." },
-  { num: "03", title: "Configure suas campanhas", desc: "Defina mensagens, intervalos, contatos e regras de envio." },
-  { num: "04", title: "Escale com segurança", desc: "Acompanhe métricas em tempo real e otimize sua operação." },
+  { num: "01", title: "Crie sua conta", desc: "Cadastro simples e liberação imediata do painel." },
+  { num: "02", title: "Conecte seus chips", desc: "Vincule instâncias via QR Code em poucos segundos." },
+  { num: "03", title: "Monte suas campanhas", desc: "Defina mensagens, intervalos, contatos e regras de envio." },
+  { num: "04", title: "Acompanhe e escale", desc: "Monitore métricas em tempo real e ajuste conforme necessário." },
 ];
 
 const HowItWorks = () => (
   <Section id="como-funciona">
     <div className="text-center mb-10">
       <SectionLabel>Como funciona</SectionLabel>
-      <SectionTitle>Comece em 4 passos</SectionTitle>
-      <SectionSub>Do cadastro ao primeiro disparo em poucos minutos.</SectionSub>
+      <SectionTitle>Como funciona na prática</SectionTitle>
+      <SectionSub>Do cadastro ao primeiro envio em poucos minutos.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {steps.map((s, i) => (
@@ -176,20 +176,20 @@ const HowItWorks = () => (
 
 // ─── 4. Recursos ───
 const features = [
-  { icon: Smartphone, title: "Multi-instância", desc: "Conecte e gerencie dezenas de chips simultaneamente em um único painel." },
-  { icon: Layers, title: "Warmup inteligente", desc: "Aquecimento automático com fases progressivas e controle de risco." },
-  { icon: MessageSquare, title: "Disparos em massa", desc: "Campanhas com intervalos, pausas automáticas e rotação de instâncias." },
-  { icon: Users, title: "Gestão de contatos", desc: "Importe, organize e segmente sua base de contatos com facilidade." },
-  { icon: Settings, title: "Templates reutilizáveis", desc: "Crie modelos de mensagem com variáveis dinâmicas e reutilize em campanhas." },
-  { icon: Lock, title: "Relatórios via WhatsApp", desc: "Receba alertas e relatórios de desempenho diretamente no seu WhatsApp." },
+  { icon: Smartphone, title: "Múltiplas instâncias", desc: "Conecte e controle dezenas de chips ao mesmo tempo em um painel único." },
+  { icon: Layers, title: "Aquecimento progressivo", desc: "Warmup automático com fases controladas para amadurecer cada chip." },
+  { icon: MessageSquare, title: "Campanhas em massa", desc: "Envios com intervalos, pausas programadas e distribuição entre instâncias." },
+  { icon: Users, title: "Base de contatos", desc: "Importe, organize e segmente seus contatos de forma prática." },
+  { icon: Settings, title: "Modelos de mensagem", desc: "Crie templates com variáveis dinâmicas e reutilize em qualquer campanha." },
+  { icon: Lock, title: "Alertas no WhatsApp", desc: "Receba notificações sobre desconexões, falhas e status das campanhas." },
 ];
 
 const Features = () => (
   <Section id="recursos">
     <div className="text-center mb-10">
       <SectionLabel>Recursos</SectionLabel>
-      <SectionTitle>Tudo que você precisa em um só lugar</SectionTitle>
-      <SectionSub>Ferramentas pensadas para quem opera de forma profissional.</SectionSub>
+      <SectionTitle>Recursos inclusos na plataforma</SectionTitle>
+      <SectionSub>Todas as ferramentas que você precisa para operar com organização.</SectionSub>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {features.map((f) => (
@@ -217,8 +217,8 @@ const Plans = () => {
     <Section id="planos">
       <div className="text-center mb-10">
         <SectionLabel>Planos</SectionLabel>
-        <SectionTitle>Escolha o plano ideal para sua operação</SectionTitle>
-        <SectionSub>Todos os planos incluem acesso completo à plataforma. A diferença está na capacidade.</SectionSub>
+        <SectionTitle>Planos sob medida para cada operação</SectionTitle>
+        <SectionSub>Acesso completo em todos os planos. O que muda é a quantidade de instâncias e nível de suporte.</SectionSub>
       </div>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
         {plans.map((p) => (
@@ -231,11 +231,11 @@ const Plans = () => {
           >
             {p.popular && (
               <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-[hsl(var(--primary))] text-white px-4 py-1.5 rounded-full shadow-lg shadow-[hsl(var(--primary))]/30">
-                Popular
+                Mais escolhido
               </span>
             )}
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
-            <p className="text-[13px] text-white/50 font-medium mb-4">{p.instances} instâncias</p>
+            <p className="text-[13px] text-white/50 font-medium mb-4">até {p.instances} instâncias</p>
             <div className="flex items-baseline gap-1 mb-6">
               <span className="text-sm font-medium text-white/40">R$</span>
               <span className="text-3xl font-extrabold text-white">{p.price.split(",")[0]}</span>
@@ -243,7 +243,7 @@ const Plans = () => {
               <span className="text-sm font-medium text-white/35">/mês</span>
             </div>
             <ul className="space-y-3 mb-7">
-              {["Envios ilimitados", "Warmup automático", "Campanhas avançadas", "Suporte prioritário"].map((item) => (
+              {["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"].map((item) => (
                 <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/60 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))] flex-shrink-0" />{item}
                 </li>
@@ -262,7 +262,7 @@ const Plans = () => {
                   : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
               }`}
             >
-              Contratar plano
+              Começar agora
             </Button>
           </motion.div>
         ))}
@@ -273,18 +273,18 @@ const Plans = () => {
 
 // ─── 7. FAQ ───
 const faqs = [
-  { q: "Preciso de um servidor próprio?", a: "Não. Toda a infraestrutura roda na nuvem. Basta criar sua conta, conectar suas instâncias e começar a operar." },
-  { q: "Como funciona o aquecimento?", a: "O warmup é totalmente automatizado. O sistema realiza interações progressivas para amadurecer o chip antes dos disparos em massa." },
-  { q: "Posso cancelar a qualquer momento?", a: "Sim. Não exigimos fidelidade. Você pode cancelar ou trocar de plano sempre que desejar." },
-  { q: "O que são relatórios via WhatsApp?", a: "É um recurso adicional que envia alertas e métricas diretamente no seu WhatsApp, como desconexões, fim de campanhas e falhas críticas." },
-  { q: "Quantas instâncias posso conectar?", a: "Depende do plano contratado: Start (10), Pro (30), Scale (50) ou Elite (100 instâncias)." },
+  { q: "Preciso ter servidor ou infraestrutura própria?", a: "Não. Tudo roda na nuvem. Você só precisa criar sua conta, conectar os chips e começar a operar." },
+  { q: "Como funciona o aquecimento automático?", a: "O sistema realiza interações graduais e controladas para amadurecer o chip antes de qualquer envio em volume." },
+  { q: "Existe fidelidade ou contrato mínimo?", a: "Não. Você pode cancelar ou trocar de plano a qualquer momento, sem multas ou compromissos." },
+  { q: "O que são os alertas via WhatsApp?", a: "É um recurso adicional que envia notificações de desconexões, falhas e status de campanhas direto no seu WhatsApp." },
+  { q: "Quantas instâncias posso usar?", a: "Cada plano tem um limite: Start (10), Pro (30), Scale (50) e Elite (100 instâncias)." },
 ];
 
 const FAQ = () => (
   <Section id="faq">
     <div className="text-center mb-10">
       <SectionLabel>FAQ</SectionLabel>
-      <SectionTitle>Perguntas frequentes</SectionTitle>
+      <SectionTitle>Dúvidas comuns</SectionTitle>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
@@ -310,7 +310,7 @@ const FooterSection = () => (
         <span className="text-sm font-semibold text-white">DG Contingência</span>
       </div>
       <p className="text-[11px] text-white/35 text-center max-w-lg leading-relaxed">
-        Os resultados dependem da estratégia aplicada pelo operador. A plataforma fornece infraestrutura, ferramentas de gestão e suporte técnico.
+        Os resultados dependem da estratégia do operador. A plataforma fornece infraestrutura, ferramentas e suporte técnico.
       </p>
       <p className="text-[11px] text-white/25">© {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.</p>
     </div>
