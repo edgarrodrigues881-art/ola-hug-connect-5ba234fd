@@ -635,19 +635,9 @@ const WarmupInstanceDetail = () => {
                     🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. O chip ficará ocioso enquanto entra gradualmente nos 8 grupos oficiais do sistema para parecer um uso natural.
                   </>
                 )}
-                {cycle.phase === "groups_only" && (
+                {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
                   <>
-                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou, simulando participação natural com textos variados e delays aleatórios.
-                  </>
-                )}
-                {cycle.phase === "autosave_enabled" && (
-                  <>
-                    📱 <strong className="text-foreground">Fase Auto Save ativa.</strong> Além dos grupos, o sistema agora troca mensagens privadas com contatos salvos para diversificar o tipo de interação.
-                  </>
-                )}
-                {((cycle.phase as string) === "community_light" || cycle.phase === "community_enabled") && (
-                  <>
-                    🌐 <strong className="text-foreground">Fase Comunidade.</strong> O chip troca mensagens com outros chips do sistema em pareamento automático, aumentando a variedade de interações.
+                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
                   </>
                 )}
                 {cycle.phase === "completed" && (
