@@ -254,8 +254,9 @@ const WarmupInstanceDetail = () => {
         .eq("id", cycle.id);
       if (error) throw error;
 
-      // 3) Schedule jobs for new day (skip scheduling when completed)
+      // 3) Schedule jobs for new day + new daily_reset for tomorrow
       if (!isLastDay) {
+        // Schedule interaction jobs for today's remaining window (7-19 BRT)
         const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
           body: {
             action: "schedule_day",
@@ -267,6 +268,20 @@ const WarmupInstanceDetail = () => {
           },
         });
         if (fnErr) console.warn("schedule_day invoke error:", fnErr);
+
+        // Schedule new daily_reset for tomorrow at 00:05 BRT (03:05 UTC)
+        const tomorrow = new Date();
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        tomorrow.setUTCHours(3, 5, 0, 0);
+        await supabase.from("warmup_jobs").insert({
+          user_id: user!.id,
+          device_id: deviceId,
+          cycle_id: cycle.id,
+          job_type: "daily_reset",
+          payload: {},
+          run_at: tomorrow.toISOString(),
+          status: "pending",
+        });
       }
 
       // 4) Audit log
