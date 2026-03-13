@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2, Sun, Moon } from "lucide-react";
+import { Bell, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,11 +129,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      className="flex items-center justify-center gap-1.5 text-xs text-destructive cursor-pointer"
-                      onClick={(e) => { e.preventDefault(); clearAll(); }}
+                      className="flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                      onClick={(e) => { e.preventDefault(); markAllAsRead(); }}
                     >
-                      <Trash2 className="w-3 h-3" />
-                      Limpar todas
+                      <CheckCheck className="w-3 h-3" />
+                      Marcar todas como lidas
                     </DropdownMenuItem>
                   </>
                 )}
