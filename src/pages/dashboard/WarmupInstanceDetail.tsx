@@ -840,27 +840,6 @@ const WarmupInstanceDetail = () => {
             );
           })()}
 
-                {/* Future jobs */}
-                {futureJobs.length > 0 && (
-                  <div className="rounded-xl border border-border/20 bg-card overflow-hidden px-5 py-3">
-                    <p className="text-[10px] text-muted-foreground/50 font-semibold uppercase tracking-wider mb-1.5">
-                      📅 Próximos dias — {futureJobs.length} tarefa{futureJobs.length !== 1 ? "s" : ""}
-                    </p>
-                    {futureJobs.slice(0, 3).map((job) => {
-                      const cfg = jobTypeLabels[job.job_type] || { label: job.job_type, icon: Target, color: "text-muted-foreground" };
-                      return (
-                        <div key={job.id} className="flex items-center gap-2 text-[10px] text-muted-foreground/60 py-0.5">
-                          <Clock className="w-3 h-3" />
-                          <span>{cfg.label}</span>
-                          <span className="ml-auto font-mono">{formatBrt(new Date(job.run_at), "dd/MM HH:mm")}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {/* ── Auto Save alert ── */}
           {activeContacts === 0 && (
