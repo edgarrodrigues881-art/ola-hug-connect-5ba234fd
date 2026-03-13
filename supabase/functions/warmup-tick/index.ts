@@ -456,50 +456,63 @@ async function downloadImageBlob(imageUrl: string): Promise<{ blob: Blob; filena
   const res = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
   const blob = await res.blob();
-  // Extract filename from URL or default
   const urlPath = new URL(imageUrl).pathname;
-  const filename = urlPath.split("/").pop() || "image.jpg";
+  const rawName = decodeURIComponent(urlPath.split("/").pop() || "image.jpg");
+  // Sanitize filename: remove spaces and special chars
+  const filename = rawName.replace(/[^a-zA-Z0-9._-]/g, "_");
   return { blob, filename };
 }
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Strategy 1: Try multipart/form-data with actual file (most UAZAPI versions need this)
+  // Strategy 1: multipart/form-data with actual file upload
   try {
     const { blob, filename } = await downloadImageBlob(imageUrl);
     
-    const formEndpoints = ["/send/media", "/send/image"];
-    for (const path of formEndpoints) {
+    // Try different field name combinations for multipart
+    const formVariants = [
+      { path: "/send/media", numberField: "to", fileField: "file" },
+      { path: "/send/media", numberField: "number", fileField: "file" },
+      { path: "/send/media", numberField: "chatId", fileField: "file" },
+      { path: "/send/image", numberField: "to", fileField: "file" },
+      { path: "/send/image", numberField: "number", fileField: "file" },
+    ];
+    
+    for (const v of formVariants) {
       try {
         const form = new FormData();
-        form.append("number", number);
+        form.append(v.numberField, number);
         form.append("caption", caption || "");
-        form.append("file", blob, filename);
+        form.append(v.fileField, blob, filename);
         
-        const res = await fetch(`${baseUrl}${path}`, {
+        const res = await fetch(`${baseUrl}${v.path}`, {
           method: "POST",
           headers: { token, Accept: "application/json" },
           body: form,
         });
         if (res.status === 405) continue;
         const txt = await res.text();
-        console.log(`[sendImage] FormData ${path} → ${res.status}: ${txt.substring(0, 200)}`);
+        console.log(`[sendImage] FormData ${v.path} ${v.numberField}=${number.substring(0,6)}... → ${res.status}: ${txt.substring(0, 200)}`);
         if (res.ok) {
           try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
         }
+        // If "Missing number" or "Missing to", try next variant
+        if (txt.includes("Missing number") || txt.includes("Missing to") || txt.includes("missing")) continue;
       } catch (e) {
-        console.log(`[sendImage] FormData ${path} error: ${e.message}`);
+        console.log(`[sendImage] FormData ${v.path} error: ${e.message}`);
       }
     }
   } catch (dlErr) {
     console.log(`[sendImage] Download failed: ${dlErr.message}, trying JSON fallback`);
   }
   
-  // Strategy 2: JSON with URL (some API versions accept this)
-  const jsonEndpoints = [
+  // Strategy 2: JSON with URL field variants
+  const jsonVariants = [
+    { path: "/send/media", body: { to: number, url: imageUrl, caption, type: "image" } },
+    { path: "/send/media", body: { number, url: imageUrl, caption, type: "image" } },
     { path: "/send/media", body: { number, media: imageUrl, caption, type: "image" } },
-    { path: "/send/image", body: { number, file: imageUrl, caption } },
+    { path: "/send/image", body: { number, url: imageUrl, caption } },
   ];
-  for (const ep of jsonEndpoints) {
+  for (const ep of jsonVariants) {
     try {
       const res = await fetch(`${baseUrl}${ep.path}`, {
         method: "POST",
@@ -508,7 +521,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
       });
       if (res.status === 405) continue;
       const txt = await res.text();
-      console.log(`[sendImage] JSON ${ep.path} → ${res.status}: ${txt.substring(0, 200)}`);
+      console.log(`[sendImage] JSON ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
       if (res.ok) {
         try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
       }
@@ -520,7 +533,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoints = ["/status/post", "/sendStories"];
   
-  // Text status: just JSON
+  // Text status: JSON
   if (type === "text") {
     const payload = { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
     for (const ep of endpoints) {
@@ -565,11 +578,11 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
       console.log(`[postStatus] Download failed: ${dlErr.message}`);
     }
     
-    // JSON fallback for image status
+    // JSON fallback
     for (const ep of endpoints) {
       const payloads = [
+        { type: "image", url: imageUrl, caption: content },
         { type: "image", media: imageUrl, caption: content },
-        { type: "image", file: imageUrl, caption: content },
       ];
       for (const payload of payloads) {
         try {
