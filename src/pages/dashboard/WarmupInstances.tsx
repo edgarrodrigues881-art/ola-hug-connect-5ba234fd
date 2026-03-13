@@ -381,8 +381,8 @@ const WarmupInstances = () => {
   return (
     <div className="space-y-5">
       {/* Warning popup - chips novos */}
-      <Dialog open={showWarning} onOpenChange={(open) => { if (!open && agreedResponsibility) setShowWarning(false); }}>
-        <DialogContent className="max-w-md rounded-2xl border-border/20 bg-card p-0 overflow-hidden" onPointerDownOutside={(e) => { if (!agreedResponsibility) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!agreedResponsibility) e.preventDefault(); }}>
+      <Dialog open={showWarning} onOpenChange={(open) => { if (!open) { setShowWarning(false); if (!agreedResponsibility) navigate("/dashboard"); } }}>
+        <DialogContent className="max-w-md rounded-2xl border-border/20 bg-card p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => { setShowWarning(false); if (!agreedResponsibility) navigate("/dashboard"); }}>
           {/* Accent header strip */}
           <div className="relative px-6 pt-6 pb-4">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.07] via-transparent to-transparent pointer-events-none" />
