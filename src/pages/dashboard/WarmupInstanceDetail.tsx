@@ -743,21 +743,6 @@ const WarmupInstanceDetail = () => {
                   <p className="text-[8px] text-muted-foreground/60 mt-0.5">Ingressados</p>
                 )}
               </div>
-              <div className="px-3 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Status</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
-                  {statusToday.done}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{statusToday.total}</span>
-                </p>
-                {statusToday.lastPostedAt && (
-                  <p className="text-[8px] text-emerald-400 mt-0.5 truncate max-w-[120px]" title={statusToday.lastCaption || ""}>
-                    Último: {new Date(statusToday.lastPostedAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
-                {!statusToday.lastPostedAt && (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
-                )}
-              </div>
             </div>
           </div>
 
