@@ -761,12 +761,8 @@ const WarmupInstanceDetail = () => {
               <div className="px-3 py-3.5 text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Status</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
-                  {(() => {
-                    const statusJobs = scheduledJobs.filter(j => j.job_type === "post_status");
-                    const done = statusJobs.filter(j => j.status === "succeeded").length;
-                    const total = statusJobs.filter(j => j.status !== "cancelled").length;
-                    return <>{done}<span className="text-xs text-muted-foreground/40 font-normal">/{total}</span></>;
-                  })()}
+                  {statusToday.done}
+                  <span className="text-xs text-muted-foreground/40 font-normal">/{statusToday.total}</span>
                 </p>
                 <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
               </div>
