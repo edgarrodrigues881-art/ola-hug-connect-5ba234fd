@@ -668,11 +668,11 @@ async function handleTick(db: any) {
           last_error: "Auto-pausado: instância desconectada",
         }).eq("id", cycle.id);
         await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
-        await db.from("warmup_audit_logs").insert({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "warn", event_type: "auto_paused_disconnected",
-          message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
-        });
+        bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "auto_paused_disconnected",
+            message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
+          });
         pausedCycles.add(cycle.id);
         cycle.is_running = false;
       }
