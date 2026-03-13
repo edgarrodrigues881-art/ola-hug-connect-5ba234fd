@@ -24,7 +24,7 @@ import {
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
   CalendarDays, Target, UserPlus, Send, RotateCcw,
-  FastForward, SkipForward, ChevronDown,
+  FastForward, SkipForward, ChevronDown, ImageIcon,
 } from "lucide-react";
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
