@@ -451,16 +451,27 @@ const STATUS_CAPTIONS = [
   "A vida é feita de momentos assim 💛",
 ];
 
-// Download image and return as Blob for FormData upload
+// In-memory blob cache: avoids re-downloading the same image within a single tick
+const _blobCache = new Map<string, { blob: Blob; filename: string }>();
+
+// Download image and return as Blob for FormData upload (cached per tick)
 async function downloadImageBlob(imageUrl: string): Promise<{ blob: Blob; filename: string }> {
+  const cached = _blobCache.get(imageUrl);
+  if (cached) {
+    console.log(`[downloadImage] Cache hit for ${cached.filename}`);
+    return cached;
+  }
+
   const res = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
   const blob = await res.blob();
   const urlPath = new URL(imageUrl).pathname;
   const rawName = decodeURIComponent(urlPath.split("/").pop() || "image.jpg");
-  // Sanitize filename: remove spaces and special chars
   const filename = rawName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return { blob, filename };
+  const entry = { blob, filename };
+  _blobCache.set(imageUrl, entry);
+  console.log(`[downloadImage] Downloaded & cached ${filename} (${(blob.size / 1024).toFixed(0)}KB)`);
+  return entry;
 }
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
