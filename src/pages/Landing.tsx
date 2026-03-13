@@ -196,7 +196,7 @@ const Features = () => (
         <motion.div key={f.title} variants={fadeUp} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-300">
           <f.icon className="w-5 h-5 text-[hsl(var(--primary))] mb-5" />
           <h3 className="text-[15px] font-bold text-white mb-2">{f.title}</h3>
-          <p className="text-[13px] text-white/50 leading-relaxed">{f.desc}</p>
+          <p className="text-[13px] text-white/40 leading-relaxed">{f.desc}</p>
         </motion.div>
       ))}
     </motion.div>
