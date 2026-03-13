@@ -195,12 +195,19 @@ const WarmupInstanceDetail = () => {
       const newDayIndex = (latestCycle.day_index || 1) + 1;
       const isLastDay = newDayIndex > (latestCycle.days_total || 30);
       const finalDayIndex = isLastDay ? latestCycle.days_total : newDayIndex;
-      // Day 1 = pre_24h (rest), Day 2+ = groups_only (active)
-      const nextPhase = isLastDay
-        ? "completed"
-        : finalDayIndex >= 2
-          ? "groups_only"
-          : latestCycle.phase;
+      
+      // Phase progression matching engine logic:
+      // Day 1 = pre_24h, Days 2-4(new/recovered) or 2-7(unstable) = groups_only,
+      // Next day = autosave_enabled, Then = community_enabled
+      const chip = latestCycle.chip_state || "new";
+      const groupsEndDay = chip === "unstable" ? 7 : 4;
+      const getPhaseForDay = (day: number) => {
+        if (day <= 1) return "pre_24h";
+        if (day <= groupsEndDay) return "groups_only";
+        if (day === groupsEndDay + 1) return "autosave_enabled";
+        return "community_enabled";
+      };
+      const nextPhase = isLastDay ? "completed" : getPhaseForDay(finalDayIndex);
 
       // 1) Cancel pending interaction jobs from current day
       await supabase
