@@ -1025,7 +1025,7 @@ async function handleTick(db: any) {
 
           try {
             if (mediaType === "image") {
-              const imgUrl = pickRandom(IMAGE_POOL);
+              const imgUrl = pickRandom(imagePool);
               const caption = pickRandom(IMAGE_CAPTIONS);
               await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
               message = `[IMG] ${caption}`;
