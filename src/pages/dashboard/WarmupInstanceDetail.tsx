@@ -351,6 +351,7 @@ const WarmupInstanceDetail = () => {
   const pendingGroups = pendingGroupIds.size;
   const activeContacts = autosaveContacts.filter(c => c.is_active).length;
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
+  const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-8">
