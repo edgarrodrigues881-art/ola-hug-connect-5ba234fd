@@ -144,6 +144,7 @@ const WarmupInstanceDetail = () => {
   const [chipState, setChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [daysTotal, setDaysTotal] = useState("7");
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showShortDaysWarning, setShowShortDaysWarning] = useState(false);
   const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
@@ -547,7 +548,13 @@ const WarmupInstanceDetail = () => {
           {/* CTA */}
           <Button
             className="w-full gap-2 h-12 rounded-xl text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20"
-            onClick={handleStartWarmup}
+            onClick={() => {
+              if (Number(daysTotal) <= 7) {
+                setShowShortDaysWarning(true);
+              } else {
+                handleStartWarmup();
+              }
+            }}
             disabled={!isConnected || engine.isPending}
           >
             {engine.isPending ? (
@@ -562,6 +569,31 @@ const WarmupInstanceDetail = () => {
           )}
         </div>
       )}
+
+      {/* Short days warning dialog */}
+      <Dialog open={showShortDaysWarning} onOpenChange={setShowShortDaysWarning}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Duração curta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+            <p><strong className="text-foreground">7 dias não é o ideal para aquecimento.</strong></p>
+            <p>Recomendamos no mínimo <strong className="text-foreground">14 dias</strong> para que o chip passe por todas as fases de forma segura e eficiente.</p>
+            <p className="text-xs text-muted-foreground/60">Com apenas 7 dias, o chip pode não atingir maturidade suficiente para envios em massa.</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setShowShortDaysWarning(false); setDaysTotal("14"); }}>
+              Alterar para 14 dias
+            </Button>
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setShowShortDaysWarning(false); handleStartWarmup(); }}>
+              Iniciar com {daysTotal} dias
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ═══════════ ACTIVE CYCLE ═══════════ */}
       {cycle && !isTerminalCycle && (
