@@ -46,9 +46,9 @@ const CustomModule = () => {
 
       {/* Indicador de estado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatusIndicator color="emerald" label="Conta Estável" description="Pode escalar o volume com segurança" />
-        <StatusIndicator color="amber" label="Conta Sensível" description="Exige progressão lenta e monitoramento" />
-        <StatusIndicator color="red" label="Conta Crítica" description="Risco elevado — estabilize antes de prosseguir" />
+        <StatusIndicator color="emerald" label="Conta Estável" description="Pronta para aumentar volume gradualmente" />
+        <StatusIndicator color="amber" label="Conta Sensível" description="Precisa de progressão lenta e acompanhamento constante" />
+        <StatusIndicator color="red" label="Conta Crítica" description="Risco alto — foque em estabilizar antes de qualquer envio" />
       </div>
 
       <Accordion type="multiple" className="space-y-4">
