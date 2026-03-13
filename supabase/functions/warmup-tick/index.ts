@@ -326,11 +326,10 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       const testText = `Teste status ✅ ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
       const textPayload = {
-        to: "status@broadcast",
         type: "text",
         text: testText,
-        backgroundColor: "#25D366",
-        font: 1,
+        background_color: randInt(4, 9),
+        font: randInt(0, 4),
       };
 
       let postedMessageId: string | null = null;
