@@ -535,59 +535,85 @@ async function handleTick(db: any) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // BATCH PRE-LOAD: Load all cycles, subscriptions, profiles, and devices at once
-  // instead of N+1 queries per job
+  // BATCH PRE-LOAD: Load ALL data in parallel to eliminate N+1 queries
   // ══════════════════════════════════════════════════════════════
   const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
   const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
   const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
 
-  // Batch load cycles (paginated if >200)
-  const cyclesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueCycleIds.length; i += 200) {
-    const { data: cycles } = await db
-      .from("warmup_cycles")
-      .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id")
-      .in("id", uniqueCycleIds.slice(i, i + 200));
-    if (cycles) cycles.forEach((c: any) => { cyclesMap[c.id] = c; });
+  // Helper to batch-load with pagination
+  async function batchLoad<T>(table: string, selectCols: string, field: string, ids: string[], extra?: (q: any) => any): Promise<T[]> {
+    const results: T[] = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      let q = db.from(table).select(selectCols).in(field, ids.slice(i, i + 200));
+      if (extra) q = extra(q);
+      const { data } = await q;
+      if (data) results.push(...data);
+    }
+    return results;
   }
 
-  // Batch load subscriptions (latest per user)
+  // Run ALL batch loads in parallel
+  const [cyclesArr, subsArr, profilesArr, devicesArr, userMsgsArr, autosaveArr, instanceGroupsArr, groupsPoolArr] = await Promise.all([
+    batchLoad<any>("warmup_cycles", "id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id", "id", uniqueCycleIds),
+    batchLoad<any>("subscriptions", "user_id, expires_at, created_at", "user_id", uniqueUserIds, q => q.order("created_at", { ascending: false })),
+    batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
+    batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
+    batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("created_at", { ascending: true })),
+    batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status", "device_id", uniqueDeviceIds),
+    db.from("warmup_groups_pool").select("id, external_group_ref, name").eq("is_active", true).then((r: any) => r.data || []),
+  ]);
+
+  // Index into maps
+  const cyclesMap: Record<string, any> = {};
+  cyclesArr.forEach((c: any) => { cyclesMap[c.id] = c; });
+
   const subsMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueUserIds.length; i += 200) {
-    const { data: subs } = await db
-      .from("subscriptions")
-      .select("user_id, expires_at, created_at")
-      .in("user_id", uniqueUserIds.slice(i, i + 200))
-      .order("created_at", { ascending: false });
-    if (subs) {
-      for (const s of subs) {
-        if (!subsMap[s.user_id]) subsMap[s.user_id] = s; // first = latest
-      }
+  subsArr.forEach((s: any) => { if (!subsMap[s.user_id]) subsMap[s.user_id] = s; });
+
+  const profilesMap: Record<string, any> = {};
+  profilesArr.forEach((p: any) => { profilesMap[p.id] = p; });
+
+  const devicesMap: Record<string, any> = {};
+  devicesArr.forEach((d: any) => { devicesMap[d.id] = d; });
+
+  // User messages indexed by user_id
+  const userMsgsMap: Record<string, string[]> = {};
+  userMsgsArr.forEach((m: any) => {
+    if (!userMsgsMap[m.user_id]) userMsgsMap[m.user_id] = [];
+    userMsgsMap[m.user_id].push(m.content);
+  });
+
+  // Autosave contacts indexed by user_id
+  const autosaveMap: Record<string, any[]> = {};
+  autosaveArr.forEach((c: any) => {
+    if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
+    autosaveMap[c.user_id].push(c);
+  });
+
+  // Instance groups indexed by "device_id:cycle_id"
+  const instanceGroupsMap: Record<string, any[]> = {};
+  instanceGroupsArr.forEach((ig: any) => {
+    const key = `${ig.device_id}:${ig.cycle_id}`;
+    if (!instanceGroupsMap[key]) instanceGroupsMap[key] = [];
+    instanceGroupsMap[key].push(ig);
+  });
+
+  // Groups pool indexed by id
+  const groupsPoolMap: Record<string, any> = {};
+  groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
+
+  // Audit log buffer for batch insert
+  const auditLogBuffer: any[] = [];
+  function bufferAuditLog(log: any) { auditLogBuffer.push(log); }
+  async function flushAuditLogs() {
+    for (let i = 0; i < auditLogBuffer.length; i += 100) {
+      await db.from("warmup_audit_logs").insert(auditLogBuffer.slice(i, i + 100));
     }
   }
 
-  // Batch load profiles
-  const profilesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueUserIds.length; i += 200) {
-    const { data: profiles } = await db
-      .from("profiles")
-      .select("id, status")
-      .in("id", uniqueUserIds.slice(i, i + 200));
-    if (profiles) profiles.forEach((p: any) => { profilesMap[p.id] = p; });
-  }
-
-  // Batch load devices
-  const devicesMap: Record<string, any> = {};
-  for (let i = 0; i < uniqueDeviceIds.length; i += 200) {
-    const { data: devices } = await db
-      .from("devices")
-      .select("id, status, uazapi_token, uazapi_base_url, number")
-      .in("id", uniqueDeviceIds.slice(i, i + 200));
-    if (devices) devices.forEach((d: any) => { devicesMap[d.id] = d; });
-  }
-
-  console.log(`[warmup-tick] Batch loaded: ${Object.keys(cyclesMap).length} cycles, ${Object.keys(subsMap).length} subs, ${Object.keys(profilesMap).length} profiles, ${Object.keys(devicesMap).length} devices for ${pendingJobs.length} jobs`);
+  console.log(`[warmup-tick] Batch loaded: ${cyclesArr.length} cycles, ${subsArr.length} subs, ${profilesArr.length} profiles, ${devicesArr.length} devices, ${userMsgsArr.length} msgs, ${autosaveArr.length} autosave, ${instanceGroupsArr.length} igroups, ${groupsPoolArr.length} pool for ${pendingJobs.length} jobs`);
 
   // Track cycles already paused in this tick to avoid duplicate updates
   const pausedCycles = new Set<string>();
