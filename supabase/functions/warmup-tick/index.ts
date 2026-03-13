@@ -1151,6 +1151,13 @@ async function handleTick(db: any) {
             meta: { day: newDay, phase: newPhase, budget_target: newTarget, chip_state: chipState },
           });
 
+          if (newPhase === "groups_only") {
+            const joinScheduled = await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+            if (joinScheduled > 0) {
+              console.log(`[daily_reset] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
+            }
+          }
+
           await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
           const nextReset = new Date();
