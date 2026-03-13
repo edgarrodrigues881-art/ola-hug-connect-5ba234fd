@@ -674,6 +674,16 @@ async function handleTick(db: any) {
         return false;
       }
 
+      // ── Guard: skip interaction jobs if daily budget already exceeded ──
+      if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
+        const budgetUsed = cycle.daily_interaction_budget_used || 0;
+        const budgetMax = cycle.daily_interaction_budget_max || cycle.daily_interaction_budget_target || 500;
+        if (budgetUsed >= budgetMax) {
+          await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget diário atingido: ${budgetUsed}/${budgetMax}` }).eq("id", job.id);
+          return false;
+        }
+      }
+
       // ── Process job by type ──
       switch (job.job_type) {
         case "join_group": {
