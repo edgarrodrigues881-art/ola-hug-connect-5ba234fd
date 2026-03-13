@@ -288,21 +288,21 @@ const CustomModule = () => {
                 <div className="rounded-lg border-2 border-red-500/40 bg-red-500/5 p-4 space-y-3">
                   <p className="text-sm font-semibold text-red-400 flex items-center gap-2">
                     <Ban className="w-4 h-4" />
-                    Se estiver em estado crítico
+                    Conta em estado crítico
                   </p>
-                  <p className="text-xs text-red-300/70">Não tente "forçar". Ajuste:</p>
+                  <p className="text-xs text-red-300/70">Não force envios. Aplique os seguintes ajustes:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Intensidade no mínimo</li>
-                    <li>Intervalos maiores</li>
-                    <li>Zero pico</li>
-                    <li>Zero envio manual paralelo</li>
+                    <li>Reduza a intensidade ao mínimo possível</li>
+                    <li>Aumente os intervalos entre mensagens</li>
+                    <li>Elimine qualquer pico de volume</li>
+                    <li>Suspenda envios manuais paralelos</li>
                   </ul>
                   <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
                     <p className="text-xs text-red-300 font-medium">
-                      Objetivo nessa fase: <strong>Estabilizar, não escalar.</strong>
+                      Objetivo nesta fase: <strong>estabilizar, não escalar.</strong>
                     </p>
                     <p className="text-xs text-red-300/60 mt-1">
-                      Forçar número crítico quase sempre resulta em bloqueio definitivo.
+                      Forçar envios em número crítico quase sempre resulta em bloqueio permanente.
                     </p>
                   </div>
                 </div>
