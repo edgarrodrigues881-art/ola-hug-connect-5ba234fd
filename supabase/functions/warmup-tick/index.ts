@@ -571,7 +571,7 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
   
   // Text status
   if (type === "text") {
-    const payload = { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
+    const payload = { type: "text", text: content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
     const res = await fetch(`${baseUrl}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", token, Accept: "application/json" },
