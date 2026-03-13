@@ -119,10 +119,10 @@ const Hero = () => {
 
 // ─── 2. Benefícios ───
 const benefits = [
-  { icon: Zap, title: "Velocidade", desc: "Disparos rápidos com intervalos inteligentes que preservam a saúde das suas instâncias." },
-  { icon: Shield, title: "Proteção", desc: "Aquecimento automatizado e rotação de chips para reduzir o risco de banimento." },
-  { icon: BarChart3, title: "Métricas claras", desc: "Acompanhe taxas de entrega, falhas e desempenho por instância em tempo real." },
-  { icon: Globe, title: "Escalabilidade", desc: "Gerencie de 10 a 100+ instâncias em um único painel centralizado." },
+  { icon: Zap, title: "Envio otimizado", desc: "Intervalos inteligentes entre mensagens para manter suas instâncias saudáveis." },
+  { icon: Shield, title: "Redução de risco", desc: "Aquecimento automático e rotação de chips para minimizar bloqueios." },
+  { icon: BarChart3, title: "Visão em tempo real", desc: "Monitore entregas, falhas e desempenho de cada instância no painel." },
+  { icon: Globe, title: "Escala sob controle", desc: "Opere de 10 a 100+ instâncias em um único ambiente centralizado." },
 ];
 
 const Benefits = () => (
