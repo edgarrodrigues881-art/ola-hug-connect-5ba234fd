@@ -284,7 +284,7 @@ const FAQ = () => (
   <Section id="faq">
     <div className="text-center mb-10">
       <SectionLabel>FAQ</SectionLabel>
-      <SectionTitle>Perguntas frequentes</SectionTitle>
+      <SectionTitle>Dúvidas comuns</SectionTitle>
     </div>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="max-w-2xl mx-auto space-y-3">
       {faqs.map((f) => (
