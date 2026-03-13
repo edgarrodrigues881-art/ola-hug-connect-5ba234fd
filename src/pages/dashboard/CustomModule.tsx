@@ -188,14 +188,14 @@ const CustomModule = () => {
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
                   <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Se houver bloqueio
+                    Em caso de bloqueio temporário
                   </p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Ativar modo avião por alguns minutos</li>
-                    <li>Reativar dados móveis (força renovação de conexão)</li>
+                    <li>Ative o modo avião por alguns minutos</li>
+                    <li>Reative os dados móveis para forçar a renovação do IP</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Se continuar bloqueado: <strong className="text-foreground">não forçar envio</strong>. Revisar estrutura antes de tentar novamente.
+                    Se o bloqueio persistir: <strong className="text-foreground">não force novos envios</strong>. Revise toda a estrutura antes de tentar novamente.
                   </p>
                 </div>
               </div>
