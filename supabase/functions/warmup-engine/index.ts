@@ -248,7 +248,8 @@ Deno.serve(async (req) => {
       }
 
       const { data: deviceCheck } = await db.from("devices").select("status").eq("id", device_id).single();
-      if (!deviceCheck || deviceCheck.status !== "Ready") {
+      const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
+      if (!deviceCheck || !CONNECTED_STATUSES.includes(deviceCheck.status)) {
         throw new Error("Instância offline. Conecte o dispositivo antes de retomar o aquecimento.");
       }
 

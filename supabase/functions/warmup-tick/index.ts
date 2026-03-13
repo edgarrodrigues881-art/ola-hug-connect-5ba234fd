@@ -573,7 +573,8 @@ async function handleTick(db: any) {
         .eq("id", job.device_id)
         .single();
 
-      if (!device || device.status !== "Ready") {
+      const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
+      if (!device || !CONNECTED_STATUSES.includes(device.status)) {
         if (cycle.phase !== "paused") {
           await db.from("warmup_cycles").update({
             is_running: false, phase: "paused", previous_phase: cycle.phase,
