@@ -1,4 +1,4 @@
-// warmup-tick v3.1 — status base64 fix + image cache
+// warmup-tick v3.2 — forced redeploy for status fix
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
