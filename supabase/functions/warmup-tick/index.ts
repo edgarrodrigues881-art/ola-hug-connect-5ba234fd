@@ -371,11 +371,35 @@ Deno.serve(async (req) => {
         results.push({ step: "post_status", error: e.message, sent_text: testText });
       }
 
-      // 2) Check status chat history for the just-posted message
-      const historyEndpoints = [
-        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&count=30`,
-        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&limit=30`,
+      // 2) Try alternative status send endpoints (diagnostic only)
+      const altSendAttempts = [
+        { path: "/chat/send-text", body: { to: "status@broadcast", body: testText } },
+        { path: "/send/text", body: { number: "status@broadcast", text: testText } },
+        { path: "/message/sendText", body: { chatId: "status@broadcast", text: testText } },
+        { path: "/message/sendText", body: { to: "status@broadcast", text: testText } },
       ];
+
+      for (const attempt of altSendAttempts) {
+        try {
+          const ar = await fetch(`${baseUrl}${attempt.path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+            body: JSON.stringify(attempt.body),
+          });
+          const atxt = await ar.text();
+          results.push({
+            step: "alt_send",
+            endpoint: attempt.path,
+            status: ar.status,
+            body: atxt.substring(0, 500),
+          });
+        } catch (e) {
+          results.push({ step: "alt_send", endpoint: attempt.path, error: e.message });
+        }
+      }
+
+      // 3) Check status chat history for the just-posted message
+      const historyEndpoints = [
 
       for (const ep of historyEndpoints) {
         try {
