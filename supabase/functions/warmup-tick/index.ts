@@ -324,18 +324,19 @@ function backoffMinutes(attempt: number): number {
 }
 
 // ── Phase rules per chip_state ──
-// CHIP NOVO:       Day 1 OFF, Days 2-4 groups_only
-// CHIP RECUPERADO: Day 1 OFF, Days 2-4 groups_only (lighter)
-// CHIP INSTÁVEL:   Day 1 OFF, Days 2-7 groups_only (very light)
+// All chips: Day 1 OFF, then groups, then autosave (1 day), then community
+// New/Recovered: Days 2-4 groups → Day 5 autosave → Day 6+ community
+// Unstable:      Days 2-7 groups → Day 8 autosave → Day 9+ community
+function getGroupsEndDay(chipState: string): number {
+  return chipState === "unstable" ? 7 : 4;
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (day <= 1) return "pre_24h";
-  if (chipState === "unstable") {
-    if (day <= 7) return "groups_only";
-    return "completed";
-  }
-  // new & recovered
-  if (day <= 4) return "groups_only";
-  return "completed";
+  const groupsEnd = getGroupsEndDay(chipState);
+  if (day <= groupsEnd) return "groups_only";
+  if (day === groupsEnd + 1) return "autosave_enabled";
+  return "community_enabled";
 }
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
