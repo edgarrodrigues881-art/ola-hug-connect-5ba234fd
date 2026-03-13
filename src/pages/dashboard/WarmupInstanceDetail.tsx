@@ -24,7 +24,7 @@ import {
   Clock, Users, MessageSquare, Shield, Globe, ScrollText,
   AlertTriangle, CheckCircle2, Zap, Timer, Loader2,
   CalendarDays, Target, UserPlus, Send, RotateCcw,
-  FastForward, SkipForward, ChevronDown,
+  FastForward, SkipForward, ChevronDown, ImageIcon,
 } from "lucide-react";
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -712,34 +712,46 @@ const WarmupInstanceDetail = () => {
             </div>
 
             {/* Quick stats row */}
-            <div className="grid grid-cols-3 divide-x divide-border/10">
-              <div className="px-4 py-3.5 text-center group relative">
+            <div className="grid grid-cols-4 divide-x divide-border/10">
+              <div className="px-3 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {cycle.daily_interaction_budget_used}
                   <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_interaction_budget_target}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Mensagens enviadas / limite diário</p>
+                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Enviadas / limite</p>
               </div>
-              <div className="px-4 py-3.5 text-center group relative">
+              <div className="px-3 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Destinos</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {cycle.daily_unique_recipients_used}
                   <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Pessoas diferentes contactadas hoje</p>
+                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Pessoas contactadas</p>
               </div>
-              <div className="px-4 py-3.5 text-center">
+              <div className="px-3 py-3.5 text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {joinedGroups}
                   <span className="text-xs text-muted-foreground/40 font-normal">/8</span>
                 </p>
                 {pendingGroups > 0 ? (
-                  <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando entrada</p>
+                  <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
                 ) : (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Grupos de aquecimento ingressados</p>
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Ingressados</p>
                 )}
+              </div>
+              <div className="px-3 py-3.5 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Status</p>
+                <p className="text-lg font-extrabold tabular-nums text-foreground">
+                  {(() => {
+                    const statusJobs = scheduledJobs.filter(j => j.job_type === "post_status");
+                    const done = statusJobs.filter(j => j.status === "succeeded").length;
+                    const total = statusJobs.filter(j => j.status !== "cancelled").length;
+                    return <>{done}<span className="text-xs text-muted-foreground/40 font-normal">/{total}</span></>;
+                  })()}
+                </p>
+                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Stories postados</p>
               </div>
             </div>
           </div>
@@ -912,6 +924,7 @@ const WarmupInstanceDetail = () => {
               group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
+              post_status: { label: "Postar status", icon: ImageIcon, color: "text-pink-400" },
               phase_transition: { label: "Avançar fase", icon: Zap, color: "text-amber-400" },
               daily_reset: { label: "Reset diário", icon: RotateCcw, color: "text-muted-foreground" },
               health_check: { label: "Verificação de saúde", icon: Shield, color: "text-emerald-400" },
