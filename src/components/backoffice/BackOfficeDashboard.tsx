@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense, memo, useMemo } from "react";
+import { useState, useCallback, lazy, Suspense, memo, useMemo, useEffect } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,8 +188,22 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleSelectClient = useCallback((u: AdminUser) => setSelectedClient(u), []);
+  const handleSelectClient = useCallback((u: AdminUser) => {
+    setSelectedClient(u);
+    window.history.pushState({ backofficeClient: true }, "");
+  }, []);
   const handleBack = useCallback(() => setSelectedClient(null), []);
+
+  // Handle browser back button for client detail
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      if (selectedClient) {
+        setSelectedClient(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [selectedClient]);
 
   const { data: pendingQueueCount = 0 } = useQuery({
     queryKey: ["message-queue-count"],
@@ -230,7 +244,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
     return (
       <div className="min-h-screen bg-background">
         <Suspense fallback={<TabLoader />}>
-          <AdminClientDetail client={selectedClient} onBack={handleBack} />
+          <AdminClientDetail client={selectedClient} onBack={() => { setSelectedClient(null); }} />
         </Suspense>
       </div>
     );

@@ -38,7 +38,7 @@ const AdminClientDetail = ({ client, onBack }: Props) => {
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header - stacked on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <Button variant="outline" size="sm" onClick={onBack} className="border-border text-muted-foreground hover:text-foreground w-fit">
+        <Button variant="outline" size="sm" onClick={() => { if (window.history.state?.backofficeClient) { window.history.back(); } else { onBack(); } }} className="border-border text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft size={16} className="mr-1" /> Voltar
         </Button>
         <div className="flex-1 min-w-0">
