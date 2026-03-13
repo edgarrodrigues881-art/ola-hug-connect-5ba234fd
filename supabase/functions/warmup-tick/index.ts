@@ -1137,9 +1137,6 @@ async function handleTick(db: any) {
           break;
         }
 
-
-          // If phase is completed, finish the cycle
-          if (newPhase === "completed") {
             await db.from("warmup_cycles").update({
               is_running: false, phase: "completed",
               daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
