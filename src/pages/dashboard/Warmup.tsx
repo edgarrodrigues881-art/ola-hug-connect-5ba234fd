@@ -423,7 +423,7 @@ const Warmup = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => {
-              if (dontShowAgain) localStorage.setItem("warmup_warning_dismissed", "true");
+              if (dontShowAgain) localStorage.setItem(WARNING_DISMISS_KEY, "true");
               setShowWarning(false);
             }}>
               Entendi
