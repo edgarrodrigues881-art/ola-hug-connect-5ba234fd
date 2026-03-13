@@ -420,7 +420,7 @@ const WarmupInstances = () => {
               className="w-full h-10 text-sm font-semibold"
               disabled={!agreedResponsibility}
               onClick={() => {
-                if (dontShowAgain) localStorage.setItem("warmup_v2_warning_dismissed", "true");
+                if (dontShowAgain) localStorage.setItem(WARNING_DISMISS_KEY, "true");
                 setShowWarning(false);
               }}
             >
