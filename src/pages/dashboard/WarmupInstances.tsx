@@ -66,6 +66,7 @@ const WarmupInstances = () => {
     localStorage.getItem("warmup_v2_warning_dismissed") !== "true"
   );
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [agreedResponsibility, setAgreedResponsibility] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
