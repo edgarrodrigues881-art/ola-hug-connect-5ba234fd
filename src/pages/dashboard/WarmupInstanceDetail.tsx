@@ -536,7 +536,7 @@ const WarmupInstanceDetail = () => {
             ) : (
               <Flame className="w-4 h-4" />
             )}
-            Começar Aquecimento
+            {isTerminalCycle ? "Começar Novo Aquecimento" : "Começar Aquecimento"}
           </Button>
           {!isConnected && (
             <p className="text-[11px] text-amber-400 text-center -mt-2">⚠ Conecte a instância primeiro para iniciar</p>
