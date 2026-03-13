@@ -434,15 +434,55 @@ const STATUS_CAPTIONS = [
   "A vida é feita de momentos assim 💛",
 ];
 
+// Download image and return as Blob for FormData upload
+async function downloadImageBlob(imageUrl: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
+  const blob = await res.blob();
+  // Extract filename from URL or default
+  const urlPath = new URL(imageUrl).pathname;
+  const filename = urlPath.split("/").pop() || "image.jpg";
+  return { blob, filename };
+}
+
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // UAZAPI V2: field is "media" (confirmed from evolution-connect and process-campaign)
-  const endpoints = [
+  // Strategy 1: Try multipart/form-data with actual file (most UAZAPI versions need this)
+  try {
+    const { blob, filename } = await downloadImageBlob(imageUrl);
+    
+    const formEndpoints = ["/send/media", "/send/image"];
+    for (const path of formEndpoints) {
+      try {
+        const form = new FormData();
+        form.append("number", number);
+        form.append("caption", caption || "");
+        form.append("file", blob, filename);
+        
+        const res = await fetch(`${baseUrl}${path}`, {
+          method: "POST",
+          headers: { token, Accept: "application/json" },
+          body: form,
+        });
+        if (res.status === 405) continue;
+        const txt = await res.text();
+        console.log(`[sendImage] FormData ${path} → ${res.status}: ${txt.substring(0, 200)}`);
+        if (res.ok) {
+          try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
+        }
+      } catch (e) {
+        console.log(`[sendImage] FormData ${path} error: ${e.message}`);
+      }
+    }
+  } catch (dlErr) {
+    console.log(`[sendImage] Download failed: ${dlErr.message}, trying JSON fallback`);
+  }
+  
+  // Strategy 2: JSON with URL (some API versions accept this)
+  const jsonEndpoints = [
     { path: "/send/media", body: { number, media: imageUrl, caption, type: "image" } },
-    { path: "/send/image", body: { number, media: imageUrl, caption } },
     { path: "/send/image", body: { number, file: imageUrl, caption } },
   ];
-  let lastErr: any = null;
-  for (const ep of endpoints) {
+  for (const ep of jsonEndpoints) {
     try {
       const res = await fetch(`${baseUrl}${ep.path}`, {
         method: "POST",
@@ -451,60 +491,86 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
       });
       if (res.status === 405) continue;
       const txt = await res.text();
-      console.log(`[sendImage] ${ep.path} keys=${JSON.stringify(Object.keys(ep.body))} → ${res.status}: ${txt.substring(0, 200)}`);
-      if (!res.ok) {
-        // If it's "missing file field", try next variant
-        if (txt.includes("missing file") || txt.includes("missing image")) continue;
-        if (ep === endpoints[endpoints.length - 1]) throw lastErr;
-        continue;
+      console.log(`[sendImage] JSON ${ep.path} → ${res.status}: ${txt.substring(0, 200)}`);
+      if (res.ok) {
+        try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
       }
-      try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
-    } catch (e) {
-      lastErr = e;
-      continue;
-    }
+    } catch (_e) { continue; }
   }
-  throw lastErr || new Error("All image send endpoints failed");
+  throw new Error("All image send endpoints failed");
 }
-
-// Audio removed — only text + image
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoints = ["/status/post", "/sendStories"];
-  let lastErr: any = null;
-  for (const ep of endpoints) {
-    // For image status, try multiple field names (file, image)
-    const payloadVariants: any[] = type === "text"
-      ? [{ type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) }]
-      : [
-          { type: "image", media: imageUrl, caption: content },
-          { type: "image", file: imageUrl, caption: content },
-          { type: "image", image: imageUrl, caption: content },
-        ];
-
-    for (const payload of payloadVariants) {
+  
+  // Text status: just JSON
+  if (type === "text") {
+    const payload = { type: "text", content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
+    for (const ep of endpoints) {
       try {
         const res = await fetch(`${baseUrl}${ep}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", token, Accept: "application/json" },
           body: JSON.stringify(payload),
         });
-        if (res.status === 405) break; // endpoint not supported, try next
+        if (res.status === 405) continue;
         const txt = await res.text();
-        console.log(`[postStatus] ${ep} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
-        if (!res.ok) {
+        console.log(`[postStatus] text ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
+        if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+      } catch (_e) { continue; }
+    }
+    throw new Error("All text status endpoints failed");
+  }
+  
+  // Image status: try FormData first
+  if (imageUrl) {
+    try {
+      const { blob, filename } = await downloadImageBlob(imageUrl);
+      for (const ep of endpoints) {
+        try {
+          const form = new FormData();
+          form.append("type", "image");
+          form.append("caption", content || "");
+          form.append("file", blob, filename);
+          
+          const res = await fetch(`${baseUrl}${ep}`, {
+            method: "POST",
+            headers: { token, Accept: "application/json" },
+            body: form,
+          });
+          if (res.status === 405) continue;
+          const txt = await res.text();
+          console.log(`[postStatus] FormData ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
+          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
+        } catch (_e) { continue; }
+      }
+    } catch (dlErr) {
+      console.log(`[postStatus] Download failed: ${dlErr.message}`);
+    }
+    
+    // JSON fallback for image status
+    for (const ep of endpoints) {
+      const payloads = [
+        { type: "image", media: imageUrl, caption: content },
+        { type: "image", file: imageUrl, caption: content },
+      ];
+      for (const payload of payloads) {
+        try {
+          const res = await fetch(`${baseUrl}${ep}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.status === 405) break;
+          const txt = await res.text();
+          console.log(`[postStatus] JSON ${ep} → ${res.status}: ${txt.substring(0, 200)}`);
+          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
           if (txt.includes("missing file") || txt.includes("missing image")) continue;
-          if (ep === endpoints[endpoints.length - 1] && payload === payloadVariants[payloadVariants.length - 1]) throw lastErr;
-          continue;
-        }
-        try { return JSON.parse(txt); } catch (_) { return { ok: true }; }
-      } catch (e) {
-        lastErr = e;
-        continue;
+        } catch (_e) { continue; }
       }
     }
   }
-  throw lastErr || new Error("All status post endpoints failed");
+  throw new Error("All status post endpoints failed");
 }
 
 // Decide media type for group interaction: 75% text, 25% image (no audio)
