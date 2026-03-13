@@ -280,6 +280,13 @@ Deno.serve(async (req) => {
         job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
       });
 
+      // Cancel old pending interaction jobs before scheduling new ones
+      await db.from("warmup_jobs")
+        .update({ status: "cancelled", last_error: "Cancelado: retomada do ciclo" })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
       // Schedule today's jobs for the current phase
       if (resumePhase !== "pre_24h" && resumePhase !== "completed") {
         await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
