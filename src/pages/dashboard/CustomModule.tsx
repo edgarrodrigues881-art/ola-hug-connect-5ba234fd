@@ -117,17 +117,17 @@ const CustomModule = () => {
                 </StepCard>
 
                 {/* Passo 2 */}
-                <StepCard step={2} title="Instalação mínima" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">Siga esta ordem:</p>
+                <StepCard step={2} title="Instalação limpa" icon={<Shield className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Após formatar, siga esta ordem de instalação:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Faça login com uma conta Google</li>
-                    <li>Instale somente o WhatsApp oficial da Play Store</li>
-                    <li>Confirme que a versão é a oficial (não modded)</li>
-                    <li>Remova a conta Google após a instalação, se fizer parte da sua estratégia</li>
-                    <li>Não instale outros apps de mensagens ou automação</li>
+                    <li>Faça login com uma conta Google limpa</li>
+                    <li>Baixe apenas o WhatsApp oficial pela Play Store</li>
+                    <li>Verifique se a versão instalada é a original (não modificada)</li>
+                    <li>Se fizer parte da sua estratégia, remova a conta Google após instalar</li>
+                    <li>Não instale nenhum outro app de mensagens, clones ou ferramentas de automação</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-3 italic">
-                    Quanto menos aplicativos no aparelho, menor o risco de associação cruzada.
+                    Quanto mais limpo o ambiente do aparelho, menor a chance de o WhatsApp associar seu número a comportamentos suspeitos.
                   </p>
                 </StepCard>
 
