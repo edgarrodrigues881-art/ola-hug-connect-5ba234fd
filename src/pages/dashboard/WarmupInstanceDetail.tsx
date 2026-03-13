@@ -866,65 +866,18 @@ const WarmupInstanceDetail = () => {
           })()}
 
 
-          {/* ── Auto Save alert ── */}
-          {activeContacts === 0 && (
-            <div className="rounded-xl border border-amber-500/15 bg-gradient-to-r from-amber-500/5 to-transparent p-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
+          {/* ── Erro do ciclo ── */}
+          {cycle.last_error && (
+            <div className="rounded-xl border border-destructive/15 bg-gradient-to-r from-destructive/5 to-transparent p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-bold text-foreground">Sem contatos Auto Save</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Adicione contatos para habilitar essa camada quando chegar a fase.</p>
+                <p className="text-xs font-bold text-foreground">Último erro</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{cycle.last_error}</p>
               </div>
-              <Button size="sm" variant="outline" className="text-[11px] shrink-0 rounded-lg h-8 px-3 font-semibold" onClick={() => navigate("/dashboard/autosave")}>
-                Adicionar
-              </Button>
             </div>
           )}
-
-          {/* ── Community ── */}
-          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <Globe className="w-4.5 h-4.5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-foreground">Comunidade</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase)
-                      ? "Interação mútua entre contas do sistema"
-                      : "Desbloqueada após fase Auto Save"}
-                  </p>
-                </div>
-              </div>
-              {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase) ? (
-                <div className="flex items-center gap-2.5">
-                  <span className={cn(
-                    "text-[10px] font-semibold",
-                    community?.is_enabled ? "text-purple-400" : "text-muted-foreground"
-                  )}>
-                    {community?.is_enabled ? "Ativa" : "Inativa"}
-                  </span>
-                  <Switch
-                    checked={community?.is_enabled ?? false}
-                    disabled={toggleCommunity.isPending}
-                    onCheckedChange={(checked) => {
-                      if (!deviceId) return;
-                      toggleCommunity.mutate(
-                        { deviceId, cycleId: cycle.id, enable: checked },
-                        { onSuccess: () => toast({ title: checked ? "Comunidade habilitada" : "Comunidade desabilitada" }) }
-                      );
-                    }}
-                  />
-                </div>
-              ) : (
-                <Badge variant="outline" className="text-[10px] text-muted-foreground rounded-lg gap-1">
-                  🔒 Bloqueado
-                </Badge>
-              )}
-            </div>
-          </div>
 
           {/* ── Encerrar ciclo ── */}
           {cycle.phase !== "completed" && (
