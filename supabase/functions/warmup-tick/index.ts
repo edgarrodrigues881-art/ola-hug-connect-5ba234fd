@@ -513,7 +513,7 @@ async function handleTick(db: any) {
     .eq("status", "pending")
     .lte("run_at", now)
     .order("run_at", { ascending: true })
-    .limit(500);
+    .limit(2000);
 
   if (fetchErr) throw fetchErr;
 
@@ -592,57 +592,70 @@ async function handleTick(db: any) {
   // Track cycles already paused in this tick to avoid duplicate updates
   const pausedCycles = new Set<string>();
 
+  // ══════════════════════════════════════════════════════════════
+  // GROUP JOBS BY DEVICE for parallel processing
+  // Jobs for the SAME device run sequentially (avoid concurrent WhatsApp calls)
+  // Jobs for DIFFERENT devices run in parallel (Promise.allSettled)
+  // ══════════════════════════════════════════════════════════════
+  const jobsByDevice: Record<string, any[]> = {};
+  for (const job of pendingJobs) {
+    if (!jobsByDevice[job.device_id]) jobsByDevice[job.device_id] = [];
+    jobsByDevice[job.device_id].push(job);
+  }
+
+  const MAX_PARALLEL_DEVICES = 20; // Process up to 20 devices simultaneously
+  const deviceIds = Object.keys(jobsByDevice);
   let succeeded = 0;
   let failed = 0;
 
-  for (const job of pendingJobs) {
-    try {
-      // ── Get cycle from cache ──
-      const cycle = cyclesMap[job.cycle_id];
+  // Process a single job (extracted from the old loop body)
+  async function processJob(job: any): Promise<boolean> {
+    // ── Get cycle from cache ──
+    const cycle = cyclesMap[job.cycle_id];
 
-      if (!cycle || !cycle.is_running || pausedCycles.has(cycle.id)) {
-        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
-        continue;
-      }
+    if (!cycle || !cycle.is_running || pausedCycles.has(cycle.id)) {
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
 
-      // ── PLAN CHECK from cache ──
-      const userSub = subsMap[cycle.user_id];
-      const userProf = profilesMap[cycle.user_id];
-      if (!userSub || new Date(userSub.expires_at) < new Date() || userProf?.status === "suspended" || userProf?.status === "cancelled") {
+    // ── PLAN CHECK from cache ──
+    const userSub = subsMap[cycle.user_id];
+    const userProf = profilesMap[cycle.user_id];
+    if (!userSub || new Date(userSub.expires_at) < new Date() || userProf?.status === "suspended" || userProf?.status === "cancelled") {
+      await db.from("warmup_cycles").update({
+        is_running: false, phase: "paused", previous_phase: cycle.phase,
+        last_error: "Auto-pausado: plano inativo",
+      }).eq("id", cycle.id);
+      pausedCycles.add(cycle.id);
+      cycle.is_running = false;
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
+
+    // ── Device check from cache ──
+    const device = devicesMap[job.device_id];
+
+    if (!device || !CONNECTED_STATUSES.includes(device.status)) {
+      if (cycle.phase !== "paused" && !pausedCycles.has(cycle.id)) {
         await db.from("warmup_cycles").update({
           is_running: false, phase: "paused", previous_phase: cycle.phase,
-          last_error: "Auto-pausado: plano inativo",
+          last_error: "Auto-pausado: instância desconectada",
         }).eq("id", cycle.id);
+        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
+        await db.from("warmup_audit_logs").insert({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "warn", event_type: "auto_paused_disconnected",
+          message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
+        });
         pausedCycles.add(cycle.id);
         cycle.is_running = false;
-        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
-        continue;
       }
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
 
-      // ── Device check from cache ──
-      const device = devicesMap[job.device_id];
-
-      if (!device || !CONNECTED_STATUSES.includes(device.status)) {
-        if (cycle.phase !== "paused" && !pausedCycles.has(cycle.id)) {
-          await db.from("warmup_cycles").update({
-            is_running: false, phase: "paused", previous_phase: cycle.phase,
-            last_error: "Auto-pausado: instância desconectada",
-          }).eq("id", cycle.id);
-          await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
-          await db.from("warmup_audit_logs").insert({
-            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-            level: "warn", event_type: "auto_paused_disconnected",
-            message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
-          });
-          pausedCycles.add(cycle.id);
-          cycle.is_running = false;
-        }
-        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
-        continue;
-      }
-
-      const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
-      const token = device.uazapi_token || "";
+    const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
+    const token = device.uazapi_token || "";
 
       // ── Process job by type ──
       switch (job.job_type) {
@@ -952,10 +965,10 @@ async function handleTick(db: any) {
           }
 
           const contact = contacts[recipientIndex % contacts.length];
-          const message = generateNaturalMessage("autosave");
+          const autosaveMessage = generateNaturalMessage("autosave");
           const phoneNumber = contact.phone_e164.replace(/\+/g, "");
 
-          await uazapiSendText(baseUrl, token, phoneNumber, message);
+          await uazapiSendText(baseUrl, token, phoneNumber, autosaveMessage);
 
           const todayStr = new Date().toISOString().split("T")[0];
           try {
@@ -1039,7 +1052,7 @@ async function handleTick(db: any) {
 
           // Resolve phone number
           const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
-          if (!pd?.number || !["Ready", "Connected", "authenticated"].includes(pd.status)) {
+          if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
             // Peer offline, skip silently
             await db.from("warmup_audit_logs").insert({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
@@ -1060,12 +1073,12 @@ async function handleTick(db: any) {
               await uazapiSendImage(baseUrl, token, targetPhone, imageUrl, caption);
             } catch (_imgErr) {
               // Fallback to text if image fails
-              const message = generateNaturalMessage("community");
-              await uazapiSendText(baseUrl, token, targetPhone, message);
+              const communityMsg = generateNaturalMessage("community");
+              await uazapiSendText(baseUrl, token, targetPhone, communityMsg);
             }
           } else {
-            const message = generateNaturalMessage("community");
-            await uazapiSendText(baseUrl, token, targetPhone, message);
+            const communityMsg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, communityMsg);
           }
 
           await db.from("warmup_cycles").update({
@@ -1135,12 +1148,12 @@ async function handleTick(db: any) {
             });
             break;
           }
-          const targetPhase = job.payload?.target_phase || "community_light";
-          await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
+          const enableTargetPhase = job.payload?.target_phase || "community_light";
+          await db.from("warmup_cycles").update({ phase: enableTargetPhase }).eq("id", cycle.id);
           await db.from("warmup_audit_logs").insert({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "phase_changed",
-            message: `Comunidade habilitada: ${targetPhase}`,
+            message: `Comunidade habilitada: ${enableTargetPhase}`,
           });
           break;
         }
@@ -1222,8 +1235,6 @@ async function handleTick(db: any) {
           break;
         }
 
-
-
         case "post_status": {
           if (!baseUrl || !token) {
             throw new Error("Credenciais UAZAPI não configuradas para post_status");
@@ -1267,33 +1278,63 @@ async function handleTick(db: any) {
         }
       }
 
-      await db.from("warmup_jobs").update({
-        status: "succeeded", attempts: job.attempts + 1,
-      }).eq("id", job.id);
-      succeeded++;
+    await db.from("warmup_jobs").update({
+      status: "succeeded", attempts: job.attempts + 1,
+    }).eq("id", job.id);
+    return true;
+  }
 
-    } catch (jobErr) {
-      failed++;
-      const newAttempts = job.attempts + 1;
-      if (newAttempts < job.max_attempts) {
-        const retryAt = new Date(Date.now() + backoffMinutes(newAttempts) * 60 * 1000);
-        await db.from("warmup_jobs").update({
-          status: "pending", attempts: newAttempts,
-          last_error: jobErr.message, run_at: retryAt.toISOString(),
-        }).eq("id", job.id);
-      } else {
-        await db.from("warmup_jobs").update({
-          status: "failed", attempts: newAttempts, last_error: jobErr.message,
-        }).eq("id", job.id);
-      }
+  // Process all jobs for a single device sequentially
+  async function processDeviceJobs(deviceJobs: any[]): Promise<{ ok: number; err: number }> {
+    let ok = 0, err = 0;
+    for (const job of deviceJobs) {
       try {
-        await db.from("warmup_audit_logs").insert({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "error", event_type: "job_failed",
-          message: `Job ${job.job_type} falhou: ${jobErr.message}`,
-          meta: { job_id: job.id, attempts: newAttempts },
-        });
-      } catch (_e) { /* ignore */ }
+        const result = await processJob(job);
+        if (result) ok++;
+      } catch (jobErr: any) {
+        err++;
+        const newAttempts = job.attempts + 1;
+        if (newAttempts < job.max_attempts) {
+          const retryAt = new Date(Date.now() + backoffMinutes(newAttempts) * 60 * 1000);
+          await db.from("warmup_jobs").update({
+            status: "pending", attempts: newAttempts,
+            last_error: jobErr.message, run_at: retryAt.toISOString(),
+          }).eq("id", job.id);
+        } else {
+          await db.from("warmup_jobs").update({
+            status: "failed", attempts: newAttempts, last_error: jobErr.message,
+          }).eq("id", job.id);
+        }
+        try {
+          await db.from("warmup_audit_logs").insert({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "error", event_type: "job_failed",
+            message: `Job ${job.job_type} falhou: ${jobErr.message}`,
+            meta: { job_id: job.id, attempts: newAttempts },
+          });
+        } catch (_e) { /* ignore */ }
+      }
+    }
+    return { ok, err };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PARALLEL EXECUTION: Process devices in waves of MAX_PARALLEL_DEVICES
+  // ══════════════════════════════════════════════════════════════
+  for (let i = 0; i < deviceIds.length; i += MAX_PARALLEL_DEVICES) {
+    const wave = deviceIds.slice(i, i + MAX_PARALLEL_DEVICES);
+    const results = await Promise.allSettled(
+      wave.map(devId => processDeviceJobs(jobsByDevice[devId]))
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        succeeded += r.value.ok;
+        failed += r.value.err;
+      } else {
+        // Entire device batch failed (shouldn't happen, but just in case)
+        console.error(`[warmup-tick] Device batch error:`, r.reason);
+        failed += jobsByDevice[wave[results.indexOf(r)]]?.length || 0;
+      }
     }
   }
 
@@ -1304,13 +1345,14 @@ async function handleTick(db: any) {
     .order("run_at", { ascending: true })
     .limit(1);
 
-  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}`);
+  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}`);
 
   return json({
     ok: true,
     processed_jobs_count: succeeded + failed,
     succeeded,
     failed,
+    devices_processed: deviceIds.length,
     next_pending_run_at: nextPending?.[0]?.run_at || null,
   });
 }
