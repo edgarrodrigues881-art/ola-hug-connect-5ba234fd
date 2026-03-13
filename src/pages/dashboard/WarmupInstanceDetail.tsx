@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
@@ -70,6 +70,7 @@ const WarmupInstanceDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: device } = useQuery({
     queryKey: ["device-detail-warmup", deviceId],
@@ -194,13 +195,26 @@ const WarmupInstanceDetail = () => {
   /* advance phase: skip to next day + phase, cancel current jobs, schedule new ones via engine */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
-    const currentIdx = phaseSteps.indexOf(cycle.phase as any);
-    if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) return;
-    const nextPhase = phaseSteps[currentIdx + 1];
-    const newDayIndex = Math.min((cycle.day_index || 1) + 1, cycle.days_total || 30);
     setAdvancingPhase(true);
     try {
-      // 1. Cancel all pending interaction jobs for current day
+      // Always read latest cycle from DB to avoid stale UI/cache causing repeated day 4
+      const { data: latestCycle, error: latestErr } = await supabase
+        .from("warmup_cycles")
+        .select("id, phase, day_index, days_total, chip_state")
+        .eq("id", cycle.id)
+        .single();
+      if (latestErr) throw latestErr;
+
+      const currentIdx = phaseSteps.indexOf(latestCycle.phase as any);
+      if (currentIdx < 0 || currentIdx >= phaseSteps.length - 1) {
+        toast({ title: "Última fase", description: "Este ciclo já está na fase final." });
+        return;
+      }
+
+      const nextPhase = phaseSteps[currentIdx + 1];
+      const newDayIndex = Math.min((latestCycle.day_index || 1) + 1, latestCycle.days_total || 30);
+
+      // 1) Cancel pending interaction jobs from current phase/day
       await supabase
         .from("warmup_jobs")
         .update({ status: "cancelled", last_error: "Fase pulada manualmente" })
@@ -208,12 +222,12 @@ const WarmupInstanceDetail = () => {
         .eq("status", "pending")
         .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-      // 2. Update cycle: advance day + phase
+      // 2) Persist new day + phase
       const { error } = await supabase
         .from("warmup_cycles")
         .update({
           phase: nextPhase,
-          previous_phase: cycle.phase,
+          previous_phase: latestCycle.phase,
           day_index: newDayIndex,
           daily_interaction_budget_used: 0,
           daily_unique_recipients_used: 0,
@@ -222,24 +236,43 @@ const WarmupInstanceDetail = () => {
         .eq("id", cycle.id);
       if (error) throw error;
 
-      // 3. Trigger warmup-tick to schedule new day jobs by invoking engine resume-like logic
-      // We invoke warmup-engine with a special "skip_phase" action that schedules new jobs
-      const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
-        body: { action: "schedule_day", device_id: deviceId, cycle_id: cycle.id, day_index: newDayIndex, phase: nextPhase, chip_state: cycle.chip_state || "new" },
-      });
-      if (fnErr) console.warn("schedule_day invoke error:", fnErr);
+      // 3) Schedule jobs for new phase/day (skip scheduling when completed)
+      if (nextPhase !== "completed") {
+        const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
+          body: {
+            action: "schedule_day",
+            device_id: deviceId,
+            cycle_id: cycle.id,
+            day_index: newDayIndex,
+            phase: nextPhase,
+            chip_state: latestCycle.chip_state || "new",
+          },
+        });
+        if (fnErr) console.warn("schedule_day invoke error:", fnErr);
+      }
 
-      // 4. Log audit
+      // 4) Audit log
       await supabase.from("warmup_audit_logs").insert({
         user_id: user!.id,
         device_id: deviceId,
         cycle_id: cycle.id,
         event_type: "manual_phase_advance",
         level: "info",
-        message: `Fase pulada: ${cycle.phase} → ${nextPhase} (dia ${cycle.day_index} → ${newDayIndex})`,
-        meta: { from_phase: cycle.phase, to_phase: nextPhase, from_day: cycle.day_index, to_day: newDayIndex },
+        message: `Fase pulada: ${latestCycle.phase} → ${nextPhase} (dia ${latestCycle.day_index} → ${newDayIndex})`,
+        meta: { from_phase: latestCycle.phase, to_phase: nextPhase, from_day: latestCycle.day_index, to_day: newDayIndex },
       });
-      toast({ title: "🚀 Fase pulada!", description: `Avançou para dia ${newDayIndex}, fase: ${phaseConfig[nextPhase]?.label || nextPhase}` });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["warmup_cycle_device", deviceId] }),
+        queryClient.invalidateQueries({ queryKey: ["warmup_cycles"] }),
+        queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] }),
+        queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] }),
+      ]);
+
+      toast({
+        title: "🚀 Fase pulada!",
+        description: `Avançou para dia ${newDayIndex}, fase: ${phaseConfig[nextPhase]?.label || nextPhase}`,
+      });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
