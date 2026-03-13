@@ -55,14 +55,16 @@ import { ptBR } from "date-fns/locale";
 const phaseConfig: Record<string, { label: string; color: string; icon: typeof Clock; step: number }> = {
   pre_24h:            { label: "Primeiras 24h",  color: "text-amber-400",           icon: Timer,        step: 1 },
   groups_only:        { label: "Grupos",          color: "text-teal-400",            icon: Users,        step: 2 },
-  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 3 },
-  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 4 },
-  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 5 },
+  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 3 },
   paused:             { label: "Pausado",          color: "text-amber-400",           icon: Pause,        step: 0 },
   error:              { label: "Erro",             color: "text-destructive",         icon: AlertTriangle, step: 0 },
+  // Legacy phases — kept for backward compatibility with old cycles
+  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 2 },
+  community_enabled:  { label: "Comunidade",      color: "text-purple-400",          icon: Globe,        step: 2 },
+  community_light:    { label: "Comunidade Light", color: "text-purple-400",          icon: Globe,        step: 2 },
 };
 
-const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
+const phaseSteps = ["pre_24h", "groups_only", "completed"] as const;
 
 /* ── component ── */
 const WarmupInstanceDetail = () => {
@@ -454,15 +456,6 @@ const WarmupInstanceDetail = () => {
                   </Button>
                 </div>
               )}
-
-              {/* Encerrar ciclo */}
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-9 rounded-xl text-xs border-destructive/30 text-destructive hover:bg-destructive/10 font-semibold"
-                onClick={() => setShowFinishConfirm(true)}
-              >
-                <Square className="w-3.5 h-3.5" /> Encerrar ciclo
-              </Button>
             </div>
           )}
         </div>
@@ -633,19 +626,9 @@ const WarmupInstanceDetail = () => {
                     🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. O chip ficará ocioso enquanto entra gradualmente nos 8 grupos oficiais do sistema para parecer um uso natural.
                   </>
                 )}
-                {cycle.phase === "groups_only" && (
+                {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
                   <>
-                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou, simulando participação natural com textos variados e delays aleatórios.
-                  </>
-                )}
-                {cycle.phase === "autosave_enabled" && (
-                  <>
-                    📱 <strong className="text-foreground">Fase Auto Save ativa.</strong> Além dos grupos, o sistema agora troca mensagens privadas com contatos salvos para diversificar o tipo de interação.
-                  </>
-                )}
-                {((cycle.phase as string) === "community_light" || cycle.phase === "community_enabled") && (
-                  <>
-                    🌐 <strong className="text-foreground">Fase Comunidade.</strong> O chip troca mensagens com outros chips do sistema em pareamento automático, aumentando a variedade de interações.
+                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
                   </>
                 )}
                 {cycle.phase === "completed" && (
@@ -662,7 +645,7 @@ const WarmupInstanceDetail = () => {
             </div>
 
             {/* Quick stats row */}
-            <div className="grid grid-cols-4 divide-x divide-border/10">
+            <div className="grid grid-cols-3 divide-x divide-border/10">
               <div className="px-4 py-3.5 text-center group relative">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
@@ -690,21 +673,6 @@ const WarmupInstanceDetail = () => {
                 ) : (
                   <p className="text-[8px] text-muted-foreground/60 mt-0.5">Grupos de aquecimento ingressados</p>
                 )}
-              </div>
-              <div className="px-4 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Contatos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">{activeContacts}</p>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[8px] h-4 rounded px-1.5 font-semibold mt-0.5",
-                    ["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase)
-                      ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5"
-                      : "text-muted-foreground border-border/30"
-                  )}
-                >
-                  {["autosave_enabled", "community_enabled", "community_light"].includes(cycle.phase) ? "Ativo" : "Fase futura"}
-                </Badge>
               </div>
             </div>
           </div>
@@ -883,65 +851,18 @@ const WarmupInstanceDetail = () => {
           })()}
 
 
-          {/* ── Auto Save alert ── */}
-          {activeContacts === 0 && (
-            <div className="rounded-xl border border-amber-500/15 bg-gradient-to-r from-amber-500/5 to-transparent p-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
+          {/* ── Erro do ciclo ── */}
+          {cycle.last_error && (
+            <div className="rounded-xl border border-destructive/15 bg-gradient-to-r from-destructive/5 to-transparent p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-bold text-foreground">Sem contatos Auto Save</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Adicione contatos para habilitar essa camada quando chegar a fase.</p>
+                <p className="text-xs font-bold text-foreground">Último erro</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{cycle.last_error}</p>
               </div>
-              <Button size="sm" variant="outline" className="text-[11px] shrink-0 rounded-lg h-8 px-3 font-semibold" onClick={() => navigate("/dashboard/autosave")}>
-                Adicionar
-              </Button>
             </div>
           )}
-
-          {/* ── Community ── */}
-          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <Globe className="w-4.5 h-4.5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-foreground">Comunidade</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase)
-                      ? "Interação mútua entre contas do sistema"
-                      : "Desbloqueada após fase Auto Save"}
-                  </p>
-                </div>
-              </div>
-              {["autosave_enabled", "community_enabled", "completed"].includes(cycle.phase) ? (
-                <div className="flex items-center gap-2.5">
-                  <span className={cn(
-                    "text-[10px] font-semibold",
-                    community?.is_enabled ? "text-purple-400" : "text-muted-foreground"
-                  )}>
-                    {community?.is_enabled ? "Ativa" : "Inativa"}
-                  </span>
-                  <Switch
-                    checked={community?.is_enabled ?? false}
-                    disabled={toggleCommunity.isPending}
-                    onCheckedChange={(checked) => {
-                      if (!deviceId) return;
-                      toggleCommunity.mutate(
-                        { deviceId, cycleId: cycle.id, enable: checked },
-                        { onSuccess: () => toast({ title: checked ? "Comunidade habilitada" : "Comunidade desabilitada" }) }
-                      );
-                    }}
-                  />
-                </div>
-              ) : (
-                <Badge variant="outline" className="text-[10px] text-muted-foreground rounded-lg gap-1">
-                  🔒 Bloqueado
-                </Badge>
-              )}
-            </div>
-          </div>
 
           {/* ── Encerrar ciclo ── */}
           {cycle.phase !== "completed" && (

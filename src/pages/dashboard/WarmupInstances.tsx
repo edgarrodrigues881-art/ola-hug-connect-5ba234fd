@@ -24,21 +24,23 @@ import { cn } from "@/lib/utils";
 const phaseLabels: Record<string, string> = {
   pre_24h: "Primeiras 24h",
   groups_only: "Grupos",
-  autosave_enabled: "Auto Save",
-  community_enabled: "Comunidade",
   completed: "Concluído",
   paused: "Pausado",
   error: "Erro",
+  autosave_enabled: "Auto Save",
+  community_enabled: "Comunidade",
+  community_light: "Comunidade Light",
 };
 
 const phaseShort: Record<string, string> = {
   pre_24h: "iniciante",
   groups_only: "grupos",
-  autosave_enabled: "auto save",
-  community_enabled: "comunidade",
   completed: "concluído",
   paused: "pausado",
   error: "erro",
+  autosave_enabled: "auto save",
+  community_enabled: "comunidade",
+  community_light: "comunidade",
 };
 
 const WarmupInstances = () => {
