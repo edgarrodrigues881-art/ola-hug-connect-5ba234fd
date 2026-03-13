@@ -1314,7 +1314,7 @@ interface DayVolumes {
   autosaveRounds: number;
   communityPeers: number;
   communityMsgsPerPeer: number;
-  statusPosts: number;
+  
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
