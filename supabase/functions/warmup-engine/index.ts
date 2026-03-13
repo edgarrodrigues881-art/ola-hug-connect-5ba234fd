@@ -280,6 +280,13 @@ Deno.serve(async (req) => {
         job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
       });
 
+      // Cancel old pending interaction jobs before scheduling new ones
+      await db.from("warmup_jobs")
+        .update({ status: "cancelled", last_error: "Cancelado: retomada do ciclo" })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
       // Schedule today's jobs for the current phase
       if (resumePhase !== "pre_24h" && resumePhase !== "completed") {
         await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
@@ -369,6 +376,13 @@ Deno.serve(async (req) => {
       if (!callerUserId) throw new Error("schedule_day requires authenticated user");
       const { device_id, cycle_id, day_index, phase, chip_state } = body;
       if (!cycle_id || !device_id) throw new Error("cycle_id and device_id required");
+
+      // Cancel existing pending interaction jobs before scheduling new ones
+      await db.from("warmup_jobs")
+        .update({ status: "cancelled", last_error: "Cancelado: reagendamento manual" })
+        .eq("cycle_id", cycle_id)
+        .eq("status", "pending")
+        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
       const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, phase || "groups_only", chip_state || "new", true);
 

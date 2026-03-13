@@ -371,6 +371,20 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
+  const url = `${baseUrl}/send/image`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify({ number, image: imageUrl, caption }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`API ${res.status}: ${errText}`);
+  }
+  return await res.json();
+}
+
 // ── Media pools for warmup variety ──
 // Dynamically loads images from storage bucket at tick time
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -658,6 +672,16 @@ async function handleTick(db: any) {
       if (INTERACTION_JOB_TYPES.includes(job.job_type) && !withinWindow) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
+      }
+
+      // ── Guard: skip interaction jobs if daily budget already exceeded ──
+      if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
+        const budgetUsed = cycle.daily_interaction_budget_used || 0;
+        const budgetMax = cycle.daily_interaction_budget_max || cycle.daily_interaction_budget_target || 500;
+        if (budgetUsed >= budgetMax) {
+          await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget diário atingido: ${budgetUsed}/${budgetMax}` }).eq("id", job.id);
+          return false;
+        }
       }
 
       // ── Process job by type ──
