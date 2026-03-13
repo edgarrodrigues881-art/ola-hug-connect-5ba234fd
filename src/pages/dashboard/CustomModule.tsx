@@ -182,7 +182,7 @@ const CustomModule = () => {
                   <CheckItem label="IP com histórico de spam" invert />
                 </div>
                 <p className="text-xs text-muted-foreground italic">
-                  Infraestrutura fraca compromete qualquer aquecimento.
+                  Uma infraestrutura mal configurada invalida qualquer processo de aquecimento.
                 </p>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
