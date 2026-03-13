@@ -215,8 +215,13 @@ const WarmupInstanceDetail = () => {
 
       const newDayIndex = (latestCycle.day_index || 1) + 1;
       const isLastDay = newDayIndex > (latestCycle.days_total || 30);
-      const nextPhase = isLastDay ? "completed" : latestCycle.phase;
       const finalDayIndex = isLastDay ? latestCycle.days_total : newDayIndex;
+      // Day 1 = pre_24h (rest), Day 2+ = groups_only (active)
+      const nextPhase = isLastDay
+        ? "completed"
+        : finalDayIndex >= 2
+          ? "groups_only"
+          : latestCycle.phase;
 
       // 1) Cancel pending interaction jobs from current day
       await supabase
