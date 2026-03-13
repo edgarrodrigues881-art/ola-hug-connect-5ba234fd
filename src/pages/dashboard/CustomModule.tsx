@@ -95,24 +95,24 @@ const CustomModule = () => {
             <AccordionContent className="px-5 pb-5">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Passo 1 */}
-                <StepCard step={1} title="Formatar o celular" icon={<RotateCcw className="w-4 h-4 text-emerald-500" />}>
-                  <p className="text-sm text-muted-foreground mb-2">A formatação é obrigatória quando:</p>
+                <StepCard step={1} title="Formatação do aparelho" icon={<RotateCcw className="w-4 h-4 text-emerald-500" />}>
+                  <p className="text-sm text-muted-foreground mb-2">Formate o celular obrigatoriamente se:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>O aparelho já foi usado para disparo</li>
-                    <li>Já houve bloqueio anterior</li>
-                    <li>Já teve múltiplos números operando</li>
-                    <li>Já usou app modificado</li>
+                    <li>Já foi usado para disparos em massa</li>
+                    <li>Já sofreu bloqueio ou restrição</li>
+                    <li>Teve mais de um número operando</li>
+                    <li>Teve algum app modificado instalado</li>
                   </ul>
-                  <p className="text-sm text-muted-foreground mt-3 mb-1">A formatação remove:</p>
+                  <p className="text-sm text-muted-foreground mt-3 mb-1">O que a formatação elimina:</p>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li>Resíduos de sessão</li>
-                    <li>Tokens antigos</li>
-                    <li>Cache de apps</li>
-                    <li>Configurações conflitantes</li>
+                    <li>Resíduos de sessões anteriores</li>
+                    <li>Tokens e credenciais antigas</li>
+                    <li>Cache acumulado de aplicativos</li>
+                    <li>Configurações que podem conflitar</li>
                   </ul>
                   <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-400">Não formate parcialmente. Faça reset completo de fábrica.</p>
+                    <p className="text-xs text-amber-400">Sempre faça o reset completo de fábrica. Formatação parcial não é suficiente.</p>
                   </div>
                 </StepCard>
 
