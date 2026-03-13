@@ -456,8 +456,6 @@ const WarmupInstanceDetail = () => {
                   </Button>
                 </div>
               )}
-
-              )}
             </div>
           )}
         </div>
