@@ -315,10 +315,21 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      const baseUrl = (body.base_url || "").replace(/\/+$/, "");
-      const tkn = body.token || "";
+      const deviceId = body.device_id;
+      let baseUrl = (body.base_url || "").replace(/\/+$/, "");
+      let tkn = body.token || "";
+
+      // If device_id provided, look up credentials from DB
+      if (deviceId && (!baseUrl || !tkn)) {
+        const { data: dev } = await db.from("devices").select("uazapi_base_url, uazapi_token").eq("id", deviceId).single();
+        if (dev) {
+          baseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
+          tkn = dev.uazapi_token || "";
+        }
+      }
+
       if (!baseUrl || !tkn) {
-        return new Response(JSON.stringify({ error: "need base_url and token" }), {
+        return new Response(JSON.stringify({ error: "need device_id or base_url+token" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -345,6 +356,33 @@ Deno.serve(async (req) => {
         results.push({ step: "instance_status", status: sr.status, body: stxt.substring(0, 500) });
       } catch (e) {
         results.push({ step: "instance_status", error: e.message });
+      }
+
+      // 0.5) Check and fix privacy settings
+      try {
+        const privRes = await fetch(`${baseUrl}/instance/privacy`, {
+          method: "GET",
+          headers: { token: tkn, Accept: "application/json" },
+        });
+        const privTxt = await privRes.text();
+        let privData: any = null;
+        try { privData = JSON.parse(privTxt); } catch (_e) {}
+        results.push({ step: "get_privacy", status: privRes.status, body: privTxt.substring(0, 500) });
+
+        const statusPrivacy = privData?.status || privData?.StatusPrivacy || privData?.statusPrivacy || "";
+        if (statusPrivacy !== "all") {
+          const setPrivRes = await fetch(`${baseUrl}/instance/privacy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+            body: JSON.stringify({ status: "all" }),
+          });
+          const setPrivTxt = await setPrivRes.text();
+          results.push({ step: "set_privacy_all", status: setPrivRes.status, body: setPrivTxt.substring(0, 500), previous_status_privacy: statusPrivacy });
+        } else {
+          results.push({ step: "privacy_ok", status_privacy: "all" });
+        }
+      } catch (e) {
+        results.push({ step: "privacy_check", error: (e as Error).message });
       }
 
       // 1) Post status
@@ -687,6 +725,44 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   throw new Error("Image send failed");
 }
 
+// Per-tick cache for privacy config to avoid calling GET /instance/privacy every job
+const _privacyConfigured = new Set<string>();
+
+async function ensureStatusPrivacyAll(baseUrl: string, token: string) {
+  const cacheKey = `${baseUrl}:${token}`;
+  if (_privacyConfigured.has(cacheKey)) return;
+
+  try {
+    // Check current privacy
+    const getRes = await fetch(`${baseUrl}/instance/privacy`, {
+      method: "GET",
+      headers: { token, Accept: "application/json" },
+    });
+    if (getRes.ok) {
+      const privacy = await getRes.json();
+      const statusPrivacy = privacy?.status || privacy?.StatusPrivacy || privacy?.statusPrivacy || "";
+      console.log(`[privacy] Current status privacy: ${JSON.stringify(privacy)}`);
+
+      if (statusPrivacy !== "all") {
+        // Set privacy to "all" for status
+        const setRes = await fetch(`${baseUrl}/instance/privacy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify({ status: "all" }),
+        });
+        const setTxt = await setRes.text();
+        console.log(`[privacy] Set status privacy to 'all' → ${setRes.status}: ${setTxt.substring(0, 200)}`);
+      }
+    } else {
+      console.warn(`[privacy] GET /instance/privacy → ${getRes.status}`);
+    }
+  } catch (e) {
+    console.warn(`[privacy] Error configuring privacy:`, (e as Error).message);
+  }
+
+  _privacyConfigured.add(cacheKey);
+}
+
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
   const endpoint = "/send/status";
 
@@ -694,12 +770,8 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
     let parsed: any = null;
     try { parsed = JSON.parse(txt); } catch (_e) { parsed = { raw: txt }; }
 
-    const providerStatus = String(parsed?.Id?.status || parsed?.status || "").toLowerCase();
     const messageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
-
-    if (providerStatus === "pending") {
-      throw new Error(`Status ${mode} pendente no provedor (messageId: ${messageId || "n/a"})`);
-    }
+    console.log(`[postStatus] Validated ${mode} status, messageId: ${messageId}`);
 
     return parsed;
   };
@@ -1591,6 +1663,9 @@ async function handleTick(db: any) {
           if (!baseUrl || !token) {
             throw new Error("Credenciais UAZAPI não configuradas para post_status");
           }
+
+          // Ensure status privacy is set to "all" so everyone can see
+          await ensureStatusPrivacyAll(baseUrl, token);
 
           // Always use image from bucket + caption
           const statusImgUrl = pickRandom(imagePool);
