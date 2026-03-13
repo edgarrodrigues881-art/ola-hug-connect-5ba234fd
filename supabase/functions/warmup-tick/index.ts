@@ -315,35 +315,143 @@ Deno.serve(async (req) => {
       return await handleDailyReset(db);
     }
     if (action === "debug_status") {
-      const baseUrl = body.base_url || "";
+      const baseUrl = (body.base_url || "").replace(/\/+$/, "");
       const tkn = body.token || "";
-      if (!baseUrl || !tkn) return new Response(JSON.stringify({ error: "need base_url and token" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!baseUrl || !tkn) {
+        return new Response(JSON.stringify({ error: "need base_url and token" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       const results: any[] = [];
+      const testText = `Teste status ✅ ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
+      const textPayload = {
+        to: "status@broadcast",
+        type: "text",
+        text: testText,
+        backgroundColor: "#25D366",
+        font: 1,
+      };
 
-      // 1. Check privacy settings
-      try {
-        const privRes = await fetch(`${baseUrl}/privacy`, { method: "GET", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" } });
-        const privTxt = await privRes.text();
-        results.push({ step: "privacy_check", status: privRes.status, body: privTxt.substring(0, 500) });
-      } catch (e) { results.push({ step: "privacy_check", error: e.message }); }
+      let postedMessageId: string | null = null;
 
-      // 2. Try to set status privacy to "all" (contacts)
+      // 0) Instance connectivity
       try {
-        const setPRes = await fetch(`${baseUrl}/privacy`, { method: "PUT", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify({ status: "all" }) });
-        const setPTxt = await setPRes.text();
-        results.push({ step: "privacy_set_all", status: setPRes.status, body: setPTxt.substring(0, 500) });
-      } catch (e) { results.push({ step: "privacy_set_all", error: e.message }); }
+        const sr = await fetch(`${baseUrl}/instance/status`, {
+          method: "GET",
+          headers: { token: tkn, Accept: "application/json" },
+        });
+        const stxt = await sr.text();
+        results.push({ step: "instance_status", status: sr.status, body: stxt.substring(0, 500) });
+      } catch (e) {
+        results.push({ step: "instance_status", error: e.message });
+      }
 
-      // 3. Post test status
-      const textPayload = { type: "text", text: "Teste status ✅ " + new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }), backgroundColor: "#25D366", font: 1 };
+      // 1) Post status
       try {
-        const r = await fetch(`${baseUrl}/send/status`, { method: "POST", headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" }, body: JSON.stringify(textPayload) });
+        const r = await fetch(`${baseUrl}/send/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+          body: JSON.stringify(textPayload),
+        });
         const txt = await r.text();
-        results.push({ step: "post_status", status: r.status, body: txt.substring(0, 300) });
-      } catch (e) { results.push({ step: "post_status", error: e.message }); }
+        let parsed: any = null;
+        try { parsed = JSON.parse(txt); } catch (_e) { parsed = null; }
 
-      return new Response(JSON.stringify({ results }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        postedMessageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
+
+        results.push({
+          step: "post_status",
+          status: r.status,
+          message_id: postedMessageId,
+          body: txt.substring(0, 500),
+          sent_text: testText,
+        });
+      } catch (e) {
+        results.push({ step: "post_status", error: e.message, sent_text: testText });
+      }
+
+      // 2) Try alternative status send endpoints (diagnostic only)
+      const altSendAttempts = [
+        { path: "/chat/send-text", body: { to: "status@broadcast", body: testText } },
+        { path: "/send/text", body: { number: "status@broadcast", text: testText } },
+        { path: "/message/sendText", body: { chatId: "status@broadcast", text: testText } },
+        { path: "/message/sendText", body: { to: "status@broadcast", text: testText } },
+      ];
+
+      for (const attempt of altSendAttempts) {
+        try {
+          const ar = await fetch(`${baseUrl}${attempt.path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: tkn, Accept: "application/json" },
+            body: JSON.stringify(attempt.body),
+          });
+          const atxt = await ar.text();
+          results.push({
+            step: "alt_send",
+            endpoint: attempt.path,
+            status: ar.status,
+            body: atxt.substring(0, 500),
+          });
+        } catch (e) {
+          results.push({ step: "alt_send", endpoint: attempt.path, error: e.message });
+        }
+      }
+
+      // 3) Check status chat history for the just-posted message
+      const historyEndpoints = [
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&count=30`,
+        `/chat/messages?chatId=${encodeURIComponent("status@broadcast")}&limit=30`,
+      ];
+      for (const ep of historyEndpoints) {
+        try {
+          const hr = await fetch(`${baseUrl}${ep}`, {
+            method: "GET",
+            headers: { token: tkn, Accept: "application/json" },
+          });
+          const htxt = await hr.text();
+          let parsed: any = null;
+          try { parsed = JSON.parse(htxt); } catch (_e) { parsed = null; }
+
+          const msgs = Array.isArray(parsed?.messages)
+            ? parsed.messages
+            : Array.isArray(parsed?.data)
+            ? parsed.data
+            : Array.isArray(parsed)
+            ? parsed
+            : [];
+
+          const foundByText = msgs.some((m: any) => {
+            const txt = m?.text || m?.body || m?.content?.text || m?.message?.conversation || "";
+            return typeof txt === "string" && txt.includes(testText);
+          });
+
+          const foundById = postedMessageId
+            ? msgs.some((m: any) => {
+                const id = m?.id || m?.messageId || m?.key?.id || m?.ID;
+                return id === postedMessageId;
+              })
+            : false;
+
+          results.push({
+            step: "check_status_history",
+            endpoint: ep,
+            status: hr.status,
+            total_messages: msgs.length,
+            found_by_text: foundByText,
+            found_by_id: foundById,
+            body: htxt.substring(0, 500),
+          });
+
+          if (hr.ok && (foundByText || foundById)) break;
+        } catch (e) {
+          results.push({ step: "check_status_history", endpoint: ep, error: e.message });
+        }
+      }
+
+      return new Response(JSON.stringify({ results }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     return await handleTick(db);
   } catch (err) {
@@ -580,41 +688,64 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 }
 
 async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "image", content: string, imageUrl?: string) {
-  // UAZAPI V2 uses /send/status (confirmed via diagnostic test)
   const endpoint = "/send/status";
-  
+
+  const parseAndValidate = (txt: string, mode: "text" | "image") => {
+    let parsed: any = null;
+    try { parsed = JSON.parse(txt); } catch (_e) { parsed = { raw: txt }; }
+
+    const providerStatus = String(parsed?.Id?.status || parsed?.status || "").toLowerCase();
+    const messageId = parsed?.Id?.id || parsed?.id || parsed?.messageId || parsed?.key?.id || null;
+
+    if (providerStatus === "pending") {
+      throw new Error(`Status ${mode} pendente no provedor (messageId: ${messageId || "n/a"})`);
+    }
+
+    return parsed;
+  };
+
   // Text status
   if (type === "text") {
-    const payload = { type: "text", text: content, backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]), font: randInt(0, 4) };
+    const payload = {
+      to: "status@broadcast",
+      type: "text",
+      text: content,
+      backgroundColor: pickRandom(["#25D366", "#128C7E", "#075E54", "#34B7F1", "#ECE5DD", "#DCF8C6", "#1DA1F2", "#FF6B6B", "#4ECDC4", "#2C3E50"]),
+      font: randInt(0, 4),
+    };
+
     const res = await fetch(`${baseUrl}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", token, Accept: "application/json" },
       body: JSON.stringify(payload),
     });
+
     const txt = await res.text();
-    console.log(`[postStatus] text ${endpoint} → ${res.status}: ${txt.substring(0, 200)}`);
-    if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-    throw new Error(`Text status failed: ${res.status} ${txt.substring(0, 100)}`);
+    console.log(`[postStatus] text ${endpoint} → ${res.status}: ${txt.substring(0, 250)}`);
+
+    if (!res.ok) {
+      throw new Error(`Text status failed: ${res.status} ${txt.substring(0, 120)}`);
+    }
+
+    return parseAndValidate(txt, "text");
   }
-  
+
   // Image status: try base64 first, then URL
   if (imageUrl) {
-    // Base64 approach (proven working for /send/media)
     try {
       const { blob } = await downloadImageBlob(imageUrl);
       const arrayBuffer = await blob.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
+      let binary = "";
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
       const base64 = btoa(binary);
-      const mimeType = blob.type || 'image/jpeg';
+      const mimeType = blob.type || "image/jpeg";
       const dataUri = `data:${mimeType};base64,${base64}`;
 
-      // Try different field names for the image
       const fieldVariants = [
-        { type: "image", file: dataUri, caption: content },
-        { type: "image", image: dataUri, caption: content },
-        { type: "image", media: dataUri, caption: content },
+        { to: "status@broadcast", type: "image", file: dataUri, caption: content },
+        { to: "status@broadcast", type: "image", image: dataUri, caption: content },
+        { to: "status@broadcast", type: "image", media: dataUri, caption: content },
       ];
 
       for (const payload of fieldVariants) {
@@ -625,21 +756,24 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
             body: JSON.stringify(payload),
           });
           const txt = await res.text();
-          console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
-          if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-        } catch (_e) { continue; }
+          console.log(`[postStatus] b64 ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
+          if (!res.ok) continue;
+          return parseAndValidate(txt, "image");
+        } catch (_e) {
+          continue;
+        }
       }
     } catch (dlErr) {
       console.log(`[postStatus] base64 download failed: ${dlErr.message}`);
     }
 
-    // URL-based fallback
     const urlVariants = [
-      { type: "image", image: imageUrl, caption: content },
-      { type: "image", url: imageUrl, caption: content },
-      { type: "image", media: imageUrl, caption: content },
-      { type: "image", file: imageUrl, caption: content },
+      { to: "status@broadcast", type: "image", image: imageUrl, caption: content },
+      { to: "status@broadcast", type: "image", url: imageUrl, caption: content },
+      { to: "status@broadcast", type: "image", media: imageUrl, caption: content },
+      { to: "status@broadcast", type: "image", file: imageUrl, caption: content },
     ];
+
     for (const payload of urlVariants) {
       try {
         const res = await fetch(`${baseUrl}${endpoint}`, {
@@ -648,11 +782,15 @@ async function uazapiPostStatus(baseUrl: string, token: string, type: "text" | "
           body: JSON.stringify(payload),
         });
         const txt = await res.text();
-        console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 200)}`);
-        if (res.ok) { try { return JSON.parse(txt); } catch (_) { return { ok: true }; } }
-      } catch (_e) { continue; }
+        console.log(`[postStatus] url ${endpoint} keys=${JSON.stringify(Object.keys(payload))} → ${res.status}: ${txt.substring(0, 250)}`);
+        if (!res.ok) continue;
+        return parseAndValidate(txt, "image");
+      } catch (_e) {
+        continue;
+      }
     }
   }
+
   throw new Error("All status post attempts failed");
 }
 
