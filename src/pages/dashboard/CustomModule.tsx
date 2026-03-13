@@ -228,22 +228,22 @@ const CustomModule = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Ideal para contas novas ou sensíveis. Baixa frequência com progressão lenta." />
-                  <IntensityCard label="Moderado" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para contas estáveis. Volume controlado com crescimento gradual." />
-                  <IntensityCard label="Intenso" icon={<Zap className="w-4 h-4" />} color="red" description="Somente para contas maduras com histórico comprovadamente limpo." />
+                  <IntensityCard label="Suave" icon={<HeartPulse className="w-4 h-4" />} color="emerald" description="Indicado para chips novos ou sensíveis. Frequência baixa com aumento muito gradual ao longo dos dias." />
+                  <IntensityCard label="Moderado" icon={<Gauge className="w-4 h-4" />} color="amber" description="Para chips estáveis e sem histórico negativo. Volume controlado com crescimento progressivo e monitorado." />
+                  <IntensityCard label="Intenso" icon={<Zap className="w-4 h-4" />} color="red" description="Exclusivo para chips maduros, com semanas de uso consistente e nenhum registro de restrição anterior." />
                 </div>
 
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-amber-400">Não existe aquecimento eficaz em 24 horas.</strong> Aquecer é um processo de maturação — tentar acelerar gera restrições.
+                    <strong className="text-amber-400">Aquecimento não se resolve em 24 horas.</strong> É um processo de maturação que exige paciência. Pular etapas ou acelerar o ritmo quase sempre leva a restrições.
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 flex gap-3">
                   <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    A progressão gradual é o que garante estabilidade a longo prazo. Só aumente a intensidade quando a conta estiver comprovadamente estável.
+                    A chave é a consistência: aumente a intensidade somente quando o chip estiver estável por vários dias consecutivos. Progressão controlada garante resultados duradouros.
                   </p>
                 </div>
               </div>
