@@ -47,8 +47,9 @@ const Warmup = () => {
   const { user } = useAuth();
   const { isBlocked, planState } = usePlanGate();
   const [planGateOpen, setPlanGateOpen] = useState(false);
+  const WARNING_DISMISS_KEY = "warmup_warning_dismissed_v2";
   const [showWarning, setShowWarning] = useState(() => {
-    return localStorage.getItem("warmup_warning_dismissed") !== "true";
+    return localStorage.getItem(WARNING_DISMISS_KEY) !== "true";
   });
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const { data: sessions = [], isLoading } = useWarmupSessions();
@@ -422,7 +423,7 @@ const Warmup = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => {
-              if (dontShowAgain) localStorage.setItem("warmup_warning_dismissed", "true");
+              if (dontShowAgain) localStorage.setItem(WARNING_DISMISS_KEY, "true");
               setShowWarning(false);
             }}>
               Entendi
