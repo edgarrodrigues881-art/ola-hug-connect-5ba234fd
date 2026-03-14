@@ -1494,8 +1494,14 @@ const WarmupInstanceDetail = () => {
                         ? (job.payload as { group_id?: string; group_name?: string })
                         : {};
 
+                      const recoveredStatus =
+                        job.status === "succeeded" && String(job.last_error || "").startsWith("Auto-reconciliado")
+                          ? "pending"
+                          : job.status;
+
                       return {
                         ...job,
+                        status: recoveredStatus,
                         payload,
                       };
                     };
