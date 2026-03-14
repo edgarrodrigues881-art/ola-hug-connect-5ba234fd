@@ -50,6 +50,8 @@ export interface WarmupInstanceGroup {
   joined_at: string | null;
   last_error: string | null;
   created_at: string;
+  group_jid?: string | null;
+  warmup_groups_pool?: { name: string } | null;
 }
 
 export interface WarmupPlan {
@@ -192,7 +194,7 @@ export function useInstanceGroups(deviceId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_instance_groups" as any)
-        .select("id, device_id, group_id, cycle_id, join_status, joined_at, last_error, created_at")
+        .select("id, user_id, device_id, group_id, cycle_id, join_status, joined_at, last_error, created_at, group_jid, warmup_groups_pool(name)")
         .eq("device_id", deviceId)
         .order("created_at", { ascending: false });
       if (error) throw error;
