@@ -115,7 +115,7 @@ const WarmupInstanceDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_jobs")
-        .select("id, job_type, status, run_at, payload")
+        .select("id, job_type, status, run_at, payload, last_error")
         .eq("cycle_id", cycle!.id)
         .order("run_at", { ascending: true });
       if (error) throw error;
