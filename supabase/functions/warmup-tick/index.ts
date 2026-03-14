@@ -547,6 +547,36 @@ async function handleTick(db: any) {
     .eq("status", "running")
     .lt("updated_at", staleThreshold);
 
+  // ── Reconcile stale join_group jobs: auto-succeed if group already joined ──
+  {
+    const { data: staleJoinJobs } = await db.from("warmup_jobs")
+      .select("id, device_id, payload")
+      .eq("job_type", "join_group")
+      .eq("status", "pending")
+      .limit(500);
+    if (staleJoinJobs && staleJoinJobs.length > 0) {
+      const deviceIds = [...new Set(staleJoinJobs.map((j: any) => j.device_id))];
+      const { data: joinedRecords } = await db.from("warmup_instance_groups")
+        .select("device_id, group_id")
+        .in("device_id", deviceIds)
+        .eq("join_status", "joined");
+      if (joinedRecords && joinedRecords.length > 0) {
+        const joinedSet = new Set(joinedRecords.map((r: any) => `${r.device_id}:${r.group_id}`));
+        const toReconcile = staleJoinJobs
+          .filter((j: any) => j.payload?.group_id && joinedSet.has(`${j.device_id}:${j.payload.group_id}`))
+          .map((j: any) => j.id);
+        if (toReconcile.length > 0) {
+          for (let i = 0; i < toReconcile.length; i += 200) {
+            await db.from("warmup_jobs")
+              .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já joined" })
+              .in("id", toReconcile.slice(i, i + 200));
+          }
+          console.log(`[warmup-tick] Reconciled ${toReconcile.length} stale join_group jobs`);
+        }
+      }
+    }
+  }
+
   const { data: pendingJobs, error: fetchErr } = await db
     .from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
