@@ -209,6 +209,11 @@ const formatPhone = (num: string) => {
 };
 
 const WarmupInstances = () => {
+  // Bulk warmup state
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
