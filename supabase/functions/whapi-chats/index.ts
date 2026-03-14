@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Get device config
     const { data: device } = await serviceClient
       .from("devices")
-      .select("uazapi_token, uazapi_base_url")
+      .select("uazapi_token, uazapi_base_url, number")
       .eq("id", deviceId)
       .eq("user_id", userId)
       .single();
