@@ -233,9 +233,17 @@ const WarmupInstances = () => {
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices-warmup-list", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id").eq("user_id", user!.id).order("created_at", { ascending: true }).order("id", { ascending: true });
+      const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at").eq("user_id", user!.id).order("created_at", { ascending: true });
       if (error) throw error;
-      return data || [];
+      return (data || []).sort((a, b) => {
+        const tA = new Date(a.created_at).getTime();
+        const tB = new Date(b.created_at).getTime();
+        if (tA !== tB) return tA - tB;
+        const numA = parseInt(a.name.match(/(\d+)$/)?.[1] || "0", 10);
+        const numB = parseInt(b.name.match(/(\d+)$/)?.[1] || "0", 10);
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      });
     },
     enabled: !!user,
   });
