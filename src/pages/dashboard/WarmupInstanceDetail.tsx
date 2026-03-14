@@ -1482,17 +1482,19 @@ const WarmupInstanceDetail = () => {
                     if (!cycleStartedAt) return dayKey;
                     const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
                     const warmupDay = Math.max(1, diff);
-                    if (warmupDay > currentWarmupDay) {
-                      return `Dia ${warmupDay} — ${dayKey} (agendado)`;
+
+                    // Check if this day was manually skipped
+                    const wasSkipped = dayBuckets[dayKey].some(
+                      i => i.label === "Dia pulado" || i.label.includes("pulado") || i.label.includes("manual_day_advance")
+                    );
+
+                    if (wasSkipped && warmupDay < currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (pulado)`;
+                    }
+                    if (warmupDay < currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (concluído)`;
                     }
                     return `Dia ${warmupDay} — ${dayKey}`;
-                  };
-
-                  const isFutureDay = (dayKey: string) => {
-                    const firstItem = dayBuckets[dayKey][0];
-                    if (!cycleStartedAt) return false;
-                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
-                    return Math.max(1, diff) > currentWarmupDay;
                   };
 
                   return (
@@ -1504,10 +1506,8 @@ const WarmupInstanceDetail = () => {
                         const pendingCount = dayItems.filter(i => i.type === "pending").length;
                         const failedCount = dayItems.filter(i => i.type === "failed").length;
 
-                        const future = isFutureDay(dayKey);
-
                         return (
-                          <div key={dayKey} className={cn("border-b border-border/10 last:border-0", future && "opacity-50")}>
+                          <div key={dayKey} className="border-b border-border/10 last:border-0">
                             <button
                               onClick={() => {
                                 const idx = dayKeys.indexOf(dayKey);
