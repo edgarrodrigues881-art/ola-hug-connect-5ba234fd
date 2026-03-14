@@ -616,32 +616,18 @@ const WarmupInstanceDetail = () => {
       if (normalized && !liveNameToJid.has(normalized)) liveNameToJid.set(normalized, g.id);
     }
 
-    const evidenceNames = new Set(
-      joinEvidence
-        .map((item) => normalizeGroupName(item.group_name))
-        .filter(Boolean)
-    );
-    const evidenceLinks = new Set(
-      joinEvidence
-        .map((item) => normalizeInviteLink(item.group_link))
-        .filter(Boolean)
-    );
+    if (!liveGroupsSyncOk) return;
 
     const toPromote = instanceGroups
       .filter((g) => g.join_status !== "joined")
       .map((g) => {
         const poolName = g.warmup_groups_pool?.name;
-        const poolLink = g.warmup_groups_pool?.external_group_ref;
 
         const byJid = g.group_jid && liveJids.has(g.group_jid) ? g.group_jid : null;
         const byName = poolName ? liveNameToJid.get(normalizeGroupName(poolName)) || null : null;
-        const byEvidenceName = poolName ? evidenceNames.has(normalizeGroupName(poolName)) : false;
-        const byEvidenceLink = poolLink ? evidenceLinks.has(normalizeInviteLink(poolLink)) : false;
 
         const matchedJid = byJid || byName;
-        const hasEvidence = byEvidenceName || byEvidenceLink;
-
-        if (!matchedJid && !hasEvidence) return null;
+        if (!matchedJid) return null;
         return { id: g.id, matchedJid };
       })
       .filter((g): g is { id: string; matchedJid: string | null } => !!g);
@@ -670,7 +656,7 @@ const WarmupInstanceDetail = () => {
     };
 
     void syncRecognizedGroups();
-  }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
+  }, [deviceId, instanceGroups, liveDeviceGroups, liveGroupsSyncOk, queryClient]);
 
   // Reverse sync: demote groups marked 'joined' that are no longer on the device
   useEffect(() => {
