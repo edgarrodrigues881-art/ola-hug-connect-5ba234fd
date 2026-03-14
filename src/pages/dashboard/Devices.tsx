@@ -1367,7 +1367,7 @@ const Devices = () => {
           return (
             <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-shadow w-full">
               <CardContent className="px-6 pt-7 pb-6 flex flex-col gap-5">
-                {/* Avatar + Nome + ID */}
+                {/* Avatar + Nome + Status */}
                 <div className="flex items-center gap-4">
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
@@ -1392,43 +1392,45 @@ const Devices = () => {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    {isEditing ? (
-                      <input
-                        ref={inlineInputRef}
-                        value={inlineEditName}
-                        onChange={(e) => setInlineEditName(e.target.value)}
-                        onBlur={commitInlineEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") commitInlineEdit();
-                          if (e.key === "Escape") setInlineEditId(null);
-                        }}
-                        className="text-base font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
-                      />
-                    ) : (
-                      <p
-                        className="text-base font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
-                        onClick={() => startInlineEdit(d)}
-                        title={d.name}
-                      >
-                        {d.name}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-0.5">ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        {isEditing ? (
+                          <input
+                            ref={inlineInputRef}
+                            value={inlineEditName}
+                            onChange={(e) => setInlineEditName(e.target.value)}
+                            onBlur={commitInlineEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitInlineEdit();
+                              if (e.key === "Escape") setInlineEditId(null);
+                            }}
+                            className="text-base font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
+                          />
+                        ) : (
+                          <p
+                            className="text-base font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
+                            onClick={() => startInlineEdit(d)}
+                            title={d.name}
+                          >
+                            {d.name}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`} />
+                        <span className={`text-xs font-semibold ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`}>
+                          {ss.label}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Status + Telefone */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <StatusIcon className={`w-4.5 h-4.5 ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`} />
-                    <span className={`text-sm font-semibold ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`}>
-                      {ss.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Smartphone className="w-4 h-4 shrink-0" />
-                    <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
-                  </div>
+                {/* Telefone */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Smartphone className="w-4 h-4 shrink-0" />
+                  <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
                 </div>
 
                 {/* Botões de ação */}
