@@ -206,6 +206,9 @@ export function useInstanceGroups(deviceId: string) {
       return data as unknown as WarmupInstanceGroup[];
     },
     enabled: !!user && !!deviceId,
+    refetchInterval: 15000,
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
   });
 }
 
