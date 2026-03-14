@@ -115,7 +115,7 @@ const WarmupInstanceDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_jobs")
-        .select("id, job_type, status, run_at, payload")
+        .select("id, job_type, status, run_at, payload, last_error")
         .eq("cycle_id", cycle!.id)
         .order("run_at", { ascending: true });
       if (error) throw error;
@@ -619,7 +619,7 @@ const WarmupInstanceDetail = () => {
     if (!liveGroupsSyncOk) return;
 
     const toPromote = instanceGroups
-      .filter((g) => g.join_status !== "joined")
+      .filter((g) => g.join_status !== "joined" && g.join_status !== "left")
       .map((g) => {
         const poolName = g.warmup_groups_pool?.name;
 
@@ -677,9 +677,6 @@ const WarmupInstanceDetail = () => {
         if (poolName) {
           const norm = normalizeGroupName(poolName);
           if (liveNames.has(norm)) return false;
-          for (const ln of liveNames) {
-            if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return false;
-          }
         }
         return true; // Not found in live groups — demote
       })
@@ -699,78 +696,8 @@ const WarmupInstanceDetail = () => {
     void demoteGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, liveGroupsSyncOk, queryClient]);
 
-  // Reconcilia jobs pendentes: marca como succeeded SOMENTE se grupo confirmado via lista real do WhatsApp
-  // Evidências históricas NÃO são usadas aqui para evitar auto-succeed de grupos que foram removidos
-  useEffect(() => {
-    if (!cycle?.id || scheduledJobs.length === 0) return;
-    if (!liveGroupsSyncOk) return;
-
-    const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
-    const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
-
-    const isGroupOnDevice = (groupId: string): boolean => {
-      const rec = instanceGroups.find((g) => g.group_id === groupId);
-      if (!rec) return false;
-      if (rec.group_jid && liveJids.has(rec.group_jid)) return true;
-
-      const poolName = rec.warmup_groups_pool?.name;
-      if (poolName) {
-        const norm = normalizeGroupName(poolName);
-        if (liveNames.has(norm)) return true;
-        for (const ln of liveNames) {
-          if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return true;
-        }
-      }
-
-      return false;
-    };
-
-    const pendingJoinJobs = scheduledJobs.filter(
-      (job) => job.job_type === "join_group" && job.status === "pending"
-    );
-    if (pendingJoinJobs.length === 0) return;
-
-    const toSucceed = pendingJoinJobs
-      .filter((job) => {
-        const payload = (job.payload && typeof job.payload === "object")
-          ? (job.payload as { group_id?: string })
-          : {};
-        return !!payload.group_id && isGroupOnDevice(payload.group_id);
-      })
-      .map((job) => job.id);
-
-    const nowIso = new Date().toISOString();
-    const toAntecipate = pendingJoinJobs
-      .filter((job) => {
-        if (toSucceed.includes(job.id)) return false;
-        return job.run_at > nowIso;
-      })
-      .map((job) => job.id);
-
-    const reconcileJoinJobs = async () => {
-      if (toSucceed.length > 0) {
-        await supabase
-          .from("warmup_jobs")
-          .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
-          .in("id", toSucceed)
-          .eq("status", "pending");
-      }
-
-      if (toAntecipate.length > 0) {
-        await supabase
-          .from("warmup_jobs")
-          .update({ run_at: new Date(Date.now() - 60000).toISOString() })
-          .in("id", toAntecipate)
-          .eq("status", "pending");
-      }
-
-      if (toSucceed.length > 0 || toAntecipate.length > 0) {
-        queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
-      }
-    };
-
-    void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, liveDeviceGroups, liveGroupsSyncOk]);
+  // Importante: a tela NÃO altera status/run_at de jobs automaticamente.
+  // Isso evita “re-joins” inesperados ao sair e voltar para a página.
 
   /* handlers */
   const handleStartWarmup = () => {
@@ -811,7 +738,7 @@ const WarmupInstanceDetail = () => {
     );
   }
 
-  // Count real joined groups: DB joined + grupos detectados ao vivo + evidência de join logs
+  // Count real joined groups: somente grupos confirmados na lista ao vivo do dispositivo
   const byGroupId = new Map<string, {
     group_id: string;
     join_status: string;
@@ -861,15 +788,7 @@ const WarmupInstanceDetail = () => {
             if (!groupName) return false;
 
             const normalizedName = normalizeGroupName(groupName);
-            if (liveGroupNames.has(normalizedName)) return true;
-
-            for (const liveName of liveGroupNames) {
-              if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
-                if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
-              }
-            }
-
-            return false;
+            return liveGroupNames.has(normalizedName);
           })
           .map((g) => g.group_id)
   );
@@ -1575,14 +1494,14 @@ const WarmupInstanceDetail = () => {
                         ? (job.payload as { group_id?: string; group_name?: string })
                         : {};
 
-                      const effectiveStatus =
-                        job.status === "pending" && payload.group_id && recognizedGroupIds.has(payload.group_id)
-                          ? "succeeded"
+                      const recoveredStatus =
+                        job.status === "succeeded" && String(job.last_error || "").startsWith("Auto-reconciliado")
+                          ? "pending"
                           : job.status;
 
                       return {
                         ...job,
-                        status: effectiveStatus,
+                        status: recoveredStatus,
                         payload,
                       };
                     };
