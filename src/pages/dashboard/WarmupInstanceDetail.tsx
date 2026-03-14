@@ -911,7 +911,7 @@ const WarmupInstanceDetail = () => {
                     variant="outline"
                     className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
                     onClick={() => setShowAccelerateConfirm(true)}
-                    disabled={accelerating || (cycle.phase !== "pre_24h" && scheduledJobs.filter(j => j.status === "pending").length === 0)}
+                    disabled={accelerating}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
                     Executar Agora
