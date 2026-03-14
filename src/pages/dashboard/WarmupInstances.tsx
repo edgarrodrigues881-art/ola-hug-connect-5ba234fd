@@ -335,7 +335,7 @@ const WarmupInstances = () => {
   };
 
   // Warmup actions
-  const handlePause = (deviceId: string, e: React.MouseEvent) => {
+  const handlePause = useCallback((deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.is_running ? { ...c, is_running: false, phase: "paused", previous_phase: c.phase } : c)
@@ -345,9 +345,9 @@ const WarmupInstances = () => {
       { action: "pause", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao pausar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
 
-  const handleResume = (deviceId: string, e: React.MouseEvent) => {
+  const handleResume = useCallback((deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.phase === "paused" ? { ...c, is_running: true, phase: c.previous_phase || "groups_only" } : c)
@@ -357,11 +357,11 @@ const WarmupInstances = () => {
       { action: "resume", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao retomar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
 
   const [cancelConfirmDevice, setCancelConfirmDevice] = useState<string | null>(null);
 
-  const handleCancel = (deviceId: string) => {
+  const handleCancel = useCallback((deviceId: string) => {
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.filter((c: any) => c.device_id !== deviceId)
     );
@@ -371,7 +371,11 @@ const WarmupInstances = () => {
       { action: "stop", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao cancelar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
+
+  const onCancelClick = useCallback((deviceId: string) => {
+    setCancelConfirmDevice(deviceId);
+  }, []);
 
   return (
     <div className="space-y-5">
