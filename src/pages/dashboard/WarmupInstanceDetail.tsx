@@ -430,6 +430,96 @@ const WarmupInstanceDetail = () => {
 
   const isConnected = device && ["Connected", "Ready", "authenticated"].includes(device.status);
 
+  const normalizeGroupName = (value?: string | null) =>
+    (value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
+  const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["warmup_live_groups", deviceId],
+    queryFn: async () => {
+      if (!deviceId) return [];
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        if (!token) return [];
+
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
+          { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+        );
+        if (!res.ok) return [];
+
+        const json = await res.json();
+        const chats = Array.isArray(json?.chats) ? json.chats : [];
+        const dedup = new Map<string, { id: string; name: string }>();
+
+        for (const c of chats) {
+          const id = c.id || c.jid || c.chatId || c.JID || "";
+          const name = c.name || c.subject || c.title || c.id || "Grupo sem nome";
+          if (!id || !String(id).includes("@g.us")) continue;
+          if (!dedup.has(id)) dedup.set(id, { id, name });
+        }
+
+        return Array.from(dedup.values());
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!user && !!deviceId && !!isConnected,
+    refetchInterval: 120000,
+    staleTime: 30000,
+  });
+
+  // Auto-reconhece grupos já ingressados no WhatsApp e sincroniza status local
+  useEffect(() => {
+    if (!deviceId || liveDeviceGroups.length === 0 || instanceGroups.length === 0) return;
+
+    const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
+    const liveNameToJid = new Map<string, string>();
+    for (const g of liveDeviceGroups) {
+      const normalized = normalizeGroupName(g.name);
+      if (normalized && !liveNameToJid.has(normalized)) liveNameToJid.set(normalized, g.id);
+    }
+
+    const toPromote = instanceGroups
+      .filter((g) => g.join_status !== "joined")
+      .map((g) => {
+        const byJid = g.group_jid && liveJids.has(g.group_jid) ? g.group_jid : null;
+        const byName = g.warmup_groups_pool?.name
+          ? liveNameToJid.get(normalizeGroupName(g.warmup_groups_pool.name)) || null
+          : null;
+        const matchedJid = byJid || byName;
+        return matchedJid ? { id: g.id, matchedJid } : null;
+      })
+      .filter((g): g is { id: string; matchedJid: string } => !!g);
+
+    if (toPromote.length === 0) return;
+
+    const syncRecognizedGroups = async () => {
+      const now = new Date().toISOString();
+      await Promise.all(
+        toPromote.map((row) =>
+          supabase
+            .from("warmup_instance_groups")
+            .update({
+              join_status: "joined",
+              joined_at: now,
+              group_jid: row.matchedJid,
+              last_error: null,
+            })
+            .eq("id", row.id)
+            .neq("join_status", "joined")
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["warmup_instance_groups", deviceId] });
+    };
+
+    void syncRecognizedGroups();
+  }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
+
   /* handlers */
   const handleStartWarmup = () => {
     if (!deviceId) return;
