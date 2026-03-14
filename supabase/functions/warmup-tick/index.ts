@@ -1151,8 +1151,38 @@ async function handleTick(db: any) {
         }
 
         case "daily_reset": {
-          const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
           const chipState = cycle.chip_state || "new";
+
+          // Guard: never reset before the initial 24h window ends
+          if (cycle.phase === "pre_24h" && cycle.first_24h_ends_at) {
+            const nowTs = new Date();
+            const first24hEndsAt = new Date(cycle.first_24h_ends_at);
+            if (nowTs.getTime() < first24hEndsAt.getTime()) {
+              const deferredReset = new Date(first24hEndsAt);
+              deferredReset.setUTCHours(3, 5, 0, 0);
+              if (deferredReset.getTime() <= first24hEndsAt.getTime()) {
+                deferredReset.setUTCDate(deferredReset.getUTCDate() + 1);
+              }
+
+              await db.from("warmup_jobs").update({
+                status: "pending",
+                run_at: deferredReset.toISOString(),
+                last_error: "",
+              }).eq("id", job.id);
+
+              bufferAuditLog({
+                user_id: job.user_id,
+                device_id: job.device_id,
+                cycle_id: job.cycle_id,
+                level: "info",
+                event_type: "daily_reset_deferred",
+                message: `daily_reset adiado para ${deferredReset.toISOString()} aguardando fim das 24h iniciais`,
+              });
+              return false;
+            }
+          }
+
+          const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
 
           if (newDay > cycle.days_total) {
             await db.from("warmup_cycles").update({

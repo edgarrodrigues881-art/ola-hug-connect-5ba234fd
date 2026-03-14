@@ -172,13 +172,15 @@ Deno.serve(async (req) => {
         run_at: first24hEnds.toISOString(), status: "pending",
       });
 
-      // Schedule first daily_reset for tomorrow at 00:05 BRT (03:05 UTC)
-      const tomorrow = new Date(now);
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-      tomorrow.setUTCHours(3, 5, 0, 0);
+      // Schedule first daily_reset at the first 00:05 BRT AFTER the initial 24h window
+      const firstReset = new Date(first24hEnds);
+      firstReset.setUTCHours(3, 5, 0, 0);
+      if (firstReset.getTime() <= first24hEnds.getTime()) {
+        firstReset.setUTCDate(firstReset.getUTCDate() + 1);
+      }
       jobs.push({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
-        job_type: "daily_reset", payload: {}, run_at: tomorrow.toISOString(), status: "pending",
+        job_type: "daily_reset", payload: {}, run_at: firstReset.toISOString(), status: "pending",
       });
 
       if (jobs.length > 0) {
