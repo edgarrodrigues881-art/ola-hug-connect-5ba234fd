@@ -700,6 +700,48 @@ const WarmupInstanceDetail = () => {
     void syncRecognizedGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
+  // Reverse sync: demote groups marked 'joined' that are no longer on the device
+  useEffect(() => {
+    if (!deviceId || instanceGroups.length === 0) return;
+    // Only run reverse sync when we have a meaningful live groups response
+    // (at least 1 group visible means the API is responding)
+    if (liveDeviceGroups.length === 0) return;
+
+    const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
+    const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
+
+    const toDemote = instanceGroups
+      .filter((g) => {
+        if (g.join_status !== "joined") return false;
+        // Check if group is still present by JID
+        if (g.group_jid && liveJids.has(g.group_jid)) return false;
+        // Check by name (fuzzy)
+        const poolName = g.warmup_groups_pool?.name;
+        if (poolName) {
+          const norm = normalizeGroupName(poolName);
+          if (liveNames.has(norm)) return false;
+          for (const ln of liveNames) {
+            if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return false;
+          }
+        }
+        return true; // Not found in live groups — demote
+      })
+      .map((g) => g.id);
+
+    if (toDemote.length === 0) return;
+
+    const demoteGroups = async () => {
+      await supabase
+        .from("warmup_instance_groups")
+        .update({ join_status: "left", last_error: "Grupo não encontrado no dispositivo" })
+        .in("id", toDemote)
+        .eq("join_status", "joined");
+      queryClient.invalidateQueries({ queryKey: ["warmup_instance_groups", deviceId] });
+    };
+
+    void demoteGroups();
+  }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
+
   // Reconcilia jobs pendentes: marca como succeeded se grupo já reconhecido (DB + provider + evidence)
   // E antecipa run_at de jobs futuros para que o tick os processe imediatamente
   useEffect(() => {
