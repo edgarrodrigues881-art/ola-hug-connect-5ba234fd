@@ -1010,9 +1010,14 @@ const WarmupInstanceDetail = () => {
               displayJobs.filter((j) => actionableTypes.has(j.job_type)).length,
               displayJobs.length,
             );
+            // Prioritize actionable jobs (phase_transition > interaction) over daily_reset for display
+            const pendingJobs = displayJobs.filter((j) => j.status === "pending");
             const nextPendingJob =
-              displayJobs.find((j) => j.status === "pending" && new Date(j.run_at) >= nowUtc) ||
-              displayJobs.find((j) => j.status === "pending") ||
+              pendingJobs.find((j) => j.job_type === "phase_transition") ||
+              pendingJobs.find((j) => actionableTypes.has(j.job_type) && new Date(j.run_at) >= nowUtc) ||
+              pendingJobs.find((j) => j.job_type !== "daily_reset" && new Date(j.run_at) >= nowUtc) ||
+              pendingJobs.find((j) => new Date(j.run_at) >= nowUtc) ||
+              pendingJobs[0] ||
               null;
 
             return (
