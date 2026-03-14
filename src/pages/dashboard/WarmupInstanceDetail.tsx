@@ -735,57 +735,58 @@ const WarmupInstanceDetail = () => {
     <div className="w-full space-y-6 pb-8">
 
       {/* ═══════════ HERO HEADER ═══════════ */}
-      <div className="relative rounded-2xl border border-border/30 bg-gradient-to-b from-card to-background overflow-hidden">
-        {/* subtle glow */}
+      <div className="relative rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl overflow-hidden shadow-[0_0_40px_-12px_hsl(var(--primary)/0.15)]">
+        {/* ambient glow */}
         <div className={cn(
-          "absolute -top-20 left-1/2 -translate-x-1/2 w-60 h-60 rounded-full blur-[100px] opacity-20 pointer-events-none",
+          "absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[120px] opacity-25 pointer-events-none",
           isConnected ? "bg-primary" : "bg-muted-foreground"
         )} />
+        <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full blur-[80px] opacity-10 pointer-events-none bg-primary" />
 
         <div className="relative z-10">
           {/* top bar */}
-          <div className="flex items-center justify-between px-5 pt-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => navigate("/dashboard/warmup-v2")}>
+          <div className="flex items-center justify-between px-6 pt-5">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate("/dashboard/warmup-v2")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <Badge
               variant="outline"
               className={cn(
-                "text-[10px] font-bold uppercase tracking-widest px-3 py-1 gap-1.5 rounded-full border",
+                "text-[10px] font-extrabold uppercase tracking-[0.15em] px-4 py-1.5 gap-2 rounded-full border backdrop-blur-sm",
                 isConnected
-                  ? "text-primary border-primary/25 bg-primary/8"
+                  ? "text-primary border-primary/30 bg-primary/10 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]"
                   : "text-muted-foreground border-border bg-muted/10"
               )}
             >
-              <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isConnected ? "bg-primary animate-pulse" : "bg-muted-foreground")} />
+              <span className={cn("w-2 h-2 rounded-full inline-block", isConnected ? "bg-primary animate-pulse shadow-[0_0_6px_hsl(var(--primary)/0.6)]" : "bg-muted-foreground")} />
               {isConnected ? "CONECTADO" : "DESCONECTADO"}
             </Badge>
           </div>
 
           {/* instance identity */}
-          <div className="px-5 pt-4 pb-5 flex items-center gap-4">
+          <div className="px-6 pt-5 pb-6 flex items-center gap-5">
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ring-2 ring-offset-2 ring-offset-background",
-              isConnected ? "bg-primary/10 ring-primary/30" : "bg-muted/20 ring-border/20"
+              "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ring-2 ring-offset-2 ring-offset-transparent",
+              isConnected ? "bg-primary/12 ring-primary/40 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]" : "bg-muted/20 ring-border/20"
             )}>
               {device.profile_picture ? (
-                <img src={device.profile_picture} className="w-14 h-14 rounded-2xl object-cover" alt="" />
+                <img src={device.profile_picture} className="w-16 h-16 rounded-2xl object-cover" alt="" />
               ) : (
-                <Flame className={cn("w-6 h-6", isConnected ? "text-primary" : "text-muted-foreground")} />
+                <Flame className={cn("w-7 h-7", isConnected ? "text-primary" : "text-muted-foreground")} />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-foreground truncate leading-tight">
+              <h1 className="text-xl font-extrabold text-foreground truncate leading-tight tracking-tight">
                 {device.profile_name || device.name}
               </h1>
               {device.number && (
-                <p className="text-[13px] font-mono text-muted-foreground/70 mt-0.5">{device.number}</p>
+                <p className="text-sm font-mono text-muted-foreground/60 mt-1">{device.number}</p>
               )}
               {cycle && pc && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={cn("text-[11px] font-semibold", pc.color)}>{pc.label}</span>
-                  <span className="text-muted-foreground/30">·</span>
-                  <span className="text-[11px] text-muted-foreground">Dia {cycle.day_index}/{cycle.days_total}</span>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className={cn("text-xs font-bold", pc.color)}>{pc.label}</span>
+                  <span className="text-muted-foreground/20">•</span>
+                  <span className="text-xs text-muted-foreground font-medium">Dia {cycle.day_index}/{cycle.days_total}</span>
                 </div>
               )}
             </div>
@@ -793,10 +794,10 @@ const WarmupInstanceDetail = () => {
 
           {/* action row */}
           {cycle && !isTerminalCycle && (
-            <div className="px-5 pb-5 space-y-2">
+            <div className="px-6 pb-6 space-y-2.5">
               {cycle.is_running ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
+                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm shadow-[0_0_15px_-4px_hsl(var(--primary)/0.2)]"
                   variant="ghost"
                   onClick={handlePause}
                 >
@@ -804,7 +805,7 @@ const WarmupInstanceDetail = () => {
                 </Button>
               ) : cycle.phase === "paused" ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
+                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm"
                   variant="ghost"
                   onClick={handleResume}
                 >
@@ -814,10 +815,10 @@ const WarmupInstanceDetail = () => {
 
               {/* Accelerate buttons */}
               {cycle.is_running && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/15 hover:text-amber-400 font-semibold"
+                    className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating || (cycle.phase !== "pre_24h" && scheduledJobs.filter(j => j.status === "pending").length === 0)}
                   >
@@ -826,7 +827,7 @@ const WarmupInstanceDetail = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/30 text-purple-500 hover:bg-purple-500/15 hover:text-purple-400 font-semibold"
+                    className="gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(270_60%_50%/0.15)]"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || cycle.phase === "completed"}
                   >
@@ -842,11 +843,11 @@ const WarmupInstanceDetail = () => {
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
       {(!cycle || isTerminalCycle) && !cycleLoading && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* chip state selector */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Estado do chip</p>
-            <div className="grid grid-cols-3 gap-2.5">
+            <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Estado do chip</p>
+            <div className="grid grid-cols-3 gap-3">
               {([
                 { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢" },
                 { value: "recovered" as const, label: "Chip Recuperado", desc: "Extra cauteloso, já sofreu ban", emoji: "🔴" },
@@ -856,15 +857,15 @@ const WarmupInstanceDetail = () => {
                   key={opt.value}
                   onClick={() => setChipState(opt.value)}
                   className={cn(
-                    "text-left p-3.5 rounded-xl border-2 transition-all duration-150",
+                    "text-left p-4 rounded-2xl border-2 transition-all duration-200 backdrop-blur-xl",
                     chipState === opt.value
-                      ? "border-primary bg-primary/5 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.25)]"
-                      : "border-border/40 hover:border-primary/20 bg-card"
+                      ? "border-primary bg-primary/8 shadow-[0_0_30px_-6px_hsl(var(--primary)/0.3)]"
+                      : "border-border/30 hover:border-primary/25 bg-card/50 hover:bg-card/70"
                   )}
                 >
-                  <span className="text-base">{opt.emoji}</span>
-                  <p className="text-[13px] font-semibold text-foreground mt-1.5">{opt.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{opt.desc}</p>
+                  <span className="text-lg">{opt.emoji}</span>
+                  <p className="text-sm font-extrabold text-foreground mt-2">{opt.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-tight font-medium">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -872,9 +873,9 @@ const WarmupInstanceDetail = () => {
 
           {/* duration */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Duração do ciclo</p>
+            <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Duração do ciclo</p>
             <Select value={daysTotal} onValueChange={setDaysTotal}>
-              <SelectTrigger className="rounded-xl h-10">
+              <SelectTrigger className="rounded-xl h-11 bg-card/50 backdrop-blur-xl border-border/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -886,26 +887,26 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* protections */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-3">
-            <p className="text-xs font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
+          <div className="rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-xl p-6 space-y-3 shadow-[0_0_20px_-8px_hsl(var(--primary)/0.1)]">
+            <p className="text-xs font-extrabold text-foreground flex items-center gap-2.5">
+              <Shield className="w-4.5 h-4.5 text-primary" />
               Proteções automáticas
             </p>
-            <ul className="grid gap-1.5 list-disc list-inside">
+            <ul className="grid gap-2 list-disc list-inside">
               {[
                 "Limites diários automáticos",
                 "Delays aleatórios entre ações",
                 "Evolução progressiva de fases",
                 "Proteção contínua do chip",
               ].map((item, i) => (
-                <li key={i} className="text-[11px] text-muted-foreground leading-relaxed">{item}</li>
+                <li key={i} className="text-xs text-muted-foreground leading-relaxed font-medium">{item}</li>
               ))}
             </ul>
           </div>
 
           {/* CTA */}
           <Button
-            className="w-full gap-2 h-12 rounded-xl text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20"
+            className="w-full gap-2.5 h-13 rounded-xl text-sm font-black bg-amber-600 hover:bg-amber-700 text-white shadow-[0_8px_30px_-6px_hsl(38_92%_50%/0.4)] transition-all hover:shadow-[0_8px_40px_-4px_hsl(38_92%_50%/0.5)]"
             onClick={() => {
               if (Number(daysTotal) <= 7) {
                 setShowShortDaysWarning(true);
@@ -918,12 +919,12 @@ const WarmupInstanceDetail = () => {
             {engine.isPending ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Flame className="w-4 h-4" />
+              <Flame className="w-5 h-5" />
             )}
             {isTerminalCycle ? "Começar Novo Aquecimento" : "Começar Aquecimento"}
           </Button>
           {!isConnected && (
-            <p className="text-[11px] text-amber-400 text-center -mt-2">⚠ Conecte a instância primeiro para iniciar</p>
+            <p className="text-xs text-amber-400 text-center -mt-2 font-semibold">⚠ Conecte a instância primeiro para iniciar</p>
           )}
         </div>
       )}
@@ -958,30 +959,30 @@ const WarmupInstanceDetail = () => {
         <div className="space-y-5">
 
           {/* Phase stepper + day progress */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-4">
+          <div className="rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-xl p-6 space-y-5 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.1)]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {pc && <pc.icon className={cn("w-4 h-4", pc.color)} />}
-                <span className={cn("text-sm font-bold", pc?.color)}>{pc?.label}</span>
+              <div className="flex items-center gap-2.5">
+                {pc && <pc.icon className={cn("w-5 h-5", pc.color)} />}
+                <span className={cn("text-base font-extrabold tracking-tight", pc?.color)}>{pc?.label}</span>
               </div>
-              <span className="text-xs font-mono text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-mono font-bold text-foreground bg-muted/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/20">
                 Dia {cycle.day_index}/{cycle.days_total}
               </span>
             </div>
 
             {/* phase stepper */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {phaseSteps.map((p) => {
                 const isActive = cycle.phase === p;
                 const isPast = (phaseConfig[cycle.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
                 return (
                   <div key={p} className="flex-1 group relative">
                     <div className={cn(
-                      "h-2 rounded-full transition-all",
-                      isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.4)]" : isPast ? "bg-primary/35" : "bg-muted/30"
+                      "h-2.5 rounded-full transition-all",
+                      isActive ? "bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/30" : "bg-muted/25 dark:bg-muted/15"
                     )} />
                     <span className={cn(
-                      "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-medium whitespace-nowrap transition-opacity",
+                      "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-bold whitespace-nowrap transition-opacity",
                       isActive ? cn("opacity-100", pc?.color) : "opacity-0 group-hover:opacity-70 text-muted-foreground"
                     )}>
                       {phaseConfig[p]?.label}
@@ -991,9 +992,9 @@ const WarmupInstanceDetail = () => {
               })}
             </div>
 
-            <div className="pt-3">
-              <Progress value={(cycle.day_index / cycle.days_total) * 100} className="h-1.5" />
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">
+            <div className="pt-4">
+              <Progress value={(cycle.day_index / cycle.days_total) * 100} className="h-2" />
+              <p className="text-[10px] text-muted-foreground font-semibold mt-1.5 text-right">
                 {Math.round((cycle.day_index / cycle.days_total) * 100)}% concluído
               </p>
             </div>
@@ -1001,87 +1002,88 @@ const WarmupInstanceDetail = () => {
 
           {/* Countdown (pre_24h only) */}
           {cycle.phase === "pre_24h" && (
-            <div className="rounded-xl border border-amber-500/15 bg-gradient-to-b from-amber-500/5 to-transparent p-6 flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-3">
-                <Timer className="w-5 h-5 text-amber-400" />
+            <div className="relative rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/8 to-amber-500/2 backdrop-blur-xl p-8 flex flex-col items-center text-center overflow-hidden shadow-[0_0_30px_-8px_hsl(38_92%_50%/0.15)]">
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[80px] opacity-20 pointer-events-none bg-amber-500" />
+              <div className="relative w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center mb-4 shadow-[0_0_20px_-4px_hsl(38_92%_50%/0.3)]">
+                <Timer className="w-6 h-6 text-amber-400" />
               </div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Tempo decorrido</p>
-              <p className="text-4xl font-bold text-foreground font-mono tabular-nums mt-1 tracking-tight">{countdown}</p>
-              <p className="text-[11px] text-muted-foreground mt-3 max-w-xs leading-relaxed">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Tempo decorrido</p>
+              <p className="text-5xl font-black text-foreground font-mono tabular-nums mt-2 tracking-tight">{countdown}</p>
+              <p className="text-xs text-muted-foreground/70 mt-4 max-w-sm leading-relaxed">
                 Entrada gradual nos grupos em andamento. Os primeiros grupos serão ingressados em 4-6 horas.
               </p>
             </div>
           )}
 
           {/* ── Plano do Dia — O que vai acontecer hoje ── */}
-          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="w-4 h-4 text-primary" />
+          <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.06)]">
+            <div className="px-6 py-5 border-b border-border/10 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(var(--primary)/0.2)]">
+                <CalendarDays className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-foreground">Plano do Dia {cycle.day_index}</span>
-                <p className="text-[10px] text-muted-foreground">O que está programado para hoje</p>
+                <span className="text-base font-extrabold text-foreground tracking-tight">Plano do Dia {cycle.day_index}</span>
+                <p className="text-[11px] text-muted-foreground font-medium">O que está programado para hoje</p>
               </div>
-              <Badge className="text-[9px] h-5 rounded-lg font-bold bg-primary/10 text-primary border-0 hover:bg-primary/10">
+              <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.2)]">
                 {pc?.label}
               </Badge>
             </div>
 
             {/* Phase explanation */}
-            <div className="px-5 py-4 border-b border-border/10">
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="px-6 py-5 border-b border-border/8">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {cycle.phase === "pre_24h" && (
                   <>
-                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
+                    🛡️ <strong className="text-foreground font-bold">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
                   </>
                 )}
                 {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
                   <>
-                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
+                    💬 <strong className="text-foreground font-bold">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
                   </>
                 )}
                 {cycle.phase === "completed" && (
                   <>
-                    ✅ <strong className="text-foreground">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
+                    ✅ <strong className="text-foreground font-bold">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
                   </>
                 )}
                 {cycle.phase === "paused" && (
                   <>
-                    ⏸️ <strong className="text-foreground">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
+                    ⏸️ <strong className="text-foreground font-bold">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
                   </>
                 )}
               </p>
             </div>
 
             {/* Quick stats row */}
-            <div className="grid grid-cols-4 divide-x divide-border/10">
-              <div className="px-3 py-3.5 text-center group relative">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+            <div className="grid grid-cols-3 divide-x divide-border/8">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Msgs Hoje</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {cycle.daily_interaction_budget_used}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_interaction_budget_target}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_interaction_budget_target}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Enviadas / limite</p>
+                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Enviadas / limite</p>
               </div>
-              <div className="px-3 py-3.5 text-center group relative">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Destinos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Destinos</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {cycle.daily_unique_recipients_used}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_unique_recipients_cap}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Pessoas contactadas</p>
+                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Pessoas contactadas</p>
               </div>
-              <div className="px-3 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Grupos</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {joinedGroups}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{totalTrackedGroups}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{totalTrackedGroups}</span>
                 </p>
                 {pendingGroups > 0 ? (
-                  <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
+                  <p className="text-[9px] text-amber-400 font-bold mt-1">{pendingGroups} aguardando</p>
                 ) : (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Ingressados</p>
+                  <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Ingressados</p>
                 )}
               </div>
             </div>
@@ -1096,21 +1098,21 @@ const WarmupInstanceDetail = () => {
 
             return (
               <div className={cn(
-                "rounded-xl border bg-card overflow-hidden transition-all",
-                isUnlockedAS ? "border-emerald-500/30" : "border-border/20 opacity-60"
+                "rounded-2xl border bg-card/50 backdrop-blur-xl overflow-hidden transition-all shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.04)]",
+                isUnlockedAS ? "border-emerald-500/25 shadow-[0_0_25px_-8px_hsl(142_71%_45%/0.12)]" : "border-border/15 opacity-50"
               )}>
-                <div className="px-5 py-4 flex items-center gap-3">
+                <div className="px-6 py-5 flex items-center gap-4">
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    isUnlockedAS ? "bg-emerald-500/10" : "bg-muted/20"
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    isUnlockedAS ? "bg-emerald-500/12 shadow-[0_0_12px_-2px_hsl(142_71%_45%/0.2)]" : "bg-muted/20"
                   )}>
-                    <MessageSquare className={cn("w-4 h-4", isUnlockedAS ? "text-emerald-400" : "text-muted-foreground")} />
+                    <MessageSquare className={cn("w-5 h-5", isUnlockedAS ? "text-emerald-400" : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className={cn("text-sm font-bold", isUnlockedAS ? "text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("text-sm font-extrabold", isUnlockedAS ? "text-foreground" : "text-muted-foreground")}>
                       Auto Save
                     </span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       {isUnlockedAS
                         ? autosaveActive
                           ? "Ativo — salvando contatos automaticamente"
@@ -1132,10 +1134,10 @@ const WarmupInstanceDetail = () => {
                   />
                 </div>
                 {!isUnlockedAS && (
-                  <div className="px-5 pb-3">
+                  <div className="px-6 pb-4">
                     <div className="flex items-center gap-2">
-                      <Progress value={(cycle.day_index / autosaveDay) * 100} className="h-1.5 flex-1" />
-                      <span className="text-[9px] text-muted-foreground font-mono">
+                      <Progress value={(cycle.day_index / autosaveDay) * 100} className="h-2 flex-1" />
+                      <span className="text-[10px] text-muted-foreground font-mono font-bold">
                         Dia {cycle.day_index}/{autosaveDay}
                       </span>
                     </div>
@@ -1157,21 +1159,21 @@ const WarmupInstanceDetail = () => {
 
             return (
               <div className={cn(
-                "rounded-xl border bg-card overflow-hidden transition-all",
-                isUnlocked ? "border-purple-500/30" : "border-border/20 opacity-60"
+                "rounded-2xl border bg-card/50 backdrop-blur-xl overflow-hidden transition-all shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.04)]",
+                isUnlocked ? "border-purple-500/25 shadow-[0_0_25px_-8px_hsl(270_60%_50%/0.12)]" : "border-border/15 opacity-50"
               )}>
-                <div className="px-5 py-4 flex items-center gap-3">
+                <div className="px-6 py-5 flex items-center gap-4">
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    isUnlocked ? "bg-purple-500/10" : "bg-muted/20"
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    isUnlocked ? "bg-purple-500/12 shadow-[0_0_12px_-2px_hsl(270_60%_50%/0.2)]" : "bg-muted/20"
                   )}>
-                    <Globe className={cn("w-4 h-4", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
+                    <Globe className={cn("w-5 h-5", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className={cn("text-sm font-bold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("text-sm font-extrabold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
                       Comunitário
                     </span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       {isUnlocked
                         ? isEnabled || isCommunityPhase
                           ? "Ativo — trocando mensagens com outros chips do sistema"
@@ -1193,10 +1195,10 @@ const WarmupInstanceDetail = () => {
                   />
                 </div>
                 {!isUnlocked && (
-                  <div className="px-5 pb-3">
+                  <div className="px-6 pb-4">
                     <div className="flex items-center gap-2">
-                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-1.5 flex-1" />
-                      <span className="text-[9px] text-muted-foreground font-mono">
+                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-2 flex-1" />
+                      <span className="text-[10px] text-muted-foreground font-mono font-bold">
                         Dia {cycle.day_index}/{communityDay}
                       </span>
                     </div>
@@ -1323,16 +1325,16 @@ const WarmupInstanceDetail = () => {
             return (
               <>
               {/* ── Progresso do Dia (compact) ── */}
-              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-                <div className="px-5 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-teal-400" />
+              <div className="rounded-2xl border border-teal-500/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_0_25px_-8px_hsl(172_66%_50%/0.1)]">
+                <div className="px-6 py-5 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(172_66%_50%/0.2)]">
+                    <Target className="w-5 h-5 text-teal-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">
+                    <span className="text-base font-extrabold text-foreground tracking-tight">
                       {isPre24h ? "Fase de Proteção (24h)" : "Progresso do Dia"}
                     </span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       {isPre24h
                         ? "⏳ Aguardando período de proteção inicial"
                         : `✅ ${doneToday} concluídas · ⏳ ${Math.max(0, totalDisplay - doneToday - failedToday)} restantes${failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}`
@@ -1340,36 +1342,36 @@ const WarmupInstanceDetail = () => {
                     </p>
                   </div>
                   {nextPendingJob && (
-                    <div className="text-right">
-                      <p className="text-[9px] text-muted-foreground uppercase">
+                    <div className="text-right bg-muted/30 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/15">
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
                         {isPre24h ? "Transição" : "Próxima"}
                       </p>
-                      <p className="text-xs font-bold text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
+                      <p className="text-sm font-black text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
                     </div>
                   )}
                 </div>
                 {!isPre24h && (
-                <div className="px-5 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
-                    <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
+                <div className="px-6 pb-5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono font-black text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
+                    <div className="flex-1 h-2.5 bg-muted/25 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-400 rounded-full transition-all shadow-[0_0_8px_hsl(142_71%_45%/0.4)]" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
+                    <span className="text-[10px] text-muted-foreground font-bold">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
                   </div>
                 </div>
                 )}
               </div>
 
               {/* ── Timeline Completa: Atividades Feitas + Agendadas ── */}
-              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-                <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <ScrollText className="w-4 h-4 text-amber-400" />
+              <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.06)]">
+                <div className="px-6 py-5 border-b border-border/10 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(38_92%_50%/0.2)]">
+                    <ScrollText className="w-5 h-5 text-amber-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">Histórico de Atividades</span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <span className="text-base font-extrabold text-foreground tracking-tight">Histórico de Atividades</span>
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       Ações realizadas e próximas tarefas agendadas
                     </p>
                   </div>
@@ -1660,15 +1662,15 @@ const WarmupInstanceDetail = () => {
                         const isActive = status === "ativo";
 
                         const statusBadge = status === "concluído"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">concluído</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/12 font-bold">concluído</Badge>
                           : status === "pulado"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-amber-500/10 text-amber-400 border-0 hover:bg-amber-500/10">pulado</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-amber-500/12 text-amber-400 border border-amber-500/20 hover:bg-amber-500/12 font-bold">pulado</Badge>
                           : status === "ativo"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">em andamento</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold shadow-[0_0_8px_-2px_hsl(var(--primary)/0.3)]">em andamento</Badge>
                           : null;
 
                         return (
-                          <div key={day} className={cn("border-b border-border/10 last:border-0", isFuture && "opacity-40")}>
+                          <div key={day} className={cn("border-b border-border/8 last:border-0", isFuture && "opacity-35")}>
                             <button
                               onClick={() => {
                                 setExpandedDays(prev => {
@@ -1678,34 +1680,34 @@ const WarmupInstanceDetail = () => {
                                 });
                               }}
                               className={cn(
-                                "w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors",
-                                isActive && "bg-muted/10"
+                                "w-full px-6 py-4 flex items-center gap-3 hover:bg-muted/15 transition-all",
+                                isActive && "bg-primary/5 border-l-2 border-l-primary"
                               )}
                             >
                               <ChevronDown className={cn(
-                                "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
+                                "w-4 h-4 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
                               <div className="flex-1 text-left min-w-0">
-                                <span className={cn("text-xs font-bold", isActive ? "text-primary" : isFuture ? "text-muted-foreground" : "text-foreground")}>
+                                <span className={cn("text-sm font-extrabold", isActive ? "text-primary" : isFuture ? "text-muted-foreground" : "text-foreground")}>
                                   Dia {day}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground/60 ml-2">{getDayPhaseLabel(day)}</span>
+                                <span className="text-[11px] text-muted-foreground/50 ml-2.5 font-medium">{getDayPhaseLabel(day)}</span>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {statusBadge}
                                 {doneCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/12 font-bold">
                                     ✅ {doneCount}
                                   </Badge>
                                 )}
                                 {pendingCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold">
                                     ⏳ {pendingCount}
                                   </Badge>
                                 )}
                                 {failedCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-destructive/10 text-destructive border-0 hover:bg-destructive/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-destructive/12 text-destructive border border-destructive/20 hover:bg-destructive/12 font-bold">
                                     ❌ {failedCount}
                                   </Badge>
                                 )}
@@ -1713,9 +1715,9 @@ const WarmupInstanceDetail = () => {
                             </button>
 
                             {isExpanded && dayItems.length > 0 && (
-                              <div className="px-5 pb-3 space-y-0.5">
+                              <div className="px-6 pb-4 space-y-1">
                                 {dayItems.map((item) => (
-                                  <div key={item.id} className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-muted/10">
+                                  <div key={item.id} className="flex items-start gap-3 py-2 px-3 rounded-xl hover:bg-muted/10 transition-colors">
                                     <span className="text-xs mt-0.5 shrink-0">{item.icon}</span>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5">
