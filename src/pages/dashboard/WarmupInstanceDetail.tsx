@@ -1540,21 +1540,29 @@ const WarmupInstanceDetail = () => {
                           <div key={day} className={cn("border-b border-border/10 last:border-0", isFuture && "opacity-40")}>
                             <button
                               onClick={() => {
-                                const idx = dayKeys.indexOf(dayKey);
                                 setExpandedDays(prev => {
                                   const next = new Set(prev);
-                                  if (next.has(idx)) next.delete(idx); else next.add(idx);
+                                  if (next.has(day)) next.delete(day); else next.add(day);
                                   return next;
                                 });
                               }}
-                              className="w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors"
+                              className={cn(
+                                "w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors",
+                                isActive && "bg-muted/10"
+                              )}
                             >
                               <ChevronDown className={cn(
                                 "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
-                              <span className="text-xs font-bold text-foreground">{getDayLabel(dayKey)}</span>
-                              <div className="flex items-center gap-1.5 ml-auto">
+                              <div className="flex-1 text-left min-w-0">
+                                <span className={cn("text-xs font-bold", isActive ? "text-primary" : isFuture ? "text-muted-foreground" : "text-foreground")}>
+                                  Dia {day}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/60 ml-2">{getDayPhaseLabel(day)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {statusBadge}
                                 {doneCount > 0 && (
                                   <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
                                     ✅ {doneCount}
@@ -1573,7 +1581,7 @@ const WarmupInstanceDetail = () => {
                               </div>
                             </button>
 
-                            {isExpanded && (
+                            {isExpanded && dayItems.length > 0 && (
                               <div className="px-5 pb-3 space-y-0.5">
                                 {dayItems.map((item) => (
                                   <div key={item.id} className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-muted/10">
@@ -1601,6 +1609,13 @@ const WarmupInstanceDetail = () => {
                                     </span>
                                   </div>
                                 ))}
+                              </div>
+                            )}
+                            {isExpanded && dayItems.length === 0 && (
+                              <div className="px-5 pb-3">
+                                <p className="text-[10px] text-muted-foreground/50 italic">
+                                  {isFuture ? getDayPhaseLabel(day) : "Sem atividades registradas"}
+                                </p>
                               </div>
                             )}
                           </div>
