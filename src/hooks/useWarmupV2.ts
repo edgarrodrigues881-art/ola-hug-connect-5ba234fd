@@ -120,15 +120,20 @@ export function useDeviceCycle(deviceId: string) {
   return useQuery({
     queryKey: ["warmup_cycle_device", deviceId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try to get an active (non-completed) cycle
+      const { data: activeCycles, error: activeErr } = await supabase
         .from("warmup_cycles" as any)
         .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
         .eq("device_id", deviceId)
-        .in("phase", ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "community_light", "completed", "paused", "error"])
+        .neq("phase", "completed")
         .order("created_at", { ascending: false })
         .limit(1);
-      if (error) throw error;
-      return (data as unknown as WarmupCycle[])?.[0] || null;
+      if (activeErr) throw activeErr;
+      if ((activeCycles as any[])?.length > 0) {
+        return (activeCycles as unknown as WarmupCycle[])[0];
+      }
+      // No active cycle — return null (completed cycles are deleted on stop)
+      return null;
     },
     enabled: !!user && !!deviceId,
     refetchInterval: 30000, // Cycle state changes infrequently
