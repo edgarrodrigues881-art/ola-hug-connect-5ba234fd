@@ -773,6 +773,7 @@ const WarmupInstanceDetail = () => {
             .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
             .in("id", toSucceed)
             .eq("status", "pending")
+            .then()
         );
       }
 
@@ -783,6 +784,7 @@ const WarmupInstanceDetail = () => {
             .update({ run_at: new Date(Date.now() - 60000).toISOString() })
             .in("id", toAntecipate)
             .eq("status", "pending")
+            .then()
         );
       }
 
