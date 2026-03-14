@@ -606,21 +606,7 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── STATUS POSTS ──
-  if (volumes.statusPosts > 0) {
-    const stSpacingMs = windowMs / (volumes.statusPosts + 1);
-    for (let i = 0; i < volumes.statusPosts; i++) {
-      const baseOffset = stSpacingMs * (i + 1);
-      const jitter = randInt(-30, 30) * 60 * 1000;
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd || runAt.getTime() < effectiveStart) continue;
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "post_status", payload: {},
-        run_at: runAt.toISOString(), status: "pending",
-      });
-    }
-  }
+  // ── STATUS POSTS — removed (UAZAPI v2 doesn't support) ──
 
   if (jobs.length > 0) {
     for (let i = 0; i < jobs.length; i += 100) {
@@ -715,12 +701,10 @@ async function ensureJoinGroupJobs(
 // Volume configuration
 // Groups: 50-120/day
 // AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
-// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs (conversation burst)
-// Status: 5 per day always
+// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
-  statusPosts: number;
   autosaveContacts: number;
   autosaveRounds: number;
   communityPeers: number;
@@ -728,12 +712,11 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
   v.groupMsgs = randInt(50, 120);
-  v.statusPosts = 5;
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
     v.autosaveContacts = 5;

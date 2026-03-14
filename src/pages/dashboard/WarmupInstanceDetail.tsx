@@ -175,7 +175,7 @@ const WarmupInstanceDetail = () => {
       // Determine which job types to accelerate based on current phase
       const targetTypes = phase === "pre_24h"
         ? ["join_group"] as const
-        : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
+        : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"] as const;
 
       // 1) Fetch pending jobs of the correct type for this phase
       const { data: pendingJobs, error: fetchErr } = await supabase
@@ -1347,7 +1347,7 @@ const WarmupInstanceDetail = () => {
               group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
-              post_status: { label: "Status (desativado)", icon: ImageIcon, color: "text-muted-foreground" },
+              // post_status removed — UAZAPI v2 doesn't support
               phase_transition: { label: "Avançar fase", icon: Zap, color: "text-amber-400" },
               daily_reset: { label: "Reset diário", icon: RotateCcw, color: "text-muted-foreground" },
               health_check: { label: "Verificação de saúde", icon: Shield, color: "text-emerald-400" },
@@ -1626,14 +1626,14 @@ const WarmupInstanceDetail = () => {
                     join_group: "📥", group_interaction: "💬", autosave_interaction: "📱",
                     community_interaction: "🌐", phase_transition: "⚡", daily_reset: "🔄",
                     enable_autosave: "📱", enable_community: "🌐", health_check: "🩺",
-                    post_status: "📸",
+                    
                   };
                   const jobLabelMap: Record<string, string> = {
                     join_group: "Entrar no grupo", group_interaction: "Msg em grupo",
                     autosave_interaction: "Auto Save", community_interaction: "Comunitário",
                     phase_transition: "Avançar fase", daily_reset: "Reset diário",
                     enable_autosave: "Ativar Auto Save", enable_community: "Ativar Comunidade",
-                    health_check: "Verificação", post_status: "Status",
+                    health_check: "Verificação",
                   };
 
                   // Only show jobs for current day or past days (not future days)
@@ -2014,7 +2014,7 @@ const WarmupInstanceDetail = () => {
                   <strong className="text-foreground">{(() => {
                     const targetTypes = cycle?.phase === "pre_24h"
                       ? ["join_group"]
-                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"];
+                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"];
                     return scheduledJobs.filter(j => j.status === "pending" && targetTypes.includes(j.job_type)).length;
                   })()}</strong> tarefa(s) pendente(s) serão aceleradas.
                 </p>
