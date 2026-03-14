@@ -186,14 +186,21 @@ const WarmupInstanceDetail = () => {
 
       // 2) If there are no interaction jobs, force only the next pending job of any type
       if (forcedCount === 0) {
-        const { data: nextPendingJob, error: nextPendingErr } = await supabase
+        // Prefer phase_transition over daily_reset; skip daily_reset entirely
+        const { data: pendingJobs, error: nextPendingErr } = await supabase
           .from("warmup_jobs")
           .select("id, job_type")
           .eq("cycle_id", cycle.id)
           .eq("status", "pending")
           .order("run_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
+        if (nextPendingErr) throw nextPendingErr;
+
+        // Prioritize: phase_transition > any non-daily_reset > daily_reset
+        const nextPendingJob = pendingJobs?.find(j => j.job_type === "phase_transition")
+          || pendingJobs?.find(j => j.job_type !== "daily_reset")
+          || pendingJobs?.[0]
+          || null;
         if (nextPendingErr) throw nextPendingErr;
 
         if (!nextPendingJob) {
@@ -1010,9 +1017,14 @@ const WarmupInstanceDetail = () => {
               displayJobs.filter((j) => actionableTypes.has(j.job_type)).length,
               displayJobs.length,
             );
+            // Prioritize actionable jobs (phase_transition > interaction) over daily_reset for display
+            const pendingJobs = displayJobs.filter((j) => j.status === "pending");
             const nextPendingJob =
-              displayJobs.find((j) => j.status === "pending" && new Date(j.run_at) >= nowUtc) ||
-              displayJobs.find((j) => j.status === "pending") ||
+              pendingJobs.find((j) => j.job_type === "phase_transition") ||
+              pendingJobs.find((j) => actionableTypes.has(j.job_type) && new Date(j.run_at) >= nowUtc) ||
+              pendingJobs.find((j) => j.job_type !== "daily_reset" && new Date(j.run_at) >= nowUtc) ||
+              pendingJobs.find((j) => new Date(j.run_at) >= nowUtc) ||
+              pendingJobs[0] ||
               null;
 
             return (
