@@ -1697,17 +1697,17 @@ const WarmupInstanceDetail = () => {
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {statusBadge}
                                 {doneCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/12 font-bold">
                                     ✅ {doneCount}
                                   </Badge>
                                 )}
                                 {pendingCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold">
                                     ⏳ {pendingCount}
                                   </Badge>
                                 )}
                                 {failedCount > 0 && (
-                                  <Badge className="text-[9px] h-4 px-1.5 bg-destructive/10 text-destructive border-0 hover:bg-destructive/10">
+                                  <Badge className="text-[10px] h-5 px-2 bg-destructive/12 text-destructive border border-destructive/20 hover:bg-destructive/12 font-bold">
                                     ❌ {failedCount}
                                   </Badge>
                                 )}
@@ -1715,9 +1715,9 @@ const WarmupInstanceDetail = () => {
                             </button>
 
                             {isExpanded && dayItems.length > 0 && (
-                              <div className="px-5 pb-3 space-y-0.5">
+                              <div className="px-6 pb-4 space-y-1">
                                 {dayItems.map((item) => (
-                                  <div key={item.id} className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-muted/10">
+                                  <div key={item.id} className="flex items-start gap-3 py-2 px-3 rounded-xl hover:bg-muted/10 transition-colors">
                                     <span className="text-xs mt-0.5 shrink-0">{item.icon}</span>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5">
