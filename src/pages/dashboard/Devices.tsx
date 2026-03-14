@@ -1581,7 +1581,7 @@ const Devices = () => {
           <div className="px-6 py-5 space-y-5">
             {/* Nome da instância */}
             <div className="space-y-2">
-              <Label className="text-xs text-foreground/70 font-medium">Nome da instância</Label>
+              <Label className="text-sm text-foreground font-semibold">Nome da instância</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
