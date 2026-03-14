@@ -1088,7 +1088,6 @@ const WarmupInstanceDetail = () => {
               </div>
             </div>
           </div>
-          </div>
 
           {/* ── Auto Save Toggle ── */}
           {(() => {
