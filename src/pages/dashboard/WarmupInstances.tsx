@@ -401,7 +401,7 @@ const WarmupInstances = () => {
     return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
   }, [connectStep, qrCodeBase64, connectingDevice]);
 
-  const openConnect = (device: any) => {
+  const openConnect = useCallback((device: any) => {
     if (device.id.startsWith("temp-")) {
       toast({ title: "Aguarde", description: "A instância ainda está sendo criada.", variant: "destructive" });
       return;
@@ -415,7 +415,7 @@ const WarmupInstances = () => {
     stopPolling();
     setSelectedProxy(device.proxy_id || "none");
     setConnectOpen(true);
-  };
+  }, [stopPolling, toast]);
 
   const handleConnect = (method: "qr" | "code") => {
     setConnectMethod(method);
