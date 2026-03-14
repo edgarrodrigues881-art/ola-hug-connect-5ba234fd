@@ -1159,21 +1159,21 @@ const WarmupInstanceDetail = () => {
 
             return (
               <div className={cn(
-                "rounded-xl border bg-card overflow-hidden transition-all",
-                isUnlocked ? "border-purple-500/30" : "border-border/20 opacity-60"
+                "rounded-2xl border bg-card/50 backdrop-blur-xl overflow-hidden transition-all shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.04)]",
+                isUnlocked ? "border-purple-500/25 shadow-[0_0_25px_-8px_hsl(270_60%_50%/0.12)]" : "border-border/15 opacity-50"
               )}>
-                <div className="px-5 py-4 flex items-center gap-3">
+                <div className="px-6 py-5 flex items-center gap-4">
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    isUnlocked ? "bg-purple-500/10" : "bg-muted/20"
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    isUnlocked ? "bg-purple-500/12 shadow-[0_0_12px_-2px_hsl(270_60%_50%/0.2)]" : "bg-muted/20"
                   )}>
-                    <Globe className={cn("w-4 h-4", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
+                    <Globe className={cn("w-5 h-5", isUnlocked ? "text-purple-400" : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className={cn("text-sm font-bold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("text-sm font-extrabold", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
                       Comunitário
                     </span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       {isUnlocked
                         ? isEnabled || isCommunityPhase
                           ? "Ativo — trocando mensagens com outros chips do sistema"
@@ -1195,10 +1195,10 @@ const WarmupInstanceDetail = () => {
                   />
                 </div>
                 {!isUnlocked && (
-                  <div className="px-5 pb-3">
+                  <div className="px-6 pb-4">
                     <div className="flex items-center gap-2">
-                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-1.5 flex-1" />
-                      <span className="text-[9px] text-muted-foreground font-mono">
+                      <Progress value={(cycle.day_index / communityDay) * 100} className="h-2 flex-1" />
+                      <span className="text-[10px] text-muted-foreground font-mono font-bold">
                         Dia {cycle.day_index}/{communityDay}
                       </span>
                     </div>
