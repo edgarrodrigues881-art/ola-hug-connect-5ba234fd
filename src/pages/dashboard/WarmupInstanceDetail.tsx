@@ -870,13 +870,11 @@ const WarmupInstanceDetail = () => {
           : {};
         return payload.group_id || "";
       })
-      .filter(Boolean)
+      .filter((gid) => gid && !joinedDbGroupIds.has(gid) && !recognizedGroupIds.has(gid))
   );
 
-  const pendingByJobs = Array.from(pendingJoinJobsGroupIds).filter((groupId) => !recognizedGroupIds.has(groupId)).length;
-  const pendingByRecognition = Math.max(0, totalTrackedGroups - recognizedGroupIds.size);
-  const pendingGroups = pendingByJobs > 0 ? pendingByJobs : pendingByRecognition;
-  const joinedGroups = Math.min(totalTrackedGroups, Math.max(recognizedGroupIds.size, totalTrackedGroups - pendingGroups));
+  const pendingGroups = pendingJoinJobsGroupIds.size;
+  const joinedGroups = Math.max(0, totalTrackedGroups - pendingGroups);
 
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
