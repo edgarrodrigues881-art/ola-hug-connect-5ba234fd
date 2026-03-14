@@ -1460,13 +1460,11 @@ async function scheduleDayJobs(
   const now = new Date();
   const jobs: any[] = [];
   const today = new Date(now);
-  const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(10, 0, 0, 0);
-  const windowEndUTC = new Date(today);
-  windowEndUTC.setUTCHours(22, 0, 0, 0);
-  const effectiveStart = Math.max(now.getTime(), windowStartUTC.getTime());
+  // TEMP: use a 12-hour window starting NOW for testing
+  const windowStartUTC = new Date(now);
+  const windowEndUTC = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+  const effectiveStart = now.getTime();
   const effectiveEnd = windowEndUTC.getTime();
-  if (effectiveStart >= effectiveEnd) return 0;
   const windowMs = effectiveEnd - effectiveStart;
   const volumes = getVolumes(chipState, dayIndex, phase);
 
