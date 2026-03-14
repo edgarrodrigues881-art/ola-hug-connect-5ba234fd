@@ -1617,7 +1617,7 @@ const Devices = () => {
                     className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground placeholder:text-muted-foreground/60 transition-colors"
                     maxLength={25}
                   />
-                  <p className="text-[11px] text-muted-foreground tabular-nums">{wpName.length}/25 caracteres</p>
+                  <p className="text-[11px] text-foreground/50 tabular-nums">{wpName.length}/25 caracteres</p>
                 </div>
 
                 {/* Foto do WhatsApp */}
