@@ -1476,68 +1476,68 @@ const WarmupInstanceDetail = () => {
                     });
                   }
 
-                  // Sort by time descending (most recent first)
-                  items.sort((a, b) => b.time.getTime() - a.time.getTime());
+                  // Sort items within each bucket by time ascending
+                  items.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-                  // Group by BRT day
-                  const dayBuckets: Record<string, TimelineItem[]> = {};
+                  // Group items by warmup day number
+                  const dayItemsMap: Record<number, TimelineItem[]> = {};
                   for (const item of items) {
-                    const dayKey = new Intl.DateTimeFormat("pt-BR", {
-                      timeZone: "America/Sao_Paulo",
-                      day: "2-digit", month: "2-digit", year: "numeric",
-                    }).format(item.time);
-                    if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
-                    dayBuckets[dayKey].push(item);
+                    const warmupDay = getWarmupDayBrt(item.time);
+                    if (!dayItemsMap[warmupDay]) dayItemsMap[warmupDay] = [];
+                    dayItemsMap[warmupDay].push(item);
                   }
 
-                  const dayKeys = Object.keys(dayBuckets);
-                  if (dayKeys.length === 0) {
-                    return (
-                      <div className="px-5 py-8 text-center text-muted-foreground text-xs">
-                        Nenhuma atividade registrada ainda
-                      </div>
-                    );
-                  }
+                  const totalDays = cycle?.days_total ?? 7;
+                  const currentWarmupDay = cycle?.day_index ?? 1;
 
                   const formatTime = (d: Date) => new Intl.DateTimeFormat("pt-BR", {
                     timeZone: "America/Sao_Paulo",
                     hour: "2-digit", minute: "2-digit", hour12: false,
                   }).format(d);
 
-                  // Current warmup day from cycle
-                  const currentWarmupDay = cycle?.day_index ?? 1;
+                  // Phase descriptions for each day
+                  const chipState = cycle?.chip_state || "new";
+                  const groupsEndDay = chipState === "unstable" ? 6 : 4;
+                  const getDayPhaseLabel = (day: number) => {
+                    if (day === 1) return "Proteção inicial + entrada nos grupos";
+                    if (day <= groupsEndDay) return "Interações em grupos";
+                    if (day === groupsEndDay + 1) return "Auto Save ativado";
+                    return "Comunidade + Auto Save";
+                  };
 
-                  // Find which warmup day each calendar day corresponds to
-                  const getDayLabel = (dayKey: string) => {
-                    const firstItem = dayBuckets[dayKey][0];
-                    if (!cycleStartedAt) return dayKey;
-                    const warmupDay = getWarmupDayBrt(firstItem.time);
-
-                    // Check if this day was manually skipped
-                    const wasSkipped = dayBuckets[dayKey].some(
-                      i => i.label === "Dia pulado" || i.label.includes("pulado") || i.label.includes("manual_day_advance")
+                  const getDayStatus = (day: number) => {
+                    if (day > currentWarmupDay) return "agendado";
+                    if (day === currentWarmupDay) return "ativo";
+                    // Check if skipped
+                    const dayItems = dayItemsMap[day] || [];
+                    const wasSkipped = dayItems.some(
+                      i => i.label.includes("pulado") || i.label.includes("manual_day_advance")
                     );
-
-                    if (wasSkipped && warmupDay < currentWarmupDay) {
-                      return `Dia ${warmupDay} — ${dayKey} (pulado)`;
-                    }
-                    if (warmupDay < currentWarmupDay) {
-                      return `Dia ${warmupDay} — ${dayKey} (concluído)`;
-                    }
-                    return `Dia ${warmupDay} — ${dayKey}`;
+                    return wasSkipped ? "pulado" : "concluído";
                   };
 
                   return (
-                    <div className="max-h-[400px] overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
-                      {dayKeys.map((dayKey) => {
-                        const dayItems = dayBuckets[dayKey];
-                        const isExpanded = expandedDays.has(dayKeys.indexOf(dayKey));
+                    <div className="max-h-[500px] overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+                      {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
+                        const dayItems = dayItemsMap[day] || [];
+                        const isExpanded = expandedDays.has(day);
+                        const status = getDayStatus(day);
                         const doneCount = dayItems.filter(i => i.type === "done").length;
                         const pendingCount = dayItems.filter(i => i.type === "pending").length;
                         const failedCount = dayItems.filter(i => i.type === "failed").length;
+                        const isFuture = status === "agendado";
+                        const isActive = status === "ativo";
+
+                        const statusBadge = status === "concluído"
+                          ? <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">concluído</Badge>
+                          : status === "pulado"
+                          ? <Badge className="text-[9px] h-4 px-1.5 bg-amber-500/10 text-amber-400 border-0 hover:bg-amber-500/10">pulado</Badge>
+                          : status === "ativo"
+                          ? <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">em andamento</Badge>
+                          : null;
 
                         return (
-                          <div key={dayKey} className="border-b border-border/10 last:border-0">
+                          <div key={day} className={cn("border-b border-border/10 last:border-0", isFuture && "opacity-40")}>
                             <button
                               onClick={() => {
                                 const idx = dayKeys.indexOf(dayKey);
