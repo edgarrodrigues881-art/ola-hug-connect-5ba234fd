@@ -145,6 +145,16 @@ const Devices = () => {
   const [wpApplyAll, setWpApplyAll] = useState(false);
   const [wpSaving, setWpSaving] = useState(false);
 
+  // Bulk profile update dialog
+  const [bulkProfileOpen, setBulkProfileOpen] = useState(false);
+  const [bulkProfileName, setBulkProfileName] = useState("");
+  const [bulkProfilePhotoUrl, setBulkProfilePhotoUrl] = useState("");
+  const [bulkProfilePhotoPublicUrl, setBulkProfilePhotoPublicUrl] = useState("");
+  const [bulkProfileRemovePhoto, setBulkProfileRemovePhoto] = useState(false);
+  const [bulkProfileSelectedIds, setBulkProfileSelectedIds] = useState<string[]>([]);
+  const [bulkProfileSaving, setBulkProfileSaving] = useState(false);
+  const bulkProfileFileRef = useRef<HTMLInputElement>(null);
+
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
