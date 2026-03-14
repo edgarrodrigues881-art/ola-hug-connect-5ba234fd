@@ -700,16 +700,40 @@ const WarmupInstanceDetail = () => {
     void syncRecognizedGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
-  // Se um grupo já está ingressado, reconcilia jobs pendentes de join_group para evitar contador fantasma
+  // Reconcilia jobs pendentes: marca como succeeded se grupo já reconhecido (DB + provider + evidence)
+  // E antecipa run_at de jobs futuros para que o tick os processe imediatamente
   useEffect(() => {
-    if (!cycle?.id || scheduledJobs.length === 0 || instanceGroups.length === 0) return;
+    if (!cycle?.id || scheduledJobs.length === 0) return;
 
     const joinedGroupIds = new Set(
       instanceGroups
         .filter((g) => g.join_status === "joined")
         .map((g) => g.group_id)
     );
-    if (joinedGroupIds.size === 0) return;
+
+    // Build recognized set from live groups + evidence (same logic as counter)
+    const liveJids = new Set(liveDeviceGroups.map(g => g.id));
+    const liveNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
+    const evidNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
+    const evidLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
+
+    const isGroupRecognized = (groupId: string): boolean => {
+      if (joinedGroupIds.has(groupId)) return true;
+      const rec = instanceGroups.find(g => g.group_id === groupId);
+      if (!rec) return false;
+      if (rec.group_jid && liveJids.has(rec.group_jid)) return true;
+      const poolName = rec.warmup_groups_pool?.name;
+      if (poolName) {
+        const norm = normalizeGroupName(poolName);
+        if (liveNames.has(norm) || evidNames.has(norm)) return true;
+        for (const ln of liveNames) {
+          if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return true;
+        }
+      }
+      const poolLink = rec.warmup_groups_pool?.external_group_ref;
+      if (poolLink && evidLinks.has(normalizeInviteLink(poolLink))) return true;
+      return false;
+    };
 
     const pendingJoinJobs = scheduledJobs.filter(
       (job) => job.job_type === "join_group" && job.status === "pending"
@@ -719,34 +743,57 @@ const WarmupInstanceDetail = () => {
     const expectedGroups = poolGroups.length > 0 ? poolGroups.length : 8;
     const allExpectedGroupsJoined = joinedGroupIds.size >= expectedGroups;
 
-    const stalePendingJoinJobIds = pendingJoinJobs
+    // Jobs to mark as succeeded (group already recognized)
+    const toSucceed = pendingJoinJobs
       .filter((job) => {
         if (allExpectedGroupsJoined) return true;
-
         const payload = (job.payload && typeof job.payload === "object")
           ? (job.payload as { group_id?: string })
           : {};
-
-        return !!payload.group_id && joinedGroupIds.has(payload.group_id);
+        return !!payload.group_id && isGroupRecognized(payload.group_id);
       })
       .map((job) => job.id);
 
-    if (stalePendingJoinJobIds.length === 0) return;
+    // Jobs still pending but scheduled in the future — antecipate run_at so tick picks them up
+    const nowIso = new Date().toISOString();
+    const toAntecipate = pendingJoinJobs
+      .filter((job) => {
+        if (toSucceed.includes(job.id)) return false;
+        return job.run_at > nowIso; // scheduled in the future
+      })
+      .map((job) => job.id);
 
     const reconcileJoinJobs = async () => {
-      const { error } = await supabase
-        .from("warmup_jobs")
-        .update({ status: "succeeded", last_error: null })
-        .in("id", stalePendingJoinJobIds)
-        .eq("status", "pending");
+      const promises: Promise<any>[] = [];
 
-      if (!error) {
+      if (toSucceed.length > 0) {
+        promises.push(
+          supabase
+            .from("warmup_jobs")
+            .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
+            .in("id", toSucceed)
+            .eq("status", "pending")
+        );
+      }
+
+      if (toAntecipate.length > 0) {
+        promises.push(
+          supabase
+            .from("warmup_jobs")
+            .update({ run_at: new Date(Date.now() - 60000).toISOString() })
+            .in("id", toAntecipate)
+            .eq("status", "pending")
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
         queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
       }
     };
 
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length, liveDeviceGroups, joinEvidence]);
 
   /* handlers */
   const handleStartWarmup = () => {
