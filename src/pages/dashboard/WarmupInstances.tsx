@@ -276,18 +276,30 @@ const WarmupInstances = () => {
     status: p.status || "NOVA",
   }));
 
-  const filteredDevices = devices.filter(d => d.login_type !== "report_wa");
+  const filteredDevices = useMemo(
+    () => devices.filter((d) => d.login_type !== "report_wa"),
+    [devices]
+  );
 
-  const getDeviceCycle = (deviceId: string) =>
-    cycles.find(c => c.device_id === deviceId && !["completed", "error"].includes(c.phase));
+  const cycleByDeviceId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const cycle of cycles) {
+      if (!["completed", "error"].includes(cycle.phase)) {
+        map.set(cycle.device_id, cycle);
+      }
+    }
+    return map;
+  }, [cycles]);
 
-  const isConnected = (status: string) =>
-    CONNECTED_STATUSES.includes(status);
+  const isConnected = (status: string) => CONNECTED_STATUSES.includes(status);
 
-  const disconnectedCount = filteredDevices.filter(d => !isConnected(d.status)).length;
+  const disconnectedCount = useMemo(
+    () => filteredDevices.filter((d) => !isConnected(d.status)).length,
+    [filteredDevices]
+  );
 
   const displayed = useMemo(() => {
-    return filteredDevices.filter(d => {
+    return filteredDevices.filter((d) => {
       if (search) {
         const q = search.toLowerCase();
         if (!d.name.toLowerCase().includes(q) && !(d.number || "").includes(q)) return false;
@@ -295,12 +307,12 @@ const WarmupInstances = () => {
       if (statusFilter === "connected" && !isConnected(d.status)) return false;
       if (statusFilter === "disconnected" && isConnected(d.status)) return false;
       if (statusFilter === "warming") {
-        const cycle = getDeviceCycle(d.id);
+        const cycle = cycleByDeviceId.get(d.id);
         if (!cycle || !cycle.is_running) return false;
       }
       return true;
     });
-  }, [filteredDevices, search, statusFilter, cycles]);
+  }, [filteredDevices, search, statusFilter, cycleByDeviceId]);
 
   // --- Connect logic ---
   const callApi = async (body: Record<string, any>) => {
