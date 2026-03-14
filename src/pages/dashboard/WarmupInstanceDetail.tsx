@@ -186,7 +186,7 @@ const WarmupInstanceDetail = () => {
 
       // 2) If there are no interaction jobs, force only the next pending job of any type
       if (forcedCount === 0) {
-        // Prefer phase_transition over daily_reset; skip daily_reset entirely
+        // Prefer phase_transition over daily_reset
         const { data: pendingJobs, error: nextPendingErr } = await supabase
           .from("warmup_jobs")
           .select("id, job_type")
@@ -196,32 +196,70 @@ const WarmupInstanceDetail = () => {
           .limit(10);
         if (nextPendingErr) throw nextPendingErr;
 
-        // Prioritize: phase_transition > any non-daily_reset > daily_reset
-        const nextPendingJob = pendingJobs?.find(j => j.job_type === "phase_transition")
+        let nextPendingJob = pendingJobs?.find(j => j.job_type === "phase_transition")
           || pendingJobs?.find(j => j.job_type !== "daily_reset")
           || pendingJobs?.[0]
           || null;
-        if (nextPendingErr) throw nextPendingErr;
+
+        // Self-heal for pre_24h cycles that lost pending jobs (revive transition/reset jobs)
+        if (!nextPendingJob && cycle.phase === "pre_24h") {
+          const { data: pre24hJobs, error: pre24hErr } = await supabase
+            .from("warmup_jobs")
+            .select("id, job_type, status")
+            .eq("cycle_id", cycle.id)
+            .in("job_type", ["phase_transition", "daily_reset"])
+            .order("updated_at", { ascending: false })
+            .limit(10);
+          if (pre24hErr) throw pre24hErr;
+
+          const recoverableJob = pre24hJobs?.find(j => j.job_type === "phase_transition")
+            || pre24hJobs?.find(j => j.job_type === "daily_reset")
+            || null;
+
+          if (recoverableJob) {
+            const { data: revivedJob, error: reviveErr } = await supabase
+              .from("warmup_jobs")
+              .update({
+                status: "pending",
+                run_at: now,
+                attempts: 0,
+                last_error: null,
+              })
+              .eq("id", recoverableJob.id)
+              .neq("status", "running")
+              .select("id, job_type")
+              .maybeSingle();
+            if (reviveErr) throw reviveErr;
+
+            if (revivedJob) {
+              nextPendingJob = revivedJob;
+              forcedCount = 1;
+              forcedSystemJobType = revivedJob.job_type || null;
+            }
+          }
+        }
 
         if (!nextPendingJob) {
-          toast({ title: "Nenhum job pendente", description: "Não há tarefas pendentes para forçar." });
+          toast({ title: "Nenhum job pendente", description: "Não há tarefas pendentes para forçar neste ciclo." });
           return;
         }
 
-        const { data: updatedNext, error: updateNextErr } = await supabase
-          .from("warmup_jobs")
-          .update({ run_at: now })
-          .eq("id", nextPendingJob.id)
-          .eq("status", "pending")
-          .select("id");
-        if (updateNextErr) throw updateNextErr;
-
-        forcedCount = updatedNext?.length || 0;
-        forcedSystemJobType = nextPendingJob.job_type || null;
-
         if (forcedCount === 0) {
-          toast({ title: "Nenhum job pendente", description: "Não foi possível forçar o próximo job." });
-          return;
+          const { data: updatedNext, error: updateNextErr } = await supabase
+            .from("warmup_jobs")
+            .update({ run_at: now })
+            .eq("id", nextPendingJob.id)
+            .eq("status", "pending")
+            .select("id");
+          if (updateNextErr) throw updateNextErr;
+
+          forcedCount = updatedNext?.length || 0;
+          forcedSystemJobType = nextPendingJob.job_type || null;
+
+          if (forcedCount === 0) {
+            toast({ title: "Nenhum job pendente", description: "Não foi possível forçar o próximo job." });
+            return;
+          }
         }
       }
 
