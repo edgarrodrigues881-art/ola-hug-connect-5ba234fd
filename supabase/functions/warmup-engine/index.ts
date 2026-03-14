@@ -1,15 +1,41 @@
+/**
+ * warmup-engine v5.0 — Lifecycle Management
+ * 
+ * Responsabilidades:
+ *   - start:  Criar ciclo, registrar grupos, agendar join_group jobs
+ *   - pause:  Pausar ciclo, cancelar jobs pendentes
+ *   - resume: Retomar ciclo, reagendar jobs
+ *   - stop:   Encerrar ciclo, limpar dados
+ *   - schedule_day: Agendar jobs manualmente para o dia atual
+ * 
+ * NÃO processa jobs — isso é responsabilidade do warmup-tick.
+ */
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// ══════════════════════════════════════════════════════════
+// CORS
+// ══════════════════════════════════════════════════════════
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Helpers ──
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -19,10 +45,17 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy;
 }
 
-// ── Phase rules per chip_state ──
-// All chips: Day 1 OFF, then groups_only, then autosave_enabled (1 day), then community_enabled
-// New/Recovered: Days 2-4 groups → Day 5 autosave → Day 6+ community
-// Unstable:      Days 2-7 groups → Day 8 autosave → Day 9+ community
+// ══════════════════════════════════════════════════════════
+// PHASE RULES — Single Source of Truth
+// ══════════════════════════════════════════════════════════
+//
+// Dia 1: pre_24h (proteção, entrada nos grupos após 4-6h)
+// Dia 2 → groupsEnd: groups_only (mensagens nos grupos)
+// Dia groupsEnd+1: autosave_enabled (grupos + autosave)
+// Dia groupsEnd+2+: community_enabled (grupos + autosave + comunidade)
+//
+// groupsEnd: new/recovered = 4, unstable = 7
+
 function getGroupsEndDay(chipState: string): number {
   return chipState === "unstable" ? 7 : 4;
 }
@@ -35,467 +68,110 @@ function getPhaseForDay(day: number, chipState: string): string {
   return "community_enabled";
 }
 
-function getTotalDays(_chipState: string): number {
-  return 30; // All profiles run for 30 days
+// ══════════════════════════════════════════════════════════
+// VOLUME CONFIG — Consistent between engine and tick
+// ══════════════════════════════════════════════════════════
+//
+// groups_only:         25-50 msgs (unstable: 15-25)
+// autosave_enabled:    30-50 msgs + 5 contacts × 3 rounds (recovered: 2 rounds)
+// community_enabled:   30-50 msgs + autosave + community peers (progressive)
+
+interface DayVolumes {
+  groupMsgs: number;
+  autosaveContacts: number;
+  autosaveRounds: number;
+  communityPeers: number;
+  communityMsgsPerPeer: number;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
+  const v: DayVolumes = {
+    groupMsgs: 0,
+    autosaveContacts: 0,
+    autosaveRounds: 0,
+    communityPeers: 0,
+    communityMsgsPerPeer: 0,
+  };
+
+  if (phase === "pre_24h" || phase === "completed" || phase === "paused" || phase === "error") {
+    return v;
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const db = createClient(supabaseUrl, serviceKey);
+  // Group messages — present in all active phases
+  v.groupMsgs = chipState === "unstable" ? randInt(15, 25) : randInt(25, 50);
 
-  // ── Auth: support both JWT (frontend) and cron secret ──
-  const cronSecret = req.headers.get("x-cron-secret");
-  const authHeader = req.headers.get("Authorization");
-  let callerUserId: string | null = null;
-
-  if (cronSecret === Deno.env.get("WEBHOOK_SECRET")) {
-    // Cron caller – process all users
-  } else if (authHeader?.startsWith("Bearer ")) {
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    callerUserId = claimsData.claims.sub as string;
-  } else {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  // AutoSave — from autosave_enabled onwards
+  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+    v.autosaveContacts = 5;
+    v.autosaveRounds = chipState === "recovered" ? 2 : 3;
   }
 
-  let body: any = {};
-  try { body = await req.json(); } catch (_e) { /* ignore */ }
+  // Community — from community_enabled onwards
+  if (["community_enabled", "community_light"].includes(phase)) {
+    const groupsEnd = getGroupsEndDay(chipState);
+    const communityStartDay = groupsEnd + 2;
+    const communityDay = dayIndex - communityStartDay + 1;
 
-  const action = body.action || "tick";
-
-  try {
-    // ── PLAN CHECK for user-initiated actions ──
-    if (callerUserId && ["start", "resume"].includes(action)) {
-      const { data: activeSub } = await db
-        .from("subscriptions")
-        .select("expires_at")
-        .eq("user_id", callerUserId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const { data: userProfile } = await db.from("profiles").select("status").eq("id", callerUserId).maybeSingle();
-      const planExpired = !activeSub || new Date(activeSub.expires_at) < new Date();
-      const accountBlocked = userProfile?.status === "suspended" || userProfile?.status === "cancelled";
-      if (planExpired || accountBlocked) {
-        return new Response(JSON.stringify({ error: "Seu plano está inativo. Ative um plano para continuar.", code: "NO_ACTIVE_PLAN" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    // ════════════════════════════════════════
-    // ACTION: start — warmup cycle
-    // ════════════════════════════════════════
-    if (action === "start") {
-      if (!callerUserId) throw new Error("start requires authenticated user");
-      const { device_id, chip_state, days_total, plan_id } = body;
-      if (!device_id) throw new Error("device_id required");
-
-      const resolvedChipState = chip_state || "new";
-      const now = new Date();
-
-      // Clean up any leftover completed cycles for this device
-      const { data: oldCycles } = await db
-        .from("warmup_cycles")
-        .select("id")
-        .eq("device_id", device_id)
-        .eq("user_id", callerUserId)
-        .eq("phase", "completed");
-      if (oldCycles && oldCycles.length > 0) {
-        for (const old of oldCycles) {
-          await db.from("warmup_jobs").delete().eq("cycle_id", old.id);
-          await db.from("warmup_audit_logs").delete().eq("cycle_id", old.id);
-          await db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", old.id);
-          await db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", old.id);
-          await db.from("warmup_unique_recipients").delete().eq("cycle_id", old.id);
-          await db.from("warmup_cycles").delete().eq("id", old.id);
-        }
-      }
-
-      // Day 1 is OFF — no actions at all, just wait 24h
-      const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-      const cycleDays = days_total || getTotalDays(resolvedChipState);
-      const { data: cycle, error: cycleErr } = await db
-        .from("warmup_cycles")
-        .insert({
-          user_id: callerUserId,
-          device_id,
-          chip_state: resolvedChipState,
-          days_total: cycleDays,
-          plan_id: plan_id || null,
-          phase: "pre_24h",
-          is_running: true,
-          started_at: now.toISOString(),
-          first_24h_ends_at: first24hEnds.toISOString(),
-          daily_interaction_budget_target: 0,
-          daily_interaction_budget_min: 0,
-          daily_interaction_budget_max: 0,
-        })
-        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, started_at, first_24h_ends_at, daily_interaction_budget_target, created_at")
-        .single();
-      if (cycleErr) throw cycleErr;
-
-      // Get ALL groups from pool
-      const { data: poolGroups } = await db
-        .from("warmup_groups_pool")
-        .select("id, name")
-        .eq("is_active", true);
-
-      const allGroups = shuffleArray(poolGroups || []);
-      const jobs: any[] = [];
-
-      // Check if device already has ANY groups from a previous cycle
-      const { data: existingGroups } = await db
-        .from("warmup_instance_groups")
-        .select("id, group_id, join_status")
-        .eq("device_id", device_id);
-
-      if (existingGroups && existingGroups.length > 0) {
-        // Update ALL existing groups to reference the new cycle (regardless of join_status)
-        await db.from("warmup_instance_groups")
-          .update({ cycle_id: cycle.id })
-          .eq("device_id", device_id);
-        
-        // Also insert any NEW pool groups that don't have an instance_groups record yet
-        const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
-        const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
-        for (const g of missingGroups) {
-          await db.from("warmup_instance_groups").insert({
-            user_id: callerUserId, device_id,
-            group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-          });
-        }
-      } else {
-        // Register groups for this cycle
-        for (const g of allGroups) {
-          await db.from("warmup_instance_groups").insert({
-            user_id: callerUserId, device_id,
-            group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-          });
-        }
-      }
-
-      // ── Schedule join_group jobs: start 4-6h after cycle start, 5-30min between each ──
-      const joinStartDelayMs = randInt(4, 6) * 60 * 60 * 1000; // 4-6 hours
-      const groupsToJoin = allGroups; // all groups from pool
-      
-      // Pre-calculate cumulative delays to guarantee correct order
-      let cumulativeDelay = joinStartDelayMs;
-      for (let i = 0; i < groupsToJoin.length; i++) {
-        if (i > 0) {
-          cumulativeDelay += randInt(5, 30) * 60 * 1000; // 5-30 min between groups
-        }
-        const runAt = new Date(now.getTime() + cumulativeDelay);
-        jobs.push({
-          user_id: callerUserId, device_id, cycle_id: cycle.id,
-          job_type: "join_group",
-          payload: { group_id: groupsToJoin[i].id, group_name: groupsToJoin[i].name },
-          run_at: runAt.toISOString(), status: "pending",
-        });
-      }
-
-      // Schedule phase_transition to groups_only at 24h mark (Day 2 start)
-      jobs.push({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        job_type: "phase_transition",
-        payload: { target_phase: "groups_only" },
-        run_at: first24hEnds.toISOString(), status: "pending",
-      });
-
-      // Schedule first daily_reset at the first 00:05 BRT AFTER the initial 24h window
-      const firstReset = new Date(first24hEnds);
-      firstReset.setUTCHours(3, 5, 0, 0);
-      if (firstReset.getTime() <= first24hEnds.getTime()) {
-        firstReset.setUTCDate(firstReset.getUTCDate() + 1);
-      }
-      jobs.push({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        job_type: "daily_reset", payload: {}, run_at: firstReset.toISOString(), status: "pending",
-      });
-
-      if (jobs.length > 0) {
-        const { error: jobErr } = await db.from("warmup_jobs").insert(jobs);
-        if (jobErr) throw jobErr;
-      }
-
-      const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Banido/Recuperação", unstable: "Chip Crítico/Instável" };
-      const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
-
-      // Build group schedule summary for audit log
-      const groupScheduleLines = jobs
-        .filter((j: any) => j.job_type === "join_group")
-        .map((j: any, i: number) => {
-          const time = new Date(j.run_at);
-          const brtTime = time.toLocaleTimeString("pt-BR", {
-            timeZone: "America/Sao_Paulo",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-          return `Grupo ${i + 1}: ${j.payload.group_name} às ${brtTime}`;
-        })
-        .join(" | ");
-
-      await db.from("warmup_audit_logs").insert({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Entre 4 e 6 horas começa a entrar nos grupos.${groupScheduleLines ? ` Agenda: ${groupScheduleLines}` : ""}`,
-        meta: {
-          chip_state: resolvedChipState,
-          groups: allGroups.map(g => g.name),
-          total_days: cycleDays,
-          join_start_window_hours: "4-6",
-        },
-      });
-
-      return new Response(JSON.stringify({ ok: true, cycle_id: cycle.id, chip_state: resolvedChipState, jobs_scheduled: jobs.length, total_days: cycleDays }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ════════════════════════════════════════
-    // ACTION: pause
-    // ════════════════════════════════════════
-    if (action === "pause") {
-      if (!callerUserId) throw new Error("pause requires authenticated user");
-      const { device_id } = body;
-
-      const { data: cycle } = await db
-        .from("warmup_cycles")
-        .select("id, phase")
-        .eq("device_id", device_id)
-        .eq("user_id", callerUserId)
-        .eq("is_running", true)
-        .neq("phase", "completed")
-        .single();
-
-      if (!cycle) throw new Error("No active cycle found");
-
-      await db.from("warmup_cycles").update({ is_running: false, phase: "paused", previous_phase: cycle.phase }).eq("id", cycle.id);
-      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
-
-      await db.from("warmup_audit_logs").insert({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        level: "info", event_type: "cycle_paused", message: "Aquecimento pausado pelo usuário",
-      });
-
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ════════════════════════════════════════
-    // ACTION: resume
-    // ════════════════════════════════════════
-    if (action === "resume") {
-      if (!callerUserId) throw new Error("resume requires authenticated user");
-      const { device_id } = body;
-
-      const { data: cycle } = await db
-        .from("warmup_cycles")
-        .select("id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_used, first_24h_ends_at, started_at, previous_phase")
-        .eq("device_id", device_id)
-        .eq("user_id", callerUserId)
-        .eq("phase", "paused")
-        .single();
-
-      if (!cycle) throw new Error("No paused cycle found");
-
-      const now = new Date();
-      const first24hEnds = new Date(cycle.first_24h_ends_at);
-      let resumePhase: string;
-
-      if (now < first24hEnds) {
-        resumePhase = "pre_24h";
-      } else if (cycle.previous_phase && !["error", "completed", "paused"].includes(cycle.previous_phase)) {
-        resumePhase = cycle.previous_phase;
-      } else {
-        resumePhase = getPhaseForDay(cycle.day_index, cycle.chip_state || "new");
-      }
-
-      const { data: deviceCheck } = await db.from("devices").select("status").eq("id", device_id).single();
-      const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
-      if (!deviceCheck || !CONNECTED_STATUSES.includes(deviceCheck.status)) {
-        throw new Error("Instância offline. Conecte o dispositivo antes de retomar o aquecimento.");
-      }
-
-      await db.from("warmup_cycles").update({
-        is_running: true, phase: resumePhase, previous_phase: null, last_error: null,
-        next_run_at: now.toISOString(),
-      }).eq("id", cycle.id);
-
-      const nextReset = new Date(now);
-      nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-      nextReset.setUTCHours(3, 5, 0, 0);
-      await db.from("warmup_jobs").insert({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
-      });
-
-      // Cancel old pending interaction jobs before scheduling new ones
-      await db.from("warmup_jobs")
-        .update({ status: "cancelled", last_error: "Cancelado: retomada do ciclo" })
-        .eq("cycle_id", cycle.id)
-        .eq("status", "pending")
-        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
-
-      // Schedule today's jobs for the current phase
-      if (resumePhase !== "pre_24h" && resumePhase !== "completed") {
-        await scheduleDayJobs(db, cycle.id, callerUserId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
-      }
-
-      // ── Re-schedule join_group jobs for groups never joined ──
-      const { data: pendingGroups } = await db
-        .from("warmup_instance_groups")
-        .select("group_id, warmup_groups_pool(id, name)")
-        .eq("device_id", device_id)
-        .eq("cycle_id", cycle.id)
-        .eq("join_status", "pending");
-
-      if (pendingGroups && pendingGroups.length > 0) {
-        const joinJobs: any[] = [];
-        const shuffled = shuffleArray(pendingGroups);
-
-        // Use consistent 5-30min spacing between groups
-        let cumulativeMs = randInt(5, 15) * 60 * 1000; // first group in 5-15 min
-        for (let i = 0; i < shuffled.length; i++) {
-          const g = shuffled[i];
-          const groupName = g.warmup_groups_pool?.name || "Grupo";
-          const groupId = g.group_id;
-          const runAt = new Date(now.getTime() + cumulativeMs);
-
-          joinJobs.push({
-            user_id: callerUserId, device_id, cycle_id: cycle.id,
-            job_type: "join_group",
-            payload: { group_id: groupId, group_name: groupName },
-            run_at: runAt.toISOString(), status: "pending",
-          });
-          cumulativeMs += randInt(5, 30) * 60 * 1000; // 5-30 min between each
-        }
-
-        if (joinJobs.length > 0) {
-          await db.from("warmup_jobs").insert(joinJobs);
-          console.log(`[resume] Re-scheduled ${joinJobs.length} join_group jobs for device ${device_id}`);
-        }
-      }
-
-      await db.from("warmup_audit_logs").insert({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        level: "info", event_type: "cycle_resumed", message: `Aquecimento retomado na fase: ${resumePhase} (dia ${cycle.day_index})`,
-      });
-
-      return new Response(JSON.stringify({ ok: true, phase: resumePhase }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ════════════════════════════════════════
-    // ACTION: stop
-    // ════════════════════════════════════════
-    if (action === "stop") {
-      if (!callerUserId) throw new Error("stop requires authenticated user");
-      const { device_id } = body;
-
-      const { data: cycle } = await db
-        .from("warmup_cycles")
-        .select("id")
-        .eq("device_id", device_id)
-        .eq("user_id", callerUserId)
-        .neq("phase", "completed")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!cycle) throw new Error("No active cycle found");
-
-      // 1) Mark cycle as completed
-      await db.from("warmup_cycles").update({ is_running: false, phase: "completed" }).eq("id", cycle.id);
-
-      // 2) Cancel all pending jobs
-      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
-
-      // 3) Clean up ALL warmup data for this device so new cycles start fresh
-      // Delete old jobs (all statuses)
-      await db.from("warmup_jobs").delete().eq("cycle_id", cycle.id);
-      // Delete audit logs for this cycle
-      await db.from("warmup_audit_logs").delete().eq("cycle_id", cycle.id);
-      // Delete instance group associations for this device
-      await db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", cycle.id);
-      // Delete community membership for this device/cycle
-      await db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", cycle.id);
-      // Delete unique recipients tracking
-      await db.from("warmup_unique_recipients").delete().eq("cycle_id", cycle.id);
-      // Delete the completed cycle itself
-      await db.from("warmup_cycles").delete().eq("id", cycle.id);
-
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ════════════════════════════════════════
-    // ACTION: schedule_day
-    // ════════════════════════════════════════
-    if (action === "schedule_day") {
-      if (!callerUserId) throw new Error("schedule_day requires authenticated user");
-      const { device_id, cycle_id, day_index, phase, chip_state } = body;
-      if (!cycle_id || !device_id) throw new Error("cycle_id and device_id required");
-
-      // Cancel existing pending interaction jobs before scheduling new ones
-      await db.from("warmup_jobs")
-        .update({ status: "cancelled", last_error: "Cancelado: reagendamento manual" })
-        .eq("cycle_id", cycle_id)
-        .eq("status", "pending")
-        .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
-
-      // Ensure join_group jobs exist when entering groups_only phase
-      const resolvedPhase = phase || "groups_only";
-      let joinScheduled = 0;
-      if (resolvedPhase === "groups_only") {
-        joinScheduled = await ensureJoinGroupJobs(db, cycle_id, callerUserId, device_id);
-        if (joinScheduled > 0) {
-          console.log(`[schedule_day] Scheduled ${joinScheduled} join_group jobs for device ${device_id}`);
-        }
-      }
-
-      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, resolvedPhase, chip_state || "new", true);
-
-      return new Response(JSON.stringify({ ok: true, jobs_scheduled: (jobCount || 0) + joinScheduled }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({ error: "Use warmup-tick endpoint for tick processing" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (err) {
-    console.error("Warmup engine error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Progressive peer scaling: day 1→3, day 2→5, day 3→10, ...
+    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
+    v.communityPeers = communityDay <= 0
+      ? 0
+      : peerScale[Math.min(communityDay, peerScale.length - 1)];
+    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
   }
-});
 
-// ════════════════════════════════════════
-// Schedule jobs for a specific day/phase
-// ════════════════════════════════════════
+  return v;
+}
+
+// ══════════════════════════════════════════════════════════
+// OPERATING WINDOW — 07:00-19:00 BRT (10:00-22:00 UTC)
+// ══════════════════════════════════════════════════════════
+
+interface WindowResult {
+  effectiveStart: number;
+  effectiveEnd: number;
+  isEmergency: boolean;
+}
+
+function calculateWindow(forced: boolean = false): WindowResult | null {
+  const now = new Date();
+
+  const windowStart = new Date(now);
+  windowStart.setUTCHours(10, 0, 0, 0);
+  const windowEnd = new Date(now);
+  windowEnd.setUTCHours(22, 0, 0, 0);
+
+  const nowMs = now.getTime();
+  const startMs = windowStart.getTime();
+  const endMs = windowEnd.getTime();
+
+  // Case 1: Forced execution outside window → 2h emergency window
+  if (forced && nowMs >= endMs) {
+    return {
+      effectiveStart: nowMs,
+      effectiveEnd: nowMs + 2 * 60 * 60 * 1000,
+      isEmergency: true,
+    };
+  }
+
+  // Case 2: Before window opens → schedule for full window
+  if (nowMs < startMs) {
+    return { effectiveStart: startMs, effectiveEnd: endMs, isEmergency: false };
+  }
+
+  // Case 3: After window closed → no scheduling
+  if (nowMs >= endMs) {
+    return null;
+  }
+
+  // Case 4: Within window → use remaining time
+  return { effectiveStart: nowMs, effectiveEnd: endMs, isEmergency: false };
+}
+
+// ══════════════════════════════════════════════════════════
+// SCHEDULE DAY JOBS
+// ══════════════════════════════════════════════════════════
+
 async function scheduleDayJobs(
   db: any,
   cycleId: string,
@@ -503,46 +179,38 @@ async function scheduleDayJobs(
   deviceId: string,
   dayIndex: number,
   phase: string,
-  chipState: string = "new",
-  isResume: boolean = false
-) {
-  const now = new Date();
-  const jobs: any[] = [];
-
-  // Day 1 = OFF, no jobs
+  chipState: string,
+  forced: boolean = false,
+): Promise<number> {
   if (phase === "pre_24h" || phase === "completed") return 0;
 
-  // Activity window: 07:00-19:00 BRT = 10:00-22:00 UTC
-  const today = new Date(now);
-  const windowStartUTC = new Date(today);
-  windowStartUTC.setUTCHours(10, 0, 0, 0);
-  const windowEndUTC = new Date(today);
-  windowEndUTC.setUTCHours(22, 0, 0, 0);
-
-  let effectiveStart: number;
-  let effectiveEnd: number;
-
-  if (isResume && now.getTime() >= windowEndUTC.getTime()) {
-    // Forced/manual execution outside window: create 2h emergency window
-    console.log(`[scheduleDayJobs-engine] Outside window but forced — using 2h emergency window`);
-    effectiveStart = now.getTime();
-    effectiveEnd = now.getTime() + 2 * 60 * 60 * 1000;
-  } else {
-    effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
-    effectiveEnd = windowEndUTC.getTime();
-    if (effectiveStart >= effectiveEnd) return 0;
+  const window = calculateWindow(forced);
+  if (!window) {
+    console.log(`[scheduleDayJobs] Outside operating window, no jobs scheduled`);
+    return 0;
   }
 
+  const { effectiveStart, effectiveEnd, isEmergency } = window;
   const windowMs = effectiveEnd - effectiveStart;
+
+  if (windowMs < 30 * 60 * 1000) {
+    console.log(`[scheduleDayJobs] Window too small (${Math.round(windowMs / 60000)}min)`);
+    return 0;
+  }
+
+  if (isEmergency) {
+    console.log(`[scheduleDayJobs] Using 2h emergency window`);
+  }
+
   const volumes = getVolumes(chipState, dayIndex, phase);
+  const jobs: any[] = [];
 
   // ── GROUP INTERACTIONS ──
   if (volumes.groupMsgs > 0) {
-    const groupSpacingMs = windowMs / volumes.groupMsgs;
+    const spacing = windowMs / (volumes.groupMsgs + 1);
     for (let i = 0; i < volumes.groupMsgs; i++) {
-      const baseOffset = groupSpacingMs * i;
-      const jitter = randInt(0, Math.floor(groupSpacingMs * 0.6));
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
+      const offset = spacing * (i + 1) + randInt(-120, 120) * 1000;
+      const runAt = new Date(effectiveStart + Math.max(offset, 60000));
       if (runAt.getTime() > effectiveEnd) break;
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
@@ -552,22 +220,18 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── AUTOSAVE INTERACTIONS ──
-  // 5 contacts × 3 rounds = 15 messages, sequential: c1,c2,c3,c4,c5,c1,c2,c3,c4,c5,c1,c2,c3,c4,c5
-  if (volumes.autosaveContacts > 0) {
+  // ── AUTOSAVE INTERACTIONS (last 3h of window) ──
+  if (volumes.autosaveContacts > 0 && volumes.autosaveRounds > 0) {
     const totalAutosave = volumes.autosaveContacts * volumes.autosaveRounds;
-    // Schedule after groups finish (last 3 hours of window)
-    const autosaveWindowStart = effectiveEnd - 3 * 60 * 60 * 1000;
-    const asStart = Math.max(autosaveWindowStart, effectiveStart);
+    const asStart = Math.max(effectiveEnd - 3 * 60 * 60 * 1000, effectiveStart);
     const asWindowMs = effectiveEnd - asStart;
-    const asSpacingMs = asWindowMs / (totalAutosave + 1);
+    const asSpacing = asWindowMs / (totalAutosave + 1);
 
     for (let round = 0; round < volumes.autosaveRounds; round++) {
       for (let c = 0; c < volumes.autosaveContacts; c++) {
         const idx = round * volumes.autosaveContacts + c;
-        const baseOffset = asSpacingMs * (idx + 1);
-        const jitter = randInt(0, Math.floor(asSpacingMs * 0.3));
-        const runAt = new Date(asStart + baseOffset + jitter);
+        const offset = asSpacing * (idx + 1) + randInt(0, Math.floor(asSpacing * 0.3));
+        const runAt = new Date(asStart + offset);
         if (runAt.getTime() > effectiveEnd) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
@@ -580,22 +244,16 @@ async function scheduleDayJobs(
   }
 
   // ── COMMUNITY INTERACTIONS (conversation bursts) ──
-  // Each peer gets 30-50 messages clustered together, 25% images
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
-    const totalPeers = volumes.communityPeers;
-    const msgsPerPeer = volumes.communityMsgsPerPeer;
-    const peerWindowMs = windowMs / totalPeers; // time allocated per peer conversation
-
-    for (let p = 0; p < totalPeers; p++) {
-      const peerStart = effectiveStart + (peerWindowMs * p);
-      // Conversation starts with a random offset within first 20% of peer window
+    const peerWindowMs = windowMs / volumes.communityPeers;
+    for (let p = 0; p < volumes.communityPeers; p++) {
+      const peerStart = effectiveStart + peerWindowMs * p;
       const convStart = peerStart + randInt(0, Math.floor(peerWindowMs * 0.1));
-      // Messages spaced 30-120 seconds apart within the conversation
-      for (let m = 0; m < msgsPerPeer; m++) {
+      for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
         const msgOffset = m * randInt(30, 120) * 1000;
         const runAt = new Date(convStart + msgOffset);
         if (runAt.getTime() > effectiveEnd) break;
-        const isImage = Math.random() < 0.25; // 25% images
+        const isImage = Math.random() < 0.25;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
@@ -606,44 +264,63 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── STATUS POSTS — removed (UAZAPI v2 doesn't support) ──
+  // ── PHASE TRANSITION JOBS ──
+  if (phase === "groups_only") {
+    const transitionDay = getGroupsEndDay(chipState) + 1;
+    if (dayIndex >= transitionDay - 1) {
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "enable_autosave", payload: {},
+        run_at: new Date(effectiveEnd - 60000).toISOString(),
+        status: "pending",
+      });
+    }
+  }
+  if (phase === "autosave_enabled") {
+    jobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "enable_community", payload: {},
+      run_at: new Date(effectiveEnd - 60000).toISOString(),
+      status: "pending",
+    });
+  }
 
+  // Insert jobs in batches
   if (jobs.length > 0) {
     for (let i = 0; i < jobs.length; i += 100) {
-      const batch = jobs.slice(i, i + 100);
-      await db.from("warmup_jobs").insert(batch);
+      await db.from("warmup_jobs").insert(jobs.slice(i, i + 100));
     }
   }
 
-  // Update the cycle's daily budget to reflect the scheduled volume
-  const totalInteractions = (volumes.groupMsgs || 0)
-    + (volumes.autosaveContacts * volumes.autosaveRounds || 0)
-    + (volumes.communityPeers * volumes.communityMsgsPerPeer || 0)
-    + (volumes.statusPosts || 0);
-  
+  // Update cycle budget
+  const totalInteractions = jobs.filter(j =>
+    ["group_interaction", "autosave_interaction", "community_interaction"].includes(j.job_type)
+  ).length;
+
   await db.from("warmup_cycles").update({
     daily_interaction_budget_target: totalInteractions,
     daily_interaction_budget_min: Math.floor(totalInteractions * 0.8),
     daily_interaction_budget_max: Math.ceil(totalInteractions * 1.2),
     daily_interaction_budget_used: 0,
     daily_unique_recipients_used: 0,
-    phase: phase,
     updated_at: new Date().toISOString(),
   }).eq("id", cycleId);
 
+  console.log(`[scheduleDayJobs] Day ${dayIndex} (${phase}, ${chipState}): ${jobs.length} jobs scheduled`);
   return jobs.length;
 }
 
-// ════════════════════════════════════════
-// Ensure join_group jobs exist for pending groups
-// ════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// ENSURE JOIN GROUP JOBS
+// ══════════════════════════════════════════════════════════
+
 async function ensureJoinGroupJobs(
   db: any,
   cycleId: string,
   userId: string,
   deviceId: string,
 ): Promise<number> {
-  // Check if there are already pending/running join_group jobs
+  // Don't schedule if there are already pending join jobs
   const { data: existingJoinJobs } = await db
     .from("warmup_jobs")
     .select("id")
@@ -652,42 +329,34 @@ async function ensureJoinGroupJobs(
     .in("status", ["pending", "running"])
     .limit(1);
 
-  if (existingJoinJobs && existingJoinJobs.length > 0) {
-    return 0;
-  }
+  if (existingJoinJobs && existingJoinJobs.length > 0) return 0;
 
-  // Groups persist across cycles — lookup by device_id only
+  // Find groups that haven't been joined yet (by device_id, not cycle)
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
     .select("group_id, warmup_groups_pool(id, name)")
     .eq("device_id", deviceId)
     .eq("join_status", "pending");
 
-  if (!pendingGroups || pendingGroups.length === 0) {
-    return 0;
-  }
+  if (!pendingGroups || pendingGroups.length === 0) return 0;
 
   const shuffled = shuffleArray(pendingGroups);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
 
-  // Use consistent 5-30min spacing between groups
-  let cumulativeMs = randInt(5, 15) * 60 * 1000; // first group in 5-15 min
+  let cumulativeMs = randInt(5, 15) * 60 * 1000;
   for (let i = 0; i < shuffled.length; i++) {
     const g = shuffled[i];
     const groupName = (g as any).warmup_groups_pool?.name || "Grupo";
     const runAt = new Date(nowMs + cumulativeMs);
 
     joinJobs.push({
-      user_id: userId,
-      device_id: deviceId,
-      cycle_id: cycleId,
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
       job_type: "join_group",
       payload: { group_id: g.group_id, group_name: groupName },
-      run_at: runAt.toISOString(),
-      status: "pending",
+      run_at: runAt.toISOString(), status: "pending",
     });
-    cumulativeMs += randInt(5, 30) * 60 * 1000; // 5-30 min between each
+    cumulativeMs += randInt(5, 30) * 60 * 1000;
   }
 
   if (joinJobs.length > 0) {
@@ -697,41 +366,513 @@ async function ensureJoinGroupJobs(
   return joinJobs.length;
 }
 
-// ════════════════════════════════════════
-// Volume configuration
-// Groups: 50-120/day
-// AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
-// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs
-// ════════════════════════════════════════
-interface DayVolumes {
-  groupMsgs: number;
-  autosaveContacts: number;
-  autosaveRounds: number;
-  communityPeers: number;
-  communityMsgsPerPeer: number;
+// ══════════════════════════════════════════════════════════
+// PLAN/ACCOUNT VALIDATION
+// ══════════════════════════════════════════════════════════
+
+async function validateUserPlan(db: any, userId: string): Promise<string | null> {
+  const { data: activeSub } = await db
+    .from("subscriptions")
+    .select("expires_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: profile } = await db
+    .from("profiles")
+    .select("status")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!activeSub || new Date(activeSub.expires_at) < new Date()) {
+    return "Seu plano está inativo. Ative um plano para continuar.";
+  }
+  if (profile?.status === "suspended" || profile?.status === "cancelled") {
+    return "Conta suspensa ou cancelada.";
+  }
+  return null;
 }
 
-function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
+// ══════════════════════════════════════════════════════════
+// AUTH HANDLER
+// ══════════════════════════════════════════════════════════
 
-  if (phase === "pre_24h" || phase === "completed") return v;
-
-  v.groupMsgs = randInt(50, 120);
-
-  if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
-    v.autosaveContacts = 5;
-    v.autosaveRounds = 3;
+async function authenticateUser(req: Request, supabaseUrl: string): Promise<string | null> {
+  const cronSecret = req.headers.get("x-cron-secret");
+  if (cronSecret === Deno.env.get("WEBHOOK_SECRET")) {
+    return null; // Cron caller — no user ID
   }
 
-  if (phase === "community_enabled" || phase === "community_light") {
-    const groupsEnd = getGroupsEndDay(chipState);
-    const communityStartDay = groupsEnd + 2;
-    const communityDay = dayIndex - communityStartDay + 1;
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return "__unauthorized__";
 
-    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-    v.communityPeers = communityDay <= 0 ? 0 : peerScale[Math.min(communityDay, peerScale.length - 1)];
-    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const anonClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) return "__unauthorized__";
+
+  return claimsData.claims.sub as string;
+}
+
+// ══════════════════════════════════════════════════════════
+// CONNECTED STATUS CHECK
+// ══════════════════════════════════════════════════════════
+const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
+
+// ══════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  return v;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const db = createClient(supabaseUrl, serviceKey);
+
+  const callerUserId = await authenticateUser(req, supabaseUrl);
+  if (callerUserId === "__unauthorized__") {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty body OK */ }
+
+  const action = body.action || "tick";
+
+  try {
+    // Validate plan for user-initiated actions
+    if (callerUserId && ["start", "resume"].includes(action)) {
+      const planError = await validateUserPlan(db, callerUserId);
+      if (planError) {
+        return json({ error: planError, code: "NO_ACTIVE_PLAN" }, 403);
+      }
+    }
+
+    switch (action) {
+      case "start":
+        return await handleStart(db, callerUserId, body);
+      case "pause":
+        return await handlePause(db, callerUserId, body);
+      case "resume":
+        return await handleResume(db, callerUserId, body);
+      case "stop":
+        return await handleStop(db, callerUserId, body);
+      case "schedule_day":
+        return await handleScheduleDay(db, callerUserId, body);
+      default:
+        return json({ error: "Ação inválida. Use: start, pause, resume, stop, schedule_day" }, 400);
+    }
+  } catch (err) {
+    console.error(`[warmup-engine] ${action} error:`, err.message);
+    return json({ error: err.message }, 500);
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// ACTION: START
+// ══════════════════════════════════════════════════════════
+
+async function handleStart(db: any, userId: string | null, body: any) {
+  if (!userId) throw new Error("start requires authenticated user");
+
+  const { device_id, chip_state, days_total, plan_id } = body;
+  if (!device_id) throw new Error("device_id required");
+
+  const resolvedChipState = chip_state || "new";
+  const now = new Date();
+
+  // 1. Clean up completed/orphan cycles for this device
+  const { data: oldCycles } = await db
+    .from("warmup_cycles")
+    .select("id")
+    .eq("device_id", device_id)
+    .eq("user_id", userId)
+    .in("phase", ["completed", "error"]);
+
+  if (oldCycles?.length > 0) {
+    for (const old of oldCycles) {
+      await Promise.all([
+        db.from("warmup_jobs").delete().eq("cycle_id", old.id),
+        db.from("warmup_audit_logs").delete().eq("cycle_id", old.id),
+        db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", old.id),
+        db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", old.id),
+        db.from("warmup_unique_recipients").delete().eq("cycle_id", old.id),
+      ]);
+      await db.from("warmup_cycles").delete().eq("id", old.id);
+    }
+  }
+
+  // 2. Create cycle
+  const cycleDays = days_total || 30;
+  const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  const { data: cycle, error: cycleErr } = await db
+    .from("warmup_cycles")
+    .insert({
+      user_id: userId,
+      device_id,
+      chip_state: resolvedChipState,
+      days_total: cycleDays,
+      plan_id: plan_id || null,
+      phase: "pre_24h",
+      is_running: true,
+      started_at: now.toISOString(),
+      first_24h_ends_at: first24hEnds.toISOString(),
+      daily_interaction_budget_target: 0,
+      daily_interaction_budget_min: 0,
+      daily_interaction_budget_max: 0,
+    })
+    .select("id")
+    .single();
+
+  if (cycleErr) throw cycleErr;
+
+  // 3. Register groups from pool
+  const { data: poolGroups } = await db
+    .from("warmup_groups_pool")
+    .select("id, name")
+    .eq("is_active", true);
+
+  const allGroups = shuffleArray(poolGroups || []);
+
+  // Check for existing group records for this device
+  const { data: existingGroups } = await db
+    .from("warmup_instance_groups")
+    .select("id, group_id, join_status")
+    .eq("device_id", device_id);
+
+  if (existingGroups?.length > 0) {
+    // Update existing records to reference new cycle
+    await db.from("warmup_instance_groups")
+      .update({ cycle_id: cycle.id })
+      .eq("device_id", device_id);
+
+    // Insert any NEW pool groups that don't have records yet
+    const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
+    const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
+    for (const g of missingGroups) {
+      await db.from("warmup_instance_groups").insert({
+        user_id: userId, device_id,
+        group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+      });
+    }
+  } else {
+    // Fresh: register all pool groups
+    for (const g of allGroups) {
+      await db.from("warmup_instance_groups").insert({
+        user_id: userId, device_id,
+        group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+      });
+    }
+  }
+
+  // 4. Schedule join_group jobs: 4-6h after start, 5-30min between each
+  const jobs: any[] = [];
+  const joinStartMs = randInt(4, 6) * 60 * 60 * 1000;
+  let cumulativeDelay = joinStartMs;
+
+  for (let i = 0; i < allGroups.length; i++) {
+    if (i > 0) {
+      cumulativeDelay += randInt(5, 30) * 60 * 1000;
+    }
+    jobs.push({
+      user_id: userId, device_id, cycle_id: cycle.id,
+      job_type: "join_group",
+      payload: { group_id: allGroups[i].id, group_name: allGroups[i].name },
+      run_at: new Date(now.getTime() + cumulativeDelay).toISOString(),
+      status: "pending",
+    });
+  }
+
+  // 5. Schedule phase_transition to groups_only at 24h mark
+  jobs.push({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    job_type: "phase_transition",
+    payload: { target_phase: "groups_only" },
+    run_at: first24hEnds.toISOString(), status: "pending",
+  });
+
+  // 6. Schedule first daily_reset at 00:05 BRT (03:05 UTC) after 24h window
+  const firstReset = new Date(first24hEnds);
+  firstReset.setUTCHours(3, 5, 0, 0);
+  if (firstReset.getTime() <= first24hEnds.getTime()) {
+    firstReset.setUTCDate(firstReset.getUTCDate() + 1);
+  }
+  jobs.push({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    job_type: "daily_reset", payload: {},
+    run_at: firstReset.toISOString(), status: "pending",
+  });
+
+  // Insert all jobs
+  if (jobs.length > 0) {
+    await db.from("warmup_jobs").insert(jobs);
+  }
+
+  // 7. Audit log
+  const chipLabels: Record<string, string> = {
+    new: "Chip Novo",
+    recovered: "Chip Banido/Recuperação",
+    unstable: "Chip Crítico/Instável",
+  };
+  const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
+
+  const groupSchedule = jobs
+    .filter(j => j.job_type === "join_group")
+    .map((j, i) => {
+      const brt = new Date(j.run_at).toLocaleTimeString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      });
+      return `Grupo ${i + 1}: ${j.payload.group_name} às ${brt}`;
+    })
+    .join(" | ");
+
+  await db.from("warmup_audit_logs").insert({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    level: "info", event_type: "cycle_started",
+    message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias.${groupSchedule ? ` Agenda: ${groupSchedule}` : ""}`,
+    meta: {
+      chip_state: resolvedChipState,
+      groups: allGroups.map(g => g.name),
+      total_days: cycleDays,
+    },
+  });
+
+  return json({
+    ok: true,
+    cycle_id: cycle.id,
+    chip_state: resolvedChipState,
+    jobs_scheduled: jobs.length,
+    total_days: cycleDays,
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTION: PAUSE
+// ══════════════════════════════════════════════════════════
+
+async function handlePause(db: any, userId: string | null, body: any) {
+  if (!userId) throw new Error("pause requires authenticated user");
+  const { device_id } = body;
+
+  const { data: cycle } = await db
+    .from("warmup_cycles")
+    .select("id, phase")
+    .eq("device_id", device_id)
+    .eq("user_id", userId)
+    .eq("is_running", true)
+    .neq("phase", "completed")
+    .single();
+
+  if (!cycle) throw new Error("No active cycle found");
+
+  await db.from("warmup_cycles").update({
+    is_running: false,
+    phase: "paused",
+    previous_phase: cycle.phase,
+  }).eq("id", cycle.id);
+
+  await db.from("warmup_jobs")
+    .update({ status: "cancelled" })
+    .eq("cycle_id", cycle.id)
+    .eq("status", "pending");
+
+  await db.from("warmup_audit_logs").insert({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    level: "info", event_type: "cycle_paused",
+    message: "Aquecimento pausado pelo usuário",
+  });
+
+  return json({ ok: true });
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTION: RESUME
+// ══════════════════════════════════════════════════════════
+
+async function handleResume(db: any, userId: string | null, body: any) {
+  if (!userId) throw new Error("resume requires authenticated user");
+  const { device_id } = body;
+
+  const { data: cycle } = await db
+    .from("warmup_cycles")
+    .select("id, user_id, device_id, phase, day_index, days_total, chip_state, first_24h_ends_at, previous_phase")
+    .eq("device_id", device_id)
+    .eq("user_id", userId)
+    .eq("phase", "paused")
+    .single();
+
+  if (!cycle) throw new Error("No paused cycle found");
+
+  // Validate device is connected
+  const { data: device } = await db
+    .from("devices")
+    .select("status")
+    .eq("id", device_id)
+    .single();
+
+  if (!device || !CONNECTED_STATUSES.includes(device.status)) {
+    throw new Error("Instância offline. Conecte o dispositivo antes de retomar o aquecimento.");
+  }
+
+  // Determine resume phase
+  const now = new Date();
+  const first24hEnds = new Date(cycle.first_24h_ends_at);
+  let resumePhase: string;
+
+  if (now < first24hEnds) {
+    resumePhase = "pre_24h";
+  } else if (cycle.previous_phase && !["error", "completed", "paused"].includes(cycle.previous_phase)) {
+    resumePhase = cycle.previous_phase;
+  } else {
+    resumePhase = getPhaseForDay(cycle.day_index, cycle.chip_state || "new");
+  }
+
+  // Update cycle
+  await db.from("warmup_cycles").update({
+    is_running: true,
+    phase: resumePhase,
+    previous_phase: null,
+    last_error: null,
+    next_run_at: now.toISOString(),
+  }).eq("id", cycle.id);
+
+  // Schedule next daily reset
+  const nextReset = new Date(now);
+  nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+  nextReset.setUTCHours(3, 5, 0, 0);
+  await db.from("warmup_jobs").insert({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    job_type: "daily_reset", payload: {},
+    run_at: nextReset.toISOString(), status: "pending",
+  });
+
+  // Cancel old pending interaction jobs
+  await db.from("warmup_jobs")
+    .update({ status: "cancelled", last_error: "Cancelado: retomada do ciclo" })
+    .eq("cycle_id", cycle.id)
+    .eq("status", "pending")
+    .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+  // Schedule today's jobs
+  if (resumePhase !== "pre_24h" && resumePhase !== "completed") {
+    await scheduleDayJobs(db, cycle.id, userId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
+  }
+
+  // Re-schedule join_group jobs for pending groups
+  const { data: pendingGroups } = await db
+    .from("warmup_instance_groups")
+    .select("group_id, warmup_groups_pool(id, name)")
+    .eq("device_id", device_id)
+    .eq("cycle_id", cycle.id)
+    .eq("join_status", "pending");
+
+  if (pendingGroups?.length > 0) {
+    const shuffled = shuffleArray(pendingGroups);
+    const joinJobs: any[] = [];
+    let cumulativeMs = randInt(5, 15) * 60 * 1000;
+
+    for (let i = 0; i < shuffled.length; i++) {
+      const g = shuffled[i];
+      joinJobs.push({
+        user_id: userId, device_id, cycle_id: cycle.id,
+        job_type: "join_group",
+        payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+        run_at: new Date(now.getTime() + cumulativeMs).toISOString(),
+        status: "pending",
+      });
+      cumulativeMs += randInt(5, 30) * 60 * 1000;
+    }
+
+    if (joinJobs.length > 0) {
+      await db.from("warmup_jobs").insert(joinJobs);
+    }
+  }
+
+  await db.from("warmup_audit_logs").insert({
+    user_id: userId, device_id, cycle_id: cycle.id,
+    level: "info", event_type: "cycle_resumed",
+    message: `Aquecimento retomado na fase: ${resumePhase} (dia ${cycle.day_index})`,
+  });
+
+  return json({ ok: true, phase: resumePhase });
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTION: STOP
+// ══════════════════════════════════════════════════════════
+
+async function handleStop(db: any, userId: string | null, body: any) {
+  if (!userId) throw new Error("stop requires authenticated user");
+  const { device_id } = body;
+
+  const { data: cycle } = await db
+    .from("warmup_cycles")
+    .select("id")
+    .eq("device_id", device_id)
+    .eq("user_id", userId)
+    .neq("phase", "completed")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!cycle) throw new Error("No active cycle found");
+
+  // Mark completed and cancel pending jobs
+  await db.from("warmup_cycles").update({ is_running: false, phase: "completed" }).eq("id", cycle.id);
+  await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
+
+  // Full cleanup
+  await Promise.all([
+    db.from("warmup_jobs").delete().eq("cycle_id", cycle.id),
+    db.from("warmup_audit_logs").delete().eq("cycle_id", cycle.id),
+    db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", cycle.id),
+    db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", cycle.id),
+    db.from("warmup_unique_recipients").delete().eq("cycle_id", cycle.id),
+  ]);
+  await db.from("warmup_cycles").delete().eq("id", cycle.id);
+
+  return json({ ok: true });
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTION: SCHEDULE_DAY (manual trigger)
+// ══════════════════════════════════════════════════════════
+
+async function handleScheduleDay(db: any, userId: string | null, body: any) {
+  if (!userId) throw new Error("schedule_day requires authenticated user");
+
+  const { device_id, cycle_id, day_index, phase, chip_state } = body;
+  if (!cycle_id || !device_id) throw new Error("cycle_id and device_id required");
+
+  // Cancel existing pending interaction jobs
+  await db.from("warmup_jobs")
+    .update({ status: "cancelled", last_error: "Cancelado: reagendamento manual" })
+    .eq("cycle_id", cycle_id)
+    .eq("status", "pending")
+    .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+  const resolvedPhase = phase || "groups_only";
+  let joinScheduled = 0;
+
+  // Ensure join_group jobs exist if in groups phase
+  if (resolvedPhase === "groups_only") {
+    joinScheduled = await ensureJoinGroupJobs(db, cycle_id, userId, device_id);
+  }
+
+  const jobCount = await scheduleDayJobs(
+    db, cycle_id, userId, device_id,
+    day_index || 1, resolvedPhase, chip_state || "new", true,
+  );
+
+  return json({ ok: true, jobs_scheduled: (jobCount || 0) + joinScheduled });
 }
