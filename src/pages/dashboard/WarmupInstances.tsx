@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -43,18 +43,162 @@ const phaseShort: Record<string, string> = {
   community_light: "comunidade",
 };
 
+const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
+
+const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone }: {
+  device: any;
+  cycle: any;
+  onPause: (id: string, e: React.MouseEvent) => void;
+  onResume: (id: string, e: React.MouseEvent) => void;
+  onCancel: (id: string) => void;
+  onConnect: (device: any) => void;
+  onNavigate: (path: string) => void;
+  formatPhone: (num: string) => string;
+}) => {
+  const connected = CONNECTED_STATUSES.includes(device.status);
+  const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
+        "bg-card shadow-sm hover:shadow-lg",
+        connected
+          ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+          : "border-border/30 hover:border-border/50"
+      )}
+      onClick={() => onNavigate(`/dashboard/warmup-v2/${device.id}`)}
+    >
+      <div className={cn(
+        "h-[2px] w-full",
+        isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
+      )} />
+
+      <div className="px-4 pt-3.5">
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+          connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
+        )}>
+          <span className={cn(
+            "w-[5px] h-[5px] rounded-full shrink-0",
+            connected ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" : "bg-muted-foreground/40"
+          )} />
+          {connected ? "CONECTADO" : "DESCONECTADO"}
+        </div>
+      </div>
+
+      <div className="px-4 pt-3.5 pb-3 flex items-center gap-4">
+        <div className={cn(
+          "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
+          "ring-[2.5px] ring-offset-2 ring-offset-card",
+          connected ? "ring-primary/40" : "ring-border/30"
+        )}>
+          {device.profile_picture ? (
+            <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" />
+          ) : (
+            <div className={cn(
+              "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+              connected ? "bg-primary/8" : "bg-muted/30"
+            )}>
+              <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/40")} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-foreground truncate leading-tight">
+            {device.name}
+          </p>
+          {device.number && (
+            <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
+              {formatPhone(device.number)}
+            </p>
+          )}
+          {cycle && (
+            <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center gap-1">
+              <Flame className="w-2.5 h-2.5 text-primary/60" />
+              Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
+            </p>
+          )}
+          {!cycle && connected && (
+            <p className="text-[10px] text-muted-foreground/40 mt-1">Pronto para aquecer</p>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 pb-4 space-y-2">
+        {!connected ? (
+          <Button
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+            onClick={(e) => { e.stopPropagation(); onConnect(device); }}
+          >
+            <Wifi className="w-3.5 h-3.5" /> Conectar
+          </Button>
+        ) : cycle && isWarming ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            onClick={(e) => onPause(device.id, e)}
+          >
+            <Pause className="w-3.5 h-3.5" /> Parar aquecimento
+          </Button>
+        ) : cycle?.phase === "paused" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            onClick={(e) => onResume(device.id, e)}
+          >
+            <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+          </Button>
+        ) : connected && !cycle ? (
+          <Button
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
+            onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
+          >
+            <Flame className="w-3.5 h-3.5" /> Aquecer
+          </Button>
+        ) : null}
+        {cycle && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+            onClick={(e) => { e.stopPropagation(); onCancel(device.id); }}
+          >
+            <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+          onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
+        >
+          <Pencil className="w-3.5 h-3.5" /> Editar
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+DeviceCard.displayName = "DeviceCard";
+
+const formatPhone = (num: string) => {
+  const digits = num.replace(/\D/g, "");
+  if (digits.length >= 12 && digits.startsWith("55")) {
+    const ddd = digits.slice(2, 4);
+    const rest = digits.slice(4);
+    const hyphenAt = rest.length - 4;
+    return `+55 ${ddd} ${rest.slice(0, hyphenAt)}-${rest.slice(hyphenAt)}`;
+  }
+  return num;
+};
+
 const WarmupInstances = () => {
-  // Format phone number for display
-  const formatPhone = (num: string) => {
-    const digits = num.replace(/\D/g, "");
-    if (digits.length >= 12 && digits.startsWith("55")) {
-      const ddd = digits.slice(2, 4);
-      const rest = digits.slice(4);
-      const hyphenAt = rest.length - 4;
-      return `+55 ${ddd} ${rest.slice(0, hyphenAt)}-${rest.slice(hyphenAt)}`;
-    }
-    return num;
-  };
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -130,7 +274,7 @@ const WarmupInstances = () => {
     cycles.find(c => c.device_id === deviceId && !["completed", "error"].includes(c.phase));
 
   const isConnected = (status: string) =>
-    ["Connected", "Ready", "authenticated"].includes(status);
+    CONNECTED_STATUSES.includes(status);
 
   const disconnectedCount = filteredDevices.filter(d => !isConnected(d.status)).length;
 
@@ -335,7 +479,7 @@ const WarmupInstances = () => {
   };
 
   // Warmup actions
-  const handlePause = (deviceId: string, e: React.MouseEvent) => {
+  const handlePause = useCallback((deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.is_running ? { ...c, is_running: false, phase: "paused", previous_phase: c.phase } : c)
@@ -345,9 +489,9 @@ const WarmupInstances = () => {
       { action: "pause", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao pausar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
 
-  const handleResume = (deviceId: string, e: React.MouseEvent) => {
+  const handleResume = useCallback((deviceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.map((c: any) => c.device_id === deviceId && c.phase === "paused" ? { ...c, is_running: true, phase: c.previous_phase || "groups_only" } : c)
@@ -357,11 +501,11 @@ const WarmupInstances = () => {
       { action: "resume", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao retomar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
 
   const [cancelConfirmDevice, setCancelConfirmDevice] = useState<string | null>(null);
 
-  const handleCancel = (deviceId: string) => {
+  const handleCancel = useCallback((deviceId: string) => {
     qc.setQueryData(["warmup_cycles"], (old: any[]) =>
       old?.filter((c: any) => c.device_id !== deviceId)
     );
@@ -371,7 +515,11 @@ const WarmupInstances = () => {
       { action: "stop", device_id: deviceId },
       { onError: () => { qc.invalidateQueries({ queryKey: ["warmup_cycles"] }); toast({ title: "Erro ao cancelar", variant: "destructive" }); } }
     );
-  };
+  }, [engine, qc, toast]);
+
+  const onCancelClick = useCallback((deviceId: string) => {
+    setCancelConfirmDevice(deviceId);
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -906,140 +1054,18 @@ const WarmupInstances = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {displayed.map(device => {
             const cycle = getDeviceCycle(device.id);
-            const connected = isConnected(device.status);
-            const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
-
             return (
-              <div
+              <DeviceCard
                 key={device.id}
-                className={cn(
-                  "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
-                  "bg-card shadow-sm hover:shadow-lg",
-                  connected
-                    ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
-                    : "border-border/30 hover:border-border/50"
-                )}
-                onClick={() => navigate(`/dashboard/warmup-v2/${device.id}`)}
-              >
-                {/* Top accent line */}
-                <div className={cn(
-                  "h-[2px] w-full",
-                  isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
-                )} />
-
-                {/* Status pill */}
-                <div className="px-4 pt-3.5">
-                  <div className={cn(
-                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
-                    connected
-                      ? "text-primary bg-primary/8"
-                      : "text-muted-foreground bg-muted/30"
-                  )}>
-                    <span className={cn(
-                      "w-[5px] h-[5px] rounded-full shrink-0",
-                      connected ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" : "bg-muted-foreground/40"
-                    )} />
-                    {connected ? "CONECTADO" : "DESCONECTADO"}
-                  </div>
-                </div>
-
-                {/* Profile */}
-                <div className="px-4 pt-3.5 pb-3 flex items-center gap-4">
-                  <div className={cn(
-                    "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
-                    "ring-[2.5px] ring-offset-2 ring-offset-card",
-                    connected ? "ring-primary/40" : "ring-border/30"
-                  )}>
-                    {device.profile_picture ? (
-                      <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" />
-                    ) : (
-                      <div className={cn(
-                        "w-[52px] h-[52px] rounded-full flex items-center justify-center",
-                        connected ? "bg-primary/8" : "bg-muted/30"
-                      )}>
-                        <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/40")} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-bold text-foreground truncate leading-tight">
-                      {device.name}
-                    </p>
-                    {device.number && (
-                      <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
-                        {formatPhone(device.number)}
-                      </p>
-                    )}
-                    {cycle && (
-                      <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center gap-1">
-                        <Flame className="w-2.5 h-2.5 text-primary/60" />
-                        Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
-                      </p>
-                    )}
-                    {!cycle && connected && (
-                      <p className="text-[10px] text-muted-foreground/40 mt-1">Pronto para aquecer</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="px-4 pb-4 space-y-2">
-                  {!connected ? (
-                    <Button
-                      size="sm"
-                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
-                      onClick={(e) => { e.stopPropagation(); openConnect(device); }}
-                    >
-                      <Wifi className="w-3.5 h-3.5" /> Conectar
-                    </Button>
-                  ) : cycle && isWarming ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
-                      onClick={(e) => handlePause(device.id, e)}
-                    >
-                      <Pause className="w-3.5 h-3.5" /> Parar aquecimento
-                    </Button>
-                  ) : cycle?.phase === "paused" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
-                      onClick={(e) => handleResume(device.id, e)}
-                    >
-                      <Play className="w-3.5 h-3.5" /> Retomar aquecimento
-                    </Button>
-                  ) : connected && !cycle ? (
-                    <Button
-                      size="sm"
-                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
-                    >
-                      <Flame className="w-3.5 h-3.5" /> Aquecer
-                    </Button>
-                  ) : null}
-                  {cycle && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
-                      onClick={(e) => { e.stopPropagation(); setCancelConfirmDevice(device.id); }}
-                    >
-                      <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/warmup-v2/${device.id}`); }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Editar
-                  </Button>
-                </div>
-              </div>
+                device={device}
+                cycle={cycle}
+                onPause={handlePause}
+                onResume={handleResume}
+                onCancel={onCancelClick}
+                onConnect={openConnect}
+                onNavigate={navigate}
+                formatPhone={formatPhone}
+              />
             );
           })}
         </div>
