@@ -836,7 +836,7 @@ const Devices = () => {
     setProfileDevice(device);
     setWpName("");
     
-    setWpPhotoUrl("");
+    setWpPhotoUrl(device.profile_picture || "");
     setWpPhotoBase64("");
     setWpRemovePhoto(false);
     setWpApplyAll(false);
