@@ -1648,8 +1648,8 @@ const Devices = () => {
                           className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
-                          <Camera className="w-5 h-5 text-muted-foreground/50 mb-0.5" />
-                          <span className="text-[9px] text-muted-foreground/50">
+                          <Camera className="w-5 h-5 text-muted-foreground/70 mb-0.5" />
+                          <span className="text-[10px] text-muted-foreground/70 font-medium">
                             {wpRemovePhoto ? "Removida" : "Escolher"}
                           </span>
                         </div>
