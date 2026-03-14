@@ -507,9 +507,13 @@ const WarmupInstanceDetail = () => {
       .split("?")[0]
       .replace(/\/$/, "");
 
+  // Only consider truly actionable pending states (not "left")
   const hasPendingGroupJobs =
-    instanceGroups.some((g) => g.join_status !== "joined") ||
+    instanceGroups.some((g) => g.join_status === "pending" || g.join_status === "failed") ||
     (scheduledJobs || []).some((job) => job.job_type === "join_group" && job.status === "pending");
+
+  // Determine if we need live group data at all
+  const hasActiveGroupTracking = instanceGroups.length > 0 && cycle?.is_running;
 
   const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["warmup_live_groups", deviceId, hasPendingGroupJobs],
@@ -543,9 +547,11 @@ const WarmupInstanceDetail = () => {
         return [];
       }
     },
-    enabled: !!user && !!deviceId && !!isConnected,
-    refetchInterval: hasPendingGroupJobs ? 20000 : 120000,
-    staleTime: hasPendingGroupJobs ? 10000 : 30000,
+    // Only poll when connected AND we have groups to track
+    enabled: !!user && !!deviceId && !!isConnected && !!hasActiveGroupTracking,
+    // Fast polling only when there are actually pending joins; otherwise slow (3 min)
+    refetchInterval: hasPendingGroupJobs ? 20_000 : 180_000,
+    staleTime: hasPendingGroupJobs ? 10_000 : 60_000,
   });
 
   const { data: joinEvidence = [] } = useQuery<{ group_name: string | null; group_link: string | null }[]>({

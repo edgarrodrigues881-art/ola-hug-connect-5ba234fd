@@ -559,7 +559,7 @@ async function handleTick(db: any) {
       const { data: joinedRecords } = await db.from("warmup_instance_groups")
         .select("device_id, group_id")
         .in("device_id", deviceIds)
-        .eq("join_status", "joined");
+        .in("join_status", ["joined", "left"]);
       if (joinedRecords && joinedRecords.length > 0) {
         const joinedSet = new Set(joinedRecords.map((r: any) => `${r.device_id}:${r.group_id}`));
         const toReconcile = staleJoinJobs
@@ -765,13 +765,24 @@ async function handleTick(db: any) {
         const existingDeviceGroups = instanceGroupsMap[job.device_id] || [];
         const existingGroupRecord = existingDeviceGroups.find((ig: any) => ig.group_id === groupId);
 
-        // Idempotência: se já está joined, não tenta entrar novamente no mesmo grupo
+        // Idempotência: se já está joined, não tenta entrar novamente
         if (existingGroupRecord?.join_status === "joined") {
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_joined",
             message: `Grupo ${groupName} já estava com status joined — tentativa duplicada ignorada`,
             meta: { group_name: groupName, skipped_duplicate: true },
+          });
+          break;
+        }
+
+        // Se o grupo foi marcado como "left" (removido do dispositivo), não re-entrar automaticamente
+        if (existingGroupRecord?.join_status === "left") {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "join_group",
+            message: `Grupo ${groupName} marcado como "left" — entrada cancelada para evitar re-join indesejado`,
+            meta: { group_name: groupName, skipped_left: true },
           });
           break;
         }
