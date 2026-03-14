@@ -1662,11 +1662,11 @@ const WarmupInstanceDetail = () => {
                         const isActive = status === "ativo";
 
                         const statusBadge = status === "concluído"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">concluído</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/12 font-bold">concluído</Badge>
                           : status === "pulado"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-amber-500/10 text-amber-400 border-0 hover:bg-amber-500/10">pulado</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-amber-500/12 text-amber-400 border border-amber-500/20 hover:bg-amber-500/12 font-bold">pulado</Badge>
                           : status === "ativo"
-                          ? <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">em andamento</Badge>
+                          ? <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold shadow-[0_0_8px_-2px_hsl(var(--primary)/0.3)]">em andamento</Badge>
                           : null;
 
                         return (
