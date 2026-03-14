@@ -276,18 +276,30 @@ const WarmupInstances = () => {
     status: p.status || "NOVA",
   }));
 
-  const filteredDevices = devices.filter(d => d.login_type !== "report_wa");
+  const filteredDevices = useMemo(
+    () => devices.filter((d) => d.login_type !== "report_wa"),
+    [devices]
+  );
 
-  const getDeviceCycle = (deviceId: string) =>
-    cycles.find(c => c.device_id === deviceId && !["completed", "error"].includes(c.phase));
+  const cycleByDeviceId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const cycle of cycles) {
+      if (!["completed", "error"].includes(cycle.phase)) {
+        map.set(cycle.device_id, cycle);
+      }
+    }
+    return map;
+  }, [cycles]);
 
-  const isConnected = (status: string) =>
-    CONNECTED_STATUSES.includes(status);
+  const isConnected = (status: string) => CONNECTED_STATUSES.includes(status);
 
-  const disconnectedCount = filteredDevices.filter(d => !isConnected(d.status)).length;
+  const disconnectedCount = useMemo(
+    () => filteredDevices.filter((d) => !isConnected(d.status)).length,
+    [filteredDevices]
+  );
 
   const displayed = useMemo(() => {
-    return filteredDevices.filter(d => {
+    return filteredDevices.filter((d) => {
       if (search) {
         const q = search.toLowerCase();
         if (!d.name.toLowerCase().includes(q) && !(d.number || "").includes(q)) return false;
@@ -295,12 +307,12 @@ const WarmupInstances = () => {
       if (statusFilter === "connected" && !isConnected(d.status)) return false;
       if (statusFilter === "disconnected" && isConnected(d.status)) return false;
       if (statusFilter === "warming") {
-        const cycle = getDeviceCycle(d.id);
+        const cycle = cycleByDeviceId.get(d.id);
         if (!cycle || !cycle.is_running) return false;
       }
       return true;
     });
-  }, [filteredDevices, search, statusFilter, cycles]);
+  }, [filteredDevices, search, statusFilter, cycleByDeviceId]);
 
   // --- Connect logic ---
   const callApi = async (body: Record<string, any>) => {
@@ -318,12 +330,12 @@ const WarmupInstances = () => {
     return response.data;
   };
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollingInterval) {
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  };
+  }, [pollingInterval]);
 
   const startPolling = (deviceId: string, proxyId: string | null) => {
     stopPolling();
@@ -389,7 +401,7 @@ const WarmupInstances = () => {
     return () => { if (qrCountdownRef.current) { clearInterval(qrCountdownRef.current); qrCountdownRef.current = null; } };
   }, [connectStep, qrCodeBase64, connectingDevice]);
 
-  const openConnect = (device: any) => {
+  const openConnect = useCallback((device: any) => {
     if (device.id.startsWith("temp-")) {
       toast({ title: "Aguarde", description: "A instância ainda está sendo criada.", variant: "destructive" });
       return;
@@ -403,7 +415,7 @@ const WarmupInstances = () => {
     stopPolling();
     setSelectedProxy(device.proxy_id || "none");
     setConnectOpen(true);
-  };
+  }, [stopPolling, toast]);
 
   const handleConnect = (method: "qr" | "code") => {
     setConnectMethod(method);
@@ -528,6 +540,24 @@ const WarmupInstances = () => {
   const onCancelClick = useCallback((deviceId: string) => {
     setCancelConfirmDevice(deviceId);
   }, []);
+
+  const renderedCards = useMemo(
+    () =>
+      displayed.map((device) => (
+        <DeviceCard
+          key={device.id}
+          device={device}
+          cycle={cycleByDeviceId.get(device.id)}
+          onPause={handlePause}
+          onResume={handleResume}
+          onCancel={onCancelClick}
+          onConnect={openConnect}
+          onNavigate={navigate}
+          formatPhone={formatPhone}
+        />
+      )),
+    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate]
+  );
 
   return (
     <div className="space-y-5">
@@ -1060,22 +1090,7 @@ const WarmupInstances = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {displayed.map(device => {
-            const cycle = getDeviceCycle(device.id);
-            return (
-              <DeviceCard
-                key={device.id}
-                device={device}
-                cycle={cycle}
-                onPause={handlePause}
-                onResume={handleResume}
-                onCancel={onCancelClick}
-                onConnect={openConnect}
-                onNavigate={navigate}
-                formatPhone={formatPhone}
-              />
-            );
-          })}
+          {renderedCards}
         </div>
       )}
 
