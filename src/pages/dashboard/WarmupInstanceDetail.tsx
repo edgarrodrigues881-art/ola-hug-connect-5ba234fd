@@ -1426,7 +1426,7 @@ const WarmupInstanceDetail = () => {
                     // Skip jobs scheduled for future warmup days
                     if (cycleStartedAt) {
                       const jobDay = Math.max(1, differenceInCalendarDays(new Date(job.run_at), cycleStartedAt) + 1);
-                      if (jobDay > currentWarmupDay) continue;
+                      if (jobDay > (cycle?.day_index ?? 1)) continue;
                     }
 
                     const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
