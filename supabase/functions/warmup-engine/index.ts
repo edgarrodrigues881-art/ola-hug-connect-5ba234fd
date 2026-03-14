@@ -395,9 +395,19 @@ Deno.serve(async (req) => {
         .eq("status", "pending")
         .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, phase || "groups_only", chip_state || "new", true);
+      // Ensure join_group jobs exist when entering groups_only phase
+      const resolvedPhase = phase || "groups_only";
+      let joinScheduled = 0;
+      if (resolvedPhase === "groups_only") {
+        joinScheduled = await ensureJoinGroupJobs(db, cycle_id, callerUserId, device_id);
+        if (joinScheduled > 0) {
+          console.log(`[schedule_day] Scheduled ${joinScheduled} join_group jobs for device ${device_id}`);
+        }
+      }
 
-      return new Response(JSON.stringify({ ok: true, jobs_scheduled: jobCount || 0 }), {
+      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, resolvedPhase, chip_state || "new", true);
+
+      return new Response(JSON.stringify({ ok: true, jobs_scheduled: (jobCount || 0) + joinScheduled }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
