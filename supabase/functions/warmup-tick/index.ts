@@ -361,73 +361,97 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 const _blobCache: Record<string, string> = {};
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Strategy 1: URL directly via multiple endpoints
+  if (!imageUrl) throw new Error("Image URL ausente");
+
+  const safeCaption = (caption || "📸").trim() || "📸";
+
+  const parseResponsePayload = async (res: Response) => {
+    const raw = await res.text();
+    if (!raw) return { ok: true };
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { raw };
+    }
+  };
+
+  const tryEndpoints = async (
+    endpoints: Array<{ url: string; body: Record<string, unknown> }>,
+    label: string,
+  ) => {
+    let lastErr = "";
+
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify(ep.body),
+        });
+
+        if (res.ok) {
+          console.log(`[uazapiSendImage] Success via ${ep.url} (${label})`);
+          return { ok: true as const, data: await parseResponsePayload(res) };
+        }
+
+        const errText = await res.text();
+        lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
+        if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
+      } catch (e) {
+        lastErr = `${ep.url}: ${e.message}`;
+      }
+    }
+
+    return { ok: false as const, lastErr };
+  };
+
+  // Strategy 1: direct URL first (faster)
   const urlEndpoints = [
-    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, text: caption } },
-    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, text: caption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, text: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, mediatype: "image", caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption } },
   ];
 
-  let lastErr = "";
-  for (const ep of urlEndpoints) {
-    try {
-      const res = await fetch(ep.url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(ep.body),
-      });
-      if (res.ok) {
-        console.log(`[uazapiSendImage] Success via ${ep.url}`);
-        return await res.json();
-      }
-      const errText = await res.text();
-      lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 200)}`;
-      if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
-    } catch (e) {
-      lastErr = `${ep.url}: ${e.message}`;
-    }
-  }
+  const urlResult = await tryEndpoints(urlEndpoints, "url");
+  if (urlResult.ok) return urlResult.data;
 
-  // Strategy 2: Download and send as base64 Data URI
+  // Strategy 2: download and send as base64 Data URI
   let dataUri = _blobCache[imageUrl];
+  let mimeType = "image/jpeg";
+
   if (!dataUri) {
     const imgRes = await fetch(imageUrl);
     if (!imgRes.ok) throw new Error(`Failed to download image: ${imgRes.status}`);
-    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+
+    mimeType = imgRes.headers.get("content-type") || mimeType;
     const arrayBuf = await imgRes.arrayBuffer();
     const bytes = new Uint8Array(arrayBuf);
     let binary = "";
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    dataUri = `data:${contentType};base64,${btoa(binary)}`;
+
+    dataUri = `data:${mimeType};base64,${btoa(binary)}`;
     _blobCache[imageUrl] = dataUri;
+  } else {
+    const mt = dataUri.match(/^data:([^;]+);base64,/i)?.[1];
+    if (mt) mimeType = mt;
   }
 
   const b64Endpoints = [
-    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, text: caption } },
-    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption } },
-    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, text: caption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, text: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, mediatype: "image", mimetype: mimeType, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption } },
   ];
 
-  for (const ep of b64Endpoints) {
-    try {
-      const res = await fetch(ep.url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-        body: JSON.stringify(ep.body),
-      });
-      if (res.ok) {
-        console.log(`[uazapiSendImage] Success via ${ep.url} (b64)`);
-        return await res.json();
-      }
-      const errText = await res.text();
-      lastErr = `${res.status} @ ${ep.url} (b64): ${errText.substring(0, 200)}`;
-      if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
-    } catch (e) {
-      lastErr = `${ep.url} (b64): ${e.message}`;
-    }
-  }
+  const b64Result = await tryEndpoints(b64Endpoints, "b64");
+  if (b64Result.ok) return b64Result.data;
 
-  throw new Error(`API image send failed after all attempts: ${lastErr}`);
+  throw new Error(`API image send failed after all attempts: ${b64Result.lastErr || urlResult.lastErr || "unknown error"}`);
 }
 
 // ── Media pools for warmup variety ──
