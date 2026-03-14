@@ -661,9 +661,8 @@ const WarmupInstanceDetail = () => {
   // Reverse sync: demote groups marked 'joined' that are no longer on the device
   useEffect(() => {
     if (!deviceId || instanceGroups.length === 0) return;
-    // Only run reverse sync when we have a meaningful live groups response
-    // (at least 1 group visible means the API is responding)
-    if (liveDeviceGroups.length === 0) return;
+    // Only run reverse sync when live synchronization is confirmed
+    if (!liveGroupsSyncOk) return;
 
     const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
     const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
