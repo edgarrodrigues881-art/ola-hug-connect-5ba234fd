@@ -731,6 +731,21 @@ async function handleTick(db: any) {
 
         const groupId = job.payload?.group_id;
         const groupName = job.payload?.group_name || groupId;
+
+        const existingDeviceGroups = instanceGroupsMap[job.device_id] || [];
+        const existingGroupRecord = existingDeviceGroups.find((ig: any) => ig.group_id === groupId);
+
+        // Idempotência: se já está joined, não tenta entrar novamente no mesmo grupo
+        if (existingGroupRecord?.join_status === "joined") {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "group_joined",
+            message: `Grupo ${groupName} já estava com status joined — tentativa duplicada ignorada`,
+            meta: { group_name: groupName, skipped_duplicate: true },
+          });
+          break;
+        }
+
         const poolGroupJoin = groupsPoolMap[groupId];
 
         if (!poolGroupJoin?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
