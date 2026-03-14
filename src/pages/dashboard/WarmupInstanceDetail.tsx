@@ -1476,13 +1476,36 @@ const WarmupInstanceDetail = () => {
                     });
                   }
 
-                  // Sort items within each bucket by time ascending
+                  // Sort items by time ascending
                   items.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-                  // Group items by warmup day number
+                  // Group items by warmup day number, respecting manual day advances
+                  // First, build a timeline of day advances from audit logs
+                  const dayAdvances: { time: Date; toDay: number }[] = [];
+                  for (const log of auditLogs) {
+                    if (log.event_type === "manual_day_advance" || log.event_type === "daily_reset") {
+                      const meta = log.meta as any;
+                      if (meta?.to_day) {
+                        dayAdvances.push({ time: new Date(log.created_at), toDay: meta.to_day });
+                      }
+                    }
+                  }
+                  dayAdvances.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+                  const getItemWarmupDay = (itemTime: Date): number => {
+                    // Check if this item falls after a day advance on the same calendar day
+                    let assignedDay = getWarmupDayBrt(itemTime);
+                    for (const adv of dayAdvances) {
+                      if (itemTime >= adv.time) {
+                        assignedDay = Math.max(assignedDay, adv.toDay);
+                      }
+                    }
+                    return assignedDay;
+                  };
+
                   const dayItemsMap: Record<number, TimelineItem[]> = {};
                   for (const item of items) {
-                    const warmupDay = getWarmupDayBrt(item.time);
+                    const warmupDay = getItemWarmupDay(item.time);
                     if (!dayItemsMap[warmupDay]) dayItemsMap[warmupDay] = [];
                     dayItemsMap[warmupDay].push(item);
                   }
@@ -1499,8 +1522,8 @@ const WarmupInstanceDetail = () => {
                   const chipState = cycle?.chip_state || "new";
                   const groupsEndDay = chipState === "unstable" ? 6 : 4;
                   const getDayPhaseLabel = (day: number) => {
-                    if (day === 1) return "Proteção inicial + entrada nos grupos";
-                    if (day <= groupsEndDay) return "Interações em grupos";
+                    if (day === 1) return "Proteção + entrada nos grupos";
+                    if (day <= groupsEndDay) return "Mensagens em grupos";
                     if (day === groupsEndDay + 1) return "Auto Save ativado";
                     return "Comunidade + Auto Save";
                   };
