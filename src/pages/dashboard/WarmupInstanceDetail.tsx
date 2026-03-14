@@ -607,18 +607,29 @@ const WarmupInstanceDetail = () => {
     );
   }
 
-  // Count real joined groups: DB joined + groups detected live in WhatsApp by JID/name
+  // Count real joined groups: DB joined + grupos detectados ao vivo + evidência de join logs
   const trackedGroupIds = new Set(instanceGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
   const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
+  const evidenceGroupNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
+  const evidenceGroupLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
   const recognizedGroupIds = new Set(
     instanceGroups
       .filter((g) => {
         if (g.join_status === "joined") return true;
         if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
+
         const groupName = g.warmup_groups_pool?.name;
-        return !!groupName && liveGroupNames.has(normalizeGroupName(groupName));
+        if (groupName) {
+          const normalizedName = normalizeGroupName(groupName);
+          if (liveGroupNames.has(normalizedName) || evidenceGroupNames.has(normalizedName)) return true;
+        }
+
+        const groupLink = g.warmup_groups_pool?.external_group_ref;
+        if (groupLink && evidenceGroupLinks.has(normalizeInviteLink(groupLink))) return true;
+
+        return false;
       })
       .map((g) => g.group_id)
   );
