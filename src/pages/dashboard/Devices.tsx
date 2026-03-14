@@ -1428,27 +1428,12 @@ const Devices = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {isEditing ? (
-                    <input
-                      ref={inlineInputRef}
-                      value={inlineEditName}
-                      onChange={(e) => setInlineEditName(e.target.value)}
-                      onBlur={commitInlineEdit}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitInlineEdit();
-                        if (e.key === "Escape") setInlineEditId(null);
-                      }}
-                      className="text-[15px] font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full leading-tight"
-                    />
-                  ) : (
-                    <p
-                      className="text-[15px] font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate leading-tight"
-                      onClick={() => startInlineEdit(d)}
-                      title={d.name}
-                    >
-                      {d.name}
-                    </p>
-                  )}
+                  <p
+                    className="text-[15px] font-bold text-foreground truncate leading-tight"
+                    title={d.name}
+                  >
+                    {d.name}
+                  </p>
                   {d.number && (
                     <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
                       {formatPhone(d.number)}
