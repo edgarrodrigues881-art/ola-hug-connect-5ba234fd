@@ -507,10 +507,12 @@ const WarmupInstanceDetail = () => {
       .split("?")[0]
       .replace(/\/$/, "");
 
-  const hasPendingGroupJobs = instanceGroups.some((g) => g.join_status !== "joined");
+  const hasPendingGroupJobs =
+    instanceGroups.some((g) => g.join_status !== "joined") ||
+    (scheduledJobs || []).some((job) => job.job_type === "join_group" && job.status === "pending");
 
   const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ["warmup_live_groups", deviceId],
+    queryKey: ["warmup_live_groups", deviceId, hasPendingGroupJobs],
     queryFn: async () => {
       if (!deviceId) return [];
       try {
@@ -518,8 +520,9 @@ const WarmupInstanceDetail = () => {
         const token = session?.session?.access_token;
         if (!token) return [];
 
+        const refreshParam = hasPendingGroupJobs ? "&refresh=true" : "";
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
         );
         if (!res.ok) return [];
@@ -697,7 +700,7 @@ const WarmupInstanceDetail = () => {
     void syncRecognizedGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
-  // Se um grupo já está marcado como ingressado, limpa jobs pendentes de join_group para evitar contador falso de "faltando"
+  // Se um grupo já está ingressado, reconcilia jobs pendentes de join_group para evitar contador fantasma
   useEffect(() => {
     if (!cycle?.id || scheduledJobs.length === 0 || instanceGroups.length === 0) return;
 
@@ -708,12 +711,22 @@ const WarmupInstanceDetail = () => {
     );
     if (joinedGroupIds.size === 0) return;
 
-    const stalePendingJoinJobIds = scheduledJobs
+    const pendingJoinJobs = scheduledJobs.filter(
+      (job) => job.job_type === "join_group" && job.status === "pending"
+    );
+    if (pendingJoinJobs.length === 0) return;
+
+    const expectedGroups = poolGroups.length > 0 ? poolGroups.length : 8;
+    const allExpectedGroupsJoined = joinedGroupIds.size >= expectedGroups;
+
+    const stalePendingJoinJobIds = pendingJoinJobs
       .filter((job) => {
-        if (job.job_type !== "join_group" || job.status !== "pending") return false;
+        if (allExpectedGroupsJoined) return true;
+
         const payload = (job.payload && typeof job.payload === "object")
           ? (job.payload as { group_id?: string })
           : {};
+
         return !!payload.group_id && joinedGroupIds.has(payload.group_id);
       })
       .map((job) => job.id);
@@ -733,7 +746,7 @@ const WarmupInstanceDetail = () => {
     };
 
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length]);
 
   /* handlers */
   const handleStartWarmup = () => {
@@ -1563,7 +1576,7 @@ const WarmupInstanceDetail = () => {
                         : {};
 
                       const effectiveStatus =
-                        job.status === "pending" && payload.group_id && joinedDbGroupIds.has(payload.group_id)
+                        job.status === "pending" && payload.group_id && (joinedDbGroupIds.has(payload.group_id) || recognizedGroupIds.has(payload.group_id))
                           ? "succeeded"
                           : job.status;
 
