@@ -173,9 +173,9 @@ const WarmupInstanceDetail = () => {
       const phase = cycle.phase;
 
       // Determine which job types to accelerate based on current phase
-      const targetTypes: string[] = phase === "pre_24h"
-        ? ["join_group"] // Day 1: only group joins
-        : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"];
+      const targetTypes = phase === "pre_24h"
+        ? ["join_group"] as const
+        : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
 
       // 1) Fetch pending jobs of the correct type for this phase
       const { data: pendingJobs, error: fetchErr } = await supabase
