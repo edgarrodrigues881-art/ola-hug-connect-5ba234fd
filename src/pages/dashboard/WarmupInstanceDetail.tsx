@@ -1016,77 +1016,78 @@ const WarmupInstanceDetail = () => {
           )}
 
           {/* ── Plano do Dia — O que vai acontecer hoje ── */}
-          <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="w-4 h-4 text-primary" />
+          <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.06)]">
+            <div className="px-6 py-5 border-b border-border/10 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(var(--primary)/0.2)]">
+                <CalendarDays className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-foreground">Plano do Dia {cycle.day_index}</span>
-                <p className="text-[10px] text-muted-foreground">O que está programado para hoje</p>
+                <span className="text-base font-extrabold text-foreground tracking-tight">Plano do Dia {cycle.day_index}</span>
+                <p className="text-[11px] text-muted-foreground font-medium">O que está programado para hoje</p>
               </div>
-              <Badge className="text-[9px] h-5 rounded-lg font-bold bg-primary/10 text-primary border-0 hover:bg-primary/10">
+              <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.2)]">
                 {pc?.label}
               </Badge>
             </div>
 
             {/* Phase explanation */}
-            <div className="px-5 py-4 border-b border-border/10">
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="px-6 py-5 border-b border-border/8">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {cycle.phase === "pre_24h" && (
                   <>
-                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
+                    🛡️ <strong className="text-foreground font-bold">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
                   </>
                 )}
                 {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
                   <>
-                    💬 <strong className="text-foreground">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
+                    💬 <strong className="text-foreground font-bold">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
                   </>
                 )}
                 {cycle.phase === "completed" && (
                   <>
-                    ✅ <strong className="text-foreground">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
+                    ✅ <strong className="text-foreground font-bold">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
                   </>
                 )}
                 {cycle.phase === "paused" && (
                   <>
-                    ⏸️ <strong className="text-foreground">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
+                    ⏸️ <strong className="text-foreground font-bold">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
                   </>
                 )}
               </p>
             </div>
 
             {/* Quick stats row */}
-            <div className="grid grid-cols-4 divide-x divide-border/10">
-              <div className="px-3 py-3.5 text-center group relative">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Msgs Hoje</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+            <div className="grid grid-cols-3 divide-x divide-border/8">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Msgs Hoje</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {cycle.daily_interaction_budget_used}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_interaction_budget_target}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_interaction_budget_target}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Enviadas / limite</p>
+                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Enviadas / limite</p>
               </div>
-              <div className="px-3 py-3.5 text-center group relative">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Destinos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Destinos</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {cycle.daily_unique_recipients_used}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{cycle.daily_unique_recipients_cap}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_unique_recipients_cap}</span>
                 </p>
-                <p className="text-[8px] text-muted-foreground/60 mt-0.5">Pessoas contactadas</p>
+                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Pessoas contactadas</p>
               </div>
-              <div className="px-3 py-3.5 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
+              <div className="px-4 py-5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Grupos</p>
+                <p className="text-2xl font-black tabular-nums text-foreground">
                   {joinedGroups}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/{totalTrackedGroups}</span>
+                  <span className="text-sm text-muted-foreground/35 font-semibold">/{totalTrackedGroups}</span>
                 </p>
                 {pendingGroups > 0 ? (
-                  <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
+                  <p className="text-[9px] text-amber-400 font-bold mt-1">{pendingGroups} aguardando</p>
                 ) : (
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Ingressados</p>
+                  <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Ingressados</p>
                 )}
               </div>
             </div>
+          </div>
           </div>
 
           {/* ── Auto Save Toggle ── */}
