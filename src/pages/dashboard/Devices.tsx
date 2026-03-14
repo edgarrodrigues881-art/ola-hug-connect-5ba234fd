@@ -1603,7 +1603,7 @@ const Devices = () => {
 
             {editingDevice?.status === "Ready" && (
               <div className="space-y-4 rounded-xl border border-border/30 bg-background/50 p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
+                <p className="text-[11px] text-foreground/60 uppercase tracking-[0.15em] font-bold">Perfil do WhatsApp</p>
 
                 {/* Nome do WhatsApp */}
                 <div className="space-y-1.5">
