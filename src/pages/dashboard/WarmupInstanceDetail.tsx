@@ -1470,7 +1470,16 @@ const WarmupInstanceDetail = () => {
 
                   const getWarmupDayBrt = (d: Date) => {
                     if (!cycleStartBrt || !cycleStartedAt) return 1;
-                    // Simple day diff using BRT date strings
+
+                    // Day 1 is the full first 24h window, even if it crosses midnight in BRT.
+                    if (cycle?.first_24h_ends_at) {
+                      const first24hEnds = new Date(cycle.first_24h_ends_at);
+                      if (d.getTime() <= first24hEnds.getTime()) {
+                        return 1;
+                      }
+                    }
+
+                    // After the first 24h, use BRT calendar day buckets.
                     const dBrt = toBrtDate(d);
                     const startParts = cycleStartBrt.split("-").map(Number);
                     const dParts = dBrt.split("-").map(Number);
