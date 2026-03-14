@@ -186,14 +186,21 @@ const WarmupInstanceDetail = () => {
 
       // 2) If there are no interaction jobs, force only the next pending job of any type
       if (forcedCount === 0) {
-        const { data: nextPendingJob, error: nextPendingErr } = await supabase
+        // Prefer phase_transition over daily_reset; skip daily_reset entirely
+        const { data: pendingJobs, error: nextPendingErr } = await supabase
           .from("warmup_jobs")
           .select("id, job_type")
           .eq("cycle_id", cycle.id)
           .eq("status", "pending")
           .order("run_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
+        if (nextPendingErr) throw nextPendingErr;
+
+        // Prioritize: phase_transition > any non-daily_reset > daily_reset
+        const nextPendingJob = pendingJobs?.find(j => j.job_type === "phase_transition")
+          || pendingJobs?.find(j => j.job_type !== "daily_reset")
+          || pendingJobs?.[0]
+          || null;
         if (nextPendingErr) throw nextPendingErr;
 
         if (!nextPendingJob) {
