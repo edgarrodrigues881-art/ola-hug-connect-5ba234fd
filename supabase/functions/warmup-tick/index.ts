@@ -391,12 +391,28 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     _blobCache[imageUrl] = dataUri;
   }
 
-  const url = `${baseUrl}/send/media`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify({ number, file: dataUri, caption }),
-  });
+  // Try /send/image first (UAZAPI GO v2), fallback to /send/media
+  const endpoints = [
+    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, text: caption } },
+    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, text: caption, caption } },
+  ];
+
+  let lastErr = "";
+  for (const ep of endpoints) {
+    const res = await fetch(ep.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+      body: JSON.stringify(ep.body),
+    });
+    if (res.ok) return await res.json();
+    const errText = await res.text();
+    lastErr = `${res.status} @ ${ep.url}: ${errText}`;
+    if (res.status === 405) continue; // try next endpoint
+    // For other errors, also try next
+    console.warn(`[uazapiSendImage] ${lastErr}`);
+    continue;
+  }
+  throw new Error(`API image send failed: ${lastErr}`);
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`API ${res.status}: ${errText}`);
