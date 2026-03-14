@@ -1365,16 +1365,20 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="rounded-2xl border border-border/40 bg-card shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-shadow w-full">
-              <CardContent className="px-6 pt-7 pb-6 flex flex-col gap-5">
-                {/* Avatar + Nome + Status */}
-                <div className="flex items-center gap-4">
+            <Card key={d.id} className="group relative rounded-2xl border-0 bg-card/80 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-300 w-full overflow-hidden">
+              {/* Top accent line */}
+              <div className={`h-1 w-full ${smartStatus === 'online' ? 'bg-primary/60' : 'bg-destructive/40'}`} />
+
+              <CardContent className="px-5 pt-5 pb-4 flex flex-col gap-4">
+                {/* Row 1: Avatar + Info + Status badge */}
+                <div className="flex items-center gap-3.5">
+                  {/* Avatar with status dot */}
                   <div className="relative shrink-0">
                     {d.profile_picture ? (
                       <img
                         src={d.profile_picture}
                         alt={d.name}
-                        className="w-14 h-14 rounded-full object-cover border-[3px] border-primary/30"
+                        className="w-12 h-12 rounded-xl object-cover ring-2 ring-border/30"
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.style.display = 'none';
@@ -1384,125 +1388,117 @@ const Devices = () => {
                       />
                     ) : null}
                     <div
-                      className="w-14 h-14 rounded-full items-center justify-center text-xl font-bold shrink-0 bg-primary text-primary-foreground border-[3px] border-primary/30"
+                      className="w-12 h-12 rounded-xl items-center justify-center text-lg font-bold bg-primary/10 text-primary ring-2 ring-border/30"
                       style={{ display: d.profile_picture ? 'none' : 'flex' }}
                     >
                       {d.name.charAt(0).toUpperCase()}
                     </div>
+                    {/* Status dot */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${smartStatus === 'online' ? 'bg-primary' : 'bg-destructive'}`} />
                   </div>
 
+                  {/* Name + ID */}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        {isEditing ? (
-                          <input
-                            ref={inlineInputRef}
-                            value={inlineEditName}
-                            onChange={(e) => setInlineEditName(e.target.value)}
-                            onBlur={commitInlineEdit}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitInlineEdit();
-                              if (e.key === "Escape") setInlineEditId(null);
-                            }}
-                            className="text-base font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
-                          />
-                        ) : (
-                          <p
-                            className="text-base font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
-                            onClick={() => startInlineEdit(d)}
-                            title={d.name}
-                          >
-                            {d.name}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-0.5">ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <StatusIcon className={`w-4 h-4 ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`} />
-                        <span className={`text-xs font-semibold ${smartStatus === 'online' ? 'text-primary' : 'text-destructive'}`}>
-                          {ss.label}
-                        </span>
-                      </div>
-                    </div>
+                    {isEditing ? (
+                      <input
+                        ref={inlineInputRef}
+                        value={inlineEditName}
+                        onChange={(e) => setInlineEditName(e.target.value)}
+                        onBlur={commitInlineEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitInlineEdit();
+                          if (e.key === "Escape") setInlineEditId(null);
+                        }}
+                        className="text-sm font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
+                      />
+                    ) : (
+                      <p
+                        className="text-sm font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
+                        onClick={() => startInlineEdit(d)}
+                        title={d.name}
+                      >
+                        {d.name}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                      ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}
+                    </p>
+                  </div>
+
+                  {/* Status badge */}
+                  <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${smartStatus === 'online' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {ss.label}
                   </div>
                 </div>
 
-                {/* Telefone */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Smartphone className="w-4 h-4 shrink-0" />
-                  <span>{d.number ? formatPhone(d.number) : "Número não definido"}</span>
+                {/* Row 2: Phone number */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pl-0.5">
+                  <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{d.number ? formatPhone(d.number) : "Sem número"}</span>
                 </div>
 
-                {/* Botões de ação */}
-                <div className="flex flex-wrap gap-2.5">
-                  {d.status === "Ready" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10 px-4 gap-2 rounded-xl text-sm font-medium text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => openLogout(d)}
-                    >
-                      <Power className="w-4 h-4" /> Desconectar
-                    </Button>
-                  ) : hadPreviousConnection ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 px-4 gap-2 rounded-xl text-sm font-medium border-border"
-                        onClick={() => openConnect(d)}
-                      >
-                        <RefreshCw className="w-4 h-4" /> Tentar novamente
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-10 px-4 gap-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                        onClick={() => openConnect(d)}
-                      >
-                        <Plug className="w-4 h-4" /> Conexão
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="h-10 px-4 gap-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                      onClick={() => openConnect(d)}
-                    >
-                      <Plug className="w-4 h-4" /> Conexão
-                    </Button>
-                  )}
-                </div>
+                {/* Divider */}
+                <div className="h-px bg-border/30" />
 
-                {/* Editar + Excluir */}
-                <div className="flex items-center gap-5">
-                  <button
-                    className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
-                    onClick={() => {
-                      setEditingDevice(d);
-                      setEditName(d.name);
-                      setEditProxyValue(d.proxy_id || "none");
-                      setWpName("");
-                      setWpPhotoUrl("");
-                      setWpPhotoBase64("");
-                      setWpRemovePhoto(false);
-                      setEditOpen(true);
-                    }}
-                  >
-                    <Pencil className="w-4 h-4" /> Editar
-                  </button>
-                  <button
-                    className="flex items-center gap-1.5 text-sm text-destructive hover:text-destructive/80 transition-colors font-medium"
-                    onClick={() => {
-                      if (d.status === "Ready") {
-                        setDeleteSingleDevice(d);
-                        setDeleteSingleOpen(true);
-                      } else {
-                        handleDelete(d.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" /> Excluir
-                  </button>
+                {/* Row 3: Actions */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    {d.status === "Ready" ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 gap-1.5 rounded-lg text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => openLogout(d)}
+                      >
+                        <Power className="w-3.5 h-3.5" /> Desconectar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="h-8 px-3 gap-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+                        onClick={() => openConnect(d)}
+                      >
+                        {hadPreviousConnection ? <RefreshCw className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
+                        {hadPreviousConnection ? "Reconectar" : "Conectar"}
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setEditingDevice(d);
+                        setEditName(d.name);
+                        setEditProxyValue(d.proxy_id || "none");
+                        setWpName("");
+                        setWpPhotoUrl("");
+                        setWpPhotoBase64("");
+                        setWpRemovePhoto(false);
+                        setEditOpen(true);
+                      }}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        if (d.status === "Ready") {
+                          setDeleteSingleDevice(d);
+                          setDeleteSingleOpen(true);
+                        } else {
+                          handleDelete(d.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
