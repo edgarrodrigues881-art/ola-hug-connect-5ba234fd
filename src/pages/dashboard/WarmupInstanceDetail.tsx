@@ -697,6 +697,44 @@ const WarmupInstanceDetail = () => {
     void syncRecognizedGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
+  // Se um grupo já está marcado como ingressado, limpa jobs pendentes de join_group para evitar contador falso de "faltando"
+  useEffect(() => {
+    if (!cycle?.id || scheduledJobs.length === 0 || instanceGroups.length === 0) return;
+
+    const joinedGroupIds = new Set(
+      instanceGroups
+        .filter((g) => g.join_status === "joined")
+        .map((g) => g.group_id)
+    );
+    if (joinedGroupIds.size === 0) return;
+
+    const stalePendingJoinJobIds = scheduledJobs
+      .filter((job) => {
+        if (job.job_type !== "join_group" || job.status !== "pending") return false;
+        const payload = (job.payload && typeof job.payload === "object")
+          ? (job.payload as { group_id?: string })
+          : {};
+        return !!payload.group_id && joinedGroupIds.has(payload.group_id);
+      })
+      .map((job) => job.id);
+
+    if (stalePendingJoinJobIds.length === 0) return;
+
+    const reconcileJoinJobs = async () => {
+      const { error } = await supabase
+        .from("warmup_jobs")
+        .update({ status: "succeeded", last_error: null })
+        .in("id", stalePendingJoinJobIds)
+        .eq("status", "pending");
+
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      }
+    };
+
+    void reconcileJoinJobs();
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient]);
+
   /* handlers */
   const handleStartWarmup = () => {
     if (!deviceId) return;
