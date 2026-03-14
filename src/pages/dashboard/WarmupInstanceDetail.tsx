@@ -1667,7 +1667,7 @@ const WarmupInstanceDetail = () => {
                                         )}
                                       </div>
                                       {item.detail && (
-                                        <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{item.detail}</p>
+                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 whitespace-pre-line break-words">{item.detail}</p>
                                       )}
                                     </div>
                                     <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 mt-0.5">
