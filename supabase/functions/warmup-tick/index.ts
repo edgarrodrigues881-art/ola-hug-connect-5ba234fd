@@ -1,4 +1,4 @@
-// warmup-tick v3.4 — removed post_status (UAZAPI v2 does not support status posting)
+// warmup-tick v3.5 — fixed image sending for UAZAPI v2
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -105,7 +105,6 @@ const FRASES_GRUPO = [
   "conteúdo de qualidade como sempre, continue assim",
 ];
 
-// ── Temas variados para enriquecer conversas ──
 const OPINIOES = [
   "acho que esse ano vai ser diferente", "to otimista com o futuro",
   "cada vez mais difícil achar coisa boa", "o mercado tá complicado",
@@ -158,7 +157,6 @@ const COTIDIANO = [
   "o dia tava tão bonito que resolvi sair pra dar uma volta e tomar um sorvete",
 ];
 
-// ── Frases longas e reflexões (para mensagens de 100-250 chars) ──
 const REFLEXOES = [
   "sabe o que eu penso, a gente tem que aproveitar cada momento porque passa muito rápido e quando a gente percebe já foi",
   "ontem eu tava lembrando de como as coisas eram diferentes uns anos atrás, muita coisa mudou e acho que foi pra melhor",
@@ -230,13 +228,11 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
       return msg;
     }
   }
-  // Fallback
   const fb = (context === "community" || context === "autosave") ? pickRandom(RESPOSTAS_CURTAS) : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
   return fb.substring(0, maxLen);
 }
 
 function buildMsg(ctx: MsgCtx): string {
-  // Auto Save: only short messages (5-40 chars) — quick casual chat
   if (ctx === "autosave") {
     const s = randInt(1, 6);
     if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
@@ -248,10 +244,8 @@ function buildMsg(ctx: MsgCtx): string {
   }
 
   const s = randInt(1, 24);
-  // Curtas (5-30 chars)
   if (s === 1) return pickRandom(RESPOSTAS_CURTAS);
   if (s === 2) return cap(maybeEmoji(pickRandom(SAUDACOES)));
-  // Médias (20-80 chars)
   if (s <= 4) return cap(maybeEmoji(`${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`));
   if (s <= 6) return cap(maybeEmoji(`${pickRandom(PERGUNTAS)}?`));
   if (s <= 8) {
@@ -268,14 +262,11 @@ function buildMsg(ctx: MsgCtx): string {
     return cap(maybeEmoji(f));
   }
   if (s === 16) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(OPINIOES)}`));
-  // Longas (80-250 chars)
   if (s <= 18) return cap(maybeEmoji(pickRandom(REFLEXOES)));
   if (s <= 20) return cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
   if (s === 21) return cap(maybeEmoji(pickRandom(PERGUNTAS_LONGAS)));
-  // Combinações longas
   if (s === 22) return cap(maybeEmoji(`${pickRandom(SAUDACOES)}, ${pickRandom(COTIDIANO)}. ${pickRandom(COMPLEMENTOS)}`));
   if (s === 23) return cap(maybeEmoji(`${pickRandom(COMENTARIOS)}, ${pickRandom(OPINIOES)}`));
-  // s === 24: context-specific
   if (ctx === "group") return cap(maybeEmoji(pickRandom(FRASES_GRUPO)));
   if (ctx === "community") return Math.random() < 0.3 ? pickRandom(RESPOSTAS_CURTAS) : cap(maybeEmoji(pickRandom(HISTORIAS_CURTAS)));
   return cap(maybeEmoji(pickRandom(REFLEXOES)));
@@ -286,8 +277,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth: accept internal secret header OR any Authorization header (cron uses anon key bearer)
-  // verify_jwt=false in config.toml, so Supabase proxy doesn't gate this
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
   const authHeader = req.headers.get("authorization") || "";
@@ -342,9 +331,6 @@ function backoffMinutes(attempt: number): number {
 }
 
 // ── Phase rules per chip_state ──
-// All chips: Day 1 OFF, then groups, then autosave (1 day), then community
-// New/Recovered: Days 2-4 groups → Day 5 autosave → Day 6+ community
-// Unstable:      Days 2-7 groups → Day 8 autosave → Day 9+ community
 function getGroupsEndDay(chipState: string): number {
   return chipState === "unstable" ? 7 : 4;
 }
@@ -371,36 +357,38 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
-// In-memory blob cache to avoid re-downloading the same image within one tick
+// ── Image sending with multi-endpoint fallback for UAZAPI V2 ──
 const _blobCache: Record<string, string> = {};
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  // Strategy: try sending URL directly first (fastest), then base64 fallback
-  const endpoints = [
-    // 1) /send/image with URL directly
+  // Strategy 1: URL directly via multiple endpoints
+  const urlEndpoints = [
     { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, text: caption } },
-    // 2) /send/media with URL in file field
+    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption } },
     { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, text: caption } },
   ];
 
   let lastErr = "";
-  for (const ep of endpoints) {
+  for (const ep of urlEndpoints) {
     try {
       const res = await fetch(ep.url, {
         method: "POST",
         headers: { "Content-Type": "application/json", token, Accept: "application/json" },
         body: JSON.stringify(ep.body),
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        console.log(`[uazapiSendImage] Success via ${ep.url}`);
+        return await res.json();
+      }
       const errText = await res.text();
       lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 200)}`;
-      console.warn(`[uazapiSendImage] ${lastErr}`);
+      if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
     } catch (e) {
       lastErr = `${ep.url}: ${e.message}`;
     }
   }
 
-  // 3) Last resort: base64 Data URI
+  // Strategy 2: Download and send as base64 Data URI
   let dataUri = _blobCache[imageUrl];
   if (!dataUri) {
     const imgRes = await fetch(imageUrl);
@@ -416,6 +404,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 
   const b64Endpoints = [
     { url: `${baseUrl}/send/image`, body: { number, image: dataUri, text: caption } },
+    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption } },
     { url: `${baseUrl}/send/media`, body: { number, file: dataUri, text: caption } },
   ];
 
@@ -426,16 +415,998 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
         headers: { "Content-Type": "application/json", token, Accept: "application/json" },
         body: JSON.stringify(ep.body),
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        console.log(`[uazapiSendImage] Success via ${ep.url} (b64)`);
+        return await res.json();
+      }
       const errText = await res.text();
       lastErr = `${res.status} @ ${ep.url} (b64): ${errText.substring(0, 200)}`;
-      console.warn(`[uazapiSendImage] ${lastErr}`);
+      if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
     } catch (e) {
       lastErr = `${ep.url} (b64): ${e.message}`;
     }
   }
 
   throw new Error(`API image send failed after all attempts: ${lastErr}`);
+}
+
+// ── Media pools for warmup variety ──
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80",
+  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
+  "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&q=80",
+  "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80",
+  "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&q=80",
+  "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&q=80",
+  "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
+];
+
+let _imagePoolCache: string[] | null = null;
+
+async function getImagePool(db: any): Promise<string[]> {
+  if (_imagePoolCache) return _imagePoolCache;
+  
+  try {
+    const { data: files, error } = await db.storage.from("media").list("warmup-media", { limit: 100 });
+    if (!error && files && files.length > 0) {
+      const bucketBase = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-media`;
+      const bucketImages = files
+        .filter((f: any) => f.name && !f.name.startsWith(".") && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name))
+        .map((f: any) => `${bucketBase}/${encodeURIComponent(f.name)}`);
+      
+      console.log(`[warmup-tick] Found ${bucketImages.length} images in storage bucket`);
+      if (bucketImages.length > 0) {
+        _imagePoolCache = [...bucketImages, ...FALLBACK_IMAGES];
+        return _imagePoolCache;
+      }
+    }
+  } catch (e) {
+    console.log(`[warmup-tick] Failed to list bucket images: ${e.message}`);
+  }
+  
+  _imagePoolCache = FALLBACK_IMAGES;
+  return _imagePoolCache;
+}
+
+const IMAGE_CAPTIONS = [
+  "Olha que lindo isso 📸", "Registro do dia ✨", "Momento especial 🙌",
+  "Curti demais essa foto", "Olha que coisa boa 🔥", "Isso aqui tá demais",
+  "Que cenário incrível", "Achei muito bonito isso", "Olha o que encontrei hoje",
+  "Dia abençoado 🙏", "Vale a pena registrar", "Momento de paz ☀️",
+  "Cada dia uma conquista", "Simplesmente perfeito 💯", "A vida é boa demais",
+  "Natureza sempre surpreende 🌿", "Que energia boa", "Olha essa beleza",
+  "Pra guardar na memória", "Isso me faz feliz 😊", "Olha que show",
+  "Tô apaixonado por isso", "Que vista maravilhosa", "Mais um dia incrível",
+  "Gratidão por tudo 🙏", "Melhor momento do dia", "Isso é viver bem",
+  "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
+];
+
+// Decide media type for group interaction: 75% text, 25% image
+type MediaType = "text" | "image";
+function pickMediaType(): MediaType {
+  return Math.random() < 0.75 ? "text" : "image";
+}
+
+// ════════════════════════════════════════
+// TICK HANDLER — process pending jobs
+// ════════════════════════════════════════
+
+function isWithinOperatingWindow(): boolean {
+  return true;
+}
+
+const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
+
+async function handleTick(db: any) {
+  const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
+  const now = new Date().toISOString();
+  const withinWindow = isWithinOperatingWindow();
+
+  if (!withinWindow) {
+    const cancelledTypes = INTERACTION_JOB_TYPES;
+    const { count } = await db.from("warmup_jobs")
+      .update({ status: "cancelled", last_error: "Cancelado: fora da janela 07-19 BRT" })
+      .eq("status", "pending")
+      .lte("run_at", now)
+      .in("job_type", cancelledTypes);
+    console.log(`[warmup-tick] Outside 07-19 BRT window, cancelled ${count || 0} stale interaction jobs`);
+  }
+
+  // Recover stale "running" jobs
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  await db.from("warmup_jobs")
+    .update({ status: "pending", last_error: "Recuperado de estado running travado" })
+    .eq("status", "running")
+    .lt("updated_at", staleThreshold);
+
+  const { data: pendingJobs, error: fetchErr } = await db
+    .from("warmup_jobs")
+    .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
+    .eq("status", "pending")
+    .lte("run_at", now)
+    .order("run_at", { ascending: true })
+    .limit(800);
+
+  if (fetchErr) throw fetchErr;
+
+  if (!pendingJobs || pendingJobs.length === 0) {
+    const { data: nextPending } = await db
+      .from("warmup_jobs")
+      .select("run_at")
+      .eq("status", "pending")
+      .order("run_at", { ascending: true })
+      .limit(1);
+
+    return json({ ok: true, processed_jobs_count: 0, succeeded: 0, failed: 0, next_pending_run_at: nextPending?.[0]?.run_at || null });
+  }
+
+  // Mark as running in batches
+  const jobIds = pendingJobs.map((j: any) => j.id);
+  for (let i = 0; i < jobIds.length; i += 200) {
+    await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds.slice(i, i + 200));
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // BATCH PRE-LOAD
+  // ══════════════════════════════════════════════════════════════
+  const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
+  const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
+  const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
+
+  async function batchLoad<T>(table: string, selectCols: string, field: string, ids: string[], extra?: (q: any) => any): Promise<T[]> {
+    const results: T[] = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      let q = db.from(table).select(selectCols).in(field, ids.slice(i, i + 200));
+      if (extra) q = extra(q);
+      const { data } = await q;
+      if (data) results.push(...data);
+    }
+    return results;
+  }
+
+  const [cyclesArr, subsArr, profilesArr, devicesArr, userMsgsArr, autosaveArr, instanceGroupsArr, groupsPoolArr, imagePool] = await Promise.all([
+    batchLoad<any>("warmup_cycles", "id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id", "id", uniqueCycleIds),
+    batchLoad<any>("subscriptions", "user_id, expires_at, created_at", "user_id", uniqueUserIds, q => q.order("created_at", { ascending: false })),
+    batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
+    batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
+    batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("created_at", { ascending: true })),
+    batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status", "device_id", uniqueDeviceIds),
+    db.from("warmup_groups_pool").select("id, external_group_ref, name").eq("is_active", true).then((r: any) => r.data || []),
+    getImagePool(db),
+  ]);
+
+  const cyclesMap: Record<string, any> = {};
+  cyclesArr.forEach((c: any) => { cyclesMap[c.id] = c; });
+
+  const subsMap: Record<string, any> = {};
+  subsArr.forEach((s: any) => { if (!subsMap[s.user_id]) subsMap[s.user_id] = s; });
+
+  const profilesMap: Record<string, any> = {};
+  profilesArr.forEach((p: any) => { profilesMap[p.id] = p; });
+
+  const devicesMap: Record<string, any> = {};
+  devicesArr.forEach((d: any) => { devicesMap[d.id] = d; });
+
+  const userMsgsMap: Record<string, string[]> = {};
+  userMsgsArr.forEach((m: any) => {
+    if (!userMsgsMap[m.user_id]) userMsgsMap[m.user_id] = [];
+    userMsgsMap[m.user_id].push(m.content);
+  });
+
+  const autosaveMap: Record<string, any[]> = {};
+  autosaveArr.forEach((c: any) => {
+    if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
+    autosaveMap[c.user_id].push(c);
+  });
+
+  const instanceGroupsMap: Record<string, any[]> = {};
+  instanceGroupsArr.forEach((ig: any) => {
+    const key = ig.device_id;
+    if (!instanceGroupsMap[key]) instanceGroupsMap[key] = [];
+    instanceGroupsMap[key].push(ig);
+  });
+
+  const groupsPoolMap: Record<string, any> = {};
+  groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
+
+  console.log(`[warmup-tick] Batch loaded: ${cyclesArr.length} cycles, ${subsArr.length} subs, ${profilesArr.length} profiles, ${devicesArr.length} devices, ${userMsgsArr.length} msgs, ${autosaveArr.length} autosave, ${instanceGroupsArr.length} igroups, ${groupsPoolArr.length} pool for ${pendingJobs.length} jobs`);
+
+  const pausedCycles = new Set<string>();
+
+  const auditLogBuffer: any[] = [];
+  function bufferAuditLog(log: any) { auditLogBuffer.push(log); }
+  async function flushAuditLogs() {
+    for (let i = 0; i < auditLogBuffer.length; i += 100) {
+      await db.from("warmup_audit_logs").insert(auditLogBuffer.slice(i, i + 100));
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // GROUP JOBS BY DEVICE
+  // ══════════════════════════════════════════════════════════════
+  const jobsByDevice: Record<string, any[]> = {};
+  for (const job of pendingJobs) {
+    if (!jobsByDevice[job.device_id]) jobsByDevice[job.device_id] = [];
+    jobsByDevice[job.device_id].push(job);
+  }
+
+  const MAX_PARALLEL_DEVICES = 10;
+  const deviceIds = Object.keys(jobsByDevice);
+  let succeeded = 0;
+  let failed = 0;
+
+  async function processJob(job: any): Promise<boolean> {
+    const cycle = cyclesMap[job.cycle_id];
+
+    if (!cycle || !cycle.is_running || pausedCycles.has(cycle.id)) {
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
+
+    const userSub = subsMap[cycle.user_id];
+    const userProf = profilesMap[cycle.user_id];
+    if (!userSub || new Date(userSub.expires_at) < new Date() || userProf?.status === "suspended" || userProf?.status === "cancelled") {
+      await db.from("warmup_cycles").update({
+        is_running: false, phase: "paused", previous_phase: cycle.phase,
+        last_error: "Auto-pausado: plano inativo",
+      }).eq("id", cycle.id);
+      pausedCycles.add(cycle.id);
+      cycle.is_running = false;
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
+
+    const device = devicesMap[job.device_id];
+
+    if (!device || !CONNECTED_STATUSES.includes(device.status)) {
+      if (cycle.phase !== "paused" && !pausedCycles.has(cycle.id)) {
+        await db.from("warmup_cycles").update({
+          is_running: false, phase: "paused", previous_phase: cycle.phase,
+          last_error: "Auto-pausado: instância desconectada",
+        }).eq("id", cycle.id);
+        await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "warn", event_type: "auto_paused_disconnected",
+          message: `Aquecimento pausado: instância desconectada (fase: ${cycle.phase})`,
+        });
+        pausedCycles.add(cycle.id);
+        cycle.is_running = false;
+      }
+      await db.from("warmup_jobs").update({ status: "cancelled" }).eq("id", job.id);
+      return false;
+    }
+
+    const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
+    const token = device.uazapi_token || "";
+
+    if (INTERACTION_JOB_TYPES.includes(job.job_type) && !withinWindow) {
+      await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
+      return false;
+    }
+
+    if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
+      const budgetUsed = cycle.daily_interaction_budget_used || 0;
+      const budgetMax = cycle.daily_interaction_budget_max || cycle.daily_interaction_budget_target || 500;
+      if (budgetUsed >= budgetMax) {
+        await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget diário atingido: ${budgetUsed}/${budgetMax}` }).eq("id", job.id);
+        return false;
+      }
+    }
+
+    const chipState = cycle.chip_state || "new";
+
+    switch (job.job_type) {
+      case "join_group": {
+        if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas para join_group");
+
+        const groupId = job.payload?.group_id;
+        const groupName = job.payload?.group_name || groupId;
+        const poolGroupJoin = groupsPoolMap[groupId];
+
+        if (!poolGroupJoin?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
+
+        const inviteLink = poolGroupJoin.external_group_ref;
+        const inviteCode = inviteLink.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "").split("?")[0].split("/")[0].trim();
+
+        if (!inviteCode || inviteCode.length < 10) throw new Error(`Código de convite inválido para ${groupName}: ${inviteLink}`);
+
+        console.log(`[join_group] Joining group ${groupName} with code ${inviteCode} via ${baseUrl}`);
+        
+        let joinResult: any = null;
+        let joinOk = false;
+        let joinJid: string | null = null;
+        let joinError: string | null = null;
+
+        const joinEndpoints = [
+          { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
+          { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteLink.split("?")[0] }) },
+          { method: "PUT", url: `${baseUrl}/group/acceptInviteGroup`, body: JSON.stringify({ inviteCode }) },
+        ];
+
+        for (const ep of joinEndpoints) {
+          try {
+            const res = await fetch(ep.url, {
+              method: ep.method,
+              headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+              body: ep.body,
+            });
+            const raw = await res.text();
+            let parsed: any;
+            try { parsed = JSON.parse(raw); } catch (_e) { parsed = { raw }; }
+            console.log(`[join_group] ${ep.method} ${ep.url} → ${res.status}: ${raw.substring(0, 300)}`);
+
+            if (res.status === 405) continue;
+            if (res.status === 500 && (parsed?.error === "error joining group" || parsed?.error === "internal server error")) continue;
+
+            joinResult = parsed;
+            if (res.ok || res.status === 409) {
+              joinOk = true;
+              const jid = parsed?.group?.JID || parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+              console.log(`[join_group] JID extraction: group.JID=${parsed?.group?.JID}, data.group.JID=${parsed?.data?.group?.JID}, final=${jid}`);
+              if (jid) joinJid = jid;
+              const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
+              if (msg.includes("already") || msg.includes("já")) joinOk = true;
+              break;
+            } else {
+              joinError = `${res.status}: ${raw.substring(0, 200)}`;
+            }
+          } catch (err) {
+            joinError = err.message;
+            continue;
+          }
+        }
+
+        if (joinOk) {
+          await db.from("warmup_instance_groups")
+            .update({ join_status: "joined", joined_at: new Date().toISOString(), ...(joinJid ? { group_jid: joinJid } : {}) })
+            .eq("device_id", job.device_id).eq("group_id", groupId);
+
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "group_joined",
+            message: `Entrou no grupo ${groupName} via API${joinJid ? ` (JID: ${joinJid})` : ""}`,
+            meta: { group_name: groupName, invite_code: inviteCode, jid: joinJid, response: joinResult },
+          });
+        } else {
+          await db.from("warmup_instance_groups")
+            .update({ join_status: "failed", last_error: joinError || "Falha ao entrar no grupo" })
+            .eq("device_id", job.device_id).eq("group_id", groupId);
+          throw new Error(`Falha ao entrar no grupo ${groupName}: ${joinError}`);
+        }
+        break;
+      }
+
+      case "phase_transition": {
+        const targetPhase = job.payload?.target_phase || "groups_only";
+
+        await db.from("warmup_jobs")
+          .update({ status: "cancelled", last_error: "Cancelado: transição de fase" })
+          .eq("cycle_id", cycle.id).eq("status", "pending")
+          .in("job_type", INTERACTION_JOB_TYPES);
+
+        await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
+
+        if (targetPhase === "groups_only") {
+          const joinScheduled = await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+          if (joinScheduled > 0) console.log(`[phase_transition] Scheduled ${joinScheduled} join_group jobs for device ${job.device_id}`);
+        }
+
+        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, chipState);
+
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "phase_changed",
+          message: `Fase alterada: ${cycle.phase} → ${targetPhase}`,
+          meta: { from: cycle.phase, to: targetPhase },
+        });
+        break;
+      }
+
+      case "group_interaction": {
+        if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
+
+        const allIGs = instanceGroupsMap[job.device_id] || [];
+        const joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
+
+        if (joinedGroups.length === 0) throw new Error("Nenhum grupo joined encontrado");
+
+        const cachedMsgs = userMsgsMap[job.user_id];
+        const hasCustomPool = cachedMsgs && cachedMsgs.length > 0;
+        const getGroupMsg = () => {
+          if (hasCustomPool && Math.random() < 0.3) return pickRandom(cachedMsgs);
+          return generateNaturalMessage("group");
+        };
+
+        const targetGroupRecord = pickRandom(joinedGroups);
+        const poolGroup = groupsPoolMap[targetGroupRecord.group_id];
+
+        let groupJid = targetGroupRecord.group_jid;
+        if (!groupJid && poolGroup?.external_group_ref) {
+          const ref = poolGroup.external_group_ref;
+          if (ref.includes("@g.us")) groupJid = ref;
+        }
+
+        if (!groupJid) {
+          console.log(`[group_interaction] No JID for group ${poolGroup?.name}, attempting to resolve...`);
+          try {
+            const groupsRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
+              method: "GET",
+              headers: { token, Accept: "application/json" },
+            });
+            if (groupsRes.ok) {
+              const groupsList = await groupsRes.json();
+              const groups = Array.isArray(groupsList) ? groupsList : (groupsList?.data || []);
+              const match = groups.find((g: any) =>
+                (g.subject || g.name || "").toLowerCase() === (poolGroup?.name || "").toLowerCase()
+              );
+              if (match) {
+                groupJid = match.jid || match.id || match.JID;
+                if (groupJid) {
+                  await db.from("warmup_instance_groups").update({ group_jid: groupJid })
+                    .eq("device_id", job.device_id).eq("group_id", targetGroupRecord.group_id);
+                  console.log(`[group_interaction] Resolved JID for ${poolGroup?.name}: ${groupJid}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn(`[group_interaction] Failed to resolve JID:`, e.message);
+          }
+        }
+
+        if (!groupJid) {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "group_no_jid",
+            message: `Grupo sem JID resolvido: ${poolGroup?.name || targetGroupRecord.group_id}`,
+          });
+          break;
+        }
+
+        const mediaType = pickMediaType();
+        let message = getGroupMsg();
+        let mediaLabel = "texto";
+
+        try {
+          if (mediaType === "image") {
+            const imgUrl = pickRandom(imagePool);
+            const caption = pickRandom(IMAGE_CAPTIONS);
+            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
+            message = `[IMG] ${caption}`;
+            mediaLabel = "imagem";
+          } else {
+            await uazapiSendText(baseUrl, token, groupJid, message);
+          }
+        } catch (mediaErr) {
+          console.warn(`[group_interaction] ${mediaType} failed, fallback to text:`, mediaErr.message);
+          message = getGroupMsg();
+          mediaLabel = "texto (fallback)";
+          await uazapiSendText(baseUrl, token, groupJid, message);
+        }
+
+        await db.from("warmup_cycles").update({
+          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
+        }).eq("id", cycle.id);
+
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "group_msg_sent",
+          message: `[${mediaLabel}] Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
+          meta: { group_name: poolGroup?.name, group_jid: groupJid, media_type: mediaType },
+        });
+        break;
+      }
+
+      case "autosave_interaction": {
+        if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
+
+        const recipientIndex = job.payload?.recipient_index ?? 0;
+        const msgIndex = job.payload?.msg_index ?? 0;
+
+        const contacts = autosaveMap[job.user_id] || [];
+
+        if (contacts.length === 0) {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "autosave_no_contacts",
+            message: "Nenhum contato Auto Save ativo",
+          });
+          break;
+        }
+
+        const contact = contacts[recipientIndex % contacts.length];
+        const autosaveMessage = generateNaturalMessage("autosave");
+        const phoneNumber = contact.phone_e164.replace(/\+/g, "");
+
+        await uazapiSendText(baseUrl, token, phoneNumber, autosaveMessage);
+
+        const todayStr = new Date().toISOString().split("T")[0];
+        try {
+          await db.from("warmup_unique_recipients").insert({
+            cycle_id: cycle.id, user_id: job.user_id,
+            recipient_phone_e164: contact.phone_e164, day_date: todayStr,
+          });
+        } catch (_e) { /* duplicate OK */ }
+
+        await db.from("warmup_cycles").update({
+          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
+          daily_unique_recipients_used: (cycle.daily_unique_recipients_used || 0) + (msgIndex === 0 ? 1 : 0),
+        }).eq("id", cycle.id);
+
+        const msgsPerContact = chipState === "recovered" ? 2 : 3;
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "autosave_msg_sent",
+          message: `Auto Save: msg ${msgIndex + 1}/${msgsPerContact} para ${contact.contact_name || phoneNumber}`,
+          meta: { phone: phoneNumber, msg_index: msgIndex },
+        });
+        break;
+      }
+
+      case "community_interaction": {
+        if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
+
+        const peerIndex = job.payload?.peer_index ?? 0;
+        const isImage = job.payload?.is_image === true;
+
+        const { data: pairs } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b")
+          .eq("cycle_id", cycle.id).eq("status", "active");
+
+        const { data: otherCycles } = await db.from("warmup_cycles")
+          .select("id, device_id, user_id")
+          .eq("is_running", true)
+          .neq("device_id", job.device_id)
+          .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+          .limit(50);
+
+        const peerCandidates: { deviceId: string; fromPair: boolean; pairId?: string }[] = [];
+
+        if (pairs && pairs.length > 0) {
+          for (const pair of pairs) {
+            const isA = pair.instance_id_a === job.device_id;
+            const partnerId = isA ? pair.instance_id_b : pair.instance_id_a;
+            peerCandidates.push({ deviceId: partnerId, fromPair: true, pairId: pair.id });
+          }
+        }
+        if (otherCycles && otherCycles.length > 0) {
+          for (const oc of otherCycles) {
+            if (!peerCandidates.some(p => p.deviceId === oc.device_id)) {
+              peerCandidates.push({ deviceId: oc.device_id, fromPair: false });
+            }
+          }
+        }
+
+        if (peerCandidates.length === 0) {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "community_no_peers",
+            message: "Nenhuma instância online encontrada — conversa comunitária adiada",
+          });
+          break;
+        }
+
+        const selectedPeer = peerCandidates[peerIndex % peerCandidates.length];
+        const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
+        if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "community_peer_offline",
+            message: `Peer ${peerIndex} offline, msg ${job.payload?.msg_index ?? 0} adiada`,
+            meta: { peer_index: peerIndex, partner_device: selectedPeer.deviceId },
+          });
+          break;
+        }
+
+        const targetPhone = pd.number.replace(/\+/g, "");
+
+        if (isImage) {
+          const imageUrl = pickRandom(imagePool);
+          const caption = pickRandom(IMAGE_CAPTIONS);
+          try {
+            await uazapiSendImage(baseUrl, token, targetPhone, imageUrl, caption);
+          } catch (_imgErr) {
+            const communityMsg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, communityMsg);
+          }
+        } else {
+          const communityMsg = generateNaturalMessage("community");
+          await uazapiSendText(baseUrl, token, targetPhone, communityMsg);
+        }
+
+        await db.from("warmup_cycles").update({
+          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
+        }).eq("id", cycle.id);
+
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "community_msg_sent",
+          message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} msg ${job.payload?.msg_index ?? 0} → ${targetPhone.substring(0, 6)}...`,
+          meta: { peer_index: peerIndex, msg_index: job.payload?.msg_index, is_image: isImage, partner_device: selectedPeer.deviceId, pair_id: selectedPeer.pairId },
+        });
+        break;
+      }
+
+      case "enable_autosave": {
+        const { count } = await db.from("warmup_autosave_contacts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", job.user_id).eq("is_active", true);
+
+        if (count && count > 0) {
+          await db.from("warmup_cycles").update({ phase: "autosave_enabled" }).eq("id", cycle.id);
+
+          const { data: existingMembership } = await db.from("warmup_community_membership")
+            .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
+
+          if (!existingMembership) {
+            await db.from("warmup_community_membership").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: cycle.id,
+              is_eligible: true, is_enabled: true, enabled_at: new Date().toISOString(),
+              notes: "Auto-enrolled at autosave phase",
+            });
+          } else if (!existingMembership.is_enabled) {
+            await db.from("warmup_community_membership")
+              .update({ is_enabled: true, is_eligible: true, enabled_at: new Date().toISOString(), cycle_id: cycle.id })
+              .eq("id", existingMembership.id);
+          }
+
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "autosave_enabled",
+            message: `Auto Save ativado: ${count} contatos ativos`,
+          });
+        } else {
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "autosave_no_contacts",
+            message: "Auto Save: nenhum contato ativo, mantendo fase anterior",
+          });
+        }
+        break;
+      }
+
+      case "enable_community": {
+        await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "community_enabled",
+          message: "Comunidade ativada",
+        });
+        break;
+      }
+
+      case "health_check": {
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "health_check",
+          message: `Health check OK — device ${device.status}, cycle day ${cycle.day_index}`,
+        });
+        break;
+      }
+
+      case "daily_reset": {
+        // Determine if still within first 24h
+        const first24hEndsAt = new Date(cycle.first_24h_ends_at);
+        if (Date.now() < first24hEndsAt.getTime()) {
+          // Auto-heal: if within first 24h, check if phase transition is needed
+          if (cycle.phase === "pre_24h") {
+            const deferredReset = new Date(first24hEndsAt);
+            deferredReset.setUTCHours(3, 5, 0, 0);
+            if (deferredReset.getTime() <= first24hEndsAt.getTime()) {
+              deferredReset.setUTCDate(deferredReset.getUTCDate() + 1);
+            }
+
+            await db.from("warmup_jobs").update({
+              status: "pending", run_at: deferredReset.toISOString(), last_error: "",
+            }).eq("id", job.id);
+
+            bufferAuditLog({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "daily_reset_deferred",
+              message: `daily_reset adiado para ${deferredReset.toISOString()} aguardando fim das 24h iniciais`,
+            });
+            return false;
+          }
+        }
+
+        const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
+
+        if (newDay > cycle.days_total) {
+          await db.from("warmup_cycles").update({
+            is_running: false, phase: "completed",
+            daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+          }).eq("id", cycle.id);
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "cycle_completed",
+            message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+          });
+          break;
+        }
+
+        const newPhase = getPhaseForDay(newDay, chipState);
+
+        if (newPhase === "completed") {
+          await db.from("warmup_cycles").update({
+            is_running: false, phase: "completed",
+            daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+          }).eq("id", cycle.id);
+          bufferAuditLog({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "cycle_completed",
+            message: `Ciclo concluído após ${cycle.days_total} dias 🎉`,
+          });
+          break;
+        }
+
+        // Cancel overdue interaction jobs
+        const nowIso = new Date().toISOString();
+        await db.from("warmup_jobs")
+          .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
+          .eq("cycle_id", cycle.id).eq("status", "pending")
+          .lt("run_at", nowIso)
+          .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+        const budgetMin = 50;
+        const budgetMax = 150;
+        const newTarget = randInt(budgetMin, budgetMax);
+
+        await db.from("warmup_cycles").update({
+          daily_interaction_budget_used: 0,
+          daily_unique_recipients_used: 0,
+          daily_interaction_budget_target: newTarget,
+          daily_interaction_budget_min: budgetMin,
+          daily_interaction_budget_max: budgetMax,
+          day_index: newDay,
+          phase: newPhase,
+          last_daily_reset_at: new Date().toISOString(),
+        }).eq("id", cycle.id);
+
+        const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
+        const chipLabel = chipLabels[chipState] || chipState.toUpperCase();
+        bufferAuditLog({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "daily_reset",
+          message: `Reset diário: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, perfil: ${chipLabel}, budget: ${newTarget}`,
+          meta: { day: newDay, phase: newPhase, chip_state: chipState, budget: newTarget },
+        });
+
+        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
+        break;
+      }
+
+      default:
+        console.warn(`[warmup-tick] Unknown job type: ${job.job_type}`);
+        break;
+    }
+
+    return true;
+  }
+
+  // Process devices in parallel batches
+  for (let i = 0; i < deviceIds.length; i += MAX_PARALLEL_DEVICES) {
+    const batch = deviceIds.slice(i, i + MAX_PARALLEL_DEVICES);
+    const results = await Promise.allSettled(
+      batch.map(async (did) => {
+        const jobs = jobsByDevice[did];
+        for (const job of jobs) {
+          try {
+            const ok = await processJob(job);
+            if (ok) {
+              await db.from("warmup_jobs").update({ status: "succeeded" }).eq("id", job.id);
+              succeeded++;
+            }
+          } catch (err) {
+            failed++;
+            const attempts = (job.attempts || 0) + 1;
+            if (attempts >= (job.max_attempts || 3)) {
+              await db.from("warmup_jobs").update({
+                status: "failed", last_error: err.message, attempts,
+              }).eq("id", job.id);
+            } else {
+              const retryAt = new Date(Date.now() + backoffMinutes(attempts) * 60 * 1000).toISOString();
+              await db.from("warmup_jobs").update({
+                status: "pending", last_error: err.message, attempts, run_at: retryAt,
+              }).eq("id", job.id);
+            }
+            bufferAuditLog({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "error", event_type: `${job.job_type}_error`,
+              message: `Erro no job ${job.job_type}: ${err.message.substring(0, 200)}`,
+              meta: { attempts, job_id: job.id },
+            });
+          }
+        }
+      })
+    );
+  }
+
+  await flushAuditLogs();
+
+  console.log(`[warmup-tick] Processed: ${succeeded + failed}, succeeded: ${succeeded}, failed: ${failed}, devices: ${deviceIds.length}, parallel: ${MAX_PARALLEL_DEVICES}, audit_logs: ${auditLogBuffer.length}`);
+
+  return json({
+    ok: true,
+    processed_jobs_count: succeeded + failed,
+    succeeded,
+    failed,
+    devices_processed: deviceIds.length,
+    next_pending_run_at: null,
+  });
+}
+
+// ════════════════════════════════════════
+// Ensure join_group jobs are scheduled
+// ════════════════════════════════════════
+async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, deviceId: string) {
+  const { data: existingJoinJobs } = await db.from("warmup_jobs")
+    .select("id").eq("cycle_id", cycleId).eq("job_type", "join_group")
+    .in("status", ["pending", "running"]).limit(1);
+
+  if (existingJoinJobs && existingJoinJobs.length > 0) return 0;
+
+  const { data: pendingGroups } = await db.from("warmup_instance_groups")
+    .select("group_id, warmup_groups_pool(id, name)")
+    .eq("device_id", deviceId).eq("join_status", "pending");
+
+  if (!pendingGroups || pendingGroups.length === 0) return 0;
+
+  const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
+  const joinWindowMs = 4 * 60 * 60 * 1000;
+  const joinSpacing = joinWindowMs / (shuffled.length + 1);
+  const nowMs = Date.now();
+  const joinJobs: any[] = [];
+
+  for (let i = 0; i < shuffled.length; i++) {
+    const g = shuffled[i];
+    const groupName = g.warmup_groups_pool?.name || "Grupo";
+    const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
+    const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+
+    joinJobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "join_group",
+      payload: { group_id: g.group_id, group_name: groupName },
+      run_at: runAt.toISOString(), status: "pending",
+    });
+  }
+
+  if (joinJobs.length > 0) await db.from("warmup_jobs").insert(joinJobs);
+  return joinJobs.length;
+}
+
+// ════════════════════════════════════════
+// Schedule jobs for a specific day/phase
+// ════════════════════════════════════════
+async function scheduleDayJobs(
+  db: any, cycleId: string, userId: string, deviceId: string,
+  dayIndex: number, phase: string, chipState: string = "new",
+) {
+  const now = new Date();
+  const jobs: any[] = [];
+
+  // Operating window: 07:00 to 19:00 BRT (10:00 to 22:00 UTC)
+  const windowStartUtcH = 10;
+  const windowEndUtcH = 22;
+  const windowMs = (windowEndUtcH - windowStartUtcH) * 60 * 60 * 1000;
+
+  // Calculate remaining window
+  const nowUtcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+  let remainingMs = windowMs;
+  if (nowUtcH >= windowStartUtcH && nowUtcH < windowEndUtcH) {
+    remainingMs = (windowEndUtcH - nowUtcH) * 60 * 60 * 1000;
+  }
+  remainingMs = Math.max(remainingMs, 60 * 60 * 1000); // At least 1h
+
+  // Volume config per phase
+  function getVolumes(phase: string, chipState: string) {
+    if (phase === "pre_24h") return { groupMsgs: 0, autosaveMsgs: 0, communityMsgs: 0 };
+    if (phase === "groups_only") {
+      const n = chipState === "unstable" ? randInt(15, 25) : randInt(25, 50);
+      return { groupMsgs: n, autosaveMsgs: 0, communityMsgs: 0 };
+    }
+    if (phase === "autosave_enabled") {
+      const g = chipState === "unstable" ? randInt(20, 30) : randInt(30, 50);
+      const a = chipState === "unstable" ? randInt(3, 5) : randInt(5, 8);
+      return { groupMsgs: g, autosaveMsgs: a, communityMsgs: 0 };
+    }
+    // community_enabled / community_light
+    const g = chipState === "unstable" ? randInt(20, 30) : randInt(30, 50);
+    const a = chipState === "unstable" ? randInt(3, 5) : randInt(5, 8);
+    const c = chipState === "unstable" ? randInt(2, 4) : randInt(4, 8);
+    return { groupMsgs: g, autosaveMsgs: a, communityMsgs: c };
+  }
+
+  const { groupMsgs, autosaveMsgs, communityMsgs } = getVolumes(phase, chipState);
+
+  // Schedule group interactions
+  for (let i = 0; i < groupMsgs; i++) {
+    const offset = Math.floor((remainingMs / (groupMsgs + 1)) * (i + 1)) + randInt(-120, 120) * 1000;
+    jobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "group_interaction", payload: {},
+      run_at: new Date(now.getTime() + Math.max(offset, 60000)).toISOString(),
+      status: "pending",
+    });
+  }
+
+  // Schedule autosave interactions
+  if (autosaveMsgs > 0) {
+    const msgsPerContact = chipState === "recovered" ? 2 : 3;
+    const numContacts = Math.ceil(autosaveMsgs / msgsPerContact);
+    let jobIdx = 0;
+    for (let r = 0; r < numContacts; r++) {
+      for (let m = 0; m < msgsPerContact; m++) {
+        jobIdx++;
+        const offset = Math.floor((remainingMs / (autosaveMsgs + 1)) * jobIdx) + randInt(-60, 60) * 1000;
+        jobs.push({
+          user_id: userId, device_id: deviceId, cycle_id: cycleId,
+          job_type: "autosave_interaction",
+          payload: { recipient_index: r, msg_index: m },
+          run_at: new Date(now.getTime() + Math.max(offset, 120000)).toISOString(),
+          status: "pending",
+        });
+      }
+    }
+  }
+
+  // Schedule community interactions
+  if (communityMsgs > 0) {
+    const msgsPerPeer = chipState === "unstable" ? 2 : 3;
+    const numPeers = Math.ceil(communityMsgs / msgsPerPeer);
+    let jobIdx = 0;
+    for (let p = 0; p < numPeers; p++) {
+      for (let m = 0; m < msgsPerPeer; m++) {
+        jobIdx++;
+        const isImage = m === 0 && Math.random() < 0.2;
+        const offset = Math.floor((remainingMs / (communityMsgs + 1)) * jobIdx) + randInt(-120, 120) * 1000;
+        jobs.push({
+          user_id: userId, device_id: deviceId, cycle_id: cycleId,
+          job_type: "community_interaction",
+          payload: { peer_index: p, msg_index: m, is_image: isImage },
+          run_at: new Date(now.getTime() + Math.max(offset, 180000)).toISOString(),
+          status: "pending",
+        });
+      }
+    }
+  }
+
+  // Phase transition jobs
+  if (phase === "groups_only") {
+    // Schedule enable_autosave for next phase
+    const transitionDay = getGroupsEndDay(chipState) + 1;
+    if (dayIndex >= transitionDay - 1) {
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "enable_autosave", payload: {},
+        run_at: new Date(now.getTime() + remainingMs - 60000).toISOString(),
+        status: "pending",
+      });
+    }
+  }
+
+  if (phase === "autosave_enabled") {
+    jobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "enable_community", payload: {},
+      run_at: new Date(now.getTime() + remainingMs - 60000).toISOString(),
+      status: "pending",
+    });
+  }
+
+  if (jobs.length > 0) {
+    for (let i = 0; i < jobs.length; i += 100) {
+      const batch = jobs.slice(i, i + 100);
+      await db.from("warmup_jobs").insert(batch);
+    }
+  }
+  console.log(`[warmup-tick] Scheduled ${jobs.length} jobs for day ${dayIndex} (${phase}, chip: ${chipState})`);
+  return jobs.length;
 }
 
 // ════════════════════════════════════════
