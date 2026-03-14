@@ -227,12 +227,14 @@ Deno.serve(async (req) => {
       const fetchGroupListPaginated = async (tag: string) => {
         for (let page = 0; page < 10; page++) {
           try {
-            const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: apiHeaders });
+            const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=true&page=${page}&count=200`, { headers: apiHeaders });
             const rawText = await rawRes.text();
             if (page === 0) {
               console.log(`[${tag}-RAW][${deviceId}] Status: ${rawRes.status}, Body (500 chars): ${rawText.substring(0, 500)}`);
             }
             if (!rawRes.ok) break;
+
+            primaryFetchSucceeded = true;
 
             const data = JSON.parse(rawText);
             const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
