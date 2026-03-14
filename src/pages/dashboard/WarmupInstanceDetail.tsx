@@ -169,7 +169,7 @@ const WarmupInstanceDetail = () => {
     setAccelerating(true);
     try {
       const now = new Date().toISOString();
-      const INTERACTION_TYPES = ["group_interaction", "autosave_interaction", "community_interaction", "join_group", "enable_autosave", "enable_community", "health_check", "post_status"];
+      const INTERACTION_TYPES = ["group_interaction", "autosave_interaction", "community_interaction", "join_group", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
       // Only accelerate interaction jobs — never daily_reset or phase_transition
       const { data: updated, error } = await supabase
         .from("warmup_jobs")
