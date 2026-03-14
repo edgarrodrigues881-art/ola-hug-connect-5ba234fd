@@ -742,38 +742,29 @@ const WarmupInstanceDetail = () => {
     void demoteGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
 
-  // Reconcilia jobs pendentes: marca como succeeded se grupo já reconhecido (DB + provider + evidence)
-  // E antecipa run_at de jobs futuros para que o tick os processe imediatamente
+  // Reconcilia jobs pendentes: marca como succeeded SOMENTE se grupo confirmado via lista real do WhatsApp
+  // Evidências históricas NÃO são usadas aqui para evitar auto-succeed de grupos que foram removidos
   useEffect(() => {
     if (!cycle?.id || scheduledJobs.length === 0) return;
 
-    const joinedGroupIds = new Set(
-      instanceGroups
-        .filter((g) => g.join_status === "joined")
-        .map((g) => g.group_id)
-    );
-
-    // Build recognized set from live groups + evidence (same logic as counter)
+    // Only use live device groups for job reconciliation (NOT evidence)
     const liveJids = new Set(liveDeviceGroups.map(g => g.id));
     const liveNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
-    const evidNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
-    const evidLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
-    const isGroupRecognized = (groupId: string): boolean => {
-      if (joinedGroupIds.has(groupId)) return true;
+    const isGroupOnDevice = (groupId: string): boolean => {
       const rec = instanceGroups.find(g => g.group_id === groupId);
       if (!rec) return false;
+      // Check by JID
       if (rec.group_jid && liveJids.has(rec.group_jid)) return true;
+      // Check by name (fuzzy)
       const poolName = rec.warmup_groups_pool?.name;
       if (poolName) {
         const norm = normalizeGroupName(poolName);
-        if (liveNames.has(norm) || evidNames.has(norm)) return true;
+        if (liveNames.has(norm)) return true;
         for (const ln of liveNames) {
           if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return true;
         }
       }
-      const poolLink = rec.warmup_groups_pool?.external_group_ref;
-      if (poolLink && evidLinks.has(normalizeInviteLink(poolLink))) return true;
       return false;
     };
 
@@ -783,16 +774,17 @@ const WarmupInstanceDetail = () => {
     if (pendingJoinJobs.length === 0) return;
 
     const expectedGroups = poolGroups.length > 0 ? poolGroups.length : 8;
-    const allExpectedGroupsJoined = joinedGroupIds.size >= expectedGroups;
+    const liveGroupCount = liveDeviceGroups.length;
+    const allExpectedGroupsOnDevice = liveGroupCount >= expectedGroups;
 
-    // Jobs to mark as succeeded (group already recognized)
+    // Jobs to mark as succeeded (group confirmed on device via live API)
     const toSucceed = pendingJoinJobs
       .filter((job) => {
-        if (allExpectedGroupsJoined) return true;
+        if (allExpectedGroupsOnDevice) return true;
         const payload = (job.payload && typeof job.payload === "object")
           ? (job.payload as { group_id?: string })
           : {};
-        return !!payload.group_id && isGroupRecognized(payload.group_id);
+        return !!payload.group_id && isGroupOnDevice(payload.group_id);
       })
       .map((job) => job.id);
 
@@ -828,7 +820,7 @@ const WarmupInstanceDetail = () => {
     };
 
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length, liveDeviceGroups, joinEvidence]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length, liveDeviceGroups]);
 
   /* handlers */
   const handleStartWarmup = () => {
