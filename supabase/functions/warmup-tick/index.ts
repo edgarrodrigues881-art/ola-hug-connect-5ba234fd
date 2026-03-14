@@ -371,12 +371,31 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
+// In-memory blob cache to avoid re-downloading the same image within one tick
+const _blobCache: Record<string, string> = {};
+
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
-  const url = `${baseUrl}/send/image`;
+  // Download the image and convert to base64 Data URI (required by UAZAPI V2)
+  let dataUri = _blobCache[imageUrl];
+  if (!dataUri) {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`Failed to download image: ${imgRes.status}`);
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    const arrayBuf = await imgRes.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+    // Manual base64 encode for Deno compatibility
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
+    dataUri = `data:${contentType};base64,${b64}`;
+    _blobCache[imageUrl] = dataUri;
+  }
+
+  const url = `${baseUrl}/send/media`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify({ number, image: imageUrl, caption }),
+    body: JSON.stringify({ number, file: dataUri, caption }),
   });
   if (!res.ok) {
     const errText = await res.text();
