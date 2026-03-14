@@ -995,7 +995,7 @@ const WarmupInstanceDetail = () => {
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Tempo decorrido</p>
               <p className="text-4xl font-bold text-foreground font-mono tabular-nums mt-1 tracking-tight">{countdown}</p>
               <p className="text-[11px] text-muted-foreground mt-3 max-w-xs leading-relaxed">
-                Sem envio de mensagens. Entrada gradual em grupos em andamento.
+                Entrada gradual nos grupos em andamento. Os primeiros grupos serão ingressados em 4-6 horas.
               </p>
             </div>
           )}
