@@ -738,7 +738,7 @@ const WarmupInstanceDetail = () => {
     );
   }
 
-  // Count real joined groups: DB joined + grupos detectados ao vivo + evidência de join logs
+  // Count real joined groups: somente grupos confirmados na lista ao vivo do dispositivo
   const byGroupId = new Map<string, {
     group_id: string;
     join_status: string;
