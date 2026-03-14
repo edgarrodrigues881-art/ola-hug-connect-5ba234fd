@@ -703,6 +703,7 @@ const WarmupInstanceDetail = () => {
   // Evidências históricas NÃO são usadas aqui para evitar auto-succeed de grupos que foram removidos
   useEffect(() => {
     if (!cycle?.id || scheduledJobs.length === 0) return;
+    if (!liveGroupsSyncOk) return;
 
     // Only use live device groups for job reconciliation (NOT evidence)
     const liveJids = new Set(liveDeviceGroups.map(g => g.id));
