@@ -1511,8 +1511,7 @@ const WarmupInstanceDetail = () => {
                   const getDayLabel = (dayKey: string) => {
                     const firstItem = dayBuckets[dayKey][0];
                     if (!cycleStartedAt) return dayKey;
-                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
-                    const warmupDay = Math.max(1, diff);
+                    const warmupDay = getWarmupDayBrt(firstItem.time);
 
                     // Check if this day was manually skipped
                     const wasSkipped = dayBuckets[dayKey].some(
