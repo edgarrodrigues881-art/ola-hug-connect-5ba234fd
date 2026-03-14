@@ -1395,9 +1395,44 @@ const WarmupInstanceDetail = () => {
                     return `após ${minutes}min`;
                   };
 
-                  const joinGroupJobs = (scheduledJobs || [])
-                    .filter((job) => job.job_type === "join_group")
-                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+                  const joinGroupJobs = (() => {
+                    const allJoinJobs = (scheduledJobs || []).filter((job) => job.job_type === "join_group");
+                    const statusWeight = (status: string) => {
+                      if (status === "succeeded") return 4;
+                      if (status === "running") return 3;
+                      if (status === "pending") return 2;
+                      if (status === "failed") return 1;
+                      return 0; // cancelled
+                    };
+
+                    const byGroup = new Map<string, typeof allJoinJobs[number]>();
+
+                    for (const job of allJoinJobs) {
+                      const payload = (job.payload && typeof job.payload === "object")
+                        ? (job.payload as { group_id?: string; group_name?: string })
+                        : {};
+                      const key = payload.group_id || payload.group_name || job.id;
+                      const prev = byGroup.get(key);
+
+                      if (!prev) {
+                        byGroup.set(key, job);
+                        continue;
+                      }
+
+                      const currWeight = statusWeight(job.status);
+                      const prevWeight = statusWeight(prev.status);
+                      const currRunAt = new Date(job.run_at).getTime();
+                      const prevRunAt = new Date(prev.run_at).getTime();
+
+                      if (currWeight > prevWeight || (currWeight === prevWeight && currRunAt > prevRunAt)) {
+                        byGroup.set(key, job);
+                      }
+                    }
+
+                    return Array.from(byGroup.values())
+                      .filter((job) => job.status !== "cancelled")
+                      .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+                  })();
 
                   const buildGroupScheduleItems = (): GroupScheduleItem[] => {
                     if (joinGroupJobs.length > 0) {

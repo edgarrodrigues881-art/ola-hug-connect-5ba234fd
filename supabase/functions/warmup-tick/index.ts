@@ -806,6 +806,12 @@ async function handleTick(db: any) {
             .update({ join_status: "joined", joined_at: new Date().toISOString(), ...(joinJid ? { group_jid: joinJid } : {}) })
             .eq("device_id", job.device_id).eq("group_id", groupId);
 
+          // Atualiza cache local para evitar dupla tentativa dentro do mesmo tick
+          if (existingGroupRecord) {
+            existingGroupRecord.join_status = "joined";
+            if (joinJid) existingGroupRecord.group_jid = joinJid;
+          }
+
           bufferAuditLog({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_joined",
