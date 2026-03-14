@@ -14,7 +14,7 @@
 
 @layer base {
   :root {
-    --background: 220 14% 96%;
+    --background: 216 33% 97%;
     --foreground: 220 26% 11%;
 
     --card: 0 0% 100%;
@@ -23,59 +23,59 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 26% 11%;
 
-    --primary: 160 84% 34%;
+    --primary: 142 72% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 18% 11%;
-    --secondary-foreground: 220 13% 91%;
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 220 26% 11%;
 
-    --muted: 215 28% 17%;
-    --muted-foreground: 218 11% 65%;
+    --muted: 220 13% 93%;
+    --muted-foreground: 218 11% 46%;
 
-    --accent: 215 28% 17%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 220 13% 95%;
+    --accent-foreground: 220 26% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 27% 21%;
-    --input: 213 30% 15%;
-    --ring: 160 84% 34%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 142 72% 36%;
 
     --radius: 0.625rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 26% 11%;
-    --sidebar-primary: 160 84% 34%;
+    --sidebar-primary: 142 72% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 17%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 210 27% 21%;
-    --sidebar-ring: 160 84% 34%;
+    --sidebar-accent: 220 13% 95%;
+    --sidebar-accent-foreground: 220 26% 11%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 142 72% 36%;
 
-    --success: 160 79% 40%;
+    --success: 142 71% 45%;
     --warning: 38 92% 50%;
     --info: 218 11% 46%;
 
-    --chart-1: 160 84% 34%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 218 11% 65%;
-    --chart-4: 218 11% 46%;
-    --chart-5: 215 28% 17%;
+    --chart-1: 142 72% 36%;
+    --chart-2: 142 50% 28%;
+    --chart-3: 218 11% 46%;
+    --chart-4: 220 13% 65%;
+    --chart-5: 220 13% 80%;
 
-    --sidebar: 210 20% 98%;
+    --sidebar: 0 0% 100%;
 
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.06);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
-    --shadow: 0 2px 4px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
-    --shadow-md: 0 4px 8px -1px hsl(0 0% 0% / 0.08), 0 2px 4px -2px hsl(0 0% 0% / 0.06);
-    --shadow-lg: 0 8px 16px -2px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.06);
-    --shadow-xl: 0 12px 24px -4px hsl(0 0% 0% / 0.12), 0 8px 10px -1px hsl(0 0% 0% / 0.06);
-    --shadow-2xl: 0 16px 32px -4px hsl(0 0% 0% / 0.16);
+    --shadow-2xs: 0 1px 2px 0px hsl(0 0% 0% / 0.04);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 2px 6px 0px hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.04);
+    --shadow: 0 4px 12px 0px hsl(0 0% 0% / 0.06);
+    --shadow-md: 0 4px 12px -1px hsl(0 0% 0% / 0.07), 0 2px 4px -2px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0 8px 20px -2px hsl(0 0% 0% / 0.08), 0 4px 6px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0 12px 28px -4px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0 16px 36px -4px hsl(0 0% 0% / 0.14);
 
     --tracking-normal: 0em;
     --spacing: 0.25rem;
