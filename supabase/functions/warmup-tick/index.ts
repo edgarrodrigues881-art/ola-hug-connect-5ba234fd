@@ -1375,6 +1375,7 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
 async function scheduleDayJobs(
   db: any, cycleId: string, userId: string, deviceId: string,
   dayIndex: number, phase: string, chipState: string = "new",
+  forceWindow: boolean = false,
 ) {
   if (phase === "pre_24h" || phase === "completed") return 0;
 
@@ -1387,18 +1388,24 @@ async function scheduleDayJobs(
   const windowEndUTC = new Date(now);
   windowEndUTC.setUTCHours(22, 0, 0, 0);
 
-  // If we're before today's window, schedule from window start
-  // If we're after today's window, no jobs for today
   let effectiveStart: number;
-  if (now.getTime() < windowStartUTC.getTime()) {
+  let effectiveEnd: number;
+
+  if (now.getTime() >= windowEndUTC.getTime() && forceWindow) {
+    // Forced execution outside window: create 2h emergency window from now
+    console.log(`[scheduleDayJobs] Outside window but FORCED — using 2h emergency window`);
+    effectiveStart = now.getTime();
+    effectiveEnd = now.getTime() + 2 * 60 * 60 * 1000;
+  } else if (now.getTime() < windowStartUTC.getTime()) {
     effectiveStart = windowStartUTC.getTime();
+    effectiveEnd = windowEndUTC.getTime();
   } else if (now.getTime() >= windowEndUTC.getTime()) {
     console.log(`[scheduleDayJobs] Outside window (after 19h BRT), skipping day ${dayIndex}`);
     return 0;
   } else {
     effectiveStart = now.getTime();
+    effectiveEnd = windowEndUTC.getTime();
   }
-  const effectiveEnd = windowEndUTC.getTime();
   const windowMs = effectiveEnd - effectiveStart;
 
   if (windowMs < 30 * 60 * 1000) {
