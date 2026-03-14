@@ -1633,7 +1633,7 @@ const WarmupInstanceDetail = () => {
                     autosave_interaction: "Auto Save", community_interaction: "Comunitário",
                     phase_transition: "Avançar fase", daily_reset: "Reset diário",
                     enable_autosave: "Ativar Auto Save", enable_community: "Ativar Comunidade",
-                    health_check: "Verificação", post_status: "Status",
+                    
                   };
 
                   // Only show jobs for current day or past days (not future days)
