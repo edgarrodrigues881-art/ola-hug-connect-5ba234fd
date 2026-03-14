@@ -163,30 +163,62 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: set only INTERACTION jobs to run NOW and trigger tick immediately */
+  /* accelerate: run interaction jobs now; if none, force the next pending job */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
       const now = new Date().toISOString();
       const INTERACTION_TYPES = ["group_interaction", "autosave_interaction", "community_interaction", "join_group", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
-      // Only accelerate interaction jobs — never daily_reset or phase_transition
-      const { data: updated, error } = await supabase
+
+      // 1) Prefer forcing interaction jobs
+      const { data: updatedInteractions, error: interactionErr } = await supabase
         .from("warmup_jobs")
         .update({ run_at: now })
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
         .in("job_type", INTERACTION_TYPES)
         .select("id");
-      if (error) throw error;
+      if (interactionErr) throw interactionErr;
 
-      const count = updated?.length || 0;
-      if (count === 0) {
-        toast({ title: "Nenhum job pendente", description: "Não há tarefas de interação para acelerar." });
-        return;
+      let forcedCount = updatedInteractions?.length || 0;
+      let forcedSystemJobType: string | null = null;
+
+      // 2) If there are no interaction jobs, force only the next pending job of any type
+      if (forcedCount === 0) {
+        const { data: nextPendingJob, error: nextPendingErr } = await supabase
+          .from("warmup_jobs")
+          .select("id, job_type")
+          .eq("cycle_id", cycle.id)
+          .eq("status", "pending")
+          .order("run_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (nextPendingErr) throw nextPendingErr;
+
+        if (!nextPendingJob) {
+          toast({ title: "Nenhum job pendente", description: "Não há tarefas pendentes para forçar." });
+          return;
+        }
+
+        const { data: updatedNext, error: updateNextErr } = await supabase
+          .from("warmup_jobs")
+          .update({ run_at: now })
+          .eq("id", nextPendingJob.id)
+          .eq("status", "pending")
+          .select("id");
+        if (updateNextErr) throw updateNextErr;
+
+        forcedCount = updatedNext?.length || 0;
+        forcedSystemJobType = nextPendingJob.job_type || null;
+
+        if (forcedCount === 0) {
+          toast({ title: "Nenhum job pendente", description: "Não foi possível forçar o próximo job." });
+          return;
+        }
       }
 
-      // Trigger warmup-tick immediately so jobs execute right away
+      // Trigger warmup-tick immediately so forced jobs execute right away
       try {
         await supabase.functions.invoke("warmup-tick", { body: {} });
       } catch (_e) {
@@ -196,8 +228,10 @@ const WarmupInstanceDetail = () => {
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
       toast({
-        title: "⚡ Acelerado!",
-        description: `${count} tarefa(s) de interação sendo executadas agora.`,
+        title: "⚡ Forçado!",
+        description: forcedSystemJobType
+          ? `Próximo job (${forcedSystemJobType}) foi forçado para agora.`
+          : `${forcedCount} tarefa(s) de interação sendo executadas agora.`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
