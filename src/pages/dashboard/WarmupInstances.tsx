@@ -213,6 +213,7 @@ const WarmupInstances = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
+  const [bulkDaysTotal, setBulkDaysTotal] = useState("14");
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const { user } = useAuth();
@@ -1138,33 +1139,69 @@ const WarmupInstances = () => {
       </Dialog>
       {/* Bulk warmup dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-amber-500" />
-              Aquecer em massa
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                <Flame className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold">Aquecer em massa</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Configure e selecione as instâncias</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+            {/* Chip state selector - same as wizard */}
+            <div className="space-y-3">
+              <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Estado do chip</p>
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢" },
+                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso", emoji: "🔴" },
+                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição", emoji: "🟡" },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBulkChipState(opt.value)}
+                    className={cn(
+                      "text-left p-3.5 rounded-2xl border-2 transition-all duration-200",
+                      bulkChipState === opt.value
+                        ? "border-primary bg-primary/8 shadow-[0_0_30px_-6px_hsl(var(--primary)/0.3)]"
+                        : "border-border/30 hover:border-primary/25 bg-card/50 hover:bg-card/70"
+                    )}
+                  >
+                    <span className="text-lg">{opt.emoji}</span>
+                    <p className="text-[13px] font-extrabold text-foreground mt-1.5">{opt.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight font-medium">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Duration selector */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-foreground">Modo do chip</p>
-              <Select value={bulkChipState} onValueChange={(v: any) => setBulkChipState(v)}>
-                <SelectTrigger className="h-9 text-sm">
+              <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Duração do ciclo</p>
+              <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
+                <SelectTrigger className="rounded-xl h-11 bg-card/50 border-border/30">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">🟢 Chip Novo</SelectItem>
-                  <SelectItem value="recovered">🟡 Recuperado</SelectItem>
-                  <SelectItem value="unstable">🔴 Chip Fraco</SelectItem>
+                  {[7, 14, 21, 30].map(d => (
+                    <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Instance selector */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-foreground">Instâncias elegíveis</p>
+                <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Instâncias</p>
                 <button
-                  className="text-[10px] text-primary hover:underline"
+                  className="text-[10px] text-primary hover:underline font-semibold"
                   onClick={() => {
                     const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
                     setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
@@ -1173,14 +1210,17 @@ const WarmupInstances = () => {
                   {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
               </div>
-              <div className="max-h-[240px] overflow-y-auto space-y-1 rounded-lg border border-border/20 p-2">
+              <div className="max-h-[200px] overflow-y-auto space-y-1 rounded-xl border border-border/20 bg-card/30 p-2">
                 {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma instância disponível para aquecer</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma instância disponível para aquecer</p>
                 ) : (
                   filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).map(d => (
                     <div
                       key={d.id}
-                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/30 cursor-pointer transition-colors"
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
+                        bulkSelected.has(d.id) ? "bg-primary/8 border border-primary/20" : "hover:bg-muted/30 border border-transparent"
+                      )}
                       onClick={() => setBulkSelected(prev => {
                         const next = new Set(prev);
                         next.has(d.id) ? next.delete(d.id) : next.add(d.id);
@@ -1189,22 +1229,36 @@ const WarmupInstances = () => {
                     >
                       <Checkbox checked={bulkSelected.has(d.id)} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
                         {d.number && <p className="text-[10px] text-muted-foreground font-mono">{formatPhone(d.number)}</p>}
                       </div>
                     </div>
                   ))
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground text-right">{bulkSelected.size} selecionada(s)</p>
+              <p className="text-[10px] text-muted-foreground text-right tabular-nums">{bulkSelected.size} selecionada(s)</p>
+            </div>
+
+            {/* Protections */}
+            <div className="rounded-2xl border border-primary/15 bg-card/50 p-4 space-y-2">
+              <p className="text-xs font-extrabold text-foreground flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                Proteções automáticas
+              </p>
+              <ul className="grid gap-1.5 list-disc list-inside">
+                {["Limites diários automáticos", "Delays aleatórios entre ações", "Evolução progressiva de fases", "Proteção contínua do chip"].map((item, i) => (
+                  <li key={i} className="text-[11px] text-muted-foreground leading-relaxed font-medium">{item}</li>
+                ))}
+              </ul>
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+
+          {/* Footer */}
+          <div className="px-6 pb-6 pt-2 flex items-center gap-3">
+            <Button variant="outline" className="flex-1 h-11 rounded-xl" onClick={() => setBulkOpen(false)}>Cancelar</Button>
             <Button
-              size="sm"
               disabled={bulkSelected.size === 0 || bulkLoading}
-              className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+              className="flex-1 gap-2 h-11 rounded-xl font-black bg-amber-600 hover:bg-amber-700 text-white shadow-[0_8px_30px_-6px_hsl(38_92%_50%/0.4)]"
               onClick={async () => {
                 setBulkLoading(true);
                 const ids = Array.from(bulkSelected);
@@ -1212,7 +1266,7 @@ const WarmupInstances = () => {
                 let fail = 0;
                 for (const deviceId of ids) {
                   try {
-                    await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState });
+                    await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal) });
                     ok++;
                   } catch {
                     fail++;
@@ -1222,16 +1276,16 @@ const WarmupInstances = () => {
                 setBulkOpen(false);
                 qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
                 toast({
-                  title: `Aquecimento iniciado em ${ok} instância(s)`,
+                  title: `🔥 Aquecimento iniciado em ${ok} instância(s)`,
                   description: fail > 0 ? `${fail} falharam` : undefined,
                   variant: fail > 0 ? "destructive" : undefined,
                 });
               }}
             >
-              {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flame className="w-3.5 h-3.5" />}
-              Iniciar ({bulkSelected.size})
+              {bulkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flame className="w-4 h-4" />}
+              Iniciar {bulkSelected.size > 0 ? `(${bulkSelected.size})` : ""}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
