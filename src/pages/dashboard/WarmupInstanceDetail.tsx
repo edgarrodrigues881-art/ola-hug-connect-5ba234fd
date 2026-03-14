@@ -714,6 +714,13 @@ const WarmupInstanceDetail = () => {
         if (groupName) {
           const normalizedName = normalizeGroupName(groupName);
           if (liveGroupNames.has(normalizedName) || evidenceGroupNames.has(normalizedName)) return true;
+
+          // Fuzzy: check if any live group name contains the pool name or vice versa (substring match)
+          for (const liveName of liveGroupNames) {
+            if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
+              if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
+            }
+          }
         }
 
         const groupLink = g.warmup_groups_pool?.external_group_ref;
