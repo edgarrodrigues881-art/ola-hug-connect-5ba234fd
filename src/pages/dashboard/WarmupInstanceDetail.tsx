@@ -1523,7 +1523,7 @@ const WarmupInstanceDetail = () => {
                                 "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
-                              <span className={cn("text-xs font-bold", future ? "text-muted-foreground" : "text-foreground")}>{getDayLabel(dayKey)}</span>
+                              <span className="text-xs font-bold text-foreground">{getDayLabel(dayKey)}</span>
                               <div className="flex items-center gap-1.5 ml-auto">
                                 {doneCount > 0 && (
                                   <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
