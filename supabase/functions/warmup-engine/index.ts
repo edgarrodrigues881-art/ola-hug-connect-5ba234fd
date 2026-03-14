@@ -406,13 +406,25 @@ Deno.serve(async (req) => {
 
       if (!cycle) throw new Error("No active cycle found");
 
+      // 1) Mark cycle as completed
       await db.from("warmup_cycles").update({ is_running: false, phase: "completed" }).eq("id", cycle.id);
+
+      // 2) Cancel all pending jobs
       await db.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", cycle.id).eq("status", "pending");
 
-      await db.from("warmup_audit_logs").insert({
-        user_id: callerUserId, device_id, cycle_id: cycle.id,
-        level: "info", event_type: "cycle_completed", message: "Ciclo encerrado manualmente pelo usuário",
-      });
+      // 3) Clean up ALL warmup data for this device so new cycles start fresh
+      // Delete old jobs (all statuses)
+      await db.from("warmup_jobs").delete().eq("cycle_id", cycle.id);
+      // Delete audit logs for this cycle
+      await db.from("warmup_audit_logs").delete().eq("cycle_id", cycle.id);
+      // Delete instance group associations for this device
+      await db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", cycle.id);
+      // Delete community membership for this device/cycle
+      await db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", cycle.id);
+      // Delete unique recipients tracking
+      await db.from("warmup_unique_recipients").delete().eq("cycle_id", cycle.id);
+      // Delete the completed cycle itself
+      await db.from("warmup_cycles").delete().eq("id", cycle.id);
 
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
