@@ -142,18 +142,27 @@ Deno.serve(async (req) => {
       const allGroups = shuffleArray(poolGroups || []);
       const jobs: any[] = [];
 
-      // Check if device already has joined groups from a previous cycle
+      // Check if device already has ANY groups from a previous cycle
       const { data: existingGroups } = await db
         .from("warmup_instance_groups")
         .select("id, group_id, join_status")
-        .eq("device_id", device_id)
-        .eq("join_status", "joined");
+        .eq("device_id", device_id);
 
       if (existingGroups && existingGroups.length > 0) {
-        // Update existing groups to reference the new cycle
+        // Update ALL existing groups to reference the new cycle (regardless of join_status)
         await db.from("warmup_instance_groups")
           .update({ cycle_id: cycle.id })
           .eq("device_id", device_id);
+        
+        // Also insert any NEW pool groups that don't have an instance_groups record yet
+        const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
+        const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
+        for (const g of missingGroups) {
+          await db.from("warmup_instance_groups").insert({
+            user_id: callerUserId, device_id,
+            group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+          });
+        }
       } else {
         // Register groups for this cycle (will join on Day 2)
         for (const g of allGroups) {
