@@ -1607,8 +1607,8 @@ const Devices = () => {
 
                 {/* Nome do WhatsApp */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5 text-primary/60" /> Nome exibido
+                  <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5 text-primary" /> Nome exibido
                   </Label>
                   <Input
                     value={wpName}
