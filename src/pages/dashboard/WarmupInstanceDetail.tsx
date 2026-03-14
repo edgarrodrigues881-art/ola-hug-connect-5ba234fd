@@ -1027,6 +1027,8 @@ const WarmupInstanceDetail = () => {
               pendingJobs[0] ||
               null;
 
+            const isPre24h = cycle?.phase === "pre_24h";
+
             return (
               <>
               {/* ── Progresso do Dia (compact) ── */}
@@ -1036,18 +1038,26 @@ const WarmupInstanceDetail = () => {
                     <Target className="w-4 h-4 text-teal-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">Progresso do Dia</span>
+                    <span className="text-sm font-bold text-foreground">
+                      {isPre24h ? "Fase de Proteção (24h)" : "Progresso do Dia"}
+                    </span>
                     <p className="text-[10px] text-muted-foreground">
-                      ✅ {doneToday} concluídas · ⏳ {Math.max(0, totalDisplay - doneToday - failedToday)} restantes{failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}
+                      {isPre24h
+                        ? "⏳ Aguardando período de proteção inicial"
+                        : `✅ ${doneToday} concluídas · ⏳ ${Math.max(0, totalDisplay - doneToday - failedToday)} restantes${failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}`
+                      }
                     </p>
                   </div>
                   {nextPendingJob && (
                     <div className="text-right">
-                      <p className="text-[9px] text-muted-foreground uppercase">Próxima</p>
+                      <p className="text-[9px] text-muted-foreground uppercase">
+                        {isPre24h ? "Transição" : "Próxima"}
+                      </p>
                       <p className="text-xs font-bold text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
                     </div>
                   )}
                 </div>
+                {!isPre24h && (
                 <div className="px-5 pb-4">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
@@ -1057,6 +1067,7 @@ const WarmupInstanceDetail = () => {
                     <span className="text-[10px] text-muted-foreground">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
                   </div>
                 </div>
+                )}
               </div>
 
               {/* ── Histórico de Dias ── */}
