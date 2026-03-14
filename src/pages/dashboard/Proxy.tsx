@@ -137,15 +137,19 @@ const Proxy = () => {
       const { data: linkedDevices } = await supabase
         .from("devices")
         .select("proxy_id")
-        .in("proxy_id", ids);
+        .in("proxy_id", ids.slice(0, 500));
       
       const linkedIds = new Set((linkedDevices || []).map(d => d.proxy_id).filter(Boolean));
       const deletableIds = ids.filter(id => !linkedIds.has(id));
       const blockedCount = ids.length - deletableIds.length;
 
+      // Delete in batches of 200 to avoid URL length limits
       if (deletableIds.length > 0) {
-        const { error } = await supabase.from("proxies").delete().in("id", deletableIds);
-        if (error) throw error;
+        for (let i = 0; i < deletableIds.length; i += 200) {
+          const batch = deletableIds.slice(i, i + 200);
+          const { error } = await supabase.from("proxies").delete().in("id", batch);
+          if (error) throw error;
+        }
       }
 
       return { deleted: deletableIds.length, blocked: blockedCount };
