@@ -1486,7 +1486,7 @@ const Devices = () => {
                       setEditName(d.name);
                       setEditProxyValue(d.proxy_id || "none");
                       setWpName("");
-                      setWpPhotoUrl("");
+                      setWpPhotoUrl(d.profile_picture || "");
                       setWpPhotoBase64("");
                       setWpRemovePhoto(false);
                       setEditOpen(true);
