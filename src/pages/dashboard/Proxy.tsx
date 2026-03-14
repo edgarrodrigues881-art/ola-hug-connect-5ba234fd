@@ -55,15 +55,26 @@ const Proxy = () => {
   const { data: dbProxies = [] } = useQuery({
     queryKey: ["proxies"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("proxies")
-        .select("id, display_id, host, port, username, type, status, active, created_at, updated_at")
-        .order("display_id", { ascending: true });
-      if (error) throw error;
-      return (data || []) as any[];
+      // Fetch all proxies (handle >1000 rows)
+      const allProxies: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("proxies")
+          .select("id, display_id, host, port, username, type, status, active, created_at, updated_at")
+          .order("display_id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allProxies.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allProxies;
     },
     enabled: !!session,
-    refetchInterval: 60000, // Proxies don't change often
+    refetchInterval: 60000,
   });
 
   // Fetch devices to map proxy_id → device name
