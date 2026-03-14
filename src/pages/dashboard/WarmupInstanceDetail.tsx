@@ -803,9 +803,24 @@ const WarmupInstanceDetail = () => {
   );
 
   const totalTrackedGroups = trackedGroupIds.size > 0 ? trackedGroupIds.size : 8;
-  const joinedGroups = Math.min(recognizedGroupIds.size, totalTrackedGroups);
-  const pendingGroups = Math.max(0, totalTrackedGroups - joinedGroups);
-  const activeContacts = autosaveContacts.filter(c => c.is_active).length;
+
+  const pendingJoinJobsGroupIds = new Set(
+    (scheduledJobs || [])
+      .filter((job) => job.job_type === "join_group" && job.status === "pending")
+      .map((job) => {
+        const payload = (job.payload && typeof job.payload === "object")
+          ? (job.payload as { group_id?: string })
+          : {};
+        return payload.group_id || "";
+      })
+      .filter(Boolean)
+  );
+
+  const pendingByJobs = Array.from(pendingJoinJobsGroupIds).filter((groupId) => !recognizedGroupIds.has(groupId)).length;
+  const pendingByRecognition = Math.max(0, totalTrackedGroups - recognizedGroupIds.size);
+  const pendingGroups = pendingByJobs > 0 ? pendingByJobs : pendingByRecognition;
+  const joinedGroups = Math.min(totalTrackedGroups, Math.max(recognizedGroupIds.size, totalTrackedGroups - pendingGroups));
+
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
 
