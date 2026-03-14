@@ -1626,26 +1626,26 @@ const Devices = () => {
                     <Camera className="w-3.5 h-3.5 text-primary" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
-                  <div className="flex justify-center py-1">
+                  <div className="flex flex-col items-center gap-3 py-2">
                     {wpPhotoUrl && !wpRemovePhoto ? (
-                      <div className="relative group">
-                        <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/20 shadow-lg" />
-                        <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => wpFileRef.current?.click()} title="Trocar foto">
-                            <Camera className="w-3.5 h-3.5" />
+                      <>
+                        <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/30 shadow-lg" />
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold rounded-lg border-border/50" onClick={() => wpFileRef.current?.click()}>
+                            <Camera className="w-3.5 h-3.5" /> Trocar foto
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-destructive/40" onClick={() => { setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
-                            <XCircle className="w-3.5 h-3.5" />
+                          <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold rounded-lg border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => { setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }}>
+                            <XCircle className="w-3.5 h-3.5" /> Remover
                           </Button>
                         </div>
-                      </div>
+                      </>
                     ) : (
                       <div
-                        className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors cursor-pointer"
+                        className="w-20 h-20 rounded-full border-2 border-dashed border-border/60 flex flex-col items-center justify-center hover:border-primary/50 transition-colors cursor-pointer"
                         onClick={() => wpFileRef.current?.click()}
                       >
-                        <Camera className="w-5 h-5 text-muted-foreground/70 mb-0.5" />
-                        <span className="text-[10px] text-muted-foreground/70 font-medium">
+                        <Camera className="w-6 h-6 text-foreground/40 mb-1" />
+                        <span className="text-[11px] text-foreground/50 font-semibold">
                           {wpRemovePhoto ? "Removida" : "Escolher"}
                         </span>
                       </div>
