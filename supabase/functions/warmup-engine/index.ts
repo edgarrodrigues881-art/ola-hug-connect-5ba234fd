@@ -623,16 +623,15 @@ async function ensureJoinGroupJobs(
   }
 
   const shuffled = shuffleArray(pendingGroups);
-  const joinWindowMs = 4 * 60 * 60 * 1000;
-  const joinSpacing = joinWindowMs / (shuffled.length + 1);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
 
+  // Use consistent 5-30min spacing between groups
+  let cumulativeMs = randInt(5, 15) * 60 * 1000; // first group in 5-15 min
   for (let i = 0; i < shuffled.length; i++) {
     const g = shuffled[i];
     const groupName = (g as any).warmup_groups_pool?.name || "Grupo";
-    const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
-    const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+    const runAt = new Date(nowMs + cumulativeMs);
 
     joinJobs.push({
       user_id: userId,
@@ -643,6 +642,7 @@ async function ensureJoinGroupJobs(
       run_at: runAt.toISOString(),
       status: "pending",
     });
+    cumulativeMs += randInt(5, 30) * 60 * 1000; // 5-30 min between each
   }
 
   if (joinJobs.length > 0) {

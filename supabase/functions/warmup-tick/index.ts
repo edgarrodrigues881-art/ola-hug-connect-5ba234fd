@@ -1283,16 +1283,15 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
   if (!pendingGroups || pendingGroups.length === 0) return 0;
 
   const shuffled = pendingGroups.sort(() => Math.random() - 0.5);
-  const joinWindowMs = 4 * 60 * 60 * 1000;
-  const joinSpacing = joinWindowMs / (shuffled.length + 1);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
 
+  // Use consistent 5-30min spacing between groups
+  let cumulativeMs = randInt(5, 15) * 60 * 1000; // first group in 5-15 min
   for (let i = 0; i < shuffled.length; i++) {
     const g = shuffled[i];
     const groupName = g.warmup_groups_pool?.name || "Grupo";
-    const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
-    const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+    const runAt = new Date(nowMs + cumulativeMs);
 
     joinJobs.push({
       user_id: userId, device_id: deviceId, cycle_id: cycleId,
@@ -1300,6 +1299,7 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
       payload: { group_id: g.group_id, group_name: groupName },
       run_at: runAt.toISOString(), status: "pending",
     });
+    cumulativeMs += randInt(5, 30) * 60 * 1000; // 5-30 min between each
   }
 
   if (joinJobs.length > 0) await db.from("warmup_jobs").insert(joinJobs);
