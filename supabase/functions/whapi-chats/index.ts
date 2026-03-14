@@ -265,22 +265,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ─── S1b: /group/list with getParticipants=true (different response shape) ───
-      if (allGroups.length < 5) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?count=500`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
+      // Fallbacks only if primary endpoint failed (avoid mixing stale historical sources)
+      if (!primaryFetchSucceeded) {
+        // ─── S1b: /group/list with count ───
+        const dataS1b = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=true&count=500`, 1);
+        if (dataS1b) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS1b.groups || dataS1b.data || dataS1b) ? (dataS1b.groups || dataS1b.data || dataS1b) : [];
           const prev = seenJids.size;
           addGroups(arr);
           console.log(`[S1b] alt group/list: ${arr.length} ret, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S1c: /chats with filter (UaZapi V2 alternative) ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/chats?type=group&count=500`, 1);
-        if (data) {
-          const arr = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+        // ─── S1c: /chats with filter (UaZapi V2 alternative) ───
+        const dataS1c = await fetchSafe(`${apiBaseUrl}/chats?type=group&count=500`, 1);
+        if (dataS1c) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS1c.chats || dataS1c.data || dataS1c) ? (dataS1c.chats || dataS1c.data || dataS1c) : [];
           const groupArr = arr.filter((c: any) => {
             const id = c.JID || c.jid || c.id || c.chatId || "";
             return id.includes("@g.us");
@@ -289,35 +290,34 @@ Deno.serve(async (req) => {
           addGroups(groupArr);
           console.log(`[S1c] /chats?type=group: ${arr.length} total, ${groupArr.length} groups, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S2: /group/fetchAllGroups (UaZapi V2 - forces fresh fetch from WA) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S2] fetchAllGroups: ${arr.length} ret, ${seenJids.size - prev} new`);
+        // ─── S2: /group/fetchAllGroups ───
+        if (forceRefresh) {
+          const dataS2 = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
+          if (dataS2) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS2.groups || dataS2) ? (dataS2.groups || dataS2) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S2] fetchAllGroups: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
         }
-      }
 
-      // ─── S3: /group/listAll ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/group/listAll`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+        // ─── S3: /group/listAll ───
+        const dataS3 = await fetchSafe(`${apiBaseUrl}/group/listAll`, 1);
+        if (dataS3) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS3.groups || dataS3) ? (dataS3.groups || dataS3) : [];
           const prev = seenJids.size;
           addGroups(arr);
           console.log(`[S3] listAll: ${arr.length} ret, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S4: /chat/list filtering @g.us ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/chat/list?count=500`, 1);
-        if (data) {
-          const chats = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+        // ─── S4: /chat/list filtering @g.us ───
+        const dataS4 = await fetchSafe(`${apiBaseUrl}/chat/list?count=500`, 1);
+        if (dataS4) {
+          fallbackFetchSucceeded = true;
+          const chats = Array.isArray(dataS4.chats || dataS4.data || dataS4) ? (dataS4.chats || dataS4.data || dataS4) : [];
           const groups = chats.filter((c: any) => {
             const id = c.JID || c.jid || c.id || c.chatId || "";
             return id.includes("@g.us");
@@ -326,27 +326,29 @@ Deno.serve(async (req) => {
           addGroups(groups);
           console.log(`[S4] chat/list: ${chats.length} chats, ${groups.length} groups, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S5: /group/list with huge count (bypass pagination) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&count=9999`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S5] big count: ${arr.length} ret, ${seenJids.size - prev} new`);
+        // ─── S5: /group/list huge count ───
+        if (forceRefresh) {
+          const dataS5 = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=true&count=9999`, 1);
+          if (dataS5) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS5.groups || dataS5) ? (dataS5.groups || dataS5) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S5] big count: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
         }
-      }
 
-      // ─── S6: /group/participating (another UaZapi V2 endpoint) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/participating`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S6] participating: ${arr.length} ret, ${seenJids.size - prev} new`);
+        // ─── S6: /group/participating ───
+        if (forceRefresh) {
+          const dataS6 = await fetchSafe(`${apiBaseUrl}/group/participating`, 1);
+          if (dataS6) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS6.groups || dataS6.data || dataS6) ? (dataS6.groups || dataS6.data || dataS6) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S6] participating: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
         }
       }
 
