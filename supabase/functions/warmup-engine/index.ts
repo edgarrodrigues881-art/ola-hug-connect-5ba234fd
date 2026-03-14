@@ -606,21 +606,7 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── STATUS POSTS ──
-  if (volumes.statusPosts > 0) {
-    const stSpacingMs = windowMs / (volumes.statusPosts + 1);
-    for (let i = 0; i < volumes.statusPosts; i++) {
-      const baseOffset = stSpacingMs * (i + 1);
-      const jitter = randInt(-30, 30) * 60 * 1000;
-      const runAt = new Date(effectiveStart + baseOffset + jitter);
-      if (runAt.getTime() > effectiveEnd || runAt.getTime() < effectiveStart) continue;
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "post_status", payload: {},
-        run_at: runAt.toISOString(), status: "pending",
-      });
-    }
-  }
+  // ── STATUS POSTS — removed (UAZAPI v2 doesn't support) ──
 
   if (jobs.length > 0) {
     for (let i = 0; i < jobs.length; i += 100) {
