@@ -1520,9 +1520,9 @@ const WarmupInstanceDetail = () => {
                   };
 
                   for (const job of scheduledJobs) {
-                    // Show cancelled join_group jobs so the group schedule is visible
-                    const isCancelledJoinGroup = job.status === "cancelled" && job.job_type === "join_group";
-                    if (job.status === "cancelled" && !isCancelledJoinGroup) continue;
+                    // Skip join_group jobs — already shown in "Ciclo iniciado" detail
+                    if (job.job_type === "join_group") continue;
+                    if (job.status === "cancelled") continue;
                     if (job.status === "succeeded") continue;
 
                     // Skip jobs scheduled for future warmup days
