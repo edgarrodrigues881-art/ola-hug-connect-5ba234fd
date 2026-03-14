@@ -1117,8 +1117,8 @@ async function handleTick(db: any) {
         // Determine if still within first 24h
         const first24hEndsAt = new Date(cycle.first_24h_ends_at);
         if (Date.now() < first24hEndsAt.getTime()) {
-          // Auto-heal: if within first 24h, check if phase transition is needed
           if (cycle.phase === "pre_24h") {
+            // Defer reset to first 00:05 BRT (03:05 UTC) AFTER the 24h window
             const deferredReset = new Date(first24hEndsAt);
             deferredReset.setUTCHours(3, 5, 0, 0);
             if (deferredReset.getTime() <= first24hEndsAt.getTime()) {
@@ -1168,24 +1168,14 @@ async function handleTick(db: any) {
           break;
         }
 
-        // Cancel overdue interaction jobs
-        const nowIso = new Date().toISOString();
+        // Cancel ALL pending interaction jobs from previous day
         await db.from("warmup_jobs")
-          .update({ status: "cancelled", last_error: "Job expirado no reset diário" })
+          .update({ status: "cancelled", last_error: "Cancelado: reset diário" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
-          .lt("run_at", nowIso)
-          .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
 
-        const budgetMin = 50;
-        const budgetMax = 150;
-        const newTarget = randInt(budgetMin, budgetMax);
-
+        // Update cycle day and phase
         await db.from("warmup_cycles").update({
-          daily_interaction_budget_used: 0,
-          daily_unique_recipients_used: 0,
-          daily_interaction_budget_target: newTarget,
-          daily_interaction_budget_min: budgetMin,
-          daily_interaction_budget_max: budgetMax,
           day_index: newDay,
           phase: newPhase,
           last_daily_reset_at: new Date().toISOString(),
@@ -1196,11 +1186,23 @@ async function handleTick(db: any) {
         bufferAuditLog({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "daily_reset",
-          message: `Reset diário: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, perfil: ${chipLabel}, budget: ${newTarget}`,
-          meta: { day: newDay, phase: newPhase, chip_state: chipState, budget: newTarget },
+          message: `Reset diário: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, perfil: ${chipLabel}`,
+          meta: { day: newDay, phase: newPhase, chip_state: chipState },
         });
 
+        // Schedule today's jobs (scheduleDayJobs will set the budget)
         await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
+
+        // Schedule NEXT daily_reset for tomorrow at 00:05 BRT (03:05 UTC)
+        const nextReset = new Date();
+        nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+        nextReset.setUTCHours(3, 5, 0, 0);
+        await db.from("warmup_jobs").insert({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          job_type: "daily_reset", payload: {},
+          run_at: nextReset.toISOString(), status: "pending",
+        });
+
         break;
       }
 
