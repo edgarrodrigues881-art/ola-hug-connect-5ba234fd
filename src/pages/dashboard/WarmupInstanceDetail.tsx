@@ -437,6 +437,15 @@ const WarmupInstanceDetail = () => {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]/g, "");
 
+  const normalizeInviteLink = (value?: string | null) =>
+    (value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^chat\.whatsapp\.com\//, "")
+      .split("?")[0]
+      .replace(/\/$/, "");
+
   const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["warmup_live_groups", deviceId],
     queryFn: async () => {
@@ -473,9 +482,28 @@ const WarmupInstanceDetail = () => {
     staleTime: 30000,
   });
 
-  // Auto-reconhece grupos já ingressados no WhatsApp e sincroniza status local
+  const { data: joinEvidence = [] } = useQuery<{ group_name: string | null; group_link: string | null }[]>({
+    queryKey: ["warmup_group_join_evidence", deviceId],
+    queryFn: async () => {
+      if (!deviceId) return [];
+      const { data, error } = await supabase
+        .from("group_join_logs")
+        .select("group_name, group_link")
+        .eq("device_id", deviceId)
+        .in("result", ["success", "already_member"])
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!user && !!deviceId,
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
+
+  // Auto-reconhece grupos já ingressados e sincroniza status local
   useEffect(() => {
-    if (!deviceId || liveDeviceGroups.length === 0 || instanceGroups.length === 0) return;
+    if (!deviceId || instanceGroups.length === 0) return;
 
     const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
     const liveNameToJid = new Map<string, string>();
@@ -484,41 +512,61 @@ const WarmupInstanceDetail = () => {
       if (normalized && !liveNameToJid.has(normalized)) liveNameToJid.set(normalized, g.id);
     }
 
+    const evidenceNames = new Set(
+      joinEvidence
+        .map((item) => normalizeGroupName(item.group_name))
+        .filter(Boolean)
+    );
+    const evidenceLinks = new Set(
+      joinEvidence
+        .map((item) => normalizeInviteLink(item.group_link))
+        .filter(Boolean)
+    );
+
     const toPromote = instanceGroups
       .filter((g) => g.join_status !== "joined")
       .map((g) => {
+        const poolName = g.warmup_groups_pool?.name;
+        const poolLink = g.warmup_groups_pool?.external_group_ref;
+
         const byJid = g.group_jid && liveJids.has(g.group_jid) ? g.group_jid : null;
-        const byName = g.warmup_groups_pool?.name
-          ? liveNameToJid.get(normalizeGroupName(g.warmup_groups_pool.name)) || null
-          : null;
+        const byName = poolName ? liveNameToJid.get(normalizeGroupName(poolName)) || null : null;
+        const byEvidenceName = poolName ? evidenceNames.has(normalizeGroupName(poolName)) : false;
+        const byEvidenceLink = poolLink ? evidenceLinks.has(normalizeInviteLink(poolLink)) : false;
+
         const matchedJid = byJid || byName;
-        return matchedJid ? { id: g.id, matchedJid } : null;
+        const hasEvidence = byEvidenceName || byEvidenceLink;
+
+        if (!matchedJid && !hasEvidence) return null;
+        return { id: g.id, matchedJid };
       })
-      .filter((g): g is { id: string; matchedJid: string } => !!g);
+      .filter((g): g is { id: string; matchedJid: string | null } => !!g);
 
     if (toPromote.length === 0) return;
 
     const syncRecognizedGroups = async () => {
       const now = new Date().toISOString();
       await Promise.all(
-        toPromote.map((row) =>
-          supabase
+        toPromote.map((row) => {
+          const payload: Record<string, string | null> = {
+            join_status: "joined",
+            joined_at: now,
+            last_error: null,
+          };
+          if (row.matchedJid) payload.group_jid = row.matchedJid;
+
+          return supabase
             .from("warmup_instance_groups")
-            .update({
-              join_status: "joined",
-              joined_at: now,
-              group_jid: row.matchedJid,
-              last_error: null,
-            })
+            .update(payload)
             .eq("id", row.id)
-            .neq("join_status", "joined")
-        )
+            .neq("join_status", "joined");
+        })
       );
       queryClient.invalidateQueries({ queryKey: ["warmup_instance_groups", deviceId] });
     };
 
     void syncRecognizedGroups();
-  }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
+  }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
   /* handlers */
   const handleStartWarmup = () => {
