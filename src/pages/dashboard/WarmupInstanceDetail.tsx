@@ -533,7 +533,7 @@ const WarmupInstanceDetail = () => {
             device_id: deviceId,
             cycle_id: cycle.id,
             group_id: g.id,
-            join_status: "pending",
+            join_status: "pending" as const,
           })),
           { onConflict: "device_id,group_id", ignoreDuplicates: true }
         );
