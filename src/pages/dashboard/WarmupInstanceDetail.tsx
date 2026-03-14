@@ -1392,7 +1392,7 @@ const WarmupInstanceDetail = () => {
                       return `Grupo ${index + 1}: ${groupName} às ${formatBrtHour(new Date(job.run_at))}`;
                     });
 
-                  const getCycleStartedDetail = (rawMessage: string) => {
+                  const getCycleStartedDetail = () => {
                     const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
                     if (joinScheduleForDay1.length === 0) {
                       return intro;
