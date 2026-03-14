@@ -653,39 +653,37 @@ const WarmupInstanceDetail = () => {
   }
 
   // Count real joined groups: DB joined + grupos detectados ao vivo + evidência de join logs
-  const counterGroups = useMemo(() => {
-    const byGroupId = new Map<string, {
-      group_id: string;
-      join_status: string;
-      group_jid?: string | null;
-      warmup_groups_pool?: { name: string; external_group_ref?: string | null } | null;
-    }>();
+  const byGroupId = new Map<string, {
+    group_id: string;
+    join_status: string;
+    group_jid?: string | null;
+    warmup_groups_pool?: { name: string; external_group_ref?: string | null } | null;
+  }>();
 
-    for (const g of instanceGroups) {
-      byGroupId.set(g.group_id, {
-        group_id: g.group_id,
-        join_status: g.join_status,
-        group_jid: g.group_jid,
-        warmup_groups_pool: g.warmup_groups_pool,
+  for (const g of instanceGroups) {
+    byGroupId.set(g.group_id, {
+      group_id: g.group_id,
+      join_status: g.join_status,
+      group_jid: g.group_jid,
+      warmup_groups_pool: g.warmup_groups_pool,
+    });
+  }
+
+  for (const g of poolGroups) {
+    if (!byGroupId.has(g.id)) {
+      byGroupId.set(g.id, {
+        group_id: g.id,
+        join_status: "pending",
+        group_jid: null,
+        warmup_groups_pool: {
+          name: g.name,
+          external_group_ref: g.external_group_ref,
+        },
       });
     }
+  }
 
-    for (const g of poolGroups) {
-      if (!byGroupId.has(g.id)) {
-        byGroupId.set(g.id, {
-          group_id: g.id,
-          join_status: "pending",
-          group_jid: null,
-          warmup_groups_pool: {
-            name: g.name,
-            external_group_ref: g.external_group_ref,
-          },
-        });
-      }
-    }
-
-    return Array.from(byGroupId.values());
-  }, [instanceGroups, poolGroups]);
+  const counterGroups = Array.from(byGroupId.values());
 
   const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
