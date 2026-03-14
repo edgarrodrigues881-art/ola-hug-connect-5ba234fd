@@ -91,12 +91,7 @@ const WarmupInstances = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id").order("created_at", { ascending: true });
       if (error) throw error;
-      // Sort: connected first, then by creation order
-      return (data || []).sort((a, b) => {
-        const aConn = ["Connected", "Ready", "authenticated"].includes(a.status) ? 0 : 1;
-        const bConn = ["Connected", "Ready", "authenticated"].includes(b.status) ? 0 : 1;
-        return aConn - bConn;
-      });
+      return data || [];
     },
     enabled: !!user,
   });
