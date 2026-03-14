@@ -732,7 +732,7 @@ const WarmupInstanceDetail = () => {
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-8">
+    <div className="w-full max-w-5xl mx-auto space-y-6 pb-8">
 
       {/* ═══════════ HERO HEADER ═══════════ */}
       <div className="relative rounded-2xl border border-border/30 bg-gradient-to-b from-card to-background overflow-hidden">
