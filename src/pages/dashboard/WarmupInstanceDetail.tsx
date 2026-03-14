@@ -1376,6 +1376,30 @@ const WarmupInstanceDetail = () => {
 
                   const items: TimelineItem[] = [];
 
+                  const formatBrtHour = (date: Date) => new Intl.DateTimeFormat("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  }).format(date);
+
+                  const joinScheduleForDay1 = (scheduledJobs || [])
+                    .filter((job) => job.job_type === "join_group")
+                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())
+                    .map((job, index) => {
+                      const payload = (job.payload || {}) as { group_name?: string };
+                      const groupName = payload.group_name || `Grupo ${index + 1}`;
+                      return `Grupo ${index + 1}: ${groupName} às ${formatBrtHour(new Date(job.run_at))}`;
+                    });
+
+                  const getCycleStartedDetail = () => {
+                    const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
+                    if (joinScheduleForDay1.length === 0) {
+                      return intro;
+                    }
+                    return `${intro}\n${joinScheduleForDay1.join("\n")}`;
+                  };
+
                   // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
                     // Filter out logs from future warmup days
@@ -1407,12 +1431,16 @@ const WarmupInstanceDetail = () => {
                       info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
                     };
 
+                    const detail = log.event_type === "cycle_started"
+                      ? getCycleStartedDetail()
+                      : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message);
+
                     items.push({
                       id: `log-${log.id}`,
                       time: new Date(log.created_at),
                       type: log.level === "error" ? "failed" : "done",
                       label: translateEventType(log.event_type),
-                      detail: log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message,
+                      detail,
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
@@ -1442,7 +1470,16 @@ const WarmupInstanceDetail = () => {
 
                   const getWarmupDayBrt = (d: Date) => {
                     if (!cycleStartBrt || !cycleStartedAt) return 1;
-                    // Simple day diff using BRT date strings
+
+                    // Day 1 is the full first 24h window, even if it crosses midnight in BRT.
+                    if (cycle?.first_24h_ends_at) {
+                      const first24hEnds = new Date(cycle.first_24h_ends_at);
+                      if (d.getTime() <= first24hEnds.getTime()) {
+                        return 1;
+                      }
+                    }
+
+                    // After the first 24h, use BRT calendar day buckets.
                     const dBrt = toBrtDate(d);
                     const startParts = cycleStartBrt.split("-").map(Number);
                     const dParts = dBrt.split("-").map(Number);
@@ -1630,7 +1667,7 @@ const WarmupInstanceDetail = () => {
                                         )}
                                       </div>
                                       {item.detail && (
-                                        <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{item.detail}</p>
+                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 whitespace-pre-line break-words">{item.detail}</p>
                                       )}
                                     </div>
                                     <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 mt-0.5">
