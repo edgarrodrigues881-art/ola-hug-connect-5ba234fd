@@ -246,9 +246,9 @@
   .auth-gradient {
     background: linear-gradient(
       165deg,
-      hsl(220 20% 5%) 0%,
-      hsl(220 18% 8%) 50%,
-      hsl(220 15% 11%) 100%
+      hsl(215 28% 5%) 0%,
+      hsl(215 28% 8%) 50%,
+      hsl(215 28% 11%) 100%
     );
   }
 }
