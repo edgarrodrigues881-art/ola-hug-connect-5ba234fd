@@ -1462,7 +1462,7 @@ const WarmupInstanceDetail = () => {
                     };
 
                     const detail = log.event_type === "cycle_started"
-                      ? getCycleStartedDetail()
+                      ? getCycleStartedDetail(log.message)
                       : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message);
 
                     items.push({
