@@ -914,9 +914,32 @@ const WarmupInstanceDetail = () => {
   const evidenceGroupNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
   const evidenceGroupLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
+  // When we have live data, only count groups that are actually present on the device
+  const hasLiveData = liveDeviceGroups.length > 0;
+
   const recognizedGroupIds = new Set(
     counterGroups
       .filter((g) => {
+        // If status is 'left', never count as recognized
+        if (g.join_status === "left") return false;
+
+        // If we have live data, require the group to be visible on the device
+        if (hasLiveData) {
+          if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
+          const groupName = g.warmup_groups_pool?.name;
+          if (groupName) {
+            const normalizedName = normalizeGroupName(groupName);
+            if (liveGroupNames.has(normalizedName)) return true;
+            for (const liveName of liveGroupNames) {
+              if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
+                if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
+              }
+            }
+          }
+          return false;
+        }
+
+        // No live data — fall back to DB status + evidence
         if (g.join_status === "joined") return true;
         if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
 
@@ -924,8 +947,6 @@ const WarmupInstanceDetail = () => {
         if (groupName) {
           const normalizedName = normalizeGroupName(groupName);
           if (liveGroupNames.has(normalizedName) || evidenceGroupNames.has(normalizedName)) return true;
-
-          // Fuzzy: check if any live group name contains the pool name or vice versa (substring match)
           for (const liveName of liveGroupNames) {
             if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
               if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
