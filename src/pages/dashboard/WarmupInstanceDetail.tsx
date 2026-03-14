@@ -163,24 +163,26 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: set ALL pending jobs to run NOW */
+  /* accelerate: set only INTERACTION jobs to run NOW (skip daily_reset / phase_transition) */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
       const now = new Date().toISOString();
-      // Set all pending jobs for this cycle to run immediately
+      const INTERACTION_TYPES = ["group_interaction", "autosave_interaction", "community_interaction", "join_group", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
+      // Only accelerate interaction jobs — never daily_reset or phase_transition
       const { data: updated, error } = await supabase
         .from("warmup_jobs")
         .update({ run_at: now })
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
+        .in("job_type", INTERACTION_TYPES)
         .select("id");
       if (error) throw error;
 
       const count = updated?.length || 0;
       if (count === 0) {
-        toast({ title: "Nenhum job pendente", description: "Não há tarefas para acelerar." });
+        toast({ title: "Nenhum job pendente", description: "Não há tarefas de interação para acelerar." });
         return;
       }
 
@@ -188,7 +190,7 @@ const WarmupInstanceDetail = () => {
 
       toast({
         title: "⚡ Acelerado!",
-        description: `${count} tarefa(s) serão executadas agora.`,
+        description: `${count} tarefa(s) de interação serão executadas agora.`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
