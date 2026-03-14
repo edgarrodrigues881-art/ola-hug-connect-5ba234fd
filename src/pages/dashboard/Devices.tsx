@@ -1224,6 +1224,8 @@ const Devices = () => {
     { key: "warmup", label: "Aquecimento", count: devices.filter(d => warmupDeviceIds.has(d.id)).length },
   ];
 
+  const editHeaderPhoto = wpRemovePhoto ? "" : (wpPhotoUrl || editingDevice?.profile_picture || "");
+
   return (
     <div className="w-full space-y-4">
       {/* Header */}
