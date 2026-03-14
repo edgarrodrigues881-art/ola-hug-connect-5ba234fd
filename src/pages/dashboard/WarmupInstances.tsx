@@ -209,6 +209,11 @@ const formatPhone = (num: string) => {
 };
 
 const WarmupInstances = () => {
+  // Bulk warmup state
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -1013,8 +1018,13 @@ const WarmupInstances = () => {
           >
             <Filter className="w-3 h-3" /> Filtros
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => navigate("/dashboard/devices")}>
-            <Plus className="w-3.5 h-3.5" /> Aplicar
+          <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+            const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
+            setBulkSelected(new Set(eligible.map(d => d.id)));
+            setBulkChipState("new");
+            setBulkOpen(true);
+          }}>
+            <Flame className="w-3.5 h-3.5" /> Aquecer em massa
           </Button>
         </div>
       </div>
@@ -1122,6 +1132,104 @@ const WarmupInstances = () => {
             </Button>
             <Button variant="destructive" size="sm" onClick={() => cancelConfirmDevice && handleCancel(cancelConfirmDevice)}>
               Sim, cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Bulk warmup dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-amber-500" />
+              Aquecer em massa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-foreground">Modo do chip</p>
+              <Select value={bulkChipState} onValueChange={(v: any) => setBulkChipState(v)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">🟢 Chip Novo</SelectItem>
+                  <SelectItem value="recovered">🟡 Recuperado</SelectItem>
+                  <SelectItem value="unstable">🔴 Chip Fraco</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-foreground">Instâncias elegíveis</p>
+                <button
+                  className="text-[10px] text-primary hover:underline"
+                  onClick={() => {
+                    const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
+                    setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
+                  }}
+                >
+                  {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                </button>
+              </div>
+              <div className="max-h-[240px] overflow-y-auto space-y-1 rounded-lg border border-border/20 p-2">
+                {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma instância disponível para aquecer</p>
+                ) : (
+                  filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).map(d => (
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => setBulkSelected(prev => {
+                        const next = new Set(prev);
+                        next.has(d.id) ? next.delete(d.id) : next.add(d.id);
+                        return next;
+                      })}
+                    >
+                      <Checkbox checked={bulkSelected.has(d.id)} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
+                        {d.number && <p className="text-[10px] text-muted-foreground font-mono">{formatPhone(d.number)}</p>}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-right">{bulkSelected.size} selecionada(s)</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+            <Button
+              size="sm"
+              disabled={bulkSelected.size === 0 || bulkLoading}
+              className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={async () => {
+                setBulkLoading(true);
+                const ids = Array.from(bulkSelected);
+                let ok = 0;
+                let fail = 0;
+                for (const deviceId of ids) {
+                  try {
+                    await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState });
+                    ok++;
+                  } catch {
+                    fail++;
+                  }
+                }
+                setBulkLoading(false);
+                setBulkOpen(false);
+                qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
+                toast({
+                  title: `Aquecimento iniciado em ${ok} instância(s)`,
+                  description: fail > 0 ? `${fail} falharam` : undefined,
+                  variant: fail > 0 ? "destructive" : undefined,
+                });
+              }}
+            >
+              {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flame className="w-3.5 h-3.5" />}
+              Iniciar ({bulkSelected.size})
             </Button>
           </DialogFooter>
         </DialogContent>
