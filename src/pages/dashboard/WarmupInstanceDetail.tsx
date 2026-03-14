@@ -163,7 +163,7 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: set only INTERACTION jobs to run NOW (skip daily_reset / phase_transition) */
+  /* accelerate: set only INTERACTION jobs to run NOW and trigger tick immediately */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
@@ -186,11 +186,18 @@ const WarmupInstanceDetail = () => {
         return;
       }
 
+      // Trigger warmup-tick immediately so jobs execute right away
+      try {
+        await supabase.functions.invoke("warmup-tick", { body: {} });
+      } catch (_e) {
+        // tick will pick it up on next cron anyway
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
       toast({
         title: "⚡ Acelerado!",
-        description: `${count} tarefa(s) de interação serão executadas agora.`,
+        description: `${count} tarefa(s) de interação sendo executadas agora.`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
