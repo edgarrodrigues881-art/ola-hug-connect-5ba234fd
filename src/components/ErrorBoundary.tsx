@@ -67,6 +67,9 @@ class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <p className="text-lg font-semibold text-foreground">Algo deu errado</p>
+            <p className="text-xs text-muted-foreground/60 font-mono break-all max-h-20 overflow-auto bg-muted/30 rounded p-2">
+              {this.state.lastErrorMessage || "Erro desconhecido"}
+            </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Se você está usando tradução automática, desative-a para melhor experiência.
             </p>
