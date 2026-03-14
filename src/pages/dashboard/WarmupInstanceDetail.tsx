@@ -697,83 +697,10 @@ const WarmupInstanceDetail = () => {
     };
 
     void demoteGroups();
-  }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
-
-  // Reconcilia jobs pendentes: marca como succeeded SOMENTE se grupo confirmado via lista real do WhatsApp
-  // Evidências históricas NÃO são usadas aqui para evitar auto-succeed de grupos que foram removidos
-  useEffect(() => {
-    if (!cycle?.id || scheduledJobs.length === 0) return;
-    if (!liveGroupsSyncOk) return;
-
-    // Only use live device groups for job reconciliation (NOT evidence)
-    const liveJids = new Set(liveDeviceGroups.map(g => g.id));
-    const liveNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
-
-    const isGroupOnDevice = (groupId: string): boolean => {
-      const rec = instanceGroups.find(g => g.group_id === groupId);
-      if (!rec) return false;
-      // Check by JID
-      if (rec.group_jid && liveJids.has(rec.group_jid)) return true;
-      // Check by name (fuzzy)
-      const poolName = rec.warmup_groups_pool?.name;
-      if (poolName) {
-        const norm = normalizeGroupName(poolName);
-        if (liveNames.has(norm)) return true;
-        for (const ln of liveNames) {
-          if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return true;
-        }
-      }
-      return false;
-    };
-
-    const pendingJoinJobs = scheduledJobs.filter(
-      (job) => job.job_type === "join_group" && job.status === "pending"
-    );
-    if (pendingJoinJobs.length === 0) return;
-
-    // Jobs to mark as succeeded (group confirmed on device via live API)
-    const toSucceed = pendingJoinJobs
-      .filter((job) => {
-        const payload = (job.payload && typeof job.payload === "object")
-          ? (job.payload as { group_id?: string })
-          : {};
-        return !!payload.group_id && isGroupOnDevice(payload.group_id);
-      })
-      .map((job) => job.id);
-
-    // Jobs still pending but scheduled in the future — antecipate run_at so tick picks them up
-    const nowIso = new Date().toISOString();
-    const toAntecipate = pendingJoinJobs
-      .filter((job) => {
-        if (toSucceed.includes(job.id)) return false;
-        return job.run_at > nowIso; // scheduled in the future
-      })
-      .map((job) => job.id);
-
-    const reconcileJoinJobs = async () => {
-      if (toSucceed.length > 0) {
-        await supabase
-          .from("warmup_jobs")
-          .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
-          .in("id", toSucceed)
-          .eq("status", "pending");
-      }
-
-      if (toAntecipate.length > 0) {
-        await supabase
-          .from("warmup_jobs")
-          .update({ run_at: new Date(Date.now() - 60000).toISOString() })
-          .in("id", toAntecipate)
-          .eq("status", "pending");
-      }
-
-      if (toSucceed.length > 0 || toAntecipate.length > 0) {
-        queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
-      }
-    };
-
+  }, [deviceId, instanceGroups, liveDeviceGroups, liveGroupsSyncOk, queryClient]);
+...
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, liveDeviceGroups]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, liveDeviceGroups, liveGroupsSyncOk]);
 
   /* handlers */
   const handleStartWarmup = () => {
