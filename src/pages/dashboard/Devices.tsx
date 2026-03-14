@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1365,143 +1366,157 @@ const Devices = () => {
           }
 
           return (
-            <Card key={d.id} className="group relative rounded-2xl border-0 bg-card/80 backdrop-blur-sm shadow-[0_2px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-300 w-full overflow-hidden">
+            <div
+              key={d.id}
+              className={cn(
+                "group relative rounded-2xl border overflow-hidden transition-all duration-150",
+                "bg-card shadow-sm hover:shadow-lg",
+                smartStatus === 'online'
+                  ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+                  : "border-border/30 hover:border-border/50"
+              )}
+            >
               {/* Top accent line */}
-              <div className={`h-1 w-full ${smartStatus === 'online' ? 'bg-primary/60' : 'bg-destructive/40'}`} />
+              <div className={cn(
+                "h-[2px] w-full",
+                smartStatus === 'online' ? "bg-primary/60" : "bg-border/30"
+              )} />
 
-              <CardContent className="px-5 pt-5 pb-4 flex flex-col gap-4">
-                {/* Row 1: Avatar + Info + Status badge */}
-                <div className="flex items-center gap-3.5">
-                  {/* Avatar with status dot */}
-                  <div className="relative shrink-0">
-                    {d.profile_picture ? (
-                      <img
-                        src={d.profile_picture}
-                        alt={d.name}
-                        className="w-12 h-12 rounded-xl object-cover ring-2 ring-border/30"
-                        onError={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          img.style.display = 'none';
-                          const fallback = img.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className="w-12 h-12 rounded-xl items-center justify-center text-lg font-bold bg-primary/10 text-primary ring-2 ring-border/30"
-                      style={{ display: d.profile_picture ? 'none' : 'flex' }}
-                    >
-                      {d.name.charAt(0).toUpperCase()}
-                    </div>
-                    {/* Status dot */}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${smartStatus === 'online' ? 'bg-primary' : 'bg-destructive'}`} />
-                  </div>
+              {/* Status badge */}
+              <div className="px-4 pt-3.5">
+                <div className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+                  smartStatus === 'online' ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
+                )}>
+                  <span className={cn(
+                    "w-[5px] h-[5px] rounded-full shrink-0",
+                    smartStatus === 'online' ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" : "bg-muted-foreground/40"
+                  )} />
+                  {ss.label.toUpperCase()}
+                </div>
+              </div>
 
-                  {/* Name + ID */}
-                  <div className="min-w-0 flex-1">
-                    {isEditing ? (
-                      <input
-                        ref={inlineInputRef}
-                        value={inlineEditName}
-                        onChange={(e) => setInlineEditName(e.target.value)}
-                        onBlur={commitInlineEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") commitInlineEdit();
-                          if (e.key === "Escape") setInlineEditId(null);
-                        }}
-                        className="text-sm font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full"
-                      />
-                    ) : (
-                      <p
-                        className="text-sm font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
-                        onClick={() => startInlineEdit(d)}
-                        title={d.name}
-                      >
-                        {d.name}
-                      </p>
+              {/* Avatar + Info */}
+              <div className="px-4 pt-5 pb-3 flex items-center gap-4">
+                <div className={cn(
+                  "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
+                  "ring-[2.5px] ring-offset-2 ring-offset-card",
+                  smartStatus === 'online' ? "ring-primary/40" : "ring-border/30"
+                )}>
+                  {d.profile_picture ? (
+                    <img
+                      src={d.profile_picture}
+                      className="w-[52px] h-[52px] rounded-full object-cover"
+                      alt={d.name}
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.style.display = 'none';
+                        const fallback = img.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className={cn(
+                      "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+                      smartStatus === 'online' ? "bg-primary/8" : "bg-muted/30"
                     )}
-                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                      ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}
+                    style={{ display: d.profile_picture ? 'none' : 'flex' }}
+                  >
+                    <Smartphone className={cn("w-5 h-5", smartStatus === 'online' ? "text-primary" : "text-muted-foreground/40")} />
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  {isEditing ? (
+                    <input
+                      ref={inlineInputRef}
+                      value={inlineEditName}
+                      onChange={(e) => setInlineEditName(e.target.value)}
+                      onBlur={commitInlineEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitInlineEdit();
+                        if (e.key === "Escape") setInlineEditId(null);
+                      }}
+                      className="text-[15px] font-bold text-foreground bg-transparent border-b-2 border-primary outline-none w-full leading-tight"
+                    />
+                  ) : (
+                    <p
+                      className="text-[15px] font-bold text-foreground cursor-pointer hover:text-primary transition-colors truncate leading-tight"
+                      onClick={() => startInlineEdit(d)}
+                      title={d.name}
+                    >
+                      {d.name}
                     </p>
-                  </div>
-
-                  {/* Status badge */}
-                  <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${smartStatus === 'online' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                    <StatusIcon className="w-3 h-3" />
-                    {ss.label}
-                  </div>
+                  )}
+                  {d.number && (
+                    <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
+                      {formatPhone(d.number)}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/50 mt-1">
+                    ID: {(() => { const m = d.name.match(/(\d+)/); return m ? m[1] : devices.indexOf(d) + 1; })()}
+                  </p>
                 </div>
+              </div>
 
-                {/* Row 2: Phone number */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pl-0.5">
-                  <Smartphone className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{d.number ? formatPhone(d.number) : "Sem número"}</span>
+              {/* Actions */}
+              <div className="px-4 pb-4 space-y-2">
+                {d.status === "Ready" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+                    onClick={() => openLogout(d)}
+                  >
+                    <Power className="w-3.5 h-3.5" /> Desconectar
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+                    onClick={() => openConnect(d)}
+                  >
+                    {hadPreviousConnection ? <RefreshCw className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
+                    {hadPreviousConnection ? "Reconectar" : "Conectar"}
+                  </Button>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-border/30"
+                    onClick={() => {
+                      setEditingDevice(d);
+                      setEditName(d.name);
+                      setEditProxyValue(d.proxy_id || "none");
+                      setWpName("");
+                      setWpPhotoUrl("");
+                      setWpPhotoBase64("");
+                      setWpRemovePhoto(false);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+                    onClick={() => {
+                      if (d.status === "Ready") {
+                        setDeleteSingleDevice(d);
+                        setDeleteSingleOpen(true);
+                      } else {
+                        handleDelete(d.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Excluir
+                  </Button>
                 </div>
-
-                {/* Divider */}
-                <div className="h-px bg-border/30" />
-
-                {/* Row 3: Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    {d.status === "Ready" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 gap-1.5 rounded-lg text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => openLogout(d)}
-                      >
-                        <Power className="w-3.5 h-3.5" /> Desconectar
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="h-8 px-3 gap-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
-                        onClick={() => openConnect(d)}
-                      >
-                        {hadPreviousConnection ? <RefreshCw className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
-                        {hadPreviousConnection ? "Reconectar" : "Conectar"}
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary"
-                      onClick={() => {
-                        setEditingDevice(d);
-                        setEditName(d.name);
-                        setEditProxyValue(d.proxy_id || "none");
-                        setWpName("");
-                        setWpPhotoUrl("");
-                        setWpPhotoBase64("");
-                        setWpRemovePhoto(false);
-                        setEditOpen(true);
-                      }}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        if (d.status === "Ready") {
-                          setDeleteSingleDevice(d);
-                          setDeleteSingleOpen(true);
-                        } else {
-                          handleDelete(d.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
       </div>
