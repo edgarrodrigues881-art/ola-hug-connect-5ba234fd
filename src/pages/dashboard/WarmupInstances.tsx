@@ -274,7 +274,7 @@ DeviceCard.displayName = "DeviceCard";
     cycles.find(c => c.device_id === deviceId && !["completed", "error"].includes(c.phase));
 
   const isConnected = (status: string) =>
-    ["Connected", "Ready", "authenticated"].includes(status);
+    CONNECTED_STATUSES.includes(status);
 
   const disconnectedCount = filteredDevices.filter(d => !isConnected(d.status)).length;
 
