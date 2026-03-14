@@ -1139,69 +1139,79 @@ const WarmupInstances = () => {
       </Dialog>
       {/* Bulk warmup dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
-          <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.06] via-transparent to-transparent pointer-events-none" />
-            <div className="relative flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                <Flame className="w-5 h-5 text-amber-500" />
+        <DialogContent className="max-w-[520px] p-0 overflow-hidden rounded-3xl border-border/15 shadow-2xl backdrop-blur-2xl">
+          {/* ── Header with gradient accent ── */}
+          <div className="relative px-7 pt-7 pb-5 border-b border-border/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.08] via-primary/[0.03] to-transparent pointer-events-none" />
+            <div className="absolute top-4 right-16 w-24 h-24 rounded-full bg-amber-500/[0.04] blur-2xl pointer-events-none" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+                <Flame className="w-6 h-6 text-amber-500" />
               </div>
               <div>
-                <DialogTitle className="text-base font-bold">Aquecer em massa</DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Configure e selecione as instâncias</p>
+                <DialogTitle className="text-lg font-black tracking-tight">Aquecer em massa</DialogTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Configure o perfil e selecione as instâncias</p>
               </div>
             </div>
           </div>
 
-          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-            {/* Chip state selector - same as wizard */}
+          <div className="px-7 py-6 space-y-6 max-h-[65vh] overflow-y-auto scrollbar-thin">
+            {/* ── Chip state selector ── */}
             <div className="space-y-3">
-              <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Estado do chip</p>
-              <div className="grid grid-cols-3 gap-3">
+              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Estado do chip</p>
+              <div className="grid grid-cols-3 gap-2.5">
                 {([
-                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢" },
-                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso", emoji: "🔴" },
-                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição", emoji: "🟡" },
+                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", color: "from-emerald-500/20 to-emerald-600/5", borderActive: "border-emerald-500/50 shadow-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_8px_hsl(160_84%_40%/0.6)]" },
+                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", color: "from-red-500/20 to-red-600/5", borderActive: "border-red-400/50 shadow-red-500/15", dot: "bg-red-500 shadow-[0_0_8px_hsl(0_84%_50%/0.6)]" },
+                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição facilmente", color: "from-amber-500/20 to-amber-600/5", borderActive: "border-amber-400/50 shadow-amber-500/15", dot: "bg-amber-500 shadow-[0_0_8px_hsl(38_92%_50%/0.6)]" },
                 ] as const).map(opt => (
                   <button
                     key={opt.value}
                     onClick={() => setBulkChipState(opt.value)}
                     className={cn(
-                      "text-left p-3.5 rounded-2xl border-2 transition-all duration-200",
+                      "relative text-left p-4 rounded-2xl border-2 transition-all duration-300 group overflow-hidden",
                       bulkChipState === opt.value
-                        ? "border-primary bg-primary/8 shadow-[0_0_30px_-6px_hsl(var(--primary)/0.3)]"
-                        : "border-border/30 hover:border-primary/25 bg-card/50 hover:bg-card/70"
+                        ? `${opt.borderActive} shadow-lg`
+                        : "border-border/20 hover:border-border/40 bg-card/40 hover:bg-card/60"
                     )}
                   >
-                    <span className="text-lg">{opt.emoji}</span>
-                    <p className="text-[13px] font-extrabold text-foreground mt-1.5">{opt.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight font-medium">{opt.desc}</p>
+                    {bulkChipState === opt.value && (
+                      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-60 pointer-events-none", opt.color)} />
+                    )}
+                    <div className="relative">
+                      <div className={cn("w-3.5 h-3.5 rounded-full transition-all", opt.dot, bulkChipState !== opt.value && "opacity-40 shadow-none")} />
+                      <p className="text-[13px] font-black text-foreground mt-2.5 leading-tight">{opt.label}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 leading-snug font-medium">{opt.desc}</p>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Duration selector */}
-            <div className="space-y-2">
-              <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Duração do ciclo</p>
+            {/* ── Duration selector ── */}
+            <div className="space-y-2.5">
+              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Duração do ciclo</p>
               <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
-                <SelectTrigger className="rounded-xl h-11 bg-card/50 border-border/30">
+                <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {[7, 14, 21, 30].map(d => (
-                    <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
+                    <SelectItem key={d} value={String(d)}>
+                      <span className="font-semibold">{d} dias</span>
+                      {d === 14 && <span className="text-[10px] text-primary ml-2 font-bold">Recomendado</span>}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Instance selector */}
-            <div className="space-y-2">
+            {/* ── Instance selector ── */}
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Instâncias</p>
+                <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Instâncias</p>
                 <button
-                  className="text-[10px] text-primary hover:underline font-semibold"
+                  className="text-[10px] text-primary hover:text-primary/80 font-bold transition-colors"
                   onClick={() => {
                     const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
                     setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
@@ -1210,16 +1220,21 @@ const WarmupInstances = () => {
                   {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
               </div>
-              <div className="max-h-[200px] overflow-y-auto space-y-1 rounded-xl border border-border/20 bg-card/30 p-2">
+              <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
                 {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma instância disponível para aquecer</p>
+                  <div className="flex flex-col items-center py-8 gap-2">
+                    <Smartphone className="w-6 h-6 text-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground/60 font-medium">Nenhuma instância disponível</p>
+                  </div>
                 ) : (
                   filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).map(d => (
                     <div
                       key={d.id}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all",
-                        bulkSelected.has(d.id) ? "bg-primary/8 border border-primary/20" : "hover:bg-muted/30 border border-transparent"
+                        "flex items-center gap-3 px-3.5 py-3 rounded-xl cursor-pointer transition-all duration-200",
+                        bulkSelected.has(d.id)
+                          ? "bg-primary/[0.08] border border-primary/25 shadow-sm shadow-primary/5"
+                          : "hover:bg-muted/20 border border-transparent"
                       )}
                       onClick={() => setBulkSelected(prev => {
                         const next = new Set(prev);
@@ -1227,64 +1242,94 @@ const WarmupInstances = () => {
                         return next;
                       })}
                     >
-                      <Checkbox checked={bulkSelected.has(d.id)} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
-                        {d.number && <p className="text-[10px] text-muted-foreground font-mono">{formatPhone(d.number)}</p>}
+                      <div className={cn(
+                        "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
+                        bulkSelected.has(d.id) ? "bg-primary border-primary" : "border-border/40 bg-transparent"
+                      )}>
+                        {bulkSelected.has(d.id) && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
+                        {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide mt-0.5">{formatPhone(d.number)}</p>}
+                      </div>
+                      <div className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]"
+                      )} />
                     </div>
                   ))
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground text-right tabular-nums">{bulkSelected.size} selecionada(s)</p>
+              <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
+                {bulkSelected.size} de {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} selecionada(s)
+              </p>
             </div>
 
-            {/* Protections */}
-            <div className="rounded-2xl border border-primary/15 bg-card/50 p-4 space-y-2">
-              <p className="text-xs font-extrabold text-foreground flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
+            {/* ── Protections ── */}
+            <div className="rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 space-y-3">
+              <p className="text-xs font-black text-foreground flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                </div>
                 Proteções automáticas
               </p>
-              <ul className="grid gap-1.5 list-disc list-inside">
-                {["Limites diários automáticos", "Delays aleatórios entre ações", "Evolução progressiva de fases", "Proteção contínua do chip"].map((item, i) => (
-                  <li key={i} className="text-[11px] text-muted-foreground leading-relaxed font-medium">{item}</li>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { icon: Target, text: "Limites diários automáticos" },
+                  { icon: Timer, text: "Delays aleatórios entre ações" },
+                  { icon: Zap, text: "Evolução progressiva de fases" },
+                  { icon: Shield, text: "Proteção contínua do chip" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+                    <item.icon className="w-3 h-3 text-primary/50 shrink-0" />
+                    {item.text}
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 pb-6 pt-2 flex items-center gap-3">
-            <Button variant="outline" className="flex-1 h-11 rounded-xl" onClick={() => setBulkOpen(false)}>Cancelar</Button>
-            <Button
-              disabled={bulkSelected.size === 0 || bulkLoading}
-              className="flex-1 gap-2 h-11 rounded-xl font-black bg-amber-600 hover:bg-amber-700 text-white shadow-[0_8px_30px_-6px_hsl(38_92%_50%/0.4)]"
-              onClick={async () => {
-                setBulkLoading(true);
-                const ids = Array.from(bulkSelected);
-                let ok = 0;
-                let fail = 0;
-                for (const deviceId of ids) {
-                  try {
-                    await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal) });
-                    ok++;
-                  } catch {
-                    fail++;
+          {/* ── Footer ── */}
+          <div className="px-7 pb-7 pt-3 border-t border-border/10">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-border/20" onClick={() => setBulkOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={bulkSelected.size === 0 || bulkLoading}
+                className={cn(
+                  "flex-1 gap-2.5 h-12 rounded-xl font-black text-sm transition-all duration-300",
+                  "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white",
+                  "shadow-[0_8px_32px_-6px_hsl(38_92%_50%/0.5)] hover:shadow-[0_12px_40px_-4px_hsl(38_92%_50%/0.6)]",
+                  "disabled:from-muted disabled:to-muted disabled:shadow-none"
+                )}
+                onClick={async () => {
+                  setBulkLoading(true);
+                  const ids = Array.from(bulkSelected);
+                  let ok = 0;
+                  let fail = 0;
+                  for (const deviceId of ids) {
+                    try {
+                      await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal) });
+                      ok++;
+                    } catch {
+                      fail++;
+                    }
                   }
-                }
-                setBulkLoading(false);
-                setBulkOpen(false);
-                qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
-                toast({
-                  title: `🔥 Aquecimento iniciado em ${ok} instância(s)`,
-                  description: fail > 0 ? `${fail} falharam` : undefined,
-                  variant: fail > 0 ? "destructive" : undefined,
-                });
-              }}
-            >
-              {bulkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flame className="w-4 h-4" />}
-              Iniciar {bulkSelected.size > 0 ? `(${bulkSelected.size})` : ""}
-            </Button>
+                  setBulkLoading(false);
+                  setBulkOpen(false);
+                  qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
+                  toast({
+                    title: `🔥 Aquecimento iniciado em ${ok} instância(s)`,
+                    description: fail > 0 ? `${fail} falharam` : undefined,
+                    variant: fail > 0 ? "destructive" : undefined,
+                  });
+                }}
+              >
+                {bulkLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Flame className="w-4.5 h-4.5" />}
+                Iniciar {bulkSelected.size > 0 ? `(${bulkSelected.size})` : "aquecimento"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
