@@ -959,30 +959,30 @@ const WarmupInstanceDetail = () => {
         <div className="space-y-5">
 
           {/* Phase stepper + day progress */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-4">
+          <div className="rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-xl p-6 space-y-5 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.1)]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {pc && <pc.icon className={cn("w-4 h-4", pc.color)} />}
-                <span className={cn("text-sm font-bold", pc?.color)}>{pc?.label}</span>
+              <div className="flex items-center gap-2.5">
+                {pc && <pc.icon className={cn("w-5 h-5", pc.color)} />}
+                <span className={cn("text-base font-extrabold tracking-tight", pc?.color)}>{pc?.label}</span>
               </div>
-              <span className="text-xs font-mono text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-mono font-bold text-foreground bg-muted/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/20">
                 Dia {cycle.day_index}/{cycle.days_total}
               </span>
             </div>
 
             {/* phase stepper */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {phaseSteps.map((p) => {
                 const isActive = cycle.phase === p;
                 const isPast = (phaseConfig[cycle.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
                 return (
                   <div key={p} className="flex-1 group relative">
                     <div className={cn(
-                      "h-2 rounded-full transition-all",
-                      isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.4)]" : isPast ? "bg-primary/35" : "bg-muted/30"
+                      "h-2.5 rounded-full transition-all",
+                      isActive ? "bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/30" : "bg-muted/25 dark:bg-muted/15"
                     )} />
                     <span className={cn(
-                      "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-medium whitespace-nowrap transition-opacity",
+                      "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-bold whitespace-nowrap transition-opacity",
                       isActive ? cn("opacity-100", pc?.color) : "opacity-0 group-hover:opacity-70 text-muted-foreground"
                     )}>
                       {phaseConfig[p]?.label}
@@ -992,9 +992,9 @@ const WarmupInstanceDetail = () => {
               })}
             </div>
 
-            <div className="pt-3">
-              <Progress value={(cycle.day_index / cycle.days_total) * 100} className="h-1.5" />
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">
+            <div className="pt-4">
+              <Progress value={(cycle.day_index / cycle.days_total) * 100} className="h-2" />
+              <p className="text-[10px] text-muted-foreground font-semibold mt-1.5 text-right">
                 {Math.round((cycle.day_index / cycle.days_total) * 100)}% concluído
               </p>
             </div>
