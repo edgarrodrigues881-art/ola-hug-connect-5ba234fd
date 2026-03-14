@@ -1535,15 +1535,13 @@ const WarmupInstanceDetail = () => {
                     items.push({
                       id: `job-${job.id}`,
                       time: new Date(job.run_at),
-                      type: isCancelledJoinGroup ? "done"
-                        : job.status === "running" ? "running"
+                      type: job.status === "running" ? "running"
                         : job.status === "failed" ? "failed"
                         : "pending",
-                      label: isCancelledJoinGroup ? "Entrada em grupo" : (jobLabelMap[job.job_type] || job.job_type),
+                      label: jobLabelMap[job.job_type] || job.job_type,
                       detail: groupName ? `Grupo: ${groupName}` : undefined,
-                      icon: isCancelledJoinGroup ? "📥" : (jobIconMap[job.job_type] || "⏳"),
-                      color: isCancelledJoinGroup ? "text-teal-400"
-                        : job.status === "failed" ? "text-destructive"
+                      icon: jobIconMap[job.job_type] || "⏳",
+                      color: job.status === "failed" ? "text-destructive"
                         : job.status === "running" ? "text-primary"
                         : "text-muted-foreground",
                     });
