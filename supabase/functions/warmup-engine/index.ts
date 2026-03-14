@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=OFF, Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos registrados.`,
+        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=Proteção (entrada em grupos após 4-6h), Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos agendados.`,
         meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays },
       });
 
