@@ -1419,15 +1419,31 @@ const WarmupInstanceDetail = () => {
                   };
 
                   // Only show jobs for current day or past days (not future days)
+                  const currentDayIdx = cycle?.day_index ?? 1;
+                  const toBrtDate = (d: Date) => new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+                  }).format(d);
+                  const cycleStartBrt = cycleStartedAt ? toBrtDate(cycleStartedAt) : null;
+
+                  const getWarmupDayBrt = (d: Date) => {
+                    if (!cycleStartBrt || !cycleStartedAt) return 1;
+                    // Simple day diff using BRT date strings
+                    const dBrt = toBrtDate(d);
+                    const startParts = cycleStartBrt.split("-").map(Number);
+                    const dParts = dBrt.split("-").map(Number);
+                    const startDate = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+                    const curDate = new Date(dParts[0], dParts[1] - 1, dParts[2]);
+                    const diffDays = Math.round((curDate.getTime() - startDate.getTime()) / 86400000);
+                    return Math.max(1, diffDays + 1);
+                  };
+
                   for (const job of scheduledJobs) {
                     if (job.status === "cancelled") continue;
-                    if (job.status === "succeeded") continue; // already in audit logs
+                    if (job.status === "succeeded") continue;
 
                     // Skip jobs scheduled for future warmup days
-                    if (cycleStartedAt) {
-                      const jobDay = Math.max(1, differenceInCalendarDays(new Date(job.run_at), cycleStartedAt) + 1);
-                      if (jobDay > (cycle?.day_index ?? 1)) continue;
-                    }
+                    const jobWarmupDay = getWarmupDayBrt(new Date(job.run_at));
+                    if (jobWarmupDay > currentDayIdx) continue;
 
                     const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
                       ? (job.payload as any).group_name : null;
