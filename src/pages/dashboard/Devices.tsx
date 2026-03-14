@@ -1586,7 +1586,7 @@ const Devices = () => {
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
+                className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground placeholder:text-muted-foreground/60 transition-colors"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
