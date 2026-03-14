@@ -163,45 +163,66 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: run interaction jobs now; if none, force the next pending job */
+  /* accelerate: recalculate schedule starting from NOW, keeping relative delays */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
-      const now = new Date().toISOString();
+      const nowMs = Date.now();
       const INTERACTION_TYPES = ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"] as const;
 
-      // 1) Prefer forcing interaction jobs
-      const { data: updatedInteractions, error: interactionErr } = await supabase
+      // 1) Fetch ALL pending interaction jobs ordered by their original schedule
+      const { data: pendingJobs, error: fetchErr } = await supabase
         .from("warmup_jobs")
-        .update({ run_at: now })
+        .select("id, job_type, run_at")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
         .in("job_type", INTERACTION_TYPES)
-        .select("id");
-      if (interactionErr) throw interactionErr;
+        .order("run_at", { ascending: true });
+      if (fetchErr) throw fetchErr;
 
-      let forcedCount = updatedInteractions?.length || 0;
+      let forcedCount = 0;
       let forcedSystemJobType: string | null = null;
 
-      // 2) If there are no interaction jobs, force only the next pending job of any type
-      if (forcedCount === 0) {
-        // Prefer phase_transition over daily_reset
-        const { data: pendingJobs, error: nextPendingErr } = await supabase
+      if (pendingJobs && pendingJobs.length > 0) {
+        // Recalculate: preserve relative delays but shift so first job starts NOW
+        const originalFirstRunAt = new Date(pendingJobs[0].run_at).getTime();
+        const shift = nowMs - originalFirstRunAt; // positive = moving earlier
+
+        const updates = pendingJobs.map((job) => {
+          const originalMs = new Date(job.run_at).getTime();
+          const newMs = originalMs + shift;
+          return { id: job.id, newRunAt: new Date(newMs).toISOString() };
+        });
+
+        // Update each job with its recalculated run_at
+        for (const u of updates) {
+          const { error: updateErr } = await supabase
+            .from("warmup_jobs")
+            .update({ run_at: u.newRunAt })
+            .eq("id", u.id)
+            .eq("status", "pending");
+          if (updateErr) throw updateErr;
+        }
+
+        forcedCount = updates.length;
+      } else {
+        // 2) No interaction jobs — try system jobs (phase_transition, daily_reset, join_group)
+        const { data: systemJobs, error: nextPendingErr } = await supabase
           .from("warmup_jobs")
-          .select("id, job_type")
+          .select("id, job_type, run_at")
           .eq("cycle_id", cycle.id)
           .eq("status", "pending")
           .order("run_at", { ascending: true })
           .limit(10);
         if (nextPendingErr) throw nextPendingErr;
 
-        let nextPendingJob = pendingJobs?.find(j => j.job_type === "phase_transition")
-          || pendingJobs?.find(j => j.job_type !== "daily_reset")
-          || pendingJobs?.[0]
+        let nextPendingJob = systemJobs?.find(j => j.job_type === "phase_transition")
+          || systemJobs?.find(j => j.job_type !== "daily_reset")
+          || systemJobs?.[0]
           || null;
 
-        // Self-heal for pre_24h cycles that lost pending jobs (revive transition/reset jobs)
+        // Self-heal for pre_24h cycles
         if (!nextPendingJob && cycle.phase === "pre_24h") {
           const { data: pre24hJobs, error: pre24hErr } = await supabase
             .from("warmup_jobs")
@@ -221,7 +242,7 @@ const WarmupInstanceDetail = () => {
               .from("warmup_jobs")
               .update({
                 status: "pending",
-                run_at: now,
+                run_at: new Date(nowMs).toISOString(),
                 attempts: 0,
                 last_error: null,
               })
@@ -232,7 +253,7 @@ const WarmupInstanceDetail = () => {
             if (reviveErr) throw reviveErr;
 
             if (revivedJob) {
-              nextPendingJob = revivedJob;
+              nextPendingJob = { ...revivedJob, run_at: new Date(nowMs).toISOString() };
               forcedCount = 1;
               forcedSystemJobType = revivedJob.job_type || null;
             }
@@ -245,16 +266,31 @@ const WarmupInstanceDetail = () => {
         }
 
         if (forcedCount === 0) {
-          const { data: updatedNext, error: updateNextErr } = await supabase
-            .from("warmup_jobs")
-            .update({ run_at: now })
-            .eq("id", nextPendingJob.id)
-            .eq("status", "pending")
-            .select("id");
-          if (updateNextErr) throw updateNextErr;
+          // For join_group jobs, recalculate with staggered delays from now
+          if (systemJobs && systemJobs.length > 1 && systemJobs.every(j => j.job_type === "join_group")) {
+            const originalFirstMs = new Date(systemJobs[0].run_at).getTime();
+            const shift = nowMs - originalFirstMs;
+            for (const job of systemJobs) {
+              const newMs = new Date(job.run_at).getTime() + shift;
+              await supabase
+                .from("warmup_jobs")
+                .update({ run_at: new Date(newMs).toISOString() })
+                .eq("id", job.id)
+                .eq("status", "pending");
+            }
+            forcedCount = systemJobs.length;
+          } else {
+            const { data: updatedNext, error: updateNextErr } = await supabase
+              .from("warmup_jobs")
+              .update({ run_at: new Date(nowMs).toISOString() })
+              .eq("id", nextPendingJob.id)
+              .eq("status", "pending")
+              .select("id");
+            if (updateNextErr) throw updateNextErr;
 
-          forcedCount = updatedNext?.length || 0;
-          forcedSystemJobType = nextPendingJob.job_type || null;
+            forcedCount = updatedNext?.length || 0;
+            forcedSystemJobType = nextPendingJob.job_type || null;
+          }
 
           if (forcedCount === 0) {
             toast({ title: "Nenhum job pendente", description: "Não foi possível forçar o próximo job." });
@@ -263,20 +299,18 @@ const WarmupInstanceDetail = () => {
         }
       }
 
-      // Trigger warmup-tick immediately so forced jobs execute right away
+      // Trigger warmup-tick immediately
       try {
         await supabase.functions.invoke("warmup-tick", { body: {} });
-      } catch (_e) {
-        // tick will pick it up on next cron anyway
-      }
+      } catch (_e) {}
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
       toast({
-        title: "⚡ Forçado!",
+        title: "⚡ Recalculado!",
         description: forcedSystemJobType
           ? `Próximo job (${forcedSystemJobType}) foi forçado para agora.`
-          : `${forcedCount} tarefa(s) de interação sendo executadas agora.`,
+          : `${forcedCount} tarefa(s) recalculadas a partir de agora, mantendo o cronograma.`,
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
