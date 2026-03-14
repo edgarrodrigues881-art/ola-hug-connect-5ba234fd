@@ -2014,7 +2014,7 @@ const WarmupInstanceDetail = () => {
                   <strong className="text-foreground">{(() => {
                     const targetTypes = cycle?.phase === "pre_24h"
                       ? ["join_group"]
-                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"];
+                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"];
                     return scheduledJobs.filter(j => j.status === "pending" && targetTypes.includes(j.job_type)).length;
                   })()}</strong> tarefa(s) pendente(s) serão aceleradas.
                 </p>
