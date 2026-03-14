@@ -541,6 +541,24 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
+  const renderedCards = useMemo(
+    () =>
+      displayed.map((device) => (
+        <DeviceCard
+          key={device.id}
+          device={device}
+          cycle={cycleByDeviceId.get(device.id)}
+          onPause={handlePause}
+          onResume={handleResume}
+          onCancel={onCancelClick}
+          onConnect={openConnect}
+          onNavigate={navigate}
+          formatPhone={formatPhone}
+        />
+      )),
+    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate]
+  );
+
   return (
     <div className="space-y-5">
       {/* Warning popup - chips novos */}
