@@ -1554,20 +1554,20 @@ const Devices = () => {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-          {/* Header com avatar do device */}
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-border/40 bg-card">
+          {/* Header */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-4">
               {editingDevice?.profile_picture ? (
-                <img src={editingDevice.profile_picture} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-emerald-500/20 shrink-0" />
+                <img src={editingDevice.profile_picture} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0" />
               ) : (
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <Pencil className="w-5 h-5 text-emerald-400" />
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Pencil className="w-5 h-5 text-primary" />
                 </div>
               )}
               <div className="min-w-0">
-                <DialogTitle className="text-lg font-bold truncate">Editar instância</DialogTitle>
+                <DialogTitle className="text-lg font-bold truncate text-foreground">Editar instância</DialogTitle>
                 {editingDevice && (
                   <p className="text-[13px] text-muted-foreground mt-0.5 truncate">
                     {editingDevice.profile_name || editingDevice.name}
@@ -1581,12 +1581,12 @@ const Devices = () => {
           <div className="px-6 py-5 space-y-5">
             {/* Nome da instância */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground font-medium">Nome da instância</Label>
+              <Label className="text-xs text-foreground/70 font-medium">Nome da instância</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-11 text-sm rounded-xl bg-muted/20 border-border/30 focus:border-emerald-500/40 transition-colors"
+                className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
@@ -1597,33 +1597,33 @@ const Devices = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground/40 tabular-nums">{editName.length}/30</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums">{editName.length}/30</span>
               </div>
             </div>
 
             {editingDevice?.status === "Ready" && (
-              <div className="space-y-4 rounded-xl border border-border/15 bg-muted/[0.04] p-4">
-                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
+              <div className="space-y-4 rounded-xl border border-border/30 bg-background/50 p-4">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
 
                 {/* Nome do WhatsApp */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5 text-emerald-400/60" /> Nome exibido
+                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5 text-primary/60" /> Nome exibido
                   </Label>
                   <Input
                     value={wpName}
                     onChange={e => setWpName(e.target.value)}
                     placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
-                    className="h-11 text-sm rounded-xl bg-background/50 border-border/30 focus:border-emerald-500/40 transition-colors"
+                    className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
                     maxLength={25}
                   />
-                  <p className="text-[11px] text-muted-foreground/40 tabular-nums">{wpName.length}/25 caracteres</p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums">{wpName.length}/25 caracteres</p>
                 </div>
 
                 {/* Foto do WhatsApp */}
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-emerald-400/60" /> Foto do perfil
+                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-primary/60" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
                   <div className="flex justify-center py-1">
@@ -1633,7 +1633,7 @@ const Devices = () => {
                     >
                       {wpPhotoUrl && !wpRemovePhoto ? (
                         <>
-                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-emerald-500/20 shadow-lg" />
+                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/20 shadow-lg" />
                           <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
                               <Camera className="w-3.5 h-3.5" />
@@ -1645,11 +1645,11 @@ const Devices = () => {
                         </>
                       ) : (
                         <div
-                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/30 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
+                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
-                          <Camera className="w-5 h-5 text-muted-foreground/30 mb-0.5" />
-                          <span className="text-[9px] text-muted-foreground/30">
+                          <Camera className="w-5 h-5 text-muted-foreground/50 mb-0.5" />
+                          <span className="text-[9px] text-muted-foreground/50">
                             {wpRemovePhoto ? "Removida" : "Escolher"}
                           </span>
                         </div>
@@ -1661,7 +1661,7 @@ const Devices = () => {
             )}
 
             <div className="flex items-center gap-3 pt-1">
-              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/30" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={() => setEditOpen(false)}>Cancelar</Button>
               <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
