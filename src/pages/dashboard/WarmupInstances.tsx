@@ -17,7 +17,7 @@ import {
   Plus, Flame, Wifi, WifiOff, AlertTriangle, Loader2,
   Phone, Search, Filter, Pause, Play, Pencil, X,
   QrCode, Key, Shield, Ban, CheckCircle2, XCircle,
-  Smartphone, RefreshCw, Lock,
+  Smartphone, RefreshCw, Lock, Target, Timer, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
