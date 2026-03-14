@@ -1581,12 +1581,12 @@ const Devices = () => {
           <div className="px-6 py-5 space-y-5">
             {/* Nome da instância */}
             <div className="space-y-2">
-              <Label className="text-xs text-foreground/70 font-medium">Nome da instância</Label>
+              <Label className="text-sm text-foreground font-semibold">Nome da instância</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value.slice(0, 30))}
                 placeholder="Ex: Chip 01"
-                className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
+                className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground placeholder:text-muted-foreground/60 transition-colors"
                 maxLength={30}
               />
               <div className="flex items-center justify-between">
@@ -1597,33 +1597,33 @@ const Devices = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground tabular-nums">{editName.length}/30</span>
+                <span className="text-[11px] text-foreground/50 tabular-nums">{editName.length}/30</span>
               </div>
             </div>
 
             {editingDevice?.status === "Ready" && (
               <div className="space-y-4 rounded-xl border border-border/30 bg-background/50 p-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-semibold">Perfil do WhatsApp</p>
+                <p className="text-[11px] text-foreground/60 uppercase tracking-[0.15em] font-bold">Perfil do WhatsApp</p>
 
                 {/* Nome do WhatsApp */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5 text-primary/60" /> Nome exibido
+                  <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5 text-primary" /> Nome exibido
                   </Label>
                   <Input
                     value={wpName}
                     onChange={e => setWpName(e.target.value)}
                     placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
-                    className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
+                    className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground placeholder:text-muted-foreground/60 transition-colors"
                     maxLength={25}
                   />
-                  <p className="text-[11px] text-muted-foreground tabular-nums">{wpName.length}/25 caracteres</p>
+                  <p className="text-[11px] text-foreground/50 tabular-nums">{wpName.length}/25 caracteres</p>
                 </div>
 
                 {/* Foto do WhatsApp */}
                 <div className="space-y-2">
-                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-primary/60" /> Foto do perfil
+                  <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-primary" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
                   <div className="flex justify-center py-1">
@@ -1648,8 +1648,8 @@ const Devices = () => {
                           className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
                           onClick={() => wpFileRef.current?.click()}
                         >
-                          <Camera className="w-5 h-5 text-muted-foreground/50 mb-0.5" />
-                          <span className="text-[9px] text-muted-foreground/50">
+                          <Camera className="w-5 h-5 text-muted-foreground/70 mb-0.5" />
+                          <span className="text-[10px] text-muted-foreground/70 font-medium">
                             {wpRemovePhoto ? "Removida" : "Escolher"}
                           </span>
                         </div>
