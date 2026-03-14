@@ -677,9 +677,6 @@ const WarmupInstanceDetail = () => {
         if (poolName) {
           const norm = normalizeGroupName(poolName);
           if (liveNames.has(norm)) return false;
-          for (const ln of liveNames) {
-            if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return false;
-          }
         }
         return true; // Not found in live groups — demote
       })
