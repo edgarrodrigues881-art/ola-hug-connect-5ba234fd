@@ -927,7 +927,7 @@ const WarmupInstanceDetail = () => {
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Grupos</p>
                 <p className="text-lg font-extrabold tabular-nums text-foreground">
                   {joinedGroups}
-                  <span className="text-xs text-muted-foreground/40 font-normal">/8</span>
+                  <span className="text-xs text-muted-foreground/40 font-normal">/{totalTrackedGroups}</span>
                 </p>
                 {pendingGroups > 0 ? (
                   <p className="text-[8px] text-amber-400 font-semibold mt-0.5">{pendingGroups} aguardando</p>
