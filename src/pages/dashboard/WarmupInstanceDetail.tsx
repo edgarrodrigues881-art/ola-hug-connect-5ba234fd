@@ -1418,10 +1418,16 @@ const WarmupInstanceDetail = () => {
                     health_check: "Verificação", post_status: "Status",
                   };
 
-                  // Only show individual pending/running jobs, not succeeded (those are in audit logs)
+                  // Only show jobs for current day or past days (not future days)
                   for (const job of scheduledJobs) {
                     if (job.status === "cancelled") continue;
                     if (job.status === "succeeded") continue; // already in audit logs
+
+                    // Skip jobs scheduled for future warmup days
+                    if (cycleStartedAt) {
+                      const jobDay = Math.max(1, differenceInCalendarDays(new Date(job.run_at), cycleStartedAt) + 1);
+                      if (jobDay > currentWarmupDay) continue;
+                    }
 
                     const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
                       ? (job.payload as any).group_name : null;
