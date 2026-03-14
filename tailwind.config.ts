@@ -97,7 +97,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Inter',
+  				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
@@ -106,13 +106,11 @@ export default {
   				'Roboto',
   				'Helvetica Neue',
   				'Arial',
-  				'Noto Sans',
   				'sans-serif'
   			],
   			serif: [
-  				'Lora',
-  				'ui-serif',
   				'Georgia',
+  				'ui-serif',
   				'Cambria',
   				'Times New Roman',
   				'Times',
