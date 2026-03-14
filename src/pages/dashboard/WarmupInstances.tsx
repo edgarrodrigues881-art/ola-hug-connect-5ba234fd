@@ -182,14 +182,16 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
-          onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
-        >
-          <Pencil className="w-3.5 h-3.5" /> Editar
-        </Button>
+        {cycle && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+            onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </Button>
+        )}
       </div>
     </div>
   );
