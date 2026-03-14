@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`Total unique groups: ${allGroups.length}`);
+      console.log(`[${deviceId}] Total unique groups: ${allGroups.length}`);
 
       // Map to standardized format
       let chats = allGroups.map((g: any) => ({
