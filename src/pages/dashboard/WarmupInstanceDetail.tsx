@@ -549,19 +549,40 @@ const WarmupInstanceDetail = () => {
     queryKey: ["warmup_group_join_evidence", deviceId],
     queryFn: async () => {
       if (!deviceId) return [];
-      const { data, error } = await supabase
+
+      // Source 1: group_join_logs
+      const { data: logs } = await supabase
         .from("group_join_logs")
         .select("group_name, group_link")
         .eq("device_id", deviceId)
         .in("result", ["success", "already_member"])
         .order("created_at", { ascending: false })
         .limit(200);
-      if (error) return [];
-      return data || [];
+
+      // Source 2: warmup_audit_logs with event_type=group_joined (from warmup-tick)
+      const { data: auditLogs } = await supabase
+        .from("warmup_audit_logs")
+        .select("meta")
+        .eq("device_id", deviceId)
+        .eq("event_type", "group_joined")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const results: { group_name: string | null; group_link: string | null }[] = [];
+      if (logs) results.push(...logs);
+      if (auditLogs) {
+        for (const al of auditLogs) {
+          const meta = al.meta as any;
+          if (meta?.group_name) {
+            results.push({ group_name: meta.group_name, group_link: null });
+          }
+        }
+      }
+      return results;
     },
     enabled: !!user && !!deviceId,
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: hasPendingGroupJobs ? 15000 : 30000,
+    staleTime: hasPendingGroupJobs ? 8000 : 15000,
   });
 
   const { data: poolGroups = [] } = useQuery<{ id: string; name: string; external_group_ref: string | null }[]>({
