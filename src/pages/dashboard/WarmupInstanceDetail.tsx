@@ -807,6 +807,12 @@ const WarmupInstanceDetail = () => {
 
   const counterGroups = Array.from(byGroupId.values());
 
+  const joinedDbGroupIds = new Set(
+    instanceGroups
+      .filter((g) => g.join_status === "joined")
+      .map((g) => g.group_id)
+  );
+
   const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
   const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
