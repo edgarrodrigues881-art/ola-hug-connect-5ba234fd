@@ -9,17 +9,21 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 
 // Retry wrapper for dynamic imports (handles chunk load failures after deploys)
-function lazyRetry(importFn: () => Promise<any>, retries = 2): ReturnType<typeof lazy> {
-  return lazy(() =>
-    importFn().catch((err) => {
-      if (retries > 0) {
-        return new Promise<void>((res) => setTimeout(res, 500)).then(() =>
-          lazyRetry(importFn, retries - 1) as any
-        );
-      }
+function retryImport(importFn: () => Promise<any>, retries = 3, delay = 1000): Promise<any> {
+  return importFn().catch((err) => {
+    if (retries <= 0) {
+      // Force full page reload as last resort for stale chunks
+      window.location.reload();
       throw err;
-    })
-  );
+    }
+    return new Promise((res) => setTimeout(res, delay)).then(() =>
+      retryImport(importFn, retries - 1, delay)
+    );
+  });
+}
+
+function lazyRetry(importFn: () => Promise<any>): ReturnType<typeof lazy> {
+  return lazy(() => retryImport(importFn));
 }
 
 // Lazy-loaded pages with retry
