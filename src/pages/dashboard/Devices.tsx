@@ -743,12 +743,22 @@ const Devices = () => {
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
     const newProxyId = editProxyValue === "none" ? null : editProxyValue;
+    const dbUpdates: Record<string, any> = {
+      name: editName,
+      proxy_id: newProxyId,
+    };
+    // Also persist profile_picture URL in the database
+    if (wpRemovePhoto) {
+      dbUpdates.profile_picture = null;
+    } else if (wpPhotoBase64) {
+      dbUpdates.profile_picture = wpPhotoBase64;
+    }
+    if (wpName.trim()) {
+      dbUpdates.profile_name = wpName.trim();
+    }
     updateMutation.mutate({
       id: editingDevice.id,
-      updates: {
-        name: editName,
-        proxy_id: newProxyId,
-      },
+      updates: dbUpdates,
     });
     // Save WP profile changes via API
     try {
