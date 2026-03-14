@@ -8,34 +8,48 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 
-// Lazy-loaded pages
-const Landing = lazy(() => import("./pages/Landing"));
-const Auth = lazy(() => import("./pages/Auth"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const BackOffice = lazy(() => import("./pages/BackOffice"));
-const DashboardLayout = lazy(() => import("./components/DashboardLayout"));
-const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
-const Devices = lazy(() => import("./pages/dashboard/Devices"));
-const Campaigns = lazy(() => import("./pages/dashboard/Campaigns"));
-const CampaignList = lazy(() => import("./pages/dashboard/CampaignList"));
-const Contacts = lazy(() => import("./pages/dashboard/Contacts"));
-const Reports = lazy(() => import("./pages/dashboard/Reports"));
-const Templates = lazy(() => import("./pages/dashboard/Templates"));
-const Warmup = lazy(() => import("./pages/dashboard/Warmup"));
-const Proxy = lazy(() => import("./pages/dashboard/Proxy"));
-const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
-const SettingsPage = lazy(() => import("./pages/dashboard/Settings"));
-const CustomModule = lazy(() => import("./pages/dashboard/CustomModule"));
-const Groups = lazy(() => import("./pages/dashboard/GroupCapture"));
-const MyPlan = lazy(() => import("./pages/dashboard/MyPlan"));
-const CampaignDetail = lazy(() => import("./pages/dashboard/CampaignDetail"));
-const ReportWhatsApp = lazy(() => import("./pages/dashboard/ReportWhatsApp"));
-const ReportConnection = lazy(() => import("./pages/dashboard/ReportConnection"));
-const WarmupInstances = lazy(() => import("./pages/dashboard/WarmupInstances"));
-const WarmupInstanceDetail = lazy(() => import("./pages/dashboard/WarmupInstanceDetail"));
-const AutoSave = lazy(() => import("./pages/dashboard/AutoSave"));
-const WelcomeSplash = lazy(() => import("./pages/WelcomeSplash"));
+// Retry wrapper for dynamic imports (handles chunk load failures after deploys)
+function lazyRetry(importFn: () => Promise<any>, retries = 2): ReturnType<typeof lazy> {
+  return lazy(() =>
+    importFn().catch((err) => {
+      if (retries > 0) {
+        return new Promise<void>((res) => setTimeout(res, 500)).then(() =>
+          lazyRetry(importFn, retries - 1) as any
+        );
+      }
+      throw err;
+    })
+  );
+}
+
+// Lazy-loaded pages with retry
+const Landing = lazyRetry(() => import("./pages/Landing"));
+const Auth = lazyRetry(() => import("./pages/Auth"));
+const ResetPassword = lazyRetry(() => import("./pages/ResetPassword"));
+const NotFound = lazyRetry(() => import("./pages/NotFound"));
+const BackOffice = lazyRetry(() => import("./pages/BackOffice"));
+const DashboardLayout = lazyRetry(() => import("./components/DashboardLayout"));
+const DashboardHome = lazyRetry(() => import("./pages/dashboard/DashboardHome"));
+const Devices = lazyRetry(() => import("./pages/dashboard/Devices"));
+const Campaigns = lazyRetry(() => import("./pages/dashboard/Campaigns"));
+const CampaignList = lazyRetry(() => import("./pages/dashboard/CampaignList"));
+const Contacts = lazyRetry(() => import("./pages/dashboard/Contacts"));
+const Reports = lazyRetry(() => import("./pages/dashboard/Reports"));
+const Templates = lazyRetry(() => import("./pages/dashboard/Templates"));
+const Warmup = lazyRetry(() => import("./pages/dashboard/Warmup"));
+const Proxy = lazyRetry(() => import("./pages/dashboard/Proxy"));
+const Notifications = lazyRetry(() => import("./pages/dashboard/Notifications"));
+const SettingsPage = lazyRetry(() => import("./pages/dashboard/Settings"));
+const CustomModule = lazyRetry(() => import("./pages/dashboard/CustomModule"));
+const Groups = lazyRetry(() => import("./pages/dashboard/GroupCapture"));
+const MyPlan = lazyRetry(() => import("./pages/dashboard/MyPlan"));
+const CampaignDetail = lazyRetry(() => import("./pages/dashboard/CampaignDetail"));
+const ReportWhatsApp = lazyRetry(() => import("./pages/dashboard/ReportWhatsApp"));
+const ReportConnection = lazyRetry(() => import("./pages/dashboard/ReportConnection"));
+const WarmupInstances = lazyRetry(() => import("./pages/dashboard/WarmupInstances"));
+const WarmupInstanceDetail = lazyRetry(() => import("./pages/dashboard/WarmupInstanceDetail"));
+const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
+const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
