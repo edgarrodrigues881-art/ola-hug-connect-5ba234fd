@@ -1597,7 +1597,7 @@ const Devices = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground tabular-nums">{editName.length}/30</span>
+                <span className="text-[11px] text-foreground/50 tabular-nums">{editName.length}/30</span>
               </div>
             </div>
 
