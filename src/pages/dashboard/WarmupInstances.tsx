@@ -115,10 +115,20 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             </p>
           )}
           {cycle && (
-            <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center gap-1">
-              <Flame className="w-2.5 h-2.5 text-primary/60" />
-              Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
-            </p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
+                <Flame className="w-2.5 h-2.5 text-primary/60" />
+                Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
+              </p>
+              <span className={cn(
+                "inline-flex items-center px-1.5 py-[1px] rounded text-[8px] font-bold uppercase tracking-wider",
+                cycle.chip_state === "new" && "bg-emerald-500/15 text-emerald-400",
+                cycle.chip_state === "recovered" && "bg-amber-500/15 text-amber-400",
+                cycle.chip_state === "unstable" && "bg-red-500/15 text-red-400",
+              )}>
+                {cycle.chip_state === "new" ? "Chip Novo" : cycle.chip_state === "recovered" ? "Recuperado" : "Chip Fraco"}
+              </span>
+            </div>
           )}
           {!cycle && connected && (
             <p className="text-[10px] text-muted-foreground/40 mt-1">Pronto para aquecer</p>
