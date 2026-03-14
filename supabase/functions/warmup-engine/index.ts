@@ -395,9 +395,19 @@ Deno.serve(async (req) => {
         .eq("status", "pending")
         .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
 
-      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, phase || "groups_only", chip_state || "new", true);
+      // Ensure join_group jobs exist when entering groups_only phase
+      const resolvedPhase = phase || "groups_only";
+      let joinScheduled = 0;
+      if (resolvedPhase === "groups_only") {
+        joinScheduled = await ensureJoinGroupJobs(db, cycle_id, callerUserId, device_id);
+        if (joinScheduled > 0) {
+          console.log(`[schedule_day] Scheduled ${joinScheduled} join_group jobs for device ${device_id}`);
+        }
+      }
 
-      return new Response(JSON.stringify({ ok: true, jobs_scheduled: jobCount || 0 }), {
+      const jobCount = await scheduleDayJobs(db, cycle_id, callerUserId, device_id, day_index || 1, resolvedPhase, chip_state || "new", true);
+
+      return new Response(JSON.stringify({ ok: true, jobs_scheduled: (jobCount || 0) + joinScheduled }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -558,6 +568,69 @@ async function scheduleDayJobs(
   }).eq("id", cycleId);
 
   return jobs.length;
+}
+
+// ════════════════════════════════════════
+// Ensure join_group jobs exist for pending groups
+// ════════════════════════════════════════
+async function ensureJoinGroupJobs(
+  db: any,
+  cycleId: string,
+  userId: string,
+  deviceId: string,
+): Promise<number> {
+  // Check if there are already pending/running join_group jobs
+  const { data: existingJoinJobs } = await db
+    .from("warmup_jobs")
+    .select("id")
+    .eq("cycle_id", cycleId)
+    .eq("job_type", "join_group")
+    .in("status", ["pending", "running"])
+    .limit(1);
+
+  if (existingJoinJobs && existingJoinJobs.length > 0) {
+    return 0;
+  }
+
+  // Groups persist across cycles — lookup by device_id only
+  const { data: pendingGroups } = await db
+    .from("warmup_instance_groups")
+    .select("group_id, warmup_groups_pool(id, name)")
+    .eq("device_id", deviceId)
+    .eq("join_status", "pending");
+
+  if (!pendingGroups || pendingGroups.length === 0) {
+    return 0;
+  }
+
+  const shuffled = shuffleArray(pendingGroups);
+  const joinWindowMs = 4 * 60 * 60 * 1000;
+  const joinSpacing = joinWindowMs / (shuffled.length + 1);
+  const nowMs = Date.now();
+  const joinJobs: any[] = [];
+
+  for (let i = 0; i < shuffled.length; i++) {
+    const g = shuffled[i];
+    const groupName = (g as any).warmup_groups_pool?.name || "Grupo";
+    const offset = joinSpacing * (i + 1) + randInt(-10, 10) * 60 * 1000;
+    const runAt = new Date(nowMs + Math.max(offset, 5 * 60 * 1000));
+
+    joinJobs.push({
+      user_id: userId,
+      device_id: deviceId,
+      cycle_id: cycleId,
+      job_type: "join_group",
+      payload: { group_id: g.group_id, group_name: groupName },
+      run_at: runAt.toISOString(),
+      status: "pending",
+    });
+  }
+
+  if (joinJobs.length > 0) {
+    await db.from("warmup_jobs").insert(joinJobs);
+  }
+
+  return joinJobs.length;
 }
 
 // ════════════════════════════════════════
