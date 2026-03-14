@@ -352,10 +352,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`[${deviceId}] Total unique groups: ${allGroups.length}`);
+      console.log(`[${deviceId}] Total unique groups (raw): ${allGroups.length}`);
+
+      const authoritativeGroups = allGroups.filter((g) => groupHasDeviceAsParticipant(g));
+      if (authoritativeGroups.length !== allGroups.length) {
+        console.log(`[${deviceId}] Filtered by participant ownership: ${authoritativeGroups.length}/${allGroups.length}`);
+      }
 
       // Map to standardized format
-      let chats = allGroups.map((g: any) => ({
+      let chats = authoritativeGroups.map((g: any) => ({
         id: g.JID || g.jid || g.id || g.groupJid || "",
         name: g.Name || g.name || g.Subject || g.subject || g.groupName || "",
         participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
@@ -401,7 +406,8 @@ Deno.serve(async (req) => {
         chats = chats.map(c => ({ ...c, name: c.name || c.id || "Grupo sem nome" }));
       }
 
-      return new Response(JSON.stringify({ chats }), {
+      const syncOk = primaryFetchSucceeded || fallbackFetchSucceeded;
+      return new Response(JSON.stringify({ chats, sync_ok: syncOk }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
