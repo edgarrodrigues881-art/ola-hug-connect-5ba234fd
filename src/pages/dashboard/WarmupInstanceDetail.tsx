@@ -735,57 +735,58 @@ const WarmupInstanceDetail = () => {
     <div className="w-full space-y-6 pb-8">
 
       {/* ═══════════ HERO HEADER ═══════════ */}
-      <div className="relative rounded-2xl border border-border/30 bg-gradient-to-b from-card to-background overflow-hidden">
-        {/* subtle glow */}
+      <div className="relative rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl overflow-hidden shadow-[0_0_40px_-12px_hsl(var(--primary)/0.15)]">
+        {/* ambient glow */}
         <div className={cn(
-          "absolute -top-20 left-1/2 -translate-x-1/2 w-60 h-60 rounded-full blur-[100px] opacity-20 pointer-events-none",
+          "absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[120px] opacity-25 pointer-events-none",
           isConnected ? "bg-primary" : "bg-muted-foreground"
         )} />
+        <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full blur-[80px] opacity-10 pointer-events-none bg-primary" />
 
         <div className="relative z-10">
           {/* top bar */}
-          <div className="flex items-center justify-between px-5 pt-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => navigate("/dashboard/warmup-v2")}>
+          <div className="flex items-center justify-between px-6 pt-5">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate("/dashboard/warmup-v2")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <Badge
               variant="outline"
               className={cn(
-                "text-[10px] font-bold uppercase tracking-widest px-3 py-1 gap-1.5 rounded-full border",
+                "text-[10px] font-extrabold uppercase tracking-[0.15em] px-4 py-1.5 gap-2 rounded-full border backdrop-blur-sm",
                 isConnected
-                  ? "text-primary border-primary/25 bg-primary/8"
+                  ? "text-primary border-primary/30 bg-primary/10 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]"
                   : "text-muted-foreground border-border bg-muted/10"
               )}
             >
-              <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isConnected ? "bg-primary animate-pulse" : "bg-muted-foreground")} />
+              <span className={cn("w-2 h-2 rounded-full inline-block", isConnected ? "bg-primary animate-pulse shadow-[0_0_6px_hsl(var(--primary)/0.6)]" : "bg-muted-foreground")} />
               {isConnected ? "CONECTADO" : "DESCONECTADO"}
             </Badge>
           </div>
 
           {/* instance identity */}
-          <div className="px-5 pt-4 pb-5 flex items-center gap-4">
+          <div className="px-6 pt-5 pb-6 flex items-center gap-5">
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ring-2 ring-offset-2 ring-offset-background",
-              isConnected ? "bg-primary/10 ring-primary/30" : "bg-muted/20 ring-border/20"
+              "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ring-2 ring-offset-2 ring-offset-transparent",
+              isConnected ? "bg-primary/12 ring-primary/40 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]" : "bg-muted/20 ring-border/20"
             )}>
               {device.profile_picture ? (
-                <img src={device.profile_picture} className="w-14 h-14 rounded-2xl object-cover" alt="" />
+                <img src={device.profile_picture} className="w-16 h-16 rounded-2xl object-cover" alt="" />
               ) : (
-                <Flame className={cn("w-6 h-6", isConnected ? "text-primary" : "text-muted-foreground")} />
+                <Flame className={cn("w-7 h-7", isConnected ? "text-primary" : "text-muted-foreground")} />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-foreground truncate leading-tight">
+              <h1 className="text-xl font-extrabold text-foreground truncate leading-tight tracking-tight">
                 {device.profile_name || device.name}
               </h1>
               {device.number && (
-                <p className="text-[13px] font-mono text-muted-foreground/70 mt-0.5">{device.number}</p>
+                <p className="text-sm font-mono text-muted-foreground/60 mt-1">{device.number}</p>
               )}
               {cycle && pc && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={cn("text-[11px] font-semibold", pc.color)}>{pc.label}</span>
-                  <span className="text-muted-foreground/30">·</span>
-                  <span className="text-[11px] text-muted-foreground">Dia {cycle.day_index}/{cycle.days_total}</span>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className={cn("text-xs font-bold", pc.color)}>{pc.label}</span>
+                  <span className="text-muted-foreground/20">•</span>
+                  <span className="text-xs text-muted-foreground font-medium">Dia {cycle.day_index}/{cycle.days_total}</span>
                 </div>
               )}
             </div>
@@ -793,10 +794,10 @@ const WarmupInstanceDetail = () => {
 
           {/* action row */}
           {cycle && !isTerminalCycle && (
-            <div className="px-5 pb-5 space-y-2">
+            <div className="px-6 pb-6 space-y-2.5">
               {cycle.is_running ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
+                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm shadow-[0_0_15px_-4px_hsl(var(--primary)/0.2)]"
                   variant="ghost"
                   onClick={handlePause}
                 >
@@ -804,7 +805,7 @@ const WarmupInstanceDetail = () => {
                 </Button>
               ) : cycle.phase === "paused" ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
+                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm"
                   variant="ghost"
                   onClick={handleResume}
                 >
@@ -814,10 +815,10 @@ const WarmupInstanceDetail = () => {
 
               {/* Accelerate buttons */}
               {cycle.is_running && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/15 hover:text-amber-400 font-semibold"
+                    className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating || (cycle.phase !== "pre_24h" && scheduledJobs.filter(j => j.status === "pending").length === 0)}
                   >
@@ -826,7 +827,7 @@ const WarmupInstanceDetail = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    className="gap-1.5 h-9 rounded-xl text-xs border-purple-500/30 text-purple-500 hover:bg-purple-500/15 hover:text-purple-400 font-semibold"
+                    className="gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(270_60%_50%/0.15)]"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || cycle.phase === "completed"}
                   >
