@@ -843,11 +843,11 @@ const WarmupInstanceDetail = () => {
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
       {(!cycle || isTerminalCycle) && !cycleLoading && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* chip state selector */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Estado do chip</p>
-            <div className="grid grid-cols-3 gap-2.5">
+            <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Estado do chip</p>
+            <div className="grid grid-cols-3 gap-3">
               {([
                 { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢" },
                 { value: "recovered" as const, label: "Chip Recuperado", desc: "Extra cauteloso, já sofreu ban", emoji: "🔴" },
@@ -857,15 +857,15 @@ const WarmupInstanceDetail = () => {
                   key={opt.value}
                   onClick={() => setChipState(opt.value)}
                   className={cn(
-                    "text-left p-3.5 rounded-xl border-2 transition-all duration-150",
+                    "text-left p-4 rounded-2xl border-2 transition-all duration-200 backdrop-blur-xl",
                     chipState === opt.value
-                      ? "border-primary bg-primary/5 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.25)]"
-                      : "border-border/40 hover:border-primary/20 bg-card"
+                      ? "border-primary bg-primary/8 shadow-[0_0_30px_-6px_hsl(var(--primary)/0.3)]"
+                      : "border-border/30 hover:border-primary/25 bg-card/50 hover:bg-card/70"
                   )}
                 >
-                  <span className="text-base">{opt.emoji}</span>
-                  <p className="text-[13px] font-semibold text-foreground mt-1.5">{opt.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{opt.desc}</p>
+                  <span className="text-lg">{opt.emoji}</span>
+                  <p className="text-sm font-extrabold text-foreground mt-2">{opt.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-tight font-medium">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -873,9 +873,9 @@ const WarmupInstanceDetail = () => {
 
           {/* duration */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Duração do ciclo</p>
+            <p className="text-xs font-extrabold text-foreground uppercase tracking-[0.15em]">Duração do ciclo</p>
             <Select value={daysTotal} onValueChange={setDaysTotal}>
-              <SelectTrigger className="rounded-xl h-10">
+              <SelectTrigger className="rounded-xl h-11 bg-card/50 backdrop-blur-xl border-border/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -887,26 +887,26 @@ const WarmupInstanceDetail = () => {
           </div>
 
           {/* protections */}
-          <div className="rounded-xl border border-border/30 bg-card p-5 space-y-3">
-            <p className="text-xs font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
+          <div className="rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-xl p-6 space-y-3 shadow-[0_0_20px_-8px_hsl(var(--primary)/0.1)]">
+            <p className="text-xs font-extrabold text-foreground flex items-center gap-2.5">
+              <Shield className="w-4.5 h-4.5 text-primary" />
               Proteções automáticas
             </p>
-            <ul className="grid gap-1.5 list-disc list-inside">
+            <ul className="grid gap-2 list-disc list-inside">
               {[
                 "Limites diários automáticos",
                 "Delays aleatórios entre ações",
                 "Evolução progressiva de fases",
                 "Proteção contínua do chip",
               ].map((item, i) => (
-                <li key={i} className="text-[11px] text-muted-foreground leading-relaxed">{item}</li>
+                <li key={i} className="text-xs text-muted-foreground leading-relaxed font-medium">{item}</li>
               ))}
             </ul>
           </div>
 
           {/* CTA */}
           <Button
-            className="w-full gap-2 h-12 rounded-xl text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20"
+            className="w-full gap-2.5 h-13 rounded-xl text-sm font-black bg-amber-600 hover:bg-amber-700 text-white shadow-[0_8px_30px_-6px_hsl(38_92%_50%/0.4)] transition-all hover:shadow-[0_8px_40px_-4px_hsl(38_92%_50%/0.5)]"
             onClick={() => {
               if (Number(daysTotal) <= 7) {
                 setShowShortDaysWarning(true);
@@ -919,12 +919,12 @@ const WarmupInstanceDetail = () => {
             {engine.isPending ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Flame className="w-4 h-4" />
+              <Flame className="w-5 h-5" />
             )}
             {isTerminalCycle ? "Começar Novo Aquecimento" : "Começar Aquecimento"}
           </Button>
           {!isConnected && (
-            <p className="text-[11px] text-amber-400 text-center -mt-2">⚠ Conecte a instância primeiro para iniciar</p>
+            <p className="text-xs text-amber-400 text-center -mt-2 font-semibold">⚠ Conecte a instância primeiro para iniciar</p>
           )}
         </div>
       )}
