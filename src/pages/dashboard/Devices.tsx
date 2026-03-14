@@ -1622,8 +1622,8 @@ const Devices = () => {
 
                 {/* Foto do WhatsApp */}
                 <div className="space-y-2">
-                  <Label className="text-xs text-foreground/70 font-medium flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-primary/60" /> Foto do perfil
+                  <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-primary" /> Foto do perfil
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
                   <div className="flex justify-center py-1">
