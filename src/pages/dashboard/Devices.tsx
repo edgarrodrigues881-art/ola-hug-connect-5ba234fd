@@ -1614,7 +1614,7 @@ const Devices = () => {
                     value={wpName}
                     onChange={e => setWpName(e.target.value)}
                     placeholder={editingDevice?.profile_name || "Nome no WhatsApp"}
-                    className="h-11 text-sm rounded-xl bg-background border-border/40 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/50 transition-colors"
+                    className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground placeholder:text-muted-foreground/60 transition-colors"
                     maxLength={25}
                   />
                   <p className="text-[11px] text-muted-foreground tabular-nums">{wpName.length}/25 caracteres</p>
