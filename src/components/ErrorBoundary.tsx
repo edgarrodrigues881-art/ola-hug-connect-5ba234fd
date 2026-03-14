@@ -22,10 +22,11 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     const signature = `${error.name}: ${error.message}`;
 
-    console.error("[ErrorBoundary]", signature, {
+    console.error("[ErrorBoundary] CAUGHT:", signature, {
       stack: error.stack,
       componentStack: info.componentStack,
     });
+    console.error("[ErrorBoundary] Full error object:", error);
 
     // Known browser translation / extension DOM mutation errors (Radix/React portals)
     const isRecoverableDomMutationError = /notfounderror|removechild|insertbefore|node to be removed is not a child/i.test(signature);
@@ -66,6 +67,9 @@ class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <p className="text-lg font-semibold text-foreground">Algo deu errado</p>
+            <p className="text-xs text-muted-foreground/60 font-mono break-all max-h-20 overflow-auto bg-muted/30 rounded p-2">
+              {this.state.lastErrorMessage || "Erro desconhecido"}
+            </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Se você está usando tradução automática, desative-a para melhor experiência.
             </p>
