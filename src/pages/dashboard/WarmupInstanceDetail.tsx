@@ -855,15 +855,7 @@ const WarmupInstanceDetail = () => {
             if (!groupName) return false;
 
             const normalizedName = normalizeGroupName(groupName);
-            if (liveGroupNames.has(normalizedName)) return true;
-
-            for (const liveName of liveGroupNames) {
-              if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
-                if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
-              }
-            }
-
-            return false;
+            return liveGroupNames.has(normalizedName);
           })
           .map((g) => g.group_id)
   );
