@@ -1418,10 +1418,16 @@ const WarmupInstanceDetail = () => {
                     health_check: "Verificação", post_status: "Status",
                   };
 
-                  // Only show individual pending/running jobs, not succeeded (those are in audit logs)
+                  // Only show jobs for current day or past days (not future days)
                   for (const job of scheduledJobs) {
                     if (job.status === "cancelled") continue;
                     if (job.status === "succeeded") continue; // already in audit logs
+
+                    // Skip jobs scheduled for future warmup days
+                    if (cycleStartedAt) {
+                      const jobDay = Math.max(1, differenceInCalendarDays(new Date(job.run_at), cycleStartedAt) + 1);
+                      if (jobDay > (cycle?.day_index ?? 1)) continue;
+                    }
 
                     const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
                       ? (job.payload as any).group_name : null;
@@ -1476,17 +1482,19 @@ const WarmupInstanceDetail = () => {
                     if (!cycleStartedAt) return dayKey;
                     const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
                     const warmupDay = Math.max(1, diff);
-                    if (warmupDay > currentWarmupDay) {
-                      return `Dia ${warmupDay} — ${dayKey} (agendado)`;
+
+                    // Check if this day was manually skipped
+                    const wasSkipped = dayBuckets[dayKey].some(
+                      i => i.label === "Dia pulado" || i.label.includes("pulado") || i.label.includes("manual_day_advance")
+                    );
+
+                    if (wasSkipped && warmupDay < currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (pulado)`;
+                    }
+                    if (warmupDay < currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (concluído)`;
                     }
                     return `Dia ${warmupDay} — ${dayKey}`;
-                  };
-
-                  const isFutureDay = (dayKey: string) => {
-                    const firstItem = dayBuckets[dayKey][0];
-                    if (!cycleStartedAt) return false;
-                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
-                    return Math.max(1, diff) > currentWarmupDay;
                   };
 
                   return (
@@ -1498,10 +1506,8 @@ const WarmupInstanceDetail = () => {
                         const pendingCount = dayItems.filter(i => i.type === "pending").length;
                         const failedCount = dayItems.filter(i => i.type === "failed").length;
 
-                        const future = isFutureDay(dayKey);
-
                         return (
-                          <div key={dayKey} className={cn("border-b border-border/10 last:border-0", future && "opacity-50")}>
+                          <div key={dayKey} className="border-b border-border/10 last:border-0">
                             <button
                               onClick={() => {
                                 const idx = dayKeys.indexOf(dayKey);
@@ -1517,7 +1523,7 @@ const WarmupInstanceDetail = () => {
                                 "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
-                              <span className={cn("text-xs font-bold", future ? "text-muted-foreground" : "text-foreground")}>{getDayLabel(dayKey)}</span>
+                              <span className="text-xs font-bold text-foreground">{getDayLabel(dayKey)}</span>
                               <div className="flex items-center gap-1.5 ml-auto">
                                 {doneCount > 0 && (
                                   <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
