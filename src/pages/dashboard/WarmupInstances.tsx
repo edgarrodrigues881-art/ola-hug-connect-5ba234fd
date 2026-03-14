@@ -74,7 +74,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
       )} />
 
-      <div className="px-4 pt-3.5">
+      <div className="px-4 pt-4">
         <div className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
           connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
@@ -87,7 +87,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         </div>
       </div>
 
-      <div className="px-4 pt-5 pb-3 flex items-center gap-4">
+      <div className="px-4 pt-4 pb-3 flex items-center gap-4">
         <div className={cn(
           "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
           "ring-[2.5px] ring-offset-2 ring-offset-card",
