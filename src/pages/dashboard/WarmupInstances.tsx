@@ -43,7 +43,151 @@ const phaseShort: Record<string, string> = {
   community_light: "comunidade",
 };
 
-const WarmupInstances = () => {
+const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
+
+const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone }: {
+  device: any;
+  cycle: any;
+  onPause: (id: string, e: React.MouseEvent) => void;
+  onResume: (id: string, e: React.MouseEvent) => void;
+  onCancel: (id: string) => void;
+  onConnect: (device: any) => void;
+  onNavigate: (path: string) => void;
+  formatPhone: (num: string) => string;
+}) => {
+  const connected = CONNECTED_STATUSES.includes(device.status);
+  const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
+        "bg-card shadow-sm hover:shadow-lg",
+        connected
+          ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+          : "border-border/30 hover:border-border/50"
+      )}
+      onClick={() => onNavigate(`/dashboard/warmup-v2/${device.id}`)}
+    >
+      <div className={cn(
+        "h-[2px] w-full",
+        isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
+      )} />
+
+      <div className="px-4 pt-3.5">
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+          connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
+        )}>
+          <span className={cn(
+            "w-[5px] h-[5px] rounded-full shrink-0",
+            connected ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" : "bg-muted-foreground/40"
+          )} />
+          {connected ? "CONECTADO" : "DESCONECTADO"}
+        </div>
+      </div>
+
+      <div className="px-4 pt-3.5 pb-3 flex items-center gap-4">
+        <div className={cn(
+          "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
+          "ring-[2.5px] ring-offset-2 ring-offset-card",
+          connected ? "ring-primary/40" : "ring-border/30"
+        )}>
+          {device.profile_picture ? (
+            <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" />
+          ) : (
+            <div className={cn(
+              "w-[52px] h-[52px] rounded-full flex items-center justify-center",
+              connected ? "bg-primary/8" : "bg-muted/30"
+            )}>
+              <Phone className={cn("w-5 h-5", connected ? "text-primary" : "text-muted-foreground/40")} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-foreground truncate leading-tight">
+            {device.name}
+          </p>
+          {device.number && (
+            <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
+              {formatPhone(device.number)}
+            </p>
+          )}
+          {cycle && (
+            <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center gap-1">
+              <Flame className="w-2.5 h-2.5 text-primary/60" />
+              Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
+            </p>
+          )}
+          {!cycle && connected && (
+            <p className="text-[10px] text-muted-foreground/40 mt-1">Pronto para aquecer</p>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 pb-4 space-y-2">
+        {!connected ? (
+          <Button
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+            onClick={(e) => { e.stopPropagation(); onConnect(device); }}
+          >
+            <Wifi className="w-3.5 h-3.5" /> Conectar
+          </Button>
+        ) : cycle && isWarming ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            onClick={(e) => onPause(device.id, e)}
+          >
+            <Pause className="w-3.5 h-3.5" /> Parar aquecimento
+          </Button>
+        ) : cycle?.phase === "paused" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            onClick={(e) => onResume(device.id, e)}
+          >
+            <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+          </Button>
+        ) : connected && !cycle ? (
+          <Button
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
+            onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
+          >
+            <Flame className="w-3.5 h-3.5" /> Aquecer
+          </Button>
+        ) : null}
+        {cycle && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+            onClick={(e) => { e.stopPropagation(); onCancel(device.id); }}
+          >
+            <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+          onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
+        >
+          <Pencil className="w-3.5 h-3.5" /> Editar
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+DeviceCard.displayName = "DeviceCard";
+
+
   // Format phone number for display
   const formatPhone = (num: string) => {
     const digits = num.replace(/\D/g, "");
