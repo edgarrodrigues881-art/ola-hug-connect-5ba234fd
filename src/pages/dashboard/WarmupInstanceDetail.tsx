@@ -619,7 +619,7 @@ const WarmupInstanceDetail = () => {
     if (!liveGroupsSyncOk) return;
 
     const toPromote = instanceGroups
-      .filter((g) => g.join_status !== "joined")
+      .filter((g) => g.join_status !== "joined" && g.join_status !== "left")
       .map((g) => {
         const poolName = g.warmup_groups_pool?.name;
 
