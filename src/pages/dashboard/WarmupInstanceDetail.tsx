@@ -774,16 +774,17 @@ const WarmupInstanceDetail = () => {
     if (pendingJoinJobs.length === 0) return;
 
     const expectedGroups = poolGroups.length > 0 ? poolGroups.length : 8;
-    const allExpectedGroupsJoined = joinedGroupIds.size >= expectedGroups;
+    const liveGroupCount = liveDeviceGroups.length;
+    const allExpectedGroupsOnDevice = liveGroupCount >= expectedGroups;
 
-    // Jobs to mark as succeeded (group already recognized)
+    // Jobs to mark as succeeded (group confirmed on device via live API)
     const toSucceed = pendingJoinJobs
       .filter((job) => {
-        if (allExpectedGroupsJoined) return true;
+        if (allExpectedGroupsOnDevice) return true;
         const payload = (job.payload && typeof job.payload === "object")
           ? (job.payload as { group_id?: string })
           : {};
-        return !!payload.group_id && isGroupRecognized(payload.group_id);
+        return !!payload.group_id && isGroupOnDevice(payload.group_id);
       })
       .map((job) => job.id);
 
