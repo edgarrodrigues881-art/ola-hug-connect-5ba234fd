@@ -175,11 +175,12 @@ Deno.serve(async (req) => {
 
       // ── Schedule join_group jobs: start 4-6h after cycle start, 5-30min between each ──
       const joinStartDelayMs = randInt(4, 6) * 60 * 60 * 1000; // 4-6 hours
-      const groupsToJoin = allGroups; // all 8 groups
+      const groupsToJoin = allGroups; // all groups from pool
+      
+      // Pre-calculate cumulative delays to guarantee correct order
+      let cumulativeDelay = joinStartDelayMs;
       for (let i = 0; i < groupsToJoin.length; i++) {
-        // Cumulative delay: first group at 4-6h, each subsequent group 5-30min later
-        let cumulativeDelay = joinStartDelayMs;
-        for (let j = 0; j < i; j++) {
+        if (i > 0) {
           cumulativeDelay += randInt(5, 30) * 60 * 1000; // 5-30 min between groups
         }
         const runAt = new Date(now.getTime() + cumulativeDelay);
