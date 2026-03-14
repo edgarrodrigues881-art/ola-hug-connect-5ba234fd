@@ -69,14 +69,13 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
       )}
       onClick={() => onNavigate(`/dashboard/warmup-v2/${device.id}`)}
     >
-      <div className={cn(
-        "h-[2px] w-full",
-        isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
-      )} />
-
-      <div className="px-4 pt-4">
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-0">
         <div className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+          "h-[2px] flex-1 rounded-full mr-3",
+          isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
+        )} />
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shrink-0",
           connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
         )}>
           <span className={cn(
@@ -87,7 +86,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-3 flex items-center gap-4">
+      <div className="px-4 pt-3 pb-3 flex items-center gap-4">
         <div className={cn(
           "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0",
           "ring-[2.5px] ring-offset-2 ring-offset-card",
