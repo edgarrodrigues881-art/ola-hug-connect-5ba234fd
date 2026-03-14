@@ -507,6 +507,8 @@ const WarmupInstanceDetail = () => {
       .split("?")[0]
       .replace(/\/$/, "");
 
+  const hasPendingGroupJobs = instanceGroups.some((g) => g.join_status !== "joined");
+
   const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["warmup_live_groups", deviceId],
     queryFn: async () => {
@@ -539,8 +541,8 @@ const WarmupInstanceDetail = () => {
       }
     },
     enabled: !!user && !!deviceId && !!isConnected,
-    refetchInterval: 120000,
-    staleTime: 30000,
+    refetchInterval: hasPendingGroupJobs ? 20000 : 120000,
+    staleTime: hasPendingGroupJobs ? 10000 : 30000,
   });
 
   const { data: joinEvidence = [] } = useQuery<{ group_name: string | null; group_link: string | null }[]>({
