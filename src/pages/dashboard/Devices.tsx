@@ -742,51 +742,67 @@ const Devices = () => {
 
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
+
     const newProxyId = editProxyValue === "none" ? null : editProxyValue;
     const dbUpdates: Record<string, any> = {
       name: editName,
       proxy_id: newProxyId,
     };
-    // Also persist profile_picture URL in the database
+
     if (wpRemovePhoto) {
       dbUpdates.profile_picture = null;
     } else if (wpPhotoBase64) {
       dbUpdates.profile_picture = wpPhotoBase64;
     }
+
     if (wpName.trim()) {
       dbUpdates.profile_name = wpName.trim();
     }
-    updateMutation.mutate({
-      id: editingDevice.id,
-      updates: dbUpdates,
-    });
-    // Save WP profile changes via API
+
     try {
-      const promises: Promise<any>[] = [];
+      const profilePromises: Promise<any>[] = [];
       if (wpName.trim()) {
-        promises.push(callApi({ action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() }));
+        profilePromises.push(
+          callApi({ action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() })
+        );
       }
       if (wpRemovePhoto) {
-        promises.push(callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" }));
+        profilePromises.push(
+          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" })
+        );
       } else if (wpPhotoBase64) {
-        promises.push(callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 }));
+        profilePromises.push(
+          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 })
+        );
       }
-      if (promises.length > 0) {
-        const results = await Promise.all(promises);
-        console.log("Profile update results:", results);
-        const anyFailed = results.some(r => r?.success === false);
-        if (anyFailed) {
-          toast({ title: "Aviso", description: "Alguns endpoints de perfil não responderam. Verifique se o chip está conectado.", variant: "destructive" });
+
+      if (profilePromises.length > 0) {
+        const profileResults = await Promise.all(profilePromises);
+        const failedResult = profileResults.find((r) => r?.error || r?.success === false);
+        if (failedResult) {
+          throw new Error(failedResult?.error || "Falha ao atualizar perfil no WhatsApp");
         }
       }
+
+      await updateMutation.mutateAsync({
+        id: editingDevice.id,
+        updates: dbUpdates,
+      });
+
+      toast({ title: "Instância atualizada" });
+      setEditOpen(false);
+      setEditingDevice(null);
+      setWpPhotoBase64("");
+      setWpRemovePhoto(false);
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
-      console.error("Profile update error:", err);
-      toast({ title: "Erro ao atualizar perfil WhatsApp", description: err?.message, variant: "destructive" });
+      console.error("Edit update error:", err);
+      toast({
+        title: "Erro ao atualizar",
+        description: err?.message || "Não foi possível atualizar no WhatsApp e no painel.",
+        variant: "destructive",
+      });
     }
-    toast({ title: "Instância atualizada" });
-    setEditOpen(false);
-    setEditingDevice(null);
-    queryClient.invalidateQueries({ queryKey: ["devices"] });
   };
 
   // Edit proxy
