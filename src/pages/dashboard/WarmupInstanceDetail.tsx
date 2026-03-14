@@ -501,6 +501,51 @@ const WarmupInstanceDetail = () => {
     staleTime: 15000,
   });
 
+  const { data: poolGroups = [] } = useQuery<{ id: string; name: string; external_group_ref: string | null }[]>({
+    queryKey: ["warmup_pool_groups_for_counter"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_groups_pool")
+        .select("id, name, external_group_ref")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Backfill: se a instância não tem vínculo local com grupos, cria vínculos do pool para destravar contagem
+  useEffect(() => {
+    if (!user?.id || !deviceId || !cycle?.id || poolGroups.length === 0) return;
+
+    const existingGroupIds = new Set(instanceGroups.map((g) => g.group_id));
+    const missingPoolGroups = poolGroups.filter((g) => !existingGroupIds.has(g.id));
+    if (missingPoolGroups.length === 0) return;
+
+    const seedMissingGroups = async () => {
+      const { error } = await supabase
+        .from("warmup_instance_groups")
+        .upsert(
+          missingPoolGroups.map((g) => ({
+            user_id: user.id,
+            device_id: deviceId,
+            cycle_id: cycle.id,
+            group_id: g.id,
+            join_status: "pending" as const,
+          })),
+          { onConflict: "device_id,group_id", ignoreDuplicates: true }
+        );
+
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ["warmup_instance_groups", deviceId] });
+      }
+    };
+
+    void seedMissingGroups();
+  }, [user?.id, deviceId, cycle?.id, poolGroups, instanceGroups, queryClient]);
+
   // Auto-reconhece grupos já ingressados e sincroniza status local
   useEffect(() => {
     if (!deviceId || instanceGroups.length === 0) return;
@@ -608,14 +653,46 @@ const WarmupInstanceDetail = () => {
   }
 
   // Count real joined groups: DB joined + grupos detectados ao vivo + evidência de join logs
-  const trackedGroupIds = new Set(instanceGroups.map(g => g.group_id));
+  const byGroupId = new Map<string, {
+    group_id: string;
+    join_status: string;
+    group_jid?: string | null;
+    warmup_groups_pool?: { name: string; external_group_ref?: string | null } | null;
+  }>();
+
+  for (const g of instanceGroups) {
+    byGroupId.set(g.group_id, {
+      group_id: g.group_id,
+      join_status: g.join_status,
+      group_jid: g.group_jid,
+      warmup_groups_pool: g.warmup_groups_pool,
+    });
+  }
+
+  for (const g of poolGroups) {
+    if (!byGroupId.has(g.id)) {
+      byGroupId.set(g.id, {
+        group_id: g.id,
+        join_status: "pending",
+        group_jid: null,
+        warmup_groups_pool: {
+          name: g.name,
+          external_group_ref: g.external_group_ref,
+        },
+      });
+    }
+  }
+
+  const counterGroups = Array.from(byGroupId.values());
+
+  const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
   const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
   const evidenceGroupNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
   const evidenceGroupLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
   const recognizedGroupIds = new Set(
-    instanceGroups
+    counterGroups
       .filter((g) => {
         if (g.join_status === "joined") return true;
         if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
@@ -635,7 +712,7 @@ const WarmupInstanceDetail = () => {
   );
 
   const totalTrackedGroups = trackedGroupIds.size > 0 ? trackedGroupIds.size : 8;
-  const joinedGroups = recognizedGroupIds.size;
+  const joinedGroups = Math.min(recognizedGroupIds.size, totalTrackedGroups);
   const pendingGroups = Math.max(0, totalTrackedGroups - joinedGroups);
   const activeContacts = autosaveContacts.filter(c => c.is_active).length;
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
