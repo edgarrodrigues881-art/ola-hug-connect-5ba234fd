@@ -50,6 +50,8 @@ export interface WarmupInstanceGroup {
   joined_at: string | null;
   last_error: string | null;
   created_at: string;
+  group_jid?: string | null;
+  warmup_groups_pool?: { name: string } | null;
 }
 
 export interface WarmupPlan {
