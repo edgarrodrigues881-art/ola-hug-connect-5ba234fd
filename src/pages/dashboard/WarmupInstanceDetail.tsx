@@ -851,82 +851,39 @@ const WarmupInstanceDetail = () => {
 
   const counterGroups = Array.from(byGroupId.values());
 
-  const joinedDbGroupIds = new Set(
-    instanceGroups
-      .filter((g) => g.join_status === "joined")
-      .map((g) => g.group_id)
-  );
-
   const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
   const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
-  const evidenceGroupNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
-  const evidenceGroupLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
-  // When we have live data, only count groups that are actually present on the device
-  const hasLiveData = liveDeviceGroups.length > 0;
-
+  // Strict mode: only count groups confirmed by live sync
   const recognizedGroupIds = new Set(
-    counterGroups
-      .filter((g) => {
-        // If status is 'left', never count as recognized
-        if (g.join_status === "left") return false;
+    !liveGroupsSyncOk
+      ? []
+      : counterGroups
+          .filter((g) => {
+            if (g.join_status === "left") return false;
+            if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
 
-        // If we have live data, require the group to be visible on the device
-        if (hasLiveData) {
-          if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
-          const groupName = g.warmup_groups_pool?.name;
-          if (groupName) {
+            const groupName = g.warmup_groups_pool?.name;
+            if (!groupName) return false;
+
             const normalizedName = normalizeGroupName(groupName);
             if (liveGroupNames.has(normalizedName)) return true;
+
             for (const liveName of liveGroupNames) {
               if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
                 if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
               }
             }
-          }
-          return false;
-        }
 
-        // No live data — fall back to DB status + evidence
-        if (g.join_status === "joined") return true;
-        if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
-
-        const groupName = g.warmup_groups_pool?.name;
-        if (groupName) {
-          const normalizedName = normalizeGroupName(groupName);
-          if (liveGroupNames.has(normalizedName) || evidenceGroupNames.has(normalizedName)) return true;
-          for (const liveName of liveGroupNames) {
-            if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
-              if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
-            }
-          }
-        }
-
-        const groupLink = g.warmup_groups_pool?.external_group_ref;
-        if (groupLink && evidenceGroupLinks.has(normalizeInviteLink(groupLink))) return true;
-
-        return false;
-      })
-      .map((g) => g.group_id)
+            return false;
+          })
+          .map((g) => g.group_id)
   );
 
   const totalTrackedGroups = trackedGroupIds.size > 0 ? trackedGroupIds.size : 8;
-
-  const pendingJoinJobsGroupIds = new Set(
-    (scheduledJobs || [])
-      .filter((job) => job.job_type === "join_group" && job.status === "pending")
-      .map((job) => {
-        const payload = (job.payload && typeof job.payload === "object")
-          ? (job.payload as { group_id?: string })
-          : {};
-        return payload.group_id || "";
-      })
-      .filter((gid) => gid && !joinedDbGroupIds.has(gid) && !recognizedGroupIds.has(gid))
-  );
-
-  const pendingGroups = pendingJoinJobsGroupIds.size;
-  const joinedGroups = Math.max(0, totalTrackedGroups - pendingGroups);
+  const joinedGroups = Math.min(recognizedGroupIds.size, totalTrackedGroups);
+  const pendingGroups = Math.max(0, totalTrackedGroups - joinedGroups);
 
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
