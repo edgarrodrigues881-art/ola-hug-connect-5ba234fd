@@ -697,6 +697,44 @@ const WarmupInstanceDetail = () => {
     void syncRecognizedGroups();
   }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
 
+  // Se um grupo já está marcado como ingressado, limpa jobs pendentes de join_group para evitar contador falso de "faltando"
+  useEffect(() => {
+    if (!cycle?.id || scheduledJobs.length === 0 || instanceGroups.length === 0) return;
+
+    const joinedGroupIds = new Set(
+      instanceGroups
+        .filter((g) => g.join_status === "joined")
+        .map((g) => g.group_id)
+    );
+    if (joinedGroupIds.size === 0) return;
+
+    const stalePendingJoinJobIds = scheduledJobs
+      .filter((job) => {
+        if (job.job_type !== "join_group" || job.status !== "pending") return false;
+        const payload = (job.payload && typeof job.payload === "object")
+          ? (job.payload as { group_id?: string })
+          : {};
+        return !!payload.group_id && joinedGroupIds.has(payload.group_id);
+      })
+      .map((job) => job.id);
+
+    if (stalePendingJoinJobIds.length === 0) return;
+
+    const reconcileJoinJobs = async () => {
+      const { error } = await supabase
+        .from("warmup_jobs")
+        .update({ status: "succeeded", last_error: null })
+        .in("id", stalePendingJoinJobIds)
+        .eq("status", "pending");
+
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      }
+    };
+
+    void reconcileJoinJobs();
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient]);
+
   /* handlers */
   const handleStartWarmup = () => {
     if (!deviceId) return;
@@ -768,6 +806,12 @@ const WarmupInstanceDetail = () => {
   }
 
   const counterGroups = Array.from(byGroupId.values());
+
+  const joinedDbGroupIds = new Set(
+    instanceGroups
+      .filter((g) => g.join_status === "joined")
+      .map((g) => g.group_id)
+  );
 
   const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
@@ -1513,13 +1557,28 @@ const WarmupInstanceDetail = () => {
                       return 0; // cancelled
                     };
 
-                    const byGroup = new Map<string, typeof allJoinJobs[number]>();
-
-                    for (const job of allJoinJobs) {
+                    const normalizeJoinJob = (job: typeof allJoinJobs[number]) => {
                       const payload = (job.payload && typeof job.payload === "object")
                         ? (job.payload as { group_id?: string; group_name?: string })
                         : {};
-                      const key = payload.group_id || payload.group_name || job.id;
+
+                      const effectiveStatus =
+                        job.status === "pending" && payload.group_id && joinedDbGroupIds.has(payload.group_id)
+                          ? "succeeded"
+                          : job.status;
+
+                      return {
+                        ...job,
+                        status: effectiveStatus,
+                        payload,
+                      };
+                    };
+
+                    const byGroup = new Map<string, ReturnType<typeof normalizeJoinJob>>();
+
+                    for (const rawJob of allJoinJobs) {
+                      const job = normalizeJoinJob(rawJob);
+                      const key = job.payload.group_id || job.payload.group_name || job.id;
                       const prev = byGroup.get(key);
 
                       if (!prev) {
