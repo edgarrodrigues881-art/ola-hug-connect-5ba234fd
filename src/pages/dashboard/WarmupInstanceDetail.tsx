@@ -1903,7 +1903,12 @@ const WarmupInstanceDetail = () => {
                 <p>O <strong className="text-foreground">primeiro job será executado imediatamente</strong>. Os demais manterão o espaçamento original entre si, apenas antecipados a partir de agora.</p>
                 <p>Isso preserva o padrão natural de delays e protege seu chip.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) serão aceleradas.
+                  <strong className="text-foreground">{(() => {
+                    const targetTypes = cycle?.phase === "pre_24h"
+                      ? ["join_group"]
+                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check", "post_status"];
+                    return scheduledJobs.filter(j => j.status === "pending" && targetTypes.includes(j.job_type)).length;
+                  })()}</strong> tarefa(s) pendente(s) serão aceleradas.
                 </p>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
