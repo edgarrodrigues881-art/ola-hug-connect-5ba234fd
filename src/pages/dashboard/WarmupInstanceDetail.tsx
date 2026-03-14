@@ -507,10 +507,12 @@ const WarmupInstanceDetail = () => {
       .split("?")[0]
       .replace(/\/$/, "");
 
-  const hasPendingGroupJobs = instanceGroups.some((g) => g.join_status !== "joined");
+  const hasPendingGroupJobs =
+    instanceGroups.some((g) => g.join_status !== "joined") ||
+    (scheduledJobs || []).some((job) => job.job_type === "join_group" && job.status === "pending");
 
   const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ["warmup_live_groups", deviceId],
+    queryKey: ["warmup_live_groups", deviceId, hasPendingGroupJobs],
     queryFn: async () => {
       if (!deviceId) return [];
       try {
@@ -518,8 +520,9 @@ const WarmupInstanceDetail = () => {
         const token = session?.session?.access_token;
         if (!token) return [];
 
+        const refreshParam = hasPendingGroupJobs ? "&refresh=true" : "";
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
         );
         if (!res.ok) return [];
