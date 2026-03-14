@@ -1409,11 +1409,11 @@ async function ensureJoinGroupJobs(
     return 0;
   }
 
+  // Groups persist across cycles — lookup by device_id only (not cycle_id)
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
     .select("group_id, warmup_groups_pool(id, name)")
     .eq("device_id", deviceId)
-    .eq("cycle_id", cycleId)
     .eq("join_status", "pending");
 
   if (!pendingGroups || pendingGroups.length === 0) {
