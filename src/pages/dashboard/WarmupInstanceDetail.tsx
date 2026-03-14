@@ -1557,13 +1557,28 @@ const WarmupInstanceDetail = () => {
                       return 0; // cancelled
                     };
 
-                    const byGroup = new Map<string, typeof allJoinJobs[number]>();
-
-                    for (const job of allJoinJobs) {
+                    const normalizeJoinJob = (job: typeof allJoinJobs[number]) => {
                       const payload = (job.payload && typeof job.payload === "object")
                         ? (job.payload as { group_id?: string; group_name?: string })
                         : {};
-                      const key = payload.group_id || payload.group_name || job.id;
+
+                      const effectiveStatus =
+                        job.status === "pending" && payload.group_id && joinedDbGroupIds.has(payload.group_id)
+                          ? "succeeded"
+                          : job.status;
+
+                      return {
+                        ...job,
+                        status: effectiveStatus,
+                        payload,
+                      };
+                    };
+
+                    const byGroup = new Map<string, ReturnType<typeof normalizeJoinJob>>();
+
+                    for (const rawJob of allJoinJobs) {
+                      const job = normalizeJoinJob(rawJob);
+                      const key = job.payload.group_id || job.payload.group_name || job.id;
                       const prev = byGroup.get(key);
 
                       if (!prev) {
