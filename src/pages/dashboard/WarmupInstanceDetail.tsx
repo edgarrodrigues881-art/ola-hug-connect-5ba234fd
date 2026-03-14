@@ -1364,12 +1364,14 @@ const WarmupInstanceDetail = () => {
 
                 {(() => {
                   // Build unified timeline from audit logs (past) + scheduled jobs (future)
+                  type GroupScheduleItem = { index: number; name: string; time: string; status: "pending" | "done" | "failed" };
                   type TimelineItem = {
                     id: string;
                     time: Date;
                     type: "done" | "running" | "pending" | "failed";
                     label: string;
                     detail?: string;
+                    detailGroups?: GroupScheduleItem[];
                     icon: string;
                     color: string;
                   };
