@@ -1020,7 +1020,7 @@ const WarmupInstanceDetail = () => {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {cycle.phase === "pre_24h" && (
                   <>
-                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. O chip ficará ocioso enquanto entra gradualmente nos 8 grupos oficiais do sistema para parecer um uso natural.
+                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
                   </>
                 )}
                 {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
