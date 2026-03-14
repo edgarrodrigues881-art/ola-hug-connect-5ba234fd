@@ -109,6 +109,24 @@ Deno.serve(async (req) => {
       const resolvedChipState = chip_state || "new";
       const now = new Date();
 
+      // Clean up any leftover completed cycles for this device
+      const { data: oldCycles } = await db
+        .from("warmup_cycles")
+        .select("id")
+        .eq("device_id", device_id)
+        .eq("user_id", callerUserId)
+        .eq("phase", "completed");
+      if (oldCycles && oldCycles.length > 0) {
+        for (const old of oldCycles) {
+          await db.from("warmup_jobs").delete().eq("cycle_id", old.id);
+          await db.from("warmup_audit_logs").delete().eq("cycle_id", old.id);
+          await db.from("warmup_instance_groups").delete().eq("device_id", device_id).eq("cycle_id", old.id);
+          await db.from("warmup_community_membership").delete().eq("device_id", device_id).eq("cycle_id", old.id);
+          await db.from("warmup_unique_recipients").delete().eq("cycle_id", old.id);
+          await db.from("warmup_cycles").delete().eq("id", old.id);
+        }
+      }
+
       // Day 1 is OFF — no actions at all, just wait 24h
       const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
