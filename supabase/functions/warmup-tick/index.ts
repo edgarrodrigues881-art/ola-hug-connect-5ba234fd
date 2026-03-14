@@ -455,12 +455,14 @@ function pickMediaType(): MediaType {
 // TICK HANDLER — process pending jobs
 // ════════════════════════════════════════
 
-// Check if current time is within the warmup operating window (07:00-19:00 BRT)
+// Check if current time is within the warmup operating window
+// TEMP: disabled for testing — always returns true
 function isWithinOperatingWindow(): boolean {
-  const nowUtc = new Date();
-  // BRT = UTC-3
-  const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
-  return brtHour >= 7 && brtHour < 19;
+  return true;
+  // const nowUtc = new Date();
+  // // BRT = UTC-3
+  // const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
+  // return brtHour >= 7 && brtHour < 19;
 }
 
 // Interaction job types that should respect the time window
