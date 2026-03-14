@@ -413,12 +413,6 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     continue;
   }
   throw new Error(`API image send failed: ${lastErr}`);
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`API ${res.status}: ${errText}`);
-  }
-  return await res.json();
-}
 
 // ── Media pools for warmup variety ──
 // Dynamically loads images from storage bucket at tick time
