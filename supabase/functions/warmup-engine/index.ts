@@ -519,10 +519,19 @@ async function scheduleDayJobs(
   const windowEndUTC = new Date(today);
   windowEndUTC.setUTCHours(22, 0, 0, 0);
 
-  const effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
-  const effectiveEnd = windowEndUTC.getTime();
+  let effectiveStart: number;
+  let effectiveEnd: number;
 
-  if (effectiveStart >= effectiveEnd) return 0;
+  if (isResume && now.getTime() >= windowEndUTC.getTime()) {
+    // Forced/manual execution outside window: create 2h emergency window
+    console.log(`[scheduleDayJobs-engine] Outside window but forced — using 2h emergency window`);
+    effectiveStart = now.getTime();
+    effectiveEnd = now.getTime() + 2 * 60 * 60 * 1000;
+  } else {
+    effectiveStart = isResume ? Math.max(now.getTime(), windowStartUTC.getTime()) : windowStartUTC.getTime();
+    effectiveEnd = windowEndUTC.getTime();
+    if (effectiveStart >= effectiveEnd) return 0;
+  }
 
   const windowMs = effectiveEnd - effectiveStart;
   const volumes = getVolumes(chipState, dayIndex, phase);
