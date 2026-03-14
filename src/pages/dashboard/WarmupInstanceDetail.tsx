@@ -1364,12 +1364,14 @@ const WarmupInstanceDetail = () => {
 
                 {(() => {
                   // Build unified timeline from audit logs (past) + scheduled jobs (future)
+                  type GroupScheduleItem = { index: number; name: string; time: string; status: "pending" | "done" | "failed" };
                   type TimelineItem = {
                     id: string;
                     time: Date;
                     type: "done" | "running" | "pending" | "failed";
                     label: string;
                     detail?: string;
+                    detailGroups?: GroupScheduleItem[];
                     icon: string;
                     color: string;
                   };
@@ -1393,42 +1395,28 @@ const WarmupInstanceDetail = () => {
                     return `após ${minutes}min`;
                   };
 
-                  const joinScheduleForDay1 = (scheduledJobs || [])
+                  const joinGroupJobs = (scheduledJobs || [])
                     .filter((job) => job.job_type === "join_group")
-                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())
-                    .map((job, index) => {
-                      const runAt = new Date(job.run_at);
-                      const payload = (job.payload || {}) as { group_name?: string };
-                      const groupName = payload.group_name || `Grupo ${index + 1}`;
-                      return `Grupo ${index + 1} (${groupName}) vai entrar às ${formatBrtHour(runAt)}`;
-                    });
+                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
 
-                  const getCycleStartedDetail = (rawMessage: string) => {
-                    const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
-                    if (joinScheduleForDay1.length > 0) {
-                      return `${intro}\n${joinScheduleForDay1.join("\n")}`;
+                  const buildGroupScheduleItems = (): GroupScheduleItem[] => {
+                    if (joinGroupJobs.length > 0) {
+                      return joinGroupJobs.map((job, index) => {
+                        const payload = (job.payload || {}) as { group_name?: string };
+                        return {
+                          index: index + 1,
+                          name: payload.group_name || `Grupo ${index + 1}`,
+                          time: formatBrtHour(new Date(job.run_at)),
+                          status: job.status === "succeeded" ? "done" as const
+                            : job.status === "failed" ? "failed" as const
+                            : "pending" as const,
+                        };
+                      });
                     }
-
-                    const agendaFromLog = rawMessage.split("Agenda:")[1]?.trim();
-                    if (agendaFromLog) {
-                      const parsedLines = agendaFromLog
-                        .split("|")
-                        .map((line) => line.trim())
-                        .filter(Boolean)
-                        .map((line) => {
-                          const match = line.match(/^Grupo\s*(\d+):\s*(.+?)\s+às\s+(\d{2}:\d{2})$/i);
-                          if (!match) return line;
-                          const [, number, name, time] = match;
-                          return `Grupo ${number} (${name}) vai entrar às ${time} (após a janela de 4-6h)`;
-                        });
-
-                      if (parsedLines.length > 0) {
-                        return `${intro}\n${parsedLines.join("\n")}`;
-                      }
-                    }
-
-                    return intro;
+                    return [];
                   };
+
+                  const groupScheduleItems = buildGroupScheduleItems();
 
                   // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
@@ -1461,16 +1449,17 @@ const WarmupInstanceDetail = () => {
                       info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
                     };
 
-                    const detail = log.event_type === "cycle_started"
-                      ? getCycleStartedDetail(log.message)
-                      : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message);
+                    const isCycleStarted = log.event_type === "cycle_started";
 
                     items.push({
                       id: `log-${log.id}`,
                       time: new Date(log.created_at),
                       type: log.level === "error" ? "failed" : "done",
                       label: translateEventType(log.event_type),
-                      detail,
+                      detail: isCycleStarted
+                        ? "Entre 4 e 6 horas começa a entrar nos grupos."
+                        : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message),
+                      detailGroups: isCycleStarted && groupScheduleItems.length > 0 ? groupScheduleItems : undefined,
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
@@ -1694,8 +1683,41 @@ const WarmupInstanceDetail = () => {
                                           <Loader2 className="w-3 h-3 text-primary animate-spin" />
                                         )}
                                       </div>
-                                      {item.detail && (
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 whitespace-pre-line break-words">{item.detail}</p>
+                                      {item.detail && !item.detailGroups && (
+                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">{item.detail}</p>
+                                      )}
+                                      {item.detail && item.detailGroups && (
+                                        <p className="text-[10px] text-muted-foreground/70 mt-1">{item.detail}</p>
+                                      )}
+                                      {item.detailGroups && item.detailGroups.length > 0 && (
+                                        <div className="mt-2 grid gap-1">
+                                          {item.detailGroups.map((g) => (
+                                            <div
+                                              key={g.index}
+                                              className={cn(
+                                                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border",
+                                                g.status === "done"
+                                                  ? "bg-emerald-500/5 border-emerald-500/15"
+                                                  : g.status === "failed"
+                                                  ? "bg-destructive/5 border-destructive/15"
+                                                  : "bg-muted/20 border-border/15"
+                                              )}
+                                            >
+                                              <span className="text-[10px]">
+                                                {g.status === "done" ? "✅" : g.status === "failed" ? "❌" : "📥"}
+                                              </span>
+                                              <span className={cn(
+                                                "text-[10px] font-medium flex-1 truncate",
+                                                g.status === "done" ? "text-emerald-400" : g.status === "failed" ? "text-destructive" : "text-foreground/80"
+                                              )}>
+                                                {g.name}
+                                              </span>
+                                              <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">
+                                                {g.time}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
                                       )}
                                     </div>
                                     <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 mt-0.5">
