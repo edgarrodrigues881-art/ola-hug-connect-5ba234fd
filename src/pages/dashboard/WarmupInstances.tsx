@@ -1161,9 +1161,9 @@ const WarmupInstances = () => {
               <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Estado do chip</p>
               <div className="grid grid-cols-3 gap-2.5">
                 {([
-                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", color: "from-emerald-500/20 to-emerald-600/5", borderActive: "border-emerald-500/50 shadow-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_8px_hsl(160_84%_40%/0.6)]" },
-                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", color: "from-red-500/20 to-red-600/5", borderActive: "border-red-400/50 shadow-red-500/15", dot: "bg-red-500 shadow-[0_0_8px_hsl(0_84%_50%/0.6)]" },
-                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição facilmente", color: "from-amber-500/20 to-amber-600/5", borderActive: "border-amber-400/50 shadow-amber-500/15", dot: "bg-amber-500 shadow-[0_0_8px_hsl(38_92%_50%/0.6)]" },
+                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", color: "from-emerald-500/20 to-emerald-600/5", borderActive: "border-emerald-500/50 shadow-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_8px_hsl(142_72%_36%/0.6)]" },
+                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", color: "from-amber-500/20 to-amber-600/5", borderActive: "border-amber-400/50 shadow-amber-500/15", dot: "bg-amber-500 shadow-[0_0_8px_hsl(38_92%_50%/0.6)]" },
+                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição facilmente", color: "from-red-500/20 to-red-600/5", borderActive: "border-red-400/50 shadow-red-500/15", dot: "bg-red-500 shadow-[0_0_8px_hsl(0_84%_50%/0.6)]" },
                 ] as const).map(opt => (
                   <button
                     key={opt.value}
