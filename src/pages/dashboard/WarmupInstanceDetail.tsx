@@ -1376,8 +1376,23 @@ const WarmupInstanceDetail = () => {
 
                   const items: TimelineItem[] = [];
 
-                  // Past items from audit logs
+                  // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
+                    // Filter out logs from future warmup days
+                    if (cycleStartedAt) {
+                      const logTime = new Date(log.created_at);
+                      const toBrtDateStr = (d: Date) => new Intl.DateTimeFormat("en-CA", {
+                        timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+                      }).format(d);
+                      const startBrt = toBrtDateStr(cycleStartedAt);
+                      const logBrt = toBrtDateStr(logTime);
+                      const sp = startBrt.split("-").map(Number);
+                      const lp = logBrt.split("-").map(Number);
+                      const diffMs = new Date(lp[0], lp[1]-1, lp[2]).getTime() - new Date(sp[0], sp[1]-1, sp[2]).getTime();
+                      const logWarmupDay = Math.max(1, Math.round(diffMs / 86400000) + 1);
+                      if (logWarmupDay > (cycle?.day_index ?? 1)) continue;
+                    }
+
                     const iconMap: Record<string, string> = {
                       cycle_started: "🚀", cycle_paused: "⏸️", cycle_resumed: "▶️",
                       group_joined: "✅", group_msg_sent: "💬", autosave_msg_sent: "📱",
