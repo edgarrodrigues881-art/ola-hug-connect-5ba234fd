@@ -559,11 +559,25 @@ const WarmupInstanceDetail = () => {
     );
   }
 
-  // Count unique groups (deduplicate by group_id)
-  const joinedGroupIds = new Set(instanceGroups.filter(g => g.join_status === "joined").map(g => g.group_id));
-  const pendingGroupIds = new Set(instanceGroups.filter(g => g.join_status === "pending").map(g => g.group_id));
-  const joinedGroups = joinedGroupIds.size;
-  const pendingGroups = pendingGroupIds.size;
+  // Count real joined groups: DB joined + groups detected live in WhatsApp by JID/name
+  const trackedGroupIds = new Set(instanceGroups.map(g => g.group_id));
+  const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
+  const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
+
+  const recognizedGroupIds = new Set(
+    instanceGroups
+      .filter((g) => {
+        if (g.join_status === "joined") return true;
+        if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
+        const groupName = g.warmup_groups_pool?.name;
+        return !!groupName && liveGroupNames.has(normalizeGroupName(groupName));
+      })
+      .map((g) => g.group_id)
+  );
+
+  const totalTrackedGroups = trackedGroupIds.size > 0 ? trackedGroupIds.size : 8;
+  const joinedGroups = recognizedGroupIds.size;
+  const pendingGroups = Math.max(0, totalTrackedGroups - joinedGroups);
   const activeContacts = autosaveContacts.filter(c => c.is_active).length;
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
