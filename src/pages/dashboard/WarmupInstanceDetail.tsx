@@ -1325,16 +1325,16 @@ const WarmupInstanceDetail = () => {
             return (
               <>
               {/* ── Progresso do Dia (compact) ── */}
-              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-                <div className="px-5 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-teal-400" />
+              <div className="rounded-2xl border border-teal-500/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_0_25px_-8px_hsl(172_66%_50%/0.1)]">
+                <div className="px-6 py-5 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(172_66%_50%/0.2)]">
+                    <Target className="w-5 h-5 text-teal-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">
+                    <span className="text-base font-extrabold text-foreground tracking-tight">
                       {isPre24h ? "Fase de Proteção (24h)" : "Progresso do Dia"}
                     </span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       {isPre24h
                         ? "⏳ Aguardando período de proteção inicial"
                         : `✅ ${doneToday} concluídas · ⏳ ${Math.max(0, totalDisplay - doneToday - failedToday)} restantes${failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}`
@@ -1342,36 +1342,36 @@ const WarmupInstanceDetail = () => {
                     </p>
                   </div>
                   {nextPendingJob && (
-                    <div className="text-right">
-                      <p className="text-[9px] text-muted-foreground uppercase">
+                    <div className="text-right bg-muted/30 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/15">
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
                         {isPre24h ? "Transição" : "Próxima"}
                       </p>
-                      <p className="text-xs font-bold text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
+                      <p className="text-sm font-black text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
                     </div>
                   )}
                 </div>
                 {!isPre24h && (
-                <div className="px-5 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
-                    <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
+                <div className="px-6 pb-5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono font-black text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
+                    <div className="flex-1 h-2.5 bg-muted/25 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-400 rounded-full transition-all shadow-[0_0_8px_hsl(142_71%_45%/0.4)]" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
+                    <span className="text-[10px] text-muted-foreground font-bold">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
                   </div>
                 </div>
                 )}
               </div>
 
               {/* ── Timeline Completa: Atividades Feitas + Agendadas ── */}
-              <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
-                <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <ScrollText className="w-4 h-4 text-amber-400" />
+              <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.06)]">
+                <div className="px-6 py-5 border-b border-border/10 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(38_92%_50%/0.2)]">
+                    <ScrollText className="w-5 h-5 text-amber-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">Histórico de Atividades</span>
-                    <p className="text-[10px] text-muted-foreground">
+                    <span className="text-base font-extrabold text-foreground tracking-tight">Histórico de Atividades</span>
+                    <p className="text-[11px] text-muted-foreground font-medium">
                       Ações realizadas e próximas tarefas agendadas
                     </p>
                   </div>
