@@ -515,21 +515,21 @@ const WarmupInstanceDetail = () => {
   // Determine if we need live group data at all
   const hasActiveGroupTracking = instanceGroups.length > 0 && cycle?.is_running;
 
-  const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
+  const { data: liveGroupsResult = { groups: [], syncOk: false } } = useQuery<{ groups: { id: string; name: string }[]; syncOk: boolean }>({
     queryKey: ["warmup_live_groups", deviceId, hasPendingGroupJobs],
     queryFn: async () => {
-      if (!deviceId) return [];
+      if (!deviceId) return { groups: [], syncOk: false };
       try {
         const { data: session } = await supabase.auth.getSession();
         const token = session?.session?.access_token;
-        if (!token) return [];
+        if (!token) return { groups: [], syncOk: false };
 
         const refreshParam = hasPendingGroupJobs ? "&refresh=true" : "";
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
         );
-        if (!res.ok) return [];
+        if (!res.ok) return { groups: [], syncOk: false };
 
         const json = await res.json();
         const chats = Array.isArray(json?.chats) ? json.chats : [];
@@ -542,9 +542,12 @@ const WarmupInstanceDetail = () => {
           if (!dedup.has(id)) dedup.set(id, { id, name });
         }
 
-        return Array.from(dedup.values());
+        return {
+          groups: Array.from(dedup.values()),
+          syncOk: json?.sync_ok === true,
+        };
       } catch {
-        return [];
+        return { groups: [], syncOk: false };
       }
     },
     // Only poll when connected AND we have groups to track
@@ -554,45 +557,8 @@ const WarmupInstanceDetail = () => {
     staleTime: hasPendingGroupJobs ? 10_000 : 60_000,
   });
 
-  const { data: joinEvidence = [] } = useQuery<{ group_name: string | null; group_link: string | null }[]>({
-    queryKey: ["warmup_group_join_evidence", deviceId],
-    queryFn: async () => {
-      if (!deviceId) return [];
-
-      // Source 1: group_join_logs
-      const { data: logs } = await supabase
-        .from("group_join_logs")
-        .select("group_name, group_link")
-        .eq("device_id", deviceId)
-        .in("result", ["success", "already_member"])
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      // Source 2: warmup_audit_logs with event_type=group_joined (from warmup-tick)
-      const { data: auditLogs } = await supabase
-        .from("warmup_audit_logs")
-        .select("meta")
-        .eq("device_id", deviceId)
-        .eq("event_type", "group_joined")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      const results: { group_name: string | null; group_link: string | null }[] = [];
-      if (logs) results.push(...logs);
-      if (auditLogs) {
-        for (const al of auditLogs) {
-          const meta = al.meta as any;
-          if (meta?.group_name) {
-            results.push({ group_name: meta.group_name, group_link: null });
-          }
-        }
-      }
-      return results;
-    },
-    enabled: !!user && !!deviceId,
-    refetchInterval: hasPendingGroupJobs ? 15000 : 30000,
-    staleTime: hasPendingGroupJobs ? 8000 : 15000,
-  });
+  const liveDeviceGroups = liveGroupsResult.groups;
+  const liveGroupsSyncOk = liveGroupsResult.syncOk;
 
   const { data: poolGroups = [] } = useQuery<{ id: string; name: string; external_group_ref: string | null }[]>({
     queryKey: ["warmup_pool_groups_for_counter"],
