@@ -145,6 +145,16 @@ const Devices = () => {
   const [wpApplyAll, setWpApplyAll] = useState(false);
   const [wpSaving, setWpSaving] = useState(false);
 
+  // Bulk profile update dialog
+  const [bulkProfileOpen, setBulkProfileOpen] = useState(false);
+  const [bulkProfileName, setBulkProfileName] = useState("");
+  const [bulkProfilePhotoUrl, setBulkProfilePhotoUrl] = useState("");
+  const [bulkProfilePhotoPublicUrl, setBulkProfilePhotoPublicUrl] = useState("");
+  const [bulkProfileRemovePhoto, setBulkProfileRemovePhoto] = useState(false);
+  const [bulkProfileSelectedIds, setBulkProfileSelectedIds] = useState<string[]>([]);
+  const [bulkProfileSaving, setBulkProfileSaving] = useState(false);
+  const bulkProfileFileRef = useRef<HTMLInputElement>(null);
+
   // Connect dialog
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState<Device | null>(null);
@@ -933,6 +943,97 @@ const Devices = () => {
     }
   };
 
+  // Bulk profile update handlers
+  const handleBulkProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `profile-pictures/${user.id}/bulk-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+      setBulkProfilePhotoPublicUrl(urlData.publicUrl);
+      setBulkProfilePhotoUrl(URL.createObjectURL(file));
+      setBulkProfileRemovePhoto(false);
+      toast({ title: "Foto carregada" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
+    } finally {
+      if (bulkProfileFileRef.current) bulkProfileFileRef.current.value = "";
+    }
+  };
+
+  const handleBulkProfileUpdate = async () => {
+    if (!bulkProfileName.trim() && !bulkProfilePhotoPublicUrl && !bulkProfileRemovePhoto) {
+      toast({ title: "Preencha ao menos um campo (nome ou foto)", variant: "destructive" });
+      return;
+    }
+    if (bulkProfileSelectedIds.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+    setBulkProfileSaving(true);
+    const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && d.status === "Ready");
+    if (targetDevices.length === 0) {
+      toast({ title: "Nenhuma instância conectada selecionada", variant: "destructive" });
+      setBulkProfileSaving(false);
+      return;
+    }
+    try {
+      const results = await Promise.allSettled(
+        targetDevices.map(async (device) => {
+          const promises: Promise<any>[] = [];
+          // DB update
+          const dbUp: Record<string, any> = {};
+          if (bulkProfileName.trim()) {
+            dbUp.profile_name = bulkProfileName.trim();
+            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() }));
+          }
+          if (bulkProfileRemovePhoto) {
+            dbUp.profile_picture = null;
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
+          } else if (bulkProfilePhotoPublicUrl) {
+            dbUp.profile_picture = bulkProfilePhotoPublicUrl;
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl }));
+          }
+          if (Object.keys(dbUp).length > 0) {
+            await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+          }
+          await Promise.all(promises);
+        })
+      );
+      const failed = results.filter(r => r.status === "rejected").length;
+      if (failed > 0) {
+        toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else {
+        toast({ title: `Perfil atualizado em ${targetDevices.length} chip(s)` });
+      }
+      setBulkProfileOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar perfis", description: err?.message, variant: "destructive" });
+    } finally {
+      setBulkProfileSaving(false);
+    }
+  };
+
+  const toggleBulkProfileDevice = (id: string) => {
+    setBulkProfileSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const openBulkProfileDialog = () => {
+    setBulkProfileName("");
+    setBulkProfilePhotoUrl("");
+    setBulkProfilePhotoPublicUrl("");
+    setBulkProfileRemovePhoto(false);
+    setBulkProfileSelectedIds(devices.filter(d => d.status === "Ready").map(d => d.id));
+    setBulkProfileSaving(false);
+    setBulkProfileOpen(true);
+  };
+
   const handleLogout = () => {
     if (!loggingOutDevice) return;
     const device = loggingOutDevice;
@@ -1254,6 +1355,16 @@ const Devices = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {devices.filter(d => d.status === "Ready").length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-8 px-3 border-border/40"
+              onClick={openBulkProfileDialog}
+            >
+              <UserCircle className="w-3.5 h-3.5" /> Perfil em massa
+            </Button>
+          )}
           {selectedDevices.length > 0 && (
             <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
               <Trash2 className="w-3 h-3" /> {selectedDevices.length}
@@ -2505,6 +2616,147 @@ const Devices = () => {
             <Button variant="outline" onClick={() => setLimitGateOpen(false)} className="border-border">Cancelar</Button>
             <Button onClick={() => { setLimitGateOpen(false); navigate("/dashboard/my-plan"); }} className="bg-primary hover:bg-primary/90 text-primary-foreground">Fazer upgrade</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Bulk Profile Update Dialog */}
+      <Dialog open={bulkProfileOpen} onOpenChange={setBulkProfileOpen}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-border/40 bg-card max-h-[90vh] flex flex-col">
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/20 shrink-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <UserCircle className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-foreground">Atualizar perfil em massa</DialogTitle>
+                <p className="text-[13px] text-muted-foreground mt-0.5">Altere nome e foto de várias instâncias</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-primary" /> Nome exibido no WhatsApp
+              </Label>
+              <Input
+                value={bulkProfileName}
+                onChange={e => setBulkProfileName(e.target.value)}
+                placeholder="Ex: Equipe de Suporte"
+                className="h-11 text-sm font-medium rounded-xl bg-background border-border/50 focus:border-primary/60 text-foreground"
+                maxLength={25}
+              />
+              <p className="text-[11px] text-foreground/50 tabular-nums">{bulkProfileName.length}/25 caracteres</p>
+            </div>
+
+            {/* Photo */}
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-primary" /> Foto do perfil
+              </Label>
+              <input ref={bulkProfileFileRef} type="file" accept="image/*" className="hidden" onChange={handleBulkProfilePhotoUpload} />
+              <div className="flex flex-col items-center gap-3 py-2">
+                {bulkProfilePhotoUrl && !bulkProfileRemovePhoto ? (
+                  <>
+                    <img src={bulkProfilePhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/30 shadow-lg" />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold rounded-lg border-border/50" onClick={() => bulkProfileFileRef.current?.click()}>
+                        <Camera className="w-3.5 h-3.5" /> Trocar
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold rounded-lg border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => { setBulkProfilePhotoUrl(""); setBulkProfilePhotoPublicUrl(""); setBulkProfileRemovePhoto(true); }}>
+                        <XCircle className="w-3.5 h-3.5" /> Remover
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full border-2 border-dashed border-border/60 flex flex-col items-center justify-center hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => bulkProfileFileRef.current?.click()}
+                  >
+                    <Camera className="w-6 h-6 text-foreground/40 mb-1" />
+                    <span className="text-[11px] text-foreground/50 font-semibold">
+                      {bulkProfileRemovePhoto ? "Removida" : "Escolher"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Instance selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-foreground font-semibold">Instâncias</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => setBulkProfileSelectedIds(devices.filter(d => d.status === "Ready").map(d => d.id))}
+                  >
+                    Todas online
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => setBulkProfileSelectedIds([])}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1 max-h-[200px] overflow-y-auto rounded-xl border border-border/30 bg-background/50 p-2">
+                {devices.filter(d => d.status === "Ready").map(d => (
+                  <label
+                    key={d.id}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors",
+                      bulkProfileSelectedIds.includes(d.id) ? "bg-primary/8" : "hover:bg-muted/30"
+                    )}
+                  >
+                    <Checkbox
+                      checked={bulkProfileSelectedIds.includes(d.id)}
+                      onCheckedChange={() => toggleBulkProfileDevice(d.id)}
+                    />
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {d.profile_picture ? (
+                        <img src={d.profile_picture} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
+                          <Smartphone className="w-3.5 h-3.5 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{d.name}</p>
+                        {d.number && <p className="text-[10px] text-muted-foreground font-mono">{formatPhone(d.number)}</p>}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+                {devices.filter(d => d.status === "Ready").length === 0 && (
+                  <p className="text-xs text-muted-foreground/50 text-center py-4">Nenhuma instância conectada</p>
+                )}
+              </div>
+              <p className="text-[11px] text-foreground/50">
+                {bulkProfileSelectedIds.length} de {devices.filter(d => d.status === "Ready").length} instância(s) selecionada(s)
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 pb-5 pt-2 flex items-center gap-3 border-t border-border/20 shrink-0">
+            <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={() => setBulkProfileOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+              onClick={handleBulkProfileUpdate}
+              disabled={bulkProfileSaving || bulkProfileSelectedIds.length === 0}
+            >
+              {bulkProfileSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+              {bulkProfileSaving ? "Atualizando..." : `Aplicar em ${bulkProfileSelectedIds.length} chip(s)`}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
