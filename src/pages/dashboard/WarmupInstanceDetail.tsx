@@ -995,7 +995,7 @@ const WarmupInstanceDetail = () => {
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Tempo decorrido</p>
               <p className="text-4xl font-bold text-foreground font-mono tabular-nums mt-1 tracking-tight">{countdown}</p>
               <p className="text-[11px] text-muted-foreground mt-3 max-w-xs leading-relaxed">
-                Sem envio de mensagens. Entrada gradual em grupos em andamento.
+                Entrada gradual nos grupos em andamento. Os primeiros grupos serão ingressados em 4-6 horas.
               </p>
             </div>
           )}
@@ -1020,7 +1020,7 @@ const WarmupInstanceDetail = () => {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {cycle.phase === "pre_24h" && (
                   <>
-                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. O chip ficará ocioso enquanto entra gradualmente nos 8 grupos oficiais do sistema para parecer um uso natural.
+                    🛡️ <strong className="text-foreground">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
                   </>
                 )}
                 {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
@@ -1348,50 +1348,216 @@ const WarmupInstanceDetail = () => {
                 )}
               </div>
 
-              {/* ── Histórico de Dias ── */}
+              {/* ── Timeline Completa: Atividades Feitas + Agendadas ── */}
               <div className="rounded-xl border border-border/20 bg-card overflow-hidden">
                 <div className="px-5 py-4 border-b border-border/15 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <CalendarDays className="w-4 h-4 text-amber-400" />
+                    <ScrollText className="w-4 h-4 text-amber-400" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-sm font-bold text-foreground">Histórico</span>
+                    <span className="text-sm font-bold text-foreground">Histórico de Atividades</span>
                     <p className="text-[10px] text-muted-foreground">
-                      Dia {cycle.day_index} de {cycle.days_total}
+                      Ações realizadas e próximas tarefas agendadas
                     </p>
                   </div>
                 </div>
-                <div className="px-5 py-3 space-y-1.5 max-h-[200px] overflow-y-auto">
-                  {Array.from({ length: cycle.day_index }, (_, i) => {
-                    const day = i + 1;
-                    const isCurrent = day === cycle.day_index;
-                    const isPast = day < cycle.day_index;
+
+                {(() => {
+                  // Build unified timeline from audit logs (past) + scheduled jobs (future)
+                  type TimelineItem = {
+                    id: string;
+                    time: Date;
+                    type: "done" | "running" | "pending" | "failed";
+                    label: string;
+                    detail?: string;
+                    icon: string;
+                    color: string;
+                  };
+
+                  const items: TimelineItem[] = [];
+
+                  // Past items from audit logs
+                  for (const log of auditLogs) {
+                    const iconMap: Record<string, string> = {
+                      cycle_started: "🚀", cycle_paused: "⏸️", cycle_resumed: "▶️",
+                      group_joined: "✅", group_msg_sent: "💬", autosave_msg_sent: "📱",
+                      community_msg_sent: "🌐", daily_reset: "🔄", phase_changed: "⚡",
+                      auto_paused_disconnected: "⚠️", autosave_enabled: "📱",
+                      community_enabled: "🌐", health_check: "🩺",
+                      group_no_jid: "⚠️", autosave_no_contacts: "⚠️",
+                      community_no_peers: "⚠️", community_peer_offline: "⚠️",
+                      manual_day_advance: "⏭️", daily_reset_deferred: "⏳",
+                    };
+                    const colorMap: Record<string, string> = {
+                      info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
+                    };
+
+                    items.push({
+                      id: `log-${log.id}`,
+                      time: new Date(log.created_at),
+                      type: log.level === "error" ? "failed" : "done",
+                      label: translateEventType(log.event_type),
+                      detail: log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message,
+                      icon: iconMap[log.event_type] || "📋",
+                      color: colorMap[log.level] || "text-muted-foreground",
+                    });
+                  }
+
+                  // Future items from scheduled jobs
+                  const jobIconMap: Record<string, string> = {
+                    join_group: "📥", group_interaction: "💬", autosave_interaction: "📱",
+                    community_interaction: "🌐", phase_transition: "⚡", daily_reset: "🔄",
+                    enable_autosave: "📱", enable_community: "🌐", health_check: "🩺",
+                    post_status: "📸",
+                  };
+                  const jobLabelMap: Record<string, string> = {
+                    join_group: "Entrar no grupo", group_interaction: "Msg em grupo",
+                    autosave_interaction: "Auto Save", community_interaction: "Comunitário",
+                    phase_transition: "Avançar fase", daily_reset: "Reset diário",
+                    enable_autosave: "Ativar Auto Save", enable_community: "Ativar Comunidade",
+                    health_check: "Verificação", post_status: "Status",
+                  };
+
+                  // Only show individual pending/running jobs, not succeeded (those are in audit logs)
+                  for (const job of scheduledJobs) {
+                    if (job.status === "cancelled") continue;
+                    if (job.status === "succeeded") continue; // already in audit logs
+
+                    const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
+                      ? (job.payload as any).group_name : null;
+
+                    items.push({
+                      id: `job-${job.id}`,
+                      time: new Date(job.run_at),
+                      type: job.status === "running" ? "running" : job.status === "failed" ? "failed" : "pending",
+                      label: jobLabelMap[job.job_type] || job.job_type,
+                      detail: groupName ? `Grupo: ${groupName}` : undefined,
+                      icon: jobIconMap[job.job_type] || "⏳",
+                      color: job.status === "failed" ? "text-destructive"
+                        : job.status === "running" ? "text-primary"
+                        : "text-muted-foreground",
+                    });
+                  }
+
+                  // Sort by time descending (most recent first)
+                  items.sort((a, b) => b.time.getTime() - a.time.getTime());
+
+                  // Group by BRT day
+                  const dayBuckets: Record<string, TimelineItem[]> = {};
+                  for (const item of items) {
+                    const dayKey = new Intl.DateTimeFormat("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      day: "2-digit", month: "2-digit", year: "numeric",
+                    }).format(item.time);
+                    if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
+                    dayBuckets[dayKey].push(item);
+                  }
+
+                  const dayKeys = Object.keys(dayBuckets);
+                  if (dayKeys.length === 0) {
                     return (
-                      <div key={day} className={cn(
-                        "flex items-center gap-2.5 py-1 px-2 rounded-lg transition-colors",
-                        isCurrent && "bg-primary/5"
-                      )}>
-                        {isPast ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
-                        )}
-                        <span className={cn(
-                          "text-xs font-medium",
-                          isCurrent ? "text-primary font-bold" : "text-muted-foreground"
-                        )}>
-                          Dia {day}
-                        </span>
-                        <span className={cn(
-                          "text-[10px] ml-auto",
-                          isPast ? "text-emerald-500" : "text-primary"
-                        )}>
-                          {isPast ? "Concluído" : "Em andamento"}
-                        </span>
+                      <div className="px-5 py-8 text-center text-muted-foreground text-xs">
+                        Nenhuma atividade registrada ainda
                       </div>
                     );
-                  })}
-                </div>
+                  }
+
+                  const formatTime = (d: Date) => new Intl.DateTimeFormat("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    hour: "2-digit", minute: "2-digit", hour12: false,
+                  }).format(d);
+
+                  // Find which warmup day each calendar day corresponds to
+                  const getDayLabel = (dayKey: string) => {
+                    const firstItem = dayBuckets[dayKey][0];
+                    if (!cycleStartedAt) return dayKey;
+                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
+                    const warmupDay = Math.max(1, diff);
+                    return `Dia ${warmupDay} — ${dayKey}`;
+                  };
+
+                  return (
+                    <div className="max-h-[400px] overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+                      {dayKeys.map((dayKey) => {
+                        const dayItems = dayBuckets[dayKey];
+                        const isExpanded = expandedDays.has(dayKeys.indexOf(dayKey));
+                        const doneCount = dayItems.filter(i => i.type === "done").length;
+                        const pendingCount = dayItems.filter(i => i.type === "pending").length;
+                        const failedCount = dayItems.filter(i => i.type === "failed").length;
+
+                        return (
+                          <div key={dayKey} className="border-b border-border/10 last:border-0">
+                            <button
+                              onClick={() => {
+                                const idx = dayKeys.indexOf(dayKey);
+                                setExpandedDays(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(idx)) next.delete(idx); else next.add(idx);
+                                  return next;
+                                });
+                              }}
+                              className="w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors"
+                            >
+                              <ChevronDown className={cn(
+                                "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
+                                isExpanded && "rotate-180"
+                              )} />
+                              <span className="text-xs font-bold text-foreground">{getDayLabel(dayKey)}</span>
+                              <div className="flex items-center gap-1.5 ml-auto">
+                                {doneCount > 0 && (
+                                  <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
+                                    ✅ {doneCount}
+                                  </Badge>
+                                )}
+                                {pendingCount > 0 && (
+                                  <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0 hover:bg-primary/10">
+                                    ⏳ {pendingCount}
+                                  </Badge>
+                                )}
+                                {failedCount > 0 && (
+                                  <Badge className="text-[9px] h-4 px-1.5 bg-destructive/10 text-destructive border-0 hover:bg-destructive/10">
+                                    ❌ {failedCount}
+                                  </Badge>
+                                )}
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <div className="px-5 pb-3 space-y-0.5">
+                                {dayItems.map((item) => (
+                                  <div key={item.id} className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-muted/10">
+                                    <span className="text-xs mt-0.5 shrink-0">{item.icon}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={cn("text-[11px] font-semibold", item.color)}>
+                                          {item.label}
+                                        </span>
+                                        {item.type === "pending" && (
+                                          <Badge className="text-[8px] h-3.5 px-1 bg-muted/30 text-muted-foreground border-0 hover:bg-muted/30">
+                                            agendado
+                                          </Badge>
+                                        )}
+                                        {item.type === "running" && (
+                                          <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                                        )}
+                                      </div>
+                                      {item.detail && (
+                                        <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{item.detail}</p>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 mt-0.5">
+                                      {formatTime(item.time)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
               </>
             );

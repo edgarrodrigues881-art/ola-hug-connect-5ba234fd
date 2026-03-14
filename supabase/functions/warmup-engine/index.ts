@@ -164,13 +164,31 @@ Deno.serve(async (req) => {
           });
         }
       } else {
-        // Register groups for this cycle (will join on Day 2)
+        // Register groups for this cycle
         for (const g of allGroups) {
           await db.from("warmup_instance_groups").insert({
             user_id: callerUserId, device_id,
             group_id: g.id, cycle_id: cycle.id, join_status: "pending",
           });
         }
+      }
+
+      // ── Schedule join_group jobs: start 4-6h after cycle start, 5-30min between each ──
+      const joinStartDelayMs = randInt(4, 6) * 60 * 60 * 1000; // 4-6 hours
+      const groupsToJoin = allGroups; // all 8 groups
+      for (let i = 0; i < groupsToJoin.length; i++) {
+        // Cumulative delay: first group at 4-6h, each subsequent group 5-30min later
+        let cumulativeDelay = joinStartDelayMs;
+        for (let j = 0; j < i; j++) {
+          cumulativeDelay += randInt(5, 30) * 60 * 1000; // 5-30 min between groups
+        }
+        const runAt = new Date(now.getTime() + cumulativeDelay);
+        jobs.push({
+          user_id: callerUserId, device_id, cycle_id: cycle.id,
+          job_type: "join_group",
+          payload: { group_id: groupsToJoin[i].id, group_name: groupsToJoin[i].name },
+          run_at: runAt.toISOString(), status: "pending",
+        });
       }
 
       // Schedule phase_transition to groups_only at 24h mark (Day 2 start)
@@ -203,7 +221,7 @@ Deno.serve(async (req) => {
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=OFF, Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos registrados.`,
+        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=Proteção (entrada em grupos após 4-6h), Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos agendados.`,
         meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays },
       });
 
