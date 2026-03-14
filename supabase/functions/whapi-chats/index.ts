@@ -185,29 +185,42 @@ Deno.serve(async (req) => {
       }
 
       // ─── S1: /group/list paginated (main UaZapi endpoint) ───
-      for (let page = 0; page < 10; page++) {
-        // Use raw fetch to log response body for debugging
-        try {
-          const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: apiHeaders });
-          const rawText = await rawRes.text();
-          if (page === 0) {
-            console.log(`[S1-RAW] Status: ${rawRes.status}, Body (500 chars): ${rawText.substring(0, 500)}`);
+      const fetchGroupListPaginated = async (tag: string) => {
+        for (let page = 0; page < 10; page++) {
+          try {
+            const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: apiHeaders });
+            const rawText = await rawRes.text();
+            if (page === 0) {
+              console.log(`[${tag}-RAW][${deviceId}] Status: ${rawRes.status}, Body (500 chars): ${rawText.substring(0, 500)}`);
+            }
+            if (!rawRes.ok) break;
+
+            const data = JSON.parse(rawText);
+            const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+            if (arr.length === 0) break;
+
+            if (page === 0 && arr.length > 0) {
+              console.log(`[${tag}-STRUCT][${deviceId}] Keys: ${Object.keys(arr[0]).join(",")}`);
+            }
+
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[${tag}][${deviceId}] page ${page}: ${arr.length} ret, ${seenJids.size - prev} new`);
+            if (seenJids.size - prev === 0) break;
+          } catch (e) {
+            console.log(`[${tag}][${deviceId}] page ${page} error: ${e.message}`);
+            break;
           }
-          if (!rawRes.ok) break;
-          const data = JSON.parse(rawText);
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-          if (arr.length === 0) break;
-          // Log first group structure for debugging
-          if (page === 0 && arr.length > 0) {
-            console.log(`[S1-STRUCT] Keys: ${Object.keys(arr[0]).join(",")}`);
-          }
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S1] page ${page}: ${arr.length} ret, ${seenJids.size - prev} new`);
-          if (seenJids.size - prev === 0) break;
-        } catch (e) {
-          console.log(`[S1] page ${page} error: ${e.message}`);
-          break;
+        }
+      };
+
+      await fetchGroupListPaginated("S1");
+
+      // UaZapi pode oscilar entre 4 e 9 grupos no mesmo minuto; faz retries e mantém união por JID
+      if (forceRefresh && allGroups.length < 8) {
+        for (let attempt = 1; attempt <= 2 && allGroups.length < 8; attempt++) {
+          await new Promise((r) => setTimeout(r, 900));
+          await fetchGroupListPaginated(`S1R${attempt}`);
         }
       }
 
@@ -296,7 +309,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`Total unique groups: ${allGroups.length}`);
+      console.log(`[${deviceId}] Total unique groups: ${allGroups.length}`);
 
       // Map to standardized format
       let chats = allGroups.map((g: any) => ({
