@@ -1467,13 +1467,26 @@ const WarmupInstanceDetail = () => {
                     hour: "2-digit", minute: "2-digit", hour12: false,
                   }).format(d);
 
+                  // Current warmup day from cycle
+                  const currentWarmupDay = cycle?.day_index ?? 1;
+
                   // Find which warmup day each calendar day corresponds to
                   const getDayLabel = (dayKey: string) => {
                     const firstItem = dayBuckets[dayKey][0];
                     if (!cycleStartedAt) return dayKey;
                     const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
                     const warmupDay = Math.max(1, diff);
+                    if (warmupDay > currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (agendado)`;
+                    }
                     return `Dia ${warmupDay} — ${dayKey}`;
+                  };
+
+                  const isFutureDay = (dayKey: string) => {
+                    const firstItem = dayBuckets[dayKey][0];
+                    if (!cycleStartedAt) return false;
+                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
+                    return Math.max(1, diff) > currentWarmupDay;
                   };
 
                   return (
