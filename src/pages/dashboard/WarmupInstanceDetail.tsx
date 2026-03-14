@@ -1395,42 +1395,28 @@ const WarmupInstanceDetail = () => {
                     return `após ${minutes}min`;
                   };
 
-                  const joinScheduleForDay1 = (scheduledJobs || [])
+                  const joinGroupJobs = (scheduledJobs || [])
                     .filter((job) => job.job_type === "join_group")
-                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())
-                    .map((job, index) => {
-                      const runAt = new Date(job.run_at);
-                      const payload = (job.payload || {}) as { group_name?: string };
-                      const groupName = payload.group_name || `Grupo ${index + 1}`;
-                      return `Grupo ${index + 1} (${groupName}) vai entrar às ${formatBrtHour(runAt)}`;
-                    });
+                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
 
-                  const getCycleStartedDetail = (rawMessage: string) => {
-                    const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
-                    if (joinScheduleForDay1.length > 0) {
-                      return `${intro}\n${joinScheduleForDay1.join("\n")}`;
+                  const buildGroupScheduleItems = (): GroupScheduleItem[] => {
+                    if (joinGroupJobs.length > 0) {
+                      return joinGroupJobs.map((job, index) => {
+                        const payload = (job.payload || {}) as { group_name?: string };
+                        return {
+                          index: index + 1,
+                          name: payload.group_name || `Grupo ${index + 1}`,
+                          time: formatBrtHour(new Date(job.run_at)),
+                          status: job.status === "succeeded" ? "done" as const
+                            : job.status === "failed" ? "failed" as const
+                            : "pending" as const,
+                        };
+                      });
                     }
-
-                    const agendaFromLog = rawMessage.split("Agenda:")[1]?.trim();
-                    if (agendaFromLog) {
-                      const parsedLines = agendaFromLog
-                        .split("|")
-                        .map((line) => line.trim())
-                        .filter(Boolean)
-                        .map((line) => {
-                          const match = line.match(/^Grupo\s*(\d+):\s*(.+?)\s+às\s+(\d{2}:\d{2})$/i);
-                          if (!match) return line;
-                          const [, number, name, time] = match;
-                          return `Grupo ${number} (${name}) vai entrar às ${time} (após a janela de 4-6h)`;
-                        });
-
-                      if (parsedLines.length > 0) {
-                        return `${intro}\n${parsedLines.join("\n")}`;
-                      }
-                    }
-
-                    return intro;
+                    return [];
                   };
+
+                  const groupScheduleItems = buildGroupScheduleItems();
 
                   // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
@@ -1463,16 +1449,20 @@ const WarmupInstanceDetail = () => {
                       info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
                     };
 
-                    const detail = log.event_type === "cycle_started"
-                      ? getCycleStartedDetail(log.message)
-                      : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message);
+                    const isCycleStarted = log.event_type === "cycle_started";
 
                     items.push({
                       id: `log-${log.id}`,
                       time: new Date(log.created_at),
                       type: log.level === "error" ? "failed" : "done",
                       label: translateEventType(log.event_type),
-                      detail,
+                      detail: isCycleStarted
+                        ? "Entre 4 e 6 horas começa a entrar nos grupos."
+                        : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message),
+                      detailGroups: isCycleStarted && groupScheduleItems.length > 0 ? groupScheduleItems : undefined,
+                      icon: iconMap[log.event_type] || "📋",
+                      color: colorMap[log.level] || "text-muted-foreground",
+                    });
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
