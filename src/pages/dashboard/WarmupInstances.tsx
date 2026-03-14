@@ -330,12 +330,12 @@ const WarmupInstances = () => {
     return response.data;
   };
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollingInterval) {
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  };
+  }, [pollingInterval]);
 
   const startPolling = (deviceId: string, proxyId: string | null) => {
     stopPolling();
