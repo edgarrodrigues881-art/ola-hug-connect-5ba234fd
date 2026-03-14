@@ -1002,13 +1002,14 @@ const WarmupInstanceDetail = () => {
 
           {/* Countdown (pre_24h only) */}
           {cycle.phase === "pre_24h" && (
-            <div className="rounded-xl border border-amber-500/15 bg-gradient-to-b from-amber-500/5 to-transparent p-6 flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-3">
-                <Timer className="w-5 h-5 text-amber-400" />
+            <div className="relative rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/8 to-amber-500/2 backdrop-blur-xl p-8 flex flex-col items-center text-center overflow-hidden shadow-[0_0_30px_-8px_hsl(38_92%_50%/0.15)]">
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[80px] opacity-20 pointer-events-none bg-amber-500" />
+              <div className="relative w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center mb-4 shadow-[0_0_20px_-4px_hsl(38_92%_50%/0.3)]">
+                <Timer className="w-6 h-6 text-amber-400" />
               </div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Tempo decorrido</p>
-              <p className="text-4xl font-bold text-foreground font-mono tabular-nums mt-1 tracking-tight">{countdown}</p>
-              <p className="text-[11px] text-muted-foreground mt-3 max-w-xs leading-relaxed">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Tempo decorrido</p>
+              <p className="text-5xl font-black text-foreground font-mono tabular-nums mt-2 tracking-tight">{countdown}</p>
+              <p className="text-xs text-muted-foreground/70 mt-4 max-w-sm leading-relaxed">
                 Entrada gradual nos grupos em andamento. Os primeiros grupos serão ingressados em 4-6 horas.
               </p>
             </div>
