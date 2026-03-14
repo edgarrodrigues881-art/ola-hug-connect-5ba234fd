@@ -969,7 +969,7 @@ const WarmupInstances = () => {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] font-bold text-foreground truncate leading-tight">
-                      {device.profile_name || device.name}
+                      {device.name}
                     </p>
                     {device.number && (
                       <p className="text-[11px] font-mono text-muted-foreground mt-1 tracking-wide">
