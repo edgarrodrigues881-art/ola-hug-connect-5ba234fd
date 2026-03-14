@@ -180,7 +180,7 @@ const WarmupInstanceDetail = () => {
       // 1) Fetch pending jobs of the correct type for this phase
       const { data: pendingJobs, error: fetchErr } = await supabase
         .from("warmup_jobs")
-        .select("id, job_type, run_at")
+        .select("id, job_type, run_at, payload")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
         .in("job_type", targetTypes)
@@ -191,21 +191,69 @@ const WarmupInstanceDetail = () => {
       let forcedSystemJobType: string | null = null;
 
       if (pendingJobs && pendingJobs.length > 0) {
-        // Recalculate: shift timeline so first job starts NOW, keep relative delays
-        const originalFirstMs = new Date(pendingJobs[0].run_at).getTime();
-        const shift = nowMs - originalFirstMs;
+        let jobsToAccelerate = pendingJobs;
 
-        for (const job of pendingJobs) {
-          const newMs = new Date(job.run_at).getTime() + shift;
-          const { error: updateErr } = await supabase
-            .from("warmup_jobs")
-            .update({ run_at: new Date(newMs).toISOString() })
-            .eq("id", job.id)
-            .eq("status", "pending");
-          if (updateErr) throw updateErr;
+        // For pre_24h: filter out join_group jobs for groups already joined
+        if (phase === "pre_24h") {
+          const joinedGroupIds = new Set(
+            instanceGroups
+              .filter((g) => g.join_status === "joined")
+              .map((g) => g.group_id)
+          );
+          // Also consider groups recognized via live chats
+          for (const g of instanceGroups) {
+            if (g.join_status !== "joined") {
+              const poolName = g.warmup_groups_pool?.name;
+              const normalizedName = poolName ? normalizeGroupName(poolName) : "";
+              const liveMatch = normalizedName && liveDeviceGroups.some(
+                (lg) => normalizeGroupName(lg.name) === normalizedName
+              );
+              if (liveMatch || (g.group_jid && liveDeviceGroups.some((lg) => lg.id === g.group_jid))) {
+                joinedGroupIds.add(g.group_id);
+              }
+            }
+          }
+
+          const alreadyJoinedJobIds: string[] = [];
+          const remainingJobs: typeof pendingJobs = [];
+
+          for (const job of jobsToAccelerate) {
+            const groupId = (job.payload as any)?.group_id;
+            if (groupId && joinedGroupIds.has(groupId)) {
+              alreadyJoinedJobIds.push(job.id);
+            } else {
+              remainingJobs.push(job);
+            }
+          }
+
+          // Cancel jobs for groups already joined
+          if (alreadyJoinedJobIds.length > 0) {
+            await supabase
+              .from("warmup_jobs")
+              .update({ status: "cancelled", last_error: "Grupo já ingressado — cancelado na aceleração" })
+              .in("id", alreadyJoinedJobIds);
+          }
+
+          jobsToAccelerate = remainingJobs;
         }
 
-        forcedCount = pendingJobs.length;
+        if (jobsToAccelerate.length > 0) {
+          // Recalculate: shift timeline so first job starts NOW, keep relative delays
+          const originalFirstMs = new Date(jobsToAccelerate[0].run_at).getTime();
+          const shift = nowMs - originalFirstMs;
+
+          for (const job of jobsToAccelerate) {
+            const newMs = new Date(job.run_at).getTime() + shift;
+            const { error: updateErr } = await supabase
+              .from("warmup_jobs")
+              .update({ run_at: new Date(newMs).toISOString() })
+              .eq("id", job.id)
+              .eq("status", "pending");
+            if (updateErr) throw updateErr;
+          }
+        }
+
+        forcedCount = jobsToAccelerate.length;
       } else {
         // 2) No target jobs — try system jobs (phase_transition, daily_reset)
         const { data: systemJobs, error: sysErr } = await supabase
