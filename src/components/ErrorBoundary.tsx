@@ -22,8 +22,11 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     const signature = `${error.name}: ${error.message}`;
 
-    console.error("[ErrorBoundary]", signature, {
+    console.error("[ErrorBoundary] CAUGHT:", signature, {
       stack: error.stack,
+      componentStack: info.componentStack,
+    });
+    console.error("[ErrorBoundary] Full error object:", error);
       componentStack: info.componentStack,
     });
 
