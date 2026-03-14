@@ -1467,13 +1467,26 @@ const WarmupInstanceDetail = () => {
                     hour: "2-digit", minute: "2-digit", hour12: false,
                   }).format(d);
 
+                  // Current warmup day from cycle
+                  const currentWarmupDay = cycle?.day_index ?? 1;
+
                   // Find which warmup day each calendar day corresponds to
                   const getDayLabel = (dayKey: string) => {
                     const firstItem = dayBuckets[dayKey][0];
                     if (!cycleStartedAt) return dayKey;
                     const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
                     const warmupDay = Math.max(1, diff);
+                    if (warmupDay > currentWarmupDay) {
+                      return `Dia ${warmupDay} — ${dayKey} (agendado)`;
+                    }
                     return `Dia ${warmupDay} — ${dayKey}`;
+                  };
+
+                  const isFutureDay = (dayKey: string) => {
+                    const firstItem = dayBuckets[dayKey][0];
+                    if (!cycleStartedAt) return false;
+                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
+                    return Math.max(1, diff) > currentWarmupDay;
                   };
 
                   return (
@@ -1485,8 +1498,10 @@ const WarmupInstanceDetail = () => {
                         const pendingCount = dayItems.filter(i => i.type === "pending").length;
                         const failedCount = dayItems.filter(i => i.type === "failed").length;
 
+                        const future = isFutureDay(dayKey);
+
                         return (
-                          <div key={dayKey} className="border-b border-border/10 last:border-0">
+                          <div key={dayKey} className={cn("border-b border-border/10 last:border-0", future && "opacity-50")}>
                             <button
                               onClick={() => {
                                 const idx = dayKeys.indexOf(dayKey);
@@ -1502,7 +1517,7 @@ const WarmupInstanceDetail = () => {
                                 "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
-                              <span className="text-xs font-bold text-foreground">{getDayLabel(dayKey)}</span>
+                              <span className={cn("text-xs font-bold", future ? "text-muted-foreground" : "text-foreground")}>{getDayLabel(dayKey)}</span>
                               <div className="flex items-center gap-1.5 ml-auto">
                                 {doneCount > 0 && (
                                   <Badge className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-0 hover:bg-emerald-500/10">
