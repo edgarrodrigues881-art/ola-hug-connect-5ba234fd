@@ -1463,9 +1463,6 @@ const WarmupInstanceDetail = () => {
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
-                      icon: iconMap[log.event_type] || "📋",
-                      color: colorMap[log.level] || "text-muted-foreground",
-                    });
                   }
 
                   // Future items from scheduled jobs
