@@ -1453,7 +1453,9 @@ const WarmupInstanceDetail = () => {
                   };
 
                   for (const job of scheduledJobs) {
-                    if (job.status === "cancelled") continue;
+                    // Show cancelled join_group jobs so the group schedule is visible
+                    const isCancelledJoinGroup = job.status === "cancelled" && job.job_type === "join_group";
+                    if (job.status === "cancelled" && !isCancelledJoinGroup) continue;
                     if (job.status === "succeeded") continue;
 
                     // Skip jobs scheduled for future warmup days
@@ -1466,11 +1468,15 @@ const WarmupInstanceDetail = () => {
                     items.push({
                       id: `job-${job.id}`,
                       time: new Date(job.run_at),
-                      type: job.status === "running" ? "running" : job.status === "failed" ? "failed" : "pending",
-                      label: jobLabelMap[job.job_type] || job.job_type,
+                      type: isCancelledJoinGroup ? "done"
+                        : job.status === "running" ? "running"
+                        : job.status === "failed" ? "failed"
+                        : "pending",
+                      label: isCancelledJoinGroup ? "Entrada em grupo" : (jobLabelMap[job.job_type] || job.job_type),
                       detail: groupName ? `Grupo: ${groupName}` : undefined,
-                      icon: jobIconMap[job.job_type] || "⏳",
-                      color: job.status === "failed" ? "text-destructive"
+                      icon: isCancelledJoinGroup ? "📥" : (jobIconMap[job.job_type] || "⏳"),
+                      color: isCancelledJoinGroup ? "text-teal-400"
+                        : job.status === "failed" ? "text-destructive"
                         : job.status === "running" ? "text-primary"
                         : "text-muted-foreground",
                     });

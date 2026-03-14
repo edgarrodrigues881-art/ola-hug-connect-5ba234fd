@@ -219,11 +219,22 @@ Deno.serve(async (req) => {
       const chipLabels: Record<string, string> = { new: "Chip Novo", recovered: "Chip Banido/Recuperação", unstable: "Chip Crítico/Instável" };
       const chipLabel = chipLabels[resolvedChipState] || resolvedChipState.toUpperCase();
       const groupsEnd = getGroupsEndDay(resolvedChipState);
+      // Build group schedule summary for audit log
+      const groupScheduleLines = jobs
+        .filter((j: any) => j.job_type === "join_group")
+        .map((j: any, i: number) => {
+          const time = new Date(j.run_at);
+          const brtTime = time.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hour12: false });
+          return `${j.payload.group_name} às ${brtTime}`;
+        })
+        .join(", ");
+
+      const joinStartHours = Math.round(joinStartDelayMs / 3600000);
       await db.from("warmup_audit_logs").insert({
         user_id: callerUserId, device_id, cycle_id: cycle.id,
         level: "info", event_type: "cycle_started",
-        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Dia 1=Proteção (entrada em grupos após 4-6h), Dias 2-${groupsEnd}=Grupos, Dia ${groupsEnd+1}=AutoSave, Dia ${groupsEnd+2}+=Comunitário. ${allGroups.length} grupos agendados.`,
-        meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays },
+        message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias. Entrada nos ${allGroups.length} grupos começa em ~${joinStartHours}h. Agenda: ${groupScheduleLines}`,
+        meta: { chip_state: resolvedChipState, groups: allGroups.map(g => g.name), total_days: cycleDays, join_start_hours: joinStartHours },
       });
 
       return new Response(JSON.stringify({ ok: true, cycle_id: cycle.id, chip_state: resolvedChipState, jobs_scheduled: jobs.length, total_days: cycleDays }), {
