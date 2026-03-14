@@ -1376,6 +1376,30 @@ const WarmupInstanceDetail = () => {
 
                   const items: TimelineItem[] = [];
 
+                  const formatBrtHour = (date: Date) => new Intl.DateTimeFormat("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  }).format(date);
+
+                  const joinScheduleForDay1 = (scheduledJobs || [])
+                    .filter((job) => job.job_type === "join_group")
+                    .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())
+                    .map((job, index) => {
+                      const payload = (job.payload || {}) as { group_name?: string };
+                      const groupName = payload.group_name || `Grupo ${index + 1}`;
+                      return `Grupo ${index + 1}: ${groupName} às ${formatBrtHour(new Date(job.run_at))}`;
+                    });
+
+                  const getCycleStartedDetail = (rawMessage: string) => {
+                    const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
+                    if (joinScheduleForDay1.length === 0) {
+                      return intro;
+                    }
+                    return `${intro}\n${joinScheduleForDay1.join("\n")}`;
+                  };
+
                   // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
                     // Filter out logs from future warmup days
@@ -1407,12 +1431,16 @@ const WarmupInstanceDetail = () => {
                       info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
                     };
 
+                    const detail = log.event_type === "cycle_started"
+                      ? getCycleStartedDetail(log.message)
+                      : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message);
+
                     items.push({
                       id: `log-${log.id}`,
                       time: new Date(log.created_at),
                       type: log.level === "error" ? "failed" : "done",
                       label: translateEventType(log.event_type),
-                      detail: log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message,
+                      detail,
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
