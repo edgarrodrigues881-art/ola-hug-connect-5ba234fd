@@ -27,8 +27,6 @@ class ErrorBoundary extends Component<Props, State> {
       componentStack: info.componentStack,
     });
     console.error("[ErrorBoundary] Full error object:", error);
-      componentStack: info.componentStack,
-    });
 
     // Known browser translation / extension DOM mutation errors (Radix/React portals)
     const isRecoverableDomMutationError = /notfounderror|removechild|insertbefore|node to be removed is not a child/i.test(signature);
