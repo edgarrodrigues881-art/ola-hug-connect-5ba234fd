@@ -1627,34 +1627,29 @@ const Devices = () => {
                   </Label>
                   <input ref={wpFileRef} type="file" accept="image/*" className="hidden" onChange={handleWpPhotoUpload} />
                   <div className="flex justify-center py-1">
-                    <div
-                      className="relative group cursor-pointer"
-                      onClick={() => { if (!wpPhotoUrl && !wpRemovePhoto) wpFileRef.current?.click(); }}
-                    >
-                      {wpPhotoUrl && !wpRemovePhoto ? (
-                        <>
-                          <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/20 shadow-lg" />
-                          <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); wpFileRef.current?.click(); }} title="Trocar foto">
-                              <Camera className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-destructive/40" onClick={(e) => { e.stopPropagation(); setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
-                              <XCircle className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors"
-                          onClick={() => wpFileRef.current?.click()}
-                        >
-                          <Camera className="w-5 h-5 text-muted-foreground/70 mb-0.5" />
-                          <span className="text-[10px] text-muted-foreground/70 font-medium">
-                            {wpRemovePhoto ? "Removida" : "Escolher"}
-                          </span>
+                    {wpPhotoUrl && !wpRemovePhoto ? (
+                      <div className="relative group">
+                        <img src={wpPhotoUrl} alt="Foto" className="w-20 h-20 rounded-full object-cover ring-[3px] ring-primary/20 shadow-lg" />
+                        <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => wpFileRef.current?.click()} title="Trocar foto">
+                            <Camera className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-destructive/40" onClick={() => { setWpPhotoUrl(""); setWpPhotoBase64(""); setWpRemovePhoto(true); }} title="Remover foto">
+                            <XCircle className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="w-20 h-20 rounded-full border-2 border-dashed border-border/40 flex flex-col items-center justify-center hover:border-primary/30 transition-colors cursor-pointer"
+                        onClick={() => wpFileRef.current?.click()}
+                      >
+                        <Camera className="w-5 h-5 text-muted-foreground/70 mb-0.5" />
+                        <span className="text-[10px] text-muted-foreground/70 font-medium">
+                          {wpRemovePhoto ? "Removida" : "Escolher"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
