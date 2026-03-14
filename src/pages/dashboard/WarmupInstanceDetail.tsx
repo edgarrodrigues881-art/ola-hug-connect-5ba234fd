@@ -772,7 +772,7 @@ const WarmupInstanceDetail = () => {
     };
 
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length, liveDeviceGroups]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, liveDeviceGroups]);
 
   /* handlers */
   const handleStartWarmup = () => {
