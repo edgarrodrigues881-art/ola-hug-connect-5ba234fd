@@ -559,7 +559,7 @@ async function handleTick(db: any) {
       const { data: joinedRecords } = await db.from("warmup_instance_groups")
         .select("device_id, group_id")
         .in("device_id", deviceIds)
-        .eq("join_status", "joined");
+        .in("join_status", ["joined", "left"]);
       if (joinedRecords && joinedRecords.length > 0) {
         const joinedSet = new Set(joinedRecords.map((r: any) => `${r.device_id}:${r.group_id}`));
         const toReconcile = staleJoinJobs
