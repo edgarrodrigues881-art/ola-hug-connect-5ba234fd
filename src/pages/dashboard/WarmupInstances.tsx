@@ -235,7 +235,16 @@ const WarmupInstances = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id").eq("user_id", user!.id).order("created_at", { ascending: true }).order("id", { ascending: true });
       if (error) throw error;
-      return data || [];
+      // Sort by name numerically (e.g. "Instância 1" before "Instância 10")
+      return (data || []).sort((a, b) => {
+        const tA = new Date(a.created_at || 0).getTime();
+        const tB = new Date(b.created_at || 0).getTime();
+        if (tA !== tB) return tA - tB;
+        const numA = parseInt(a.name.match(/(\d+)$/)?.[1] || "0", 10);
+        const numB = parseInt(b.name.match(/(\d+)$/)?.[1] || "0", 10);
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      });
     },
     enabled: !!user,
   });
