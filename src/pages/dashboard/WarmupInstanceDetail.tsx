@@ -1400,7 +1400,7 @@ const WarmupInstanceDetail = () => {
                       const runAt = new Date(job.run_at);
                       const payload = (job.payload || {}) as { group_name?: string };
                       const groupName = payload.group_name || `Grupo ${index + 1}`;
-                      return `Grupo ${index + 1} (${groupName}) vai entrar às ${formatBrtHour(runAt)} (${formatOffsetFromStart(runAt)})`;
+                      return `Grupo ${index + 1} (${groupName}) vai entrar às ${formatBrtHour(runAt)}`;
                     });
 
                   const getCycleStartedDetail = (rawMessage: string) => {
