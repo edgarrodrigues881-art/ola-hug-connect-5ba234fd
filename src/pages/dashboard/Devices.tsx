@@ -1571,8 +1571,8 @@ const Devices = () => {
           <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-4">
-              {editingDevice?.profile_picture ? (
-                <img src={editingDevice.profile_picture} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0" />
+              {editHeaderPhoto ? (
+                <img src={editHeaderPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0" />
               ) : (
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                   <Pencil className="w-5 h-5 text-primary" />
