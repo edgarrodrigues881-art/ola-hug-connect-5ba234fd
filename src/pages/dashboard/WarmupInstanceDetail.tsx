@@ -764,32 +764,23 @@ const WarmupInstanceDetail = () => {
       .map((job) => job.id);
 
     const reconcileJoinJobs = async () => {
-      const promises: Promise<any>[] = [];
-
       if (toSucceed.length > 0) {
-        promises.push(
-          supabase
-            .from("warmup_jobs")
-            .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
-            .in("id", toSucceed)
-            .eq("status", "pending")
-            .then()
-        );
+        await supabase
+          .from("warmup_jobs")
+          .update({ status: "succeeded", last_error: "Auto-reconciliado: grupo já reconhecido" })
+          .in("id", toSucceed)
+          .eq("status", "pending");
       }
 
       if (toAntecipate.length > 0) {
-        promises.push(
-          supabase
-            .from("warmup_jobs")
-            .update({ run_at: new Date(Date.now() - 60000).toISOString() })
-            .in("id", toAntecipate)
-            .eq("status", "pending")
-            .then()
-        );
+        await supabase
+          .from("warmup_jobs")
+          .update({ run_at: new Date(Date.now() - 60000).toISOString() })
+          .in("id", toAntecipate)
+          .eq("status", "pending");
       }
 
-      if (promises.length > 0) {
-        await Promise.all(promises);
+      if (toSucceed.length > 0 || toAntecipate.length > 0) {
         queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
       }
     };
