@@ -1522,8 +1522,8 @@ const WarmupInstanceDetail = () => {
                   const chipState = cycle?.chip_state || "new";
                   const groupsEndDay = chipState === "unstable" ? 6 : 4;
                   const getDayPhaseLabel = (day: number) => {
-                    if (day === 1) return "Proteção inicial + entrada nos grupos";
-                    if (day <= groupsEndDay) return "Interações em grupos";
+                    if (day === 1) return "Proteção + entrada nos grupos";
+                    if (day <= groupsEndDay) return "Mensagens em grupos";
                     if (day === groupsEndDay + 1) return "Auto Save ativado";
                     return "Comunidade + Auto Save";
                   };
