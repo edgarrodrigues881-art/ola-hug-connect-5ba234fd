@@ -1355,6 +1355,16 @@ const Devices = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {devices.filter(d => d.status === "Ready").length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-8 px-3 border-border/40"
+              onClick={openBulkProfileDialog}
+            >
+              <UserCircle className="w-3.5 h-3.5" /> Perfil em massa
+            </Button>
+          )}
           {selectedDevices.length > 0 && (
             <Button size="sm" variant="destructive" className="gap-1 text-xs h-7" onClick={() => setDeleteSelectedOpen(true)}>
               <Trash2 className="w-3 h-3" /> {selectedDevices.length}
