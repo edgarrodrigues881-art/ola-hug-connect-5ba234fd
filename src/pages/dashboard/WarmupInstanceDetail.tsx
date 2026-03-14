@@ -1670,7 +1670,7 @@ const WarmupInstanceDetail = () => {
                           : null;
 
                         return (
-                          <div key={day} className={cn("border-b border-border/10 last:border-0", isFuture && "opacity-40")}>
+                          <div key={day} className={cn("border-b border-border/8 last:border-0", isFuture && "opacity-35")}>
                             <button
                               onClick={() => {
                                 setExpandedDays(prev => {
@@ -1680,19 +1680,19 @@ const WarmupInstanceDetail = () => {
                                 });
                               }}
                               className={cn(
-                                "w-full px-5 py-3 flex items-center gap-3 hover:bg-muted/20 transition-colors",
-                                isActive && "bg-muted/10"
+                                "w-full px-6 py-4 flex items-center gap-3 hover:bg-muted/15 transition-all",
+                                isActive && "bg-primary/5 border-l-2 border-l-primary"
                               )}
                             >
                               <ChevronDown className={cn(
-                                "w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0",
+                                "w-4 h-4 text-muted-foreground transition-transform shrink-0",
                                 isExpanded && "rotate-180"
                               )} />
                               <div className="flex-1 text-left min-w-0">
-                                <span className={cn("text-xs font-bold", isActive ? "text-primary" : isFuture ? "text-muted-foreground" : "text-foreground")}>
+                                <span className={cn("text-sm font-extrabold", isActive ? "text-primary" : isFuture ? "text-muted-foreground" : "text-foreground")}>
                                   Dia {day}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground/60 ml-2">{getDayPhaseLabel(day)}</span>
+                                <span className="text-[11px] text-muted-foreground/50 ml-2.5 font-medium">{getDayPhaseLabel(day)}</span>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {statusBadge}
