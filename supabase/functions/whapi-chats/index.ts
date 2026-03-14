@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Get device config
     const { data: device } = await serviceClient
       .from("devices")
-      .select("uazapi_token, uazapi_base_url")
+      .select("uazapi_token, uazapi_base_url, number")
       .eq("id", deviceId)
       .eq("user_id", userId)
       .single();
@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
       const forceRefresh = url.searchParams.get("refresh") === "true";
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
+      let primaryFetchSucceeded = false;
+      let fallbackFetchSucceeded = false;
+      const deviceDigits = String(device?.number || "").replace(/\D/g, "");
 
       const fetchSafe = async (endpoint: string, retries = 2, method = "GET", body?: any): Promise<any> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
@@ -120,6 +123,19 @@ Deno.serve(async (req) => {
         return null;
       };
 
+      const normalizeDigits = (value: string) => value.replace(/\D/g, "");
+
+      const matchesDeviceNumber = (value?: string | null): boolean => {
+        if (!value || !deviceDigits) return false;
+        const candidate = normalizeDigits(String(value));
+        if (!candidate) return false;
+
+        const minLen = 10;
+        const a = candidate.length > minLen ? candidate.slice(-minLen) : candidate;
+        const b = deviceDigits.length > minLen ? deviceDigits.slice(-minLen) : deviceDigits;
+        return a === b;
+      };
+
       const addGroups = (items: any[]) => {
         for (const g of items) {
           const jid = g.JID || g.jid || g.id || g.groupJid || g.chatId || "";
@@ -128,6 +144,29 @@ Deno.serve(async (req) => {
             allGroups.push(g);
           }
         }
+      };
+
+      const groupHasDeviceAsParticipant = (group: any): boolean => {
+        if (!deviceDigits) return true;
+
+        const participants = group?.Participants || group?.participants || [];
+        if (Array.isArray(participants) && participants.length > 0) {
+          const participantMatch = participants.some((p: any) => {
+            if (typeof p === "string") return matchesDeviceNumber(p);
+            return matchesDeviceNumber(p?.JID) ||
+              matchesDeviceNumber(p?.jid) ||
+              matchesDeviceNumber(p?.id) ||
+              matchesDeviceNumber(p?.PN) ||
+              matchesDeviceNumber(p?.phone) ||
+              matchesDeviceNumber(p?.number);
+          });
+          if (participantMatch) return true;
+        }
+
+        return matchesDeviceNumber(group?.OwnerPN) ||
+          matchesDeviceNumber(group?.ownerPN) ||
+          matchesDeviceNumber(group?.OwnerJID) ||
+          matchesDeviceNumber(group?.ownerJid);
       };
 
       // ─── S-1: Wake up session before listing (always) ───
@@ -188,12 +227,14 @@ Deno.serve(async (req) => {
       const fetchGroupListPaginated = async (tag: string) => {
         for (let page = 0; page < 10; page++) {
           try {
-            const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=false&page=${page}&count=200`, { headers: apiHeaders });
+            const rawRes = await fetch(`${apiBaseUrl}/group/list?GetParticipants=true&page=${page}&count=200`, { headers: apiHeaders });
             const rawText = await rawRes.text();
             if (page === 0) {
               console.log(`[${tag}-RAW][${deviceId}] Status: ${rawRes.status}, Body (500 chars): ${rawText.substring(0, 500)}`);
             }
             if (!rawRes.ok) break;
+
+            primaryFetchSucceeded = true;
 
             const data = JSON.parse(rawText);
             const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
@@ -224,22 +265,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ─── S1b: /group/list with getParticipants=true (different response shape) ───
-      if (allGroups.length < 5) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?count=500`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
+      // Fallbacks only if primary endpoint failed (avoid mixing stale historical sources)
+      if (!primaryFetchSucceeded) {
+        // ─── S1b: /group/list with count ───
+        const dataS1b = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=true&count=500`, 1);
+        if (dataS1b) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS1b.groups || dataS1b.data || dataS1b) ? (dataS1b.groups || dataS1b.data || dataS1b) : [];
           const prev = seenJids.size;
           addGroups(arr);
           console.log(`[S1b] alt group/list: ${arr.length} ret, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S1c: /chats with filter (UaZapi V2 alternative) ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/chats?type=group&count=500`, 1);
-        if (data) {
-          const arr = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+        // ─── S1c: /chats with filter (UaZapi V2 alternative) ───
+        const dataS1c = await fetchSafe(`${apiBaseUrl}/chats?type=group&count=500`, 1);
+        if (dataS1c) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS1c.chats || dataS1c.data || dataS1c) ? (dataS1c.chats || dataS1c.data || dataS1c) : [];
           const groupArr = arr.filter((c: any) => {
             const id = c.JID || c.jid || c.id || c.chatId || "";
             return id.includes("@g.us");
@@ -248,35 +290,34 @@ Deno.serve(async (req) => {
           addGroups(groupArr);
           console.log(`[S1c] /chats?type=group: ${arr.length} total, ${groupArr.length} groups, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S2: /group/fetchAllGroups (UaZapi V2 - forces fresh fetch from WA) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S2] fetchAllGroups: ${arr.length} ret, ${seenJids.size - prev} new`);
+        // ─── S2: /group/fetchAllGroups ───
+        if (forceRefresh) {
+          const dataS2 = await fetchSafe(`${apiBaseUrl}/group/fetchAllGroups`, 1);
+          if (dataS2) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS2.groups || dataS2) ? (dataS2.groups || dataS2) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S2] fetchAllGroups: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
         }
-      }
 
-      // ─── S3: /group/listAll ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/group/listAll`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
+        // ─── S3: /group/listAll ───
+        const dataS3 = await fetchSafe(`${apiBaseUrl}/group/listAll`, 1);
+        if (dataS3) {
+          fallbackFetchSucceeded = true;
+          const arr = Array.isArray(dataS3.groups || dataS3) ? (dataS3.groups || dataS3) : [];
           const prev = seenJids.size;
           addGroups(arr);
           console.log(`[S3] listAll: ${arr.length} ret, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S4: /chat/list filtering @g.us ───
-      {
-        const data = await fetchSafe(`${apiBaseUrl}/chat/list?count=500`, 1);
-        if (data) {
-          const chats = Array.isArray(data.chats || data.data || data) ? (data.chats || data.data || data) : [];
+        // ─── S4: /chat/list filtering @g.us ───
+        const dataS4 = await fetchSafe(`${apiBaseUrl}/chat/list?count=500`, 1);
+        if (dataS4) {
+          fallbackFetchSucceeded = true;
+          const chats = Array.isArray(dataS4.chats || dataS4.data || dataS4) ? (dataS4.chats || dataS4.data || dataS4) : [];
           const groups = chats.filter((c: any) => {
             const id = c.JID || c.jid || c.id || c.chatId || "";
             return id.includes("@g.us");
@@ -285,34 +326,41 @@ Deno.serve(async (req) => {
           addGroups(groups);
           console.log(`[S4] chat/list: ${chats.length} chats, ${groups.length} groups, ${seenJids.size - prev} new`);
         }
-      }
 
-      // ─── S5: /group/list with huge count (bypass pagination) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=false&count=9999`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data) ? (data.groups || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S5] big count: ${arr.length} ret, ${seenJids.size - prev} new`);
+        // ─── S5: /group/list huge count ───
+        if (forceRefresh) {
+          const dataS5 = await fetchSafe(`${apiBaseUrl}/group/list?GetParticipants=true&count=9999`, 1);
+          if (dataS5) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS5.groups || dataS5) ? (dataS5.groups || dataS5) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S5] big count: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
+        }
+
+        // ─── S6: /group/participating ───
+        if (forceRefresh) {
+          const dataS6 = await fetchSafe(`${apiBaseUrl}/group/participating`, 1);
+          if (dataS6) {
+            fallbackFetchSucceeded = true;
+            const arr = Array.isArray(dataS6.groups || dataS6.data || dataS6) ? (dataS6.groups || dataS6.data || dataS6) : [];
+            const prev = seenJids.size;
+            addGroups(arr);
+            console.log(`[S6] participating: ${arr.length} ret, ${seenJids.size - prev} new`);
+          }
         }
       }
 
-      // ─── S6: /group/participating (another UaZapi V2 endpoint) ───
-      if (forceRefresh) {
-        const data = await fetchSafe(`${apiBaseUrl}/group/participating`, 1);
-        if (data) {
-          const arr = Array.isArray(data.groups || data.data || data) ? (data.groups || data.data || data) : [];
-          const prev = seenJids.size;
-          addGroups(arr);
-          console.log(`[S6] participating: ${arr.length} ret, ${seenJids.size - prev} new`);
-        }
-      }
+      console.log(`[${deviceId}] Total unique groups (raw): ${allGroups.length}`);
 
-      console.log(`[${deviceId}] Total unique groups: ${allGroups.length}`);
+      const authoritativeGroups = allGroups.filter((g) => groupHasDeviceAsParticipant(g));
+      if (authoritativeGroups.length !== allGroups.length) {
+        console.log(`[${deviceId}] Filtered by participant ownership: ${authoritativeGroups.length}/${allGroups.length}`);
+      }
 
       // Map to standardized format
-      let chats = allGroups.map((g: any) => ({
+      let chats = authoritativeGroups.map((g: any) => ({
         id: g.JID || g.jid || g.id || g.groupJid || "",
         name: g.Name || g.name || g.Subject || g.subject || g.groupName || "",
         participants: g.ParticipantCount || g.Participants?.length || g.participants?.length || g.participantsCount || g.size || undefined,
@@ -358,7 +406,8 @@ Deno.serve(async (req) => {
         chats = chats.map(c => ({ ...c, name: c.name || c.id || "Grupo sem nome" }));
       }
 
-      return new Response(JSON.stringify({ chats }), {
+      const syncOk = primaryFetchSucceeded || fallbackFetchSucceeded;
+      return new Response(JSON.stringify({ chats, sync_ok: syncOk }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

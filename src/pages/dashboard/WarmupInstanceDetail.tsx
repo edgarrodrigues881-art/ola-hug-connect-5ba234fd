@@ -515,21 +515,21 @@ const WarmupInstanceDetail = () => {
   // Determine if we need live group data at all
   const hasActiveGroupTracking = instanceGroups.length > 0 && cycle?.is_running;
 
-  const { data: liveDeviceGroups = [] } = useQuery<{ id: string; name: string }[]>({
+  const { data: liveGroupsResult = { groups: [], syncOk: false } } = useQuery<{ groups: { id: string; name: string }[]; syncOk: boolean }>({
     queryKey: ["warmup_live_groups", deviceId, hasPendingGroupJobs],
     queryFn: async () => {
-      if (!deviceId) return [];
+      if (!deviceId) return { groups: [], syncOk: false };
       try {
         const { data: session } = await supabase.auth.getSession();
         const token = session?.session?.access_token;
-        if (!token) return [];
+        if (!token) return { groups: [], syncOk: false };
 
         const refreshParam = hasPendingGroupJobs ? "&refresh=true" : "";
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whapi-chats?action=list_chats&device_id=${deviceId}&count=200${refreshParam}`,
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
         );
-        if (!res.ok) return [];
+        if (!res.ok) return { groups: [], syncOk: false };
 
         const json = await res.json();
         const chats = Array.isArray(json?.chats) ? json.chats : [];
@@ -542,9 +542,12 @@ const WarmupInstanceDetail = () => {
           if (!dedup.has(id)) dedup.set(id, { id, name });
         }
 
-        return Array.from(dedup.values());
+        return {
+          groups: Array.from(dedup.values()),
+          syncOk: json?.sync_ok === true,
+        };
       } catch {
-        return [];
+        return { groups: [], syncOk: false };
       }
     },
     // Only poll when connected AND we have groups to track
@@ -554,45 +557,8 @@ const WarmupInstanceDetail = () => {
     staleTime: hasPendingGroupJobs ? 10_000 : 60_000,
   });
 
-  const { data: joinEvidence = [] } = useQuery<{ group_name: string | null; group_link: string | null }[]>({
-    queryKey: ["warmup_group_join_evidence", deviceId],
-    queryFn: async () => {
-      if (!deviceId) return [];
-
-      // Source 1: group_join_logs
-      const { data: logs } = await supabase
-        .from("group_join_logs")
-        .select("group_name, group_link")
-        .eq("device_id", deviceId)
-        .in("result", ["success", "already_member"])
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      // Source 2: warmup_audit_logs with event_type=group_joined (from warmup-tick)
-      const { data: auditLogs } = await supabase
-        .from("warmup_audit_logs")
-        .select("meta")
-        .eq("device_id", deviceId)
-        .eq("event_type", "group_joined")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      const results: { group_name: string | null; group_link: string | null }[] = [];
-      if (logs) results.push(...logs);
-      if (auditLogs) {
-        for (const al of auditLogs) {
-          const meta = al.meta as any;
-          if (meta?.group_name) {
-            results.push({ group_name: meta.group_name, group_link: null });
-          }
-        }
-      }
-      return results;
-    },
-    enabled: !!user && !!deviceId,
-    refetchInterval: hasPendingGroupJobs ? 15000 : 30000,
-    staleTime: hasPendingGroupJobs ? 8000 : 15000,
-  });
+  const liveDeviceGroups = liveGroupsResult.groups;
+  const liveGroupsSyncOk = liveGroupsResult.syncOk;
 
   const { data: poolGroups = [] } = useQuery<{ id: string; name: string; external_group_ref: string | null }[]>({
     queryKey: ["warmup_pool_groups_for_counter"],
@@ -650,32 +616,18 @@ const WarmupInstanceDetail = () => {
       if (normalized && !liveNameToJid.has(normalized)) liveNameToJid.set(normalized, g.id);
     }
 
-    const evidenceNames = new Set(
-      joinEvidence
-        .map((item) => normalizeGroupName(item.group_name))
-        .filter(Boolean)
-    );
-    const evidenceLinks = new Set(
-      joinEvidence
-        .map((item) => normalizeInviteLink(item.group_link))
-        .filter(Boolean)
-    );
+    if (!liveGroupsSyncOk) return;
 
     const toPromote = instanceGroups
       .filter((g) => g.join_status !== "joined")
       .map((g) => {
         const poolName = g.warmup_groups_pool?.name;
-        const poolLink = g.warmup_groups_pool?.external_group_ref;
 
         const byJid = g.group_jid && liveJids.has(g.group_jid) ? g.group_jid : null;
         const byName = poolName ? liveNameToJid.get(normalizeGroupName(poolName)) || null : null;
-        const byEvidenceName = poolName ? evidenceNames.has(normalizeGroupName(poolName)) : false;
-        const byEvidenceLink = poolLink ? evidenceLinks.has(normalizeInviteLink(poolLink)) : false;
 
         const matchedJid = byJid || byName;
-        const hasEvidence = byEvidenceName || byEvidenceLink;
-
-        if (!matchedJid && !hasEvidence) return null;
+        if (!matchedJid) return null;
         return { id: g.id, matchedJid };
       })
       .filter((g): g is { id: string; matchedJid: string | null } => !!g);
@@ -704,14 +656,13 @@ const WarmupInstanceDetail = () => {
     };
 
     void syncRecognizedGroups();
-  }, [deviceId, instanceGroups, liveDeviceGroups, joinEvidence, queryClient]);
+  }, [deviceId, instanceGroups, liveDeviceGroups, liveGroupsSyncOk, queryClient]);
 
   // Reverse sync: demote groups marked 'joined' that are no longer on the device
   useEffect(() => {
     if (!deviceId || instanceGroups.length === 0) return;
-    // Only run reverse sync when we have a meaningful live groups response
-    // (at least 1 group visible means the API is responding)
-    if (liveDeviceGroups.length === 0) return;
+    // Only run reverse sync when live synchronization is confirmed
+    if (!liveGroupsSyncOk) return;
 
     const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
     const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
@@ -746,23 +697,22 @@ const WarmupInstanceDetail = () => {
     };
 
     void demoteGroups();
-  }, [deviceId, instanceGroups, liveDeviceGroups, queryClient]);
+  }, [deviceId, instanceGroups, liveDeviceGroups, liveGroupsSyncOk, queryClient]);
 
   // Reconcilia jobs pendentes: marca como succeeded SOMENTE se grupo confirmado via lista real do WhatsApp
   // Evidências históricas NÃO são usadas aqui para evitar auto-succeed de grupos que foram removidos
   useEffect(() => {
     if (!cycle?.id || scheduledJobs.length === 0) return;
+    if (!liveGroupsSyncOk) return;
 
-    // Only use live device groups for job reconciliation (NOT evidence)
-    const liveJids = new Set(liveDeviceGroups.map(g => g.id));
-    const liveNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
+    const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
+    const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
 
     const isGroupOnDevice = (groupId: string): boolean => {
-      const rec = instanceGroups.find(g => g.group_id === groupId);
+      const rec = instanceGroups.find((g) => g.group_id === groupId);
       if (!rec) return false;
-      // Check by JID
       if (rec.group_jid && liveJids.has(rec.group_jid)) return true;
-      // Check by name (fuzzy)
+
       const poolName = rec.warmup_groups_pool?.name;
       if (poolName) {
         const norm = normalizeGroupName(poolName);
@@ -771,6 +721,7 @@ const WarmupInstanceDetail = () => {
           if (ln && norm && ln.length >= 4 && norm.length >= 4 && (ln.includes(norm) || norm.includes(ln))) return true;
         }
       }
+
       return false;
     };
 
@@ -779,14 +730,8 @@ const WarmupInstanceDetail = () => {
     );
     if (pendingJoinJobs.length === 0) return;
 
-    const expectedGroups = poolGroups.length > 0 ? poolGroups.length : 8;
-    const liveGroupCount = liveDeviceGroups.length;
-    const allExpectedGroupsOnDevice = liveGroupCount >= expectedGroups;
-
-    // Jobs to mark as succeeded (group confirmed on device via live API)
     const toSucceed = pendingJoinJobs
       .filter((job) => {
-        if (allExpectedGroupsOnDevice) return true;
         const payload = (job.payload && typeof job.payload === "object")
           ? (job.payload as { group_id?: string })
           : {};
@@ -794,12 +739,11 @@ const WarmupInstanceDetail = () => {
       })
       .map((job) => job.id);
 
-    // Jobs still pending but scheduled in the future — antecipate run_at so tick picks them up
     const nowIso = new Date().toISOString();
     const toAntecipate = pendingJoinJobs
       .filter((job) => {
         if (toSucceed.includes(job.id)) return false;
-        return job.run_at > nowIso; // scheduled in the future
+        return job.run_at > nowIso;
       })
       .map((job) => job.id);
 
@@ -826,7 +770,7 @@ const WarmupInstanceDetail = () => {
     };
 
     void reconcileJoinJobs();
-  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, poolGroups.length, liveDeviceGroups]);
+  }, [cycle?.id, instanceGroups, scheduledJobs, queryClient, liveDeviceGroups, liveGroupsSyncOk]);
 
   /* handlers */
   const handleStartWarmup = () => {
@@ -900,82 +844,39 @@ const WarmupInstanceDetail = () => {
 
   const counterGroups = Array.from(byGroupId.values());
 
-  const joinedDbGroupIds = new Set(
-    instanceGroups
-      .filter((g) => g.join_status === "joined")
-      .map((g) => g.group_id)
-  );
-
   const trackedGroupIds = new Set(counterGroups.map(g => g.group_id));
   const liveGroupJids = new Set(liveDeviceGroups.map(g => g.id));
   const liveGroupNames = new Set(liveDeviceGroups.map(g => normalizeGroupName(g.name)));
-  const evidenceGroupNames = new Set(joinEvidence.map(g => normalizeGroupName(g.group_name)).filter(Boolean));
-  const evidenceGroupLinks = new Set(joinEvidence.map(g => normalizeInviteLink(g.group_link)).filter(Boolean));
 
-  // When we have live data, only count groups that are actually present on the device
-  const hasLiveData = liveDeviceGroups.length > 0;
-
+  // Strict mode: only count groups confirmed by live sync
   const recognizedGroupIds = new Set(
-    counterGroups
-      .filter((g) => {
-        // If status is 'left', never count as recognized
-        if (g.join_status === "left") return false;
+    !liveGroupsSyncOk
+      ? []
+      : counterGroups
+          .filter((g) => {
+            if (g.join_status === "left") return false;
+            if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
 
-        // If we have live data, require the group to be visible on the device
-        if (hasLiveData) {
-          if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
-          const groupName = g.warmup_groups_pool?.name;
-          if (groupName) {
+            const groupName = g.warmup_groups_pool?.name;
+            if (!groupName) return false;
+
             const normalizedName = normalizeGroupName(groupName);
             if (liveGroupNames.has(normalizedName)) return true;
+
             for (const liveName of liveGroupNames) {
               if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
                 if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
               }
             }
-          }
-          return false;
-        }
 
-        // No live data — fall back to DB status + evidence
-        if (g.join_status === "joined") return true;
-        if (g.group_jid && liveGroupJids.has(g.group_jid)) return true;
-
-        const groupName = g.warmup_groups_pool?.name;
-        if (groupName) {
-          const normalizedName = normalizeGroupName(groupName);
-          if (liveGroupNames.has(normalizedName) || evidenceGroupNames.has(normalizedName)) return true;
-          for (const liveName of liveGroupNames) {
-            if (liveName && normalizedName && liveName.length >= 4 && normalizedName.length >= 4) {
-              if (liveName.includes(normalizedName) || normalizedName.includes(liveName)) return true;
-            }
-          }
-        }
-
-        const groupLink = g.warmup_groups_pool?.external_group_ref;
-        if (groupLink && evidenceGroupLinks.has(normalizeInviteLink(groupLink))) return true;
-
-        return false;
-      })
-      .map((g) => g.group_id)
+            return false;
+          })
+          .map((g) => g.group_id)
   );
 
   const totalTrackedGroups = trackedGroupIds.size > 0 ? trackedGroupIds.size : 8;
-
-  const pendingJoinJobsGroupIds = new Set(
-    (scheduledJobs || [])
-      .filter((job) => job.job_type === "join_group" && job.status === "pending")
-      .map((job) => {
-        const payload = (job.payload && typeof job.payload === "object")
-          ? (job.payload as { group_id?: string })
-          : {};
-        return payload.group_id || "";
-      })
-      .filter((gid) => gid && !joinedDbGroupIds.has(gid) && !recognizedGroupIds.has(gid))
-  );
-
-  const pendingGroups = pendingJoinJobsGroupIds.size;
-  const joinedGroups = Math.max(0, totalTrackedGroups - pendingGroups);
+  const joinedGroups = Math.min(recognizedGroupIds.size, totalTrackedGroups);
+  const pendingGroups = Math.max(0, totalTrackedGroups - joinedGroups);
 
   const pc = cycle ? phaseConfig[cycle.phase] || phaseConfig.pre_24h : null;
   const isTerminalCycle = cycle ? ["completed", "error"].includes(cycle.phase) : false;
@@ -1675,7 +1576,7 @@ const WarmupInstanceDetail = () => {
                         : {};
 
                       const effectiveStatus =
-                        job.status === "pending" && payload.group_id && (joinedDbGroupIds.has(payload.group_id) || recognizedGroupIds.has(payload.group_id))
+                        job.status === "pending" && payload.group_id && recognizedGroupIds.has(payload.group_id)
                           ? "succeeded"
                           : job.status;
 
