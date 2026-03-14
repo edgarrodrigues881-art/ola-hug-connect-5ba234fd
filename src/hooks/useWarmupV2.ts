@@ -51,7 +51,7 @@ export interface WarmupInstanceGroup {
   last_error: string | null;
   created_at: string;
   group_jid?: string | null;
-  warmup_groups_pool?: { name: string } | null;
+  warmup_groups_pool?: { name: string; external_group_ref?: string | null } | null;
 }
 
 export interface WarmupPlan {
