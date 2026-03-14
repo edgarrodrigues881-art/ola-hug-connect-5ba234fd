@@ -1,4 +1,4 @@
-// warmup-tick v3.5 — fixed image sending for UAZAPI v2
+// warmup-tick v4.0 — unified scheduleDayJobs with proper window scheduling
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
