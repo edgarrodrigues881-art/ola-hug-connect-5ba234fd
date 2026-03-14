@@ -1683,8 +1683,41 @@ const WarmupInstanceDetail = () => {
                                           <Loader2 className="w-3 h-3 text-primary animate-spin" />
                                         )}
                                       </div>
-                                      {item.detail && (
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 whitespace-pre-line break-words">{item.detail}</p>
+                                      {item.detail && !item.detailGroups && (
+                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">{item.detail}</p>
+                                      )}
+                                      {item.detail && item.detailGroups && (
+                                        <p className="text-[10px] text-muted-foreground/70 mt-1">{item.detail}</p>
+                                      )}
+                                      {item.detailGroups && item.detailGroups.length > 0 && (
+                                        <div className="mt-2 grid gap-1">
+                                          {item.detailGroups.map((g) => (
+                                            <div
+                                              key={g.index}
+                                              className={cn(
+                                                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border",
+                                                g.status === "done"
+                                                  ? "bg-emerald-500/5 border-emerald-500/15"
+                                                  : g.status === "failed"
+                                                  ? "bg-destructive/5 border-destructive/15"
+                                                  : "bg-muted/20 border-border/15"
+                                              )}
+                                            >
+                                              <span className="text-[10px]">
+                                                {g.status === "done" ? "✅" : g.status === "failed" ? "❌" : "📥"}
+                                              </span>
+                                              <span className={cn(
+                                                "text-[10px] font-medium flex-1 truncate",
+                                                g.status === "done" ? "text-emerald-400" : g.status === "failed" ? "text-destructive" : "text-foreground/80"
+                                              )}>
+                                                {g.name}
+                                              </span>
+                                              <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">
+                                                {g.time}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
                                       )}
                                     </div>
                                     <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 mt-0.5">
