@@ -701,12 +701,10 @@ async function ensureJoinGroupJobs(
 // Volume configuration
 // Groups: 50-120/day
 // AutoSave: 5 contacts × 3 rounds (from autosave_enabled phase onwards)
-// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs (conversation burst)
-// Status: 5 per day always
+// Community: progressive peers 3→5→10→…→40, each peer gets 30-50 msgs
 // ════════════════════════════════════════
 interface DayVolumes {
   groupMsgs: number;
-  statusPosts: number;
   autosaveContacts: number;
   autosaveRounds: number;
   communityPeers: number;
@@ -714,12 +712,11 @@ interface DayVolumes {
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
-  const v: DayVolumes = { groupMsgs: 0, statusPosts: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
+  const v: DayVolumes = { groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0, communityPeers: 0, communityMsgsPerPeer: 0 };
 
   if (phase === "pre_24h" || phase === "completed") return v;
 
   v.groupMsgs = randInt(50, 120);
-  v.statusPosts = 5;
 
   if (phase === "autosave_enabled" || phase === "community_enabled" || phase === "community_light") {
     v.autosaveContacts = 5;
