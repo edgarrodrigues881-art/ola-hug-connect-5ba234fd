@@ -1383,21 +1383,51 @@ const WarmupInstanceDetail = () => {
                     hour12: false,
                   }).format(date);
 
+                  const formatOffsetFromStart = (date: Date) => {
+                    if (!cycleStartedAt) return "após a janela de 4-6h";
+                    const diffMinutes = Math.max(0, Math.round((date.getTime() - cycleStartedAt.getTime()) / 60000));
+                    const hours = Math.floor(diffMinutes / 60);
+                    const minutes = diffMinutes % 60;
+                    if (hours > 0 && minutes > 0) return `após ${hours}h ${minutes}min`;
+                    if (hours > 0) return `após ${hours}h`;
+                    return `após ${minutes}min`;
+                  };
+
                   const joinScheduleForDay1 = (scheduledJobs || [])
                     .filter((job) => job.job_type === "join_group")
                     .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())
                     .map((job, index) => {
+                      const runAt = new Date(job.run_at);
                       const payload = (job.payload || {}) as { group_name?: string };
                       const groupName = payload.group_name || `Grupo ${index + 1}`;
-                      return `Grupo ${index + 1}: ${groupName} às ${formatBrtHour(new Date(job.run_at))}`;
+                      return `Grupo ${index + 1} (${groupName}) vai entrar às ${formatBrtHour(runAt)} (${formatOffsetFromStart(runAt)})`;
                     });
 
-                  const getCycleStartedDetail = () => {
+                  const getCycleStartedDetail = (rawMessage: string) => {
                     const intro = "Entre 4 e 6 horas começa a entrar nos grupos.";
-                    if (joinScheduleForDay1.length === 0) {
-                      return intro;
+                    if (joinScheduleForDay1.length > 0) {
+                      return `${intro}\n${joinScheduleForDay1.join("\n")}`;
                     }
-                    return `${intro}\n${joinScheduleForDay1.join("\n")}`;
+
+                    const agendaFromLog = rawMessage.split("Agenda:")[1]?.trim();
+                    if (agendaFromLog) {
+                      const parsedLines = agendaFromLog
+                        .split("|")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line) => {
+                          const match = line.match(/^Grupo\s*(\d+):\s*(.+?)\s+às\s+(\d{2}:\d{2})$/i);
+                          if (!match) return line;
+                          const [, number, name, time] = match;
+                          return `Grupo ${number} (${name}) vai entrar às ${time} (após a janela de 4-6h)`;
+                        });
+
+                      if (parsedLines.length > 0) {
+                        return `${intro}\n${parsedLines.join("\n")}`;
+                      }
+                    }
+
+                    return intro;
                   };
 
                   // Past items from audit logs (only current + past warmup days)
