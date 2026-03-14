@@ -1376,8 +1376,23 @@ const WarmupInstanceDetail = () => {
 
                   const items: TimelineItem[] = [];
 
-                  // Past items from audit logs
+                  // Past items from audit logs (only current + past warmup days)
                   for (const log of auditLogs) {
+                    // Filter out logs from future warmup days
+                    if (cycleStartedAt) {
+                      const logTime = new Date(log.created_at);
+                      const toBrtDateStr = (d: Date) => new Intl.DateTimeFormat("en-CA", {
+                        timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+                      }).format(d);
+                      const startBrt = toBrtDateStr(cycleStartedAt);
+                      const logBrt = toBrtDateStr(logTime);
+                      const sp = startBrt.split("-").map(Number);
+                      const lp = logBrt.split("-").map(Number);
+                      const diffMs = new Date(lp[0], lp[1]-1, lp[2]).getTime() - new Date(sp[0], sp[1]-1, sp[2]).getTime();
+                      const logWarmupDay = Math.max(1, Math.round(diffMs / 86400000) + 1);
+                      if (logWarmupDay > (cycle?.day_index ?? 1)) continue;
+                    }
+
                     const iconMap: Record<string, string> = {
                       cycle_started: "🚀", cycle_paused: "⏸️", cycle_resumed: "▶️",
                       group_joined: "✅", group_msg_sent: "💬", autosave_msg_sent: "📱",
@@ -1419,15 +1434,31 @@ const WarmupInstanceDetail = () => {
                   };
 
                   // Only show jobs for current day or past days (not future days)
+                  const currentDayIdx = cycle?.day_index ?? 1;
+                  const toBrtDate = (d: Date) => new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+                  }).format(d);
+                  const cycleStartBrt = cycleStartedAt ? toBrtDate(cycleStartedAt) : null;
+
+                  const getWarmupDayBrt = (d: Date) => {
+                    if (!cycleStartBrt || !cycleStartedAt) return 1;
+                    // Simple day diff using BRT date strings
+                    const dBrt = toBrtDate(d);
+                    const startParts = cycleStartBrt.split("-").map(Number);
+                    const dParts = dBrt.split("-").map(Number);
+                    const startDate = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+                    const curDate = new Date(dParts[0], dParts[1] - 1, dParts[2]);
+                    const diffDays = Math.round((curDate.getTime() - startDate.getTime()) / 86400000);
+                    return Math.max(1, diffDays + 1);
+                  };
+
                   for (const job of scheduledJobs) {
                     if (job.status === "cancelled") continue;
-                    if (job.status === "succeeded") continue; // already in audit logs
+                    if (job.status === "succeeded") continue;
 
                     // Skip jobs scheduled for future warmup days
-                    if (cycleStartedAt) {
-                      const jobDay = Math.max(1, differenceInCalendarDays(new Date(job.run_at), cycleStartedAt) + 1);
-                      if (jobDay > (cycle?.day_index ?? 1)) continue;
-                    }
+                    const jobWarmupDay = getWarmupDayBrt(new Date(job.run_at));
+                    if (jobWarmupDay > currentDayIdx) continue;
 
                     const groupName = job.payload && typeof job.payload === "object" && "group_name" in (job.payload as any)
                       ? (job.payload as any).group_name : null;
@@ -1480,8 +1511,7 @@ const WarmupInstanceDetail = () => {
                   const getDayLabel = (dayKey: string) => {
                     const firstItem = dayBuckets[dayKey][0];
                     if (!cycleStartedAt) return dayKey;
-                    const diff = differenceInCalendarDays(firstItem.time, cycleStartedAt) + 1;
-                    const warmupDay = Math.max(1, diff);
+                    const warmupDay = getWarmupDayBrt(firstItem.time);
 
                     // Check if this day was manually skipped
                     const wasSkipped = dayBuckets[dayKey].some(
