@@ -943,6 +943,97 @@ const Devices = () => {
     }
   };
 
+  // Bulk profile update handlers
+  const handleBulkProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `profile-pictures/${user.id}/bulk-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+      setBulkProfilePhotoPublicUrl(urlData.publicUrl);
+      setBulkProfilePhotoUrl(URL.createObjectURL(file));
+      setBulkProfileRemovePhoto(false);
+      toast({ title: "Foto carregada" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
+    } finally {
+      if (bulkProfileFileRef.current) bulkProfileFileRef.current.value = "";
+    }
+  };
+
+  const handleBulkProfileUpdate = async () => {
+    if (!bulkProfileName.trim() && !bulkProfilePhotoPublicUrl && !bulkProfileRemovePhoto) {
+      toast({ title: "Preencha ao menos um campo (nome ou foto)", variant: "destructive" });
+      return;
+    }
+    if (bulkProfileSelectedIds.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+    setBulkProfileSaving(true);
+    const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && d.status === "Ready");
+    if (targetDevices.length === 0) {
+      toast({ title: "Nenhuma instância conectada selecionada", variant: "destructive" });
+      setBulkProfileSaving(false);
+      return;
+    }
+    try {
+      const results = await Promise.allSettled(
+        targetDevices.map(async (device) => {
+          const promises: Promise<any>[] = [];
+          // DB update
+          const dbUp: Record<string, any> = {};
+          if (bulkProfileName.trim()) {
+            dbUp.profile_name = bulkProfileName.trim();
+            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() }));
+          }
+          if (bulkProfileRemovePhoto) {
+            dbUp.profile_picture = null;
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
+          } else if (bulkProfilePhotoPublicUrl) {
+            dbUp.profile_picture = bulkProfilePhotoPublicUrl;
+            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl }));
+          }
+          if (Object.keys(dbUp).length > 0) {
+            await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+          }
+          await Promise.all(promises);
+        })
+      );
+      const failed = results.filter(r => r.status === "rejected").length;
+      if (failed > 0) {
+        toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else {
+        toast({ title: `Perfil atualizado em ${targetDevices.length} chip(s)` });
+      }
+      setBulkProfileOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar perfis", description: err?.message, variant: "destructive" });
+    } finally {
+      setBulkProfileSaving(false);
+    }
+  };
+
+  const toggleBulkProfileDevice = (id: string) => {
+    setBulkProfileSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const openBulkProfileDialog = () => {
+    setBulkProfileName("");
+    setBulkProfilePhotoUrl("");
+    setBulkProfilePhotoPublicUrl("");
+    setBulkProfileRemovePhoto(false);
+    setBulkProfileSelectedIds(devices.filter(d => d.status === "Ready").map(d => d.id));
+    setBulkProfileSaving(false);
+    setBulkProfileOpen(true);
+  };
+
   const handleLogout = () => {
     if (!loggingOutDevice) return;
     const device = loggingOutDevice;
