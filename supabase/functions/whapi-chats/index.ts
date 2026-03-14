@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
       const forceRefresh = url.searchParams.get("refresh") === "true";
       const allGroups: any[] = [];
       const seenJids = new Set<string>();
+      let primaryFetchSucceeded = false;
+      let fallbackFetchSucceeded = false;
+      const deviceDigits = String(device?.number || "").replace(/\D/g, "");
 
       const fetchSafe = async (endpoint: string, retries = 2, method = "GET", body?: any): Promise<any> => {
         for (let attempt = 0; attempt <= retries; attempt++) {
@@ -120,6 +123,19 @@ Deno.serve(async (req) => {
         return null;
       };
 
+      const normalizeDigits = (value: string) => value.replace(/\D/g, "");
+
+      const matchesDeviceNumber = (value?: string | null): boolean => {
+        if (!value || !deviceDigits) return false;
+        const candidate = normalizeDigits(String(value));
+        if (!candidate) return false;
+
+        const minLen = 10;
+        const a = candidate.length > minLen ? candidate.slice(-minLen) : candidate;
+        const b = deviceDigits.length > minLen ? deviceDigits.slice(-minLen) : deviceDigits;
+        return a === b;
+      };
+
       const addGroups = (items: any[]) => {
         for (const g of items) {
           const jid = g.JID || g.jid || g.id || g.groupJid || g.chatId || "";
@@ -128,6 +144,29 @@ Deno.serve(async (req) => {
             allGroups.push(g);
           }
         }
+      };
+
+      const groupHasDeviceAsParticipant = (group: any): boolean => {
+        if (!deviceDigits) return true;
+
+        const participants = group?.Participants || group?.participants || [];
+        if (Array.isArray(participants) && participants.length > 0) {
+          const participantMatch = participants.some((p: any) => {
+            if (typeof p === "string") return matchesDeviceNumber(p);
+            return matchesDeviceNumber(p?.JID) ||
+              matchesDeviceNumber(p?.jid) ||
+              matchesDeviceNumber(p?.id) ||
+              matchesDeviceNumber(p?.PN) ||
+              matchesDeviceNumber(p?.phone) ||
+              matchesDeviceNumber(p?.number);
+          });
+          if (participantMatch) return true;
+        }
+
+        return matchesDeviceNumber(group?.OwnerPN) ||
+          matchesDeviceNumber(group?.ownerPN) ||
+          matchesDeviceNumber(group?.OwnerJID) ||
+          matchesDeviceNumber(group?.ownerJid);
       };
 
       // ─── S-1: Wake up session before listing (always) ───
