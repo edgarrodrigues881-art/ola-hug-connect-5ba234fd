@@ -1576,7 +1576,7 @@ const WarmupInstanceDetail = () => {
                         : {};
 
                       const effectiveStatus =
-                        job.status === "pending" && payload.group_id && joinedDbGroupIds.has(payload.group_id)
+                        job.status === "pending" && payload.group_id && (joinedDbGroupIds.has(payload.group_id) || recognizedGroupIds.has(payload.group_id))
                           ? "succeeded"
                           : job.status;
 
