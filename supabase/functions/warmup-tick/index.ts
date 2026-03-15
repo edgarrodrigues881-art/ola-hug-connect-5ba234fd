@@ -644,6 +644,40 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   throw new Error(`Text send failed: ${lastErr}`);
 }
 
+// ── PRE-VALIDATION: Check if phone has WhatsApp ──
+async function uazapiCheckPhone(baseUrl: string, token: string, phone: string): Promise<boolean> {
+  const endpoints = [
+    { url: `${baseUrl}/misc/checkPhones`, body: { phones: [phone] } },
+    { url: `${baseUrl}/chat/check`, body: { phone } },
+    { url: `${baseUrl}/misc/isOnWhatsapp`, body: { phone } },
+  ];
+
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(ep.body),
+      });
+      if (res.status === 405 || res.status === 404) continue;
+      if (!res.ok) continue;
+      const raw = await res.text();
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+
+      // Handle array responses
+      const item = Array.isArray(parsed) ? parsed[0] : (parsed?.data?.[0] || parsed?.data || parsed);
+      if (!item) continue;
+
+      // Check various response formats
+      if (item.exists === false || item.onWhatsapp === false || item.isOnWhatsapp === false || item.numberExists === false) return false;
+      if (item.exists === true || item.onWhatsapp === true || item.isOnWhatsapp === true || item.numberExists === true) return true;
+    } catch { continue; }
+  }
+
+  return true; // Assume valid if check endpoints unavailable
+}
+
 
 // NOTE: uazapiFetchLastMessage removed — UAZAPI does not support fetching chat messages (all endpoints return 404/405)
 
