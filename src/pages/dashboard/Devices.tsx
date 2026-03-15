@@ -820,10 +820,7 @@ const Devices = () => {
       } else {
         toast({ title: "Instância atualizada" });
       }
-      setEditOpen(false);
-      setEditingDevice(null);
-      setWpPhotoBase64("");
-      setWpRemovePhoto(false);
+      closeEditDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Edit update error:", err);
