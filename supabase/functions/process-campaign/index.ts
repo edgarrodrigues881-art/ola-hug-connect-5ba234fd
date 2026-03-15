@@ -970,19 +970,21 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // Heartbeat every 5 messages to prevent stale lock detection
+          // Heartbeat every 10 messages (optimized for high device count)
           heartbeatCounter++;
-          if (heartbeatCounter % 5 === 0) {
+          if (heartbeatCounter % 10 === 0) {
             await heartbeatLock(serviceClient, campaignId);
           }
 
-          // Check if paused/canceled
+          // Check if paused/canceled every 8 messages (batched to reduce DB load)
+          if (heartbeatCounter % 8 === 1) {
           const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
           if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
             console.log(`Campaign ${campaignId} was ${freshCampaign.status}. Stopping.`);
             // Revert processing contact
             await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
             break;
+          }
           }
 
           // Rotation logic
