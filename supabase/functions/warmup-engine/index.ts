@@ -109,10 +109,10 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   // Grupos SEMPRE recebem o orçamento total (50-120)
   v.groupMsgs = getDailyBudget();
 
-  // Autosave como BÔNUS extra quando fase permitir
+  // Autosave: 5 contatos × 3 msgs cada = 15 msgs/dia
   if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = randInt(2, 3); // 10-15 msgs extras
+    v.autosaveRounds = 3;
   }
 
   // Community desativado para testes
