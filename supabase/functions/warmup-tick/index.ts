@@ -1157,7 +1157,7 @@ async function handleTick(db: any) {
 
         await db.from("warmup_cycles").update(updateData).eq("id", cycle.id);
 
-        if (targetPhase === "groups_only") {
+        if (targetPhase === "groups_only" && cycle.day_index <= 1) {
           await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
         }
 
