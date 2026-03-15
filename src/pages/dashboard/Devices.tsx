@@ -842,7 +842,12 @@ const Devices = () => {
           if (!dbUpdates.profile_picture && wpPhotoBase64) {
             dbUpdates.profile_picture = wpPhotoBase64;
           }
-          warnings.push("Falha ao sincronizar foto no WhatsApp");
+          const apiMsg = e?.message || "";
+          warnings.push(
+            apiMsg.includes("não foi aceita") || apiMsg.includes("imagem")
+              ? apiMsg
+              : "A imagem não foi aceita pelo WhatsApp. Tente uma foto JPG quadrada (mínimo 192×192px)."
+          );
         }
       }
 
