@@ -764,33 +764,28 @@ const Devices = () => {
     }
 
     try {
-      const profilePromises: Promise<any>[] = [];
+      let removePhotoWarning: string | null = null;
+
       if (wpName.trim()) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
-            "Falha ao atualizar nome no WhatsApp",
-          )
-        );
-      }
-      if (wpRemovePhoto) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" },
-            "Falha ao remover foto no WhatsApp",
-          )
-        );
-      } else if (wpPhotoBase64) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
-            "Falha ao atualizar foto no WhatsApp",
-          )
+        await callApiStrict(
+          { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
+          "Falha ao atualizar nome no WhatsApp",
         );
       }
 
-      if (profilePromises.length > 0) {
-        await Promise.all(profilePromises);
+      if (wpRemovePhoto) {
+        const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
+        if (removeResult.ok) {
+          dbUpdates.profile_picture = null;
+        } else {
+          removePhotoWarning = removeResult.error;
+        }
+      } else if (wpPhotoBase64) {
+        await callApiStrict(
+          { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
+          "Falha ao atualizar foto no WhatsApp",
+        );
+        dbUpdates.profile_picture = wpPhotoBase64;
       }
 
       await updateMutation.mutateAsync({
@@ -798,7 +793,15 @@ const Devices = () => {
         updates: dbUpdates,
       });
 
-      toast({ title: "Instância atualizada" });
+      if (removePhotoWarning) {
+        toast({
+          title: "Instância atualizada com ressalva",
+          description: removePhotoWarning,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Instância atualizada" });
+      }
       setEditOpen(false);
       setEditingDevice(null);
       setWpPhotoBase64("");
