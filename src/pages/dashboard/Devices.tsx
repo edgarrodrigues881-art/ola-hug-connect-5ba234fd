@@ -1029,7 +1029,7 @@ const Devices = () => {
     setBulkProfilePhotoUrl("");
     setBulkProfilePhotoPublicUrl("");
     setBulkProfileRemovePhoto(false);
-    setBulkProfileSelectedIds(devices.filter(d => d.status === "Ready").map(d => d.id));
+    setBulkProfileSelectedIds([]);
     setBulkProfileSaving(false);
     setBulkProfileOpen(true);
   };
