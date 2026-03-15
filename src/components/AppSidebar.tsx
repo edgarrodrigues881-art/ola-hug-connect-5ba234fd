@@ -332,10 +332,8 @@ export function AppSidebar() {
                               className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative flex-1
                                 transition-[background-color,color,opacity] duration-[120ms] ease-out
                                 gap-[11px] px-3.5 py-[10px]
-                                ${isActiveFolder
-                                  ? 'bg-primary/10 text-foreground font-semibold'
-                                  : 'bg-muted/20 text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
-                                }`}
+                                text-foreground font-medium hover:brightness-110`}
+                              style={{ backgroundColor: `${folder.color}15` }}
                               activeClassName=""
                             >
                               {isActiveFolder && (
