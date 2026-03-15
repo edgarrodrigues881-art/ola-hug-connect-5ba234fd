@@ -79,12 +79,6 @@ const menuGroups = [
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
-  {
-    label: "Relatórios",
-    items: [
-      { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText, exact: true },
-    ],
-  },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
@@ -391,6 +385,7 @@ export function AppSidebar() {
 
               {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
               {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
+              {renderNavItem({ title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
