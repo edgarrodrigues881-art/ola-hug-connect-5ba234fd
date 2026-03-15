@@ -6,7 +6,7 @@ import { useWarmupCycles } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
-import { TagManagerDialog } from "@/components/warmup/TagManagerDialog";
+import { TagManagerDialog, type FolderTag } from "@/components/warmup/TagManagerDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
