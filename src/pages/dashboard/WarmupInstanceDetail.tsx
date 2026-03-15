@@ -1457,7 +1457,10 @@ const WarmupInstanceDetail = () => {
 
                   return (
                     <div className="max-h-[500px] overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
-                      {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
+                      {Array.from({ length: totalDays }, (_, i) => i + 1).filter((day) => {
+                        const s = getDayStatus(day);
+                        return s === "concluído" || s === "ativo" || s === "pulado";
+                      }).map((day) => {
                         const dayItems = dayItemsMap[day] || [];
                         const isExpanded = expandedDays.has(day);
                         const status = getDayStatus(day);
