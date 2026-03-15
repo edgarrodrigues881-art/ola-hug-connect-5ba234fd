@@ -385,30 +385,42 @@ const WarmupInstanceDetail = () => {
     }
   };
 
-  /* ── TEMPORARY: Test Auto Save — creates 1 autosave job and runs it immediately ── */
+  /* ── TEMPORARY: Test Auto Save — creates 25 jobs (5 contacts × 5 msgs) with 4-7min gaps ── */
   const handleTestAutosave = async () => {
     if (!cycle?.id || !deviceId || !user) return;
     setTestingAutosave(true);
     try {
-      // Create a single autosave_interaction job set to run NOW
-      const { error: insertErr } = await supabase.from("warmup_jobs").insert({
-        user_id: user.id,
-        device_id: deviceId,
-        cycle_id: cycle.id,
-        job_type: "autosave_interaction" as any,
-        payload: { recipient_index: 0, msg_index: 0, forced: true },
-        run_at: new Date().toISOString(),
-        status: "pending" as any,
-      });
+      const jobs: any[] = [];
+      let cursor = Date.now() + 5000; // start in 5s
+
+      for (let c = 0; c < 5; c++) {
+        for (let m = 0; m < 5; m++) {
+          jobs.push({
+            user_id: user.id,
+            device_id: deviceId,
+            cycle_id: cycle.id,
+            job_type: "autosave_interaction" as any,
+            payload: { recipient_index: c, msg_index: m, forced: true },
+            run_at: new Date(cursor).toISOString(),
+            status: "pending" as any,
+          });
+          // 4-7 min between messages
+          cursor += (4 + Math.floor(Math.random() * 4)) * 60 * 1000;
+        }
+        // 5-10 min between contacts
+        cursor += (5 + Math.floor(Math.random() * 6)) * 60 * 1000;
+      }
+
+      const { error: insertErr } = await supabase.from("warmup_jobs").insert(jobs);
       if (insertErr) throw insertErr;
 
-      // Trigger tick immediately
+      // Trigger tick immediately for the first job
       await supabase.functions.invoke("warmup-tick", { body: {} });
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
       await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
 
-      toast({ title: "🧪 Auto Save disparado!", description: "1 mensagem de autosave sendo enviada agora para o contato #1." });
+      toast({ title: "🧪 Auto Save completo agendado!", description: "25 mensagens (5 contatos × 5 msgs) agendadas com intervalos de 4-7 min." });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
