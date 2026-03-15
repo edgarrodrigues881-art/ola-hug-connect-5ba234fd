@@ -1173,16 +1173,6 @@ const WarmupInstances = () => {
               </>
             )}
           </div>
-          {/* Folder tags display */}
-          {activeFolder && activeFolder.tags && activeFolder.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {activeFolder.tags.map((tag: any) => (
-                <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {activeFolder && (
