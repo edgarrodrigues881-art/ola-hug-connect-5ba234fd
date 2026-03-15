@@ -1179,14 +1179,66 @@ async function handleTick(db: any) {
         let joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
         let liveGroupsCache: any[] = [];
 
+        const norm = (v: string) =>
+          String(v || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
         const fetchLiveGroups = async (): Promise<any[]> => {
-          const liveRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
-            method: "GET",
-            headers: { token, Accept: "application/json" },
-          });
-          if (!liveRes.ok) return [];
-          const liveData = await liveRes.json();
-          return Array.isArray(liveData) ? liveData : (liveData?.data || liveData?.groups || []);
+          const endpoints = [
+            `${baseUrl}/group/fetchAllGroups`,
+            `${baseUrl}/group/fetchAllGroups?getParticipants=false`,
+            `${baseUrl}/group/list?GetParticipants=false&count=500`,
+            `${baseUrl}/group/listAll`,
+            `${baseUrl}/chats?type=group`,
+          ];
+
+          const dedup = new Map<string, any>();
+
+          for (const ep of endpoints) {
+            try {
+              const res = await fetch(ep, {
+                method: "GET",
+                headers: { token, Accept: "application/json", "Cache-Control": "no-cache" },
+              });
+              if (!res.ok) continue;
+
+              const raw = await res.text();
+              let parsed: any = null;
+              try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
+              if (!parsed) continue;
+
+              const arrCandidates = [
+                parsed,
+                parsed?.groups,
+                parsed?.data,
+                parsed?.data?.groups,
+                parsed?.chats,
+                parsed?.data?.chats,
+              ];
+
+              const rows: any[] = [];
+              for (const c of arrCandidates) {
+                if (Array.isArray(c)) rows.push(...c);
+              }
+
+              for (const g of rows) {
+                const jid = g?.JID || g?.jid || g?.id || g?.groupJid || g?.chatId || null;
+                const name = g?.subject || g?.name || g?.Name || g?.title || "Grupo detectado";
+                if (!jid || !String(jid).includes("@g.us")) continue;
+                if (!dedup.has(jid)) dedup.set(jid, { ...g, jid, name });
+              }
+
+              if (dedup.size > 0) {
+                return Array.from(dedup.values());
+              }
+            } catch { /* tenta próximo endpoint */ }
+          }
+
+          return [];
         };
 
         // Auto-sync: if no "joined" groups, check live device groups and promote pending→joined
@@ -1194,14 +1246,14 @@ async function handleTick(db: any) {
           try {
             liveGroupsCache = await fetchLiveGroups();
             if (liveGroupsCache.length > 0) {
-              const liveNames = new Set(liveGroupsCache.map((g: any) => (g.subject || g.name || g.Name || "").toLowerCase().trim()));
-              const liveJids = new Set(liveGroupsCache.map((g: any) => (g.jid || g.id || g.JID || "").toLowerCase().trim()));
+              const liveNames = new Set(liveGroupsCache.map((g: any) => norm(g.subject || g.name || g.Name || g.title || "")));
+              const liveJids = new Set(liveGroupsCache.map((g: any) => String(g.jid || g.id || g.JID || g.groupJid || g.chatId || "").toLowerCase().trim()));
 
               for (const ig of allIGs) {
                 if (ig.join_status === "joined") continue;
                 const poolGroup = groupsPoolMap[ig.group_id];
-                const poolName = (poolGroup?.name || "").toLowerCase().trim();
-                const igJid = (ig.group_jid || "").toLowerCase().trim();
+                const poolName = norm(poolGroup?.name || "");
+                const igJid = String(ig.group_jid || "").toLowerCase().trim();
 
                 const nameMatch = poolName && liveNames.has(poolName);
                 const jidMatch = igJid && liveJids.has(igJid);
@@ -1210,9 +1262,9 @@ async function handleTick(db: any) {
                 let resolvedJid = ig.group_jid;
                 if (!resolvedJid) {
                   const match = liveGroupsCache.find((g: any) =>
-                    (g.subject || g.name || g.Name || "").toLowerCase().trim() === poolName
+                    norm(g.subject || g.name || g.Name || g.title || "") === poolName
                   );
-                  if (match) resolvedJid = match.jid || match.id || match.JID;
+                  if (match) resolvedJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 }
 
                 if (nameMatch || jidMatch) {
@@ -1256,10 +1308,10 @@ async function handleTick(db: any) {
             try {
               if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
               const match = liveGroupsCache.find((g: any) =>
-                (g.subject || g.name || g.Name || "").toLowerCase().trim() === groupName.toLowerCase().trim()
+                norm(g.subject || g.name || g.Name || g.title || "") === norm(groupName)
               );
               if (match) {
-                groupJid = match.jid || match.id || match.JID;
+                groupJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 if (groupJid) {
                   await db.from("warmup_instance_groups")
                     .update({ group_jid: groupJid })
@@ -1277,12 +1329,21 @@ async function handleTick(db: any) {
 
           const candidates = liveGroupsCache
             .map((g: any) => ({
-              jid: g.jid || g.id || g.JID || null,
-              name: g.subject || g.name || g.Name || "Grupo detectado",
+              jid: g?.jid || g?.id || g?.JID || g?.groupJid || g?.chatId || null,
+              name: g?.subject || g?.name || g?.Name || g?.title || "Grupo detectado",
             }))
-            .filter((g: any) => !!g.jid);
+            .filter((g: any) => !!g.jid && String(g.jid).includes("@g.us"));
 
           if (candidates.length === 0) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "error",
+              event_type: "group_live_discovery_empty",
+              message: "Nenhum grupo retornado pelos endpoints de descoberta",
+              meta: { fetched_count: liveGroupsCache.length },
+            });
             throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
           }
 
