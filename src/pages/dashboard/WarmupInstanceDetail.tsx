@@ -1926,20 +1926,15 @@ const WarmupInstanceDetail = () => {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-foreground">
                   <Zap className="w-5 h-5 text-amber-400" />
-                  Executar agora?
+                  Forçar entrada nos grupos?
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>O <strong className="text-foreground">primeiro job será executado imediatamente</strong>. Os demais manterão o espaçamento original entre si, apenas antecipados a partir de agora.</p>
-                <p>Isso preserva o padrão natural de delays e protege seu chip.</p>
+                <p>A <strong className="text-foreground">entrada nos grupos será antecipada para agora</strong>, mantendo os intervalos entre cada entrada para proteger seu chip.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                  <strong className="text-foreground">{(() => {
-                    const targetTypes = cycle?.phase === "pre_24h"
-                      ? ["join_group"]
-                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"];
-                    return scheduledJobs.filter(j => j.status === "pending" && targetTypes.includes(j.job_type)).length;
-                  })()}</strong> tarefa(s) pendente(s) serão aceleradas.
+                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending" && j.job_type === "join_group").length}</strong> entrada(s) em grupo pendente(s).
                 </p>
+                <p className="text-xs text-amber-400/80">⚠️ Apenas a entrada nos grupos pode ser forçada. As mensagens de aquecimento seguem o fluxo automático.</p>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAccelerateConfirm(false)}>Cancelar</Button>
