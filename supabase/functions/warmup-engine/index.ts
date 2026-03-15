@@ -238,9 +238,11 @@ async function scheduleDayJobs(
 
   // ── GROUP INTERACTIONS ──
   if (volumes.groupMsgs > 0) {
-    const spacing = windowMs / (volumes.groupMsgs + 1);
+    const firstJobOffset = randInt(60, 300) * 1000; // 1-5 min após abertura
+    const remainingWindow = windowMs - firstJobOffset;
+    const spacing = remainingWindow / Math.max(volumes.groupMsgs, 1);
     for (let i = 0; i < volumes.groupMsgs; i++) {
-      const offset = spacing * (i + 1) + randInt(-120, 120) * 1000;
+      const offset = firstJobOffset + spacing * i + randInt(-60, 60) * 1000;
       const runAt = new Date(effectiveStart + Math.max(offset, 60000));
       if (runAt.getTime() > effectiveEnd) break;
       jobs.push({
