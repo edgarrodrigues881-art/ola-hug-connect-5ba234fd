@@ -289,26 +289,9 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── PHASE TRANSITION JOBS ──
-  if (phase === "groups_only") {
-    const transitionDay = getGroupsEndDay(chipState) + 1;
-    if (dayIndex >= transitionDay - 1) {
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "enable_autosave", payload: {},
-        run_at: new Date(effectiveEnd - 60000).toISOString(),
-        status: "pending",
-      });
-    }
-  }
-  if (phase === "autosave_enabled") {
-    jobs.push({
-      user_id: userId, device_id: deviceId, cycle_id: cycleId,
-      job_type: "enable_community", payload: {},
-      run_at: new Date(effectiveEnd - 60000).toISOString(),
-      status: "pending",
-    });
-  }
+  // ── PHASE TRANSITION JOBS — DISABLED for group-only testing ──
+  // if (phase === "groups_only") { ... enable_autosave ... }
+  // if (phase === "autosave_enabled") { ... enable_community ... }
 
   // Insert jobs in batches
   if (jobs.length > 0) {
