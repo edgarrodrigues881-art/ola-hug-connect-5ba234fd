@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
+import type { FolderTag } from "@/components/warmup/WarmupFolderDialog";
+
 export interface WarmupFolder {
   id: string;
   user_id: string;
@@ -10,6 +12,7 @@ export interface WarmupFolder {
   icon: string;
   sort_order: number;
   created_at: string;
+  tags: FolderTag[];
   device_ids?: string[];
 }
 
