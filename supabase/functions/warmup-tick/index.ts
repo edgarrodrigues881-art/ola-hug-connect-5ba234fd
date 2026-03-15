@@ -55,7 +55,7 @@ function getPhaseForDay(day: number, chipState: string): string {
 }
 
 // ══════════════════════════════════════════════════════════
-// VOLUME CONFIG — Must match warmup-engine exactly
+// VOLUME CONFIG — 50 to 120 messages/day total (must match engine)
 // ══════════════════════════════════════════════════════════
 
 interface DayVolumes {
@@ -66,6 +66,10 @@ interface DayVolumes {
   communityMsgsPerPeer: number;
 }
 
+function getDailyBudget(): number {
+  return randInt(50, 120);
+}
+
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
   const v: DayVolumes = {
     groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0,
@@ -73,19 +77,23 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   };
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
-  v.groupMsgs = chipState === "unstable" ? randInt(15, 25) : randInt(25, 50);
+  const totalBudget = getDailyBudget();
 
-  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+  if (phase === "groups_only") {
+    v.groupMsgs = totalBudget;
+  } else if (phase === "autosave_enabled") {
+    v.groupMsgs = Math.round(totalBudget * 0.7);
+    const autosaveTotal = totalBudget - v.groupMsgs;
     v.autosaveContacts = 5;
-    v.autosaveRounds = chipState === "recovered" ? 2 : 3;
-  }
-
-  if (["community_enabled", "community_light"].includes(phase)) {
-    const groupsEnd = getGroupsEndDay(chipState);
-    const communityDay = dayIndex - (groupsEnd + 2) + 1;
-    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-    v.communityPeers = communityDay <= 0 ? 0 : peerScale[Math.min(communityDay, peerScale.length - 1)];
-    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
+    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
+  } else if (["community_enabled", "community_light"].includes(phase)) {
+    v.groupMsgs = Math.round(totalBudget * 0.5);
+    const autosaveTotal = Math.round(totalBudget * 0.2);
+    v.autosaveContacts = 5;
+    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
+    const communityTotal = totalBudget - v.groupMsgs - (v.autosaveContacts * v.autosaveRounds);
+    v.communityPeers = Math.max(1, Math.min(10, Math.ceil(communityTotal / 5)));
+    v.communityMsgsPerPeer = Math.max(1, Math.ceil(communityTotal / v.communityPeers));
   }
 
   return v;
@@ -675,7 +683,7 @@ const IMAGE_CAPTIONS = [
 ];
 
 function pickMediaType(): "text" | "image" {
-  return Math.random() < 0.75 ? "text" : "image";
+  return Math.random() < 0.90 ? "text" : "image"; // 10% fotos
 }
 
 // ══════════════════════════════════════════════════════════
