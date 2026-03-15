@@ -1251,7 +1251,7 @@ const WarmupInstanceDetail = () => {
               return <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />;
             };
 
-            if (displayJobs.length === 0 && futureJobs.length === 0) {
+            if (displayJobs.length === 0 && futureJobs.length === 0 && !advancingPhase) {
               return (
                 <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl p-6">
                   <div className="flex items-start justify-between gap-4">
@@ -1272,6 +1272,15 @@ const WarmupInstanceDetail = () => {
                       Restaurar tarefas
                     </Button>
                   </div>
+                </div>
+              );
+            }
+
+            if (displayJobs.length === 0 && futureJobs.length === 0 && advancingPhase) {
+              return (
+                <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl p-6 flex items-center justify-center gap-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Gerando tarefas do novo dia…</p>
                 </div>
               );
             }
