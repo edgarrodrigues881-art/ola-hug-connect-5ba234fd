@@ -77,12 +77,16 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   };
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
-  // Grupos SEMPRE recebem o orçamento total (50-120), independente da fase
+  // Grupos SEMPRE recebem o orçamento total (50-120)
   v.groupMsgs = getDailyBudget();
 
-  // Autosave e Community serão implementados separadamente como bônus extras
-  // Por enquanto, apenas grupos operam do dia 2 ao dia 30
+  // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
+  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+    v.autosaveContacts = 5;
+    v.autosaveRounds = randInt(2, 3); // 10-15 msgs extras
+  }
 
+  // Community desativado para testes
   return v;
 }
 
@@ -241,14 +245,16 @@ async function scheduleDayJobs(
     }
   }
 
-  // Phase transitions — DISABLED: autosave/community desativados para testes de grupo
-  // Fase permanece em "groups_only" do dia 2 ao dia 30
-  // if (phase === "groups_only" && dayIndex >= getGroupsEndDay(chipState)) {
-  //   jobs.push({ ... job_type: "enable_autosave" ... });
-  // }
-  // if (phase === "autosave_enabled") {
-  //   jobs.push({ ... job_type: "enable_community" ... });
-  // }
+  // Phase transitions — Autosave reativado, community desativado
+  if (phase === "groups_only" && dayIndex >= getGroupsEndDay(chipState)) {
+    jobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "enable_autosave", payload: {},
+      run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
+    });
+  }
+  // Community DISABLED
+  // if (phase === "autosave_enabled") { ... enable_community ... }
 
   // Insert jobs
   for (let i = 0; i < jobs.length; i += 100) {
