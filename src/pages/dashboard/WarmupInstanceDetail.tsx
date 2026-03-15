@@ -1026,8 +1026,9 @@ const WarmupInstanceDetail = () => {
                 hour12: false,
               }).format(date);
 
+            const isDay2Plus = (cycle?.day_index ?? 1) > 1;
             const actionableTypes = new Set([
-              "join_group",
+              ...(isDay2Plus ? [] : ["join_group"]),
               "group_interaction",
               "autosave_interaction",
               "community_interaction",
@@ -1035,6 +1036,7 @@ const WarmupInstanceDetail = () => {
 
             const sortedJobs = [...scheduledJobs]
               .filter((j) => j.status !== "cancelled")
+              .filter((j) => !(isDay2Plus && j.job_type === "join_group" && j.status === "pending"))
               .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
 
             const todayKey = toBrtDayKey(nowUtc);
