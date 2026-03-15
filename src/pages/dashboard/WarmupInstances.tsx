@@ -840,6 +840,11 @@ const WarmupInstances = () => {
           deviceTags={activeFolder?.device_tags?.get(device.id)}
           availableTags={activeFolder?.tags}
           onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
+          onRemoveFromFolder={activeFolder ? (deviceId) => {
+            removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
+              toast({ title: "Instância removida da pasta" });
+            });
+          } : undefined}
         />
       )),
     [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
