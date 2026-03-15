@@ -732,18 +732,33 @@ const WarmupInstanceDetail = () => {
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate("/dashboard/warmup-v2")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-[10px] font-extrabold uppercase tracking-[0.15em] px-4 py-1.5 gap-2 rounded-full border backdrop-blur-sm",
-                isConnected
-                  ? "text-primary border-primary/30 bg-primary/10 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]"
-                  : "text-muted-foreground border-border bg-muted/10"
-              )}
-            >
-              <span className={cn("w-2 h-2 rounded-full inline-block", isConnected ? "bg-primary animate-pulse shadow-[0_0_6px_hsl(var(--primary)/0.6)]" : "bg-muted-foreground")} />
-              {isConnected ? "CONECTADO" : "DESCONECTADO"}
-            </Badge>
+            <div className="flex flex-col items-end gap-1.5">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] font-extrabold uppercase tracking-[0.15em] px-4 py-1.5 gap-2 rounded-full border backdrop-blur-sm",
+                  isConnected
+                    ? "text-primary border-primary/30 bg-primary/10 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]"
+                    : "text-muted-foreground border-border bg-muted/10"
+                )}
+              >
+                <span className={cn("w-2 h-2 rounded-full inline-block", isConnected ? "bg-primary animate-pulse shadow-[0_0_6px_hsl(var(--primary)/0.6)]" : "bg-muted-foreground")} />
+                {isConnected ? "CONECTADO" : "DESCONECTADO"}
+              </Badge>
+              {cycle && (() => {
+                const chipLabel = cycle.chip_state === "new" ? "Chip Novo" : cycle.chip_state === "recovered" ? "Chip Recuperado" : "Chip Fraco";
+                const chipColor = cycle.chip_state === "new"
+                  ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                  : cycle.chip_state === "recovered"
+                  ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                  : "text-red-400 border-red-500/30 bg-red-500/10";
+                return (
+                  <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full border backdrop-blur-sm", chipColor)}>
+                    {chipLabel}
+                  </Badge>
+                );
+              })()}
+            </div>
           </div>
 
           {/* instance identity */}
