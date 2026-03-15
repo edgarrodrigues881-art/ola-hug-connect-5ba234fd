@@ -1385,6 +1385,31 @@ const WarmupInstances = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add instances to folder dialog */}
+      {activeFolder && (
+        <AddToFolderDialog
+          open={addToFolderOpen}
+          onOpenChange={setAddToFolderOpen}
+          allDevices={filteredDevices}
+          currentDeviceIds={activeFolder.device_ids || []}
+          folderName={activeFolder.name}
+          folderColor={activeFolder.color}
+          onSave={async (deviceIds) => {
+            const currentIds = new Set(activeFolder.device_ids || []);
+            const newIds = deviceIds.filter(id => !currentIds.has(id));
+            const removedIds = [...currentIds].filter(id => !deviceIds.includes(id));
+            if (newIds.length > 0) {
+              await addDevices.mutateAsync({ folderId: activeFolder.id, deviceIds: newIds });
+            }
+            for (const id of removedIds) {
+              await removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId: id });
+            }
+            toast({ title: "Pasta atualizada" });
+          }}
+          cycleByDeviceId={cycleByDeviceId}
+        />
+      )}
     </div>
   );
 };
