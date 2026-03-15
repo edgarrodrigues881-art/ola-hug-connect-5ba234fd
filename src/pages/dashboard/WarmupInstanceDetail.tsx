@@ -151,6 +151,7 @@ const WarmupInstanceDetail = () => {
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
+  const [repairingSchedule, setRepairingSchedule] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   // Auto-enable community when community day is reached
@@ -325,6 +326,60 @@ const WarmupInstanceDetail = () => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setAccelerating(false);
+    }
+  };
+
+  const handleRestoreSchedule = async () => {
+    if (!deviceId || !cycle) return;
+    setRepairingSchedule(true);
+    try {
+      const normalizedPhase = cycle.phase === "pre_24h" && (cycle.day_index ?? 1) > 1
+        ? "groups_only"
+        : cycle.phase;
+
+      const { error: engineErr } = await supabase.functions.invoke("warmup-engine", {
+        body: {
+          action: "schedule_day",
+          device_id: deviceId,
+          cycle_id: cycle.id,
+          day_index: cycle.day_index,
+          phase: normalizedPhase,
+          chip_state: cycle.chip_state,
+        },
+      });
+
+      if (engineErr) {
+        const { error: tickErr } = await supabase.functions.invoke("warmup-tick", {
+          body: {
+            action: "schedule_day",
+            cycle_id: cycle.id,
+            device_id: deviceId,
+            forced: true,
+          },
+        });
+        if (tickErr) throw tickErr;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+
+      const { count } = await supabase
+        .from("warmup_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .neq("status", "cancelled");
+
+      toast({
+        title: "✅ Tarefas restauradas",
+        description: `Fila reconstruída com ${count ?? 0} tarefa(s).`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao restaurar",
+        description: err.message || "Não foi possível recriar as tarefas agora.",
+        variant: "destructive",
+      });
+    } finally {
+      setRepairingSchedule(false);
     }
   };
 
@@ -1107,7 +1162,30 @@ const WarmupInstanceDetail = () => {
               return <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />;
             };
 
-            if (displayJobs.length === 0 && futureJobs.length === 0) return null;
+            if (displayJobs.length === 0 && futureJobs.length === 0) {
+              return (
+                <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Sem tarefas visíveis no ciclo</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Isso acontece quando todos os jobs foram cancelados. Clique abaixo para reconstruir a fila automaticamente.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={handleRestoreSchedule}
+                      disabled={repairingSchedule}
+                    >
+                      {repairingSchedule ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                      Restaurar tarefas
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
 
             // Summarize displayed jobs by type
             const typeSummary: Record<string, { total: number; done: number; failed: number; next: Date | null }> = {};
