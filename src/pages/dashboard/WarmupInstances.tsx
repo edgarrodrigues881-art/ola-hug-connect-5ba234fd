@@ -745,9 +745,12 @@ const WarmupInstances = () => {
           onConnect={openConnect}
           onNavigate={navigate}
           formatPhone={formatPhone}
+          deviceTags={activeFolder?.device_tags?.get(device.id)}
+          availableTags={activeFolder?.tags}
+          onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
         />
       )),
-    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate]
+    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
   );
 
   return (
