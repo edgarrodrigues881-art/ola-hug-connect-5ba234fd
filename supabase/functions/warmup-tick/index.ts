@@ -631,17 +631,20 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
             fromMe: extractFromMe(m),
             idx,
           }))
-          .filter((m: any) => !!m.id)
-          .sort((a: any, b: any) => {
-            if (b.ts !== a.ts) return b.ts - a.ts;
-            return b.idx - a.idx;
-          });
+          .filter((m: any) => !!m.id);
 
         if (normalized.length === 0) continue;
 
-        // Prefer latest message from another participant; fallback to latest message overall
-        const latestOther = normalized.find((m: any) => !m.fromMe);
-        return (latestOther?.id || normalized[0]?.id || null) as string | null;
+        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
+        const ordered = hasValidTimestamp
+          ? [...normalized].sort((a: any, b: any) => {
+              if (b.ts !== a.ts) return b.ts - a.ts;
+              return a.idx - b.idx;
+            })
+          : normalized;
+
+        // Strict latest message available (for testing reply exactly on latest)
+        return (ordered[0]?.id || null) as string | null;
       } catch {
         // try next endpoint
       }
@@ -684,8 +687,9 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 
   // Strategy 1: direct URL
   const urlResult = await tryEndpoints([
+    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "image", caption: safeCaption } },
+    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption, text: safeCaption } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption } },
   ], "url");
   if (urlResult.ok) return urlResult.data;
@@ -704,6 +708,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   }
 
   const b64Result = await tryEndpoints([
+    { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "image", caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption, text: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption, text: safeCaption } },
   ], "b64");
@@ -741,9 +746,11 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
 
   // Strategy 1: direct URL
   const urlResult = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl } },
+    { url: `${baseUrl}/send/sticker`, body: { number, url: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
-    { url: `${baseUrl}/send/sticker`, body: { number, image: imageUrl } },
+    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "sticker" } },
   ]);
   if (urlResult.ok) return urlResult.data;
 
@@ -761,8 +768,10 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
   }
 
   const b64Result = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, media: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
+    { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "sticker" } },
   ]);
   if (b64Result.ok) return b64Result.data;
 
@@ -1449,24 +1458,26 @@ async function handleTick(db: any) {
           ? pickRandom(cachedMsgs)
           : generateNaturalMessage("group");
 
-        const mediaType = pickMediaType();
+        const requestedMediaType = pickMediaType();
+        let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
         let message = getMsg();
+        let sendFallbackReason: string | null = null;
 
         // 100% reply to last message in group (testing mode)
         let quotedMsgId: string | null = null;
-        if (mediaType === "text") {
+        if (requestedMediaType === "text") {
           try {
             quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
           } catch { /* ignore, send without quote */ }
         }
 
         try {
-          if (mediaType === "image") {
+          if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
             await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
             message = `[IMG] ${caption}`;
-          } else if (mediaType === "sticker") {
+          } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
             await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
             const stickerMsg = getMsg();
@@ -1476,7 +1487,9 @@ async function handleTick(db: any) {
             await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
             if (quotedMsgId) message = `[REPLY] ${message}`;
           }
-        } catch {
+        } catch (e) {
+          actualMediaType = "text";
+          sendFallbackReason = e instanceof Error ? e.message : String(e || "unknown_error");
           message = getMsg();
           await uazapiSendText(baseUrl, token, groupJid, message);
         }
@@ -1491,7 +1504,13 @@ async function handleTick(db: any) {
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "group_msg_sent",
           message: `Msg no grupo ${groupName}: "${message.substring(0, 50)}"`,
-          meta: { group_jid: groupJid, media_type: mediaType, group_id: targetGroupId },
+          meta: {
+            group_jid: groupJid,
+            media_type: actualMediaType,
+            requested_media_type: requestedMediaType,
+            send_fallback_reason: sendFallbackReason,
+            group_id: targetGroupId,
+          },
         });
         break;
       }
