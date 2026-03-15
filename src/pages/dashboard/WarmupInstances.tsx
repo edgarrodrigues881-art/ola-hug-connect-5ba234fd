@@ -1190,10 +1190,7 @@ const WarmupInstances = () => {
               <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
                 <Plus className="w-3.5 h-3.5" /> Adicionar Instância
               </Button>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => {
-                setEditingFolder({ id: activeFolder.id, name: activeFolder.name, color: activeFolder.color, tags: activeFolder.tags || [] });
-                setFolderDialogOpen(true);
-              }}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setFolderDialogOpen(true)}>
                 <Tag className="w-3.5 h-3.5" /> Tags
               </Button>
             </>
