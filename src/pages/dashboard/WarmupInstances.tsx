@@ -19,8 +19,16 @@ import {
   Phone, Search, Filter, Pause, Play, Pencil, X,
   QrCode, Key, Shield, Ban, CheckCircle2, XCircle,
   Smartphone, RefreshCw, Lock, Target, Timer, Zap,
+  FolderPlus, FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const phaseLabels: Record<string, string> = {
   pre_24h: "Primeiras 24h",
