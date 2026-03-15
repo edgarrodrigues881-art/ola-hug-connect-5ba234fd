@@ -253,26 +253,32 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── AUTOSAVE INTERACTIONS (last 3h of window) ──
+  // ── AUTOSAVE INTERACTIONS (spread throughout the day) ──
+  // Pattern: contact1 msg1 → 4-7min → contact1 msg2 → 4-7min → contact1 msg3 → next contact
+  // 5 contacts × 3 msgs = 15 msgs, ~4-7 min gaps = ~60-105 min total
   if (volumes.autosaveContacts > 0 && volumes.autosaveRounds > 0) {
-    const totalAutosave = volumes.autosaveContacts * volumes.autosaveRounds;
-    const asStart = Math.max(effectiveEnd - 3 * 60 * 60 * 1000, effectiveStart);
-    const asWindowMs = effectiveEnd - asStart;
-    const asSpacing = asWindowMs / (totalAutosave + 1);
+    // Pick a random start point within the window (first 60% to leave room)
+    const asWindowMs = effectiveEnd - effectiveStart;
+    const asStartOffset = randInt(
+      Math.floor(asWindowMs * 0.1),
+      Math.floor(asWindowMs * 0.4)
+    );
+    let cursor = effectiveStart + asStartOffset;
 
-    for (let round = 0; round < volumes.autosaveRounds; round++) {
-      for (let c = 0; c < volumes.autosaveContacts; c++) {
-        const idx = round * volumes.autosaveContacts + c;
-        const offset = asSpacing * (idx + 1) + randInt(0, Math.floor(asSpacing * 0.3));
-        const runAt = new Date(asStart + offset);
-        if (runAt.getTime() > effectiveEnd) break;
+    for (let c = 0; c < volumes.autosaveContacts; c++) {
+      for (let r = 0; r < volumes.autosaveRounds; r++) {
+        if (cursor > effectiveEnd) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "autosave_interaction",
-          payload: { recipient_index: c, msg_index: round },
-          run_at: runAt.toISOString(), status: "pending",
+          payload: { recipient_index: c, msg_index: r },
+          run_at: new Date(cursor).toISOString(), status: "pending",
         });
+        // 4-7 min pause between each message
+        cursor += randInt(4, 7) * 60 * 1000;
       }
+      // Extra pause between contacts: 5-10 min
+      cursor += randInt(5, 10) * 60 * 1000;
     }
   }
 
