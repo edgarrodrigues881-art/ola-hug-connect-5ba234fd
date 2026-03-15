@@ -941,45 +941,52 @@ const WarmupInstanceDetail = () => {
       {cycle && !isTerminalCycle && (
         <div className="space-y-5">
 
-          {/* Phase stepper + day progress */}
-          <div className="rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-xl p-6 space-y-5 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.1)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                {pc && <pc.icon className={cn("w-5 h-5", pc.color)} />}
-                <span className={cn("text-base font-extrabold tracking-tight", pc?.color)}>{pc?.label}</span>
+          {/* ── Ciclo Overview ── */}
+          <div className="rounded-2xl border border-border/10 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.05)]">
+            <div className="px-6 pt-5 pb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-9 h-9 rounded-lg flex items-center justify-center",
+                  cycle.is_running ? "bg-primary/12" : "bg-muted/20"
+                )}>
+                  <Flame className={cn("w-4.5 h-4.5", cycle.is_running ? "text-primary" : "text-muted-foreground")} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground leading-tight">Ciclo de Aquecimento</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {pc?.label} — Dia {cycle.day_index} de {cycle.days_total}
+                  </p>
+                </div>
               </div>
-              <span className="text-xs font-mono font-bold text-foreground bg-muted/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/20">
-                Dia {cycle.day_index}/{cycle.days_total}
+              <span className="text-lg font-black text-foreground tabular-nums">
+                {Math.round((cycle.day_index / cycle.days_total) * 100)}%
               </span>
             </div>
 
-            {/* phase stepper */}
-            <div className="flex items-center gap-1.5">
-              {phaseSteps.map((p) => {
+            {/* Progress bar */}
+            <div className="px-6 pb-4">
+              <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                  style={{ width: `${(cycle.day_index / cycle.days_total) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Phase steps — compact */}
+            <div className="px-6 pb-5 flex items-center gap-1">
+              {phaseSteps.map((p, i) => {
                 const isActive = cycle.phase === p;
                 const isPast = (phaseConfig[cycle.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
                 return (
-                  <div key={p} className="flex-1 group relative">
+                  <div key={p} className="flex items-center flex-1 gap-1">
                     <div className={cn(
-                      "h-2.5 rounded-full transition-all",
-                      isActive ? "bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/30" : "bg-muted/25 dark:bg-muted/15"
+                      "w-full h-1.5 rounded-full transition-all",
+                      isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/25" : "bg-muted/15"
                     )} />
-                    <span className={cn(
-                      "absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-bold whitespace-nowrap transition-opacity",
-                      isActive ? cn("opacity-100", pc?.color) : "opacity-0 group-hover:opacity-70 text-muted-foreground"
-                    )}>
-                      {phaseConfig[p]?.label}
-                    </span>
                   </div>
                 );
               })}
-            </div>
-
-            <div className="pt-4">
-              <Progress value={(cycle.day_index / cycle.days_total) * 100} className="h-2" />
-              <p className="text-[10px] text-muted-foreground font-semibold mt-1.5 text-right">
-                {Math.round((cycle.day_index / cycle.days_total) * 100)}% concluído
-              </p>
             </div>
           </div>
 
@@ -1157,42 +1164,51 @@ const WarmupInstanceDetail = () => {
 
             return (
               <>
-              {/* ── Progresso do Dia (compact) ── */}
-              <div className="rounded-2xl border border-teal-500/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_0_25px_-8px_hsl(172_66%_50%/0.1)]">
-                <div className="px-6 py-5 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-teal-500/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(172_66%_50%/0.2)]">
-                    <Target className="w-5 h-5 text-teal-400" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-base font-extrabold text-foreground tracking-tight">
-                      {isPre24h ? "Fase de Proteção (24h)" : "Progresso do Dia"}
-                    </span>
-                    <p className="text-[11px] text-muted-foreground font-medium">
-                      {isPre24h
-                        ? "⏳ Aguardando período de proteção inicial"
-                        : `✅ ${doneToday} concluídas · ⏳ ${Math.max(0, totalDisplay - doneToday - failedToday)} restantes${failedToday > 0 ? ` · ❌ ${failedToday} falhas` : ""}`
-                      }
-                    </p>
-                  </div>
-                  {nextPendingJob && (
-                    <div className="text-right bg-muted/30 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/15">
-                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
-                        {isPre24h ? "Transição" : "Próxima"}
-                      </p>
-                      <p className="text-sm font-black text-foreground font-mono">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
+              {/* ── Atividade de Hoje ── */}
+              <div className="rounded-2xl border border-border/10 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.05)]">
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary/12 flex items-center justify-center">
+                      <Target className="w-4.5 h-4.5 text-primary" />
                     </div>
-                  )}
+                    <div>
+                      <p className="text-sm font-bold text-foreground leading-tight">
+                        {isPre24h ? "Proteção Inicial" : "Atividade de Hoje"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {isPre24h
+                          ? "Aguardando período de segurança"
+                          : `${doneToday} de ${totalDisplay} tarefas concluídas`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {nextPendingJob && (
+                      <div className="text-right">
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Próxima</p>
+                        <p className="text-sm font-black text-foreground font-mono tabular-nums">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
+                      </div>
+                    )}
+                    {!isPre24h && (
+                      <span className="text-lg font-black text-foreground tabular-nums">
+                        {totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {!isPre24h && (
-                <div className="px-6 pb-5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-black text-foreground">{doneToday + failedToday}/{totalDisplay}</span>
-                    <div className="flex-1 h-2.5 bg-muted/25 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400 rounded-full transition-all shadow-[0_0_8px_hsl(142_71%_45%/0.4)]" style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }} />
+                  <div className="px-6 pb-4">
+                    <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                        style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }}
+                      />
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-bold">{totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%</span>
+                    {failedToday > 0 && (
+                      <p className="text-[10px] text-destructive font-medium mt-1.5">{failedToday} tarefa(s) com falha</p>
+                    )}
                   </div>
-                </div>
                 )}
               </div>
 
