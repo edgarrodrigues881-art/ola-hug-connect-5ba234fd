@@ -591,39 +591,12 @@ function buildMsg(ctx: MsgCtx): string {
 // UAZAPI COMMUNICATION
 // ══════════════════════════════════════════════════════════
 
-function buildQuotedPayload(quotedMsgId?: string): Record<string, unknown> {
-  if (!quotedMsgId) return {};
-  return {
-    quotedMsgId,
-    quotedMessageId: quotedMsgId,
-    quoted_message_id: quotedMsgId,
-    replyTo: quotedMsgId,
-    messageId: quotedMsgId,
-    stanzaId: quotedMsgId,
-    quoted: { id: quotedMsgId },
-    contextInfo: { quotedMessageId: quotedMsgId },
-  };
-}
-
-async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
-  const quotePayload = buildQuotedPayload(quotedMsgId);
+async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
-    {
-      path: "/send/text",
-      body: { number, text, ...quotePayload },
-    },
-    {
-      path: "/chat/send-text",
-      body: { number, to: number, chatId: number, body: text, text, ...quotePayload },
-    },
-    {
-      path: "/message/sendText",
-      body: { chatId: number, text, ...quotePayload },
-    },
-    {
-      path: "/message/sendText",
-      body: { to: number, text, ...quotePayload },
-    },
+    { path: "/send/text", body: { number, text } },
+    { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+    { path: "/message/sendText", body: { chatId: number, text } },
+    { path: "/message/sendText", body: { to: number, text } },
   ];
 
   let lastErr = "";
@@ -654,425 +627,42 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   throw new Error(`Text send failed: ${lastErr}`);
 }
 
-/** Fetch most recent messages from a group chat and return the latest quotable message ID */
-function extractMsgId(m: any): string | null {
-  return (
-    m?.id ||
-    m?.ID ||
-    m?.key?.id ||
-    m?.key?.ID ||
-    m?.messageId ||
-    m?.messageID ||
-    m?.msgId ||
-    m?.stanzaId ||
-    m?.stanza_id ||
-    null
-  );
-}
 
-function extractMsgTs(m: any): number {
-  const raw =
-    m?.messageTimestamp ??
-    m?.timestamp ??
-    m?.ts ??
-    m?.t ??
-    m?.time ??
-    m?.message?.messageTimestamp ??
-    m?.key?.timestamp ??
-    m?.createdAt ??
-    m?.created_at;
+// NOTE: uazapiFetchLastMessage removed — UAZAPI does not support fetching chat messages (all endpoints return 404/405)
 
-  const asNum = Number(raw);
-  if (Number.isFinite(asNum) && asNum > 0) {
-    return asNum > 1_000_000_000_000 ? asNum : asNum * 1000;
-  }
 
-  const parsedDate = raw ? Date.parse(String(raw)) : NaN;
-  return Number.isFinite(parsedDate) ? parsedDate : 0;
-}
 
-function extractFromMe(m: any): boolean {
-  return Boolean(m?.fromMe ?? m?.from_me ?? m?.key?.fromMe ?? m?.key?.from_me ?? false);
-}
-
-function normalizeChatId(value: string): string {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/%40/g, "@")
-    .replace(/\s+/g, "")
-    .replace(/^55(?=\d{10,13}$)/, "")
-    .replace(/@g\.us$/, "");
-}
-
-function buildChatIdVariants(chatId: string): string[] {
-  const raw = String(chatId || "").trim();
-  if (!raw) return [];
-  const noSuffix = raw.replace(/@g\.us$/i, "");
-  const digits = noSuffix.replace(/\D/g, "");
-  return Array.from(new Set([raw, noSuffix, digits, digits ? `${digits}@g.us` : ""].filter(Boolean)));
-}
-
-function extractMessagesArray(payload: any): any[] {
-  const candidates = [
-    payload,
-    payload?.messages,
-    payload?.data,
-    payload?.data?.messages,
-    payload?.result,
-    payload?.result?.messages,
-    payload?.items,
-    payload?.data?.items,
-    payload?.rows,
-    payload?.data?.rows,
-  ];
-
-  const out: any[] = [];
-  for (const c of candidates) {
-    if (Array.isArray(c)) out.push(...c);
-  }
-  return out;
-}
-
-async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
-  const variants = buildChatIdVariants(chatId);
-  if (variants.length === 0) return null;
-
-  const endpoints: Array<{ method: "GET" | "POST"; url: string; body?: Record<string, unknown>; mode: "messages" | "chats" }> = [];
-
-  for (const v of variants) {
-    const enc = encodeURIComponent(v);
-    endpoints.push(
-      { method: "GET", url: `${baseUrl}/chat/messages?chatId=${enc}&count=10`, mode: "messages" },
-      { method: "GET", url: `${baseUrl}/chat/messages?jid=${enc}&count=10`, mode: "messages" },
-      { method: "GET", url: `${baseUrl}/chat/messages?number=${enc}&count=10`, mode: "messages" },
-      { method: "GET", url: `${baseUrl}/chat/messages/${enc}?count=10`, mode: "messages" },
-      { method: "GET", url: `${baseUrl}/chat/${enc}/messages?count=10`, mode: "messages" },
-      { method: "GET", url: `${baseUrl}/messages/${enc}?limit=10`, mode: "messages" },
-      { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId: v, count: 10 }, mode: "messages" },
-      { method: "POST", url: `${baseUrl}/chat/messages`, body: { jid: v, count: 10 }, mode: "messages" },
-      { method: "POST", url: `${baseUrl}/chat/messages`, body: { number: v, count: 10 }, mode: "messages" },
-    );
-  }
-
-  endpoints.push(
-    { method: "GET", url: `${baseUrl}/chat/list?count=500`, mode: "chats" },
-    { method: "GET", url: `${baseUrl}/chats?type=group&count=500`, mode: "chats" },
-  );
-
-  const variantNormSet = new Set(variants.map((v) => normalizeChatId(v)).filter(Boolean));
-
-  const extractChatJid = (c: any): string =>
-    String(c?.JID || c?.jid || c?.id || c?.chatId || c?.groupJid || c?.number || "");
-
-  const extractLastFromChat = (c: any): any =>
-    c?.lastMessage || c?.last_message || c?.lastMsg || c?.LastMessage || c?.message || c?.msg || c?.conversation || c?.recentMessage || null;
-
-  for (const ep of endpoints) {
-    try {
-      const fetchOpts: RequestInit = {
-        method: ep.method,
-        headers: { token, Accept: "application/json", "Content-Type": "application/json" },
-      };
-      if (ep.body) fetchOpts.body = JSON.stringify(ep.body);
-
-      const res = await fetch(ep.url, fetchOpts);
-      const rawText = await res.text();
-
-      if (!res.ok) {
-        console.log(`[fetchLastMsg] ${ep.method} ${ep.url} → ${res.status}: ${rawText.substring(0, 200)}`);
-        continue;
-      }
-
-      let data: any;
-      try { data = rawText ? JSON.parse(rawText) : {}; } catch { continue; }
-
-      if (ep.mode === "messages") {
-        const messages = extractMessagesArray(data);
-        if (!Array.isArray(messages) || messages.length === 0) continue;
-
-        const normalized = messages
-          .map((m: any, idx: number) => ({
-            id: extractMsgId(m),
-            ts: extractMsgTs(m),
-            fromMe: extractFromMe(m),
-            idx,
-          }))
-          .filter((m: any) => !!m.id);
-
-        if (normalized.length === 0) continue;
-
-        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
-        const ordered = hasValidTimestamp
-          ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
-          : normalized;
-
-        const preferred = ordered.find((m: any) => !m.fromMe) || ordered[0];
-        if (preferred?.id) {
-          console.log(`[fetchLastMsg] Found quoted id ${preferred.id} via ${ep.url}`);
-          return preferred.id as string;
-        }
-        continue;
-      }
-
-      const chatCandidates = [
-        data,
-        data?.chats,
-        data?.data,
-        data?.data?.chats,
-        data?.result,
-        data?.result?.chats,
-      ];
-      const chats: any[] = [];
-      for (const c of chatCandidates) if (Array.isArray(c)) chats.push(...c);
-      if (chats.length === 0) continue;
-
-      const targetChat = chats.find((c: any) => {
-        const candidateNorm = normalizeChatId(extractChatJid(c));
-        if (!candidateNorm) return false;
-        if (variantNormSet.has(candidateNorm)) return true;
-        for (const v of variantNormSet) {
-          if (candidateNorm.includes(v) || v.includes(candidateNorm)) return true;
-        }
-        return false;
-      });
-      if (!targetChat) continue;
-
-      const last = extractLastFromChat(targetChat);
-      const lastId =
-        extractMsgId(last) ||
-        extractMsgId(targetChat?.lastMessage) ||
-        extractMsgId(targetChat?.message) ||
-        extractMsgId({ id: targetChat?.lastMessageId || targetChat?.last_message_id || targetChat?.lastMsgId });
-
-      if (lastId) {
-        console.log(`[fetchLastMsg] chat/list fallback using id ${lastId}`);
-        return lastId;
-      }
-    } catch (e) {
-      console.log(`[fetchLastMsg] ${ep.url} error: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-
-  console.log(`[fetchLastMsg] All endpoints failed for ${chatId}`);
-  return null;
-}
-
-const _blobCache: Record<string, string> = {};
-
-function decodeDataUri(dataUri: string): { mimeType: string; bytes: Uint8Array } | null {
-  const m = String(dataUri || "").match(/^data:([^;]+);base64,(.+)$/);
-  if (!m) return null;
-  const mimeType = m[1] || "application/octet-stream";
-  const b64 = m[2] || "";
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return { mimeType, bytes };
-}
-
-function mimeToExt(mimeType: string): string {
-  if (mimeType.includes("png")) return "png";
-  if (mimeType.includes("webp")) return "webp";
-  if (mimeType.includes("gif")) return "gif";
-  return "jpg";
-}
-
-async function getMediaAsset(mediaUrl: string, fallbackMime: string): Promise<{ dataUri: string; mimeType: string; bytes: Uint8Array }> {
-  let dataUri = _blobCache[mediaUrl];
-  if (dataUri) {
-    const decoded = decodeDataUri(dataUri);
-    if (decoded) return { dataUri, mimeType: decoded.mimeType, bytes: decoded.bytes };
-  }
-
-  const imgRes = await fetch(mediaUrl);
-  if (!imgRes.ok) throw new Error(`Failed to download media: ${imgRes.status}`);
-
-  const mimeType = imgRes.headers.get("content-type") || fallbackMime;
-  const bytes = new Uint8Array(await imgRes.arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  dataUri = `data:${mimeType};base64,${btoa(binary)}`;
-  _blobCache[mediaUrl] = dataUri;
-
-  return { dataUri, mimeType, bytes };
-}
-
-async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string, quotedMsgId?: string) {
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
   if (!imageUrl) throw new Error("Image URL ausente");
   const safeCaption = (caption || "📸").trim() || "📸";
-  const quotePayload = buildQuotedPayload(quotedMsgId);
 
-  const parseResponse = async (res: Response) => {
-    const raw = await res.text();
-    if (!raw) return { ok: true };
-    try { return JSON.parse(raw); } catch { return { raw }; }
-  };
-
-  const tryJsonEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
-    let lastErr = "";
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(ep.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify(ep.body),
-        });
-        if (res.ok) return { ok: true as const, data: await parseResponse(res) };
-        const errText = await res.text();
-        lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
-        if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        lastErr = `${ep.url}: ${msg}`;
-      }
-    }
-    return { ok: false as const, lastErr };
-  };
-
-  const urlResult = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: imageUrl, file: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: imageUrl, file: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
-  ]);
-  if (urlResult.ok) return urlResult.data;
-
-  const asset = await getMediaAsset(imageUrl, "image/jpeg");
-  const fileName = `warmup-image.${mimeToExt(asset.mimeType)}`;
-
-  const appendField = (form: FormData, key: string, value: unknown) => {
-    if (value === undefined || value === null) return;
-    if (typeof value === "object") form.append(key, JSON.stringify(value));
-    else form.append(key, String(value));
-  };
-
-  const multipartAttempts = [
-    { url: `${baseUrl}/send/media`, fields: { number, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/send/image`, fields: { number, caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/message/sendMedia`, fields: { chatId: number, type: "image", caption: safeCaption, ...quotePayload } },
-  ];
-
-  let multipartErr = "";
-  for (const at of multipartAttempts) {
-    try {
-      const form = new FormData();
-      Object.entries(at.fields).forEach(([k, v]) => appendField(form, k, v));
-      form.append("file", new Blob([asset.bytes], { type: asset.mimeType }), fileName);
-
-      const res = await fetch(at.url, {
-        method: "POST",
-        headers: { token, Accept: "application/json" },
-        body: form,
-      });
-
-      if (res.ok) return await parseResponse(res);
-      const errText = await res.text();
-      multipartErr = `${res.status} @ ${at.url}: ${errText.substring(0, 240)}`;
-      if (res.status !== 405) console.warn(`[uazapiSendImage-multipart] ${multipartErr}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      multipartErr = `${at.url}: ${msg}`;
-    }
+  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "image", caption }
+  const res = await fetch(`${baseUrl}/send/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify({ number, file: imageUrl, type: "image", caption: safeCaption }),
+  });
+  const raw = await res.text();
+  if (res.ok) {
+    try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
   }
-
-  const b64Result = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/media`, body: { number, file: asset.dataUri, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, media: asset.dataUri, type: "image", caption: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/send/image`, body: { number, image: asset.dataUri, caption: safeCaption, text: safeCaption, ...quotePayload } },
-    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, file: asset.dataUri, media: asset.dataUri, type: "image", caption: safeCaption, ...quotePayload } },
-  ]);
-  if (b64Result.ok) return b64Result.data;
-
-  throw new Error(`Image send failed: ${b64Result.lastErr || multipartErr || urlResult.lastErr}`);
+  throw new Error(`Image send failed: ${res.status} — ${raw.substring(0, 240)}`);
 }
 
-async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string, quotedMsgId?: string) {
+async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
   if (!imageUrl) throw new Error("Sticker URL ausente");
-  const quotePayload = buildQuotedPayload(quotedMsgId);
 
-  const parseResponse = async (res: Response) => {
-    const raw = await res.text();
-    if (!raw) return { ok: true };
-    try { return JSON.parse(raw); } catch { return { raw }; }
-  };
-
-  const tryJsonEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
-    let lastErr = "";
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(ep.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify(ep.body),
-        });
-        if (res.ok) return { ok: true as const, data: await parseResponse(res) };
-        const errText = await res.text();
-        lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
-        if (res.status !== 405) console.warn(`[uazapiSendSticker] ${lastErr}`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        lastErr = `${ep.url}: ${msg}`;
-      }
-    }
-    return { ok: false as const, lastErr };
-  };
-
-  const urlResult = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, media: imageUrl, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: imageUrl, media: imageUrl, ...quotePayload } },
-  ]);
-  if (urlResult.ok) return urlResult.data;
-
-  const asset = await getMediaAsset(imageUrl, "image/webp");
-  const fileName = `warmup-sticker.${mimeToExt(asset.mimeType)}`;
-
-  const appendField = (form: FormData, key: string, value: unknown) => {
-    if (value === undefined || value === null) return;
-    if (typeof value === "object") form.append(key, JSON.stringify(value));
-    else form.append(key, String(value));
-  };
-
-  const multipartAttempts = [
-    { url: `${baseUrl}/send/sticker`, fields: { number, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, fields: { number, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, fields: { chatId: number, ...quotePayload } },
-  ];
-
-  let multipartErr = "";
-  for (const at of multipartAttempts) {
-    try {
-      const form = new FormData();
-      Object.entries(at.fields).forEach(([k, v]) => appendField(form, k, v));
-      form.append("file", new Blob([asset.bytes], { type: asset.mimeType }), fileName);
-
-      const res = await fetch(at.url, {
-        method: "POST",
-        headers: { token, Accept: "application/json" },
-        body: form,
-      });
-
-      if (res.ok) return await parseResponse(res);
-      const errText = await res.text();
-      multipartErr = `${res.status} @ ${at.url}: ${errText.substring(0, 240)}`;
-      if (res.status !== 405) console.warn(`[uazapiSendSticker-multipart] ${multipartErr}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      multipartErr = `${at.url}: ${msg}`;
-    }
+  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "sticker" }
+  const res = await fetch(`${baseUrl}/send/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify({ number, file: imageUrl, type: "sticker" }),
+  });
+  const raw = await res.text();
+  if (res.ok) {
+    try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
   }
-
-  const b64Result = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, file: asset.dataUri, media: asset.dataUri, sticker: asset.dataUri, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, file: asset.dataUri, media: asset.dataUri, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: asset.dataUri, media: asset.dataUri, ...quotePayload } },
-  ]);
-  if (b64Result.ok) return b64Result.data;
-
-  throw new Error(`Sticker send failed: ${b64Result.lastErr || multipartErr || urlResult.lastErr}`);
+  throw new Error(`Sticker send failed: ${res.status} — ${raw.substring(0, 240)}`);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1764,35 +1354,26 @@ async function handleTick(db: any) {
         let message = getMsg();
         let sendFallbackReason: string | null = null;
 
-        // Reply: tenta sempre pegar a última mensagem do grupo
-        let quotedMsgId: string | null = null;
-        try {
-          quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
-        } catch {
-          /* ignore, send without quote */
-        }
+        // NOTE: Reply (quotedMsgId) disabled — UAZAPI does not support fetching chat messages
 
         try {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption, quotedMsgId || undefined);
-            message = quotedMsgId ? `[IMG-REPLY] ${caption}` : `[IMG] ${caption}`;
+            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
+            message = `[IMG] ${caption}`;
           } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
-            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl, quotedMsgId || undefined);
-            const stickerMsg = getMsg();
-            try { await uazapiSendText(baseUrl, token, groupJid, stickerMsg, quotedMsgId || undefined); } catch { /* ok */ }
-            message = quotedMsgId ? `[STICKER-REPLY] 🎭 + "${stickerMsg.substring(0, 40)}"` : `[STICKER] 🎭 + "${stickerMsg.substring(0, 40)}"`;
+            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
+            message = `[STICKER] 🎭`;
           } else {
-            await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
-            if (quotedMsgId) message = `[REPLY] ${message}`;
+            await uazapiSendText(baseUrl, token, groupJid, message);
           }
         } catch (e) {
           actualMediaType = "text";
           sendFallbackReason = e instanceof Error ? e.message : String(e || "unknown_error");
           message = getMsg();
-          await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
+          await uazapiSendText(baseUrl, token, groupJid, message);
         }
 
         // Update budget (increment)
@@ -1809,7 +1390,6 @@ async function handleTick(db: any) {
             group_jid: groupJid,
             media_type: actualMediaType,
             requested_media_type: requestedMediaType,
-            quoted_msg_id: quotedMsgId,
             send_fallback_reason: sendFallbackReason,
             group_id: targetGroupId,
           },
