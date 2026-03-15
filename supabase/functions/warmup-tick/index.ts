@@ -776,6 +776,7 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === "daily") return await handleDailyReset(db);
+    if (body.action === "schedule_day") return await handleScheduleDay(db, body);
     return await handleTick(db);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
@@ -1751,4 +1752,50 @@ async function handleDailyReset(db: any) {
   }
 
   return json({ ok: true, cycles_reset: processed });
+}
+
+// ══════════════════════════════════════════════════════════
+// SCHEDULE DAY HANDLER (on-demand job creation)
+// ══════════════════════════════════════════════════════════
+
+async function handleScheduleDay(db: any, body: any) {
+  const { cycle_id, device_id, forced } = body;
+
+  if (!cycle_id) return json({ error: "cycle_id obrigatório" }, 400);
+
+  const { data: cycle, error: cycleErr } = await db.from("warmup_cycles")
+    .select("*")
+    .eq("id", cycle_id)
+    .single();
+
+  if (cycleErr || !cycle) return json({ error: "Ciclo não encontrado" }, 404);
+  if (!cycle.is_running) return json({ error: "Ciclo não está rodando" }, 400);
+
+  const chipState = cycle.chip_state || "new";
+  const phase = cycle.phase;
+  const dayIndex = cycle.day_index || 1;
+
+  // Cancel existing pending interaction jobs to avoid duplicates
+  await db.from("warmup_jobs")
+    .update({ status: "cancelled", last_error: "Cancelado: nova geração de tarefas" })
+    .eq("cycle_id", cycle_id)
+    .eq("status", "pending")
+    .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+  let jobsCreated = 0;
+
+  // For pre_24h or groups_only: ensure join_group jobs
+  if (["pre_24h", "groups_only"].includes(phase)) {
+    const created = await ensureJoinGroupJobs(db, cycle_id, cycle.user_id, device_id || cycle.device_id);
+    jobsCreated += created;
+  }
+
+  // Schedule interaction jobs (forced = true uses current time as start)
+  const scheduled = await scheduleDayJobs(
+    db, cycle_id, cycle.user_id, device_id || cycle.device_id,
+    dayIndex, phase === "pre_24h" ? "groups_only" : phase, chipState, forced
+  );
+  jobsCreated += scheduled;
+
+  return json({ ok: true, jobs_created: jobsCreated, phase, day_index: dayIndex });
 }

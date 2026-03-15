@@ -219,12 +219,40 @@ const WarmupInstanceDetail = () => {
       const nextJob = pickNextForcedJob((pendingJobs || []) as ScheduledJobLite[]);
 
       if (!nextJob) {
-        toast({
-          title: "Sem tarefas pendentes",
-          description: isDay2Plus
-            ? "Não há tarefas do dia pendentes para forçar."
-            : "Não há tarefas pendentes para forçar.",
-        });
+        // No pending jobs → ask backend to create new ones for current phase
+        toast({ title: "⏳ Gerando tarefas...", description: "Criando novas tarefas para a fase atual." });
+        try {
+          await supabase.functions.invoke("warmup-tick", {
+            body: { action: "schedule_day", cycle_id: cycle.id, device_id: deviceId, forced: true },
+          });
+          await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+          // Retry: fetch new pending jobs
+          const { data: newJobs } = await supabase
+            .from("warmup_jobs")
+            .select("id, job_type, status, run_at, payload")
+            .eq("cycle_id", cycle.id)
+            .eq("status", "pending")
+            .order("run_at", { ascending: true });
+          const retryJob = pickNextForcedJob((newJobs || []) as ScheduledJobLite[]);
+          if (!retryJob) {
+            toast({ title: "Sem tarefas", description: "Não foi possível gerar tarefas para esta fase.", variant: "destructive" });
+            return;
+          }
+          // Force the newly created job
+          const retryPayload = { ...(retryJob.payload as Record<string, unknown> || {}), forced: true };
+          await supabase.from("warmup_jobs").update({
+            run_at: new Date().toISOString(), attempts: 0, last_error: null, payload: retryPayload as any,
+          }).eq("id", retryJob.id).eq("status", "pending");
+          await supabase.functions.invoke("warmup-tick", { body: {} });
+          await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+          const jobLabel2 = {
+            join_group: "Entrada em grupo", group_interaction: "Mensagem em grupo",
+            autosave_interaction: "Mensagem privada", community_interaction: "Interação comunitária",
+          }[retryJob.job_type] || retryJob.job_type;
+          toast({ title: "⚡ Forçado!", description: `Tarefa (${jobLabel2}) executando agora.` });
+        } catch (schedErr: any) {
+          toast({ title: "Erro ao gerar tarefas", description: schedErr.message, variant: "destructive" });
+        }
         return;
       }
 
