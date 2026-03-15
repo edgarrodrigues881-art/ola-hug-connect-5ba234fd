@@ -941,54 +941,7 @@ const WarmupInstanceDetail = () => {
       {cycle && !isTerminalCycle && (
         <div className="space-y-5">
 
-          {/* ── Ciclo Overview ── */}
-          <div className="rounded-2xl border border-border/10 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.05)]">
-            <div className="px-6 pt-5 pb-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-9 h-9 rounded-lg flex items-center justify-center",
-                  cycle.is_running ? "bg-primary/12" : "bg-muted/20"
-                )}>
-                  <Flame className={cn("w-4.5 h-4.5", cycle.is_running ? "text-primary" : "text-muted-foreground")} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground leading-tight">Ciclo de Aquecimento</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {pc?.label} — Dia {cycle.day_index} de {cycle.days_total}
-                  </p>
-                </div>
-              </div>
-              <span className="text-lg font-black text-foreground tabular-nums">
-                {Math.round((cycle.day_index / cycle.days_total) * 100)}%
-              </span>
-            </div>
-
-            {/* Progress bar */}
-            <div className="px-6 pb-4">
-              <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                  style={{ width: `${(cycle.day_index / cycle.days_total) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Phase steps — compact */}
-            <div className="px-6 pb-5 flex items-center gap-1">
-              {phaseSteps.map((p, i) => {
-                const isActive = cycle.phase === p;
-                const isPast = (phaseConfig[cycle.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
-                return (
-                  <div key={p} className="flex items-center flex-1 gap-1">
-                    <div className={cn(
-                      "w-full h-1.5 rounded-full transition-all",
-                      isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/25" : "bg-muted/15"
-                    )} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Ciclo + Atividade unified — rendered inside the IIFE below */}
 
           {/* Countdown (pre_24h only) */}
           {cycle.phase === "pre_24h" && (
