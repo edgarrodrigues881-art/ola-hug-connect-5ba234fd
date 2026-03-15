@@ -781,52 +781,66 @@ const Devices = () => {
       console.log("[edit-save] deviceId:", editingDevice.id, "wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
       const warnings: string[] = [];
 
+      // 1. Profile name sync (fire-and-forget, never blocks save)
       if (wpName.trim()) {
-        const nameResult = await callApi({
-          action: "updateProfileName",
-          deviceId: editingDevice.id,
-          profileName: wpName.trim(),
-        });
-
         dbUpdates.profile_name = wpName.trim();
-        if (isEdgeCallFailed(nameResult)) {
-          warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
+        try {
+          const nameResult = await callApi({
+            action: "updateProfileName",
+            deviceId: editingDevice.id,
+            profileName: wpName.trim(),
+          });
+          if (isEdgeCallFailed(nameResult)) {
+            warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
+          }
+        } catch (e: any) {
+          console.warn("[edit-save] name sync failed:", e?.message);
+          warnings.push("Falha ao sincronizar nome no WhatsApp");
         }
       }
 
+      // 2. Profile picture sync (fire-and-forget, never blocks save)
       if (wpRemovePhoto) {
-        const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
         dbUpdates.profile_picture = null;
-        if (!removeResult.ok) {
-          warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
+        try {
+          const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
+          if (!removeResult.ok) {
+            warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
+          }
+        } catch (e: any) {
+          console.warn("[edit-save] photo remove failed:", e?.message);
+          warnings.push("Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
-        const profilePicturePayload = wpPhotoBase64;
-        const profilePictureDbValue = wpPhotoBase64.startsWith("data:image/")
-          ? await uploadProfilePhotoDraft(wpPhotoBase64)
-          : wpPhotoBase64;
+        try {
+          const profilePictureDbValue = wpPhotoBase64.startsWith("data:image/")
+            ? await uploadProfilePhotoDraft(wpPhotoBase64)
+            : wpPhotoBase64;
+          dbUpdates.profile_picture = profilePictureDbValue;
 
-        const photoResult = await callApi({
-          action: "updateProfilePicture",
-          deviceId: editingDevice.id,
-          profilePictureData: profilePicturePayload,
-        });
-
-        dbUpdates.profile_picture = profilePictureDbValue;
-        if (isEdgeCallFailed(photoResult)) {
-          warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+          const photoResult = await callApi({
+            action: "updateProfilePicture",
+            deviceId: editingDevice.id,
+            profilePictureData: wpPhotoBase64,
+          });
+          if (isEdgeCallFailed(photoResult)) {
+            warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+          }
+        } catch (e: any) {
+          console.warn("[edit-save] photo sync failed:", e?.message);
+          // Still save the photo locally even if API sync failed
+          if (!dbUpdates.profile_picture && wpPhotoBase64) {
+            dbUpdates.profile_picture = wpPhotoBase64.startsWith("data:image/") ? null : wpPhotoBase64;
+          }
+          warnings.push("Falha ao sincronizar foto no WhatsApp");
         }
       }
 
+      // 3. Save to DB — updateMutation handles optimistic update + invalidation
       await updateMutation.mutateAsync({
         id: editingDevice.id,
         updates: dbUpdates,
       });
-
-      // Optimistic cache update so card reflects changes instantly
-      queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
-        old ? old.map(d => d.id === editingDevice.id ? { ...d, ...dbUpdates } : d) : old
-      );
 
       if (warnings.length > 0) {
         const extraWarnings = warnings.length > 1 ? ` (+${warnings.length - 1} aviso${warnings.length > 2 ? "s" : ""})` : "";
@@ -839,12 +853,11 @@ const Devices = () => {
         toast({ title: "Instância atualizada" });
       }
       closeEditDialog();
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Edit update error:", err);
       toast({
         title: "Erro ao atualizar",
-        description: err?.message || "Não foi possível atualizar no WhatsApp e no painel.",
+        description: err?.message || "Não foi possível salvar as alterações.",
         variant: "destructive",
       });
     }
