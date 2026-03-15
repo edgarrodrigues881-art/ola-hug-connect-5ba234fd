@@ -1163,12 +1163,22 @@ const Devices = () => {
     return { error: "Servidor sobrecarregado. Tente novamente em instantes." };
   };
 
+  const isEdgeCallFailed = (result: any) => Boolean(result?.error || result?.success === false);
+
   const callApiStrict = async (body: Record<string, any>, fallbackMessage: string) => {
     const result = await callApi(body);
-    if (result?.error || result?.success === false) {
+    if (isEdgeCallFailed(result)) {
       throw new Error(result?.error || fallbackMessage);
     }
     return result;
+  };
+
+  const tryRemoveProfilePhoto = async (deviceId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const result = await callApi({ action: "updateProfilePicture", deviceId, profilePictureData: "remove" });
+    if (isEdgeCallFailed(result)) {
+      return { ok: false, error: result?.error || "Falha ao remover foto no WhatsApp" };
+    }
+    return { ok: true };
   };
 
   // Quick actions
