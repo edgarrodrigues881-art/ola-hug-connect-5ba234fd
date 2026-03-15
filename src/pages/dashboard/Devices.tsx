@@ -770,18 +770,16 @@ const Devices = () => {
           profileName: wpName.trim(),
         });
 
+        dbUpdates.profile_name = wpName.trim();
         if (isEdgeCallFailed(nameResult)) {
-          warnings.push(nameResult?.error || "Falha ao atualizar nome no WhatsApp");
-        } else {
-          dbUpdates.profile_name = wpName.trim();
+          warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
         }
       }
 
       if (wpRemovePhoto) {
         const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
-        if (removeResult.ok) {
-          dbUpdates.profile_picture = null;
-        } else {
+        dbUpdates.profile_picture = null;
+        if (!removeResult.ok) {
           warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
@@ -791,10 +789,9 @@ const Devices = () => {
           profilePictureData: wpPhotoBase64,
         });
 
+        dbUpdates.profile_picture = wpPhotoBase64;
         if (isEdgeCallFailed(photoResult)) {
-          warnings.push(photoResult?.error || "Falha ao atualizar foto no WhatsApp");
-        } else {
-          dbUpdates.profile_picture = wpPhotoBase64;
+          warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
         }
       }
 
@@ -931,29 +928,28 @@ const Devices = () => {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
           const dbUp: Record<string, any> = {};
-          let warning: string | null = null;
+          const warnings: string[] = [];
 
           if (wpName.trim()) {
-            await callApiStrict(
-              { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
-              "Falha ao atualizar nome no WhatsApp",
-            );
+            const nameResult = await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
             dbUp.profile_name = wpName.trim();
+            if (isEdgeCallFailed(nameResult)) {
+              warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
+            }
           }
 
           if (wpRemovePhoto) {
             const removeResult = await tryRemoveProfilePhoto(device.id);
-            if (removeResult.ok) {
-              dbUp.profile_picture = null;
-            } else {
-              warning = removeResult.error;
+            dbUp.profile_picture = null;
+            if (!removeResult.ok) {
+              warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
             }
           } else if (wpPhotoBase64) {
-            await callApiStrict(
-              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
-              "Falha ao atualizar foto no WhatsApp",
-            );
+            const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
             dbUp.profile_picture = wpPhotoBase64;
+            if (isEdgeCallFailed(photoResult)) {
+              warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+            }
           }
 
           if (Object.keys(dbUp).length > 0) {
@@ -961,13 +957,13 @@ const Devices = () => {
             if (error) throw error;
           }
 
-          return { warning };
+          return { warnings };
         })
       );
 
       const failed = results.filter(r => r.status === "rejected").length;
       const warningCount = results.reduce((acc, result) => {
-        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        if (result.status === "fulfilled") return acc + result.value.warnings.length;
         return acc;
       }, 0);
 
@@ -976,7 +972,7 @@ const Devices = () => {
       } else if (warningCount > 0) {
         toast({
           title: wpApplyAll ? `Perfil salvo com ressalvas (${targetDevices.length} chips)` : "Perfil salvo com ressalva",
-          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          description: `${warningCount} aviso(s) de sincronização no WhatsApp`,
           variant: "destructive",
         });
       } else {
@@ -1025,7 +1021,8 @@ const Devices = () => {
       return;
     }
     setBulkProfileSaving(true);
-    const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && d.status === "Ready");
+    const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
+    const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && connectedStatuses.includes(d.status));
     if (targetDevices.length === 0) {
       toast({ title: "Nenhuma instância conectada selecionada", variant: "destructive" });
       setBulkProfileSaving(false);
@@ -1035,29 +1032,28 @@ const Devices = () => {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
           const dbUp: Record<string, any> = {};
-          let warning: string | null = null;
+          const warnings: string[] = [];
 
           if (bulkProfileName.trim()) {
-            await callApiStrict(
-              { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
-              "Falha ao atualizar nome no WhatsApp",
-            );
+            const nameResult = await callApi({ action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() });
             dbUp.profile_name = bulkProfileName.trim();
+            if (isEdgeCallFailed(nameResult)) {
+              warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
+            }
           }
 
           if (bulkProfileRemovePhoto) {
             const removeResult = await tryRemoveProfilePhoto(device.id);
-            if (removeResult.ok) {
-              dbUp.profile_picture = null;
-            } else {
-              warning = removeResult.error;
+            dbUp.profile_picture = null;
+            if (!removeResult.ok) {
+              warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
             }
           } else if (bulkProfilePhotoPublicUrl) {
-            await callApiStrict(
-              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
-              "Falha ao atualizar foto no WhatsApp",
-            );
+            const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl });
             dbUp.profile_picture = bulkProfilePhotoPublicUrl;
+            if (isEdgeCallFailed(photoResult)) {
+              warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+            }
           }
 
           if (Object.keys(dbUp).length > 0) {
@@ -1065,12 +1061,12 @@ const Devices = () => {
             if (error) throw error;
           }
 
-          return { warning };
+          return { warnings };
         })
       );
       const failed = results.filter(r => r.status === "rejected").length;
       const warningCount = results.reduce((acc, result) => {
-        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        if (result.status === "fulfilled") return acc + result.value.warnings.length;
         return acc;
       }, 0);
 
@@ -1079,7 +1075,7 @@ const Devices = () => {
       } else if (warningCount > 0) {
         toast({
           title: `Perfil salvo com ressalvas (${targetDevices.length} chips)`,
-          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          description: `${warningCount} aviso(s) de sincronização no WhatsApp`,
           variant: "destructive",
         });
       } else {

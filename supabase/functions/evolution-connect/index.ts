@@ -18,7 +18,7 @@ async function uazapi(
   baseUrl: string,
   endpoint: string,
   token: string,
-  method: "GET" | "POST" | "DELETE" | "PUT" = "POST",
+  method: "GET" | "POST" | "DELETE" | "PUT" | "PATCH" = "POST",
   body?: any,
   opts?: { timeoutMs?: number; retries?: number },
 ): Promise<{ ok: boolean; status: number; data: any }> {
@@ -787,24 +787,31 @@ Deno.serve(async (req) => {
       if (normalizedPicture === "remove") {
         const removeAttempts = [
           { path: "/profile-picture", method: "PUT" as const, payload: { value: "remove" } },
-          { path: "/profile-picture", method: "PUT" as const, payload: { picture: "remove" } },
           { path: "/profile-picture", method: "POST" as const, payload: { value: "remove" } },
+          { path: "/profile-picture", method: "PATCH" as const, payload: { value: "remove" } },
+          { path: "/profile-picture", method: "PUT" as const, payload: { picture: "remove" } },
+          { path: "/profile-picture", method: "PATCH" as const, payload: { picture: "remove" } },
+
           { path: "/profile/picture", method: "PUT" as const, payload: { picture: "remove" } },
           { path: "/profile/picture", method: "POST" as const, payload: { picture: "remove" } },
+          { path: "/profile/picture", method: "PATCH" as const, payload: { picture: "remove" } },
           { path: "/profile/picture", method: "PUT" as const, payload: { value: "" } },
           { path: "/profile/picture", method: "POST" as const, payload: { value: "" } },
+          { path: "/profile/picture", method: "PATCH" as const, payload: { value: "" } },
           { path: "/profile/picture/remove", method: "POST" as const },
           { path: "/profile/picture/remove", method: "PUT" as const },
+          { path: "/profile/picture/remove", method: "PATCH" as const },
           { path: "/profile/remove-picture", method: "POST" as const },
           { path: "/profile/picture", method: "DELETE" as const },
           { path: "/profile-picture", method: "DELETE" as const },
           { path: "/instance/profile/picture", method: "DELETE" as const },
           { path: "/instance/profile-picture", method: "DELETE" as const },
-          { path: "/profile/picture", method: "POST" as const, payload: { remove: true } },
-          { path: "/profile/picture", method: "PUT" as const, payload: { remove: true } },
-          { path: "/profile/picture", method: "POST" as const, payload: { picture: "" } },
-          { path: "/profile/picture", method: "PUT" as const, payload: { picture: "" } },
-          { path: "/profile/picture", method: "POST" as const, payload: { picture: null } },
+
+          { path: "/instance/set-profile", method: "PUT" as const, payload: { image: "remove" } },
+          { path: "/instance/set-profile", method: "POST" as const, payload: { image: "remove" } },
+          { path: "/instance/set-profile", method: "PATCH" as const, payload: { image: "remove" } },
+          { path: "/instance/set-profile", method: "PUT" as const, payload: { profilePicture: "remove" } },
+          { path: "/instance/set-profile", method: "POST" as const, payload: { profilePicture: "remove" } },
         ];
 
         const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
@@ -826,9 +833,13 @@ Deno.serve(async (req) => {
           });
         }
 
+        const allMethodNotAllowed = failures.length > 0 && failures.every(f => f.status === 405);
+
         return json({
           success: false,
-          error: "Não foi possível remover a foto no provedor.",
+          error: allMethodNotAllowed
+            ? "O provedor da instância rejeitou todos os métodos de remoção de foto (405)."
+            : "Não foi possível remover a foto no provedor.",
           attempts: failures,
         }, 422);
       }
@@ -836,9 +847,11 @@ Deno.serve(async (req) => {
       const isUrl = normalizedPicture.startsWith("http");
       const picEndpoints = [
         { path: "/profile-picture", method: "PUT" as const, payload: { value: normalizedPicture } },
-        { path: "/profile-picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
         { path: "/profile-picture", method: "POST" as const, payload: { value: normalizedPicture } },
+        { path: "/profile-picture", method: "PATCH" as const, payload: { value: normalizedPicture } },
+        { path: "/profile-picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
         { path: "/profile-picture", method: "POST" as const, payload: { picture: normalizedPicture } },
+        { path: "/profile-picture", method: "PATCH" as const, payload: { picture: normalizedPicture } },
 
         { path: "/profile/picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
         { path: "/profile/picture", method: "PUT" as const, payload: { value: normalizedPicture } },
@@ -846,6 +859,7 @@ Deno.serve(async (req) => {
         { path: "/profile/picture", method: "POST" as const, payload: { url: normalizedPicture } },
         { path: "/profile/picture", method: "POST" as const, payload: { image: normalizedPicture } },
         { path: "/profile/picture", method: "PUT" as const, payload: { url: normalizedPicture } },
+        { path: "/profile/picture", method: "PATCH" as const, payload: { picture: normalizedPicture } },
 
         { path: "/profile/update-picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
         { path: "/profile/update-picture", method: "POST" as const, payload: { picture: normalizedPicture } },
@@ -853,6 +867,23 @@ Deno.serve(async (req) => {
         { path: "/instance/profile/picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
         { path: "/instance/profile/picture", method: "POST" as const, payload: { picture: normalizedPicture } },
         { path: "/instance/profile-picture", method: "PUT" as const, payload: { value: normalizedPicture } },
+        { path: "/instance/profile-picture", method: "PATCH" as const, payload: { value: normalizedPicture } },
+
+        {
+          path: "/instance/set-profile",
+          method: "PUT" as const,
+          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
+        },
+        {
+          path: "/instance/set-profile",
+          method: "POST" as const,
+          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
+        },
+        {
+          path: "/instance/set-profile",
+          method: "PATCH" as const,
+          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
+        },
       ];
 
       if (isUrl) {
@@ -860,6 +891,7 @@ Deno.serve(async (req) => {
           { path: "/profile-picture", method: "PUT" as const, payload: { source: normalizedPicture } },
           { path: "/profile/picture", method: "PUT" as const, payload: { picture: { url: normalizedPicture } } },
           { path: "/profile/picture", method: "POST" as const, payload: { picture: { url: normalizedPicture } } },
+          { path: "/profile/picture", method: "PATCH" as const, payload: { picture: { url: normalizedPicture } } },
         );
       }
 
@@ -882,9 +914,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      const allMethodNotAllowed = failures.length > 0 && failures.every(f => f.status === 405);
+
       return json({
         success: false,
-        error: "Nenhum endpoint de foto funcionou",
+        error: allMethodNotAllowed
+          ? "O provedor da instância rejeitou todos os métodos de atualização de foto (405)."
+          : "Nenhum endpoint de foto funcionou",
         attempts: failures,
       }, 422);
     }
