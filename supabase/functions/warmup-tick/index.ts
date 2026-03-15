@@ -591,39 +591,12 @@ function buildMsg(ctx: MsgCtx): string {
 // UAZAPI COMMUNICATION
 // ══════════════════════════════════════════════════════════
 
-function buildQuotedPayload(quotedMsgId?: string): Record<string, unknown> {
-  if (!quotedMsgId) return {};
-  return {
-    quotedMsgId,
-    quotedMessageId: quotedMsgId,
-    quoted_message_id: quotedMsgId,
-    replyTo: quotedMsgId,
-    messageId: quotedMsgId,
-    stanzaId: quotedMsgId,
-    quoted: { id: quotedMsgId },
-    contextInfo: { quotedMessageId: quotedMsgId },
-  };
-}
-
-async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
-  const quotePayload = buildQuotedPayload(quotedMsgId);
+async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
-    {
-      path: "/send/text",
-      body: { number, text, ...quotePayload },
-    },
-    {
-      path: "/chat/send-text",
-      body: { number, to: number, chatId: number, body: text, text, ...quotePayload },
-    },
-    {
-      path: "/message/sendText",
-      body: { chatId: number, text, ...quotePayload },
-    },
-    {
-      path: "/message/sendText",
-      body: { to: number, text, ...quotePayload },
-    },
+    { path: "/send/text", body: { number, text } },
+    { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+    { path: "/message/sendText", body: { chatId: number, text } },
+    { path: "/message/sendText", body: { to: number, text } },
   ];
 
   let lastErr = "";
