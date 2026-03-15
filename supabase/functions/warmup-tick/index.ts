@@ -820,8 +820,31 @@ async function handleTick(db: any) {
   if (fetchErr) throw fetchErr;
   if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0 });
 
+  // Limit: only 1 autosave_interaction per device per tick to avoid burst sending
+  const autosaveSeenDevices = new Set<string>();
+  const filteredJobs: any[] = [];
+  const deferredAutosaveIds: string[] = [];
+  for (const j of pendingJobs) {
+    if (j.job_type === "autosave_interaction") {
+      const key = j.device_id;
+      if (autosaveSeenDevices.has(key)) {
+        deferredAutosaveIds.push(j.id);
+        continue;
+      }
+      autosaveSeenDevices.add(key);
+    }
+    filteredJobs.push(j);
+  }
+  // Defer extra autosave jobs by 2-4 min so next tick picks them up one at a time
+  if (deferredAutosaveIds.length > 0) {
+    for (let i = 0; i < deferredAutosaveIds.length; i += 200) {
+      const newRunAt = new Date(Date.now() + randInt(120, 240) * 1000).toISOString();
+      await db.from("warmup_jobs").update({ run_at: newRunAt }).in("id", deferredAutosaveIds.slice(i, i + 200));
+    }
+  }
+
   // Mark as running
-  const jobIds = pendingJobs.map((j: any) => j.id);
+  const jobIds = filteredJobs.map((j: any) => j.id);
   for (let i = 0; i < jobIds.length; i += 200) {
     await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds.slice(i, i + 200));
   }
