@@ -791,8 +791,8 @@ Deno.serve(async (req) => {
               await heartbeatLock(serviceClient, campaignId);
             }
 
-            // Status check every 10 messages (not every message — saves 90% of queries with 30 devices)
-            if (devHeartbeat % 10 === 1) {
+            // Status check every 20 messages per device (saves ~95% queries with 300 devices)
+            if (devHeartbeat % 20 === 1) {
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
             if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
