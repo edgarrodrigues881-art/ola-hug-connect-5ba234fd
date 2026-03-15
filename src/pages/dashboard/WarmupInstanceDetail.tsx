@@ -1152,16 +1152,6 @@ const WarmupInstanceDetail = () => {
                   )}
                 </div>
 
-                {/* Phase description */}
-                <div className="mx-6 border-t border-border/8" />
-                <div className="px-6 py-4">
-                  <p className="text-[12px] text-muted-foreground leading-relaxed">
-                    {cycle!.phase === "pre_24h" && "🛡️ Proteção inicial — nenhuma mensagem será enviada. Entrada gradual nos grupos após 4-6h."}
-                    {(cycle!.phase === "groups_only" || cycle!.phase === "autosave_enabled" || cycle!.phase === "community_enabled" || (cycle!.phase as string) === "community_light") && "💬 Interação em grupos — mensagens com textos variados e delays aleatórios simulando uso natural."}
-                    {cycle!.phase === "completed" && "✅ Aquecimento concluído — chip pronto para campanhas."}
-                    {cycle!.phase === "paused" && `⏸️ Pausado. ${cycle!.last_error || "Retome quando quiser."}`}
-                  </p>
-                </div>
               </div>
 
               {/* ── Timeline Completa: Atividades Feitas + Agendadas ── */}
