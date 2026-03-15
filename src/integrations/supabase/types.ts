@@ -1652,6 +1652,7 @@ export type Database = {
           id: string
           name: string
           sort_order: number
+          tags: Json
           updated_at: string
           user_id: string
         }
@@ -1662,6 +1663,7 @@ export type Database = {
           id?: string
           name: string
           sort_order?: number
+          tags?: Json
           updated_at?: string
           user_id: string
         }
@@ -1672,6 +1674,7 @@ export type Database = {
           id?: string
           name?: string
           sort_order?: number
+          tags?: Json
           updated_at?: string
           user_id?: string
         }
