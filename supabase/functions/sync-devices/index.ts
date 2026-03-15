@@ -231,18 +231,18 @@ Deno.serve(async (req) => {
         const currentPic = device.profile_picture || null;
         const currentName = (device.profile_name || "").toString();
 
-        // Grace window: only protect local edits for 2 minutes after save (not 15)
+        // Grace window: protect local edits only briefly (30s) to avoid long delays
         const updatedAtMs = device.updated_at ? new Date(device.updated_at).getTime() : 0;
         const justEdited = Number.isFinite(updatedAtMs)
-          ? (Date.now() - updatedAtMs) < 2 * 60 * 1000
+          ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
 
         let newPic: string | null;
         if (!isConnected) {
           // Disconnected: keep whatever we have
           newPic = currentPic;
-        } else if (justEdited && currentPic && currentPic !== (providerPic || null)) {
-          // Just saved from panel (<2 min ago) and values differ: keep local to avoid flicker
+        } else if (justEdited && currentPic && providerPic && currentPic !== providerPic) {
+          // Just saved from panel and provider returned a different NON-EMPTY pic: keep local briefly
           newPic = currentPic;
         } else {
           // Normal: trust the provider. Empty = removed, URL = new/updated
