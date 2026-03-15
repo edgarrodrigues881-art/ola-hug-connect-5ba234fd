@@ -106,7 +106,7 @@ export function AppSidebar() {
   const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
   const [warmupExpanded, setWarmupExpanded] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; color: string; tags?: any[] } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -163,9 +163,9 @@ export function AppSidebar() {
     { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
   ];
 
-  const handleSaveFolder = useCallback(async (data: { name: string; color: string; deviceIds: string[] }) => {
+  const handleSaveFolder = useCallback(async (data: { name: string; color: string; tags?: any[]; deviceIds: string[] }) => {
     if (editingFolder) {
-      await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color });
+      await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color, tags: data.tags });
       // Sync devices: remove old, add new
       const currentFolder = folders.find(f => f.id === editingFolder.id);
       const oldIds = new Set(currentFolder?.device_ids || []);
@@ -182,7 +182,7 @@ export function AppSidebar() {
         await addDevices.mutateAsync({ folderId: editingFolder.id, deviceIds: toAdd });
       }
     } else {
-      const result = await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder" });
+      const result = await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder", tags: data.tags });
       if (data.deviceIds.length > 0 && result) {
         await addDevices.mutateAsync({ folderId: (result as any).id, deviceIds: data.deviceIds });
       }
@@ -348,7 +348,7 @@ export function AppSidebar() {
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
+                              setEditingFolder({ id: folder.id, name: folder.name, color: folder.color, tags: folder.tags || [] });
                               setFolderDialogOpen(true);
                             }}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/folder:opacity-100 transition-opacity z-10"

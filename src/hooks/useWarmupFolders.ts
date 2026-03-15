@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
+import type { FolderTag } from "@/components/warmup/WarmupFolderDialog";
+
 export interface WarmupFolder {
   id: string;
   user_id: string;
@@ -10,6 +12,7 @@ export interface WarmupFolder {
   icon: string;
   sort_order: number;
   created_at: string;
+  tags: FolderTag[];
   device_ids?: string[];
 }
 
@@ -42,16 +45,17 @@ export function useWarmupFolders() {
 
       return (folders as any[]).map((f) => ({
         ...f,
+        tags: Array.isArray(f.tags) ? f.tags : [],
         device_ids: folderDevices.get(f.id) || [],
       })) as WarmupFolder[];
     },
   });
 
   const createFolder = useMutation({
-    mutationFn: async (params: { name: string; color: string; icon: string }) => {
+    mutationFn: async (params: { name: string; color: string; icon?: string; tags?: FolderTag[] }) => {
       const { data, error } = await supabase
         .from("warmup_folders" as any)
-        .insert({ user_id: user!.id, name: params.name, color: params.color, icon: params.icon } as any)
+        .insert({ user_id: user!.id, name: params.name, color: params.color, icon: params.icon || "folder", tags: JSON.stringify(params.tags || []) } as any)
         .select()
         .single();
       if (error) throw error;
@@ -61,8 +65,10 @@ export function useWarmupFolders() {
   });
 
   const updateFolder = useMutation({
-    mutationFn: async (params: { id: string; name?: string; color?: string; icon?: string }) => {
-      const { id, ...updates } = params;
+    mutationFn: async (params: { id: string; name?: string; color?: string; icon?: string; tags?: FolderTag[] }) => {
+      const { id, tags, ...rest } = params;
+      const updates: any = { ...rest };
+      if (tags !== undefined) updates.tags = JSON.stringify(tags);
       const { error } = await supabase
         .from("warmup_folders" as any)
         .update(updates as any)
