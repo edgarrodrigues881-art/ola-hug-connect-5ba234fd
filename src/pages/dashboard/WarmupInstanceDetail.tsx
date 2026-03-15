@@ -163,31 +163,72 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
+  type ScheduledJobLite = {
+    id: string;
+    job_type: string;
+    status: string;
+    run_at: string;
+    payload: any;
+  };
+
+  const pickNextForcedJob = (jobs: ScheduledJobLite[]) => {
+    const pendingSorted = jobs
+      .filter((j) => j.status === "pending")
+      .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+
+    const isDay1 = (cycle?.day_index ?? 1) <= 1;
+    if (isDay1) return pendingSorted[0] ?? null;
+
+    return (
+      pendingSorted.find((j) =>
+        j.job_type === "group_interaction" ||
+        j.job_type === "autosave_interaction" ||
+        j.job_type === "community_interaction"
+      ) ||
+      pendingSorted.find((j) => j.job_type !== "join_group") ||
+      null
+    );
+  };
+
   /* accelerate: forces only the NEXT pending job to run NOW */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
     setAccelerating(true);
     try {
-      // Fetch the single next pending job (any type) for this cycle
-      const { data: nextJob, error: fetchErr } = await supabase
+      const isDay2Plus = (cycle.day_index ?? 1) > 1;
+
+      // Day 2+: never force group join anymore
+      if (isDay2Plus) {
+        await supabase
+          .from("warmup_jobs")
+          .update({ status: "cancelled", last_error: "Cancelado automaticamente: entrada em grupo só no dia 1" })
+          .eq("cycle_id", cycle.id)
+          .eq("status", "pending")
+          .eq("job_type", "join_group");
+      }
+
+      // Fetch pending jobs and choose the correct next one by day/phase
+      const { data: pendingJobs, error: fetchErr } = await supabase
         .from("warmup_jobs")
-        .select("id, job_type, run_at, payload")
+        .select("id, job_type, status, run_at, payload")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .order("run_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .order("run_at", { ascending: true });
       if (fetchErr) throw fetchErr;
+
+      const nextJob = pickNextForcedJob((pendingJobs || []) as ScheduledJobLite[]);
 
       if (!nextJob) {
         toast({
           title: "Sem tarefas pendentes",
-          description: "Não há tarefas pendentes para forçar.",
+          description: isDay2Plus
+            ? "Não há tarefas do dia pendentes para forçar."
+            : "Não há tarefas pendentes para forçar.",
         });
         return;
       }
 
-      // For join_group: skip if group already joined
+      // For join_group on day 1: skip if group already joined
       if (nextJob.job_type === "join_group") {
         const groupId = (nextJob.payload as any)?.group_id;
         if (groupId) {
@@ -236,7 +277,16 @@ const WarmupInstanceDetail = () => {
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
-      const jobLabel = nextJob.job_type === "join_group" ? "Entrada em grupo" : nextJob.job_type.replace(/_/g, " ");
+      const jobLabelMap: Record<string, string> = {
+        join_group: "Entrada em grupo",
+        group_interaction: "Mensagem/foto/figurinha em grupo",
+        autosave_interaction: "Mensagem privada",
+        community_interaction: "Interação comunitária",
+        phase_transition: "Avançar fase",
+        enable_autosave: "Ativar Auto Save",
+        enable_community: "Ativar Comunidade",
+      };
+      const jobLabel = jobLabelMap[nextJob.job_type] || nextJob.job_type.replace(/_/g, " ");
       toast({ title: "⚡ Forçado!", description: `Próxima tarefa (${jobLabel}) executando agora.` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
