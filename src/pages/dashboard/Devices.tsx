@@ -759,44 +759,33 @@ const Devices = () => {
       proxy_id: newProxyId,
     };
 
-    if (wpRemovePhoto) {
-      dbUpdates.profile_picture = null;
-    } else if (wpPhotoBase64) {
-      dbUpdates.profile_picture = wpPhotoBase64;
-    }
-
     if (wpName.trim()) {
       dbUpdates.profile_name = wpName.trim();
     }
 
     try {
-      const profilePromises: Promise<any>[] = [];
+      let removePhotoWarning: string | null = null;
+
       if (wpName.trim()) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
-            "Falha ao atualizar nome no WhatsApp",
-          )
-        );
-      }
-      if (wpRemovePhoto) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" },
-            "Falha ao remover foto no WhatsApp",
-          )
-        );
-      } else if (wpPhotoBase64) {
-        profilePromises.push(
-          callApiStrict(
-            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
-            "Falha ao atualizar foto no WhatsApp",
-          )
+        await callApiStrict(
+          { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
+          "Falha ao atualizar nome no WhatsApp",
         );
       }
 
-      if (profilePromises.length > 0) {
-        await Promise.all(profilePromises);
+      if (wpRemovePhoto) {
+        const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
+        if (removeResult.ok) {
+          dbUpdates.profile_picture = null;
+        } else {
+          removePhotoWarning = removeResult.error;
+        }
+      } else if (wpPhotoBase64) {
+        await callApiStrict(
+          { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
+          "Falha ao atualizar foto no WhatsApp",
+        );
+        dbUpdates.profile_picture = wpPhotoBase64;
       }
 
       await updateMutation.mutateAsync({
@@ -804,7 +793,15 @@ const Devices = () => {
         updates: dbUpdates,
       });
 
-      toast({ title: "Instância atualizada" });
+      if (removePhotoWarning) {
+        toast({
+          title: "Instância atualizada com ressalva",
+          description: removePhotoWarning,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Instância atualizada" });
+      }
       setEditOpen(false);
       setEditingDevice(null);
       setWpPhotoBase64("");
@@ -916,53 +913,57 @@ const Devices = () => {
         ? devices.filter(d => d.status === "Ready")
         : profileDevice ? [profileDevice] : [];
 
-      // Run all devices in parallel, and each device's actions in parallel too
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+          let warning: string | null = null;
 
           if (wpName.trim()) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
-                "Falha ao atualizar nome no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
+              "Falha ao atualizar nome no WhatsApp",
             );
             dbUp.profile_name = wpName.trim();
           }
+
           if (wpRemovePhoto) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
-                "Falha ao remover foto no WhatsApp",
-              )
-            );
-            dbUp.profile_picture = null;
+            const removeResult = await tryRemoveProfilePhoto(device.id);
+            if (removeResult.ok) {
+              dbUp.profile_picture = null;
+            } else {
+              warning = removeResult.error;
+            }
           } else if (wpPhotoBase64) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
-                "Falha ao atualizar foto no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
+              "Falha ao atualizar foto no WhatsApp",
             );
             dbUp.profile_picture = wpPhotoBase64;
-          }
-
-          if (apiPromises.length > 0) {
-            await Promise.all(apiPromises);
           }
 
           if (Object.keys(dbUp).length > 0) {
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
           }
+
+          return { warning };
         })
       );
 
       const failed = results.filter(r => r.status === "rejected").length;
+      const warningCount = results.reduce((acc, result) => {
+        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        return acc;
+      }, 0);
+
       if (failed > 0) {
         toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else if (warningCount > 0) {
+        toast({
+          title: wpApplyAll ? `Perfil salvo com ressalvas (${targetDevices.length} chips)` : "Perfil salvo com ressalva",
+          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          variant: "destructive",
+        });
       } else {
         toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
       }
@@ -1018,49 +1019,54 @@ const Devices = () => {
     try {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+          let warning: string | null = null;
 
           if (bulkProfileName.trim()) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
-                "Falha ao atualizar nome no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
+              "Falha ao atualizar nome no WhatsApp",
             );
             dbUp.profile_name = bulkProfileName.trim();
           }
+
           if (bulkProfileRemovePhoto) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
-                "Falha ao remover foto no WhatsApp",
-              )
-            );
-            dbUp.profile_picture = null;
+            const removeResult = await tryRemoveProfilePhoto(device.id);
+            if (removeResult.ok) {
+              dbUp.profile_picture = null;
+            } else {
+              warning = removeResult.error;
+            }
           } else if (bulkProfilePhotoPublicUrl) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
-                "Falha ao atualizar foto no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
+              "Falha ao atualizar foto no WhatsApp",
             );
             dbUp.profile_picture = bulkProfilePhotoPublicUrl;
-          }
-
-          if (apiPromises.length > 0) {
-            await Promise.all(apiPromises);
           }
 
           if (Object.keys(dbUp).length > 0) {
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
           }
+
+          return { warning };
         })
       );
       const failed = results.filter(r => r.status === "rejected").length;
+      const warningCount = results.reduce((acc, result) => {
+        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        return acc;
+      }, 0);
+
       if (failed > 0) {
         toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else if (warningCount > 0) {
+        toast({
+          title: `Perfil salvo com ressalvas (${targetDevices.length} chips)`,
+          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          variant: "destructive",
+        });
       } else {
         toast({ title: `Perfil atualizado em ${targetDevices.length} chip(s)` });
       }
@@ -1157,12 +1163,22 @@ const Devices = () => {
     return { error: "Servidor sobrecarregado. Tente novamente em instantes." };
   };
 
+  const isEdgeCallFailed = (result: any) => Boolean(result?.error || result?.success === false);
+
   const callApiStrict = async (body: Record<string, any>, fallbackMessage: string) => {
     const result = await callApi(body);
-    if (result?.error || result?.success === false) {
+    if (isEdgeCallFailed(result)) {
       throw new Error(result?.error || fallbackMessage);
     }
     return result;
+  };
+
+  const tryRemoveProfilePhoto = async (deviceId: string): Promise<{ ok: boolean; error?: string }> => {
+    const result = await callApi({ action: "updateProfilePicture", deviceId, profilePictureData: "remove" });
+    if (isEdgeCallFailed(result)) {
+      return { ok: false, error: result?.error || "Falha ao remover foto no WhatsApp" };
+    }
+    return { ok: true };
   };
 
   // Quick actions
