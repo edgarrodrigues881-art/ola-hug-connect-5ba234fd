@@ -326,7 +326,7 @@ export function AppSidebar() {
                     return (
                       <SidebarMenuItem key={folder.id}>
                         <div className="group/folder relative">
-                          <SidebarMenuButton asChild tooltip={folder.name} className="w-full">
+                          <SidebarMenuButton asChild tooltip={folder.name} className="w-full !p-0 !h-auto">
                             <NavLink
                               to={folderUrl}
                               className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative w-full
