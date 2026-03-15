@@ -116,6 +116,42 @@ function isWithinOperatingWindow(): boolean {
   return now.getTime() >= ws.getTime() && now.getTime() < we.getTime();
 }
 
+function getBrtDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+async function ensureNextDailyResetJob(db: any, job: any, cycleId: string): Promise<void> {
+  const { data: existingNextReset } = await db
+    .from("warmup_jobs")
+    .select("id")
+    .eq("cycle_id", cycleId)
+    .eq("job_type", "daily_reset")
+    .eq("status", "pending")
+    .gt("run_at", new Date().toISOString())
+    .limit(1);
+
+  if (existingNextReset?.length) return;
+
+  const nextReset = new Date();
+  nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+  nextReset.setUTCHours(3, 5, 0, 0);
+
+  await db.from("warmup_jobs").insert({
+    user_id: job.user_id,
+    device_id: job.device_id,
+    cycle_id: cycleId,
+    job_type: "daily_reset",
+    payload: {},
+    run_at: nextReset.toISOString(),
+    status: "pending",
+  });
+}
+
 // ══════════════════════════════════════════════════════════
 // SCHEDULE DAY JOBS — Must match warmup-engine exactly
 // ══════════════════════════════════════════════════════════
