@@ -830,7 +830,11 @@ const Devices = () => {
             profilePictureData: profilePicturePayload,
           });
           if (isEdgeCallFailed(photoResult)) {
-            warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+            const apiErr = photoResult?.error || "";
+            const userMsg = apiErr.includes("not a valid image") || apiErr.includes("cannot be empty")
+              ? "A imagem não foi aceita pelo WhatsApp. Tente outra foto (JPG quadrada, mínimo 192x192px)."
+              : (apiErr || "Falha ao sincronizar foto no WhatsApp");
+            warnings.push(userMsg);
           }
         } catch (e: any) {
           console.warn("[edit-save] photo sync failed:", e?.message);
