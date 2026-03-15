@@ -379,28 +379,24 @@ export function AppSidebar() {
                 </div>
               )}
 
-              {/* Always visible: Nova pasta, Auto Save, Grupos */}
+              {/* Always visible: Nova pasta (expanded only), Auto Save, Grupos */}
               {!collapsed && (
-                <>
-                  <SidebarMenuItem>
-                    <button
-                      onClick={() => {
-                        setEditingFolder(null);
-                        setFolderDialogOpen(true);
-                      }}
-                      className="flex items-center gap-[9px] pl-8 pr-3.5 py-[8px] rounded-[10px] text-[11px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30 transition-colors w-full font-medium"
-                    >
-                      <Plus className="w-[14px] h-[14px]" strokeWidth={1.5} />
-                      <span>Nova pasta</span>
-                    </button>
-                  </SidebarMenuItem>
-
-                  <div className="mt-1 pt-1 border-t border-border/10">
-                    {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, true)}
-                    {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, true)}
-                  </div>
-                </>
+                <SidebarMenuItem>
+                  <button
+                    onClick={() => {
+                      setEditingFolder(null);
+                      setFolderDialogOpen(true);
+                    }}
+                    className="flex items-center gap-[9px] pl-8 pr-3.5 py-[8px] rounded-[10px] text-[11px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30 transition-colors w-full font-medium"
+                  >
+                    <Plus className="w-[14px] h-[14px]" strokeWidth={1.5} />
+                    <span>Nova pasta</span>
+                  </button>
+                </SidebarMenuItem>
               )}
+
+              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, !collapsed)}
+              {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, !collapsed)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
