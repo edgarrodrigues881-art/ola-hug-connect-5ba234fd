@@ -362,15 +362,6 @@ export function AppSidebar() {
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteFolder(folder.id);
-                              }}
-                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
                           </div>
                         </div>
                       </SidebarMenuItem>
@@ -469,6 +460,7 @@ export function AppSidebar() {
         onOpenChange={setFolderDialogOpen}
         editingFolder={editingFolder}
         onSave={handleSaveFolder}
+        onDelete={handleDeleteFolder}
         currentDeviceIds={editingFolder ? (folders.find(f => f.id === editingFolder.id)?.device_ids || []) : []}
       />
     </Sidebar>

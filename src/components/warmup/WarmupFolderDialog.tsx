@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { CheckCircle2, Smartphone, Search } from "lucide-react";
+import { CheckCircle2, Smartphone, Search, Trash2 } from "lucide-react";
 
 const COLORS = [
   { value: "#10b981", tw: "bg-emerald-400" },
@@ -24,10 +24,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   editingFolder: { id: string; name: string; color: string } | null;
   onSave: (data: { name: string; color: string; deviceIds: string[] }) => Promise<void>;
+  onDelete?: (id: string) => void;
   currentDeviceIds?: string[];
 }
 
-export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, currentDeviceIds = [] }: Props) {
+export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, onDelete, currentDeviceIds = [] }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#10b981");
@@ -181,6 +182,17 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
         </div>
 
         <div className="flex gap-2 pt-3 border-t border-border/10">
+          {editingFolder && onDelete && (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={() => { onDelete(editingFolder.id); onOpenChange(false); }}
+              className="shrink-0"
+              title="Excluir pasta"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancelar
           </Button>
