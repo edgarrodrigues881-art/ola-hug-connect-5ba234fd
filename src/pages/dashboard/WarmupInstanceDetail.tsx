@@ -1057,54 +1057,111 @@ const WarmupInstanceDetail = () => {
 
             const isPre24h = cycle?.phase === "pre_24h";
 
+            const cyclePercent = Math.round((cycle!.day_index / cycle!.days_total) * 100);
+            const todayPercent = totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0;
+
             return (
               <>
-              {/* ── Atividade de Hoje ── */}
+              {/* ── Painel Unificado: Ciclo + Dia ── */}
               <div className="rounded-2xl border border-border/10 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.05)]">
-                <div className="px-6 py-4 flex items-center justify-between">
+
+                {/* Header */}
+                <div className="px-6 pt-5 pb-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/12 flex items-center justify-center">
-                      <Target className="w-4.5 h-4.5 text-primary" />
+                    <div className={cn(
+                      "w-9 h-9 rounded-lg flex items-center justify-center",
+                      cycle!.is_running ? "bg-primary/12" : "bg-muted/20"
+                    )}>
+                      <Flame className={cn("w-4.5 h-4.5", cycle!.is_running ? "text-primary" : "text-muted-foreground")} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-foreground leading-tight">
-                        {isPre24h ? "Proteção Inicial" : "Atividade de Hoje"}
-                      </p>
+                      <p className="text-sm font-bold text-foreground leading-tight">Aquecimento</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {isPre24h
-                          ? "Aguardando período de segurança"
-                          : `${doneToday} de ${totalDisplay} tarefas concluídas`
-                        }
+                        {pc?.label} — Dia {cycle!.day_index} de {cycle!.days_total}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {nextPendingJob && (
-                      <div className="text-right">
-                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Próxima</p>
-                        <p className="text-sm font-black text-foreground font-mono tabular-nums">{formatBrtTime(new Date(nextPendingJob.run_at))}</p>
+                  <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12">
+                    {pc?.label}
+                  </Badge>
+                </div>
+
+                {/* Phase steps */}
+                <div className="px-6 pb-3 flex items-center gap-1">
+                  {phaseSteps.map((p) => {
+                    const isActive = cycle!.phase === p;
+                    const isPast = (phaseConfig[cycle!.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
+                    return (
+                      <div key={p} className="flex-1">
+                        <div className={cn(
+                          "h-1.5 rounded-full transition-all",
+                          isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/25" : "bg-muted/15"
+                        )} />
                       </div>
-                    )}
-                    {!isPre24h && (
-                      <span className="text-lg font-black text-foreground tabular-nums">
-                        {totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0}%
-                      </span>
-                    )}
+                    );
+                  })}
+                </div>
+
+                {/* Cycle progress bar */}
+                <div className="px-6 pb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] text-muted-foreground font-medium">Ciclo geral</span>
+                    <span className="text-xs font-bold text-foreground tabular-nums">{cyclePercent}%</span>
+                  </div>
+                  <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]" style={{ width: `${cyclePercent}%` }} />
                   </div>
                 </div>
-                {!isPre24h && (
-                  <div className="px-6 pb-4">
-                    <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                        style={{ width: `${totalDisplay > 0 ? ((doneToday + failedToday) / totalDisplay) * 100 : 0}%` }}
-                      />
+
+                {/* Divider */}
+                <div className="mx-6 border-t border-border/8" />
+
+                {/* Today's activity */}
+                <div className="px-6 py-4">
+                  {isPre24h ? (
+                    <div className="flex flex-col items-center text-center py-4">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/12 flex items-center justify-center mb-3">
+                        <Timer className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold">Tempo decorrido</p>
+                      <p className="text-3xl font-black text-foreground font-mono tabular-nums mt-1">{countdown}</p>
+                      <p className="text-[11px] text-muted-foreground/70 mt-3 max-w-xs leading-relaxed">
+                        Fase de proteção. Entrada nos grupos começa em 4-6 horas.
+                      </p>
                     </div>
-                    {failedToday > 0 && (
-                      <p className="text-[10px] text-destructive font-medium mt-1.5">{failedToday} tarefa(s) com falha</p>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-muted-foreground font-medium">Tarefas do dia</span>
+                        <div className="flex items-center gap-2">
+                          {nextPendingJob && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Próxima às <span className="font-mono font-bold text-foreground">{formatBrtTime(new Date(nextPendingJob.run_at))}</span>
+                            </span>
+                          )}
+                          <span className="text-xs font-bold text-foreground tabular-nums">{doneToday}/{totalDisplay}</span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all shadow-[0_0_10px_hsl(142_71%_45%/0.4)]" style={{ width: `${todayPercent}%` }} />
+                      </div>
+                      {failedToday > 0 && (
+                        <p className="text-[10px] text-destructive font-medium mt-1.5">{failedToday} tarefa(s) com falha</p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Phase description */}
+                <div className="mx-6 border-t border-border/8" />
+                <div className="px-6 py-4">
+                  <p className="text-[12px] text-muted-foreground leading-relaxed">
+                    {cycle!.phase === "pre_24h" && "🛡️ Proteção inicial — nenhuma mensagem será enviada. Entrada gradual nos grupos após 4-6h."}
+                    {(cycle!.phase === "groups_only" || cycle!.phase === "autosave_enabled" || cycle!.phase === "community_enabled" || (cycle!.phase as string) === "community_light") && "💬 Interação em grupos — mensagens com textos variados e delays aleatórios simulando uso natural."}
+                    {cycle!.phase === "completed" && "✅ Aquecimento concluído — chip pronto para campanhas."}
+                    {cycle!.phase === "paused" && `⏸️ Pausado. ${cycle!.last_error || "Retome quando quiser."}`}
+                  </p>
+                </div>
               </div>
 
               {/* ── Timeline Completa: Atividades Feitas + Agendadas ── */}
