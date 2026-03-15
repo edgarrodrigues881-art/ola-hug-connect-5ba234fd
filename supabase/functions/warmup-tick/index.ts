@@ -644,6 +644,40 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   throw new Error(`Text send failed: ${lastErr}`);
 }
 
+// ── PRE-VALIDATION: Check if phone has WhatsApp ──
+async function uazapiCheckPhone(baseUrl: string, token: string, phone: string): Promise<boolean> {
+  const endpoints = [
+    { url: `${baseUrl}/misc/checkPhones`, body: { phones: [phone] } },
+    { url: `${baseUrl}/chat/check`, body: { phone } },
+    { url: `${baseUrl}/misc/isOnWhatsapp`, body: { phone } },
+  ];
+
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(ep.body),
+      });
+      if (res.status === 405 || res.status === 404) continue;
+      if (!res.ok) continue;
+      const raw = await res.text();
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+
+      // Handle array responses
+      const item = Array.isArray(parsed) ? parsed[0] : (parsed?.data?.[0] || parsed?.data || parsed);
+      if (!item) continue;
+
+      // Check various response formats
+      if (item.exists === false || item.onWhatsapp === false || item.isOnWhatsapp === false || item.numberExists === false) return false;
+      if (item.exists === true || item.onWhatsapp === true || item.isOnWhatsapp === true || item.numberExists === true) return true;
+    } catch { continue; }
+  }
+
+  return true; // Assume valid if check endpoints unavailable
+}
+
 
 // NOTE: uazapiFetchLastMessage removed — UAZAPI does not support fetching chat messages (all endpoints return 404/405)
 
@@ -1453,11 +1487,7 @@ async function handleTick(db: any) {
 
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
-          .filter((c: any) => {
-            const phone = c._phone;
-            if (phone.length < 10) return false;
-            return true;
-          })
+          .filter((c: any) => c._phone.length >= 10)
           .slice(0, 5);
 
         if (autosavePool.length === 0) {
@@ -1466,78 +1496,96 @@ async function handleTick(db: any) {
         }
 
         let selectedIndex = ((rIdx % autosavePool.length) + autosavePool.length) % autosavePool.length;
-        const msg = generateNaturalMessage("autosave");
         const target = autosavePool[selectedIndex];
 
-        // Send ONLY to the designated contact — no fallback to other contacts
-        // Autosave simulates a real conversation, so switching contacts mid-thread is unnatural
-        try {
-          await uazapiSendText(baseUrl, token, target._phone, msg);
-        } catch (e) {
-          const sendErr = e instanceof Error ? e.message : String(e);
-          const isInvalidNumber = sendErr.includes("not on WhatsApp") || sendErr.includes("not registered") || sendErr.includes("Text send failed");
+        // ── VALIDATION STEP (msg_index=0 only): Pre-validate before sending anything ──
+        if (mIdx === 0) {
+          // Try UAZAPI phone check first
+          const phoneExists = await uazapiCheckPhone(baseUrl, token, target._phone);
 
-          if (isInvalidNumber) {
-            // Auto-disable invalid contact so it won't be picked again
+          if (!phoneExists) {
+            // Phone confirmed invalid — disable and cancel all jobs immediately
             await db.from("warmup_autosave_contacts")
               .update({ is_active: false, updated_at: new Date().toISOString() })
               .eq("phone_e164", target.phone_e164)
               .eq("user_id", job.user_id);
 
-            // Cancel remaining jobs for this same recipient_index to avoid repeated failures
             await db.from("warmup_jobs")
-              .update({ status: "cancelled", last_error: `Contato ${target._phone} não possui WhatsApp — desativado automaticamente` })
+              .update({ status: "cancelled", last_error: `Contato ${target._phone} não possui WhatsApp — pré-validação` })
               .eq("cycle_id", job.cycle_id)
               .eq("job_type", "autosave_interaction")
               .eq("status", "pending")
               .filter("payload->>recipient_index", "eq", String(rIdx));
 
+            // Also remove from in-memory cache
+            const cacheArr = autosaveMap[job.user_id];
+            if (cacheArr) {
+              const idx = cacheArr.findIndex((c: any) => c.phone_e164 === target.phone_e164);
+              if (idx >= 0) cacheArr.splice(idx, 1);
+            }
+
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_contact_disabled",
-              message: `Auto Save: contato ${target.contact_name || target._phone} desativado — número não existe no WhatsApp`,
-              meta: { phone: target._phone, error: sendErr },
+              message: `Auto Save: contato ${target.contact_name || target._phone} desativado — pré-validação: número não possui WhatsApp`,
+              meta: { phone: target._phone, method: "pre_check" },
             });
-            break; // Don't throw — mark as succeeded to avoid retries
+            break; // Mark as succeeded, don't retry
+          }
+        }
+
+        // ── SEND MESSAGE ──
+        const msg = generateNaturalMessage("autosave");
+
+        try {
+          await uazapiSendText(baseUrl, token, target._phone, msg);
+        } catch (e) {
+          const sendErr = e instanceof Error ? e.message : String(e);
+
+          // On msg_index=0 (first message to this contact): ANY failure = skip contact immediately
+          // The first message IS the validation — if it fails, don't waste 4 more attempts
+          if (mIdx === 0) {
+            await db.from("warmup_autosave_contacts")
+              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .eq("phone_e164", target.phone_e164)
+              .eq("user_id", job.user_id);
+
+            await db.from("warmup_jobs")
+              .update({ status: "cancelled", last_error: `Contato ${target._phone} falhou no envio — desativado` })
+              .eq("cycle_id", job.cycle_id)
+              .eq("job_type", "autosave_interaction")
+              .eq("status", "pending")
+              .filter("payload->>recipient_index", "eq", String(rIdx));
+
+            // Remove from in-memory cache
+            const cacheArr = autosaveMap[job.user_id];
+            if (cacheArr) {
+              const idx = cacheArr.findIndex((c: any) => c.phone_e164 === target.phone_e164);
+              if (idx >= 0) cacheArr.splice(idx, 1);
+            }
+
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "autosave_contact_disabled",
+              message: `Auto Save: contato ${target.contact_name || target._phone} desativado — falha na 1ª msg (validação)`,
+              meta: { phone: target._phone, error: sendErr, method: "first_send_failed" },
+            });
+            break; // Don't throw — don't retry
           }
 
-          // Retry once after 2s delay for transient errors
+          // msg_index > 0: number was already validated (1st msg succeeded). Retry once for transient errors.
           await new Promise(r => setTimeout(r, 2000));
           try {
             await uazapiSendText(baseUrl, token, target._phone, msg);
           } catch (e2) {
             const retryErr = e2 instanceof Error ? e2.message : String(e2);
-            const isInvalidRetry = retryErr.includes("not on WhatsApp") || retryErr.includes("not registered") || retryErr.includes("Text send failed");
-
-            if (isInvalidRetry) {
-              await db.from("warmup_autosave_contacts")
-                .update({ is_active: false, updated_at: new Date().toISOString() })
-                .eq("phone_e164", target.phone_e164)
-                .eq("user_id", job.user_id);
-
-              await db.from("warmup_jobs")
-                .update({ status: "cancelled", last_error: `Contato ${target._phone} não possui WhatsApp — desativado automaticamente` })
-                .eq("cycle_id", job.cycle_id)
-                .eq("job_type", "autosave_interaction")
-                .eq("status", "pending")
-                .filter("payload->>recipient_index", "eq", String(rIdx));
-
-              bufferAudit({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "autosave_contact_disabled",
-                message: `Auto Save: contato ${target.contact_name || target._phone} desativado — número não existe no WhatsApp`,
-                meta: { phone: target._phone, error: retryErr },
-              });
-              break;
-            }
-
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_send_failed",
               message: `Auto Save falhou: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || target._phone}`,
-              meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: target._phone, error: retryErr, first_error: sendErr },
+              meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: target._phone, error: retryErr },
             });
-            throw new Error(`Auto Save: falha ao enviar para ${target._phone}. Erro: ${retryErr}`);
+            throw new Error(`Auto Save: falha ao enviar msg ${mIdx + 1} para ${target._phone}. Erro: ${retryErr}`);
           }
         }
 
