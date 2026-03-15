@@ -322,15 +322,12 @@ export function AppSidebar() {
                 </div>
               </SidebarMenuItem>
 
-              {/* Expanded: sub-items + folders */}
+              {/* Expanded: folders + nova pasta + then Auto Save & Grupos */}
               {warmupExpanded && !collapsed && (
                 <>
-                  {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, true)}
-                  {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, true)}
-
                   {/* Folders */}
                   {folders.length > 0 && (
-                    <div className="mt-1 pt-1 border-t border-border/10">
+                    <div className="mt-0.5">
                       {folders.map((folder) => {
                         const colorClass = FOLDER_COLORS[folder.color] || "text-emerald-400";
                         const folderUrl = `/dashboard/warmup-v2?folder=${folder.id}`;
@@ -398,6 +395,12 @@ export function AppSidebar() {
                       <span>Nova pasta</span>
                     </button>
                   </SidebarMenuItem>
+
+                  {/* Auto Save & Grupos below Nova pasta */}
+                  <div className="mt-1 pt-1 border-t border-border/10">
+                    {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, true)}
+                    {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, true)}
+                  </div>
                 </>
               )}
             </SidebarMenu>
