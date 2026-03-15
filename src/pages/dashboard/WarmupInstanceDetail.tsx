@@ -263,11 +263,7 @@ const WarmupInstanceDetail = () => {
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
-      const desc = phase === "pre_24h"
-        ? `${forcedCount} entrada(s) em grupo recalculadas a partir de agora.`
-        : forcedSystemJobType
-          ? `Próximo job (${forcedSystemJobType}) forçado para agora.`
-          : `${forcedCount} tarefa(s) recalculadas mantendo o cronograma.`;
+      const desc = `${forcedCount} entrada(s) em grupo recalculadas a partir de agora.`;
 
       toast({ title: "⚡ Recalculado!", description: desc });
     } catch (err: any) {
