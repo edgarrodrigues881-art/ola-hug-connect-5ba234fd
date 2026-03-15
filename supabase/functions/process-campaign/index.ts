@@ -757,18 +757,29 @@ Deno.serve(async (req) => {
         const chunks: any[][] = allDevices.map(() => [] as any[]);
         contacts.forEach((c, i) => chunks[i % allDevices.length].push(c));
 
-        const results = await Promise.allSettled(allDevices.map(async (dev, devIdx) => {
-          const chunk = chunks[devIdx];
+        // Process devices in waves of 10 for massive concurrency
+        const DEVICE_WAVE_SIZE = 10;
+        const allResults: { sent: number; failed: number }[] = [];
+
+        for (let wave = 0; wave < allDevices.length; wave += DEVICE_WAVE_SIZE) {
+          const waveDevices = allDevices.slice(wave, wave + DEVICE_WAVE_SIZE);
+          const waveChunks = waveDevices.map((_, wi) => chunks[wave + wi] || []);
+
+        const waveResults = await Promise.allSettled(waveDevices.map(async (dev, devIdx) => {
+          const chunk = waveChunks[devIdx];
+          if (!chunk || chunk.length === 0) return { sent: 0, failed: 0 };
           const devToken = dev.uazapi_token;
           const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
           let devSent = 0, devFailed = 0;
           let devHeartbeat = 0;
+          // Shared cancel flag across device when campaign paused
+          let cancelled = false;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
           const devRandomPicker = new RandomPicker(messageVariants.length);
 
           for (const contact of chunk) {
-            if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
+            if (cancelled || Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
 
             // Optimistic lock: mark as processing
             const { data: locked } = await serviceClient
@@ -779,16 +790,20 @@ Deno.serve(async (req) => {
               .select("id");
             if (!locked || locked.length === 0) continue;
 
-            // Heartbeat every 5 messages to keep lock alive
+            // Heartbeat every 15 messages (reduced from 5 to lower DB load with 30+ devices)
             devHeartbeat++;
-            if (devHeartbeat % 5 === 0) {
+            if (devHeartbeat % 15 === 0) {
               await heartbeatLock(serviceClient, campaignId);
             }
 
+            // Status check every 10 messages (not every message — saves 90% of queries with 30 devices)
+            if (devHeartbeat % 10 === 1) {
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
             if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              cancelled = true;
               break;
+            }
             }
 
             const phone = contact.phone.replace(/\D/g, "");
