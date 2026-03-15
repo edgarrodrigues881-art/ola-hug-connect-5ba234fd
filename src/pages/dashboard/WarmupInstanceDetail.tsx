@@ -941,65 +941,7 @@ const WarmupInstanceDetail = () => {
       {cycle && !isTerminalCycle && (
         <div className="space-y-5">
 
-          {/* Ciclo + Atividade unified — rendered inside the IIFE below */}
-
-          {/* Countdown (pre_24h only) */}
-          {cycle.phase === "pre_24h" && (
-            <div className="relative rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/8 to-amber-500/2 backdrop-blur-xl p-8 flex flex-col items-center text-center overflow-hidden shadow-[0_0_30px_-8px_hsl(38_92%_50%/0.15)]">
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full blur-[80px] opacity-20 pointer-events-none bg-amber-500" />
-              <div className="relative w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center mb-4 shadow-[0_0_20px_-4px_hsl(38_92%_50%/0.3)]">
-                <Timer className="w-6 h-6 text-amber-400" />
-              </div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Tempo decorrido</p>
-              <p className="text-5xl font-black text-foreground font-mono tabular-nums mt-2 tracking-tight">{countdown}</p>
-              <p className="text-xs text-muted-foreground/70 mt-4 max-w-sm leading-relaxed">
-                Entrada gradual nos grupos em andamento. Os primeiros grupos serão ingressados em 4-6 horas.
-              </p>
-            </div>
-          )}
-
-          {/* ── Plano do Dia — O que vai acontecer hoje ── */}
-          <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl overflow-hidden shadow-[0_4px_24px_-8px_hsl(var(--foreground)/0.06)]">
-            <div className="px-6 py-5 border-b border-border/10 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shadow-[0_0_12px_-2px_hsl(var(--primary)/0.2)]">
-                <CalendarDays className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <span className="text-base font-extrabold text-foreground tracking-tight">Plano do Dia {cycle.day_index}</span>
-                <p className="text-[11px] text-muted-foreground font-medium">O que está programado para hoje</p>
-              </div>
-              <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.2)]">
-                {pc?.label}
-              </Badge>
-            </div>
-
-            {/* Phase explanation */}
-            <div className="px-6 py-5 border-b border-border/8">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {cycle.phase === "pre_24h" && (
-                  <>
-                    🛡️ <strong className="text-foreground font-bold">Fase de proteção inicial.</strong> Nenhuma mensagem será enviada. Após 4-6 horas, o chip começará a entrar nos 8 grupos oficiais do sistema com intervalos de 5 a 30 minutos entre cada entrada, simulando comportamento natural.
-                  </>
-                )}
-                {(cycle.phase === "groups_only" || cycle.phase === "autosave_enabled" || cycle.phase === "community_enabled" || (cycle.phase as string) === "community_light") && (
-                  <>
-                    💬 <strong className="text-foreground font-bold">Fase de interação em grupos.</strong> O sistema enviará mensagens nos grupos que já ingressou e fará postagens de status, simulando participação natural com textos variados e delays aleatórios.
-                  </>
-                )}
-                {cycle.phase === "completed" && (
-                  <>
-                    ✅ <strong className="text-foreground font-bold">Aquecimento concluído!</strong> O chip está pronto para uso em campanhas.
-                  </>
-                )}
-                {cycle.phase === "paused" && (
-                  <>
-                    ⏸️ <strong className="text-foreground font-bold">Aquecimento pausado.</strong> {cycle.last_error || "Retome quando quiser continuar o processo."}
-                  </>
-                )}
-              </p>
-            </div>
-
-          </div>
+          {/* Countdown, Cycle progress, and daily activity are all rendered inside the IIFE below */}
 
           {(() => {
             // Use São Paulo timezone day buckets to avoid client timezone drift
