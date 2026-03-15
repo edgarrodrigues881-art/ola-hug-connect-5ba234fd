@@ -1005,6 +1005,19 @@ const WarmupInstanceDetail = () => {
                   </Button>
                 </div>
               )}
+
+              {/* TEMPORARY: Test Auto Save button */}
+              {cycle.is_running && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/12 hover:text-emerald-300 font-bold backdrop-blur-sm"
+                  onClick={handleTestAutosave}
+                  disabled={testingAutosave}
+                >
+                  {testingAutosave ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  🧪 Testar Auto Save
+                </Button>
+              )}
             </div>
           )}
         </div>
