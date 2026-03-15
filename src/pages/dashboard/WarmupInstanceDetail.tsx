@@ -1476,21 +1476,6 @@ const WarmupInstanceDetail = () => {
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {statusBadge}
-                                {doneCount > 0 && (
-                                  <Badge className="text-[10px] h-5 px-2 bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/12 font-bold">
-                                    ✅ {doneCount}
-                                  </Badge>
-                                )}
-                                {pendingCount > 0 && (
-                                  <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold">
-                                    ⏳ {pendingCount}
-                                  </Badge>
-                                )}
-                                {failedCount > 0 && (
-                                  <Badge className="text-[10px] h-5 px-2 bg-destructive/12 text-destructive border border-destructive/20 hover:bg-destructive/12 font-bold">
-                                    ❌ {failedCount}
-                                  </Badge>
-                                )}
                               </div>
                             </button>
 
