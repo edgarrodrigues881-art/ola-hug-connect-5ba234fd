@@ -610,10 +610,28 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
       if (res.ok) {
         try {
           const parsed = raw ? JSON.parse(raw) : {};
-          if (!parsed?.error && parsed?.code !== 404) return parsed;
-          lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-          continue;
-        } catch {
+          // Detect error responses that come with 200 status
+          if (parsed?.error) {
+            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
+            // If it's a definitive "not on WhatsApp" error, throw immediately
+            if (typeof parsed.error === "string" && (parsed.error.includes("not on WhatsApp") || parsed.error.includes("not registered"))) {
+              throw new Error(`API 500: ${raw.substring(0, 240)}`);
+            }
+            continue;
+          }
+          if (parsed?.code === 404) {
+            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
+            continue;
+          }
+          // Check for status: "error" pattern
+          if (parsed?.status === "error") {
+            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
+            continue;
+          }
+          return parsed;
+        } catch (parseErr) {
+          // If it was our thrown error, re-throw
+          if (parseErr instanceof Error && parseErr.message.startsWith("API 500:")) throw parseErr;
           return { ok: true, raw };
         }
       }
@@ -1435,7 +1453,16 @@ async function handleTick(db: any) {
 
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
-          .filter((c: any) => c._phone.length >= 10)
+          .filter((c: any) => {
+            const phone = c._phone;
+            if (phone.length < 10) return false;
+            // Filter out Brazilian landline numbers (55 + 2-digit DDD + 8-digit number = 12 digits)
+            // Mobile numbers have 9 digits after DDD (total 13 digits with country code)
+            if (phone.startsWith("55") && phone.length === 12) {
+              return false; // Landline — no WhatsApp
+            }
+            return true;
+          })
           .slice(0, 5);
 
         if (autosavePool.length === 0) {
