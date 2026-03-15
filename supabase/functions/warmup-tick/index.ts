@@ -1480,9 +1480,13 @@ async function handleTick(db: any) {
         }
 
         const cachedMsgs = userMsgsMap[job.user_id];
-        const getMsg = () => (cachedMsgs?.length && Math.random() < 0.3)
-          ? pickRandom(cachedMsgs)
-          : generateNaturalMessage("group");
+        const longCachedMsgs = cachedMsgs?.filter((m: string) => m.length >= 60) || [];
+        const getMsg = () => {
+          if (longCachedMsgs.length > 0 && Math.random() < 0.3) {
+            return pickRandom(longCachedMsgs);
+          }
+          return generateNaturalMessage("group");
+        };
 
         const requestedMediaType = pickMediaType();
         let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
