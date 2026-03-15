@@ -1651,7 +1651,7 @@ const WarmupInstances = () => {
         <AddToFolderDialog
           open={addToFolderOpen}
           onOpenChange={setAddToFolderOpen}
-          allDevices={filteredDevices}
+          allDevices={filteredDevices.filter(d => !allFolderDeviceIds.has(d.id) || (activeFolder.device_ids || []).includes(d.id))}
           currentDeviceIds={activeFolder.device_ids || []}
           folderName={activeFolder.name}
           folderColor={activeFolder.color}
