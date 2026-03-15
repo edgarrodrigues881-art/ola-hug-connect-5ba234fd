@@ -112,6 +112,8 @@ export function useWarmupCycles() {
       return data as unknown as WarmupCycle[];
     },
     enabled: !!user,
+    refetchInterval: 3_000,
+    staleTime: 2_000,
   });
 }
 
@@ -136,7 +138,8 @@ export function useDeviceCycle(deviceId: string) {
       return null;
     },
     enabled: !!user && !!deviceId,
-    refetchInterval: 30000, // Cycle state changes infrequently
+    refetchInterval: 3_000,
+    staleTime: 2_000,
   });
 }
 
