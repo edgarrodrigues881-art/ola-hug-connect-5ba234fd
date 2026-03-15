@@ -227,12 +227,15 @@ Deno.serve(async (req) => {
         // If provider returns EMPTY, it means user removed photo on WhatsApp — respect that.
         const shouldKeepLocalPic = isLocalManagedPic && hasProviderPic && currentPic !== providerPic;
 
+        // If provider has no pic → user removed it on WhatsApp → clear it (null)
+        // If provider has a different pic and we recently edited → keep local (cache lag protection)
+        // Otherwise → use provider pic
         const newPic = isConnected
           ? (shouldKeepLocalPic
             ? currentPic
-            : (recentlyEdited && currentPic !== (providerPic || null)
-              ? currentPic
-              : (hasProviderPic ? providerPic : (recentlyEdited ? currentPic : null))))
+            : (!hasProviderPic
+              ? null
+              : (recentlyEdited && currentPic && currentPic !== providerPic ? currentPic : providerPic)))
           : currentPic;
 
         const newName = isConnected
