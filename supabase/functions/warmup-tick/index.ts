@@ -1340,8 +1340,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "group_msg_sent",
-          message: `Msg no grupo ${poolGroup?.name}: "${message.substring(0, 50)}"`,
-          meta: { group_jid: groupJid, media_type: mediaType },
+          message: `Msg no grupo ${groupName}: "${message.substring(0, 50)}"`,
+          meta: { group_jid: groupJid, media_type: mediaType, group_id: targetGroupId },
         });
         break;
       }
