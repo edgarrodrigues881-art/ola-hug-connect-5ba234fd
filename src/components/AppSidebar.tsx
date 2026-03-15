@@ -204,7 +204,7 @@ export function AppSidebar() {
             to={item.url}
             className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
               transition-[background-color,color,opacity] duration-[120ms] ease-out
-              ${collapsed ? 'gap-0 px-2.5 py-3 justify-center' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
+              ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-full' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
               ${active
                 ? 'bg-primary/10 text-foreground font-semibold'
                 : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
