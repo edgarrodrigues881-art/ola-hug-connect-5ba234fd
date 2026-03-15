@@ -55,7 +55,7 @@ export function useWarmupFolders() {
     mutationFn: async (params: { name: string; color: string; icon?: string; tags?: FolderTag[] }) => {
       const { data, error } = await supabase
         .from("warmup_folders" as any)
-        .insert({ user_id: user!.id, name: params.name, color: params.color, icon: params.icon || "folder", tags: JSON.stringify(params.tags || []) } as any)
+        .insert({ user_id: user!.id, name: params.name, color: params.color, icon: params.icon || "folder", tags: params.tags || [] } as any)
         .select()
         .single();
       if (error) throw error;
