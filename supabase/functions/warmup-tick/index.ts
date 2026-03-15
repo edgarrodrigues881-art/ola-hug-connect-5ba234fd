@@ -83,7 +83,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
   if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 3; // 5 contatos × 3 msgs = 15 msgs/dia
+    v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
   // Community desativado para testes

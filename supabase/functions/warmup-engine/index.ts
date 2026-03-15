@@ -112,7 +112,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   // Autosave: 5 contatos × 3 msgs cada = 15 msgs/dia
   if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 3;
+    v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
   // Community desativado para testes
