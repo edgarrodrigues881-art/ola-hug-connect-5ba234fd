@@ -1302,6 +1302,11 @@ async function handleTick(db: any) {
           throw new Error(`Sem JID para envio em grupo (${groupName})`);
         }
 
+        const cachedMsgs = userMsgsMap[job.user_id];
+        const getMsg = () => (cachedMsgs?.length && Math.random() < 0.3)
+          ? pickRandom(cachedMsgs)
+          : generateNaturalMessage("group");
+
         const mediaType = pickMediaType();
         let message = getMsg();
 
