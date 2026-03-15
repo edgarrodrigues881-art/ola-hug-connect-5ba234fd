@@ -1001,7 +1001,8 @@ Deno.serve(async (req) => {
           if (phone.length < 10) {
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
             failedCount++;
-            await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+            // Batch update counters every 5 messages to reduce DB writes
+            if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             continue;
           }
 
