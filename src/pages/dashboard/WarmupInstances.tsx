@@ -205,6 +205,37 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             <Pencil className="w-3.5 h-3.5" /> Editar
           </Button>
         )}
+        {folders.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-[11px] h-8 gap-1.5 rounded-lg font-medium text-muted-foreground hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                {deviceFolders.length > 0 ? `Em ${deviceFolders.length} pasta(s)` : "Adicionar à pasta"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+              {folders.map((f) => {
+                const isInFolder = deviceFolders.includes(f.id);
+                return (
+                  <DropdownMenuItem
+                    key={f.id}
+                    onClick={() => isInFolder ? onRemoveFromFolder(f.id, device.id) : onAddToFolder(f.id, device.id)}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" style={{ color: f.color }} />
+                    <span className="flex-1 truncate">{f.name}</span>
+                    {isInFolder && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   );
