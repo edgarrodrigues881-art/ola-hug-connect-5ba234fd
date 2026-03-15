@@ -1425,7 +1425,9 @@ const WarmupInstanceDetail = () => {
                   const groupScheduleItems = buildGroupScheduleItems();
 
                   // Past items from audit logs (only current + past warmup days)
+                  const HIDDEN_EVENT_TYPES = new Set(["auto_sync_joined", "group_live_discovery_empty"]);
                   for (const log of auditLogs) {
+                    if (HIDDEN_EVENT_TYPES.has(log.event_type)) continue;
                     // Filter out logs from future warmup days
                     if (cycleStartedAt) {
                       const logTime = new Date(log.created_at);
