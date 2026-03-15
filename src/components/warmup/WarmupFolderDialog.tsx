@@ -67,7 +67,7 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cor</label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-8 gap-2">
               {COLORS.map((c) => (
                 <button
                   key={c}
