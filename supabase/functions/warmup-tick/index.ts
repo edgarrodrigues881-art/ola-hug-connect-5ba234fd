@@ -418,15 +418,24 @@ const FRASES_GRUPO = [
 ];
 
 const OPINIOES = [
-  "acho que esse ano vai ser diferente", "to otimista com o futuro",
-  "cada vez mais difícil achar coisa boa", "o mercado tá complicado",
-  "tô repensando muita coisa na vida", "preciso descansar mais",
-  "quero viajar mais esse ano", "preciso focar na saúde",
-  "tô curtindo mais ficar em casa", "o tempo tá passando rápido demais",
-  "tô aprendendo a ter mais paciência", "as coisas estão melhorando",
-  "cada dia é uma conquista", "tô mais seletivo com meu tempo",
-  "quero investir mais em mim", "o importante é ter paz",
-  "tô priorizando o que importa", "a vida tá mudando pra melhor",
+  "acho que esse ano vai ser diferente, tenho muita esperança de dias melhores",
+  "tô otimista com o futuro, muita coisa boa vindo por aí se Deus quiser",
+  "cada vez mais difícil achar coisa boa, mas a gente segue firme e forte",
+  "o mercado tá complicado, mas quem se esforça sempre encontra oportunidade",
+  "tô repensando muita coisa na vida, acho que faz parte do crescimento",
+  "preciso descansar mais, o corpo pede e a gente tem que ouvir né",
+  "quero viajar mais esse ano, já tô até pesquisando alguns destinos legais",
+  "preciso focar na saúde, comecei a me alimentar melhor essa semana",
+  "tô curtindo mais ficar em casa, é bom demais ter paz e sossego",
+  "o tempo tá passando rápido demais, parece que ontem era janeiro",
+  "tô aprendendo a ter mais paciência, nem tudo acontece no nosso tempo",
+  "as coisas estão melhorando aos poucos, cada dia é uma vitória",
+  "cada dia é uma conquista, a gente tem que valorizar cada momento",
+  "tô mais seletivo com meu tempo, aprendi que isso é muito importante",
+  "quero investir mais em mim esse ano, tanto pessoal quanto profissional",
+  "o importante é ter paz de espírito, o resto a gente vai resolvendo",
+  "tô priorizando o que importa de verdade na minha vida agora",
+  "a vida tá mudando pra melhor, e eu tô muito grato por isso",
 ];
 
 const COTIDIANO = [
