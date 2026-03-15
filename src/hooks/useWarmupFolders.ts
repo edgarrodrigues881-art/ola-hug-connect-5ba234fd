@@ -45,6 +45,7 @@ export function useWarmupFolders() {
 
       return (folders as any[]).map((f) => ({
         ...f,
+        tags: Array.isArray(f.tags) ? f.tags : [],
         device_ids: folderDevices.get(f.id) || [],
       })) as WarmupFolder[];
     },
