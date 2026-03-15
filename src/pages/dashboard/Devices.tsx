@@ -913,53 +913,57 @@ const Devices = () => {
         ? devices.filter(d => d.status === "Ready")
         : profileDevice ? [profileDevice] : [];
 
-      // Run all devices in parallel, and each device's actions in parallel too
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+          let warning: string | null = null;
 
           if (wpName.trim()) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
-                "Falha ao atualizar nome no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
+              "Falha ao atualizar nome no WhatsApp",
             );
             dbUp.profile_name = wpName.trim();
           }
+
           if (wpRemovePhoto) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
-                "Falha ao remover foto no WhatsApp",
-              )
-            );
-            dbUp.profile_picture = null;
+            const removeResult = await tryRemoveProfilePhoto(device.id);
+            if (removeResult.ok) {
+              dbUp.profile_picture = null;
+            } else {
+              warning = removeResult.error;
+            }
           } else if (wpPhotoBase64) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
-                "Falha ao atualizar foto no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
+              "Falha ao atualizar foto no WhatsApp",
             );
             dbUp.profile_picture = wpPhotoBase64;
-          }
-
-          if (apiPromises.length > 0) {
-            await Promise.all(apiPromises);
           }
 
           if (Object.keys(dbUp).length > 0) {
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
           }
+
+          return { warning };
         })
       );
 
       const failed = results.filter(r => r.status === "rejected").length;
+      const warningCount = results.reduce((acc, result) => {
+        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        return acc;
+      }, 0);
+
       if (failed > 0) {
         toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else if (warningCount > 0) {
+        toast({
+          title: wpApplyAll ? `Perfil salvo com ressalvas (${targetDevices.length} chips)` : "Perfil salvo com ressalva",
+          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          variant: "destructive",
+        });
       } else {
         toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
       }
