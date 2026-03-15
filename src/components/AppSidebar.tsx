@@ -387,7 +387,7 @@ export function AppSidebar() {
                       setEditingFolder(null);
                       setFolderDialogOpen(true);
                     }}
-                    className="flex items-center gap-[9px] pl-8 pr-3.5 py-[8px] rounded-[10px] text-[11px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30 transition-colors w-full font-medium"
+                    className="flex items-center gap-[9px] px-3.5 py-[8px] rounded-[10px] text-[11px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30 transition-colors w-full font-medium"
                   >
                     <Plus className="w-[14px] h-[14px]" strokeWidth={1.5} />
                     <span>Nova pasta</span>
