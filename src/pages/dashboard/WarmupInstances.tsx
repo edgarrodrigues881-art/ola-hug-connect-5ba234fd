@@ -21,7 +21,7 @@ import {
   Smartphone, RefreshCw, Lock, Target, Timer, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-} from "@/components/ui/dropdown-menu";
+
 
 const phaseLabels: Record<string, string> = {
   pre_24h: "Primeiras 24h",
