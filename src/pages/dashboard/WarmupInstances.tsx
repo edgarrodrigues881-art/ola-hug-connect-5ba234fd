@@ -361,6 +361,88 @@ const formatPhone = (num: string) => {
   return num;
 };
 
+/* ── Device Tag Assignment Dialog ── */
+const DeviceTagAssignDialog = memo(({ open, onOpenChange, availableTags, currentTags, deviceName, onSave }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  availableTags: FolderTag[];
+  currentTags: FolderTag[];
+  deviceName: string;
+  onSave: (tags: FolderTag[]) => Promise<void>;
+}) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelected(new Set(currentTags.map(t => t.label)));
+  }, [open, currentTags]);
+
+  const toggle = (tag: FolderTag) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(tag.label) ? next.delete(tag.label) : next.add(tag.label);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(availableTags.filter(t => selected.has(t.label)));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[320px] bg-card/95 backdrop-blur-2xl border-border/10 p-5 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            Tags — {deviceName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 pt-2">
+          {availableTags.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground/50 text-center py-4">Crie tags na pasta primeiro</p>
+          ) : (
+            availableTags.map((tag) => {
+              const isSelected = selected.has(tag.label);
+              return (
+                <button
+                  key={tag.label}
+                  onClick={() => toggle(tag)}
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-colors",
+                    isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/20 border border-transparent"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "bg-primary border-primary" : "border-border/40"
+                  )}>
+                    {isSelected && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
+                    {tag.label}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <div className="flex gap-2 pt-3 border-t border-border/10">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">Cancelar</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
+            {saving ? "..." : "Salvar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
 const WarmupInstances = () => {
   const [searchParams] = useSearchParams();
   const activeFolderId = searchParams.get("folder");
