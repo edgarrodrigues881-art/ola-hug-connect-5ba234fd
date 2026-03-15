@@ -1003,7 +1003,7 @@ const WarmupInstanceDetail = () => {
 
             const jobTypeLabels: Record<string, { label: string; icon: typeof Target; color: string }> = {
               join_group: { label: "Entrar no grupo", icon: UserPlus, color: "text-teal-400" },
-              group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
+              group_interaction: { label: "Msg/foto/figurinha em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
               // post_status removed — UAZAPI v2 doesn't support
@@ -1425,7 +1425,7 @@ const WarmupInstanceDetail = () => {
                   const groupsEndDay = chipState === "unstable" ? 6 : 4;
                   const getDayPhaseLabel = (day: number) => {
                     if (day === 1) return "Proteção + entrada nos grupos";
-                    if (day <= groupsEndDay) return "Mensagens em grupos";
+                    if (day <= groupsEndDay) return "Msgs, fotos e figurinhas em grupos";
                     if (day === groupsEndDay + 1) return "Auto Save ativado";
                     return "Comunidade + Auto Save";
                   };
