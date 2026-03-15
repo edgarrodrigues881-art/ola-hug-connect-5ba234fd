@@ -385,6 +385,7 @@ export function AppSidebar() {
 
               {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
               {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
+              {renderNavItem({ title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
