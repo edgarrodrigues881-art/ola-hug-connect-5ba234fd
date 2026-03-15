@@ -886,7 +886,7 @@ Deno.serve(async (req) => {
           ? "Não foi possível remover a foto no provedor."
           : "Nenhum endpoint de foto funcionou",
         attempts: failures,
-      }, 422);
+      });
     }
 
     // ── updateProfileStatus ──
