@@ -203,7 +203,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
       )} />
 
-      <div className="px-4 pt-3.5">
+      <div className="px-4 pt-3.5 flex items-start justify-between gap-2">
         <div className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
           connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
@@ -214,6 +214,15 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
+        {deviceTags && deviceTags.length > 0 && (
+          <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
+            {deviceTags.map((tag) => (
+              <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white leading-tight" style={{ backgroundColor: tag.color }}>
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-5 pb-3 flex items-center gap-4">
