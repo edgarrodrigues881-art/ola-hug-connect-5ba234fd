@@ -684,8 +684,8 @@ Deno.serve(async (req) => {
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
       const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
 
-      // Scale batch size by device count (10 per device, min 100, max 500)
-      const dynamicBatchSize = Math.min(500, Math.max(100, allDevices.length * 10));
+      // Scale batch size by device count (3 per device, min 100, max 1000 — Supabase limit)
+      const dynamicBatchSize = Math.min(1000, Math.max(100, allDevices.length * 3));
       // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
