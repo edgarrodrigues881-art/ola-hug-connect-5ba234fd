@@ -390,14 +390,38 @@ const WarmupInstanceDetail = () => {
     if (!cycle?.id || !deviceId || !user) return;
     setTestingAutosave(true);
     try {
-      // Clean previous pending autosave jobs to avoid stacking on contact #1 across repeated tests
-      await supabase
+      // If there are pending autosave jobs, force only the NEXT one (don't recreate/reset queue)
+      const { data: pendingAutosave, error: pendingErr } = await supabase
         .from("warmup_jobs")
-        .update({ status: "cancelled" as any, last_error: "Cancelado para novo teste de Auto Save" })
+        .select("id, payload, run_at")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .eq("job_type", "autosave_interaction");
+        .eq("job_type", "autosave_interaction")
+        .order("run_at", { ascending: true })
+        .limit(1);
+      if (pendingErr) throw pendingErr;
 
+      if (pendingAutosave && pendingAutosave.length > 0) {
+        const next = pendingAutosave[0];
+        const forcedPayload = { ...(next.payload || {}), forced: true };
+        const { error: upErr } = await supabase
+          .from("warmup_jobs")
+          .update({ run_at: new Date().toISOString(), attempts: 0, last_error: null, payload: forcedPayload as any })
+          .eq("id", next.id)
+          .eq("status", "pending");
+        if (upErr) throw upErr;
+
+        await supabase.functions.invoke("warmup-tick", { body: {} });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+        const ri = Number((next.payload as any)?.recipient_index ?? 0) + 1;
+        const mi = Number((next.payload as any)?.msg_index ?? 0) + 1;
+        toast({ title: "⚡ Próximo Auto Save forçado", description: `Executando contato ${ri}/5, msg ${mi}/5 agora.` });
+        return;
+      }
+
+      // No pending autosave jobs: create a fresh batch (5 contacts × 5 msgs)
       const jobs: any[] = [];
       let cursor = Date.now() + 5000; // start in 5s
 
@@ -412,19 +436,15 @@ const WarmupInstanceDetail = () => {
             run_at: new Date(cursor).toISOString(),
             status: "pending" as any,
           });
-          // 4-7 min between messages
-          cursor += (4 + Math.floor(Math.random() * 4)) * 60 * 1000;
+          cursor += (4 + Math.floor(Math.random() * 4)) * 60 * 1000; // 4-7 min
         }
-        // 5-10 min between contacts
-        cursor += (5 + Math.floor(Math.random() * 6)) * 60 * 1000;
+        cursor += (5 + Math.floor(Math.random() * 6)) * 60 * 1000; // 5-10 min between contacts
       }
 
       const { error: insertErr } = await supabase.from("warmup_jobs").insert(jobs);
       if (insertErr) throw insertErr;
 
-      // Trigger tick immediately for the first job
       await supabase.functions.invoke("warmup-tick", { body: {} });
-
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
       await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
 
