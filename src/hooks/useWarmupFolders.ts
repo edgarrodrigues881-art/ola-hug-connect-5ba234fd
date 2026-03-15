@@ -29,7 +29,7 @@ export function useWarmupFolders() {
         .from("warmup_folders" as any)
         .select("*")
         .eq("user_id", user!.id)
-        .order("sort_order", { ascending: true });
+        .order("created_at", { ascending: true });
       if (error) throw error;
 
       const { data: assocs } = await supabase
