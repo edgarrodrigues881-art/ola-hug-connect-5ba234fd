@@ -43,7 +43,9 @@ function backoffMinutes(attempt: number): number {
 // ══════════════════════════════════════════════════════════
 
 function getGroupsEndDay(chipState: string): number {
-  return chipState === "unstable" ? 7 : 4;
+  if (chipState === "unstable") return 7;
+  if (chipState === "recovered") return 5;
+  return 4; // new
 }
 
 function getPhaseForDay(day: number, chipState: string): string {
