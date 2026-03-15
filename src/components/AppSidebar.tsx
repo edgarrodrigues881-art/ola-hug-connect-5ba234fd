@@ -106,7 +106,7 @@ export function AppSidebar() {
   const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
   const [warmupExpanded, setWarmupExpanded] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; color: string; tags?: any[] } | null>(null);
 
   useEffect(() => {
     if (!user) return;
