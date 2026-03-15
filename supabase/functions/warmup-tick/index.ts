@@ -1453,7 +1453,7 @@ async function handleTick(db: any) {
           await uazapiSendText(baseUrl, token, target._phone, msg);
         } catch (e) {
           const sendErr = e instanceof Error ? e.message : String(e);
-          const isInvalidNumber = sendErr.includes("not on WhatsApp") || sendErr.includes("not registered");
+          const isInvalidNumber = sendErr.includes("not on WhatsApp") || sendErr.includes("not registered") || sendErr.includes("Text send failed");
 
           if (isInvalidNumber) {
             // Auto-disable invalid contact so it won't be picked again
