@@ -759,18 +759,21 @@ const Devices = () => {
       proxy_id: newProxyId,
     };
 
-    if (wpName.trim()) {
-      dbUpdates.profile_name = wpName.trim();
-    }
-
     try {
-      let removePhotoWarning: string | null = null;
+      const warnings: string[] = [];
 
       if (wpName.trim()) {
-        await callApiStrict(
-          { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
-          "Falha ao atualizar nome no WhatsApp",
-        );
+        const nameResult = await callApi({
+          action: "updateProfileName",
+          deviceId: editingDevice.id,
+          profileName: wpName.trim(),
+        });
+
+        if (isEdgeCallFailed(nameResult)) {
+          warnings.push(nameResult?.error || "Falha ao atualizar nome no WhatsApp");
+        } else {
+          dbUpdates.profile_name = wpName.trim();
+        }
       }
 
       if (wpRemovePhoto) {
@@ -778,14 +781,20 @@ const Devices = () => {
         if (removeResult.ok) {
           dbUpdates.profile_picture = null;
         } else {
-          removePhotoWarning = removeResult.error;
+          warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
-        await callApiStrict(
-          { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
-          "Falha ao atualizar foto no WhatsApp",
-        );
-        dbUpdates.profile_picture = wpPhotoBase64;
+        const photoResult = await callApi({
+          action: "updateProfilePicture",
+          deviceId: editingDevice.id,
+          profilePictureData: wpPhotoBase64,
+        });
+
+        if (isEdgeCallFailed(photoResult)) {
+          warnings.push(photoResult?.error || "Falha ao atualizar foto no WhatsApp");
+        } else {
+          dbUpdates.profile_picture = wpPhotoBase64;
+        }
       }
 
       await updateMutation.mutateAsync({
@@ -793,10 +802,11 @@ const Devices = () => {
         updates: dbUpdates,
       });
 
-      if (removePhotoWarning) {
+      if (warnings.length > 0) {
+        const extraWarnings = warnings.length > 1 ? ` (+${warnings.length - 1} aviso${warnings.length > 2 ? "s" : ""})` : "";
         toast({
           title: "Instância atualizada com ressalva",
-          description: removePhotoWarning,
+          description: `${warnings[0]}${extraWarnings}`,
           variant: "destructive",
         });
       } else {
