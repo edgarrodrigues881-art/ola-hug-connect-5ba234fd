@@ -1573,6 +1573,19 @@ const WarmupInstances = () => {
           cycleByDeviceId={cycleByDeviceId}
         />
       )}
+
+      {/* Folder tags dialog */}
+      <WarmupFolderDialog
+        open={folderDialogOpen}
+        onOpenChange={setFolderDialogOpen}
+        editingFolder={editingFolder}
+        onSave={async (data) => {
+          if (editingFolder) {
+            await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color, tags: data.tags });
+          }
+        }}
+        currentDeviceIds={activeFolder?.device_ids || []}
+      />
     </div>
   );
 };
