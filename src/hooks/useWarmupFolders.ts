@@ -1,0 +1,122 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+
+export interface WarmupFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  icon: string;
+  sort_order: number;
+  created_at: string;
+  device_ids?: string[];
+}
+
+export function useWarmupFolders() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const foldersQuery = useQuery({
+    queryKey: ["warmup_folders", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: folders, error } = await supabase
+        .from("warmup_folders" as any)
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+
+      const { data: assocs } = await supabase
+        .from("warmup_folder_devices" as any)
+        .select("folder_id, device_id")
+        .eq("user_id", user!.id);
+
+      const folderDevices = new Map<string, string[]>();
+      (assocs || []).forEach((a: any) => {
+        const arr = folderDevices.get(a.folder_id) || [];
+        arr.push(a.device_id);
+        folderDevices.set(a.folder_id, arr);
+      });
+
+      return (folders as any[]).map((f) => ({
+        ...f,
+        device_ids: folderDevices.get(f.id) || [],
+      })) as WarmupFolder[];
+    },
+  });
+
+  const createFolder = useMutation({
+    mutationFn: async (params: { name: string; color: string; icon: string }) => {
+      const { data, error } = await supabase
+        .from("warmup_folders" as any)
+        .insert({ user_id: user!.id, name: params.name, color: params.color, icon: params.icon } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  const updateFolder = useMutation({
+    mutationFn: async (params: { id: string; name?: string; color?: string; icon?: string }) => {
+      const { id, ...updates } = params;
+      const { error } = await supabase
+        .from("warmup_folders" as any)
+        .update(updates as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  const deleteFolder = useMutation({
+    mutationFn: async (folderId: string) => {
+      const { error } = await supabase
+        .from("warmup_folders" as any)
+        .delete()
+        .eq("id", folderId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  const addDevices = useMutation({
+    mutationFn: async (params: { folderId: string; deviceIds: string[] }) => {
+      const rows = params.deviceIds.map((did) => ({
+        folder_id: params.folderId,
+        device_id: did,
+        user_id: user!.id,
+      }));
+      const { error } = await supabase
+        .from("warmup_folder_devices" as any)
+        .upsert(rows as any, { onConflict: "folder_id,device_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  const removeDevice = useMutation({
+    mutationFn: async (params: { folderId: string; deviceId: string }) => {
+      const { error } = await supabase
+        .from("warmup_folder_devices" as any)
+        .delete()
+        .eq("folder_id", params.folderId)
+        .eq("device_id", params.deviceId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  return {
+    folders: foldersQuery.data || [],
+    isLoading: foldersQuery.isLoading,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    addDevices,
+    removeDevice,
+  };
+}

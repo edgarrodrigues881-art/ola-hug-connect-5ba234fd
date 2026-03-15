@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWarmupCycles } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useWarmupFolders } from "@/hooks/useWarmupFolders";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -211,6 +212,10 @@ const formatPhone = (num: string) => {
 };
 
 const WarmupInstances = () => {
+  const [searchParams] = useSearchParams();
+  const activeFolderId = searchParams.get("folder");
+  const { folders } = useWarmupFolders();
+  const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
@@ -318,6 +323,10 @@ const WarmupInstances = () => {
 
   const displayed = useMemo(() => {
     return filteredDevices.filter((d) => {
+      // Folder filter
+      if (activeFolder && activeFolder.device_ids) {
+        if (!activeFolder.device_ids.includes(d.id)) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         if (!d.name.toLowerCase().includes(q) && !(d.number || "").includes(q)) return false;
@@ -330,7 +339,7 @@ const WarmupInstances = () => {
       }
       return true;
     });
-  }, [filteredDevices, search, statusFilter, cycleByDeviceId]);
+  }, [filteredDevices, search, statusFilter, cycleByDeviceId, activeFolder]);
 
   // --- Connect logic ---
   const callApi = async (body: Record<string, any>) => {
@@ -999,7 +1008,14 @@ const WarmupInstances = () => {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Flame className="w-5 h-5 text-primary" />
-            Aquecimento Automático
+            {activeFolder ? (
+              <>
+                <span className="text-muted-foreground font-medium">Aquecimento /</span>
+                <span style={{ color: activeFolder.color }}>{activeFolder.name}</span>
+              </>
+            ) : (
+              "Aquecimento Automático"
+            )}
           </h1>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs text-muted-foreground tabular-nums">
