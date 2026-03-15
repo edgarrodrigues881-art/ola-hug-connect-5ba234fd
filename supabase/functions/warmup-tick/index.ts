@@ -1764,26 +1764,26 @@ async function handleTick(db: any) {
         let message = getMsg();
         let sendFallbackReason: string | null = null;
 
-        // 100% reply to last message in group (testing mode)
+        // Reply: tenta sempre pegar a última mensagem do grupo
         let quotedMsgId: string | null = null;
-        if (requestedMediaType === "text") {
-          try {
-            quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
-          } catch { /* ignore, send without quote */ }
+        try {
+          quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
+        } catch {
+          /* ignore, send without quote */
         }
 
         try {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
-            message = `[IMG] ${caption}`;
+            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption, quotedMsgId || undefined);
+            message = quotedMsgId ? `[IMG-REPLY] ${caption}` : `[IMG] ${caption}`;
           } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
-            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
+            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl, quotedMsgId || undefined);
             const stickerMsg = getMsg();
-            try { await uazapiSendText(baseUrl, token, groupJid, stickerMsg); } catch { /* ok */ }
-            message = `[STICKER] 🎭 + "${stickerMsg.substring(0, 40)}"`;
+            try { await uazapiSendText(baseUrl, token, groupJid, stickerMsg, quotedMsgId || undefined); } catch { /* ok */ }
+            message = quotedMsgId ? `[STICKER-REPLY] 🎭 + "${stickerMsg.substring(0, 40)}"` : `[STICKER] 🎭 + "${stickerMsg.substring(0, 40)}"`;
           } else {
             await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
             if (quotedMsgId) message = `[REPLY] ${message}`;
@@ -1792,7 +1792,7 @@ async function handleTick(db: any) {
           actualMediaType = "text";
           sendFallbackReason = e instanceof Error ? e.message : String(e || "unknown_error");
           message = getMsg();
-          await uazapiSendText(baseUrl, token, groupJid, message);
+          await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
         }
 
         // Update budget (increment)
