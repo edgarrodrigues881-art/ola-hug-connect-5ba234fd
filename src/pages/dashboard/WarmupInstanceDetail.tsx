@@ -1162,7 +1162,30 @@ const WarmupInstanceDetail = () => {
               return <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />;
             };
 
-            if (displayJobs.length === 0 && futureJobs.length === 0) return null;
+            if (displayJobs.length === 0 && futureJobs.length === 0) {
+              return (
+                <div className="rounded-2xl border border-border/15 bg-card/50 backdrop-blur-xl p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Sem tarefas visíveis no ciclo</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Isso acontece quando todos os jobs foram cancelados. Clique abaixo para reconstruir a fila automaticamente.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={handleRestoreSchedule}
+                      disabled={repairingSchedule}
+                    >
+                      {repairingSchedule ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                      Restaurar tarefas
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
 
             // Summarize displayed jobs by type
             const typeSummary: Record<string, { total: number; done: number; failed: number; next: Date | null }> = {};
