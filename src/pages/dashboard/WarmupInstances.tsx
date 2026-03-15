@@ -1222,44 +1222,59 @@ const WarmupInstances = () => {
                   {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
               </div>
-              <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
-                {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length === 0 ? (
+               <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
+                {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status)).length === 0 ? (
                   <div className="flex flex-col items-center py-8 gap-2">
                     <Smartphone className="w-6 h-6 text-muted-foreground/30" />
                     <p className="text-xs text-muted-foreground/60 font-medium">Nenhuma instância disponível</p>
                   </div>
                 ) : (
-                  filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).map(d => (
+                  filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status)).map(d => {
+                    const isWarming = cycleByDeviceId.has(d.id);
+                    return (
                     <div
                       key={d.id}
                       className={cn(
-                        "flex items-center gap-3 px-3.5 py-3 rounded-xl cursor-pointer transition-all duration-200",
-                        bulkSelected.has(d.id)
+                        "flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200",
+                        isWarming
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer",
+                        !isWarming && bulkSelected.has(d.id)
                           ? "bg-primary/[0.08] border border-primary/25 shadow-sm shadow-primary/5"
                           : "hover:bg-muted/20 border border-transparent"
                       )}
-                      onClick={() => setBulkSelected(prev => {
-                        const next = new Set(prev);
-                        next.has(d.id) ? next.delete(d.id) : next.add(d.id);
-                        return next;
-                      })}
+                      onClick={() => {
+                        if (isWarming) return;
+                        setBulkSelected(prev => {
+                          const next = new Set(prev);
+                          next.has(d.id) ? next.delete(d.id) : next.add(d.id);
+                          return next;
+                        });
+                      }}
                     >
                       <div className={cn(
                         "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                        bulkSelected.has(d.id) ? "bg-primary border-primary" : "border-border/40 bg-transparent"
+                        isWarming
+                          ? "border-border/20 bg-transparent"
+                          : bulkSelected.has(d.id) ? "bg-primary border-primary" : "border-border/40 bg-transparent"
                       )}>
-                        {bulkSelected.has(d.id) && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
+                        {!isWarming && bulkSelected.has(d.id) && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
                         {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide mt-0.5">{formatPhone(d.number)}</p>}
                       </div>
-                      <div className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]"
-                      )} />
+                      {isWarming ? (
+                        <Flame className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
+                      ) : (
+                        <div className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]"
+                        )} />
+                      )}
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
