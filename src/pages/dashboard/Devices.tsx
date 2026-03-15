@@ -759,12 +759,6 @@ const Devices = () => {
       proxy_id: newProxyId,
     };
 
-    if (wpRemovePhoto) {
-      dbUpdates.profile_picture = null;
-    } else if (wpPhotoBase64) {
-      dbUpdates.profile_picture = wpPhotoBase64;
-    }
-
     if (wpName.trim()) {
       dbUpdates.profile_name = wpName.trim();
     }
