@@ -1438,34 +1438,36 @@ async function handleTick(db: any) {
 
         let selectedIndex = ((rIdx % autosavePool.length) + autosavePool.length) % autosavePool.length;
         const msg = generateNaturalMessage("autosave");
+        const target = autosavePool[selectedIndex];
 
-        let sentContact: any = null;
-        let sentPhone = "";
-        let lastSendErr = "";
-
-        // If selected number fails, automatically try next valid contacts in pool
-        for (let i = 0; i < autosavePool.length; i++) {
-          const idx = (selectedIndex + i) % autosavePool.length;
-          const candidate = autosavePool[idx];
+        // Send ONLY to the designated contact — no fallback to other contacts
+        // Autosave simulates a real conversation, so switching contacts mid-thread is unnatural
+        try {
+          await uazapiSendText(baseUrl, token, target._phone, msg);
+        } catch (e) {
+          const sendErr = e instanceof Error ? e.message : String(e);
+          // Retry once after 2s delay
+          await new Promise(r => setTimeout(r, 2000));
           try {
-            await uazapiSendText(baseUrl, token, candidate._phone, msg);
-            sentContact = candidate;
-            sentPhone = candidate._phone;
-            selectedIndex = idx;
-            break;
-          } catch (e) {
-            lastSendErr = e instanceof Error ? e.message : String(e);
+            await uazapiSendText(baseUrl, token, target._phone, msg);
+          } catch (e2) {
+            const retryErr = e2 instanceof Error ? e2.message : String(e2);
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "autosave_send_failed",
+              message: `Auto Save falhou: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || target._phone}`,
+              meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: target._phone, error: retryErr, first_error: sendErr },
+            });
+            throw new Error(`Auto Save: falha ao enviar para ${target._phone}. Erro: ${retryErr}`);
           }
         }
 
-        if (!sentContact) {
-          throw new Error(`Auto Save: falha em todos os contatos válidos (${autosavePool.length}). Último erro: ${lastSendErr}`);
-        }
+        const sentPhone = target._phone;
 
         try {
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id, user_id: job.user_id,
-            recipient_phone_e164: sentContact.phone_e164,
+            recipient_phone_e164: target.phone_e164,
             day_date: new Date().toISOString().split("T")[0],
           });
         } catch { /* duplicate OK */ }
@@ -1479,8 +1481,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${sentContact.contact_name || sentPhone}`,
-          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: sentContact.contact_name },
+          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || sentPhone}`,
+          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name },
         });
         break;
       }
