@@ -461,6 +461,7 @@ export function AppSidebar() {
         onOpenChange={setFolderDialogOpen}
         editingFolder={editingFolder}
         onSave={handleSaveFolder}
+        currentDeviceIds={editingFolder ? (folders.find(f => f.id === editingFolder.id)?.device_ids || []) : []}
       />
     </Sidebar>
   );
