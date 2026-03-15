@@ -1085,6 +1085,7 @@ const Devices = () => {
           }
 
           if (Object.keys(dbUp).length > 0) {
+            dbUp.updated_at = new Date().toISOString();
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
             // Optimistic cache update
