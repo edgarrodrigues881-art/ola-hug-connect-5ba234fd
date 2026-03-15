@@ -220,10 +220,11 @@ const WarmupInstanceDetail = () => {
         }
       }
 
-      // Set run_at to NOW
+      // Set run_at to NOW and mark as forced
+      const forcedPayload = { ...(nextJob.payload as Record<string, unknown> || {}), forced: true };
       const { error: updateErr } = await supabase
         .from("warmup_jobs")
-        .update({ run_at: new Date().toISOString() })
+        .update({ run_at: new Date().toISOString(), payload: forcedPayload as any })
         .eq("id", nextJob.id)
         .eq("status", "pending");
       if (updateErr) throw updateErr;
