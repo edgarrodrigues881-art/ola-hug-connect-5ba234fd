@@ -914,92 +914,20 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   throw new Error(`Image send failed: ${res.status} — ${raw.substring(0, 240)}`);
 }
 
-async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string, quotedMsgId?: string) {
+async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
   if (!imageUrl) throw new Error("Sticker URL ausente");
-  const quotePayload = buildQuotedPayload(quotedMsgId);
 
-  const parseResponse = async (res: Response) => {
-    const raw = await res.text();
-    if (!raw) return { ok: true };
-    try { return JSON.parse(raw); } catch { return { raw }; }
-  };
-
-  const tryJsonEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
-    let lastErr = "";
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(ep.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-          body: JSON.stringify(ep.body),
-        });
-        if (res.ok) return { ok: true as const, data: await parseResponse(res) };
-        const errText = await res.text();
-        lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
-        if (res.status !== 405) console.warn(`[uazapiSendSticker] ${lastErr}`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        lastErr = `${ep.url}: ${msg}`;
-      }
-    }
-    return { ok: false as const, lastErr };
-  };
-
-  const urlResult = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, media: imageUrl, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: imageUrl, media: imageUrl, ...quotePayload } },
-  ]);
-  if (urlResult.ok) return urlResult.data;
-
-  const asset = await getMediaAsset(imageUrl, "image/webp");
-  const fileName = `warmup-sticker.${mimeToExt(asset.mimeType)}`;
-
-  const appendField = (form: FormData, key: string, value: unknown) => {
-    if (value === undefined || value === null) return;
-    if (typeof value === "object") form.append(key, JSON.stringify(value));
-    else form.append(key, String(value));
-  };
-
-  const multipartAttempts = [
-    { url: `${baseUrl}/send/sticker`, fields: { number, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, fields: { number, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, fields: { chatId: number, ...quotePayload } },
-  ];
-
-  let multipartErr = "";
-  for (const at of multipartAttempts) {
-    try {
-      const form = new FormData();
-      Object.entries(at.fields).forEach(([k, v]) => appendField(form, k, v));
-      form.append("file", new Blob([asset.bytes], { type: asset.mimeType }), fileName);
-
-      const res = await fetch(at.url, {
-        method: "POST",
-        headers: { token, Accept: "application/json" },
-        body: form,
-      });
-
-      if (res.ok) return await parseResponse(res);
-      const errText = await res.text();
-      multipartErr = `${res.status} @ ${at.url}: ${errText.substring(0, 240)}`;
-      if (res.status !== 405) console.warn(`[uazapiSendSticker-multipart] ${multipartErr}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      multipartErr = `${at.url}: ${msg}`;
-    }
+  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "sticker" }
+  const res = await fetch(`${baseUrl}/send/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+    body: JSON.stringify({ number, file: imageUrl, type: "sticker" }),
+  });
+  const raw = await res.text();
+  if (res.ok) {
+    try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
   }
-
-  const b64Result = await tryJsonEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, file: asset.dataUri, media: asset.dataUri, sticker: asset.dataUri, ...quotePayload } },
-    { url: `${baseUrl}/send/media`, body: { number, file: asset.dataUri, media: asset.dataUri, type: "sticker", ...quotePayload } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: asset.dataUri, media: asset.dataUri, ...quotePayload } },
-  ]);
-  if (b64Result.ok) return b64Result.data;
-
-  throw new Error(`Sticker send failed: ${b64Result.lastErr || multipartErr || urlResult.lastErr}`);
+  throw new Error(`Sticker send failed: ${res.status} — ${raw.substring(0, 240)}`);
 }
 
 // ══════════════════════════════════════════════════════════
