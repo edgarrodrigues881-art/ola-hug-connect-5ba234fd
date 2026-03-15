@@ -919,16 +919,44 @@ const Devices = () => {
       // Run all devices in parallel, and each device's actions in parallel too
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const promises: Promise<any>[] = [];
+          const apiPromises: Promise<any>[] = [];
+          const dbUp: Record<string, any> = {};
+
           if (wpName.trim()) {
-            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
+                "Falha ao atualizar nome no WhatsApp",
+              )
+            );
+            dbUp.profile_name = wpName.trim();
           }
           if (wpRemovePhoto) {
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
+                "Falha ao remover foto no WhatsApp",
+              )
+            );
+            dbUp.profile_picture = null;
           } else if (wpPhotoBase64) {
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
+                "Falha ao atualizar foto no WhatsApp",
+              )
+            );
+            dbUp.profile_picture = wpPhotoBase64;
           }
-          await Promise.all(promises);
+
+          if (apiPromises.length > 0) {
+            await Promise.all(apiPromises);
+          }
+
+          if (Object.keys(dbUp).length > 0) {
+            const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            if (error) throw error;
+          }
         })
       );
 
