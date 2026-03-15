@@ -1153,45 +1153,73 @@ const WarmupInstances = () => {
             )}
           </h1>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs text-muted-foreground tabular-nums">
-              Total: <strong className="text-foreground">{filteredDevices.length}</strong>
-            </span>
-            {disconnectedCount > 0 && (
-              <span className="text-xs text-destructive tabular-nums">
-                Chips desconectados: <strong>{disconnectedCount}</strong>
+            {activeFolder ? (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                Total: <strong className="text-foreground">{displayed.length}</strong>
               </span>
+            ) : (
+              <>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  Total: <strong className="text-foreground">{filteredDevices.length}</strong>
+                </span>
+                {disconnectedCount > 0 && (
+                  <span className="text-xs text-destructive tabular-nums">
+                    Chips desconectados: <strong>{disconnectedCount}</strong>
+                  </span>
+                )}
+              </>
             )}
           </div>
+          {/* Folder tags display */}
+          {activeFolder && activeFolder.tags && activeFolder.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {activeFolder.tags.map((tag: any) => (
+                <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {activeFolder && (
-            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
-              <Plus className="w-3.5 h-3.5" /> Adicionar Instância
-            </Button>
+            <>
+              <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
+                <Plus className="w-3.5 h-3.5" /> Adicionar Instância
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => {
+                setEditingFolder({ id: activeFolder.id, name: activeFolder.name, color: activeFolder.color, tags: activeFolder.tags || [] });
+                setFolderDialogOpen(true);
+              }}>
+                <Tag className="w-3.5 h-3.5" /> Tags
+              </Button>
+            </>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs h-8"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-3 h-3" /> Filtros
-          </Button>
           {!activeFolder && (
-            <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
-              setBulkSelected(new Set());
-              setBulkChipState("new");
-              setBulkDaysTotal("14");
-              setBulkOpen(true);
-            }}>
-              <Flame className="w-3.5 h-3.5" /> Aquecer em massa
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-8"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="w-3 h-3" /> Filtros
+              </Button>
+              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+                setBulkSelected(new Set());
+                setBulkChipState("new");
+                setBulkDaysTotal("14");
+                setBulkOpen(true);
+              }}>
+                <Flame className="w-3.5 h-3.5" /> Aquecer em massa
+              </Button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
+      {/* Filters - only on main view */}
+      {!activeFolder && showFilters && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px] max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
