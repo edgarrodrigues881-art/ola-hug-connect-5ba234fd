@@ -1003,7 +1003,7 @@ const WarmupInstanceDetail = () => {
 
             const jobTypeLabels: Record<string, { label: string; icon: typeof Target; color: string }> = {
               join_group: { label: "Entrar no grupo", icon: UserPlus, color: "text-teal-400" },
-              group_interaction: { label: "Mensagem em grupo", icon: Send, color: "text-primary" },
+              group_interaction: { label: "Msg/foto/figurinha em grupo", icon: Send, color: "text-primary" },
               autosave_interaction: { label: "Mensagem privada", icon: MessageSquare, color: "text-emerald-400" },
               community_interaction: { label: "Interação comunitária", icon: Globe, color: "text-purple-400" },
               // post_status removed — UAZAPI v2 doesn't support
