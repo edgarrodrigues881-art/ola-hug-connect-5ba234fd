@@ -8,6 +8,8 @@ import { Trash2 } from "lucide-react";
 const COLORS = [
   "#10b981", "#f59e0b", "#ef4444", "#3b82f6",
   "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
+  "#14b8a6", "#eab308", "#f43f5e", "#6366f1",
+  "#a855f7", "#d946ef", "#0ea5e9", "#84cc16",
 ];
 
 interface Props {
@@ -65,7 +67,7 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cor</label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-8 gap-2">
               {COLORS.map((c) => (
                 <button
                   key={c}
