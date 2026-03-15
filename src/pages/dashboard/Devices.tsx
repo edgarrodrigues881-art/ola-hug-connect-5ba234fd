@@ -943,6 +943,28 @@ const Devices = () => {
     }
   };
 
+  const resetWpDraftState = () => {
+    setWpPhotoUrl("");
+    setWpPhotoBase64("");
+    setWpRemovePhoto(false);
+    if (wpFileRef.current) wpFileRef.current.value = "";
+  };
+
+  const closeEditDialog = () => {
+    setEditOpen(false);
+    setEditingDevice(null);
+    setWpName("");
+    resetWpDraftState();
+  };
+
+  const closeProfileDialog = () => {
+    setProfileOpen(false);
+    setProfileDevice(null);
+    setWpName("");
+    setWpApplyAll(false);
+    resetWpDraftState();
+  };
+
   const handleProfileUpdate = async () => {
     const hasNameChange = wpName.trim().length > 0;
     const hasPhotoChange = !!wpPhotoBase64 || wpRemovePhoto;
