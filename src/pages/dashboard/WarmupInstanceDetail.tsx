@@ -329,6 +329,60 @@ const WarmupInstanceDetail = () => {
     }
   };
 
+  const handleRestoreSchedule = async () => {
+    if (!deviceId || !cycle) return;
+    setRepairingSchedule(true);
+    try {
+      const normalizedPhase = cycle.phase === "pre_24h" && (cycle.day_index ?? 1) > 1
+        ? "groups_only"
+        : cycle.phase;
+
+      const { error: engineErr } = await supabase.functions.invoke("warmup-engine", {
+        body: {
+          action: "schedule_day",
+          device_id: deviceId,
+          cycle_id: cycle.id,
+          day_index: cycle.day_index,
+          phase: normalizedPhase,
+          chip_state: cycle.chip_state,
+        },
+      });
+
+      if (engineErr) {
+        const { error: tickErr } = await supabase.functions.invoke("warmup-tick", {
+          body: {
+            action: "schedule_day",
+            cycle_id: cycle.id,
+            device_id: deviceId,
+            forced: true,
+          },
+        });
+        if (tickErr) throw tickErr;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+
+      const { count } = await supabase
+        .from("warmup_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .neq("status", "cancelled");
+
+      toast({
+        title: "✅ Tarefas restauradas",
+        description: `Fila reconstruída com ${count ?? 0} tarefa(s).`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao restaurar",
+        description: err.message || "Não foi possível recriar as tarefas agora.",
+        variant: "destructive",
+      });
+    } finally {
+      setRepairingSchedule(false);
+    }
+  };
+
   /* advance day: skip current day's jobs, move to next day (or complete if last day) */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
