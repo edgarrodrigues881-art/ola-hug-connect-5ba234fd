@@ -1032,6 +1032,11 @@ const WarmupInstances = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {activeFolder && (
+            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
+              <Plus className="w-3.5 h-3.5" /> Adicionar Instância
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -1040,14 +1045,16 @@ const WarmupInstances = () => {
           >
             <Filter className="w-3 h-3" /> Filtros
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
-            setBulkSelected(new Set());
-            setBulkChipState("new");
-            setBulkDaysTotal("14");
-            setBulkOpen(true);
-          }}>
-            <Flame className="w-3.5 h-3.5" /> Aquecer em massa
-          </Button>
+          {!activeFolder && (
+            <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+              setBulkSelected(new Set());
+              setBulkChipState("new");
+              setBulkDaysTotal("14");
+              setBulkOpen(true);
+            }}>
+              <Flame className="w-3.5 h-3.5" /> Aquecer em massa
+            </Button>
+          )}
         </div>
       </div>
 
