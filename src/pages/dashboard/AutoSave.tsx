@@ -406,7 +406,7 @@ const AutoSave = () => {
               <Trash2 className="w-3.5 h-3.5" /> Apagar todos
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs h-9 col-span-2 sm:col-span-1 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1.5 text-xs h-9 col-span-2 sm:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
         </div>
