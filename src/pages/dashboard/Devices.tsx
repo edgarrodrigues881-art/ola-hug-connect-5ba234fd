@@ -779,6 +779,7 @@ const Devices = () => {
     const dbUpdates: Record<string, any> = {
       name: editName,
       proxy_id: newProxyId,
+      updated_at: new Date().toISOString(),
     };
 
     try {
