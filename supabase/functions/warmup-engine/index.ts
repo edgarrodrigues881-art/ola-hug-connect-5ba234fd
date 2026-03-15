@@ -124,8 +124,49 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 }
 
 // ══════════════════════════════════════════════════════════
-// OPERATING WINDOW — 07:00-19:00 BRT (10:00-22:00 UTC)
+// OPERATING WINDOW — 07:00-19:00 BRT (exact timezone)
 // ══════════════════════════════════════════════════════════
+
+function getBrtNow(): Date {
+  // Returns a Date object representing "now" with correct BRT offset
+  return new Date();
+}
+
+function getBrtHour(date: Date): number {
+  return parseInt(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }).format(date));
+}
+
+function getBrtTodayAt(hour: number, minute = 0): Date {
+  // Build a date for today at HH:MM in BRT
+  const brtDateStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  // Parse as BRT by computing UTC offset dynamically
+  const tempDate = new Date(`${brtDateStr}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`);
+  // Get the BRT offset for this date
+  const utcStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(tempDate);
+  // Use a simpler approach: format in BRT, find offset
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    timeZoneName: "shortOffset",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const tzPart = parts.find(p => p.type === "timeZoneName")?.value || "GMT-3";
+  const offsetMatch = tzPart.match(/GMT([+-]?\d+)/);
+  const offsetHours = offsetMatch ? parseInt(offsetMatch[1]) : -3;
+  
+  const result = new Date();
+  // Set to today's date in BRT
+  const [y, m, d] = brtDateStr.split("-").map(Number);
+  result.setUTCFullYear(y, m - 1, d);
+  result.setUTCHours(hour - offsetHours, minute, 0, 0);
+  return result;
+}
 
 interface WindowResult {
   effectiveStart: number;
@@ -135,15 +176,9 @@ interface WindowResult {
 
 function calculateWindow(forced: boolean = false): WindowResult | null {
   const now = new Date();
-
-  const windowStart = new Date(now);
-  windowStart.setUTCHours(10, 0, 0, 0);
-  const windowEnd = new Date(now);
-  windowEnd.setUTCHours(22, 0, 0, 0);
-
   const nowMs = now.getTime();
-  const startMs = windowStart.getTime();
-  const endMs = windowEnd.getTime();
+  const startMs = getBrtTodayAt(7).getTime();
+  const endMs = getBrtTodayAt(19).getTime();
 
   // Case 1: Forced execution outside window → 2h emergency window
   if (forced && nowMs >= endMs) {
