@@ -325,11 +325,11 @@ export function AppSidebar() {
                     const isActiveFolder = location.search.includes(folder.id);
                     return (
                       <SidebarMenuItem key={folder.id}>
-                        <div className="group/folder flex items-center">
-                          <SidebarMenuButton asChild tooltip={folder.name}>
+                        <div className="group/folder relative">
+                          <SidebarMenuButton asChild tooltip={folder.name} className="w-full">
                             <NavLink
                               to={folderUrl}
-                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative flex-1
+                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative w-full
                                 transition-[background-color,color,opacity] duration-[120ms] ease-out
                                 gap-[11px] px-3.5 py-[10px]
                                 text-foreground font-medium hover:brightness-110`}
@@ -346,18 +346,17 @@ export function AppSidebar() {
                               )}
                             </NavLink>
                           </SidebarMenuButton>
-                          <div className="opacity-0 group-hover/folder:opacity-100 flex items-center gap-0.5 mr-1 transition-opacity">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
-                                setFolderDialogOpen(true);
-                              }}
-                              className="p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
+                              setFolderDialogOpen(true);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/folder:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
                         </div>
                       </SidebarMenuItem>
                     );
