@@ -1367,7 +1367,7 @@ const WarmupInstanceDetail = () => {
                     
                   };
                   const jobLabelMap: Record<string, string> = {
-                    join_group: "Entrar no grupo", group_interaction: "Msg em grupo",
+                    join_group: "Entrar no grupo", group_interaction: "Msg/foto/figurinha",
                     autosave_interaction: "Auto Save", community_interaction: "Comunitário",
                     phase_transition: "Avançar fase", daily_reset: "Reset diário",
                     enable_autosave: "Ativar Auto Save", enable_community: "Ativar Comunidade",
