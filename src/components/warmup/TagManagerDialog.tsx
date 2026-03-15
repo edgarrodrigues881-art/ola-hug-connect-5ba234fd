@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { X, Plus, Tag } from "lucide-react";
+import { X, Plus, Tag, Sparkles } from "lucide-react";
 
 const TAG_COLORS = [
   "#10b981", "#f59e0b", "#ef4444", "#3b82f6",
@@ -69,83 +69,102 @@ export function TagManagerDialog({ open, onOpenChange, tags: initialTags, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[340px] bg-card border-border/20 p-5">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-bold flex items-center gap-2">
-            <Tag className="w-4 h-4" style={{ color: folderColor }} />
-            Tags — {folderName}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[380px] bg-card/95 backdrop-blur-2xl border-border/10 p-0 overflow-hidden rounded-2xl shadow-2xl">
+        {/* Header with gradient accent */}
+        <div className="px-5 pt-5 pb-3">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${folderColor}20` }}>
+                <Tag className="w-3.5 h-3.5" style={{ color: folderColor }} />
+              </div>
+              <div>
+                <span className="text-foreground">Tags</span>
+                <span className="text-muted-foreground/60 font-medium ml-1.5">— {folderName}</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-3 pt-1">
-          {/* Existing tags */}
-          {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <span
-                  key={tag.label}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-white"
-                  style={{ backgroundColor: tag.color }}
-                >
-                  {tag.label}
-                  <button
-                    onClick={() => removeTag(tag.label)}
-                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+        <div className="px-5 pb-5 space-y-4">
+          {/* Tags display */}
+          <div className="min-h-[52px] rounded-xl border border-border/10 bg-muted/5 p-3">
+            {tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.label}
+                    className="group inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:scale-[1.02]"
+                    style={{ backgroundColor: tag.color }}
                   >
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] text-muted-foreground/50 text-center py-2">Nenhuma tag criada</p>
-          )}
+                    {tag.label}
+                    <button
+                      onClick={() => removeTag(tag.label)}
+                      className="opacity-60 group-hover:opacity-100 hover:bg-white/20 rounded-md p-0.5 transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-3 gap-1.5">
+                <Sparkles className="w-5 h-5 text-muted-foreground/20" />
+                <p className="text-[11px] text-muted-foreground/40 font-medium">Nenhuma tag criada ainda</p>
+              </div>
+            )}
+          </div>
 
-          {/* Add tag input */}
-          <div className="space-y-2 rounded-xl border border-border/15 bg-muted/10 p-3">
-            <div className="flex gap-1.5">
+          {/* Add tag section */}
+          <div className="space-y-3">
+            <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Nova tag</label>
+            <div className="flex gap-2">
               <Input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Nova tag..."
-                className="h-8 text-xs bg-background/50 border-border/20 flex-1"
+                placeholder="Digite o nome..."
+                className="h-9 text-xs bg-muted/10 border-border/15 flex-1 rounded-lg placeholder:text-muted-foreground/30"
                 autoFocus
               />
               <Button
                 size="sm"
                 onClick={addTag}
                 disabled={!tagInput.trim()}
-                className="h-8 px-3 text-xs"
+                className="h-9 w-9 p-0 rounded-lg shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <div className="flex gap-1.5 items-center">
-              <span className="text-[9px] text-muted-foreground/50 mr-0.5">Cor:</span>
-              {TAG_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setTagColor(c)}
-                  className={cn(
-                    "w-5 h-5 rounded-full transition-all",
-                    tagColor === c
-                      ? "ring-2 ring-offset-1 ring-offset-card ring-foreground scale-110"
-                      : "opacity-40 hover:opacity-70"
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+
+            {/* Color picker */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Cor da tag</label>
+              <div className="grid grid-cols-8 gap-2">
+                {TAG_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setTagColor(c)}
+                    className={cn(
+                      "w-7 h-7 rounded-full transition-all duration-200",
+                      tagColor === c
+                        ? "ring-2 ring-offset-2 ring-offset-card ring-foreground/70 scale-110 shadow-lg"
+                        : "opacity-50 hover:opacity-80 hover:scale-105"
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 pt-3">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">
+        {/* Footer */}
+        <div className="flex gap-2 px-5 py-4 border-t border-border/10 bg-muted/5">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-10 rounded-lg text-xs font-semibold border-border/15">
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
-            {saving ? "..." : "Salvar"}
+          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-10 rounded-lg text-xs font-semibold shadow-md">
+            {saving ? "Salvando..." : "Salvar tags"}
           </Button>
         </div>
       </DialogContent>
