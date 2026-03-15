@@ -395,8 +395,8 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, !collapsed)}
-              {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, !collapsed)}
+              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
+              {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
