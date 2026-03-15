@@ -301,11 +301,11 @@ Deno.serve(async (req) => {
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
 
-        // ── Profile picture sync logic (simplified, no conflicts) ──
+        // ── Profile picture sync logic ──
         const providerPicRaw =
           inst.profilePicUrl ?? inst.profilePicture ??
           data.profilePicUrl ?? data.profilePicture ?? "";
-        const providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
+        let providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
         const providerNameRaw = (inst.profileName || inst.pushname || "").toString().trim();
 
         const currentPic = device.profile_picture || null;
@@ -316,6 +316,26 @@ Deno.serve(async (req) => {
         const justEdited = Number.isFinite(updatedAtMs)
           ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
+
+        // If provider keeps returning the same pic URL, do a limited deep check using dedicated endpoint.
+        // This helps detect manual removals that lag on /instance/status cache.
+        if (
+          isConnected &&
+          !justEdited &&
+          currentPic &&
+          providerPic &&
+          currentPic === providerPic &&
+          device.uazapi_base_url &&
+          device.uazapi_token &&
+          deepProfileChecks < MAX_DEEP_PROFILE_CHECKS
+        ) {
+          deepProfileChecks++;
+          const cleanBase = String(device.uazapi_base_url).replace(/\/+$/, "");
+          const freshPic = await fetchFreshProfilePic(cleanBase, String(device.uazapi_token), String(phone || ""));
+          if (freshPic !== undefined) {
+            providerPic = freshPic || "";
+          }
+        }
 
         let newPic: string | null;
         if (!isConnected) {
