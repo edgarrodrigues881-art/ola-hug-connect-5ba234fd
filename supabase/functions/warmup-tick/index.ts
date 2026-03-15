@@ -1040,24 +1040,35 @@ async function handleTick(db: any) {
       // ── PHASE TRANSITION ──
       case "phase_transition": {
         const targetPhase = job.payload?.target_phase || "groups_only";
+        const autoAdvanceDay = job.payload?.auto_advance_day === true;
 
         await db.from("warmup_jobs")
           .update({ status: "cancelled", last_error: "Cancelado: transição de fase" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
           .in("job_type", INTERACTION_JOB_TYPES);
 
-        await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
+        const updateData: any = { phase: targetPhase };
+        let dayForSchedule = cycle.day_index;
+
+        // If auto_advance_day, also advance to day 2 (post-groups start)
+        if (autoAdvanceDay && cycle.day_index <= 1) {
+          updateData.day_index = 2;
+          updateData.last_daily_reset_at = new Date().toISOString();
+          dayForSchedule = 2;
+        }
+
+        await db.from("warmup_cycles").update(updateData).eq("id", cycle.id);
 
         if (targetPhase === "groups_only") {
           await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
         }
 
-        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, chipState);
+        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, dayForSchedule, targetPhase, chipState);
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "phase_changed",
-          message: `Fase: ${cycle.phase} → ${targetPhase}`,
+          message: `Fase: ${cycle.phase} → ${targetPhase}${autoAdvanceDay ? ` (dia → ${dayForSchedule})` : ""}`,
         });
         break;
       }
