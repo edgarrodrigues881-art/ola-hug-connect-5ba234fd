@@ -163,9 +163,9 @@ export function AppSidebar() {
     { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
   ];
 
-  const handleSaveFolder = useCallback(async (data: { name: string; color: string; deviceIds: string[] }) => {
+  const handleSaveFolder = useCallback(async (data: { name: string; color: string; tags?: any[]; deviceIds: string[] }) => {
     if (editingFolder) {
-      await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color });
+      await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color, tags: data.tags });
       // Sync devices: remove old, add new
       const currentFolder = folders.find(f => f.id === editingFolder.id);
       const oldIds = new Set(currentFolder?.device_ids || []);
@@ -182,7 +182,7 @@ export function AppSidebar() {
         await addDevices.mutateAsync({ folderId: editingFolder.id, deviceIds: toAdd });
       }
     } else {
-      const result = await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder" });
+      const result = await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder", tags: data.tags });
       if (data.deviceIds.length > 0 && result) {
         await addDevices.mutateAsync({ folderId: (result as any).id, deviceIds: data.deviceIds });
       }
