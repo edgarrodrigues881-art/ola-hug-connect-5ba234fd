@@ -399,20 +399,22 @@ const RESPOSTAS_CURTAS = [
 ];
 
 const FRASES_GRUPO = [
-  "concordo", "muito bom isso", "ótimo ponto",
-  "valeu por compartilhar", "obrigado pela dica",
-  "interessante demais", "vou aplicar isso",
-  "sensacional", "mandou bem", "parabéns pelo conteúdo",
-  "curti muito", "tô acompanhando",
-  "alguém mais concorda", "boa semana a todos",
-  "continue postando", "excelente informação",
-  "salvei aqui", "bom demais", "tamo junto",
-  "quem mais tá acompanhando",
   "muito bom esse conteúdo, parabéns por compartilhar com a gente",
   "cara isso é muito verdade, passei por algo parecido recentemente",
   "valeu demais pela informação, vou aplicar no meu dia a dia",
   "isso é exatamente o que eu precisava ouvir hoje, obrigado",
-  "conteúdo de qualidade como sempre, continue assim",
+  "conteúdo de qualidade como sempre, continue assim que tá ótimo",
+  "concordo demais com isso, acho que muita gente deveria ver",
+  "alguém mais concorda com isso? acho que faz muito sentido",
+  "tamo junto pessoal, boa semana pra todos nós aqui do grupo",
+  "continue postando esse tipo de coisa, faz muita diferença pra gente",
+  "excelente informação, salvei aqui pra compartilhar depois com a família",
+  "mandou muito bem nessa postagem, curti demais o conteúdo",
+  "quem mais tá acompanhando esse grupo? tá cada vez melhor o conteúdo",
+  "valeu por compartilhar isso com a gente, muito bom mesmo",
+  "interessante demais essa informação, vou pesquisar mais sobre isso",
+  "parabéns pelo conteúdo de qualidade, a gente aprende muito aqui",
+  "boa demais essa dica, já passei pra frente pra quem precisa",
 ];
 
 const OPINIOES = [
