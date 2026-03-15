@@ -79,12 +79,6 @@ const menuGroups = [
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     ],
   },
-  {
-    label: "Relatórios",
-    items: [
-      { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText, exact: true },
-    ],
-  },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
