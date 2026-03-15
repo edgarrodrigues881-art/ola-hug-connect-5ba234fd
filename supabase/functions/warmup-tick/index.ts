@@ -1335,6 +1335,15 @@ async function handleTick(db: any) {
             .filter((g: any) => !!g.jid && String(g.jid).includes("@g.us"));
 
           if (candidates.length === 0) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "error",
+              event_type: "group_live_discovery_empty",
+              message: "Nenhum grupo retornado pelos endpoints de descoberta",
+              meta: { fetched_count: liveGroupsCache.length },
+            });
             throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
           }
 
