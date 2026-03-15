@@ -1175,9 +1175,63 @@ async function handleTick(db: any) {
       case "group_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
-        const allIGs = instanceGroupsMap[job.device_id] || [];
-        const joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
-        if (joinedGroups.length === 0) throw new Error("Nenhum grupo joined");
+        let allIGs = instanceGroupsMap[job.device_id] || [];
+        let joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
+
+        // Auto-sync: if no "joined" groups, check live device groups and promote pending→joined
+        if (joinedGroups.length === 0 && allIGs.length > 0) {
+          try {
+            const liveRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
+              method: "GET",
+              headers: { token, Accept: "application/json" },
+            });
+            if (liveRes.ok) {
+              const liveData = await liveRes.json();
+              const liveGroups: any[] = Array.isArray(liveData) ? liveData : (liveData?.data || liveData?.groups || []);
+              const liveNames = new Set(liveGroups.map((g: any) => (g.subject || g.name || g.Name || "").toLowerCase().trim()));
+              const liveJids = new Set(liveGroups.map((g: any) => g.jid || g.id || g.JID || "").toLowerCase().trim());
+
+              for (const ig of allIGs) {
+                if (ig.join_status === "joined") continue;
+                const poolGroup = groupsPoolMap[ig.group_id];
+                const poolName = (poolGroup?.name || "").toLowerCase().trim();
+                const igJid = (ig.group_jid || "").toLowerCase().trim();
+
+                const nameMatch = poolName && liveNames.has(poolName);
+                const jidMatch = igJid && liveJids.has(igJid);
+
+                // Also try to find JID from live groups
+                let resolvedJid = ig.group_jid;
+                if (!resolvedJid) {
+                  const match = liveGroups.find((g: any) =>
+                    (g.subject || g.name || g.Name || "").toLowerCase().trim() === poolName
+                  );
+                  if (match) resolvedJid = match.jid || match.id || match.JID;
+                }
+
+                if (nameMatch || jidMatch) {
+                  const updateData: any = { join_status: "joined", joined_at: new Date().toISOString() };
+                  if (resolvedJid && !ig.group_jid) updateData.group_jid = resolvedJid;
+                  await db.from("warmup_instance_groups")
+                    .update(updateData)
+                    .eq("id", ig.id);
+                  ig.join_status = "joined";
+                  ig.group_jid = resolvedJid || ig.group_jid;
+                  bufferAudit({
+                    user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                    level: "info", event_type: "auto_sync_joined",
+                    message: `Auto-sync: grupo "${poolGroup?.name}" detectado no dispositivo → marcado como joined`,
+                  });
+                }
+              }
+              joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
+            }
+          } catch (syncErr) {
+            console.warn("[group_interaction] auto-sync error:", syncErr);
+          }
+        }
+
+        if (joinedGroups.length === 0) throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
 
         const cachedMsgs = userMsgsMap[job.user_id];
         const getMsg = () => (cachedMsgs?.length && Math.random() < 0.3) ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
