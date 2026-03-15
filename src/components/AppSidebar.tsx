@@ -340,9 +340,6 @@ export function AppSidebar() {
                             )}
                             <FolderOpen className="w-[18px] h-[18px] shrink-0" style={{ color: folder.color }} strokeWidth={isActiveFolder ? 2.2 : 1.5} />
                             <span className="truncate flex-1">{folder.name}</span>
-                            {folder.device_ids && folder.device_ids.length > 0 && (
-                              <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
-                            )}
                           </NavLink>
                           <button
                             onClick={(e) => {
