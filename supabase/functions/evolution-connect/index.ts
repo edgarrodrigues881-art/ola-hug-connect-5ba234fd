@@ -791,8 +791,7 @@ Deno.serve(async (req) => {
             return json({ success: true, endpoint: ep, ...r.data });
           }
         }
-        await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
-        return json({ success: true, note: "Foto removida localmente" });
+        return json({ success: false, error: "Não foi possível remover a foto no WhatsApp." }, 422);
       }
 
       const isUrl = profilePictureData.startsWith("http");

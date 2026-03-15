@@ -1143,6 +1143,14 @@ const Devices = () => {
     return { error: "Servidor sobrecarregado. Tente novamente em instantes." };
   };
 
+  const callApiStrict = async (body: Record<string, any>, fallbackMessage: string) => {
+    const result = await callApi(body);
+    if (result?.error || result?.success === false) {
+      throw new Error(result?.error || fallbackMessage);
+    }
+    return result;
+  };
+
   // Quick actions
   const handleQuickAction = async (deviceId: string, action: "restart" | "testApi" | "testProxy") => {
     setQuickActionLoading(prev => ({ ...prev, [deviceId]: action }));
