@@ -576,29 +576,6 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
-  // Folder helpers
-  const { addDevices, removeDevice } = useWarmupFolders();
-  
-  const deviceToFolders = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const folder of folders) {
-      for (const did of (folder.device_ids || [])) {
-        const arr = map.get(did) || [];
-        arr.push(folder.id);
-        map.set(did, arr);
-      }
-    }
-    return map;
-  }, [folders]);
-
-  const handleAddToFolder = useCallback((folderId: string, deviceId: string) => {
-    addDevices.mutate({ folderId, deviceIds: [deviceId] });
-  }, [addDevices]);
-
-  const handleRemoveFromFolder = useCallback((folderId: string, deviceId: string) => {
-    removeDevice.mutate({ folderId, deviceId });
-  }, [removeDevice]);
-
   const renderedCards = useMemo(
     () =>
       displayed.map((device) => (
@@ -612,13 +589,9 @@ const WarmupInstances = () => {
           onConnect={openConnect}
           onNavigate={navigate}
           formatPhone={formatPhone}
-          folders={folders}
-          deviceFolders={deviceToFolders.get(device.id) || []}
-          onAddToFolder={handleAddToFolder}
-          onRemoveFromFolder={handleRemoveFromFolder}
         />
       )),
-    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, folders, deviceToFolders, handleAddToFolder, handleRemoveFromFolder]
+    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate]
   );
 
   return (
