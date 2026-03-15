@@ -331,7 +331,7 @@ export function AppSidebar() {
                               to={folderUrl}
                               className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative w-full
                                 transition-[background-color,color,opacity] duration-[120ms] ease-out
-                                gap-[11px] px-3.5 py-[10px]
+                                gap-[11px] px-3.5 min-h-[42px]
                                 text-foreground font-medium hover:brightness-110`}
                               style={{ backgroundColor: `${folder.color}15` }}
                               activeClassName=""
