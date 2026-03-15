@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-import type { FolderTag } from "@/components/warmup/WarmupFolderDialog";
+import type { FolderTag } from "@/components/warmup/TagManagerDialog";
 
 export interface WarmupFolder {
   id: string;
@@ -14,6 +14,7 @@ export interface WarmupFolder {
   created_at: string;
   tags: FolderTag[];
   device_ids?: string[];
+  device_tags?: Map<string, FolderTag[]>;
 }
 
 export function useWarmupFolders() {
@@ -33,20 +34,26 @@ export function useWarmupFolders() {
 
       const { data: assocs } = await supabase
         .from("warmup_folder_devices" as any)
-        .select("folder_id, device_id")
+        .select("folder_id, device_id, tags")
         .eq("user_id", user!.id);
 
       const folderDevices = new Map<string, string[]>();
+      const folderDeviceTags = new Map<string, Map<string, FolderTag[]>>();
       (assocs || []).forEach((a: any) => {
         const arr = folderDevices.get(a.folder_id) || [];
         arr.push(a.device_id);
         folderDevices.set(a.folder_id, arr);
+
+        if (!folderDeviceTags.has(a.folder_id)) folderDeviceTags.set(a.folder_id, new Map());
+        const dtMap = folderDeviceTags.get(a.folder_id)!;
+        dtMap.set(a.device_id, Array.isArray(a.tags) ? a.tags : []);
       });
 
       return (folders as any[]).map((f) => ({
         ...f,
         tags: Array.isArray(f.tags) ? f.tags : [],
         device_ids: folderDevices.get(f.id) || [],
+        device_tags: folderDeviceTags.get(f.id) || new Map<string, FolderTag[]>(),
       })) as WarmupFolder[];
     },
   });
@@ -116,6 +123,17 @@ export function useWarmupFolders() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
   });
 
+  const updateDeviceTags = useMutation({
+    mutationFn: async (params: { folderId: string; deviceId: string; tags: FolderTag[] }) => {
+      const { error } = await supabase
+        .from("warmup_folder_devices" as any)
+        .update({ tags: params.tags } as any)
+        .eq("folder_id", params.folderId)
+        .eq("device_id", params.deviceId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
   return {
     folders: foldersQuery.data || [],
     isLoading: foldersQuery.isLoading,
@@ -124,5 +142,6 @@ export function useWarmupFolders() {
     deleteFolder,
     addDevices,
     removeDevice,
+    updateDeviceTags,
   };
 }

@@ -1611,6 +1611,7 @@ export type Database = {
           device_id: string
           folder_id: string
           id: string
+          tags: Json
           user_id: string
         }
         Insert: {
@@ -1618,6 +1619,7 @@ export type Database = {
           device_id: string
           folder_id: string
           id?: string
+          tags?: Json
           user_id: string
         }
         Update: {
@@ -1625,6 +1627,7 @@ export type Database = {
           device_id?: string
           folder_id?: string
           id?: string
+          tags?: Json
           user_id?: string
         }
         Relationships: [

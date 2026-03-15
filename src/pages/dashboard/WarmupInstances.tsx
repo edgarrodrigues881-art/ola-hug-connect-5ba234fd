@@ -6,7 +6,7 @@ import { useWarmupCycles } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
-import { TagManagerDialog } from "@/components/warmup/TagManagerDialog";
+import { TagManagerDialog, type FolderTag } from "@/components/warmup/TagManagerDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -171,7 +171,7 @@ const phaseShort: Record<string, string> = {
 
 const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
 
-const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone }: {
+const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick }: {
   device: any;
   cycle: any;
   onPause: (id: string, e: React.MouseEvent) => void;
@@ -180,6 +180,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   onConnect: (device: any) => void;
   onNavigate: (path: string) => void;
   formatPhone: (num: string) => string;
+  deviceTags?: FolderTag[];
+  availableTags?: FolderTag[];
+  onTagClick?: (deviceId: string) => void;
 }) => {
   const connected = CONNECTED_STATUSES.includes(device.status);
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
@@ -262,7 +265,29 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         </div>
       </div>
 
+      {/* Device tags */}
+      {(deviceTags && deviceTags.length > 0) && (
+        <div className="px-4 pb-1 flex flex-wrap gap-1">
+          {deviceTags.map((tag) => (
+            <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
+              {tag.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="px-4 pb-4 space-y-2">
+        {/* Tag button for folder view */}
+        {availableTags && availableTags.length > 0 && onTagClick && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-8 gap-1.5 rounded-lg font-semibold border-border/20"
+            onClick={(e) => { e.stopPropagation(); onTagClick(device.id); }}
+          >
+            <Tag className="w-3 h-3" /> Gerenciar tags
+          </Button>
+        )}
         {!connected ? (
           <Button
             size="sm"
@@ -336,13 +361,96 @@ const formatPhone = (num: string) => {
   return num;
 };
 
+/* ── Device Tag Assignment Dialog ── */
+const DeviceTagAssignDialog = memo(({ open, onOpenChange, availableTags, currentTags, deviceName, onSave }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  availableTags: FolderTag[];
+  currentTags: FolderTag[];
+  deviceName: string;
+  onSave: (tags: FolderTag[]) => Promise<void>;
+}) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelected(new Set(currentTags.map(t => t.label)));
+  }, [open, currentTags]);
+
+  const toggle = (tag: FolderTag) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(tag.label) ? next.delete(tag.label) : next.add(tag.label);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(availableTags.filter(t => selected.has(t.label)));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[320px] bg-card/95 backdrop-blur-2xl border-border/10 p-5 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            Tags — {deviceName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 pt-2">
+          {availableTags.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground/50 text-center py-4">Crie tags na pasta primeiro</p>
+          ) : (
+            availableTags.map((tag) => {
+              const isSelected = selected.has(tag.label);
+              return (
+                <button
+                  key={tag.label}
+                  onClick={() => toggle(tag)}
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-colors",
+                    isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/20 border border-transparent"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "bg-primary border-primary" : "border-border/40"
+                  )}>
+                    {isSelected && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
+                    {tag.label}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <div className="flex gap-2 pt-3 border-t border-border/10">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">Cancelar</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
+            {saving ? "..." : "Salvar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
 const WarmupInstances = () => {
   const [searchParams] = useSearchParams();
   const activeFolderId = searchParams.get("folder");
-  const { folders, addDevices, removeDevice, updateFolder } = useWarmupFolders();
+  const { folders, addDevices, removeDevice, updateFolder, updateDeviceTags } = useWarmupFolders();
   const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [deviceTagTarget, setDeviceTagTarget] = useState<string | null>(null);
   
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -719,9 +827,12 @@ const WarmupInstances = () => {
           onConnect={openConnect}
           onNavigate={navigate}
           formatPhone={formatPhone}
+          deviceTags={activeFolder?.device_tags?.get(device.id)}
+          availableTags={activeFolder?.tags}
+          onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
         />
       )),
-    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate]
+    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
   );
 
   return (
@@ -1173,16 +1284,6 @@ const WarmupInstances = () => {
               </>
             )}
           </div>
-          {/* Folder tags display */}
-          {activeFolder && activeFolder.tags && activeFolder.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {activeFolder.tags.map((tag: any) => (
-                <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {activeFolder && (
@@ -1582,6 +1683,21 @@ const WarmupInstances = () => {
           }}
           folderName={activeFolder.name}
           folderColor={activeFolder.color}
+        />
+      )}
+
+      {/* Device tag assignment dialog */}
+      {activeFolder && deviceTagTarget && (
+        <DeviceTagAssignDialog
+          open={!!deviceTagTarget}
+          onOpenChange={(v) => { if (!v) setDeviceTagTarget(null); }}
+          availableTags={activeFolder.tags || []}
+          currentTags={activeFolder.device_tags?.get(deviceTagTarget) || []}
+          deviceName={displayed.find(d => d.id === deviceTagTarget)?.name || ""}
+          onSave={async (tags) => {
+            await updateDeviceTags.mutateAsync({ folderId: activeFolder.id, deviceId: deviceTagTarget, tags });
+            setDeviceTagTarget(null);
+          }}
         />
       )}
     </div>
