@@ -303,34 +303,50 @@ class RandomPicker {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-// ─── LOCK HELPERS ───
+// ─── LOCK HELPERS (parallelized for 30+ devices) ───
 async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string, userId: string): Promise<{ acquired: boolean; lockedBy?: string }> {
-  for (const deviceId of deviceIds) {
-    const { data, error } = await serviceClient.rpc("acquire_device_lock", {
-      _device_id: deviceId,
-      _campaign_id: campaignId,
-      _user_id: userId,
-      _stale_seconds: 120,
-    });
-    if (error || data !== true) {
-      // Check who holds the lock
-      const { data: lock } = await serviceClient
-        .from("campaign_device_locks")
-        .select("campaign_id")
-        .eq("device_id", deviceId)
-        .single();
-      return { acquired: false, lockedBy: lock?.campaign_id || "unknown" };
+  // Acquire all locks in parallel for high-concurrency scenarios
+  const LOCK_BATCH_SIZE = 10;
+  for (let i = 0; i < deviceIds.length; i += LOCK_BATCH_SIZE) {
+    const batch = deviceIds.slice(i, i + LOCK_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(deviceId =>
+        serviceClient.rpc("acquire_device_lock", {
+          _device_id: deviceId,
+          _campaign_id: campaignId,
+          _user_id: userId,
+          _stale_seconds: 180, // extended for large device counts
+        })
+      )
+    );
+    for (let j = 0; j < results.length; j++) {
+      const r = results[j];
+      if (r.status === "rejected" || (r.status === "fulfilled" && (r.value.error || r.value.data !== true))) {
+        const { data: lock } = await serviceClient
+          .from("campaign_device_locks")
+          .select("campaign_id")
+          .eq("device_id", batch[j])
+          .single();
+        return { acquired: false, lockedBy: lock?.campaign_id || "unknown" };
+      }
     }
   }
   return { acquired: true };
 }
 
 async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string) {
-  for (const deviceId of deviceIds) {
-    await serviceClient.rpc("release_device_lock", {
-      _device_id: deviceId,
-      _campaign_id: campaignId,
-    });
+  // Release all locks in parallel
+  const RELEASE_BATCH = 15;
+  for (let i = 0; i < deviceIds.length; i += RELEASE_BATCH) {
+    const batch = deviceIds.slice(i, i + RELEASE_BATCH);
+    await Promise.allSettled(
+      batch.map(deviceId =>
+        serviceClient.rpc("release_device_lock", {
+          _device_id: deviceId,
+          _campaign_id: campaignId,
+        })
+      )
+    );
   }
 }
 
