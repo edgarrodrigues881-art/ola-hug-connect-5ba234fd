@@ -105,6 +105,7 @@ const Devices = () => {
 
   const withAvatarRefresh = (url: string | null) => {
     if (!url) return "";
+    if (url.startsWith("data:image/")) return url;
     const sep = url.includes("?") ? "&" : "?";
     return `${url}${sep}v=${avatarRefreshTick}`;
   };
@@ -778,6 +779,7 @@ const Devices = () => {
     const dbUpdates: Record<string, any> = {
       name: editName,
       proxy_id: newProxyId,
+      updated_at: new Date().toISOString(),
     };
 
     try {
@@ -833,7 +835,7 @@ const Devices = () => {
           console.warn("[edit-save] photo sync failed:", e?.message);
           // Still save the photo locally even if API sync failed
           if (!dbUpdates.profile_picture && wpPhotoBase64) {
-            dbUpdates.profile_picture = wpPhotoBase64.startsWith("data:image/") ? null : wpPhotoBase64;
+            dbUpdates.profile_picture = wpPhotoBase64;
           }
           warnings.push("Falha ao sincronizar foto no WhatsApp");
         }
@@ -979,9 +981,12 @@ const Devices = () => {
       .from("media")
       .upload(filePath, bytes, { upsert: true, contentType: mimeType });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.warn("[photo-draft] storage upload failed, falling back to data URL:", uploadError.message);
+      return dataUrl;
+    }
     const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
-    return urlData.publicUrl;
+    return urlData.publicUrl || dataUrl;
   };
 
   const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1080,6 +1085,7 @@ const Devices = () => {
           }
 
           if (Object.keys(dbUp).length > 0) {
+            dbUp.updated_at = new Date().toISOString();
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
             // Optimistic cache update
@@ -1192,6 +1198,7 @@ const Devices = () => {
           }
 
           if (Object.keys(dbUp).length > 0) {
+            dbUp.updated_at = new Date().toISOString();
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
           }

@@ -219,10 +219,17 @@ Deno.serve(async (req) => {
           ? (Date.now() - updatedAtMs) < 15 * 60 * 1000
           : false;
 
+        const isLocalManagedPic = typeof currentPic === "string"
+          && (currentPic.includes("/storage/v1/object/public/media/") || currentPic.startsWith("data:image/"));
+        const hasProviderPic = Boolean(providerPic);
+        const shouldKeepLocalPic = isLocalManagedPic && currentPic !== (providerPic || null);
+
         const newPic = isConnected
-          ? (recentlyEdited && currentPic !== (providerPic || null)
+          ? (shouldKeepLocalPic
             ? currentPic
-            : (providerPic || null))
+            : (recentlyEdited && currentPic !== (providerPic || null)
+              ? currentPic
+              : (hasProviderPic ? providerPic : currentPic)))
           : currentPic;
 
         const newName = isConnected
