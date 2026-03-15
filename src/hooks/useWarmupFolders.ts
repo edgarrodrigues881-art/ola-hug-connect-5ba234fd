@@ -33,7 +33,7 @@ export function useWarmupFolders() {
 
       const { data: assocs } = await supabase
         .from("warmup_folder_devices" as any)
-        .select("folder_id, device_id")
+        .select("folder_id, device_id, tags")
         .eq("user_id", user!.id);
 
       const folderDevices = new Map<string, string[]>();
