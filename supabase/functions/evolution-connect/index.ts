@@ -72,6 +72,62 @@ async function uazapi(
   return { ok: false, status: 0, data: { error: lastErr?.message || "Request failed after retries" } };
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    let chunkBinary = "";
+    for (let j = 0; j < chunk.length; j++) {
+      chunkBinary += String.fromCharCode(chunk[j]);
+    }
+    binary += chunkBinary;
+  }
+  return btoa(binary);
+}
+
+async function resolveProfileImageVariants(input: string): Promise<string[]> {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return [];
+  if (trimmed === "remove") return ["remove"];
+
+  const variants = new Set<string>([trimmed]);
+
+  // data URI -> also try raw base64
+  if (trimmed.startsWith("data:image/")) {
+    const base64Part = trimmed.split(",")[1]?.trim();
+    if (base64Part) variants.add(base64Part);
+    return Array.from(variants);
+  }
+
+  // URL -> download and convert to base64/data-uri for providers that reject direct URL
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(trimmed, { method: "GET", signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const mime = (res.headers.get("content-type") || "image/jpeg").split(";")[0].trim() || "image/jpeg";
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length > 0) {
+          const b64 = bytesToBase64(bytes);
+          variants.add(b64);
+          variants.add(`data:${mime};base64,${b64}`);
+          console.log(`[profile-pic] downloaded image URL and generated base64 variant (${bytes.length} bytes)`);
+        }
+      } else {
+        console.log(`[profile-pic] could not download image URL: status=${res.status}`);
+      }
+    } catch (err: any) {
+      console.log(`[profile-pic] URL->base64 conversion failed: ${err?.message || String(err)}`);
+    }
+  }
+
+  return Array.from(variants);
+}
+
 // ── Admin helper: create instance on UaZapi ─────────────────────────────
 async function adminCreateInstance(
   baseUrl: string,
