@@ -1323,15 +1323,18 @@ const WarmupInstances = () => {
                 onClick={async () => {
                   setBulkLoading(true);
                   const ids = Array.from(bulkSelected);
+                  // Fire all in parallel batches of 5 for speed
                   let ok = 0;
                   let fail = 0;
-                  for (const deviceId of ids) {
-                    try {
-                      await engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal) });
-                      ok++;
-                    } catch {
-                      fail++;
-                    }
+                  const BATCH = 5;
+                  for (let i = 0; i < ids.length; i += BATCH) {
+                    const batch = ids.slice(i, i + BATCH);
+                    const results = await Promise.allSettled(
+                      batch.map(deviceId =>
+                        engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal) })
+                      )
+                    );
+                    results.forEach(r => r.status === "fulfilled" ? ok++ : fail++);
                   }
                   setBulkLoading(false);
                   setBulkOpen(false);
