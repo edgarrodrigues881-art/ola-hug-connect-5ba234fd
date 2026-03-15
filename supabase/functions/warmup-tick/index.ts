@@ -630,25 +630,7 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 
 // NOTE: uazapiFetchLastMessage removed — UAZAPI does not support fetching chat messages (all endpoints return 404/405)
 
-async function getMediaAsset(mediaUrl: string, fallbackMime: string): Promise<{ dataUri: string; mimeType: string; bytes: Uint8Array }> {
-  let dataUri = _blobCache[mediaUrl];
-  if (dataUri) {
-    const decoded = decodeDataUri(dataUri);
-    if (decoded) return { dataUri, mimeType: decoded.mimeType, bytes: decoded.bytes };
-  }
 
-  const imgRes = await fetch(mediaUrl);
-  if (!imgRes.ok) throw new Error(`Failed to download media: ${imgRes.status}`);
-
-  const mimeType = imgRes.headers.get("content-type") || fallbackMime;
-  const bytes = new Uint8Array(await imgRes.arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  dataUri = `data:${mimeType};base64,${btoa(binary)}`;
-  _blobCache[mediaUrl] = dataUri;
-
-  return { dataUri, mimeType, bytes };
-}
 
 async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
   if (!imageUrl) throw new Error("Image URL ausente");
