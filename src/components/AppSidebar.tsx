@@ -113,7 +113,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { data: stats } = useSidebarStats();
-  const { folders, createFolder, updateFolder, deleteFolder } = useWarmupFolders();
+  const { folders, createFolder, updateFolder, deleteFolder, addDevices, removeDevice } = useWarmupFolders();
 
   const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
   const [warmupExpanded, setWarmupExpanded] = useState(false);
