@@ -527,8 +527,8 @@ type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
   const maxLen = context === "autosave" ? 40 : 250;
-  const minLen = (context === "group" || context === "community") ? 30 : 5;
-  for (let attempt = 0; attempt < 80; attempt++) {
+  const minLen = (context === "group" || context === "community") ? 60 : 5;
+  for (let attempt = 0; attempt < 120; attempt++) {
     const msg = buildMsg(context);
     if (msg.length >= minLen && msg.length <= maxLen && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
@@ -536,9 +536,9 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
       return msg;
     }
   }
-  // Fallback: combine parts to guarantee minimum length
-  let fb = `${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}. ${pickRandom(COMPLEMENTOS)}`;
-  if (fb.length < minLen) fb = pickRandom(REFLEXOES) || pickRandom(HISTORIAS_CURTAS);
+  // Fallback: always combine multiple parts to guarantee length
+  let fb = `${pickRandom(SAUDACOES)}, ${pickRandom(COTIDIANO)}. ${pickRandom(OPINIOES)}. ${pickRandom(COMPLEMENTOS)}`;
+  if (fb.length < minLen) fb += ` ${pickRandom(REFLEXOES)}`;
   return cap(maybeEmoji(fb)).substring(0, maxLen);
 }
 
