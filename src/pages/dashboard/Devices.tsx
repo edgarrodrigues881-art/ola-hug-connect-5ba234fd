@@ -892,28 +892,51 @@ const Devices = () => {
   const wpFileRef = useRef<HTMLInputElement>(null);
   const [wpUploading, setWpUploading] = useState(false);
 
+  const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Falha ao ler imagem"));
+    reader.readAsDataURL(file);
+  });
+
+  const uploadProfilePhotoDraft = async (dataUrl: string): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Não autenticado");
+
+    const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+    const mimeType = mimeMatch?.[1] || "image/jpeg";
+    const base64 = dataUrl.split(",")[1];
+    if (!base64) throw new Error("Imagem inválida");
+
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const ext = mimeType.split("/")[1] || "jpg";
+    const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(filePath, bytes, { upsert: true, contentType: mimeType });
+
+    if (uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+    return urlData.publicUrl;
+  };
+
   const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setWpUploading(true);
     try {
-      // Upload to Supabase Storage and get public URL
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl;
-      console.log("Photo uploaded, public URL:", publicUrl);
-      setWpPhotoBase64(publicUrl); // Store URL instead of base64
-      setWpPhotoUrl(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      const dataUrl = await fileToDataUrl(file);
+      setWpPhotoBase64(dataUrl);
+      setWpPhotoUrl(previewUrl);
       setWpRemovePhoto(false);
-      toast({ title: "Foto carregada" });
+      toast({ title: "Prévia carregada", description: "Clique em Salvar para aplicar" });
     } catch (err: any) {
-      console.error("Photo upload error:", err);
-      toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
+      console.error("Photo draft error:", err);
+      toast({ title: "Erro ao carregar foto", description: err?.message, variant: "destructive" });
     } finally {
       setWpUploading(false);
       if (wpFileRef.current) wpFileRef.current.value = "";
