@@ -94,6 +94,21 @@ const Devices = () => {
   // Quick action loading states
   const [quickActionLoading, setQuickActionLoading] = useState<Record<string, string>>({});
 
+  // Force avatar cache refresh every 5s so provider photo/name changes appear without F5
+  const [avatarRefreshTick, setAvatarRefreshTick] = useState(() => Math.floor(Date.now() / 5000));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAvatarRefreshTick(Math.floor(Date.now() / 5000));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const withAvatarRefresh = (url: string | null) => {
+    if (!url) return "";
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${avatarRefreshTick}`;
+  };
+
   // Search & filter
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
@@ -209,6 +224,9 @@ const Devices = () => {
         })) as Device[];
     },
     enabled: !!session,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch warmup sessions to identify devices in warmup
@@ -1708,7 +1726,7 @@ const Devices = () => {
                 )}>
                   {d.profile_picture ? (
                     <img
-                      src={d.profile_picture}
+                      src={withAvatarRefresh(d.profile_picture)}
                       className="w-[52px] h-[52px] rounded-full object-cover"
                       alt={d.name}
                       onError={(e) => {
@@ -2889,7 +2907,7 @@ const Devices = () => {
                     />
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       {d.profile_picture ? (
-                        <img src={d.profile_picture} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+                        <img src={withAvatarRefresh(d.profile_picture)} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
                           <Smartphone className="w-3.5 h-3.5 text-muted-foreground/40" />
