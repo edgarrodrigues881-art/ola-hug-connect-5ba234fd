@@ -1039,37 +1039,6 @@ const WarmupInstanceDetail = () => {
               </p>
             </div>
 
-            {/* Quick stats row */}
-            <div className="grid grid-cols-3 divide-x divide-border/8">
-              <div className="px-4 py-5 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Msgs Hoje</p>
-                <p className="text-2xl font-black tabular-nums text-foreground">
-                  {cycle.daily_interaction_budget_used}
-                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_interaction_budget_target}</span>
-                </p>
-                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Enviadas / limite</p>
-              </div>
-              <div className="px-4 py-5 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Destinos</p>
-                <p className="text-2xl font-black tabular-nums text-foreground">
-                  {cycle.daily_unique_recipients_used}
-                  <span className="text-sm text-muted-foreground/35 font-semibold">/{cycle.daily_unique_recipients_cap}</span>
-                </p>
-                <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Pessoas contactadas</p>
-              </div>
-              <div className="px-4 py-5 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold mb-1.5">Grupos</p>
-                <p className="text-2xl font-black tabular-nums text-foreground">
-                  {joinedGroups}
-                  <span className="text-sm text-muted-foreground/35 font-semibold">/{totalTrackedGroups}</span>
-                </p>
-                {pendingGroups > 0 ? (
-                  <p className="text-[9px] text-amber-400 font-bold mt-1">{pendingGroups} aguardando</p>
-                ) : (
-                  <p className="text-[9px] text-muted-foreground/50 mt-1 font-medium">Ingressados</p>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ── Auto Save Toggle ── */}
