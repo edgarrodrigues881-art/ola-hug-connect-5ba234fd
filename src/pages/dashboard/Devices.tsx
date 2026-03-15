@@ -2907,7 +2907,7 @@ const Devices = () => {
                     />
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       {d.profile_picture ? (
-                        <img src={d.profile_picture} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+                        <img src={withAvatarRefresh(d.profile_picture)} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-muted/30 flex items-center justify-center shrink-0">
                           <Smartphone className="w-3.5 h-3.5 text-muted-foreground/40" />
