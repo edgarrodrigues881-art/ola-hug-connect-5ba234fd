@@ -1531,7 +1531,8 @@ const WarmupInstances = () => {
                 <button
                   className="text-[10px] text-primary hover:text-primary/80 font-bold transition-colors"
                   onClick={() => {
-                    const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
+                    const sourceDevices = activeFolder ? displayed : filteredDevices;
+                    const eligible = sourceDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
                     setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
                   }}
                 >
