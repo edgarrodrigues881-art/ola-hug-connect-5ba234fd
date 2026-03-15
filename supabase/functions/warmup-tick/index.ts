@@ -1421,25 +1421,50 @@ async function handleTick(db: any) {
       case "autosave_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
-        const rIdx = job.payload?.recipient_index ?? 0;
-        const mIdx = job.payload?.msg_index ?? 0;
+        const rIdx = Number(job.payload?.recipient_index ?? 0);
+        const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
 
-        if (contacts.length === 0) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save ativo" });
+        const autosavePool = contacts
+          .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
+          .filter((c: any) => c._phone.length >= 10)
+          .slice(0, 5);
+
+        if (autosavePool.length === 0) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save válido/ativo" });
           break;
         }
 
-        const contact = contacts[rIdx % contacts.length];
+        let selectedIndex = ((rIdx % autosavePool.length) + autosavePool.length) % autosavePool.length;
         const msg = generateNaturalMessage("autosave");
-        const phone = contact.phone_e164.replace(/\+/g, "");
 
-        await uazapiSendText(baseUrl, token, phone, msg);
+        let sentContact: any = null;
+        let sentPhone = "";
+        let lastSendErr = "";
+
+        // If selected number fails, automatically try next valid contacts in pool
+        for (let i = 0; i < autosavePool.length; i++) {
+          const idx = (selectedIndex + i) % autosavePool.length;
+          const candidate = autosavePool[idx];
+          try {
+            await uazapiSendText(baseUrl, token, candidate._phone, msg);
+            sentContact = candidate;
+            sentPhone = candidate._phone;
+            selectedIndex = idx;
+            break;
+          } catch (e) {
+            lastSendErr = e instanceof Error ? e.message : String(e);
+          }
+        }
+
+        if (!sentContact) {
+          throw new Error(`Auto Save: falha em todos os contatos válidos (${autosavePool.length}). Último erro: ${lastSendErr}`);
+        }
 
         try {
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id, user_id: job.user_id,
-            recipient_phone_e164: contact.phone_e164,
+            recipient_phone_e164: sentContact.phone_e164,
             day_date: new Date().toISOString().split("T")[0],
           });
         } catch { /* duplicate OK */ }
@@ -1453,8 +1478,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${rIdx + 1}/${contacts.length}, msg ${mIdx + 1}/5 para ${contact.contact_name || phone}`,
-          meta: { recipient_index: rIdx, msg_index: mIdx, phone, contact_name: contact.contact_name },
+          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${sentContact.contact_name || sentPhone}`,
+          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: sentContact.contact_name },
         });
         break;
       }
