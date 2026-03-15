@@ -1435,7 +1435,16 @@ async function handleTick(db: any) {
 
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
-          .filter((c: any) => c._phone.length >= 10)
+          .filter((c: any) => {
+            const phone = c._phone;
+            if (phone.length < 10) return false;
+            // Filter out Brazilian landline numbers (55 + 2-digit DDD + 8-digit number = 12 digits)
+            // Mobile numbers have 9 digits after DDD (total 13 digits with country code)
+            if (phone.startsWith("55") && phone.length === 12) {
+              return false; // Landline — no WhatsApp
+            }
+            return true;
+          })
           .slice(0, 5);
 
         if (autosavePool.length === 0) {
