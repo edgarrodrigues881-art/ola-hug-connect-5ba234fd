@@ -175,14 +175,32 @@ export function AppSidebar() {
     { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
   ];
 
-  const handleSaveFolder = useCallback(async (data: { name: string; color: string }) => {
+  const handleSaveFolder = useCallback(async (data: { name: string; color: string; deviceIds: string[] }) => {
     if (editingFolder) {
       await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color });
+      // Sync devices: remove old, add new
+      const currentFolder = folders.find(f => f.id === editingFolder.id);
+      const oldIds = new Set(currentFolder?.device_ids || []);
+      const newIds = new Set(data.deviceIds);
+      // Remove devices no longer in folder
+      for (const did of oldIds) {
+        if (!newIds.has(did)) {
+          await removeDevice.mutateAsync({ folderId: editingFolder.id, deviceId: did });
+        }
+      }
+      // Add new devices
+      const toAdd = data.deviceIds.filter(did => !oldIds.has(did));
+      if (toAdd.length > 0) {
+        await addDevices.mutateAsync({ folderId: editingFolder.id, deviceIds: toAdd });
+      }
     } else {
-      await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder" });
+      const result = await createFolder.mutateAsync({ name: data.name, color: data.color, icon: "folder" });
+      if (data.deviceIds.length > 0 && result) {
+        await addDevices.mutateAsync({ folderId: (result as any).id, deviceIds: data.deviceIds });
+      }
     }
     setEditingFolder(null);
-  }, [editingFolder, updateFolder, createFolder]);
+  }, [editingFolder, updateFolder, createFolder, addDevices, removeDevice, folders]);
 
   const handleDeleteFolder = useCallback(async (id: string) => {
     await deleteFolder.mutateAsync(id);
