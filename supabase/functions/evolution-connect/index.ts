@@ -808,11 +808,12 @@ Deno.serve(async (req) => {
             return json({ success: true, endpoint: attempt.path, method: attempt.method, ...r.data });
           }
 
+          const failureReason = r.data?.error || r.data?.message || r.data?.raw || null;
           failures.push({
             path: attempt.path,
             method: attempt.method,
             status: r.status,
-            error: String(r.data?.error || r.data?.message || r.data?.raw || "" || null),
+            error: failureReason ? String(failureReason) : null,
           });
         }
 
