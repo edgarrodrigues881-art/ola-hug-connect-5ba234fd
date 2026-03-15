@@ -580,13 +580,38 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   return await res.json();
 }
 
-/** Fetch last messages from a group chat to get a quotable message ID */
+/** Fetch most recent messages from a group chat and return the latest quotable message ID */
+function extractMsgId(m: any): string | null {
+  return m?.id || m?.ID || m?.key?.id || m?.messageId || null;
+}
+
+function extractMsgTs(m: any): number {
+  const raw =
+    m?.messageTimestamp ??
+    m?.timestamp ??
+    m?.ts ??
+    m?.t ??
+    m?.time ??
+    m?.message?.messageTimestamp ??
+    m?.key?.timestamp;
+
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  // Some providers return seconds, others milliseconds
+  return n > 1_000_000_000_000 ? n : n * 1000;
+}
+
+function extractFromMe(m: any): boolean {
+  return Boolean(m?.fromMe ?? m?.key?.fromMe ?? false);
+}
+
 async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
   try {
     const endpoints = [
-      `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=5`,
-      `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=5`,
+      `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=20`,
+      `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=20`,
     ];
+
     for (const ep of endpoints) {
       try {
         const res = await fetch(ep, {
@@ -594,21 +619,36 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
           headers: { token, Accept: "application/json" },
         });
         if (!res.ok) continue;
+
         const data = await res.json();
         const messages = Array.isArray(data) ? data : data?.messages || data?.data || [];
         if (!Array.isArray(messages) || messages.length === 0) continue;
-        // Pick a random recent message (not our own) to reply to
-        const candidates = messages.filter((m: any) => !m.fromMe && (m.id || m.ID || m.key?.id));
-        if (candidates.length > 0) {
-          const picked = candidates[Math.floor(Math.random() * candidates.length)];
-          return picked.id || picked.ID || picked.key?.id || null;
-        }
-        // If all messages are ours, pick any
-        const any = messages[0];
-        return any?.id || any?.ID || any?.key?.id || null;
-      } catch { /* try next */ }
+
+        const normalized = messages
+          .map((m: any, idx: number) => ({
+            id: extractMsgId(m),
+            ts: extractMsgTs(m),
+            fromMe: extractFromMe(m),
+            idx,
+          }))
+          .filter((m: any) => !!m.id)
+          .sort((a: any, b: any) => {
+            if (b.ts !== a.ts) return b.ts - a.ts;
+            return b.idx - a.idx;
+          });
+
+        if (normalized.length === 0) continue;
+
+        // Prefer latest message from another participant; fallback to latest message overall
+        const latestOther = normalized.find((m: any) => !m.fromMe);
+        return (latestOther?.id || normalized[0]?.id || null) as string | null;
+      } catch {
+        // try next endpoint
+      }
     }
-  } catch { /* ignore */ }
+  } catch {
+    // ignore
+  }
   return null;
 }
 
