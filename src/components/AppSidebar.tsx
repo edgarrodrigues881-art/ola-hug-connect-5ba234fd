@@ -318,7 +318,7 @@ export function AppSidebar() {
 
               {/* Folders only toggle with the arrow */}
               {warmupExpanded && !collapsed && folders.length > 0 && (
-                <div className="mt-0.5">
+                <div className="mt-1 space-y-1.5">
                   {folders.map((folder) => {
                     const colorClass = FOLDER_COLORS[folder.color] || "text-emerald-400";
                     const folderUrl = `/dashboard/warmup-v2?folder=${folder.id}`;
