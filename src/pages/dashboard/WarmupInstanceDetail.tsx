@@ -805,7 +805,7 @@ const WarmupInstanceDetail = () => {
                     disabled={accelerating}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
-                    Forçar Entrada nos Grupos
+                    Forçar Próxima Tarefa
                   </Button>
                   <Button
                     variant="outline"
@@ -1895,15 +1895,20 @@ const WarmupInstanceDetail = () => {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-foreground">
                   <Zap className="w-5 h-5 text-amber-400" />
-                  Forçar entrada nos grupos?
+                  Forçar próxima tarefa?
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>A <strong className="text-foreground">entrada nos grupos será antecipada para agora</strong>, mantendo os intervalos entre cada entrada para proteger seu chip.</p>
+                <p>A <strong className="text-foreground">próxima tarefa pendente será executada agora</strong>. As demais continuam no cronograma original.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending" && j.job_type === "join_group").length}</strong> entrada(s) em grupo pendente(s).
+                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) no total.
+                  {(() => {
+                    const next = scheduledJobs.filter(j => j.status === "pending").sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())[0];
+                    if (!next) return null;
+                    const label = next.job_type === "join_group" ? "Entrada em grupo" : next.job_type.replace(/_/g, " ");
+                    return <> Próxima: <strong className="text-foreground">{label}</strong></>;
+                  })()}
                 </p>
-                <p className="text-xs text-amber-400/80">⚠️ Apenas a entrada nos grupos pode ser forçada. As mensagens de aquecimento seguem o fluxo automático.</p>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAccelerateConfirm(false)}>Cancelar</Button>
