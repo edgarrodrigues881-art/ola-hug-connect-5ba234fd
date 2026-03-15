@@ -34,47 +34,72 @@ function fmtPhone(phone: string): string {
   return `+${r}`;
 }
 
-// Try a dedicated endpoint to fetch profile pic URL (often fresher than /instance/status)
-// Returns:
-// - string => fresh URL
-// - null => no picture set
-// - undefined => couldn't determine
-async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: string): Promise<string | null | undefined> {
-  const owner = (ownerRaw || "").toString().trim();
-  if (!owner) return undefined;
-
-  const digits = owner.replace(/\D/g, "");
-  const jid = digits ? `${digits}@s.whatsapp.net` : "";
-  const candidates = Array.from(new Set([owner, digits, jid].filter(Boolean)));
-
-  const extractUrl = (payload: any): string | null | undefined => {
-    const direct = [
-      payload?.profilePictureUrl,
-      payload?.profilePicUrl,
-      payload?.pictureUrl,
-      payload?.url,
-      payload?.image,
-      payload?.data?.profilePictureUrl,
-      payload?.data?.profilePicUrl,
-      payload?.data?.url,
-      payload?.data?.image,
-    ];
-
-    for (const v of direct) {
-      if (typeof v === "string" && v.trim()) return v.trim();
-    }
-
-    // Explicit "no photo" cases
-    const hasNoPhotoSignal = direct.some((v) => v === null || v === "");
-    if (hasNoPhotoSignal) return null;
-    return undefined;
-  };
-
-  const endpoints = [
-    { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ number: n }) },
-    { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ phone: n }) },
-    { path: "/chat/fetchProfilePicUrl", mkBody: (n: string) => ({ number: n }) },
+function parseProfileSnapshot(payload: any): { pic: string | null | undefined; name: string | undefined } {
+  const picCandidates = [
+    payload?.profilePictureUrl,
+    payload?.profilePicUrl,
+    payload?.profilePicture,
+    payload?.pictureUrl,
+    payload?.imgUrl,
+    payload?.image,
+    payload?.data?.profilePictureUrl,
+    payload?.data?.profilePicUrl,
+    payload?.data?.profilePicture,
+    payload?.data?.pictureUrl,
+    payload?.data?.imgUrl,
+    payload?.data?.image,
+    payload?.instance?.profilePictureUrl,
+    payload?.instance?.profilePicUrl,
+    payload?.instance?.profilePicture,
+    payload?.instance?.imgUrl,
+    payload?.instance?.image,
+    payload?.profile?.profilePictureUrl,
+    payload?.profile?.profilePicUrl,
+    payload?.profile?.pictureUrl,
+    payload?.profile?.image,
   ];
+
+  const nameCandidates = [
+    payload?.profileName,
+    payload?.pushname,
+    payload?.name,
+    payload?.data?.profileName,
+    payload?.data?.pushname,
+    payload?.data?.name,
+    payload?.instance?.profileName,
+    payload?.instance?.pushname,
+    payload?.instance?.name,
+    payload?.profile?.name,
+  ];
+
+  for (const p of picCandidates) {
+    if (typeof p === "string" && p.trim()) return { pic: p.trim(), name: nameCandidates.find((n: any) => typeof n === "string" && n.trim())?.trim() };
+  }
+
+  const noPicMessage = [payload?.message, payload?.error, payload?.data?.message, payload?.data?.error]
+    .filter((v) => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  const hasNoPicSignal = picCandidates.some((v) => v === null || v === "")
+    || noPicMessage.includes("no profile")
+    || noPicMessage.includes("sem foto")
+    || noPicMessage.includes("not found");
+
+  return {
+    pic: hasNoPicSignal ? null : undefined,
+    name: nameCandidates.find((n: any) => typeof n === "string" && n.trim())?.trim(),
+  };
+}
+
+// Try dedicated endpoints to fetch own profile pic URL (often fresher than /instance/status)
+async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: string, numberRaw?: string): Promise<string | null | undefined> {
+  const owner = (ownerRaw || "").toString().trim();
+  const number = (numberRaw || "").toString().trim();
+  const ownerDigits = owner.replace(/\D/g, "");
+  const numberDigits = number.replace(/\D/g, "");
+  const bestDigits = ownerDigits || numberDigits;
+  const jid = bestDigits ? `${bestDigits}@s.whatsapp.net` : "";
+  const candidates = Array.from(new Set([owner, number, bestDigits, jid].filter(Boolean)));
 
   const headers: HeadersInit = {
     token,
@@ -84,25 +109,43 @@ async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: st
     Pragma: "no-cache",
   };
 
-  for (const ep of endpoints) {
-    for (const number of candidates) {
-      try {
-        const res = await fetchT(`${baseUrl}${ep.path}?t=${Date.now()}`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(ep.mkBody(number)),
-        }, 3500);
+  // 1) Own profile endpoints (no phone required)
+  for (const path of ["/profile", "/profile/image", "/profile/picture", "/instance/profile"]) {
+    try {
+      const res = await fetchT(`${baseUrl}${path}?t=${Date.now()}`, { method: "GET", headers }, 3000);
+      if (!res.ok) { await res.text(); continue; }
+      const data = await res.json();
+      const snap = parseProfileSnapshot(data);
+      if (snap.pic !== undefined) return snap.pic;
+    } catch {
+      // keep trying
+    }
+  }
 
-        if (!res.ok) {
-          await res.text();
-          continue;
+  // 2) Chat lookup endpoints (requires number/JID)
+  if (candidates.length > 0) {
+    const endpoints = [
+      { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ number: n }) },
+      { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ jid: n }) },
+      { path: "/chat/fetchProfilePicUrl", mkBody: (n: string) => ({ number: n }) },
+      { path: "/chat/fetchProfilePicUrl", mkBody: (n: string) => ({ remoteJid: n }) },
+    ];
+
+    for (const ep of endpoints) {
+      for (const value of candidates) {
+        try {
+          const res = await fetchT(`${baseUrl}${ep.path}?t=${Date.now()}`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(ep.mkBody(value)),
+          }, 3500);
+          if (!res.ok) { await res.text(); continue; }
+          const data = await res.json();
+          const snap = parseProfileSnapshot(data);
+          if (snap.pic !== undefined) return snap.pic;
+        } catch {
+          // keep trying fallbacks
         }
-
-        const data = await res.json();
-        const parsed = extractUrl(data);
-        if (parsed !== undefined) return parsed;
-      } catch {
-        // keep trying fallbacks
       }
     }
   }
@@ -169,19 +212,23 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const data = await res.json();
 
-          // Try to fetch fresh profile picture from dedicated endpoint
-          // This is more reliable than the status endpoint for profile data
+          // Try to fetch fresh profile snapshot from dedicated endpoint
           try {
             const profileRes = await fetchT(`${baseUrl}/profile?t=${Date.now()}`, { method: "GET", headers: noCacheHeaders }, 4000);
             if (profileRes.ok) {
               const profileData = await profileRes.json();
-              // Merge profile data into status data (profile endpoint has fresher pic)
-              if (profileData.profilePicUrl) data.profilePicUrl = profileData.profilePicUrl;
-              if (profileData.profilePicture) data.profilePicture = profileData.profilePicture;
-              if (profileData.imgUrl) data.profilePicUrl = profileData.imgUrl;
-              if (profileData.image) data.profilePicUrl = profileData.image;
-              if (profileData.pushname) data.pushname = profileData.pushname;
-              if (profileData.name) data.profileName = profileData.name;
+              const snap = parseProfileSnapshot(profileData);
+              if (typeof snap.pic === "string") {
+                data.profilePicUrl = snap.pic;
+                data.profilePicture = snap.pic;
+              } else if (snap.pic === null) {
+                data.profilePicUrl = "";
+                data.profilePicture = "";
+              }
+              if (snap.name) {
+                data.pushname = snap.name;
+                data.profileName = snap.name;
+              }
             } else { await profileRes.text(); }
           } catch { /* profile fetch optional */ }
 
@@ -331,7 +378,12 @@ Deno.serve(async (req) => {
         ) {
           deepProfileChecks++;
           const cleanBase = String(device.uazapi_base_url).replace(/\/+$/, "");
-          const freshPic = await fetchFreshProfilePic(cleanBase, String(device.uazapi_token), String(phone || ""));
+          const freshPic = await fetchFreshProfilePic(
+            cleanBase,
+            String(device.uazapi_token),
+            String(phone || ""),
+            String(device.number || "")
+          );
           if (freshPic !== undefined) {
             providerPic = freshPic || "";
           }
