@@ -357,6 +357,7 @@ export function useWarmupAuditLogs(cycleId?: string, limit = 200) {
       return data as unknown as WarmupAuditLog[];
     },
     enabled: !!user,
-    refetchInterval: 60000, // Audit logs are historical — 60s is sufficient
+    refetchInterval: 3_000,
+    staleTime: 2_000,
   });
 }
