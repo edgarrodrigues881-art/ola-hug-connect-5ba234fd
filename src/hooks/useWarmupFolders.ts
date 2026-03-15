@@ -14,6 +14,7 @@ export interface WarmupFolder {
   created_at: string;
   tags: FolderTag[];
   device_ids?: string[];
+  device_tags?: Map<string, FolderTag[]>;
 }
 
 export function useWarmupFolders() {
