@@ -773,25 +773,30 @@ const Devices = () => {
       const profilePromises: Promise<any>[] = [];
       if (wpName.trim()) {
         profilePromises.push(
-          callApi({ action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() })
+          callApiStrict(
+            { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
+            "Falha ao atualizar nome no WhatsApp",
+          )
         );
       }
       if (wpRemovePhoto) {
         profilePromises.push(
-          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" })
+          callApiStrict(
+            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" },
+            "Falha ao remover foto no WhatsApp",
+          )
         );
       } else if (wpPhotoBase64) {
         profilePromises.push(
-          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 })
+          callApiStrict(
+            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
+            "Falha ao atualizar foto no WhatsApp",
+          )
         );
       }
 
       if (profilePromises.length > 0) {
-        const profileResults = await Promise.all(profilePromises);
-        const failedResult = profileResults.find((r) => r?.error || r?.success === false);
-        if (failedResult) {
-          throw new Error(failedResult?.error || "Falha ao atualizar perfil no WhatsApp");
-        }
+        await Promise.all(profilePromises);
       }
 
       await updateMutation.mutateAsync({
