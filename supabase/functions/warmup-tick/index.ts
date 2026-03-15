@@ -501,18 +501,19 @@ type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
   const maxLen = context === "autosave" ? 40 : 250;
+  const minLen = (context === "group" || context === "community") ? 30 : 5;
   for (let attempt = 0; attempt < 80; attempt++) {
     const msg = buildMsg(context);
-    if (msg.length >= 5 && msg.length <= maxLen && !recentMsgs.includes(msg)) {
+    if (msg.length >= minLen && msg.length <= maxLen && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
       if (recentMsgs.length > MAX_RECENT) recentMsgs.shift();
       return msg;
     }
   }
-  const fb = (context === "community" || context === "autosave")
-    ? pickRandom(RESPOSTAS_CURTAS)
-    : `${pickRandom(SAUDACOES)} ${pickRandom(PERGUNTAS)}?`;
-  return fb.substring(0, maxLen);
+  // Fallback: combine parts to guarantee minimum length
+  let fb = `${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}. ${pickRandom(COMPLEMENTOS)}`;
+  if (fb.length < minLen) fb = pickRandom(REFLEXOES) || pickRandom(HISTORIAS_CURTAS);
+  return cap(maybeEmoji(fb)).substring(0, maxLen);
 }
 
 function buildMsg(ctx: MsgCtx): string {
