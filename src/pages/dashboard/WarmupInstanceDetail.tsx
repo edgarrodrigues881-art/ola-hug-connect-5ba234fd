@@ -151,6 +151,7 @@ const WarmupInstanceDetail = () => {
   const [showAccelerateConfirm, setShowAccelerateConfirm] = useState(false);
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
+  const [repairingSchedule, setRepairingSchedule] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   // Auto-enable community when community day is reached
