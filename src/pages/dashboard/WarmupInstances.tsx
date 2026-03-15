@@ -343,6 +343,16 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             <Pencil className="w-3.5 h-3.5" /> Editar
           </Button>
         )}
+        {onRemoveFromFolder && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500/8"
+            onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(device.id); }}
+          >
+            <FolderOpen className="w-3.5 h-3.5" /> Remover da pasta
+          </Button>
+        )}
       </div>
     </div>
   );
