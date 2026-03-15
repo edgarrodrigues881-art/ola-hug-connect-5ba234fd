@@ -379,8 +379,8 @@ export function AppSidebar() {
                 </div>
               )}
 
-              {/* Always visible: Nova pasta (expanded only), Auto Save, Grupos */}
-              {!collapsed && (
+              {/* Nova pasta - toggles with arrow */}
+              {warmupExpanded && !collapsed && (
                 <SidebarMenuItem>
                   <button
                     onClick={() => {
