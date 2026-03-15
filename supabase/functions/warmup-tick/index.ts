@@ -850,9 +850,9 @@ async function handleTick(db: any) {
   }
 
   // ── BATCH PRE-LOAD ──
-  const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
-  const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
-  const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
+  const uniqueCycleIds = [...new Set(filteredJobs.map((j: any) => j.cycle_id))];
+  const uniqueUserIds = [...new Set(filteredJobs.map((j: any) => j.user_id))];
+  const uniqueDeviceIds = [...new Set(filteredJobs.map((j: any) => j.device_id))];
 
   async function batchLoad<T>(table: string, cols: string, field: string, ids: string[], extra?: (q: any) => any): Promise<T[]> {
     const results: T[] = [];
