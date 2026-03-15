@@ -1485,7 +1485,7 @@ async function handleTick(db: any) {
             await uazapiSendText(baseUrl, token, target._phone, msg);
           } catch (e2) {
             const retryErr = e2 instanceof Error ? e2.message : String(e2);
-            const isInvalidRetry = retryErr.includes("not on WhatsApp") || retryErr.includes("not registered");
+            const isInvalidRetry = retryErr.includes("not on WhatsApp") || retryErr.includes("not registered") || retryErr.includes("Text send failed");
 
             if (isInvalidRetry) {
               await db.from("warmup_autosave_contacts")
