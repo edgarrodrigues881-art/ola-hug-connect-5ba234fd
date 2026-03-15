@@ -1329,10 +1329,10 @@ async function handleTick(db: any) {
 
           const candidates = liveGroupsCache
             .map((g: any) => ({
-              jid: g.jid || g.id || g.JID || null,
-              name: g.subject || g.name || g.Name || "Grupo detectado",
+              jid: g?.jid || g?.id || g?.JID || g?.groupJid || g?.chatId || null,
+              name: g?.subject || g?.name || g?.Name || g?.title || "Grupo detectado",
             }))
-            .filter((g: any) => !!g.jid);
+            .filter((g: any) => !!g.jid && String(g.jid).includes("@g.us"));
 
           if (candidates.length === 0) {
             throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
