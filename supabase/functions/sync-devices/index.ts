@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const PAGE = 500;
     while (true) {
       const { data, error } = await svc.from("devices")
-        .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture")
+        .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture, updated_at")
         .eq("user_id", userId)
         .range(from, from + PAGE - 1);
       if (error) throw error;
