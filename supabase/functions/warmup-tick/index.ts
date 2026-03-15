@@ -826,6 +826,8 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption, text: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: imageUrl, type: "image", caption: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: imageUrl, type: "image", caption: safeCaption } },
   ], "url");
   if (urlResult.ok) return urlResult.data;
 
@@ -846,6 +848,8 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "image", caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption, text: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: dataUri, type: "image", caption: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: dataUri, type: "image", caption: safeCaption } },
   ], "b64");
   if (b64Result.ok) return b64Result.data;
 
