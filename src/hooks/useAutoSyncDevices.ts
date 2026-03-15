@@ -37,7 +37,7 @@ export function resumeKeepAlive() {
  * - Pauses sync when tab is hidden.
  * - Keep-alive pings only connected devices in small batches.
  */
-export function useAutoSyncDevices(intervalMs = 15_000) {
+export function useAutoSyncDevices(intervalMs = 10_000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);

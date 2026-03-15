@@ -85,8 +85,9 @@ Deno.serve(async (req) => {
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
       const headers = { token: device.uazapi_token, Accept: "application/json" };
       try {
-        const res = await fetchT(`${baseUrl}/instance/status`, {
-          method: "GET", headers,
+        const noCacheHeaders = { ...headers, "Cache-Control": "no-cache", Pragma: "no-cache" };
+        const res = await fetchT(`${baseUrl}/instance/status?t=${Date.now()}`, {
+          method: "GET", headers: noCacheHeaders,
         }, 5000);
 
         if (res.ok) {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
           // Try to fetch fresh profile picture from dedicated endpoint
           // This is more reliable than the status endpoint for profile data
           try {
-            const profileRes = await fetchT(`${baseUrl}/profile`, { method: "GET", headers }, 4000);
+            const profileRes = await fetchT(`${baseUrl}/profile?t=${Date.now()}`, { method: "GET", headers: noCacheHeaders }, 4000);
             if (profileRes.ok) {
               const profileData = await profileRes.json();
               // Merge profile data into status data (profile endpoint has fresher pic)
@@ -230,18 +231,18 @@ Deno.serve(async (req) => {
         const currentPic = device.profile_picture || null;
         const currentName = (device.profile_name || "").toString();
 
-        // Grace window: only protect local edits for 2 minutes after save (not 15)
+        // Grace window: protect local edits only briefly (30s) to avoid long delays
         const updatedAtMs = device.updated_at ? new Date(device.updated_at).getTime() : 0;
         const justEdited = Number.isFinite(updatedAtMs)
-          ? (Date.now() - updatedAtMs) < 2 * 60 * 1000
+          ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
 
         let newPic: string | null;
         if (!isConnected) {
           // Disconnected: keep whatever we have
           newPic = currentPic;
-        } else if (justEdited && currentPic && currentPic !== (providerPic || null)) {
-          // Just saved from panel (<2 min ago) and values differ: keep local to avoid flicker
+        } else if (justEdited && currentPic && providerPic && currentPic !== providerPic) {
+          // Just saved from panel and provider returned a different NON-EMPTY pic: keep local briefly
           newPic = currentPic;
         } else {
           // Normal: trust the provider. Empty = removed, URL = new/updated
