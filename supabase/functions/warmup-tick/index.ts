@@ -1655,6 +1655,7 @@ async function handleTick(db: any) {
             group_jid: groupJid,
             media_type: actualMediaType,
             requested_media_type: requestedMediaType,
+            quoted_msg_id: quotedMsgId,
             send_fallback_reason: sendFallbackReason,
             group_id: targetGroupId,
           },
