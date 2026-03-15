@@ -919,9 +919,13 @@ const Devices = () => {
     }
     setWpSaving(true);
     try {
+      const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
       const targetDevices = wpApplyAll
-        ? devices.filter(d => d.status === "Ready")
+        ? devices.filter(d => connectedStatuses.includes(d.status))
         : profileDevice ? [profileDevice] : [];
+      
+      console.log("[profile-update] targetDevices:", targetDevices.length, "wpApplyAll:", wpApplyAll, "profileDevice:", profileDevice?.id, profileDevice?.status);
+      console.log("[profile-update] wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
 
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
