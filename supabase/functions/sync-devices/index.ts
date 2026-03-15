@@ -203,8 +203,7 @@ Deno.serve(async (req) => {
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
 
-        // Profile fields: provider can lag right after manual edits.
-        // Keep local values for a short grace window to avoid save->unsave loops.
+        // ── Profile picture sync logic (simplified, no conflicts) ──
         const providerPicRaw =
           inst.profilePicUrl ?? inst.profilePicture ??
           data.profilePicUrl ?? data.profilePicture ?? "";
@@ -214,32 +213,26 @@ Deno.serve(async (req) => {
         const currentPic = device.profile_picture || null;
         const currentName = (device.profile_name || "").toString();
 
+        // Grace window: only protect local edits for 2 minutes after save (not 15)
         const updatedAtMs = device.updated_at ? new Date(device.updated_at).getTime() : 0;
-        const recentlyEdited = Number.isFinite(updatedAtMs)
-          ? (Date.now() - updatedAtMs) < 15 * 60 * 1000
+        const justEdited = Number.isFinite(updatedAtMs)
+          ? (Date.now() - updatedAtMs) < 2 * 60 * 1000
           : false;
 
-        const isLocalManagedPic = typeof currentPic === "string"
-          && (currentPic.includes("/storage/v1/object/public/media/") || currentPic.startsWith("data:image/"));
-        const hasProviderPic = Boolean(providerPic);
-
-        // Only protect local pics when provider returns a DIFFERENT pic (cache lag).
-        // If provider returns EMPTY, it means user removed photo on WhatsApp — respect that.
-        const shouldKeepLocalPic = isLocalManagedPic && hasProviderPic && currentPic !== providerPic;
-
-        // If provider has no pic → user removed it on WhatsApp → clear it (null)
-        // If provider has a different pic and we recently edited → keep local (cache lag protection)
-        // Otherwise → use provider pic
-        const newPic = isConnected
-          ? (shouldKeepLocalPic
-            ? currentPic
-            : (!hasProviderPic
-              ? null
-              : (recentlyEdited && currentPic && currentPic !== providerPic ? currentPic : providerPic)))
-          : currentPic;
+        let newPic: string | null;
+        if (!isConnected) {
+          // Disconnected: keep whatever we have
+          newPic = currentPic;
+        } else if (justEdited && currentPic && currentPic !== (providerPic || null)) {
+          // Just saved from panel (<2 min ago) and values differ: keep local to avoid flicker
+          newPic = currentPic;
+        } else {
+          // Normal: trust the provider. Empty = removed, URL = new/updated
+          newPic = providerPic || null;
+        }
 
         const newName = isConnected
-          ? (recentlyEdited && currentName && currentName !== providerNameRaw
+          ? (justEdited && currentName && currentName !== providerNameRaw
             ? currentName
             : (providerNameRaw || currentName))
           : currentName;
