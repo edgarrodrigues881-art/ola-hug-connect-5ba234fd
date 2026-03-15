@@ -805,7 +805,7 @@ const WarmupInstanceDetail = () => {
                     disabled={accelerating}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
-                    Forçar Próxima Tarefa
+                    Força Tarefa
                   </Button>
                   <Button
                     variant="outline"
