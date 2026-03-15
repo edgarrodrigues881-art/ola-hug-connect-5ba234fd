@@ -973,9 +973,9 @@ const IMAGE_CAPTIONS = [
 
 function pickMediaType(): "text" | "image" | "sticker" {
   const r = Math.random();
-  if (r < 0.80) return "text";     // 80% texto
-  if (r < 0.90) return "image";    // 10% imagem
-  return "sticker";                 // 10% figurinha
+  if (r < 0.50) return "text";     // 50% texto
+  if (r < 0.75) return "image";    // 25% imagem
+  return "sticker";                 // 25% figurinha
 }
 
 // ══════════════════════════════════════════════════════════
