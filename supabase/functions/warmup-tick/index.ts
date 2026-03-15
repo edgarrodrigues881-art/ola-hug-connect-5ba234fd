@@ -731,12 +731,23 @@ async function handleTick(db: any) {
   const now = new Date().toISOString();
   const withinWindow = isWithinOperatingWindow();
 
-  // Cancel stale interaction jobs outside window
+  // Cancel stale interaction jobs outside window (but skip forced jobs)
   if (!withinWindow) {
-    await db.from("warmup_jobs")
-      .update({ status: "cancelled", last_error: "Cancelado: fora da janela 07-19 BRT" })
+    const { data: outsideJobs } = await db.from("warmup_jobs")
+      .select("id, payload")
       .eq("status", "pending").lte("run_at", now)
       .in("job_type", INTERACTION_JOB_TYPES);
+    
+    if (outsideJobs?.length) {
+      const toCancel = outsideJobs.filter((j: any) => !j.payload?.forced).map((j: any) => j.id);
+      if (toCancel.length > 0) {
+        for (let i = 0; i < toCancel.length; i += 200) {
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Cancelado: fora da janela 07-19 BRT" })
+            .in("id", toCancel.slice(i, i + 200));
+        }
+      }
+    }
   }
 
   // Recover stale "running" jobs (>5min)
