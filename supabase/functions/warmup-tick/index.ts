@@ -592,18 +592,92 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
-  const body: any = { number, text };
-  if (quotedMsgId) body.quotedMsgId = quotedMsgId;
-  const res = await fetch(`${baseUrl}/send/text`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`API ${res.status}: ${errText}`);
+  const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
+    {
+      path: "/send/text",
+      body: {
+        number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              quoted_message_id: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/chat/send-text",
+      body: {
+        to: number,
+        body: text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/message/sendText",
+      body: {
+        chatId: number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/message/sendText",
+      body: {
+        to: number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try {
+          const parsed = raw ? JSON.parse(raw) : {};
+          if (!parsed?.error && parsed?.code !== 404) return parsed;
+          lastErr = `${at.path}: ${raw.substring(0, 240)}`;
+          continue;
+        } catch {
+          return { ok: true, raw };
+        }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
-  return await res.json();
+
+  throw new Error(`Text send failed: ${lastErr}`);
 }
 
 /** Fetch most recent messages from a group chat and return the latest quotable message ID */
@@ -632,13 +706,21 @@ function extractFromMe(m: any): boolean {
 }
 
 async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
-  const endpoints = [
-    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10` },
-    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10` },
-    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 } },
-    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10` },
-    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10` },
+  const endpoints: Array<{ method: "GET" | "POST"; url: string; body?: Record<string, unknown>; mode: "messages" | "chats" }> = [
+    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10`, mode: "messages" },
+    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 }, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/list?count=500`, mode: "chats" },
+    { method: "GET", url: `${baseUrl}/chats?type=group&count=500`, mode: "chats" },
   ];
+
+  const extractChatJid = (c: any): string =>
+    String(c?.JID || c?.jid || c?.id || c?.chatId || c?.groupJid || "");
+
+  const extractLastFromChat = (c: any): any =>
+    c?.lastMessage || c?.last_message || c?.lastMsg || c?.message || c?.msg || c?.conversation || c?.recentMessage || null;
 
   for (const ep of endpoints) {
     try {
@@ -657,41 +739,48 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
       }
 
       let data: any;
-      try { data = JSON.parse(rawText); } catch { continue; }
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch { continue; }
 
-      // Extract messages array from various response shapes
-      const messages = Array.isArray(data)
+      if (ep.mode === "messages") {
+        const messages = Array.isArray(data)
+          ? data
+          : data?.messages || data?.data || data?.result || [];
+
+        if (!Array.isArray(messages) || messages.length === 0) continue;
+
+        const normalized = messages
+          .map((m: any, idx: number) => ({
+            id: extractMsgId(m),
+            ts: extractMsgTs(m),
+            idx,
+          }))
+          .filter((m: any) => !!m.id);
+
+        if (normalized.length === 0) continue;
+
+        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
+        const ordered = hasValidTimestamp
+          ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
+          : normalized;
+
+        return ordered[0].id as string;
+      }
+
+      const chats = Array.isArray(data)
         ? data
-        : data?.messages || data?.data || data?.result || data?.chats || [];
+        : data?.chats || data?.data || data?.result || [];
 
-      if (!Array.isArray(messages) || messages.length === 0) {
-        console.log(`[fetchLastMsg] ${ep.url} → OK but empty messages (keys: ${Object.keys(data || {}).join(",")})`);
-        continue;
+      if (!Array.isArray(chats) || chats.length === 0) continue;
+
+      const targetChat = chats.find((c: any) => extractChatJid(c) === chatId || extractChatJid(c).includes(chatId));
+      if (!targetChat) continue;
+
+      const last = extractLastFromChat(targetChat);
+      const lastId = extractMsgId(last) || extractMsgId(targetChat?.lastMessage) || extractMsgId(targetChat?.message);
+      if (lastId) {
+        console.log(`[fetchLastMsg] chat/list fallback using id ${lastId}`);
+        return lastId;
       }
-
-      console.log(`[fetchLastMsg] ${ep.url} → ${messages.length} msgs. Sample keys: ${Object.keys(messages[0] || {}).join(",")}`);
-
-      const normalized = messages
-        .map((m: any, idx: number) => ({
-          id: extractMsgId(m),
-          ts: extractMsgTs(m),
-          fromMe: extractFromMe(m),
-          idx,
-        }))
-        .filter((m: any) => !!m.id);
-
-      if (normalized.length === 0) {
-        console.log(`[fetchLastMsg] All msgs filtered (no valid id). Raw first: ${JSON.stringify(messages[0]).substring(0, 300)}`);
-        continue;
-      }
-
-      const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
-      const ordered = hasValidTimestamp
-        ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
-        : normalized;
-
-      console.log(`[fetchLastMsg] Found ${ordered.length} valid msgs. Using id: ${ordered[0].id}`);
-      return ordered[0].id as string;
     } catch (e) {
       console.log(`[fetchLastMsg] ${ep.url} error: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -737,6 +826,8 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption, text: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: imageUrl, type: "image", caption: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: imageUrl, type: "image", caption: safeCaption } },
   ], "url");
   if (urlResult.ok) return urlResult.data;
 
@@ -757,6 +848,8 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "image", caption: safeCaption } },
     { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption, text: safeCaption } },
     { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption, text: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: dataUri, type: "image", caption: safeCaption } },
+    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: dataUri, type: "image", caption: safeCaption } },
   ], "b64");
   if (b64Result.ok) return b64Result.data;
 
@@ -797,6 +890,8 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
     { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "sticker" } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: imageUrl } },
+    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: imageUrl } },
   ]);
   if (urlResult.ok) return urlResult.data;
 
@@ -818,6 +913,8 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
     { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "sticker" } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: dataUri } },
+    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: dataUri } },
   ]);
   if (b64Result.ok) return b64Result.data;
 
@@ -876,9 +973,9 @@ const IMAGE_CAPTIONS = [
 
 function pickMediaType(): "text" | "image" | "sticker" {
   const r = Math.random();
-  if (r < 0.80) return "text";     // 80% texto
-  if (r < 0.90) return "image";    // 10% imagem
-  return "sticker";                 // 10% figurinha
+  if (r < 0.50) return "text";     // 50% texto
+  if (r < 0.75) return "image";    // 25% imagem
+  return "sticker";                 // 25% figurinha
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1558,6 +1655,7 @@ async function handleTick(db: any) {
             group_jid: groupJid,
             media_type: actualMediaType,
             requested_media_type: requestedMediaType,
+            quoted_msg_id: quotedMsgId,
             send_fallback_reason: sendFallbackReason,
             group_id: targetGroupId,
           },
