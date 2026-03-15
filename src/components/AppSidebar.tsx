@@ -340,11 +340,14 @@ export function AppSidebar() {
                                 gap-[11px] px-3.5 py-[10px]
                                 ${isActiveFolder
                                   ? 'bg-primary/10 text-foreground font-semibold'
-                                  : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
+                                  : 'bg-muted/20 text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
                                 }`}
                               activeClassName=""
                             >
-                              <FolderOpen className={cn("w-[18px] h-[18px] shrink-0", colorClass)} strokeWidth={1.5} />
+                              {isActiveFolder && (
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ backgroundColor: folder.color }} />
+                              )}
+                              <FolderOpen className={cn("w-[18px] h-[18px] shrink-0")} style={{ color: folder.color }} strokeWidth={isActiveFolder ? 2.2 : 1.5} />
                               <span className="truncate flex-1">{folder.name}</span>
                               {folder.device_ids && folder.device_ids.length > 0 && (
                                 <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
