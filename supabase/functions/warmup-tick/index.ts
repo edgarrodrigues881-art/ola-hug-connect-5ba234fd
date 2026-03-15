@@ -632,52 +632,72 @@ function extractFromMe(m: any): boolean {
 }
 
 async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
-  try {
-    const endpoints = [
-      `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=20`,
-      `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=20`,
-    ];
+  const endpoints = [
+    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10` },
+    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10` },
+    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 } },
+    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10` },
+    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10` },
+  ];
 
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(ep, {
-          method: "GET",
-          headers: { token, Accept: "application/json" },
-        });
-        if (!res.ok) continue;
+  for (const ep of endpoints) {
+    try {
+      const fetchOpts: RequestInit = {
+        method: ep.method,
+        headers: { token, Accept: "application/json", "Content-Type": "application/json" },
+      };
+      if (ep.body) fetchOpts.body = JSON.stringify(ep.body);
 
-        const data = await res.json();
-        const messages = Array.isArray(data) ? data : data?.messages || data?.data || [];
-        if (!Array.isArray(messages) || messages.length === 0) continue;
+      const res = await fetch(ep.url, fetchOpts);
+      const rawText = await res.text();
 
-        const normalized = messages
-          .map((m: any, idx: number) => ({
-            id: extractMsgId(m),
-            ts: extractMsgTs(m),
-            fromMe: extractFromMe(m),
-            idx,
-          }))
-          .filter((m: any) => !!m.id);
-
-        if (normalized.length === 0) continue;
-
-        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
-        const ordered = hasValidTimestamp
-          ? [...normalized].sort((a: any, b: any) => {
-              if (b.ts !== a.ts) return b.ts - a.ts;
-              return a.idx - b.idx;
-            })
-          : normalized;
-
-        // Strict latest message available (for testing reply exactly on latest)
-        return (ordered[0]?.id || null) as string | null;
-      } catch {
-        // try next endpoint
+      if (!res.ok) {
+        console.log(`[fetchLastMsg] ${ep.method} ${ep.url} → ${res.status}: ${rawText.substring(0, 200)}`);
+        continue;
       }
+
+      let data: any;
+      try { data = JSON.parse(rawText); } catch { continue; }
+
+      // Extract messages array from various response shapes
+      const messages = Array.isArray(data)
+        ? data
+        : data?.messages || data?.data || data?.result || data?.chats || [];
+
+      if (!Array.isArray(messages) || messages.length === 0) {
+        console.log(`[fetchLastMsg] ${ep.url} → OK but empty messages (keys: ${Object.keys(data || {}).join(",")})`);
+        continue;
+      }
+
+      console.log(`[fetchLastMsg] ${ep.url} → ${messages.length} msgs. Sample keys: ${Object.keys(messages[0] || {}).join(",")}`);
+
+      const normalized = messages
+        .map((m: any, idx: number) => ({
+          id: extractMsgId(m),
+          ts: extractMsgTs(m),
+          fromMe: extractFromMe(m),
+          idx,
+        }))
+        .filter((m: any) => !!m.id);
+
+      if (normalized.length === 0) {
+        console.log(`[fetchLastMsg] All msgs filtered (no valid id). Raw first: ${JSON.stringify(messages[0]).substring(0, 300)}`);
+        continue;
+      }
+
+      const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
+      const ordered = hasValidTimestamp
+        ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
+        : normalized;
+
+      console.log(`[fetchLastMsg] Found ${ordered.length} valid msgs. Using id: ${ordered[0].id}`);
+      return ordered[0].id as string;
+    } catch (e) {
+      console.log(`[fetchLastMsg] ${ep.url} error: ${e instanceof Error ? e.message : String(e)}`);
     }
-  } catch {
-    // ignore
   }
+
+  console.log(`[fetchLastMsg] All endpoints failed for ${chatId}`);
   return null;
 }
 
