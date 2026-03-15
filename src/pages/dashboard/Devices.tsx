@@ -771,6 +771,9 @@ const Devices = () => {
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
 
+    // Prevent immediate sync overwrite while provider may still lag
+    muteAutoSync(45_000);
+
     const newProxyId = editProxyValue === "none" ? null : editProxyValue;
     const dbUpdates: Record<string, any> = {
       name: editName,
@@ -1031,6 +1034,10 @@ const Devices = () => {
       toast({ title: "Selecione uma foto ou preencha o nome para salvar", variant: "destructive" });
       return;
     }
+
+    // Avoid fast reversion from auto-sync right after saving profile edits
+    muteAutoSync(45_000);
+
     setWpSaving(true);
     try {
       const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
@@ -1144,6 +1151,10 @@ const Devices = () => {
       toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
       return;
     }
+
+    // Avoid immediate profile rollback from sync while provider updates propagate
+    muteAutoSync(45_000);
+
     setBulkProfileSaving(true);
     const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
     const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && connectedStatuses.includes(d.status));
