@@ -1406,9 +1406,9 @@ async function handleTick(db: any) {
         const mediaType = pickMediaType();
         let message = getMsg();
 
-        // ~40% chance to reply to last message in group (more natural)
+        // 100% reply to last message in group (testing mode)
         let quotedMsgId: string | null = null;
-        if (Math.random() < 0.4 && mediaType === "text") {
+        if (mediaType === "text") {
           try {
             quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
           } catch { /* ignore, send without quote */ }
