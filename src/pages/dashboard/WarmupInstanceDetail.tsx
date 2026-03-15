@@ -153,6 +153,7 @@ const WarmupInstanceDetail = () => {
   const [accelerating, setAccelerating] = useState(false);
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [repairingSchedule, setRepairingSchedule] = useState(false);
+  const [testingAutosave, setTestingAutosave] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   // Auto-enable community when community day is reached
@@ -381,6 +382,37 @@ const WarmupInstanceDetail = () => {
       });
     } finally {
       setRepairingSchedule(false);
+    }
+  };
+
+  /* ── TEMPORARY: Test Auto Save — creates 1 autosave job and runs it immediately ── */
+  const handleTestAutosave = async () => {
+    if (!cycle?.id || !deviceId || !user) return;
+    setTestingAutosave(true);
+    try {
+      // Create a single autosave_interaction job set to run NOW
+      const { error: insertErr } = await supabase.from("warmup_jobs").insert({
+        user_id: user.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        job_type: "autosave_interaction" as any,
+        payload: { recipient_index: 0, msg_index: 0, forced: true },
+        run_at: new Date().toISOString(),
+        status: "pending" as any,
+      });
+      if (insertErr) throw insertErr;
+
+      // Trigger tick immediately
+      await supabase.functions.invoke("warmup-tick", { body: {} });
+
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+      toast({ title: "🧪 Auto Save disparado!", description: "1 mensagem de autosave sendo enviada agora para o contato #1." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingAutosave(false);
     }
   };
 
@@ -972,6 +1004,19 @@ const WarmupInstanceDetail = () => {
                     Pular Dia
                   </Button>
                 </div>
+              )}
+
+              {/* TEMPORARY: Test Auto Save button */}
+              {cycle.is_running && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/12 hover:text-emerald-300 font-bold backdrop-blur-sm"
+                  onClick={handleTestAutosave}
+                  disabled={testingAutosave}
+                >
+                  {testingAutosave ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  🧪 Testar Auto Save
+                </Button>
               )}
             </div>
           )}
