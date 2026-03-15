@@ -122,7 +122,8 @@ const WarmupInstanceDetail = () => {
       return data;
     },
     enabled: !!cycle?.id,
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
+    staleTime: 3_000,
   });
 
   // statusToday removed — UAZAPI v2 does not support status posting
