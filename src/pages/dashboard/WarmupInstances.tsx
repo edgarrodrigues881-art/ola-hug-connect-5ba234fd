@@ -309,7 +309,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-border/20 text-foreground hover:bg-muted/20 font-semibold"
             onClick={(e) => onResume(device.id, e)}
           >
             <Play className="w-3.5 h-3.5" /> Retomar aquecimento
