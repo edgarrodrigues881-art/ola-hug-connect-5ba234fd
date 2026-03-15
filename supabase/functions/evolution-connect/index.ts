@@ -72,6 +72,62 @@ async function uazapi(
   return { ok: false, status: 0, data: { error: lastErr?.message || "Request failed after retries" } };
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    let chunkBinary = "";
+    for (let j = 0; j < chunk.length; j++) {
+      chunkBinary += String.fromCharCode(chunk[j]);
+    }
+    binary += chunkBinary;
+  }
+  return btoa(binary);
+}
+
+async function resolveProfileImageVariants(input: string): Promise<string[]> {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return [];
+  if (trimmed === "remove") return ["remove"];
+
+  const variants = new Set<string>([trimmed]);
+
+  // data URI -> also try raw base64
+  if (trimmed.startsWith("data:image/")) {
+    const base64Part = trimmed.split(",")[1]?.trim();
+    if (base64Part) variants.add(base64Part);
+    return Array.from(variants);
+  }
+
+  // URL -> download and convert to base64/data-uri for providers that reject direct URL
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(trimmed, { method: "GET", signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const mime = (res.headers.get("content-type") || "image/jpeg").split(";")[0].trim() || "image/jpeg";
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length > 0) {
+          const b64 = bytesToBase64(bytes);
+          variants.add(b64);
+          variants.add(`data:${mime};base64,${b64}`);
+          console.log(`[profile-pic] downloaded image URL and generated base64 variant (${bytes.length} bytes)`);
+        }
+      } else {
+        console.log(`[profile-pic] could not download image URL: status=${res.status}`);
+      }
+    } catch (err: any) {
+      console.log(`[profile-pic] URL->base64 conversion failed: ${err?.message || String(err)}`);
+    }
+  }
+
+  return Array.from(variants);
+}
+
 // ── Admin helper: create instance on UaZapi ─────────────────────────────
 async function adminCreateInstance(
   baseUrl: string,
@@ -784,35 +840,44 @@ Deno.serve(async (req) => {
       const normalizedPicture = typeof profilePictureData === "string" ? profilePictureData.trim() : "";
       if (!normalizedPicture) return json({ error: "profilePictureData obrigatório" }, 400);
 
-      // uazapiGO uses POST /profile/image with { image: "value" }
-      // To remove: { image: "remove" }
-      const imageValue = normalizedPicture === "remove" ? "remove" : normalizedPicture;
-
-      const picEndpoints = [
-        // Primary: confirmed uazapiGO endpoint
-        { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
-        // Fallbacks
-        { path: "/profile/picture", method: "POST" as const, payload: { image: imageValue } },
-        { path: "/profile-picture", method: "POST" as const, payload: { image: imageValue } },
-        { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
-        { path: "/profile/picture", method: "PUT" as const, payload: { picture: imageValue } },
-        { path: "/profile-picture", method: "PUT" as const, payload: { value: imageValue } },
-      ];
+      const imageVariants = await resolveProfileImageVariants(normalizedPicture);
+      if (imageVariants.length === 0) {
+        return json({ success: false, error: "Imagem inválida para atualização de foto." }, 422);
+      }
 
       const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
 
-      for (const ep of picEndpoints) {
-        const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 8000, retries: 1 });
-        console.log(`[profile-pic] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
-        if (r.ok) {
-          const dbValue = normalizedPicture === "remove" ? null : normalizedPicture;
-          await svc.from("devices").update({ profile_picture: dbValue }).eq("id", deviceId);
-          return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
+      for (const imageValue of imageVariants) {
+        const isRemove = imageValue === "remove";
+
+        const attempts = [
+          // uazapiGO canonical endpoint
+          { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
+          // alternate accepted payload keys in some providers
+          { path: "/profile/image", method: "POST" as const, payload: { file: imageValue } },
+          { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
+          // legacy fallbacks
+          { path: "/profile/picture", method: "POST" as const, payload: { image: imageValue } },
+          { path: "/profile-picture", method: "POST" as const, payload: { image: imageValue } },
+        ];
+
+        for (const ep of attempts) {
+          const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 10000, retries: 1 });
+          console.log(`[profile-pic] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 250));
+
+          if (r.ok) {
+            const dbValue = normalizedPicture === "remove" || isRemove ? null : normalizedPicture;
+            await svc.from("devices").update({ profile_picture: dbValue }).eq("id", deviceId);
+            return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
+          }
+
+          failures.push({
+            path: ep.path,
+            method: ep.method,
+            status: r.status,
+            error: (r.data?.error || r.data?.message || r.data?.raw || null) as string | null,
+          });
         }
-        failures.push({
-          path: ep.path, method: ep.method, status: r.status,
-          error: (r.data?.error || r.data?.message || r.data?.raw || null) as string | null,
-        });
       }
 
       return json({
