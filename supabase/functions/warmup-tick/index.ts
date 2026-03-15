@@ -656,7 +656,18 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
 
 /** Fetch most recent messages from a group chat and return the latest quotable message ID */
 function extractMsgId(m: any): string | null {
-  return m?.id || m?.ID || m?.key?.id || m?.messageId || null;
+  return (
+    m?.id ||
+    m?.ID ||
+    m?.key?.id ||
+    m?.key?.ID ||
+    m?.messageId ||
+    m?.messageID ||
+    m?.msgId ||
+    m?.stanzaId ||
+    m?.stanza_id ||
+    null
+  );
 }
 
 function extractMsgTs(m: any): number {
@@ -667,34 +678,94 @@ function extractMsgTs(m: any): number {
     m?.t ??
     m?.time ??
     m?.message?.messageTimestamp ??
-    m?.key?.timestamp;
+    m?.key?.timestamp ??
+    m?.createdAt ??
+    m?.created_at;
 
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  // Some providers return seconds, others milliseconds
-  return n > 1_000_000_000_000 ? n : n * 1000;
+  const asNum = Number(raw);
+  if (Number.isFinite(asNum) && asNum > 0) {
+    return asNum > 1_000_000_000_000 ? asNum : asNum * 1000;
+  }
+
+  const parsedDate = raw ? Date.parse(String(raw)) : NaN;
+  return Number.isFinite(parsedDate) ? parsedDate : 0;
 }
 
 function extractFromMe(m: any): boolean {
-  return Boolean(m?.fromMe ?? m?.key?.fromMe ?? false);
+  return Boolean(m?.fromMe ?? m?.from_me ?? m?.key?.fromMe ?? m?.key?.from_me ?? false);
+}
+
+function normalizeChatId(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/%40/g, "@")
+    .replace(/\s+/g, "")
+    .replace(/^55(?=\d{10,13}$)/, "")
+    .replace(/@g\.us$/, "");
+}
+
+function buildChatIdVariants(chatId: string): string[] {
+  const raw = String(chatId || "").trim();
+  if (!raw) return [];
+  const noSuffix = raw.replace(/@g\.us$/i, "");
+  const digits = noSuffix.replace(/\D/g, "");
+  return Array.from(new Set([raw, noSuffix, digits, digits ? `${digits}@g.us` : ""].filter(Boolean)));
+}
+
+function extractMessagesArray(payload: any): any[] {
+  const candidates = [
+    payload,
+    payload?.messages,
+    payload?.data,
+    payload?.data?.messages,
+    payload?.result,
+    payload?.result?.messages,
+    payload?.items,
+    payload?.data?.items,
+    payload?.rows,
+    payload?.data?.rows,
+  ];
+
+  const out: any[] = [];
+  for (const c of candidates) {
+    if (Array.isArray(c)) out.push(...c);
+  }
+  return out;
 }
 
 async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
-  const endpoints: Array<{ method: "GET" | "POST"; url: string; body?: Record<string, unknown>; mode: "messages" | "chats" }> = [
-    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10`, mode: "messages" },
-    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10`, mode: "messages" },
-    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 }, mode: "messages" },
-    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10`, mode: "messages" },
-    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10`, mode: "messages" },
+  const variants = buildChatIdVariants(chatId);
+  if (variants.length === 0) return null;
+
+  const endpoints: Array<{ method: "GET" | "POST"; url: string; body?: Record<string, unknown>; mode: "messages" | "chats" }> = [];
+
+  for (const v of variants) {
+    const enc = encodeURIComponent(v);
+    endpoints.push(
+      { method: "GET", url: `${baseUrl}/chat/messages?chatId=${enc}&count=10`, mode: "messages" },
+      { method: "GET", url: `${baseUrl}/chat/messages?jid=${enc}&count=10`, mode: "messages" },
+      { method: "GET", url: `${baseUrl}/chat/messages?number=${enc}&count=10`, mode: "messages" },
+      { method: "GET", url: `${baseUrl}/chat/messages/${enc}?count=10`, mode: "messages" },
+      { method: "GET", url: `${baseUrl}/chat/${enc}/messages?count=10`, mode: "messages" },
+      { method: "GET", url: `${baseUrl}/messages/${enc}?limit=10`, mode: "messages" },
+      { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId: v, count: 10 }, mode: "messages" },
+      { method: "POST", url: `${baseUrl}/chat/messages`, body: { jid: v, count: 10 }, mode: "messages" },
+      { method: "POST", url: `${baseUrl}/chat/messages`, body: { number: v, count: 10 }, mode: "messages" },
+    );
+  }
+
+  endpoints.push(
     { method: "GET", url: `${baseUrl}/chat/list?count=500`, mode: "chats" },
     { method: "GET", url: `${baseUrl}/chats?type=group&count=500`, mode: "chats" },
-  ];
+  );
+
+  const variantNormSet = new Set(variants.map((v) => normalizeChatId(v)).filter(Boolean));
 
   const extractChatJid = (c: any): string =>
-    String(c?.JID || c?.jid || c?.id || c?.chatId || c?.groupJid || "");
+    String(c?.JID || c?.jid || c?.id || c?.chatId || c?.groupJid || c?.number || "");
 
   const extractLastFromChat = (c: any): any =>
-    c?.lastMessage || c?.last_message || c?.lastMsg || c?.message || c?.msg || c?.conversation || c?.recentMessage || null;
+    c?.lastMessage || c?.last_message || c?.lastMsg || c?.LastMessage || c?.message || c?.msg || c?.conversation || c?.recentMessage || null;
 
   for (const ep of endpoints) {
     try {
@@ -716,16 +787,14 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
       try { data = rawText ? JSON.parse(rawText) : {}; } catch { continue; }
 
       if (ep.mode === "messages") {
-        const messages = Array.isArray(data)
-          ? data
-          : data?.messages || data?.data || data?.result || [];
-
+        const messages = extractMessagesArray(data);
         if (!Array.isArray(messages) || messages.length === 0) continue;
 
         const normalized = messages
           .map((m: any, idx: number) => ({
             id: extractMsgId(m),
             ts: extractMsgTs(m),
+            fromMe: extractFromMe(m),
             idx,
           }))
           .filter((m: any) => !!m.id);
@@ -737,20 +806,44 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
           ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
           : normalized;
 
-        return ordered[0].id as string;
+        const preferred = ordered.find((m: any) => !m.fromMe) || ordered[0];
+        if (preferred?.id) {
+          console.log(`[fetchLastMsg] Found quoted id ${preferred.id} via ${ep.url}`);
+          return preferred.id as string;
+        }
+        continue;
       }
 
-      const chats = Array.isArray(data)
-        ? data
-        : data?.chats || data?.data || data?.result || [];
+      const chatCandidates = [
+        data,
+        data?.chats,
+        data?.data,
+        data?.data?.chats,
+        data?.result,
+        data?.result?.chats,
+      ];
+      const chats: any[] = [];
+      for (const c of chatCandidates) if (Array.isArray(c)) chats.push(...c);
+      if (chats.length === 0) continue;
 
-      if (!Array.isArray(chats) || chats.length === 0) continue;
-
-      const targetChat = chats.find((c: any) => extractChatJid(c) === chatId || extractChatJid(c).includes(chatId));
+      const targetChat = chats.find((c: any) => {
+        const candidateNorm = normalizeChatId(extractChatJid(c));
+        if (!candidateNorm) return false;
+        if (variantNormSet.has(candidateNorm)) return true;
+        for (const v of variantNormSet) {
+          if (candidateNorm.includes(v) || v.includes(candidateNorm)) return true;
+        }
+        return false;
+      });
       if (!targetChat) continue;
 
       const last = extractLastFromChat(targetChat);
-      const lastId = extractMsgId(last) || extractMsgId(targetChat?.lastMessage) || extractMsgId(targetChat?.message);
+      const lastId =
+        extractMsgId(last) ||
+        extractMsgId(targetChat?.lastMessage) ||
+        extractMsgId(targetChat?.message) ||
+        extractMsgId({ id: targetChat?.lastMessageId || targetChat?.last_message_id || targetChat?.lastMsgId });
+
       if (lastId) {
         console.log(`[fetchLastMsg] chat/list fallback using id ${lastId}`);
         return lastId;
