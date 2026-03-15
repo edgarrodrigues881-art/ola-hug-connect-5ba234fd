@@ -746,9 +746,11 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
 
   // Strategy 1: direct URL
   const urlResult = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl } },
+    { url: `${baseUrl}/send/sticker`, body: { number, url: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
-    { url: `${baseUrl}/send/sticker`, body: { number, image: imageUrl } },
+    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "sticker" } },
   ]);
   if (urlResult.ok) return urlResult.data;
 
@@ -766,8 +768,10 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
   }
 
   const b64Result = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, media: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
+    { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "sticker" } },
   ]);
   if (b64Result.ok) return b64Result.data;
 
