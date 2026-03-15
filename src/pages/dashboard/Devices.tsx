@@ -784,78 +784,73 @@ const Devices = () => {
 
     try {
       console.log("[edit-save] deviceId:", editingDevice.id, "wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
-      const warnings: string[] = [];
 
-      // 1. Profile name sync (fire-and-forget, never blocks save)
+      // 1. Prepare DB updates for photo/name BEFORE calling API
       if (wpName.trim()) {
         dbUpdates.profile_name = wpName.trim();
-        try {
-          const nameResult = await callApi({
-            action: "updateProfileName",
-            deviceId: editingDevice.id,
-            profileName: wpName.trim(),
-          });
-          if (isEdgeCallFailed(nameResult)) {
-            warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
-          }
-        } catch (e: any) {
-          console.warn("[edit-save] name sync failed:", e?.message);
-          warnings.push("Falha ao sincronizar nome no WhatsApp");
-        }
       }
-
-      // 2. Profile picture sync (fire-and-forget, never blocks save)
       if (wpRemovePhoto) {
         dbUpdates.profile_picture = null;
-        try {
-          const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
-          if (!removeResult.ok) {
-            warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
-          }
-        } catch (e: any) {
-          console.warn("[edit-save] photo remove failed:", e?.message);
-          warnings.push("Falha ao remover foto no WhatsApp");
-        }
       } else if (wpPhotoBase64) {
         try {
           const profilePictureDbValue = wpPhotoBase64.startsWith("data:image/")
             ? await uploadProfilePhotoDraft(wpPhotoBase64)
             : wpPhotoBase64;
           dbUpdates.profile_picture = profilePictureDbValue;
-
-          const profilePicturePayload = profilePictureDbValue || wpPhotoBase64;
-          const photoResult = await callApi({
-            action: "updateProfilePicture",
-            deviceId: editingDevice.id,
-            profilePictureData: profilePicturePayload,
-          });
-          if (isEdgeCallFailed(photoResult)) {
-            const apiErr = photoResult?.error || "";
-            const userMsg = apiErr.includes("not a valid image") || apiErr.includes("cannot be empty")
-              ? "A imagem não foi aceita pelo WhatsApp. Tente outra foto (JPG quadrada, mínimo 192x192px)."
-              : (apiErr || "Falha ao sincronizar foto no WhatsApp");
-            warnings.push(userMsg);
-          }
-        } catch (e: any) {
-          console.warn("[edit-save] photo sync failed:", e?.message);
-          // Still save the photo locally even if API sync failed
-          if (!dbUpdates.profile_picture && wpPhotoBase64) {
-            dbUpdates.profile_picture = wpPhotoBase64;
-          }
-          const apiMsg = e?.message || "";
-          warnings.push(
-            apiMsg.includes("não foi aceita") || apiMsg.includes("imagem")
-              ? apiMsg
-              : "A imagem não foi aceita pelo WhatsApp. Tente uma foto JPG quadrada (mínimo 192×192px)."
-          );
+        } catch {
+          dbUpdates.profile_picture = wpPhotoBase64;
         }
       }
 
-      // 3. Save to DB — updateMutation handles optimistic update + invalidation
+      // 2. Save to DB FIRST — instant optimistic update
       await updateMutation.mutateAsync({
         id: editingDevice.id,
         updates: dbUpdates,
       });
+
+      // 3. Close dialog immediately — user sees changes right away
+      closeEditDialog();
+      toast({ title: "Instância atualizada" });
+
+      // 4. Sync with WhatsApp in background (non-blocking)
+      const deviceId = editingDevice.id;
+      const bgWarnings: string[] = [];
+      
+      const bgSync = async () => {
+        // Name sync
+        if (wpName.trim()) {
+          try {
+            const nameResult = await callApi({ action: "updateProfileName", deviceId, profileName: wpName.trim() });
+            if (isEdgeCallFailed(nameResult)) bgWarnings.push("Nome não sincronizou com WhatsApp");
+          } catch { bgWarnings.push("Nome não sincronizou com WhatsApp"); }
+        }
+        // Photo sync
+        if (wpRemovePhoto) {
+          try {
+            const removeResult = await tryRemoveProfilePhoto(deviceId);
+            if (!removeResult.ok) bgWarnings.push("Foto não foi removida no WhatsApp");
+          } catch { bgWarnings.push("Foto não foi removida no WhatsApp"); }
+        } else if (wpPhotoBase64) {
+          try {
+            const photoPayload = dbUpdates.profile_picture || wpPhotoBase64;
+            const photoResult = await callApi({ action: "updateProfilePicture", deviceId, profilePictureData: photoPayload });
+            if (isEdgeCallFailed(photoResult)) {
+              const apiErr = photoResult?.error || "";
+              bgWarnings.push(
+                apiErr.includes("not a valid image") || apiErr.includes("cannot be empty")
+                  ? "A imagem não foi aceita pelo WhatsApp. Tente outra foto (JPG quadrada, mínimo 192×192px)."
+                  : "Foto não sincronizou com WhatsApp"
+              );
+            }
+          } catch { bgWarnings.push("Foto não sincronizou com WhatsApp"); }
+        }
+        if (bgWarnings.length > 0) {
+          toast({ title: "⚠️ Aviso de sincronização", description: bgWarnings[0], variant: "warning" });
+        }
+      };
+      bgSync(); // fire-and-forget
+
+      return; // skip the closeEditDialog/toast below
 
       if (warnings.length > 0) {
         const extraWarnings = warnings.length > 1 ? ` (+${warnings.length - 1} aviso${warnings.length > 2 ? "s" : ""})` : "";
