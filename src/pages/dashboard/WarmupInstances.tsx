@@ -171,7 +171,7 @@ const phaseShort: Record<string, string> = {
 
 const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
 
-const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick }: {
+const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick, onRemoveFromFolder }: {
   device: any;
   cycle: any;
   onPause: (id: string, e: React.MouseEvent) => void;
@@ -183,6 +183,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   deviceTags?: FolderTag[];
   availableTags?: FolderTag[];
   onTagClick?: (deviceId: string) => void;
+  onRemoveFromFolder?: (deviceId: string) => void;
 }) => {
   const connected = CONNECTED_STATUSES.includes(device.status);
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
@@ -340,6 +341,16 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
           >
             <Pencil className="w-3.5 h-3.5" /> Editar
+          </Button>
+        )}
+        {onRemoveFromFolder && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500/8"
+            onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(device.id); }}
+          >
+            <FolderOpen className="w-3.5 h-3.5" /> Remover da pasta
           </Button>
         )}
       </div>
@@ -829,6 +840,11 @@ const WarmupInstances = () => {
           deviceTags={activeFolder?.device_tags?.get(device.id)}
           availableTags={activeFolder?.tags}
           onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
+          onRemoveFromFolder={activeFolder ? (deviceId) => {
+            removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
+              toast({ title: "Instância removida da pasta" });
+            });
+          } : undefined}
         />
       )),
     [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
