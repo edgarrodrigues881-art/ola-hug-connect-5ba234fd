@@ -752,8 +752,8 @@ Deno.serve(async (req) => {
         const chunks: any[][] = allDevices.map(() => [] as any[]);
         contacts.forEach((c, i) => chunks[i % allDevices.length].push(c));
 
-        // Process devices in waves of 10 for massive concurrency
-        const DEVICE_WAVE_SIZE = 10;
+        // Process devices in waves of 30 for 300+ device concurrency
+        const DEVICE_WAVE_SIZE = 30;
         const allResults: { sent: number; failed: number }[] = [];
 
         for (let wave = 0; wave < allDevices.length; wave += DEVICE_WAVE_SIZE) {
