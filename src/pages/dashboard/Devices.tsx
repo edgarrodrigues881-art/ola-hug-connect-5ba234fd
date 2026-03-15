@@ -981,9 +981,12 @@ const Devices = () => {
       .from("media")
       .upload(filePath, bytes, { upsert: true, contentType: mimeType });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.warn("[photo-draft] storage upload failed, falling back to data URL:", uploadError.message);
+      return dataUrl;
+    }
     const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
-    return urlData.publicUrl;
+    return urlData.publicUrl || dataUrl;
   };
 
   const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
