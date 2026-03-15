@@ -1453,12 +1453,62 @@ async function handleTick(db: any) {
           await uazapiSendText(baseUrl, token, target._phone, msg);
         } catch (e) {
           const sendErr = e instanceof Error ? e.message : String(e);
-          // Retry once after 2s delay
+          const isInvalidNumber = sendErr.includes("not on WhatsApp") || sendErr.includes("not registered");
+
+          if (isInvalidNumber) {
+            // Auto-disable invalid contact so it won't be picked again
+            await db.from("warmup_autosave_contacts")
+              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .eq("phone_e164", target.phone_e164)
+              .eq("user_id", job.user_id);
+
+            // Cancel remaining jobs for this same recipient_index to avoid repeated failures
+            await db.from("warmup_jobs")
+              .update({ status: "cancelled", last_error: `Contato ${target._phone} não possui WhatsApp — desativado automaticamente` })
+              .eq("cycle_id", job.cycle_id)
+              .eq("job_type", "autosave_interaction")
+              .eq("status", "pending")
+              .filter("payload->>recipient_index", "eq", String(rIdx));
+
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "autosave_contact_disabled",
+              message: `Auto Save: contato ${target.contact_name || target._phone} desativado — número não existe no WhatsApp`,
+              meta: { phone: target._phone, error: sendErr },
+            });
+            break; // Don't throw — mark as succeeded to avoid retries
+          }
+
+          // Retry once after 2s delay for transient errors
           await new Promise(r => setTimeout(r, 2000));
           try {
             await uazapiSendText(baseUrl, token, target._phone, msg);
           } catch (e2) {
             const retryErr = e2 instanceof Error ? e2.message : String(e2);
+            const isInvalidRetry = retryErr.includes("not on WhatsApp") || retryErr.includes("not registered");
+
+            if (isInvalidRetry) {
+              await db.from("warmup_autosave_contacts")
+                .update({ is_active: false, updated_at: new Date().toISOString() })
+                .eq("phone_e164", target.phone_e164)
+                .eq("user_id", job.user_id);
+
+              await db.from("warmup_jobs")
+                .update({ status: "cancelled", last_error: `Contato ${target._phone} não possui WhatsApp — desativado automaticamente` })
+                .eq("cycle_id", job.cycle_id)
+                .eq("job_type", "autosave_interaction")
+                .eq("status", "pending")
+                .filter("payload->>recipient_index", "eq", String(rIdx));
+
+              bufferAudit({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "warn", event_type: "autosave_contact_disabled",
+                message: `Auto Save: contato ${target.contact_name || target._phone} desativado — número não existe no WhatsApp`,
+                meta: { phone: target._phone, error: retryErr },
+              });
+              break;
+            }
+
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_send_failed",
