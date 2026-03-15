@@ -1016,7 +1016,8 @@ Deno.serve(async (req) => {
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
-            // Check device status before sending
+            // Check device status every 10 messages (not every message — reduces DB load)
+            if (heartbeatCounter % 10 === 1) {
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
               console.log(`⚠️ Device ${activeDevice.name} is ${deviceStatus.status}, pausing campaign`);
@@ -1024,6 +1025,7 @@ Deno.serve(async (req) => {
               await serviceClient.from("campaigns").update({ status: "paused", updated_at: new Date().toISOString() }).eq("id", campaignId);
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
               break;
+            }
             }
 
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
