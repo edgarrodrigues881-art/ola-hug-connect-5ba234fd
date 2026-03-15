@@ -854,6 +854,9 @@ Deno.serve(async (req) => {
           // uazapiGO canonical endpoint
           { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
           // alternate accepted payload keys in some providers
+          { path: "/profile/image", method: "POST" as const, payload: { picture: imageValue } },
+          { path: "/profile/image", method: "POST" as const, payload: { url: imageValue } },
+          { path: "/profile/image", method: "POST" as const, payload: { imageUrl: imageValue } },
           { path: "/profile/image", method: "POST" as const, payload: { file: imageValue } },
           { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
           // legacy fallbacks
