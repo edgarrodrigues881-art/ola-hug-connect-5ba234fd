@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import dgGroupAvatar from "@/assets/dg-group-avatar.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
