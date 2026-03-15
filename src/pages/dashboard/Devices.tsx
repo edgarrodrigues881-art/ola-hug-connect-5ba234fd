@@ -105,6 +105,7 @@ const Devices = () => {
 
   const withAvatarRefresh = (url: string | null) => {
     if (!url) return "";
+    if (url.startsWith("data:image/")) return url;
     const sep = url.includes("?") ? "&" : "?";
     return `${url}${sep}v=${avatarRefreshTick}`;
   };
