@@ -917,7 +917,7 @@ async function handleTick(db: any) {
 
   // ── GROUP JOBS BY DEVICE ──
   const jobsByDevice: Record<string, any[]> = {};
-  for (const job of pendingJobs) {
+  for (const job of filteredJobs) {
     if (!jobsByDevice[job.device_id]) jobsByDevice[job.device_id] = [];
     jobsByDevice[job.device_id].push(job);
   }
