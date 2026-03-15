@@ -1008,8 +1008,7 @@ async function handleTick(db: any) {
           if (pendingCount === 0 && !hasMoreJoinJobs && cycle.phase === "pre_24h") {
             // All groups joined! Check if it's after 7:00 BRT (10:00 UTC)
             const now = new Date();
-            const windowOpen = new Date(now);
-            windowOpen.setUTCHours(10, 0, 0, 0); // 7:00 BRT
+            const windowOpen = getBrtTodayAt(7);
 
             if (now.getTime() >= windowOpen.getTime()) {
               // Already past 7:00 BRT → transition immediately and schedule messages
