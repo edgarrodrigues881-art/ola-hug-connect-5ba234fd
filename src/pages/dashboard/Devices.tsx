@@ -2742,7 +2742,7 @@ const Devices = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProfileOpen(false)} disabled={wpSaving}>Cancelar</Button>
+            <Button variant="outline" onClick={closeProfileDialog} disabled={wpSaving}>Cancelar</Button>
             <Button onClick={handleProfileUpdate} disabled={wpSaving} className="bg-primary hover:bg-primary/90">
               {wpSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Salvar
