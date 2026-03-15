@@ -927,6 +927,36 @@ const Devices = () => {
     reader.readAsDataURL(file);
   });
 
+  const normalizePhotoForProvider = (dataUrl: string, maxDimension = 640, quality = 0.9) =>
+    new Promise<string>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const longest = Math.max(img.width, img.height);
+          const scale = longest > maxDimension ? maxDimension / longest : 1;
+          const width = Math.max(1, Math.round(img.width * scale));
+          const height = Math.max(1, Math.round(img.height * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Falha ao processar imagem");
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
+          if (!jpegDataUrl.startsWith("data:image/jpeg;base64,")) {
+            throw new Error("Falha ao converter imagem");
+          }
+          resolve(jpegDataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => reject(new Error("Imagem inválida"));
+      img.src = dataUrl;
+    });
+
   const uploadProfilePhotoDraft = async (dataUrl: string): Promise<string> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Não autenticado");
@@ -957,8 +987,9 @@ const Devices = () => {
     setWpUploading(true);
     try {
       const previewUrl = URL.createObjectURL(file);
-      const dataUrl = await fileToDataUrl(file);
-      setWpPhotoBase64(dataUrl);
+      const rawDataUrl = await fileToDataUrl(file);
+      const safeProviderDataUrl = await normalizePhotoForProvider(rawDataUrl);
+      setWpPhotoBase64(safeProviderDataUrl);
       setWpPhotoUrl(previewUrl);
       setWpRemovePhoto(false);
       // Photo preview ready silently — no toast needed
