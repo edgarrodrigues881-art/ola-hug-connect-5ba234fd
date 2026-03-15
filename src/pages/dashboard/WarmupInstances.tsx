@@ -446,11 +446,21 @@ const WarmupInstances = () => {
     [filteredDevices]
   );
 
+  // Collect all device IDs assigned to any folder
+  const allFolderDeviceIds = useMemo(() => {
+    const ids = new Set<string>();
+    folders.forEach(f => (f.device_ids || []).forEach(id => ids.add(id)));
+    return ids;
+  }, [folders]);
+
   const displayed = useMemo(() => {
     return filteredDevices.filter((d) => {
       // Folder filter
       if (activeFolder && activeFolder.device_ids) {
         if (!activeFolder.device_ids.includes(d.id)) return false;
+      } else if (!activeFolderId) {
+        // Main view: hide devices that belong to any folder
+        if (allFolderDeviceIds.has(d.id)) return false;
       }
       if (search) {
         const q = search.toLowerCase();
@@ -464,7 +474,7 @@ const WarmupInstances = () => {
       }
       return true;
     });
-  }, [filteredDevices, search, statusFilter, cycleByDeviceId, activeFolder]);
+  }, [filteredDevices, search, statusFilter, cycleByDeviceId, activeFolder, activeFolderId, allFolderDeviceIds]);
 
   // --- Connect logic ---
   const callApi = async (body: Record<string, any>) => {
