@@ -963,7 +963,7 @@ const Devices = () => {
 
       const failed = results.filter(r => r.status === "rejected").length;
       const warningCount = results.reduce((acc, result) => {
-        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        if (result.status === "fulfilled") return acc + result.value.warnings.length;
         return acc;
       }, 0);
 
@@ -972,7 +972,7 @@ const Devices = () => {
       } else if (warningCount > 0) {
         toast({
           title: wpApplyAll ? `Perfil salvo com ressalvas (${targetDevices.length} chips)` : "Perfil salvo com ressalva",
-          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          description: `${warningCount} aviso(s) de sincronização no WhatsApp`,
           variant: "destructive",
         });
       } else {
