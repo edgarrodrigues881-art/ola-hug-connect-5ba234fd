@@ -116,6 +116,24 @@ export function useWarmupFolders() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
   });
 
+  const updateDeviceTags = useMutation({
+    mutationFn: async (params: { folderId: string; deviceId: string; tags: FolderTag[] }) => {
+      const { error } = await supabase
+        .from("warmup_folder_devices" as any)
+        .update({ tags: params.tags } as any)
+        .eq("folder_id", params.folderId)
+        .eq("device_id", params.deviceId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
+  });
+
+  // Build a map of deviceId -> tags from folder_devices assocs
+  const deviceTagsMap = new Map<string, FolderTag[]>();
+  (foldersQuery.data || []).forEach(folder => {
+    // We need the raw assocs data - store it during query
+  });
+
   return {
     folders: foldersQuery.data || [],
     isLoading: foldersQuery.isLoading,
@@ -124,5 +142,6 @@ export function useWarmupFolders() {
     deleteFolder,
     addDevices,
     removeDevice,
+    updateDeviceTags,
   };
 }
