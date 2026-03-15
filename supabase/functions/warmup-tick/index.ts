@@ -245,14 +245,16 @@ async function scheduleDayJobs(
     }
   }
 
-  // Phase transitions — DISABLED: autosave/community desativados para testes de grupo
-  // Fase permanece em "groups_only" do dia 2 ao dia 30
-  // if (phase === "groups_only" && dayIndex >= getGroupsEndDay(chipState)) {
-  //   jobs.push({ ... job_type: "enable_autosave" ... });
-  // }
-  // if (phase === "autosave_enabled") {
-  //   jobs.push({ ... job_type: "enable_community" ... });
-  // }
+  // Phase transitions — Autosave reativado, community desativado
+  if (phase === "groups_only" && dayIndex >= getGroupsEndDay(chipState)) {
+    jobs.push({
+      user_id: userId, device_id: deviceId, cycle_id: cycleId,
+      job_type: "enable_autosave", payload: {},
+      run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
+    });
+  }
+  // Community DISABLED
+  // if (phase === "autosave_enabled") { ... enable_community ... }
 
   // Insert jobs
   for (let i = 0; i < jobs.length; i += 100) {
