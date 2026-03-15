@@ -1734,12 +1734,30 @@ const WarmupInstanceDetail = () => {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>A <strong className="text-foreground">próxima tarefa pendente será executada agora</strong>. As demais continuam no cronograma original.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending").length}</strong> tarefa(s) pendente(s) no total.
                   {(() => {
-                    const next = scheduledJobs.filter(j => j.status === "pending").sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime())[0];
-                    if (!next) return null;
-                    const label = next.job_type === "join_group" ? "Entrada em grupo" : next.job_type.replace(/_/g, " ");
-                    return <> Próxima: <strong className="text-foreground">{label}</strong></>;
+                    const isDay2Plus = (cycle?.day_index ?? 1) > 1;
+                    const pending = scheduledJobs.filter(j => j.status === "pending");
+                    const next = pickNextForcedJob(pending as ScheduledJobLite[]);
+                    const visiblePendingCount = isDay2Plus
+                      ? pending.filter(j => j.job_type !== "join_group").length
+                      : pending.length;
+
+                    const jobLabelMap: Record<string, string> = {
+                      join_group: "Entrada em grupo",
+                      group_interaction: "Mensagem/foto/figurinha em grupo",
+                      autosave_interaction: "Mensagem privada",
+                      community_interaction: "Interação comunitária",
+                      phase_transition: "Avançar fase",
+                      enable_autosave: "Ativar Auto Save",
+                      enable_community: "Ativar Comunidade",
+                    };
+
+                    return (
+                      <>
+                        <strong className="text-foreground">{visiblePendingCount}</strong> tarefa(s) pendente(s) no total.
+                        {next ? <> Próxima: <strong className="text-foreground">{jobLabelMap[next.job_type] || next.job_type.replace(/_/g, " ")}</strong></> : null}
+                      </>
+                    );
                   })()}
                 </p>
               </div>
