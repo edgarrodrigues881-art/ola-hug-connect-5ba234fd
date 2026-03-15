@@ -1467,7 +1467,7 @@ async function handleTick(db: any) {
         try {
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id, user_id: job.user_id,
-            recipient_phone_e164: sentContact.phone_e164,
+            recipient_phone_e164: target.phone_e164,
             day_date: new Date().toISOString().split("T")[0],
           });
         } catch { /* duplicate OK */ }
@@ -1481,8 +1481,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${sentContact.contact_name || sentPhone}`,
-          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: sentContact.contact_name },
+          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || sentPhone}`,
+          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name },
         });
         break;
       }
