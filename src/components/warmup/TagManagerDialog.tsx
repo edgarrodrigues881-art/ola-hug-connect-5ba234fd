@@ -69,7 +69,7 @@ export function TagManagerDialog({ open, onOpenChange, tags: initialTags, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px] bg-card/95 backdrop-blur-2xl border-border/10 p-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent className="sm:max-w-[340px] bg-card/95 backdrop-blur-2xl border-border/10 p-0 overflow-hidden rounded-2xl shadow-2xl">
         {/* Header with gradient accent */}
         <div className="px-5 pt-5 pb-3">
           <DialogHeader>
@@ -139,16 +139,16 @@ export function TagManagerDialog({ open, onOpenChange, tags: initialTags, onSave
             {/* Color picker */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Cor da tag</label>
-              <div className="grid grid-cols-8 gap-2">
+              <div className="grid grid-cols-8 gap-1.5">
                 {TAG_COLORS.map((c) => (
                   <button
                     key={c}
                     onClick={() => setTagColor(c)}
                     className={cn(
-                      "w-7 h-7 rounded-full transition-all duration-200",
+                      "w-6 h-6 rounded-full transition-all duration-200",
                       tagColor === c
-                        ? "ring-2 ring-offset-2 ring-offset-card ring-foreground/70 scale-110 shadow-lg"
-                        : "opacity-50 hover:opacity-80 hover:scale-105"
+                        ? "ring-2 ring-offset-2 ring-offset-card ring-foreground/70 scale-110"
+                        : "opacity-50 hover:opacity-80"
                     )}
                     style={{ backgroundColor: c }}
                   />
