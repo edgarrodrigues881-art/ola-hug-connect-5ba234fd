@@ -218,13 +218,14 @@ async function scheduleDayJobs(
     let cursor = effectiveStart + asStartOffset;
 
     for (let c = 0; c < volumes.autosaveContacts; c++) {
+      // Check window BEFORE starting a new contact — never break mid-contact
+      if (cursor > effectiveEnd) break;
       for (let r = 0; r < volumes.autosaveRounds; r++) {
-        if (cursor > effectiveEnd) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "autosave_interaction",
           payload: { recipient_index: c, msg_index: r },
-          run_at: new Date(cursor).toISOString(), status: "pending",
+          run_at: new Date(Math.min(cursor, effectiveEnd)).toISOString(), status: "pending",
         });
         cursor += randInt(4, 7) * 60 * 1000;
       }
