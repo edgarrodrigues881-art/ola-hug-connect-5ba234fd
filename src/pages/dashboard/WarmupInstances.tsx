@@ -171,7 +171,7 @@ const phaseShort: Record<string, string> = {
 
 const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
 
-const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick }: {
+const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick, onRemoveFromFolder }: {
   device: any;
   cycle: any;
   onPause: (id: string, e: React.MouseEvent) => void;
@@ -183,6 +183,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   deviceTags?: FolderTag[];
   availableTags?: FolderTag[];
   onTagClick?: (deviceId: string) => void;
+  onRemoveFromFolder?: (deviceId: string) => void;
 }) => {
   const connected = CONNECTED_STATUSES.includes(device.status);
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
