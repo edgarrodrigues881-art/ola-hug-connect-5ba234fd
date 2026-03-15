@@ -759,10 +759,6 @@ const Devices = () => {
       proxy_id: newProxyId,
     };
 
-    if (wpName.trim()) {
-      dbUpdates.profile_name = wpName.trim();
-    }
-
     try {
       const warnings: string[] = [];
 
