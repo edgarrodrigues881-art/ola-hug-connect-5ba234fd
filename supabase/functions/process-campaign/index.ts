@@ -303,10 +303,9 @@ class RandomPicker {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-// ─── LOCK HELPERS (parallelized for 30+ devices) ───
+// ─── LOCK HELPERS (parallelized for 300+ devices) ───
 async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string, userId: string): Promise<{ acquired: boolean; lockedBy?: string }> {
-  // Acquire all locks in parallel for high-concurrency scenarios
-  const LOCK_BATCH_SIZE = 10;
+  const LOCK_BATCH_SIZE = 50; // 50 parallel RPCs per wave
   for (let i = 0; i < deviceIds.length; i += LOCK_BATCH_SIZE) {
     const batch = deviceIds.slice(i, i + LOCK_BATCH_SIZE);
     const results = await Promise.allSettled(
@@ -315,7 +314,7 @@ async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campa
           _device_id: deviceId,
           _campaign_id: campaignId,
           _user_id: userId,
-          _stale_seconds: 180, // extended for large device counts
+          _stale_seconds: 300, // 5min for massive device counts
         })
       )
     );
@@ -335,8 +334,7 @@ async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campa
 }
 
 async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string) {
-  // Release all locks in parallel
-  const RELEASE_BATCH = 15;
+  const RELEASE_BATCH = 50;
   for (let i = 0; i < deviceIds.length; i += RELEASE_BATCH) {
     const batch = deviceIds.slice(i, i + RELEASE_BATCH);
     await Promise.allSettled(
@@ -350,41 +348,38 @@ async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campa
   }
 }
 
-// After releasing locks, auto-start next queued campaign for any of these devices
+// After releasing locks, auto-start next queued campaign (optimized: single query)
 async function startNextQueuedCampaigns(serviceClient: any, deviceIds: string[], supabaseUrl: string, serviceRoleKey: string) {
   try {
-    for (const deviceId of deviceIds) {
-      // Find oldest queued campaign that uses this device
-      const { data: queued } = await serviceClient
-        .from("campaigns")
-        .select("id, user_id, device_id, device_ids")
-        .eq("status", "queued")
-        .order("created_at", { ascending: true });
+    // Single query instead of N queries per device
+    const { data: queued } = await serviceClient
+      .from("campaigns")
+      .select("id, user_id, device_id, device_ids")
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(10);
 
-      if (!queued || queued.length === 0) continue;
+    if (!queued || queued.length === 0) return;
 
-      // Find first queued campaign that uses this specific device
-      const match = queued.find((c: any) => {
-        const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
-          ? c.device_ids : c.device_id ? [c.device_id] : [];
-        return ids.includes(deviceId);
-      });
+    const deviceSet = new Set(deviceIds);
+    const match = queued.find((c: any) => {
+      const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
+        ? c.device_ids : c.device_id ? [c.device_id] : [];
+      return ids.some(id => deviceSet.has(id));
+    });
 
-      if (match) {
-        console.log(`🚀 Auto-starting queued campaign ${match.id} for device ${deviceId}`);
-        await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
-
-        // Try to acquire lock
-        const lockResult = await acquireDeviceLocks(serviceClient, [deviceId], match.id, match.user_id);
-        if (lockResult.acquired) {
-          await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
-          // Fire and forget
-          selfContinue(supabaseUrl, serviceRoleKey, match.id, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
-        } else {
-          // Another campaign grabbed the lock first, revert to queued
-          await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
-        }
-        break; // Only start one at a time per release
+    if (match) {
+      const matchDeviceIds: string[] = Array.isArray(match.device_ids) && match.device_ids.length > 0
+        ? match.device_ids : match.device_id ? [match.device_id] : [];
+      const firstDevice = matchDeviceIds[0];
+      console.log(`🚀 Auto-starting queued campaign ${match.id}`);
+      await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
+      const lockResult = await acquireDeviceLocks(serviceClient, [firstDevice], match.id, match.user_id);
+      if (lockResult.acquired) {
+        await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
+        selfContinue(supabaseUrl, serviceRoleKey, match.id, firstDevice, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
+      } else {
+        await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
       }
     }
   } catch (err) {
@@ -628,8 +623,15 @@ Deno.serve(async (req) => {
 
       let allDevices: any[] = [];
       if (deviceIds.length > 0) {
-        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
-        const devMap = new Map((devs || []).map(d => [d.id, d]));
+        // Paginated device loading for 300+ devices (Supabase 1000-row limit)
+        const PAGE_SIZE = 500;
+        const allDevData: any[] = [];
+        for (let i = 0; i < deviceIds.length; i += PAGE_SIZE) {
+          const batch = deviceIds.slice(i, i + PAGE_SIZE);
+          const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", batch);
+          if (devs) allDevData.push(...devs);
+        }
+        const devMap = new Map(allDevData.map(d => [d.id, d]));
         allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!d.uazapi_base_url);
       }
 
@@ -689,8 +691,8 @@ Deno.serve(async (req) => {
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
       const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
 
-      // Scale batch size by device count (10 per device, min 100, max 500)
-      const dynamicBatchSize = Math.min(500, Math.max(100, allDevices.length * 10));
+      // Scale batch size by device count (3 per device, min 100, max 1000 — Supabase limit)
+      const dynamicBatchSize = Math.min(1000, Math.max(100, allDevices.length * 3));
       // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
@@ -757,8 +759,8 @@ Deno.serve(async (req) => {
         const chunks: any[][] = allDevices.map(() => [] as any[]);
         contacts.forEach((c, i) => chunks[i % allDevices.length].push(c));
 
-        // Process devices in waves of 10 for massive concurrency
-        const DEVICE_WAVE_SIZE = 10;
+        // Process devices in waves of 30 for 300+ device concurrency
+        const DEVICE_WAVE_SIZE = 30;
         const allResults: { sent: number; failed: number }[] = [];
 
         for (let wave = 0; wave < allDevices.length; wave += DEVICE_WAVE_SIZE) {
@@ -792,12 +794,13 @@ Deno.serve(async (req) => {
 
             // Heartbeat every 15 messages (reduced from 5 to lower DB load with 30+ devices)
             devHeartbeat++;
-            if (devHeartbeat % 15 === 0) {
+            // Heartbeat every 25 messages per device (300 devices × manageable DB load)
+            if (devHeartbeat % 25 === 0) {
               await heartbeatLock(serviceClient, campaignId);
             }
 
-            // Status check every 10 messages (not every message — saves 90% of queries with 30 devices)
-            if (devHeartbeat % 10 === 1) {
+            // Status check every 20 messages per device (saves ~95% queries with 300 devices)
+            if (devHeartbeat % 20 === 1) {
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
             if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
@@ -970,14 +973,14 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // Heartbeat every 10 messages (optimized for high device count)
+          // Heartbeat every 20 messages (optimized for 300+ devices)
           heartbeatCounter++;
-          if (heartbeatCounter % 10 === 0) {
+          if (heartbeatCounter % 20 === 0) {
             await heartbeatLock(serviceClient, campaignId);
           }
 
-          // Check if paused/canceled every 8 messages (batched to reduce DB load)
-          if (heartbeatCounter % 8 === 1) {
+          // Check if paused/canceled every 15 messages
+          if (heartbeatCounter % 15 === 1) {
           const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
           if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
             console.log(`Campaign ${campaignId} was ${freshCampaign.status}. Stopping.`);
