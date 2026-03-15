@@ -38,16 +38,22 @@ export function useWarmupFolders() {
         .eq("user_id", user!.id);
 
       const folderDevices = new Map<string, string[]>();
+      const folderDeviceTags = new Map<string, Map<string, FolderTag[]>>();
       (assocs || []).forEach((a: any) => {
         const arr = folderDevices.get(a.folder_id) || [];
         arr.push(a.device_id);
         folderDevices.set(a.folder_id, arr);
+
+        if (!folderDeviceTags.has(a.folder_id)) folderDeviceTags.set(a.folder_id, new Map());
+        const dtMap = folderDeviceTags.get(a.folder_id)!;
+        dtMap.set(a.device_id, Array.isArray(a.tags) ? a.tags : []);
       });
 
       return (folders as any[]).map((f) => ({
         ...f,
         tags: Array.isArray(f.tags) ? f.tags : [],
         device_ids: folderDevices.get(f.id) || [],
+        device_tags: folderDeviceTags.get(f.id) || new Map<string, FolderTag[]>(),
       })) as WarmupFolder[];
     },
   });
