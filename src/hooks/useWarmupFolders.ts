@@ -134,13 +134,6 @@ export function useWarmupFolders() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
   });
-
-  // Build a map of deviceId -> tags from folder_devices assocs
-  const deviceTagsMap = new Map<string, FolderTag[]>();
-  (foldersQuery.data || []).forEach(folder => {
-    // We need the raw assocs data - store it during query
-  });
-
   return {
     folders: foldersQuery.data || [],
     isLoading: foldersQuery.isLoading,
