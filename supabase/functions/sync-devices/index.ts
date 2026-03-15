@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
 
     // Limit expensive deep profile checks per run to protect high-concurrency scenarios
     let deepProfileChecks = 0;
-    const MAX_DEEP_PROFILE_CHECKS = 20;
+    const MAX_DEEP_PROFILE_CHECKS = Math.min(120, Math.max(30, Math.ceil(syncable.length * 0.5)));
 
     if (circuitOpen) {
       // Log the provider outage but DON'T disconnect anything
