@@ -591,64 +591,38 @@ function buildMsg(ctx: MsgCtx): string {
 // UAZAPI COMMUNICATION
 // ══════════════════════════════════════════════════════════
 
+function buildQuotedPayload(quotedMsgId?: string): Record<string, unknown> {
+  if (!quotedMsgId) return {};
+  return {
+    quotedMsgId,
+    quotedMessageId: quotedMsgId,
+    quoted_message_id: quotedMsgId,
+    replyTo: quotedMsgId,
+    messageId: quotedMsgId,
+    stanzaId: quotedMsgId,
+    quoted: { id: quotedMsgId },
+    contextInfo: { quotedMessageId: quotedMsgId },
+  };
+}
+
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
+  const quotePayload = buildQuotedPayload(quotedMsgId);
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
     {
       path: "/send/text",
-      body: {
-        number,
-        text,
-        ...(quotedMsgId
-          ? {
-              quotedMsgId,
-              quotedMessageId: quotedMsgId,
-              quoted_message_id: quotedMsgId,
-              replyTo: quotedMsgId,
-            }
-          : {}),
-      },
+      body: { number, text, ...quotePayload },
     },
     {
       path: "/chat/send-text",
-      body: {
-        to: number,
-        body: text,
-        ...(quotedMsgId
-          ? {
-              quotedMsgId,
-              quotedMessageId: quotedMsgId,
-              replyTo: quotedMsgId,
-            }
-          : {}),
-      },
+      body: { number, to: number, chatId: number, body: text, text, ...quotePayload },
     },
     {
       path: "/message/sendText",
-      body: {
-        chatId: number,
-        text,
-        ...(quotedMsgId
-          ? {
-              quotedMsgId,
-              quotedMessageId: quotedMsgId,
-              replyTo: quotedMsgId,
-            }
-          : {}),
-      },
+      body: { chatId: number, text, ...quotePayload },
     },
     {
       path: "/message/sendText",
-      body: {
-        to: number,
-        text,
-        ...(quotedMsgId
-          ? {
-              quotedMsgId,
-              quotedMessageId: quotedMsgId,
-              replyTo: quotedMsgId,
-            }
-          : {}),
-      },
+      body: { to: number, text, ...quotePayload },
     },
   ];
 
