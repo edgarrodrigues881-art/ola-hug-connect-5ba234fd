@@ -800,6 +800,11 @@ const Devices = () => {
         updates: dbUpdates,
       });
 
+      // Optimistic cache update so card reflects changes instantly
+      queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+        old ? old.map(d => d.id === editingDevice.id ? { ...d, ...dbUpdates } : d) : old
+      );
+
       if (warnings.length > 0) {
         const extraWarnings = warnings.length > 1 ? ` (+${warnings.length - 1} aviso${warnings.length > 2 ? "s" : ""})` : "";
         toast({
