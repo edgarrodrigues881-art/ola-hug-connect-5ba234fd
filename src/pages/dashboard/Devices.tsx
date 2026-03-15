@@ -930,7 +930,7 @@ const Devices = () => {
       setWpPhotoBase64(dataUrl);
       setWpPhotoUrl(previewUrl);
       setWpRemovePhoto(false);
-      toast({ title: "Prévia carregada", description: "Clique em Salvar para aplicar" });
+      // Photo preview ready silently — no toast needed
     } catch (err: any) {
       console.error("Photo draft error:", err);
       toast({ title: "Erro ao carregar foto", description: err?.message, variant: "destructive" });
