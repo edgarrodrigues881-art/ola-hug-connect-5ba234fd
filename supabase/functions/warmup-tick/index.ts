@@ -1619,35 +1619,26 @@ async function handleTick(db: any) {
         let message = getMsg();
         let sendFallbackReason: string | null = null;
 
-        // Reply: tenta sempre pegar a última mensagem do grupo
-        let quotedMsgId: string | null = null;
-        try {
-          quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
-        } catch {
-          /* ignore, send without quote */
-        }
+        // NOTE: Reply (quotedMsgId) disabled — UAZAPI does not support fetching chat messages
 
         try {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption, quotedMsgId || undefined);
-            message = quotedMsgId ? `[IMG-REPLY] ${caption}` : `[IMG] ${caption}`;
+            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
+            message = `[IMG] ${caption}`;
           } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
-            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl, quotedMsgId || undefined);
-            const stickerMsg = getMsg();
-            try { await uazapiSendText(baseUrl, token, groupJid, stickerMsg, quotedMsgId || undefined); } catch { /* ok */ }
-            message = quotedMsgId ? `[STICKER-REPLY] 🎭 + "${stickerMsg.substring(0, 40)}"` : `[STICKER] 🎭 + "${stickerMsg.substring(0, 40)}"`;
+            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
+            message = `[STICKER] 🎭`;
           } else {
-            await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
-            if (quotedMsgId) message = `[REPLY] ${message}`;
+            await uazapiSendText(baseUrl, token, groupJid, message);
           }
         } catch (e) {
           actualMediaType = "text";
           sendFallbackReason = e instanceof Error ? e.message : String(e || "unknown_error");
           message = getMsg();
-          await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
+          await uazapiSendText(baseUrl, token, groupJid, message);
         }
 
         // Update budget (increment)
@@ -1664,7 +1655,6 @@ async function handleTick(db: any) {
             group_jid: groupJid,
             media_type: actualMediaType,
             requested_media_type: requestedMediaType,
-            quoted_msg_id: quotedMsgId,
             send_fallback_reason: sendFallbackReason,
             group_id: targetGroupId,
           },
