@@ -1740,9 +1740,14 @@ const WarmupInstanceDetail = () => {
                     const isDay2Plus = (cycle?.day_index ?? 1) > 1;
                     const pending = scheduledJobs.filter(j => j.status === "pending");
                     const next = pickNextForcedJob(pending as ScheduledJobLite[]);
-                    const visiblePendingCount = isDay2Plus
+                    const rawCount = isDay2Plus
                       ? pending.filter(j => j.job_type !== "join_group").length
                       : pending.length;
+                    // Use budget target as ceiling to stay consistent with the progress bar
+                    const budgetTarget = cycle?.daily_interaction_budget_target ?? 0;
+                    const visiblePendingCount = budgetTarget > 0 && isDay2Plus
+                      ? Math.min(rawCount, budgetTarget - (cycle?.daily_interaction_budget_used ?? 0))
+                      : rawCount;
 
                     const jobLabelMap: Record<string, string> = {
                       join_group: "Entrada em grupo",
