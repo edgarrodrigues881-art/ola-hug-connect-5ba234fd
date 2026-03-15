@@ -215,8 +215,9 @@ const formatPhone = (num: string) => {
 const WarmupInstances = () => {
   const [searchParams] = useSearchParams();
   const activeFolderId = searchParams.get("folder");
-  const { folders } = useWarmupFolders();
+  const { folders, addDevices, removeDevice } = useWarmupFolders();
   const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
+  const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
