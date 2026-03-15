@@ -33,8 +33,8 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   cycle_resumed: "Ciclo retomado",
   cycle_stopped: "Ciclo encerrado",
   group_joined: "Entrou no grupo",
-  group_msg_sent: "Msg em grupo",
-  group_interaction: "Interação grupo",
+  group_msg_sent: "Msg/foto/figurinha em grupo",
+  group_interaction: "Msg/foto/figurinha em grupo",
   autosave_interaction: "Auto Save",
   community_interaction: "Comunidade",
   daily_reset: "Reset diário",
@@ -1367,7 +1367,7 @@ const WarmupInstanceDetail = () => {
                     
                   };
                   const jobLabelMap: Record<string, string> = {
-                    join_group: "Entrar no grupo", group_interaction: "Msg em grupo",
+                    join_group: "Entrar no grupo", group_interaction: "Msg/foto/figurinha",
                     autosave_interaction: "Auto Save", community_interaction: "Comunitário",
                     phase_transition: "Avançar fase", daily_reset: "Reset diário",
                     enable_autosave: "Ativar Auto Save", enable_community: "Ativar Comunidade",
