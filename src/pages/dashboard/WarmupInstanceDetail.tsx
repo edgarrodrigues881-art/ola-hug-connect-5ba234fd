@@ -169,7 +169,6 @@ const WarmupInstanceDetail = () => {
     setAccelerating(true);
     try {
       const nowMs = Date.now();
-      const nowIso = new Date(nowMs).toISOString();
       const phase = cycle.phase;
 
       // Determine which job types to accelerate based on current phase
