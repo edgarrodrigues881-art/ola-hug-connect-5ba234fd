@@ -784,14 +784,43 @@ Deno.serve(async (req) => {
       if (!profilePictureData) return json({ error: "profilePictureData obrigatório" }, 400);
 
       if (profilePictureData === "remove") {
-        for (const ep of ["/profile/picture/remove", "/profile/remove-picture", "/instance/profile/picture/remove"]) {
-          const r = await uazapi(instanceUrl, ep, instanceToken, "POST", undefined, { timeoutMs: 6000, retries: 1 });
+        const removeAttempts = [
+          { path: "/profile/picture/remove", method: "POST" as const },
+          { path: "/profile/remove-picture", method: "POST" as const },
+          { path: "/instance/profile/picture/remove", method: "POST" as const },
+          { path: "/profile/picture", method: "DELETE" as const },
+          { path: "/instance/profile/picture", method: "DELETE" as const },
+          { path: "/profile/picture", method: "POST" as const, payload: { remove: true } },
+          { path: "/profile/update-picture", method: "POST" as const, payload: { remove: true } },
+          { path: "/instance/profile/picture", method: "POST" as const, payload: { remove: true } },
+          { path: "/profile/picture", method: "POST" as const, payload: { picture: "" } },
+          { path: "/profile/picture", method: "POST" as const, payload: { image: "" } },
+          { path: "/profile/picture", method: "POST" as const, payload: { picture: null } },
+          { path: "/instance/profile/picture", method: "POST" as const, payload: { picture: null } },
+        ];
+
+        const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
+
+        for (const attempt of removeAttempts) {
+          const r = await uazapi(instanceUrl, attempt.path, instanceToken, attempt.method, attempt.payload, { timeoutMs: 6000, retries: 0 });
           if (r.ok) {
             await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
-            return json({ success: true, endpoint: ep, ...r.data });
+            return json({ success: true, endpoint: attempt.path, method: attempt.method, ...r.data });
           }
+
+          failures.push({
+            path: attempt.path,
+            method: attempt.method,
+            status: r.status,
+            error: String(r.data?.error || r.data?.message || r.data?.raw || "" || null),
+          });
         }
-        return json({ success: false, error: "Não foi possível remover a foto no WhatsApp." }, 422);
+
+        return json({
+          success: false,
+          error: "Não foi possível remover a foto no WhatsApp.",
+          attempts: failures,
+        }, 422);
       }
 
       const isUrl = profilePictureData.startsWith("http");

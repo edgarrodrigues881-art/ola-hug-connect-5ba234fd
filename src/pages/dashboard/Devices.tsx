@@ -1124,9 +1124,24 @@ const Devices = () => {
 
       // Retry on concurrency/overload errors (non-2xx without meaningful data)
       if (response.error) {
+        let parsedBody: any = null;
+        try {
+          const ctx = (response.error as any)?.context;
+          if (ctx?.json) {
+            parsedBody = await ctx.json();
+          } else if (ctx?.text) {
+            const raw = await ctx.text();
+            parsedBody = raw ? JSON.parse(raw) : null;
+          }
+        } catch {
+          parsedBody = null;
+        }
+
         const status = (response.error as any)?.status || 0;
+        const code = parsedBody?.code || response.data?.code;
+        const detailedError = parsedBody?.error || parsedBody?.message || response.data?.error;
         const isOverload = status === 503 || status === 502 || status === 0;
-        const hasNoData = !response.data?.error && !response.data?.code;
+        const hasNoData = !detailedError && !code;
 
         if (isOverload && hasNoData && attempt < maxRetries) {
           const delay = Math.min(1500 * Math.pow(1.5, attempt), 5000);
@@ -1134,9 +1149,8 @@ const Devices = () => {
           continue;
         }
 
-        const realError = response.data?.error || response.error?.message || "Erro na Edge Function";
-        const code = response.data?.code;
-        return { error: realError, code };
+        const realError = detailedError || response.error?.message || "Erro na Edge Function";
+        return { error: realError, code, status };
       }
       return response.data;
     }
