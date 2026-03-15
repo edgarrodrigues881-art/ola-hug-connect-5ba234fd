@@ -149,24 +149,44 @@ Deno.serve(async (req) => {
       const groupHasDeviceAsParticipant = (group: any): boolean => {
         if (!deviceDigits) return true;
 
+        const candidates: string[] = [];
+
         const participants = group?.Participants || group?.participants || [];
-        if (Array.isArray(participants) && participants.length > 0) {
-          const participantMatch = participants.some((p: any) => {
-            if (typeof p === "string") return matchesDeviceNumber(p);
-            return matchesDeviceNumber(p?.JID) ||
-              matchesDeviceNumber(p?.jid) ||
-              matchesDeviceNumber(p?.id) ||
-              matchesDeviceNumber(p?.PN) ||
-              matchesDeviceNumber(p?.phone) ||
-              matchesDeviceNumber(p?.number);
-          });
-          if (participantMatch) return true;
+        if (Array.isArray(participants)) {
+          for (const p of participants) {
+            if (typeof p === "string") {
+              candidates.push(p);
+              continue;
+            }
+            candidates.push(
+              p?.JID || "",
+              p?.jid || "",
+              p?.id || "",
+              p?.PN || "",
+              p?.phone || "",
+              p?.number || "",
+            );
+          }
         }
 
-        return matchesDeviceNumber(group?.OwnerPN) ||
-          matchesDeviceNumber(group?.ownerPN) ||
-          matchesDeviceNumber(group?.OwnerJID) ||
-          matchesDeviceNumber(group?.ownerJid);
+        candidates.push(
+          group?.OwnerPN || "",
+          group?.ownerPN || "",
+          group?.OwnerJID || "",
+          group?.ownerJid || "",
+        );
+
+        const normalizedCandidates = candidates
+          .map((value) => normalizeDigits(String(value || "")))
+          .filter(Boolean);
+
+        // Se não há dados verificáveis de participante/owner, não bloquear o grupo
+        const hasVerifiableParticipantData = normalizedCandidates.some((digits) => digits.length >= 8);
+        if (!hasVerifiableParticipantData) {
+          return true;
+        }
+
+        return normalizedCandidates.some((value) => matchesDeviceNumber(value));
       };
 
       // ─── S-1: Wake up session before listing (always) ───
