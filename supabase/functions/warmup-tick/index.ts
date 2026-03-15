@@ -189,6 +189,13 @@ async function scheduleDayJobs(
   if (windowMs < 30 * 60 * 1000) return 0;
 
   const volumes = getVolumes(chipState, dayIndex, phase);
+
+  // Cancel existing pending interaction jobs before creating new ones (prevent duplicates)
+  await db.from("warmup_jobs")
+    .update({ status: "cancelled", last_error: "Substituído por novo agendamento" })
+    .eq("cycle_id", cycleId).eq("status", "pending")
+    .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
   const jobs: any[] = [];
 
   // Group interactions — primeiro job entre 1-5 min após abertura da janela
