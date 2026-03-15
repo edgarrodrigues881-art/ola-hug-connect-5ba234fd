@@ -887,7 +887,7 @@ Deno.serve(async (req) => {
         success: false,
         error: normalizedPicture === "remove"
           ? "Não foi possível remover a foto no provedor."
-          : "Nenhum endpoint de foto funcionou",
+          : "A imagem não foi aceita pelo WhatsApp. Use uma foto JPG quadrada, mínimo 192×192px e máximo 5MB.",
         attempts: failures,
       });
     }
