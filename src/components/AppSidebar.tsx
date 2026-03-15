@@ -337,7 +337,7 @@ export function AppSidebar() {
                               to={folderUrl}
                               className={`sidebar-nav-item flex items-center rounded-[10px] text-[12px] relative flex-1
                                 transition-[background-color,color,opacity] duration-[120ms] ease-out
-                                gap-[9px] pl-8 pr-3.5 py-[8px]
+                                gap-[9px] px-3.5 py-[8px]
                                 ${isActiveFolder
                                   ? 'bg-primary/10 text-foreground font-semibold'
                                   : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
