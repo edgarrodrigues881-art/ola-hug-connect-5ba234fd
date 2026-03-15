@@ -776,6 +776,7 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === "daily") return await handleDailyReset(db);
+    if (body.action === "schedule_day") return await handleScheduleDay(db, body);
     return await handleTick(db);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
