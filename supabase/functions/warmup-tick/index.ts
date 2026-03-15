@@ -1308,10 +1308,10 @@ async function handleTick(db: any) {
             try {
               if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
               const match = liveGroupsCache.find((g: any) =>
-                (g.subject || g.name || g.Name || "").toLowerCase().trim() === groupName.toLowerCase().trim()
+                norm(g.subject || g.name || g.Name || g.title || "") === norm(groupName)
               );
               if (match) {
-                groupJid = match.jid || match.id || match.JID;
+                groupJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 if (groupJid) {
                   await db.from("warmup_instance_groups")
                     .update({ group_jid: groupJid })
