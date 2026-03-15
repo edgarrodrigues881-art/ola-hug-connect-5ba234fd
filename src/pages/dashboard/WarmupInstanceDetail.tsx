@@ -265,7 +265,12 @@ const WarmupInstanceDetail = () => {
       const forcedPayload = { ...(nextJob.payload as Record<string, unknown> || {}), forced: true };
       const { error: updateErr } = await supabase
         .from("warmup_jobs")
-        .update({ run_at: new Date().toISOString(), payload: forcedPayload as any })
+        .update({
+          run_at: new Date().toISOString(),
+          attempts: 0,
+          last_error: null,
+          payload: forcedPayload as any,
+        })
         .eq("id", nextJob.id)
         .eq("status", "pending");
       if (updateErr) throw updateErr;

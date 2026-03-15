@@ -1177,19 +1177,25 @@ async function handleTick(db: any) {
 
         let allIGs = instanceGroupsMap[job.device_id] || [];
         let joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
+        let liveGroupsCache: any[] = [];
+
+        const fetchLiveGroups = async (): Promise<any[]> => {
+          const liveRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
+            method: "GET",
+            headers: { token, Accept: "application/json" },
+          });
+          if (!liveRes.ok) return [];
+          const liveData = await liveRes.json();
+          return Array.isArray(liveData) ? liveData : (liveData?.data || liveData?.groups || []);
+        };
 
         // Auto-sync: if no "joined" groups, check live device groups and promote pending→joined
         if (joinedGroups.length === 0 && allIGs.length > 0) {
           try {
-            const liveRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
-              method: "GET",
-              headers: { token, Accept: "application/json" },
-            });
-            if (liveRes.ok) {
-              const liveData = await liveRes.json();
-              const liveGroups: any[] = Array.isArray(liveData) ? liveData : (liveData?.data || liveData?.groups || []);
-              const liveNames = new Set(liveGroups.map((g: any) => (g.subject || g.name || g.Name || "").toLowerCase().trim()));
-              const liveJids = new Set(liveGroups.map((g: any) => g.jid || g.id || g.JID || "").toLowerCase().trim());
+            liveGroupsCache = await fetchLiveGroups();
+            if (liveGroupsCache.length > 0) {
+              const liveNames = new Set(liveGroupsCache.map((g: any) => (g.subject || g.name || g.Name || "").toLowerCase().trim()));
+              const liveJids = new Set(liveGroupsCache.map((g: any) => (g.jid || g.id || g.JID || "").toLowerCase().trim()));
 
               for (const ig of allIGs) {
                 if (ig.join_status === "joined") continue;
@@ -1203,7 +1209,7 @@ async function handleTick(db: any) {
                 // Also try to find JID from live groups
                 let resolvedJid = ig.group_jid;
                 if (!resolvedJid) {
-                  const match = liveGroups.find((g: any) =>
+                  const match = liveGroupsCache.find((g: any) =>
                     (g.subject || g.name || g.Name || "").toLowerCase().trim() === poolName
                   );
                   if (match) resolvedJid = match.jid || match.id || match.JID;
@@ -1231,37 +1237,69 @@ async function handleTick(db: any) {
           }
         }
 
-        if (joinedGroups.length === 0) throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
+        let groupJid: string | null = null;
+        let groupName = "Grupo";
+        let targetGroupId: string | null = null;
 
-        const cachedMsgs = userMsgsMap[job.user_id];
-        const getMsg = () => (cachedMsgs?.length && Math.random() < 0.3) ? pickRandom(cachedMsgs) : generateNaturalMessage("group");
+        if (joinedGroups.length > 0) {
+          const target = pickRandom(joinedGroups);
+          targetGroupId = target.group_id;
+          const poolGroup = groupsPoolMap[target.group_id];
+          groupName = poolGroup?.name || "Grupo";
 
-        const target = pickRandom(joinedGroups);
-        const poolGroup = groupsPoolMap[target.group_id];
-
-        // Resolve JID
-        let groupJid = target.group_jid;
-        if (!groupJid && poolGroup?.external_group_ref?.includes("@g.us")) {
-          groupJid = poolGroup.external_group_ref;
-        }
-        if (!groupJid) {
-          try {
-            const res = await fetch(`${baseUrl}/group/fetchAllGroups`, { method: "GET", headers: { token, Accept: "application/json" } });
-            if (res.ok) {
-              const list = await res.json();
-              const groups = Array.isArray(list) ? list : (list?.data || []);
-              const match = groups.find((g: any) => (g.subject || g.name || "").toLowerCase() === (poolGroup?.name || "").toLowerCase());
+          // Resolve JID by DB, fallback by invite JID, then live lookup by name
+          groupJid = target.group_jid;
+          if (!groupJid && poolGroup?.external_group_ref?.includes("@g.us")) {
+            groupJid = poolGroup.external_group_ref;
+          }
+          if (!groupJid) {
+            try {
+              if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
+              const match = liveGroupsCache.find((g: any) =>
+                (g.subject || g.name || g.Name || "").toLowerCase().trim() === groupName.toLowerCase().trim()
+              );
               if (match) {
                 groupJid = match.jid || match.id || match.JID;
-                if (groupJid) await db.from("warmup_instance_groups").update({ group_jid: groupJid }).eq("device_id", job.device_id).eq("group_id", target.group_id);
+                if (groupJid) {
+                  await db.from("warmup_instance_groups")
+                    .update({ group_jid: groupJid })
+                    .eq("device_id", job.device_id)
+                    .eq("group_id", target.group_id);
+                }
               }
-            }
+            } catch { /* ignore */ }
+          }
+        } else {
+          // Fallback resiliente: se não há mapeamento joined no banco, usa grupo real do dispositivo
+          try {
+            if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
           } catch { /* ignore */ }
+
+          const candidates = liveGroupsCache
+            .map((g: any) => ({
+              jid: g.jid || g.id || g.JID || null,
+              name: g.subject || g.name || g.Name || "Grupo detectado",
+            }))
+            .filter((g: any) => !!g.jid);
+
+          if (candidates.length === 0) {
+            throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
+          }
+
+          const fallbackGroup = pickRandom(candidates);
+          groupJid = fallbackGroup.jid;
+          groupName = fallbackGroup.name;
+
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "group_fallback_live_jid",
+            message: `Sem mapeamento joined no banco. Usando grupo real do dispositivo: ${groupName}`,
+            meta: { group_jid: groupJid },
+          });
         }
 
         if (!groupJid) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "group_no_jid", message: `Sem JID: ${poolGroup?.name}` });
-          break;
+          throw new Error(`Sem JID para envio em grupo (${groupName})`);
         }
 
         const mediaType = pickMediaType();
