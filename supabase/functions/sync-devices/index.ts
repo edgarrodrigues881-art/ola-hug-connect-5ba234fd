@@ -34,6 +34,82 @@ function fmtPhone(phone: string): string {
   return `+${r}`;
 }
 
+// Try a dedicated endpoint to fetch profile pic URL (often fresher than /instance/status)
+// Returns:
+// - string => fresh URL
+// - null => no picture set
+// - undefined => couldn't determine
+async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: string): Promise<string | null | undefined> {
+  const owner = (ownerRaw || "").toString().trim();
+  if (!owner) return undefined;
+
+  const digits = owner.replace(/\D/g, "");
+  const jid = digits ? `${digits}@s.whatsapp.net` : "";
+  const candidates = Array.from(new Set([owner, digits, jid].filter(Boolean)));
+
+  const extractUrl = (payload: any): string | null | undefined => {
+    const direct = [
+      payload?.profilePictureUrl,
+      payload?.profilePicUrl,
+      payload?.pictureUrl,
+      payload?.url,
+      payload?.image,
+      payload?.data?.profilePictureUrl,
+      payload?.data?.profilePicUrl,
+      payload?.data?.url,
+      payload?.data?.image,
+    ];
+
+    for (const v of direct) {
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+
+    // Explicit "no photo" cases
+    const hasNoPhotoSignal = direct.some((v) => v === null || v === "");
+    if (hasNoPhotoSignal) return null;
+    return undefined;
+  };
+
+  const endpoints = [
+    { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ number: n }) },
+    { path: "/chat/fetchProfilePictureUrl", mkBody: (n: string) => ({ phone: n }) },
+    { path: "/chat/fetchProfilePicUrl", mkBody: (n: string) => ({ number: n }) },
+  ];
+
+  const headers: HeadersInit = {
+    token,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  };
+
+  for (const ep of endpoints) {
+    for (const number of candidates) {
+      try {
+        const res = await fetchT(`${baseUrl}${ep.path}?t=${Date.now()}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(ep.mkBody(number)),
+        }, 3500);
+
+        if (!res.ok) {
+          await res.text();
+          continue;
+        }
+
+        const data = await res.json();
+        const parsed = extractUrl(data);
+        if (parsed !== undefined) return parsed;
+      } catch {
+        // keep trying fallbacks
+      }
+    }
+  }
+
+  return undefined;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
