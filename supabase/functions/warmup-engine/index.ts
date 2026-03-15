@@ -69,12 +69,17 @@ function getPhaseForDay(day: number, chipState: string): string {
 }
 
 // ══════════════════════════════════════════════════════════
-// VOLUME CONFIG — Consistent between engine and tick
+// VOLUME CONFIG — 50 to 120 messages/day total
 // ══════════════════════════════════════════════════════════
 //
-// groups_only:         25-50 msgs (unstable: 15-25)
-// autosave_enabled:    30-50 msgs + 5 contacts × 3 rounds (recovered: 2 rounds)
-// community_enabled:   30-50 msgs + autosave + community peers (progressive)
+// Daily budget: randInt(50, 120) messages total
+// All messages are distributed across the operating window (7:00-19:00 BRT)
+// If window is partial (e.g. groups finished at 12:00), messages are
+// proportionally reduced to fit the remaining time.
+//
+// groups_only:        100% group messages
+// autosave_enabled:   70% group + 30% autosave
+// community_enabled:  50% group + 20% autosave + 30% community
 
 interface DayVolumes {
   groupMsgs: number;
@@ -82,6 +87,10 @@ interface DayVolumes {
   autosaveRounds: number;
   communityPeers: number;
   communityMsgsPerPeer: number;
+}
+
+function getDailyBudget(): number {
+  return randInt(50, 120);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -97,27 +106,26 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     return v;
   }
 
-  // Group messages — present in all active phases
-  v.groupMsgs = chipState === "unstable" ? randInt(15, 25) : randInt(25, 50);
+  const totalBudget = getDailyBudget();
 
-  // AutoSave — from autosave_enabled onwards
-  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+  if (phase === "groups_only") {
+    // 100% group messages
+    v.groupMsgs = totalBudget;
+  } else if (phase === "autosave_enabled") {
+    // 70% group + 30% autosave
+    v.groupMsgs = Math.round(totalBudget * 0.7);
+    const autosaveTotal = totalBudget - v.groupMsgs;
     v.autosaveContacts = 5;
-    v.autosaveRounds = chipState === "recovered" ? 2 : 3;
-  }
-
-  // Community — from community_enabled onwards
-  if (["community_enabled", "community_light"].includes(phase)) {
-    const groupsEnd = getGroupsEndDay(chipState);
-    const communityStartDay = groupsEnd + 2;
-    const communityDay = dayIndex - communityStartDay + 1;
-
-    // Progressive peer scaling: day 1→3, day 2→5, day 3→10, ...
-    const peerScale = [0, 3, 5, 10, 10, 15, 20, 25, 30, 35, 40];
-    v.communityPeers = communityDay <= 0
-      ? 0
-      : peerScale[Math.min(communityDay, peerScale.length - 1)];
-    v.communityMsgsPerPeer = v.communityPeers > 0 ? randInt(30, 50) : 0;
+    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
+  } else if (["community_enabled", "community_light"].includes(phase)) {
+    // 50% group + 20% autosave + 30% community
+    v.groupMsgs = Math.round(totalBudget * 0.5);
+    const autosaveTotal = Math.round(totalBudget * 0.2);
+    v.autosaveContacts = 5;
+    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
+    const communityTotal = totalBudget - v.groupMsgs - (v.autosaveContacts * v.autosaveRounds);
+    v.communityPeers = Math.max(1, Math.min(10, Math.ceil(communityTotal / 5)));
+    v.communityMsgsPerPeer = Math.max(1, Math.ceil(communityTotal / v.communityPeers));
   }
 
   return v;
