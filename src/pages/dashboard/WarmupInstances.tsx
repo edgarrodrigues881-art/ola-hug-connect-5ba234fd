@@ -1083,51 +1083,57 @@ const WarmupInstances = () => {
         </div>
       ) : displayed.length === 0 ? (
         <div className="rounded-2xl border border-border/20 bg-gradient-to-b from-card/80 to-card/40 p-10 sm:p-16 text-center relative overflow-hidden">
-          {/* Decorative background elements */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full bg-primary/[0.03] blur-3xl" />
-            <div className="absolute top-8 right-12 w-2 h-2 rounded-full bg-primary/20 animate-pulse" />
-            <div className="absolute bottom-12 left-16 w-1.5 h-1.5 rounded-full bg-primary/15 animate-pulse delay-700" />
-          </div>
-
-          <div className="relative z-10 flex flex-col items-center gap-5 max-w-md mx-auto">
-            {/* Icon */}
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shadow-lg shadow-primary/5">
-              <Flame className="w-9 h-9 text-primary/70" />
-            </div>
-
-            {/* Text */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-foreground">Nenhuma instância encontrada</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Conecte suas instâncias do WhatsApp para iniciar o aquecimento automático e fortalecer seus chips.
-              </p>
-            </div>
-
-            {/* Steps hint */}
-            <div className="flex items-center gap-6 text-[11px] text-muted-foreground/60 mt-1">
-              <div className="flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Conecte</span>
+          {activeFolder ? (
+            /* Folder empty state */
+            <div className="relative z-10 flex flex-col items-center gap-4 max-w-sm mx-auto py-4">
+              <div className="w-16 h-16 rounded-2xl border border-border/20 flex items-center justify-center" style={{ backgroundColor: `${activeFolder.color}15` }}>
+                <FolderOpen className="w-7 h-7" style={{ color: activeFolder.color }} />
               </div>
-              <div className="w-4 h-px bg-border/40" />
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3.5 h-3.5" />
-                <span>Aqueça</span>
+              <div className="space-y-1.5 text-center">
+                <h3 className="text-base font-bold text-foreground">Pasta vazia</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Adicione instâncias de aquecimento a esta pasta para organizá-las.
+                </p>
               </div>
-              <div className="w-4 h-px bg-border/40" />
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Proteja</span>
-              </div>
+              <Button size="default" className="mt-1 gap-2 h-10 px-6 text-sm font-semibold" onClick={() => setAddToFolderOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Adicionar Instância
+              </Button>
             </div>
-
-            {/* CTA */}
-            <Button size="lg" className="mt-2 gap-2 h-11 px-8 text-sm font-semibold shadow-md shadow-primary/10" onClick={() => navigate("/dashboard/devices")}>
-              <Plus className="w-4 h-4" />
-              Conectar Instância
-            </Button>
-          </div>
+          ) : (
+            /* Main empty state */
+            <div className="relative z-10 flex flex-col items-center gap-5 max-w-md mx-auto">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shadow-lg shadow-primary/5">
+                <Flame className="w-9 h-9 text-primary/70" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-foreground">Nenhuma instância encontrada</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Conecte suas instâncias do WhatsApp para iniciar o aquecimento automático e fortalecer seus chips.
+                </p>
+              </div>
+              <div className="flex items-center gap-6 text-[11px] text-muted-foreground/60 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Conecte</span>
+                </div>
+                <div className="w-4 h-px bg-border/40" />
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Aqueça</span>
+                </div>
+                <div className="w-4 h-px bg-border/40" />
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Proteja</span>
+                </div>
+              </div>
+              <Button size="lg" className="mt-2 gap-2 h-11 px-8 text-sm font-semibold shadow-md shadow-primary/10" onClick={() => navigate("/dashboard/devices")}>
+                <Plus className="w-4 h-4" />
+                Conectar Instância
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
