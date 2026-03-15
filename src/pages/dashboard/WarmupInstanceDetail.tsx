@@ -827,7 +827,6 @@ const WarmupInstanceDetail = () => {
               {/* Accelerate buttons */}
               {cycle.is_running && (
                 <div className="grid grid-cols-2 gap-2.5">
-                  {cycle.phase === "pre_24h" && (
                   <Button
                     variant="outline"
                     className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
@@ -837,7 +836,6 @@ const WarmupInstanceDetail = () => {
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
                     Forçar Entrada nos Grupos
                   </Button>
-                  )}
                   <Button
                     variant="outline"
                     className="gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(270_60%_50%/0.15)]"
