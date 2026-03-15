@@ -323,6 +323,10 @@ const WarmupInstances = () => {
 
   const displayed = useMemo(() => {
     return filteredDevices.filter((d) => {
+      // Folder filter
+      if (activeFolder && activeFolder.device_ids) {
+        if (!activeFolder.device_ids.includes(d.id)) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         if (!d.name.toLowerCase().includes(q) && !(d.number || "").includes(q)) return false;
@@ -335,7 +339,7 @@ const WarmupInstances = () => {
       }
       return true;
     });
-  }, [filteredDevices, search, statusFilter, cycleByDeviceId]);
+  }, [filteredDevices, search, statusFilter, cycleByDeviceId, activeFolder]);
 
   // --- Connect logic ---
   const callApi = async (body: Record<string, any>) => {
