@@ -2871,7 +2871,11 @@ const Devices = () => {
                 </div>
               </div>
               <div className="space-y-1 max-h-[200px] overflow-y-auto rounded-xl border border-border/30 bg-background/50 p-2">
-                {devices.filter(d => d.status === "Ready").map(d => (
+                {devices.filter(d => d.status === "Ready").sort((a, b) => {
+                  const numA = parseInt((a.name.match(/\d+/) || ["0"])[0], 10);
+                  const numB = parseInt((b.name.match(/\d+/) || ["0"])[0], 10);
+                  return numA - numB || a.name.localeCompare(b.name);
+                }).map(d => (
                   <label
                     key={d.id}
                     className={cn(
