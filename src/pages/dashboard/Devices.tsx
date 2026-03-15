@@ -783,13 +783,18 @@ const Devices = () => {
           warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
+        const profilePicturePayload = wpPhotoBase64;
+        const profilePictureDbValue = wpPhotoBase64.startsWith("data:image/")
+          ? await uploadProfilePhotoDraft(wpPhotoBase64)
+          : wpPhotoBase64;
+
         const photoResult = await callApi({
           action: "updateProfilePicture",
           deviceId: editingDevice.id,
-          profilePictureData: wpPhotoBase64,
+          profilePictureData: profilePicturePayload,
         });
 
-        dbUpdates.profile_picture = wpPhotoBase64;
+        dbUpdates.profile_picture = profilePictureDbValue;
         if (isEdgeCallFailed(photoResult)) {
           warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
         }
@@ -815,10 +820,7 @@ const Devices = () => {
       } else {
         toast({ title: "Instância atualizada" });
       }
-      setEditOpen(false);
-      setEditingDevice(null);
-      setWpPhotoBase64("");
-      setWpRemovePhoto(false);
+      closeEditDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Edit update error:", err);
@@ -887,32 +889,77 @@ const Devices = () => {
   const wpFileRef = useRef<HTMLInputElement>(null);
   const [wpUploading, setWpUploading] = useState(false);
 
+  const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Falha ao ler imagem"));
+    reader.readAsDataURL(file);
+  });
+
+  const uploadProfilePhotoDraft = async (dataUrl: string): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Não autenticado");
+
+    const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+    const mimeType = mimeMatch?.[1] || "image/jpeg";
+    const base64 = dataUrl.split(",")[1];
+    if (!base64) throw new Error("Imagem inválida");
+
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const ext = mimeType.split("/")[1] || "jpg";
+    const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(filePath, bytes, { upsert: true, contentType: mimeType });
+
+    if (uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+    return urlData.publicUrl;
+  };
+
   const handleWpPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setWpUploading(true);
     try {
-      // Upload to Supabase Storage and get public URL
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl;
-      console.log("Photo uploaded, public URL:", publicUrl);
-      setWpPhotoBase64(publicUrl); // Store URL instead of base64
-      setWpPhotoUrl(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      const dataUrl = await fileToDataUrl(file);
+      setWpPhotoBase64(dataUrl);
+      setWpPhotoUrl(previewUrl);
       setWpRemovePhoto(false);
-      toast({ title: "Foto carregada" });
+      toast({ title: "Prévia carregada", description: "Clique em Salvar para aplicar" });
     } catch (err: any) {
-      console.error("Photo upload error:", err);
-      toast({ title: "Erro ao enviar foto", description: err?.message, variant: "destructive" });
+      console.error("Photo draft error:", err);
+      toast({ title: "Erro ao carregar foto", description: err?.message, variant: "destructive" });
     } finally {
       setWpUploading(false);
       if (wpFileRef.current) wpFileRef.current.value = "";
     }
+  };
+
+  const resetWpDraftState = () => {
+    setWpPhotoUrl("");
+    setWpPhotoBase64("");
+    setWpRemovePhoto(false);
+    if (wpFileRef.current) wpFileRef.current.value = "";
+  };
+
+  const closeEditDialog = () => {
+    setEditOpen(false);
+    setEditingDevice(null);
+    setWpName("");
+    resetWpDraftState();
+  };
+
+  const closeProfileDialog = () => {
+    setProfileOpen(false);
+    setProfileDevice(null);
+    setWpName("");
+    setWpApplyAll(false);
+    resetWpDraftState();
   };
 
   const handleProfileUpdate = async () => {
@@ -931,6 +978,10 @@ const Devices = () => {
       
       console.log("[profile-update] targetDevices:", targetDevices.length, "wpApplyAll:", wpApplyAll, "profileDevice:", profileDevice?.id, profileDevice?.status);
       console.log("[profile-update] wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
+
+      const profilePictureDbValue = wpPhotoBase64 && !wpRemovePhoto
+        ? (wpPhotoBase64.startsWith("data:image/") ? await uploadProfilePhotoDraft(wpPhotoBase64) : wpPhotoBase64)
+        : null;
 
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
@@ -953,7 +1004,7 @@ const Devices = () => {
             }
           } else if (wpPhotoBase64) {
             const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
-            dbUp.profile_picture = wpPhotoBase64;
+            dbUp.profile_picture = profilePictureDbValue;
             if (isEdgeCallFailed(photoResult)) {
               warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
             }
@@ -989,7 +1040,7 @@ const Devices = () => {
       } else {
         toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
       }
-      setProfileOpen(false);
+      closeProfileDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Profile update error:", err);
@@ -1805,7 +1856,7 @@ const Devices = () => {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!open) closeEditDialog(); else setEditOpen(true); }}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden border-border/40 bg-card">
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
@@ -1908,7 +1959,7 @@ const Devices = () => {
             )}
 
             <div className="flex items-center gap-3 pt-1">
-              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={closeEditDialog}>Cancelar</Button>
               <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
@@ -2585,7 +2636,7 @@ const Devices = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+      <Dialog open={profileOpen} onOpenChange={(open) => { if (!open) closeProfileDialog(); else setProfileOpen(true); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -2691,7 +2742,7 @@ const Devices = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProfileOpen(false)} disabled={wpSaving}>Cancelar</Button>
+            <Button variant="outline" onClick={closeProfileDialog} disabled={wpSaving}>Cancelar</Button>
             <Button onClick={handleProfileUpdate} disabled={wpSaving} className="bg-primary hover:bg-primary/90">
               {wpSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Salvar

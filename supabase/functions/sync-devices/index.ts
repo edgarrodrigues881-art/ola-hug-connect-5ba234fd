@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const PAGE = 500;
     while (true) {
       const { data, error } = await svc.from("devices")
-        .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture")
+        .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture, updated_at")
         .eq("user_id", userId)
         .range(from, from + PAGE - 1);
       if (error) throw error;
@@ -202,7 +202,17 @@ Deno.serve(async (req) => {
 
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
-        const newPic = isConnected ? (inst.profilePicUrl || device.profile_picture || null) : (device.profile_picture || null);
+        const providerPic = typeof inst.profilePicUrl === "string" ? inst.profilePicUrl.trim() : "";
+        const recentlyUpdatedMs = Date.now() - new Date(device.updated_at || 0).getTime();
+        const preserveRecentManualRemoval =
+          isConnected &&
+          !device.profile_picture &&
+          !!providerPic &&
+          recentlyUpdatedMs >= 0 &&
+          recentlyUpdatedMs < 10 * 60 * 1000;
+        const newPic = isConnected
+          ? (preserveRecentManualRemoval ? null : (providerPic || device.profile_picture || null))
+          : (device.profile_picture || null);
         const newName = isConnected ? (inst.profileName || inst.pushname || device.profile_name || "") : (device.profile_name || "");
 
         const statusChanged = newStatus !== device.status;
