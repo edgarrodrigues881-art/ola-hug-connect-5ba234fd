@@ -69,7 +69,7 @@ export function TagManagerDialog({ open, onOpenChange, tags: initialTags, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px] bg-card/95 backdrop-blur-2xl border-border/10 p-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent className="sm:max-w-[340px] bg-card/95 backdrop-blur-2xl border-border/10 p-0 overflow-hidden rounded-2xl shadow-2xl">
         {/* Header with gradient accent */}
         <div className="px-5 pt-5 pb-3">
           <DialogHeader>
