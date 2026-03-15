@@ -760,6 +760,7 @@ const Devices = () => {
     };
 
     try {
+      console.log("[edit-save] deviceId:", editingDevice.id, "wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
       const warnings: string[] = [];
 
       if (wpName.trim()) {
