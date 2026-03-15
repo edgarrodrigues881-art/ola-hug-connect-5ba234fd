@@ -303,10 +303,9 @@ class RandomPicker {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-// ─── LOCK HELPERS (parallelized for 30+ devices) ───
+// ─── LOCK HELPERS (parallelized for 300+ devices) ───
 async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string, userId: string): Promise<{ acquired: boolean; lockedBy?: string }> {
-  // Acquire all locks in parallel for high-concurrency scenarios
-  const LOCK_BATCH_SIZE = 10;
+  const LOCK_BATCH_SIZE = 50; // 50 parallel RPCs per wave
   for (let i = 0; i < deviceIds.length; i += LOCK_BATCH_SIZE) {
     const batch = deviceIds.slice(i, i + LOCK_BATCH_SIZE);
     const results = await Promise.allSettled(
@@ -315,7 +314,7 @@ async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campa
           _device_id: deviceId,
           _campaign_id: campaignId,
           _user_id: userId,
-          _stale_seconds: 180, // extended for large device counts
+          _stale_seconds: 300, // 5min for massive device counts
         })
       )
     );
@@ -335,8 +334,7 @@ async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campa
 }
 
 async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string) {
-  // Release all locks in parallel
-  const RELEASE_BATCH = 15;
+  const RELEASE_BATCH = 50;
   for (let i = 0; i < deviceIds.length; i += RELEASE_BATCH) {
     const batch = deviceIds.slice(i, i + RELEASE_BATCH);
     await Promise.allSettled(
@@ -350,41 +348,38 @@ async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campa
   }
 }
 
-// After releasing locks, auto-start next queued campaign for any of these devices
+// After releasing locks, auto-start next queued campaign (optimized: single query)
 async function startNextQueuedCampaigns(serviceClient: any, deviceIds: string[], supabaseUrl: string, serviceRoleKey: string) {
   try {
-    for (const deviceId of deviceIds) {
-      // Find oldest queued campaign that uses this device
-      const { data: queued } = await serviceClient
-        .from("campaigns")
-        .select("id, user_id, device_id, device_ids")
-        .eq("status", "queued")
-        .order("created_at", { ascending: true });
+    // Single query instead of N queries per device
+    const { data: queued } = await serviceClient
+      .from("campaigns")
+      .select("id, user_id, device_id, device_ids")
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(10);
 
-      if (!queued || queued.length === 0) continue;
+    if (!queued || queued.length === 0) return;
 
-      // Find first queued campaign that uses this specific device
-      const match = queued.find((c: any) => {
-        const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
-          ? c.device_ids : c.device_id ? [c.device_id] : [];
-        return ids.includes(deviceId);
-      });
+    const deviceSet = new Set(deviceIds);
+    const match = queued.find((c: any) => {
+      const ids: string[] = Array.isArray(c.device_ids) && c.device_ids.length > 0
+        ? c.device_ids : c.device_id ? [c.device_id] : [];
+      return ids.some(id => deviceSet.has(id));
+    });
 
-      if (match) {
-        console.log(`🚀 Auto-starting queued campaign ${match.id} for device ${deviceId}`);
-        await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
-
-        // Try to acquire lock
-        const lockResult = await acquireDeviceLocks(serviceClient, [deviceId], match.id, match.user_id);
-        if (lockResult.acquired) {
-          await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
-          // Fire and forget
-          selfContinue(supabaseUrl, serviceRoleKey, match.id, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
-        } else {
-          // Another campaign grabbed the lock first, revert to queued
-          await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
-        }
-        break; // Only start one at a time per release
+    if (match) {
+      const matchDeviceIds: string[] = Array.isArray(match.device_ids) && match.device_ids.length > 0
+        ? match.device_ids : match.device_id ? [match.device_id] : [];
+      const firstDevice = matchDeviceIds[0];
+      console.log(`🚀 Auto-starting queued campaign ${match.id}`);
+      await serviceClient.from("campaigns").update({ status: "running", started_at: new Date().toISOString() }).eq("id", match.id).eq("status", "queued");
+      const lockResult = await acquireDeviceLocks(serviceClient, [firstDevice], match.id, match.user_id);
+      if (lockResult.acquired) {
+        await oplog(serviceClient, match.user_id, "campaign_auto_started", `Campanha auto-iniciada da fila`, null, { campaign_id: match.id });
+        selfContinue(supabaseUrl, serviceRoleKey, match.id, firstDevice, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
+      } else {
+        await serviceClient.from("campaigns").update({ status: "queued" }).eq("id", match.id);
       }
     }
   } catch (err) {
