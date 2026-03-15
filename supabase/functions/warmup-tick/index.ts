@@ -1219,6 +1219,10 @@ async function handleTick(db: any) {
             const caption = pickRandom(IMAGE_CAPTIONS);
             await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
             message = `[IMG] ${caption}`;
+          } else if (mediaType === "sticker") {
+            const imgUrl = pickRandom(imagePool);
+            await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
+            message = `[STICKER] 🎭`;
           } else {
             await uazapiSendText(baseUrl, token, groupJid, message);
           }
