@@ -960,6 +960,10 @@ const Devices = () => {
       console.log("[profile-update] targetDevices:", targetDevices.length, "wpApplyAll:", wpApplyAll, "profileDevice:", profileDevice?.id, profileDevice?.status);
       console.log("[profile-update] wpPhotoBase64 length:", wpPhotoBase64?.length, "wpRemovePhoto:", wpRemovePhoto, "wpName:", wpName);
 
+      const profilePictureDbValue = wpPhotoBase64 && !wpRemovePhoto
+        ? (wpPhotoBase64.startsWith("data:image/") ? await uploadProfilePhotoDraft(wpPhotoBase64) : wpPhotoBase64)
+        : null;
+
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
           const dbUp: Record<string, any> = {};
@@ -981,7 +985,7 @@ const Devices = () => {
             }
           } else if (wpPhotoBase64) {
             const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
-            dbUp.profile_picture = wpPhotoBase64;
+            dbUp.profile_picture = profilePictureDbValue;
             if (isEdgeCallFailed(photoResult)) {
               warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
             }
