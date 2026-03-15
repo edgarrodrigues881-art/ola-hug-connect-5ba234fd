@@ -322,67 +322,66 @@ export function AppSidebar() {
                 </div>
               </SidebarMenuItem>
 
-              {/* Expanded: folders + nova pasta + then Auto Save & Grupos */}
-              {warmupExpanded && !collapsed && (
-                <>
-                  {/* Folders */}
-                  {folders.length > 0 && (
-                    <div className="mt-0.5">
-                      {folders.map((folder) => {
-                        const colorClass = FOLDER_COLORS[folder.color] || "text-emerald-400";
-                        const folderUrl = `/dashboard/warmup-v2?folder=${folder.id}`;
-                        const isActiveFolder = location.search.includes(folder.id);
-                        return (
-                          <SidebarMenuItem key={folder.id}>
-                            <div className="group/folder flex items-center">
-                              <SidebarMenuButton asChild tooltip={folder.name}>
-                                <NavLink
-                                  to={folderUrl}
-                                  className={`sidebar-nav-item flex items-center rounded-[10px] text-[12px] relative flex-1
-                                    transition-[background-color,color,opacity] duration-[120ms] ease-out
-                                    gap-[9px] pl-8 pr-3.5 py-[8px]
-                                    ${isActiveFolder
-                                      ? 'bg-primary/10 text-foreground font-semibold'
-                                      : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
-                                    }`}
-                                  activeClassName=""
-                                >
-                                  <FolderOpen className={cn("w-[15px] h-[15px] shrink-0", colorClass)} strokeWidth={1.5} />
-                                  <span className="truncate flex-1">{folder.name}</span>
-                                  {folder.device_ids && folder.device_ids.length > 0 && (
-                                    <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
-                                  )}
-                                </NavLink>
-                              </SidebarMenuButton>
-                              <div className="opacity-0 group-hover/folder:opacity-100 flex items-center gap-0.5 mr-1 transition-opacity">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
-                                    setFolderDialogOpen(true);
-                                  }}
-                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteFolder(folder.id);
-                                  }}
-                                  className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </SidebarMenuItem>
-                        );
-                      })}
-                    </div>
-                  )}
+              {/* Folders only toggle with the arrow */}
+              {warmupExpanded && !collapsed && folders.length > 0 && (
+                <div className="mt-0.5">
+                  {folders.map((folder) => {
+                    const colorClass = FOLDER_COLORS[folder.color] || "text-emerald-400";
+                    const folderUrl = `/dashboard/warmup-v2?folder=${folder.id}`;
+                    const isActiveFolder = location.search.includes(folder.id);
+                    return (
+                      <SidebarMenuItem key={folder.id}>
+                        <div className="group/folder flex items-center">
+                          <SidebarMenuButton asChild tooltip={folder.name}>
+                            <NavLink
+                              to={folderUrl}
+                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[12px] relative flex-1
+                                transition-[background-color,color,opacity] duration-[120ms] ease-out
+                                gap-[9px] pl-8 pr-3.5 py-[8px]
+                                ${isActiveFolder
+                                  ? 'bg-primary/10 text-foreground font-semibold'
+                                  : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
+                                }`}
+                              activeClassName=""
+                            >
+                              <FolderOpen className={cn("w-[15px] h-[15px] shrink-0", colorClass)} strokeWidth={1.5} />
+                              <span className="truncate flex-1">{folder.name}</span>
+                              {folder.device_ids && folder.device_ids.length > 0 && (
+                                <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                          <div className="opacity-0 group-hover/folder:opacity-100 flex items-center gap-0.5 mr-1 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
+                                setFolderDialogOpen(true);
+                              }}
+                              className="p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFolder(folder.id);
+                              }}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </div>
+              )}
 
-                  {/* Add folder button */}
+              {/* Always visible: Nova pasta, Auto Save, Grupos */}
+              {!collapsed && (
+                <>
                   <SidebarMenuItem>
                     <button
                       onClick={() => {
@@ -396,7 +395,6 @@ export function AppSidebar() {
                     </button>
                   </SidebarMenuItem>
 
-                  {/* Auto Save & Grupos below Nova pasta */}
                   <div className="mt-1 pt-1 border-t border-border/10">
                     {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll }, true)}
                     {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound }, true)}
