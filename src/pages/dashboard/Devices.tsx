@@ -770,18 +770,16 @@ const Devices = () => {
           profileName: wpName.trim(),
         });
 
+        dbUpdates.profile_name = wpName.trim();
         if (isEdgeCallFailed(nameResult)) {
-          warnings.push(nameResult?.error || "Falha ao atualizar nome no WhatsApp");
-        } else {
-          dbUpdates.profile_name = wpName.trim();
+          warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
         }
       }
 
       if (wpRemovePhoto) {
         const removeResult = await tryRemoveProfilePhoto(editingDevice.id);
-        if (removeResult.ok) {
-          dbUpdates.profile_picture = null;
-        } else {
+        dbUpdates.profile_picture = null;
+        if (!removeResult.ok) {
           warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
@@ -791,10 +789,9 @@ const Devices = () => {
           profilePictureData: wpPhotoBase64,
         });
 
+        dbUpdates.profile_picture = wpPhotoBase64;
         if (isEdgeCallFailed(photoResult)) {
-          warnings.push(photoResult?.error || "Falha ao atualizar foto no WhatsApp");
-        } else {
-          dbUpdates.profile_picture = wpPhotoBase64;
+          warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
         }
       }
 
