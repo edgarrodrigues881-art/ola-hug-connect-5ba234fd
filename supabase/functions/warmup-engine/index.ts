@@ -592,13 +592,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
     });
   }
 
-  // 5. Schedule phase_transition to groups_only at 24h mark
-  jobs.push({
-    user_id: userId, device_id, cycle_id: cycle.id,
-    job_type: "phase_transition",
-    payload: { target_phase: "groups_only" },
-    run_at: first24hEnds.toISOString(), status: "pending",
-  });
+  // 5. Phase transition is now triggered automatically after last group joins
+  //    (handled in warmup-tick join_group handler)
 
   // 6. Schedule first daily_reset at 00:05 BRT (03:05 UTC) after 24h window
   const firstReset = new Date(first24hEnds);
