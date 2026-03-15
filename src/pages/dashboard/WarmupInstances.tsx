@@ -1603,6 +1603,21 @@ const WarmupInstances = () => {
           folderColor={activeFolder.color}
         />
       )}
+
+      {/* Device tag assignment dialog */}
+      {activeFolder && deviceTagTarget && (
+        <DeviceTagAssignDialog
+          open={!!deviceTagTarget}
+          onOpenChange={(v) => { if (!v) setDeviceTagTarget(null); }}
+          availableTags={activeFolder.tags || []}
+          currentTags={activeFolder.device_tags?.get(deviceTagTarget) || []}
+          deviceName={displayed.find(d => d.id === deviceTagTarget)?.name || ""}
+          onSave={async (tags) => {
+            await updateDeviceTags.mutateAsync({ folderId: activeFolder.id, deviceId: deviceTagTarget, tags });
+            setDeviceTagTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };
