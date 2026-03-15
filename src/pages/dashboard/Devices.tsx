@@ -1019,49 +1019,54 @@ const Devices = () => {
     try {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+          let warning: string | null = null;
 
           if (bulkProfileName.trim()) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
-                "Falha ao atualizar nome no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
+              "Falha ao atualizar nome no WhatsApp",
             );
             dbUp.profile_name = bulkProfileName.trim();
           }
+
           if (bulkProfileRemovePhoto) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
-                "Falha ao remover foto no WhatsApp",
-              )
-            );
-            dbUp.profile_picture = null;
+            const removeResult = await tryRemoveProfilePhoto(device.id);
+            if (removeResult.ok) {
+              dbUp.profile_picture = null;
+            } else {
+              warning = removeResult.error;
+            }
           } else if (bulkProfilePhotoPublicUrl) {
-            apiPromises.push(
-              callApiStrict(
-                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
-                "Falha ao atualizar foto no WhatsApp",
-              )
+            await callApiStrict(
+              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
+              "Falha ao atualizar foto no WhatsApp",
             );
             dbUp.profile_picture = bulkProfilePhotoPublicUrl;
-          }
-
-          if (apiPromises.length > 0) {
-            await Promise.all(apiPromises);
           }
 
           if (Object.keys(dbUp).length > 0) {
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
           }
+
+          return { warning };
         })
       );
       const failed = results.filter(r => r.status === "rejected").length;
+      const warningCount = results.reduce((acc, result) => {
+        if (result.status === "fulfilled" && result.value.warning) return acc + 1;
+        return acc;
+      }, 0);
+
       if (failed > 0) {
         toast({ title: `Perfil atualizado (${targetDevices.length - failed}/${targetDevices.length} chips)`, description: `${failed} chip(s) falharam`, variant: "destructive" });
+      } else if (warningCount > 0) {
+        toast({
+          title: `Perfil salvo com ressalvas (${targetDevices.length} chips)`,
+          description: `${warningCount} chip(s) não conseguiram remover a foto no WhatsApp`,
+          variant: "destructive",
+        });
       } else {
         toast({ title: `Perfil atualizado em ${targetDevices.length} chip(s)` });
       }
