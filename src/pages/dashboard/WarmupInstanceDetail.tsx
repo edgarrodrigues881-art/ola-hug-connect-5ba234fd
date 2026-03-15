@@ -390,6 +390,14 @@ const WarmupInstanceDetail = () => {
     if (!cycle?.id || !deviceId || !user) return;
     setTestingAutosave(true);
     try {
+      // Clean previous pending autosave jobs to avoid stacking on contact #1 across repeated tests
+      await supabase
+        .from("warmup_jobs")
+        .update({ status: "cancelled" as any, last_error: "Cancelado para novo teste de Auto Save" })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .eq("job_type", "autosave_interaction");
+
       const jobs: any[] = [];
       let cursor = Date.now() + 5000; // start in 5s
 
