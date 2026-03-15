@@ -378,7 +378,12 @@ Deno.serve(async (req) => {
         ) {
           deepProfileChecks++;
           const cleanBase = String(device.uazapi_base_url).replace(/\/+$/, "");
-          const freshPic = await fetchFreshProfilePic(cleanBase, String(device.uazapi_token), String(phone || ""));
+          const freshPic = await fetchFreshProfilePic(
+            cleanBase,
+            String(device.uazapi_token),
+            String(phone || ""),
+            String(device.number || "")
+          );
           if (freshPic !== undefined) {
             providerPic = freshPic || "";
           }
