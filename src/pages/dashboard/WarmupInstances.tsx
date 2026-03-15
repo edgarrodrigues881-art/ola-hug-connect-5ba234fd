@@ -274,16 +274,6 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         </div>
       </div>
 
-      {/* Device tags */}
-      {(deviceTags && deviceTags.length > 0) && (
-        <div className="px-4 pb-1 flex flex-wrap gap-1">
-          {deviceTags.map((tag) => (
-            <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
-              {tag.label}
-            </span>
-          ))}
-        </div>
-      )}
 
       <div className="px-4 pb-4 space-y-2">
         {/* Tag button for folder view */}
