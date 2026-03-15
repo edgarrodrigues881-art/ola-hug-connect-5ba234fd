@@ -592,18 +592,92 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
-  const body: any = { number, text };
-  if (quotedMsgId) body.quotedMsgId = quotedMsgId;
-  const res = await fetch(`${baseUrl}/send/text`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`API ${res.status}: ${errText}`);
+  const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
+    {
+      path: "/send/text",
+      body: {
+        number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              quoted_message_id: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/chat/send-text",
+      body: {
+        to: number,
+        body: text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/message/sendText",
+      body: {
+        chatId: number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+    {
+      path: "/message/sendText",
+      body: {
+        to: number,
+        text,
+        ...(quotedMsgId
+          ? {
+              quotedMsgId,
+              quotedMessageId: quotedMsgId,
+              replyTo: quotedMsgId,
+            }
+          : {}),
+      },
+    },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try {
+          const parsed = raw ? JSON.parse(raw) : {};
+          if (!parsed?.error && parsed?.code !== 404) return parsed;
+          lastErr = `${at.path}: ${raw.substring(0, 240)}`;
+          continue;
+        } catch {
+          return { ok: true, raw };
+        }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
-  return await res.json();
+
+  throw new Error(`Text send failed: ${lastErr}`);
 }
 
 /** Fetch most recent messages from a group chat and return the latest quotable message ID */
