@@ -689,14 +689,16 @@ Deno.serve(async (req) => {
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
       const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
 
-      // Get pending contacts (batch of 100)
+      // Scale batch size by device count (10 per device, min 100, max 500)
+      const dynamicBatchSize = Math.min(500, Math.max(100, allDevices.length * 10));
+      // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
         .select("id, phone, name, status, campaign_id, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10")
         .eq("campaign_id", campaignId)
         .eq("status", "pending")
         .order("created_at", { ascending: true })
-        .limit(100);
+        .limit(dynamicBatchSize);
 
       if (contactsErr) throw contactsErr;
 
