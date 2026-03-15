@@ -85,8 +85,9 @@ Deno.serve(async (req) => {
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
       const headers = { token: device.uazapi_token, Accept: "application/json" };
       try {
-        const res = await fetchT(`${baseUrl}/instance/status`, {
-          method: "GET", headers,
+        const noCacheHeaders = { ...headers, "Cache-Control": "no-cache", Pragma: "no-cache" };
+        const res = await fetchT(`${baseUrl}/instance/status?t=${Date.now()}`, {
+          method: "GET", headers: noCacheHeaders,
         }, 5000);
 
         if (res.ok) {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
           // Try to fetch fresh profile picture from dedicated endpoint
           // This is more reliable than the status endpoint for profile data
           try {
-            const profileRes = await fetchT(`${baseUrl}/profile`, { method: "GET", headers }, 4000);
+            const profileRes = await fetchT(`${baseUrl}/profile?t=${Date.now()}`, { method: "GET", headers: noCacheHeaders }, 4000);
             if (profileRes.ok) {
               const profileData = await profileRes.json();
               // Merge profile data into status data (profile endpoint has fresher pic)
