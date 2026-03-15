@@ -1070,7 +1070,7 @@ async function handleTick(db: any) {
           if (updatedRecord) updatedRecord.join_status = "joined";
 
           const pendingCount = allIGs.filter((ig: any) => ig.join_status === "pending").length;
-          const hasMoreJoinJobs = pendingJobs.some((pj: any) =>
+          const hasMoreJoinJobs = filteredJobs.some((pj: any) =>
             pj.device_id === job.device_id && pj.job_type === "join_group" && pj.id !== job.id && pj.status !== "succeeded"
           );
 
