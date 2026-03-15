@@ -859,9 +859,48 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
 
 const _blobCache: Record<string, string> = {};
 
-async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string) {
+function decodeDataUri(dataUri: string): { mimeType: string; bytes: Uint8Array } | null {
+  const m = String(dataUri || "").match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) return null;
+  const mimeType = m[1] || "application/octet-stream";
+  const b64 = m[2] || "";
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return { mimeType, bytes };
+}
+
+function mimeToExt(mimeType: string): string {
+  if (mimeType.includes("png")) return "png";
+  if (mimeType.includes("webp")) return "webp";
+  if (mimeType.includes("gif")) return "gif";
+  return "jpg";
+}
+
+async function getMediaAsset(mediaUrl: string, fallbackMime: string): Promise<{ dataUri: string; mimeType: string; bytes: Uint8Array }> {
+  let dataUri = _blobCache[mediaUrl];
+  if (dataUri) {
+    const decoded = decodeDataUri(dataUri);
+    if (decoded) return { dataUri, mimeType: decoded.mimeType, bytes: decoded.bytes };
+  }
+
+  const imgRes = await fetch(mediaUrl);
+  if (!imgRes.ok) throw new Error(`Failed to download media: ${imgRes.status}`);
+
+  const mimeType = imgRes.headers.get("content-type") || fallbackMime;
+  const bytes = new Uint8Array(await imgRes.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  dataUri = `data:${mimeType};base64,${btoa(binary)}`;
+  _blobCache[mediaUrl] = dataUri;
+
+  return { dataUri, mimeType, bytes };
+}
+
+async function uazapiSendImage(baseUrl: string, token: string, number: string, imageUrl: string, caption: string, quotedMsgId?: string) {
   if (!imageUrl) throw new Error("Image URL ausente");
   const safeCaption = (caption || "📸").trim() || "📸";
+  const quotePayload = buildQuotedPayload(quotedMsgId);
 
   const parseResponse = async (res: Response) => {
     const raw = await res.text();
@@ -869,7 +908,7 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
     try { return JSON.parse(raw); } catch { return { raw }; }
   };
 
-  const tryEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>, label: string) => {
+  const tryJsonEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
     let lastErr = "";
     for (const ep of endpoints) {
       try {
@@ -882,49 +921,75 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
         const errText = await res.text();
         lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
         if (res.status !== 405) console.warn(`[uazapiSendImage] ${lastErr}`);
-      } catch (e) { lastErr = `${ep.url}: ${e.message}`; }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        lastErr = `${ep.url}: ${msg}`;
+      }
     }
     return { ok: false as const, lastErr };
   };
 
-  // Strategy 1: direct URL
-  const urlResult = await tryEndpoints([
-    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "image", caption: safeCaption } },
-    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, caption: safeCaption } },
-    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, caption: safeCaption, text: safeCaption } },
-    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption } },
-    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: imageUrl, type: "image", caption: safeCaption } },
-    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: imageUrl, type: "image", caption: safeCaption } },
-  ], "url");
+  const urlResult = await tryJsonEndpoints([
+    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/send/image`, body: { number, image: imageUrl, caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: imageUrl, file: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: imageUrl, file: imageUrl, type: "image", caption: safeCaption, ...quotePayload } },
+  ]);
   if (urlResult.ok) return urlResult.data;
 
-  // Strategy 2: base64 fallback
-  let dataUri = _blobCache[imageUrl];
-  if (!dataUri) {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error(`Failed to download image: ${imgRes.status}`);
-    const mimeType = imgRes.headers.get("content-type") || "image/jpeg";
-    const bytes = new Uint8Array(await imgRes.arrayBuffer());
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    dataUri = `data:${mimeType};base64,${btoa(binary)}`;
-    _blobCache[imageUrl] = dataUri;
+  const asset = await getMediaAsset(imageUrl, "image/jpeg");
+  const fileName = `warmup-image.${mimeToExt(asset.mimeType)}`;
+
+  const appendField = (form: FormData, key: string, value: unknown) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "object") form.append(key, JSON.stringify(value));
+    else form.append(key, String(value));
+  };
+
+  const multipartAttempts = [
+    { url: `${baseUrl}/send/media`, fields: { number, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/send/image`, fields: { number, caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/message/sendMedia`, fields: { chatId: number, type: "image", caption: safeCaption, ...quotePayload } },
+  ];
+
+  let multipartErr = "";
+  for (const at of multipartAttempts) {
+    try {
+      const form = new FormData();
+      Object.entries(at.fields).forEach(([k, v]) => appendField(form, k, v));
+      form.append("file", new Blob([asset.bytes], { type: asset.mimeType }), fileName);
+
+      const res = await fetch(at.url, {
+        method: "POST",
+        headers: { token, Accept: "application/json" },
+        body: form,
+      });
+
+      if (res.ok) return await parseResponse(res);
+      const errText = await res.text();
+      multipartErr = `${res.status} @ ${at.url}: ${errText.substring(0, 240)}`;
+      if (res.status !== 405) console.warn(`[uazapiSendImage-multipart] ${multipartErr}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      multipartErr = `${at.url}: ${msg}`;
+    }
   }
 
-  const b64Result = await tryEndpoints([
-    { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "image", caption: safeCaption } },
-    { url: `${baseUrl}/send/media`, body: { number, file: dataUri, caption: safeCaption, text: safeCaption } },
-    { url: `${baseUrl}/send/image`, body: { number, image: dataUri, caption: safeCaption, text: safeCaption } },
-    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, media: dataUri, type: "image", caption: safeCaption } },
-    { url: `${baseUrl}/message/sendMedia`, body: { to: number, media: dataUri, type: "image", caption: safeCaption } },
-  ], "b64");
+  const b64Result = await tryJsonEndpoints([
+    { url: `${baseUrl}/send/media`, body: { number, file: asset.dataUri, type: "image", caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/send/media`, body: { number, media: asset.dataUri, type: "image", caption: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/send/image`, body: { number, image: asset.dataUri, caption: safeCaption, text: safeCaption, ...quotePayload } },
+    { url: `${baseUrl}/message/sendMedia`, body: { chatId: number, file: asset.dataUri, media: asset.dataUri, type: "image", caption: safeCaption, ...quotePayload } },
+  ]);
   if (b64Result.ok) return b64Result.data;
 
-  throw new Error(`Image send failed: ${b64Result.lastErr || urlResult.lastErr}`);
+  throw new Error(`Image send failed: ${b64Result.lastErr || multipartErr || urlResult.lastErr}`);
 }
 
-async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
+async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string, quotedMsgId?: string) {
   if (!imageUrl) throw new Error("Sticker URL ausente");
+  const quotePayload = buildQuotedPayload(quotedMsgId);
 
   const parseResponse = async (res: Response) => {
     const raw = await res.text();
@@ -932,7 +997,7 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     try { return JSON.parse(raw); } catch { return { raw }; }
   };
 
-  const tryEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
+  const tryJsonEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
     let lastErr = "";
     for (const ep of endpoints) {
       try {
@@ -945,47 +1010,69 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
         const errText = await res.text();
         lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
         if (res.status !== 405) console.warn(`[uazapiSendSticker] ${lastErr}`);
-      } catch (e) { lastErr = `${ep.url}: ${e.message}`; }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        lastErr = `${ep.url}: ${msg}`;
+      }
     }
     return { ok: false as const, lastErr };
   };
 
-  // Strategy 1: direct URL
-  const urlResult = await tryEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl } },
-    { url: `${baseUrl}/send/sticker`, body: { number, url: imageUrl } },
-    { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
-    { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
-    { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "sticker" } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: imageUrl } },
-    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: imageUrl } },
+  const urlResult = await tryJsonEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl, ...quotePayload } },
+    { url: `${baseUrl}/send/sticker`, body: { number, media: imageUrl, ...quotePayload } },
+    { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl, ...quotePayload } },
+    { url: `${baseUrl}/send/media`, body: { number, file: imageUrl, media: imageUrl, type: "sticker", ...quotePayload } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: imageUrl, media: imageUrl, ...quotePayload } },
   ]);
   if (urlResult.ok) return urlResult.data;
 
-  // Strategy 2: base64 fallback
-  let dataUri = _blobCache[imageUrl];
-  if (!dataUri) {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error(`Failed to download sticker: ${imgRes.status}`);
-    const mimeType = imgRes.headers.get("content-type") || "image/webp";
-    const bytes = new Uint8Array(await imgRes.arrayBuffer());
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    dataUri = `data:${mimeType};base64,${btoa(binary)}`;
-    _blobCache[imageUrl] = dataUri;
+  const asset = await getMediaAsset(imageUrl, "image/webp");
+  const fileName = `warmup-sticker.${mimeToExt(asset.mimeType)}`;
+
+  const appendField = (form: FormData, key: string, value: unknown) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "object") form.append(key, JSON.stringify(value));
+    else form.append(key, String(value));
+  };
+
+  const multipartAttempts = [
+    { url: `${baseUrl}/send/sticker`, fields: { number, ...quotePayload } },
+    { url: `${baseUrl}/send/media`, fields: { number, type: "sticker", ...quotePayload } },
+    { url: `${baseUrl}/message/sendSticker`, fields: { chatId: number, ...quotePayload } },
+  ];
+
+  let multipartErr = "";
+  for (const at of multipartAttempts) {
+    try {
+      const form = new FormData();
+      Object.entries(at.fields).forEach(([k, v]) => appendField(form, k, v));
+      form.append("file", new Blob([asset.bytes], { type: asset.mimeType }), fileName);
+
+      const res = await fetch(at.url, {
+        method: "POST",
+        headers: { token, Accept: "application/json" },
+        body: form,
+      });
+
+      if (res.ok) return await parseResponse(res);
+      const errText = await res.text();
+      multipartErr = `${res.status} @ ${at.url}: ${errText.substring(0, 240)}`;
+      if (res.status !== 405) console.warn(`[uazapiSendSticker-multipart] ${multipartErr}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      multipartErr = `${at.url}: ${msg}`;
+    }
   }
 
-  const b64Result = await tryEndpoints([
-    { url: `${baseUrl}/send/sticker`, body: { number, media: dataUri } },
-    { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
-    { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
-    { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "sticker" } },
-    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: dataUri } },
-    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: dataUri } },
+  const b64Result = await tryJsonEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, file: asset.dataUri, media: asset.dataUri, sticker: asset.dataUri, ...quotePayload } },
+    { url: `${baseUrl}/send/media`, body: { number, file: asset.dataUri, media: asset.dataUri, type: "sticker", ...quotePayload } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, file: asset.dataUri, media: asset.dataUri, ...quotePayload } },
   ]);
   if (b64Result.ok) return b64Result.data;
 
-  throw new Error(`Sticker send failed: ${b64Result.lastErr || urlResult.lastErr}`);
+  throw new Error(`Sticker send failed: ${b64Result.lastErr || multipartErr || urlResult.lastErr}`);
 }
 
 // ══════════════════════════════════════════════════════════
