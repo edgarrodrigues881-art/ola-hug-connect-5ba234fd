@@ -892,7 +892,7 @@ Deno.serve(async (req) => {
               const translated = translateErrorMessage(err.message || "Erro");
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated, device_id: dev.id }).eq("id", contact.id);
               devFailed++;
-              await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, allDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
+               await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, waveDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
               if (isDisconnectError(err.message || "")) {
                 const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                 if (remainingIds.length > 0) {
@@ -905,11 +905,16 @@ Deno.serve(async (req) => {
           return { sent: devSent, failed: devFailed };
         }));
 
-        for (const r of results) {
+        for (const r of waveResults) {
           if (r.status === "fulfilled") {
-            sentCount += r.value.sent;
-            failedCount += r.value.failed;
+            allResults.push(r.value);
           }
+        }
+        } // end wave loop
+
+        for (const r of allResults) {
+          sentCount += r.sent;
+          failedCount += r.failed;
         }
         await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
