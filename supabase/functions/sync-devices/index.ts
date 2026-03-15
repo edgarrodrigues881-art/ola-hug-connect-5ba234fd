@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
             ? currentPic
             : (recentlyEdited && currentPic !== (providerPic || null)
               ? currentPic
-              : (providerPic || null)))
+              : (hasProviderPic ? providerPic : currentPic)))
           : currentPic;
 
         const newName = isConnected
