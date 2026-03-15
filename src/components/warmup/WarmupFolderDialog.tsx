@@ -24,10 +24,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   editingFolder: { id: string; name: string; color: string } | null;
   onSave: (data: { name: string; color: string; deviceIds: string[] }) => Promise<void>;
+  onDelete?: (id: string) => void;
   currentDeviceIds?: string[];
 }
 
-export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, currentDeviceIds = [] }: Props) {
+export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, onDelete, currentDeviceIds = [] }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#10b981");
