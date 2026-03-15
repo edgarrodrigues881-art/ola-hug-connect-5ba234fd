@@ -926,7 +926,7 @@ async function handleTick(db: any) {
 
     // Budget check for interaction jobs
     if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
-      if (!withinWindow) {
+      if (!withinWindow && !job.payload?.forced) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
       }
