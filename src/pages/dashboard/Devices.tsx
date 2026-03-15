@@ -933,33 +933,47 @@ const Devices = () => {
     reader.readAsDataURL(file);
   });
 
-  const normalizePhotoForProvider = (dataUrl: string, maxDimension = 640, quality = 0.9) =>
+  const normalizePhotoForProvider = (dataUrl: string, maxDimension = 640, quality = 0.85) =>
     new Promise<string>((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         try {
-          const longest = Math.max(img.width, img.height);
-          const scale = longest > maxDimension ? maxDimension / longest : 1;
-          const width = Math.max(1, Math.round(img.width * scale));
-          const height = Math.max(1, Math.round(img.height * scale));
+          if (img.width < 100 || img.height < 100) {
+            reject(new Error("Imagem muito pequena. Use uma foto com pelo menos 100x100 pixels."));
+            return;
+          }
+
+          // WhatsApp requires square images — crop to center square then resize
+          const side = Math.min(img.width, img.height);
+          const sx = Math.round((img.width - side) / 2);
+          const sy = Math.round((img.height - side) / 2);
+          const targetSize = Math.min(side, maxDimension);
 
           const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = targetSize;
+          canvas.height = targetSize;
           const ctx = canvas.getContext("2d");
           if (!ctx) throw new Error("Falha ao processar imagem");
 
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, targetSize, targetSize);
           const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
           if (!jpegDataUrl.startsWith("data:image/jpeg;base64,")) {
-            throw new Error("Falha ao converter imagem");
+            throw new Error("Falha ao converter imagem para JPEG");
           }
+
+          // Validate minimum base64 size (corrupt/blank images produce tiny outputs)
+          const b64Part = jpegDataUrl.split(",")[1] || "";
+          if (b64Part.length < 500) {
+            reject(new Error("Imagem resultante muito pequena ou corrompida. Tente outra foto."));
+            return;
+          }
+
           resolve(jpegDataUrl);
         } catch (err) {
           reject(err);
         }
       };
-      img.onerror = () => reject(new Error("Imagem inválida"));
+      img.onerror = () => reject(new Error("Formato de imagem não suportado. Use JPG ou PNG."));
       img.src = dataUrl;
     });
 
