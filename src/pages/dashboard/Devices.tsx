@@ -783,13 +783,18 @@ const Devices = () => {
           warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
         }
       } else if (wpPhotoBase64) {
+        const profilePicturePayload = wpPhotoBase64;
+        const profilePictureDbValue = wpPhotoBase64.startsWith("data:image/")
+          ? await uploadProfilePhotoDraft(wpPhotoBase64)
+          : wpPhotoBase64;
+
         const photoResult = await callApi({
           action: "updateProfilePicture",
           deviceId: editingDevice.id,
-          profilePictureData: wpPhotoBase64,
+          profilePictureData: profilePicturePayload,
         });
 
-        dbUpdates.profile_picture = wpPhotoBase64;
+        dbUpdates.profile_picture = profilePictureDbValue;
         if (isEdgeCallFailed(photoResult)) {
           warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
         }
