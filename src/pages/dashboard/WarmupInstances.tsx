@@ -19,8 +19,131 @@ import {
   Phone, Search, Filter, Pause, Play, Pencil, X,
   QrCode, Key, Shield, Ban, CheckCircle2, XCircle,
   Smartphone, RefreshCw, Lock, Target, Timer, Zap,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/* ── Add to Folder Dialog ── */
+const AddToFolderDialog = memo(({ open, onOpenChange, allDevices, currentDeviceIds, folderName, folderColor, onSave, cycleByDeviceId }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  allDevices: any[];
+  currentDeviceIds: string[];
+  folderName: string;
+  folderColor: string;
+  onSave: (deviceIds: string[]) => Promise<void>;
+  cycleByDeviceId: Map<string, any>;
+}) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelected(new Set(currentDeviceIds));
+      setSearchTerm("");
+    }
+  }, [open, currentDeviceIds]);
+
+  const filtered = useMemo(() => {
+    if (!searchTerm) return allDevices;
+    const q = searchTerm.toLowerCase();
+    return allDevices.filter(d => d.name.toLowerCase().includes(q) || (d.number || "").includes(q));
+  }, [allDevices, searchTerm]);
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(Array.from(selected));
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px] max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" style={{ color: folderColor }} />
+            Adicionar a "{folderName}"
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+          {allDevices.length > 5 && (
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar instância..." className="h-8 pl-8 text-xs" />
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              {selected.size} selecionada(s)
+            </span>
+            <button
+              className="text-[10px] text-primary hover:text-primary/80 font-bold"
+              onClick={() => setSelected(prev => prev.size === allDevices.length ? new Set() : new Set(allDevices.map(d => d.id)))}
+            >
+              {selected.size > 0 ? "Desmarcar" : "Selecionar todos"}
+            </button>
+          </div>
+          <div className="overflow-y-auto flex-1 space-y-1 rounded-xl border border-border/15 bg-muted/10 p-2 scrollbar-thin max-h-[300px]">
+            {filtered.map((d) => {
+              const isSelected = selected.has(d.id);
+              const cycle = cycleByDeviceId.get(d.id);
+              const phase = cycle?.phase;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => toggle(d.id)}
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-left transition-colors",
+                    isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/30 border border-transparent"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "bg-primary border-primary" : "border-border/40"
+                  )}>
+                    {isSelected && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-foreground truncate">{d.name}</p>
+                    <div className="flex items-center gap-2">
+                      {d.number && <span className="text-[10px] text-muted-foreground/50 font-mono">{d.number}</span>}
+                      {phase && <span className="text-[9px] text-muted-foreground/40">{phaseShort[phase] || phase}</span>}
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    CONNECTED_STATUSES.includes(d.status) ? "bg-primary" : "bg-muted-foreground/30"
+                  )} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex gap-2 pt-3 border-t border-border/10">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
 
 
 const phaseLabels: Record<string, string> = {
@@ -215,8 +338,9 @@ const formatPhone = (num: string) => {
 const WarmupInstances = () => {
   const [searchParams] = useSearchParams();
   const activeFolderId = searchParams.get("folder");
-  const { folders } = useWarmupFolders();
+  const { folders, addDevices, removeDevice } = useWarmupFolders();
   const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
+  const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
@@ -1030,6 +1154,11 @@ const WarmupInstances = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {activeFolder && (
+            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
+              <Plus className="w-3.5 h-3.5" /> Adicionar Instância
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -1038,14 +1167,16 @@ const WarmupInstances = () => {
           >
             <Filter className="w-3 h-3" /> Filtros
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
-            setBulkSelected(new Set());
-            setBulkChipState("new");
-            setBulkDaysTotal("14");
-            setBulkOpen(true);
-          }}>
-            <Flame className="w-3.5 h-3.5" /> Aquecer em massa
-          </Button>
+          {!activeFolder && (
+            <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+              setBulkSelected(new Set());
+              setBulkChipState("new");
+              setBulkDaysTotal("14");
+              setBulkOpen(true);
+            }}>
+              <Flame className="w-3.5 h-3.5" /> Aquecer em massa
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1082,51 +1213,57 @@ const WarmupInstances = () => {
         </div>
       ) : displayed.length === 0 ? (
         <div className="rounded-2xl border border-border/20 bg-gradient-to-b from-card/80 to-card/40 p-10 sm:p-16 text-center relative overflow-hidden">
-          {/* Decorative background elements */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full bg-primary/[0.03] blur-3xl" />
-            <div className="absolute top-8 right-12 w-2 h-2 rounded-full bg-primary/20 animate-pulse" />
-            <div className="absolute bottom-12 left-16 w-1.5 h-1.5 rounded-full bg-primary/15 animate-pulse delay-700" />
-          </div>
-
-          <div className="relative z-10 flex flex-col items-center gap-5 max-w-md mx-auto">
-            {/* Icon */}
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shadow-lg shadow-primary/5">
-              <Flame className="w-9 h-9 text-primary/70" />
-            </div>
-
-            {/* Text */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-foreground">Nenhuma instância encontrada</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Conecte suas instâncias do WhatsApp para iniciar o aquecimento automático e fortalecer seus chips.
-              </p>
-            </div>
-
-            {/* Steps hint */}
-            <div className="flex items-center gap-6 text-[11px] text-muted-foreground/60 mt-1">
-              <div className="flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Conecte</span>
+          {activeFolder ? (
+            /* Folder empty state */
+            <div className="relative z-10 flex flex-col items-center gap-4 max-w-sm mx-auto py-4">
+              <div className="w-16 h-16 rounded-2xl border border-border/20 flex items-center justify-center" style={{ backgroundColor: `${activeFolder.color}15` }}>
+                <FolderOpen className="w-7 h-7" style={{ color: activeFolder.color }} />
               </div>
-              <div className="w-4 h-px bg-border/40" />
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3.5 h-3.5" />
-                <span>Aqueça</span>
+              <div className="space-y-1.5 text-center">
+                <h3 className="text-base font-bold text-foreground">Pasta vazia</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Adicione instâncias de aquecimento a esta pasta para organizá-las.
+                </p>
               </div>
-              <div className="w-4 h-px bg-border/40" />
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Proteja</span>
-              </div>
+              <Button size="default" className="mt-1 gap-2 h-10 px-6 text-sm font-semibold" onClick={() => setAddToFolderOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Adicionar Instância
+              </Button>
             </div>
-
-            {/* CTA */}
-            <Button size="lg" className="mt-2 gap-2 h-11 px-8 text-sm font-semibold shadow-md shadow-primary/10" onClick={() => navigate("/dashboard/devices")}>
-              <Plus className="w-4 h-4" />
-              Conectar Instância
-            </Button>
-          </div>
+          ) : (
+            /* Main empty state */
+            <div className="relative z-10 flex flex-col items-center gap-5 max-w-md mx-auto">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shadow-lg shadow-primary/5">
+                <Flame className="w-9 h-9 text-primary/70" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-foreground">Nenhuma instância encontrada</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Conecte suas instâncias do WhatsApp para iniciar o aquecimento automático e fortalecer seus chips.
+                </p>
+              </div>
+              <div className="flex items-center gap-6 text-[11px] text-muted-foreground/60 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Conecte</span>
+                </div>
+                <div className="w-4 h-px bg-border/40" />
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Aqueça</span>
+                </div>
+                <div className="w-4 h-px bg-border/40" />
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Proteja</span>
+                </div>
+              </div>
+              <Button size="lg" className="mt-2 gap-2 h-11 px-8 text-sm font-semibold shadow-md shadow-primary/10" onClick={() => navigate("/dashboard/devices")}>
+                <Plus className="w-4 h-4" />
+                Conectar Instância
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -1370,6 +1507,31 @@ const WarmupInstances = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add instances to folder dialog */}
+      {activeFolder && (
+        <AddToFolderDialog
+          open={addToFolderOpen}
+          onOpenChange={setAddToFolderOpen}
+          allDevices={filteredDevices}
+          currentDeviceIds={activeFolder.device_ids || []}
+          folderName={activeFolder.name}
+          folderColor={activeFolder.color}
+          onSave={async (deviceIds) => {
+            const currentIds = new Set(activeFolder.device_ids || []);
+            const newIds = deviceIds.filter(id => !currentIds.has(id));
+            const removedIds = [...currentIds].filter(id => !deviceIds.includes(id));
+            if (newIds.length > 0) {
+              await addDevices.mutateAsync({ folderId: activeFolder.id, deviceIds: newIds });
+            }
+            for (const id of removedIds) {
+              await removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId: id });
+            }
+            toast({ title: "Pasta atualizada" });
+          }}
+          cycleByDeviceId={cycleByDeviceId}
+        />
+      )}
     </div>
   );
 };
