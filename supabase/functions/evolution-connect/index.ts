@@ -842,7 +842,7 @@ Deno.serve(async (req) => {
 
       const imageVariants = await resolveProfileImageVariants(normalizedPicture);
       if (imageVariants.length === 0) {
-        return json({ success: false, error: "Imagem inválida para atualização de foto." }, 422);
+        return json({ success: false, error: "Imagem inválida para atualização de foto." });
       }
 
       const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
@@ -886,7 +886,7 @@ Deno.serve(async (req) => {
           ? "Não foi possível remover a foto no provedor."
           : "Nenhum endpoint de foto funcionou",
         attempts: failures,
-      }, 422);
+      });
     }
 
     // ── updateProfileStatus ──
