@@ -833,7 +833,7 @@ const Devices = () => {
           console.warn("[edit-save] photo sync failed:", e?.message);
           // Still save the photo locally even if API sync failed
           if (!dbUpdates.profile_picture && wpPhotoBase64) {
-            dbUpdates.profile_picture = wpPhotoBase64.startsWith("data:image/") ? null : wpPhotoBase64;
+            dbUpdates.profile_picture = wpPhotoBase64;
           }
           warnings.push("Falha ao sincronizar foto no WhatsApp");
         }
