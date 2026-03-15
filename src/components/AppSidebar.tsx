@@ -335,16 +335,16 @@ export function AppSidebar() {
                           <SidebarMenuButton asChild tooltip={folder.name}>
                             <NavLink
                               to={folderUrl}
-                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[12px] relative flex-1
+                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative flex-1
                                 transition-[background-color,color,opacity] duration-[120ms] ease-out
-                                gap-[9px] px-3.5 py-[8px]
+                                gap-[11px] px-3.5 py-[10px]
                                 ${isActiveFolder
                                   ? 'bg-primary/10 text-foreground font-semibold'
                                   : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
                                 }`}
                               activeClassName=""
                             >
-                              <FolderOpen className={cn("w-[15px] h-[15px] shrink-0", colorClass)} strokeWidth={1.5} />
+                              <FolderOpen className={cn("w-[18px] h-[18px] shrink-0", colorClass)} strokeWidth={1.5} />
                               <span className="truncate flex-1">{folder.name}</span>
                               {folder.device_ids && folder.device_ids.length > 0 && (
                                 <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
