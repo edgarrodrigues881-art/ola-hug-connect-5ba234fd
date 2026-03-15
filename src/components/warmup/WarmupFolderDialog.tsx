@@ -1,5 +1,6 @@
 import { useState, useEffect, KeyboardEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
   const [tagColor, setTagColor] = useState(TAG_COLORS[0]);
   const [showTagInput, setShowTagInput] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -132,7 +134,14 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => { onDelete(editingFolder.id); onOpenChange(false); }}
+              onClick={() => {
+                if (currentDeviceIds.length > 0) {
+                  setConfirmDelete(true);
+                } else {
+                  onDelete(editingFolder.id);
+                  onOpenChange(false);
+                }
+              }}
               className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               title="Excluir pasta"
             >
@@ -148,6 +157,31 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="bg-card border-border/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pasta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta pasta contém <strong>{currentDeviceIds.length}</strong> instância(s). Ao excluir, as instâncias voltarão para a listagem geral. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (editingFolder && onDelete) {
+                  onDelete(editingFolder.id);
+                  onOpenChange(false);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
