@@ -1574,18 +1574,19 @@ const WarmupInstances = () => {
         />
       )}
 
-      {/* Folder tags dialog */}
-      <WarmupFolderDialog
-        open={folderDialogOpen}
-        onOpenChange={setFolderDialogOpen}
-        editingFolder={editingFolder}
-        onSave={async (data) => {
-          if (editingFolder) {
-            await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color, tags: data.tags });
-          }
-        }}
-        currentDeviceIds={activeFolder?.device_ids || []}
-      />
+      {/* Tag manager dialog */}
+      {activeFolder && (
+        <TagManagerDialog
+          open={folderDialogOpen}
+          onOpenChange={setFolderDialogOpen}
+          tags={activeFolder.tags || []}
+          onSave={async (tags) => {
+            await updateFolder.mutateAsync({ id: activeFolder.id, tags });
+          }}
+          folderName={activeFolder.name}
+          folderColor={activeFolder.color}
+        />
+      )}
     </div>
   );
 };
