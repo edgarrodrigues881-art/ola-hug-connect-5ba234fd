@@ -1246,14 +1246,14 @@ async function handleTick(db: any) {
           try {
             liveGroupsCache = await fetchLiveGroups();
             if (liveGroupsCache.length > 0) {
-              const liveNames = new Set(liveGroupsCache.map((g: any) => (g.subject || g.name || g.Name || "").toLowerCase().trim()));
-              const liveJids = new Set(liveGroupsCache.map((g: any) => (g.jid || g.id || g.JID || "").toLowerCase().trim()));
+              const liveNames = new Set(liveGroupsCache.map((g: any) => norm(g.subject || g.name || g.Name || g.title || "")));
+              const liveJids = new Set(liveGroupsCache.map((g: any) => String(g.jid || g.id || g.JID || g.groupJid || g.chatId || "").toLowerCase().trim()));
 
               for (const ig of allIGs) {
                 if (ig.join_status === "joined") continue;
                 const poolGroup = groupsPoolMap[ig.group_id];
-                const poolName = (poolGroup?.name || "").toLowerCase().trim();
-                const igJid = (ig.group_jid || "").toLowerCase().trim();
+                const poolName = norm(poolGroup?.name || "");
+                const igJid = String(ig.group_jid || "").toLowerCase().trim();
 
                 const nameMatch = poolName && liveNames.has(poolName);
                 const jidMatch = igJid && liveJids.has(igJid);
@@ -1262,9 +1262,9 @@ async function handleTick(db: any) {
                 let resolvedJid = ig.group_jid;
                 if (!resolvedJid) {
                   const match = liveGroupsCache.find((g: any) =>
-                    (g.subject || g.name || g.Name || "").toLowerCase().trim() === poolName
+                    norm(g.subject || g.name || g.Name || g.title || "") === poolName
                   );
-                  if (match) resolvedJid = match.jid || match.id || match.JID;
+                  if (match) resolvedJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 }
 
                 if (nameMatch || jidMatch) {
