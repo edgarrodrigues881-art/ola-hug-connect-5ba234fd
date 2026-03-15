@@ -928,29 +928,28 @@ const Devices = () => {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
           const dbUp: Record<string, any> = {};
-          let warning: string | null = null;
+          const warnings: string[] = [];
 
           if (wpName.trim()) {
-            await callApiStrict(
-              { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
-              "Falha ao atualizar nome no WhatsApp",
-            );
+            const nameResult = await callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() });
             dbUp.profile_name = wpName.trim();
+            if (isEdgeCallFailed(nameResult)) {
+              warnings.push(nameResult?.error || "Falha ao sincronizar nome no WhatsApp");
+            }
           }
 
           if (wpRemovePhoto) {
             const removeResult = await tryRemoveProfilePhoto(device.id);
-            if (removeResult.ok) {
-              dbUp.profile_picture = null;
-            } else {
-              warning = removeResult.error;
+            dbUp.profile_picture = null;
+            if (!removeResult.ok) {
+              warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
             }
           } else if (wpPhotoBase64) {
-            await callApiStrict(
-              { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
-              "Falha ao atualizar foto no WhatsApp",
-            );
+            const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
             dbUp.profile_picture = wpPhotoBase64;
+            if (isEdgeCallFailed(photoResult)) {
+              warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
+            }
           }
 
           if (Object.keys(dbUp).length > 0) {
@@ -958,7 +957,7 @@ const Devices = () => {
             if (error) throw error;
           }
 
-          return { warning };
+          return { warnings };
         })
       );
 
