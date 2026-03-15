@@ -203,19 +203,33 @@ Deno.serve(async (req) => {
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
 
-        // Profile picture: trust provider response as source of truth.
-        // If connected and provider returned a valid URL → use it.
-        // If connected and provider returned empty/missing → null (photo was removed).
-        // If disconnected → preserve current value.
+        // Profile fields: provider can lag right after manual edits.
+        // Keep local values for a short grace window to avoid save->unsave loops.
         const providerPicRaw =
           inst.profilePicUrl ?? inst.profilePicture ??
           data.profilePicUrl ?? data.profilePicture ?? "";
         const providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
+        const providerNameRaw = (inst.profileName || inst.pushname || "").toString().trim();
 
-        const newPic = isConnected ? (providerPic || null) : (device.profile_picture || null);
+        const currentPic = device.profile_picture || null;
+        const currentName = (device.profile_name || "").toString();
+
+        const updatedAtMs = device.updated_at ? new Date(device.updated_at).getTime() : 0;
+        const recentlyEdited = Number.isFinite(updatedAtMs)
+          ? (Date.now() - updatedAtMs) < 15 * 60 * 1000
+          : false;
+
+        const newPic = isConnected
+          ? (recentlyEdited && currentPic !== (providerPic || null)
+            ? currentPic
+            : (providerPic || null))
+          : currentPic;
+
         const newName = isConnected
-          ? (inst.profileName || inst.pushname || device.profile_name || "")
-          : (device.profile_name || "");
+          ? (recentlyEdited && currentName && currentName !== providerNameRaw
+            ? currentName
+            : (providerNameRaw || currentName))
+          : currentName;
 
         const statusChanged = newStatus !== device.status;
         const anyChanged = statusChanged

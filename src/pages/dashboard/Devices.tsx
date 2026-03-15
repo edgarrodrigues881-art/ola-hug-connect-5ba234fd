@@ -1151,6 +1151,10 @@ const Devices = () => {
       toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
       return;
     }
+
+    // Avoid immediate profile rollback from sync while provider updates propagate
+    muteAutoSync(45_000);
+
     setBulkProfileSaving(true);
     const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
     const targetDevices = devices.filter(d => bulkProfileSelectedIds.includes(d.id) && connectedStatuses.includes(d.status));
