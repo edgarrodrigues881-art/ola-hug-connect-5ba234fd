@@ -911,8 +911,10 @@ const Devices = () => {
   };
 
   const handleProfileUpdate = async () => {
-    if (!wpName && !wpPhotoBase64 && !wpRemovePhoto) {
-      toast({ title: "Preencha ao menos um campo", variant: "destructive" });
+    const hasNameChange = wpName.trim().length > 0;
+    const hasPhotoChange = !!wpPhotoBase64 || wpRemovePhoto;
+    if (!hasNameChange && !hasPhotoChange) {
+      toast({ title: "Selecione uma foto ou preencha o nome para salvar", variant: "destructive" });
       return;
     }
     setWpSaving(true);
