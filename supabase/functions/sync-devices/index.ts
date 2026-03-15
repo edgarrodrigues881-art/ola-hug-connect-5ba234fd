@@ -212,19 +212,23 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const data = await res.json();
 
-          // Try to fetch fresh profile picture from dedicated endpoint
-          // This is more reliable than the status endpoint for profile data
+          // Try to fetch fresh profile snapshot from dedicated endpoint
           try {
             const profileRes = await fetchT(`${baseUrl}/profile?t=${Date.now()}`, { method: "GET", headers: noCacheHeaders }, 4000);
             if (profileRes.ok) {
               const profileData = await profileRes.json();
-              // Merge profile data into status data (profile endpoint has fresher pic)
-              if (profileData.profilePicUrl) data.profilePicUrl = profileData.profilePicUrl;
-              if (profileData.profilePicture) data.profilePicture = profileData.profilePicture;
-              if (profileData.imgUrl) data.profilePicUrl = profileData.imgUrl;
-              if (profileData.image) data.profilePicUrl = profileData.image;
-              if (profileData.pushname) data.pushname = profileData.pushname;
-              if (profileData.name) data.profileName = profileData.name;
+              const snap = parseProfileSnapshot(profileData);
+              if (typeof snap.pic === "string") {
+                data.profilePicUrl = snap.pic;
+                data.profilePicture = snap.pic;
+              } else if (snap.pic === null) {
+                data.profilePicUrl = "";
+                data.profilePicture = "";
+              }
+              if (snap.name) {
+                data.pushname = snap.name;
+                data.profileName = snap.name;
+              }
             } else { await profileRes.text(); }
           } catch { /* profile fetch optional */ }
 
