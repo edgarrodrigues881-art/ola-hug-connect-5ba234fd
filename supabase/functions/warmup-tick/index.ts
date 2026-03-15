@@ -973,6 +973,61 @@ async function handleTick(db: any) {
             message: `Entrou no grupo ${groupName}${joinJid ? ` (JID: ${joinJid})` : ""}`,
             meta: { group_name: groupName, jid: joinJid },
           });
+
+          // ── AUTO-TRANSITION: Check if ALL groups are now joined ──
+          const allIGs = instanceGroupsMap[job.device_id] || [];
+          // Update local cache
+          const updatedRecord = allIGs.find((ig: any) => ig.group_id === groupId);
+          if (updatedRecord) updatedRecord.join_status = "joined";
+
+          const pendingCount = allIGs.filter((ig: any) => ig.join_status === "pending").length;
+          const hasMoreJoinJobs = pendingJobs.some((pj: any) =>
+            pj.device_id === job.device_id && pj.job_type === "join_group" && pj.id !== job.id && pj.status !== "succeeded"
+          );
+
+          if (pendingCount === 0 && !hasMoreJoinJobs && cycle.phase === "pre_24h") {
+            // All groups joined! Check if it's after 7:00 BRT (10:00 UTC)
+            const now = new Date();
+            const windowOpen = new Date(now);
+            windowOpen.setUTCHours(10, 0, 0, 0); // 7:00 BRT
+
+            if (now.getTime() >= windowOpen.getTime()) {
+              // Already past 7:00 BRT → transition immediately and schedule messages
+              await db.from("warmup_cycles").update({
+                phase: "groups_only",
+                day_index: 2,
+                last_daily_reset_at: now.toISOString(),
+              }).eq("id", cycle.id);
+              cycle.phase = "groups_only";
+              cycle.day_index = 2;
+              cycle.last_daily_reset_at = now.toISOString();
+
+              await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, 2, "groups_only", chipState, true);
+
+              bufferAudit({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "info", event_type: "auto_transition_post_groups",
+                message: `Todos os grupos entrados! Transição automática para groups_only (dia 2). Mensagens agendadas até 19h BRT.`,
+              });
+            } else {
+              // Before 7:00 BRT → schedule transition for 7:00 BRT
+              await db.from("warmup_jobs").insert({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: cycle.id,
+                job_type: "phase_transition",
+                payload: { target_phase: "groups_only", auto_advance_day: true },
+                run_at: windowOpen.toISOString(), status: "pending",
+              });
+
+              bufferAudit({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "info", event_type: "groups_complete_waiting",
+                message: `Todos os grupos entrados! Aguardando 07:00 BRT para iniciar mensagens.`,
+              });
+            }
+
+            // Ensure daily reset is scheduled
+            await ensureNextDailyResetJob(db, job, cycle.id);
+          }
         } else {
           await db.from("warmup_instance_groups")
             .update({ join_status: "failed", last_error: joinError || "Falha" })
@@ -985,24 +1040,35 @@ async function handleTick(db: any) {
       // ── PHASE TRANSITION ──
       case "phase_transition": {
         const targetPhase = job.payload?.target_phase || "groups_only";
+        const autoAdvanceDay = job.payload?.auto_advance_day === true;
 
         await db.from("warmup_jobs")
           .update({ status: "cancelled", last_error: "Cancelado: transição de fase" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
           .in("job_type", INTERACTION_JOB_TYPES);
 
-        await db.from("warmup_cycles").update({ phase: targetPhase }).eq("id", cycle.id);
+        const updateData: any = { phase: targetPhase };
+        let dayForSchedule = cycle.day_index;
+
+        // If auto_advance_day, also advance to day 2 (post-groups start)
+        if (autoAdvanceDay && cycle.day_index <= 1) {
+          updateData.day_index = 2;
+          updateData.last_daily_reset_at = new Date().toISOString();
+          dayForSchedule = 2;
+        }
+
+        await db.from("warmup_cycles").update(updateData).eq("id", cycle.id);
 
         if (targetPhase === "groups_only") {
           await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
         }
 
-        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, cycle.day_index, targetPhase, chipState);
+        await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, dayForSchedule, targetPhase, chipState);
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "phase_changed",
-          message: `Fase: ${cycle.phase} → ${targetPhase}`,
+          message: `Fase: ${cycle.phase} → ${targetPhase}${autoAdvanceDay ? ` (dia → ${dayForSchedule})` : ""}`,
         });
         break;
       }
