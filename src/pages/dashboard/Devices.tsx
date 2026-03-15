@@ -94,6 +94,21 @@ const Devices = () => {
   // Quick action loading states
   const [quickActionLoading, setQuickActionLoading] = useState<Record<string, string>>({});
 
+  // Force avatar cache refresh every 5s so provider photo/name changes appear without F5
+  const [avatarRefreshTick, setAvatarRefreshTick] = useState(() => Math.floor(Date.now() / 5000));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAvatarRefreshTick(Math.floor(Date.now() / 5000));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const withAvatarRefresh = (url: string | null) => {
+    if (!url) return "";
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${avatarRefreshTick}`;
+  };
+
   // Search & filter
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
