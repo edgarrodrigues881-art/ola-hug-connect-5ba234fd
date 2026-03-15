@@ -1309,6 +1309,14 @@ const WarmupInstances = () => {
               <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setFolderDialogOpen(true)}>
                 <Tag className="w-3.5 h-3.5" /> Tags
               </Button>
+              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+                setBulkSelected(new Set());
+                setBulkChipState("new");
+                setBulkDaysTotal("14");
+                setBulkOpen(true);
+              }}>
+                <Flame className="w-3.5 h-3.5" /> Aquecer em massa
+              </Button>
             </>
           )}
           {!activeFolder && (
@@ -1523,7 +1531,8 @@ const WarmupInstances = () => {
                 <button
                   className="text-[10px] text-primary hover:text-primary/80 font-bold transition-colors"
                   onClick={() => {
-                    const eligible = filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
+                    const sourceDevices = activeFolder ? displayed : filteredDevices;
+                    const eligible = sourceDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
                     setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
                   }}
                 >
@@ -1531,13 +1540,13 @@ const WarmupInstances = () => {
                 </button>
               </div>
                <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
-                {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status)).length === 0 ? (
+                {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status)).length === 0 ? (
                   <div className="flex flex-col items-center py-8 gap-2">
                     <Smartphone className="w-6 h-6 text-muted-foreground/30" />
                     <p className="text-xs text-muted-foreground/60 font-medium">Nenhuma instância disponível</p>
                   </div>
                 ) : (
-                  filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status)).map(d => {
+                  (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status)).map(d => {
                     const isWarming = cycleByDeviceId.has(d.id);
                     return (
                     <div
@@ -1586,7 +1595,7 @@ const WarmupInstances = () => {
                 )}
               </div>
                <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
-                {bulkSelected.size} de {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
+                {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
               </p>
             </div>
 
