@@ -106,28 +106,10 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     return v;
   }
 
-  const totalBudget = getDailyBudget();
+  // Grupos SEMPRE recebem o orçamento total (50-120), independente da fase
+  v.groupMsgs = getDailyBudget();
 
-  if (phase === "groups_only") {
-    // 100% group messages
-    v.groupMsgs = totalBudget;
-  } else if (phase === "autosave_enabled") {
-    // 70% group + 30% autosave
-    v.groupMsgs = Math.round(totalBudget * 0.7);
-    const autosaveTotal = totalBudget - v.groupMsgs;
-    v.autosaveContacts = 5;
-    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
-  } else if (["community_enabled", "community_light"].includes(phase)) {
-    // 50% group + 20% autosave + 30% community
-    v.groupMsgs = Math.round(totalBudget * 0.5);
-    const autosaveTotal = Math.round(totalBudget * 0.2);
-    v.autosaveContacts = 5;
-    v.autosaveRounds = Math.max(1, Math.ceil(autosaveTotal / v.autosaveContacts));
-    const communityTotal = totalBudget - v.groupMsgs - (v.autosaveContacts * v.autosaveRounds);
-    v.communityPeers = Math.max(1, Math.min(10, Math.ceil(communityTotal / 5)));
-    v.communityMsgsPerPeer = Math.max(1, Math.ceil(communityTotal / v.communityPeers));
-  }
-
+  // Autosave e Community desativados para testes de grupo
   return v;
 }
 
@@ -307,26 +289,9 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── PHASE TRANSITION JOBS ──
-  if (phase === "groups_only") {
-    const transitionDay = getGroupsEndDay(chipState) + 1;
-    if (dayIndex >= transitionDay - 1) {
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "enable_autosave", payload: {},
-        run_at: new Date(effectiveEnd - 60000).toISOString(),
-        status: "pending",
-      });
-    }
-  }
-  if (phase === "autosave_enabled") {
-    jobs.push({
-      user_id: userId, device_id: deviceId, cycle_id: cycleId,
-      job_type: "enable_community", payload: {},
-      run_at: new Date(effectiveEnd - 60000).toISOString(),
-      status: "pending",
-    });
-  }
+  // ── PHASE TRANSITION JOBS — DISABLED for group-only testing ──
+  // if (phase === "groups_only") { ... enable_autosave ... }
+  // if (phase === "autosave_enabled") { ... enable_community ... }
 
   // Insert jobs in batches
   if (jobs.length > 0) {
