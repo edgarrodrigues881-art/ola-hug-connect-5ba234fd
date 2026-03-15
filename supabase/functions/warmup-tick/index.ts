@@ -559,17 +559,51 @@ function buildMsg(ctx: MsgCtx): string {
 // UAZAPI COMMUNICATION
 // ══════════════════════════════════════════════════════════
 
-async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
+async function uazapiSendText(baseUrl: string, token: string, number: string, text: string, quotedMsgId?: string) {
+  const body: any = { number, text };
+  if (quotedMsgId) body.quotedMsgId = quotedMsgId;
   const res = await fetch(`${baseUrl}/send/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
-    body: JSON.stringify({ number, text }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`API ${res.status}: ${errText}`);
   }
   return await res.json();
+}
+
+/** Fetch last messages from a group chat to get a quotable message ID */
+async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
+  try {
+    const endpoints = [
+      `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=5`,
+      `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=5`,
+    ];
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep, {
+          method: "GET",
+          headers: { token, Accept: "application/json" },
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const messages = Array.isArray(data) ? data : data?.messages || data?.data || [];
+        if (!Array.isArray(messages) || messages.length === 0) continue;
+        // Pick a random recent message (not our own) to reply to
+        const candidates = messages.filter((m: any) => !m.fromMe && (m.id || m.ID || m.key?.id));
+        if (candidates.length > 0) {
+          const picked = candidates[Math.floor(Math.random() * candidates.length)];
+          return picked.id || picked.ID || picked.key?.id || null;
+        }
+        // If all messages are ours, pick any
+        const any = messages[0];
+        return any?.id || any?.ID || any?.key?.id || null;
+      } catch { /* try next */ }
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 const _blobCache: Record<string, string> = {};
