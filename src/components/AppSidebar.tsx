@@ -308,9 +308,9 @@ export function AppSidebar() {
                         e.stopPropagation();
                         setWarmupExpanded(!warmupExpanded);
                       }}
-                      className="p-1.5 rounded-md hover:bg-muted/40 text-muted-foreground/50 hover:text-muted-foreground transition-colors mr-1"
+                      className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground transition-colors mr-2"
                     >
-                      <ChevronRight className={cn("w-3.5 h-3.5 transition-transform duration-200", warmupExpanded && "rotate-90")} />
+                      <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", warmupExpanded && "rotate-90")} />
                     </button>
                   )}
                 </div>
