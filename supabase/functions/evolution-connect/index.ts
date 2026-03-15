@@ -784,142 +784,41 @@ Deno.serve(async (req) => {
       const normalizedPicture = typeof profilePictureData === "string" ? profilePictureData.trim() : "";
       if (!normalizedPicture) return json({ error: "profilePictureData obrigatório" }, 400);
 
-      if (normalizedPicture === "remove") {
-        const removeAttempts = [
-          { path: "/profile-picture", method: "PUT" as const, payload: { value: "remove" } },
-          { path: "/profile-picture", method: "POST" as const, payload: { value: "remove" } },
-          { path: "/profile-picture", method: "PATCH" as const, payload: { value: "remove" } },
-          { path: "/profile-picture", method: "PUT" as const, payload: { picture: "remove" } },
-          { path: "/profile-picture", method: "PATCH" as const, payload: { picture: "remove" } },
+      // uazapiGO uses POST /profile/image with { image: "value" }
+      // To remove: { image: "remove" }
+      const imageValue = normalizedPicture === "remove" ? "remove" : normalizedPicture;
 
-          { path: "/profile/picture", method: "PUT" as const, payload: { picture: "remove" } },
-          { path: "/profile/picture", method: "POST" as const, payload: { picture: "remove" } },
-          { path: "/profile/picture", method: "PATCH" as const, payload: { picture: "remove" } },
-          { path: "/profile/picture", method: "PUT" as const, payload: { value: "" } },
-          { path: "/profile/picture", method: "POST" as const, payload: { value: "" } },
-          { path: "/profile/picture", method: "PATCH" as const, payload: { value: "" } },
-          { path: "/profile/picture/remove", method: "POST" as const },
-          { path: "/profile/picture/remove", method: "PUT" as const },
-          { path: "/profile/picture/remove", method: "PATCH" as const },
-          { path: "/profile/remove-picture", method: "POST" as const },
-          { path: "/profile/picture", method: "DELETE" as const },
-          { path: "/profile-picture", method: "DELETE" as const },
-          { path: "/instance/profile/picture", method: "DELETE" as const },
-          { path: "/instance/profile-picture", method: "DELETE" as const },
-
-          { path: "/instance/set-profile", method: "PUT" as const, payload: { image: "remove" } },
-          { path: "/instance/set-profile", method: "POST" as const, payload: { image: "remove" } },
-          { path: "/instance/set-profile", method: "PATCH" as const, payload: { image: "remove" } },
-          { path: "/instance/set-profile", method: "PUT" as const, payload: { profilePicture: "remove" } },
-          { path: "/instance/set-profile", method: "POST" as const, payload: { profilePicture: "remove" } },
-        ];
-
-        const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
-
-        for (const attempt of removeAttempts) {
-          const r = await uazapi(instanceUrl, attempt.path, instanceToken, attempt.method, attempt.payload, { timeoutMs: 6000, retries: 0 });
-          console.log(`[profile-pic-remove] ${attempt.method} ${attempt.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
-          if (r.ok) {
-            await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
-            return json({ success: true, endpoint: attempt.path, method: attempt.method, ...r.data });
-          }
-
-          const failureReason = r.data?.error || r.data?.message || r.data?.raw || null;
-          failures.push({
-            path: attempt.path,
-            method: attempt.method,
-            status: r.status,
-            error: failureReason ? String(failureReason) : null,
-          });
-        }
-
-        const allMethodNotAllowed = failures.length > 0 && failures.every(f => f.status === 405);
-
-        return json({
-          success: false,
-          error: allMethodNotAllowed
-            ? "O provedor da instância rejeitou todos os métodos de remoção de foto (405)."
-            : "Não foi possível remover a foto no provedor.",
-          attempts: failures,
-        }, 422);
-      }
-
-      const isUrl = normalizedPicture.startsWith("http");
       const picEndpoints = [
-        { path: "/profile-picture", method: "PUT" as const, payload: { value: normalizedPicture } },
-        { path: "/profile-picture", method: "POST" as const, payload: { value: normalizedPicture } },
-        { path: "/profile-picture", method: "PATCH" as const, payload: { value: normalizedPicture } },
-        { path: "/profile-picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
-        { path: "/profile-picture", method: "POST" as const, payload: { picture: normalizedPicture } },
-        { path: "/profile-picture", method: "PATCH" as const, payload: { picture: normalizedPicture } },
-
-        { path: "/profile/picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
-        { path: "/profile/picture", method: "PUT" as const, payload: { value: normalizedPicture } },
-        { path: "/profile/picture", method: "POST" as const, payload: { picture: normalizedPicture } },
-        { path: "/profile/picture", method: "POST" as const, payload: { url: normalizedPicture } },
-        { path: "/profile/picture", method: "POST" as const, payload: { image: normalizedPicture } },
-        { path: "/profile/picture", method: "PUT" as const, payload: { url: normalizedPicture } },
-        { path: "/profile/picture", method: "PATCH" as const, payload: { picture: normalizedPicture } },
-
-        { path: "/profile/update-picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
-        { path: "/profile/update-picture", method: "POST" as const, payload: { picture: normalizedPicture } },
-
-        { path: "/instance/profile/picture", method: "PUT" as const, payload: { picture: normalizedPicture } },
-        { path: "/instance/profile/picture", method: "POST" as const, payload: { picture: normalizedPicture } },
-        { path: "/instance/profile-picture", method: "PUT" as const, payload: { value: normalizedPicture } },
-        { path: "/instance/profile-picture", method: "PATCH" as const, payload: { value: normalizedPicture } },
-
-        {
-          path: "/instance/set-profile",
-          method: "PUT" as const,
-          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
-        },
-        {
-          path: "/instance/set-profile",
-          method: "POST" as const,
-          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
-        },
-        {
-          path: "/instance/set-profile",
-          method: "PATCH" as const,
-          payload: { name: device?.profile_name || device?.name || "", image: normalizedPicture },
-        },
+        // Primary: confirmed uazapiGO endpoint
+        { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
+        // Fallbacks
+        { path: "/profile/picture", method: "POST" as const, payload: { image: imageValue } },
+        { path: "/profile-picture", method: "POST" as const, payload: { image: imageValue } },
+        { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
+        { path: "/profile/picture", method: "PUT" as const, payload: { picture: imageValue } },
+        { path: "/profile-picture", method: "PUT" as const, payload: { value: imageValue } },
       ];
-
-      if (isUrl) {
-        picEndpoints.push(
-          { path: "/profile-picture", method: "PUT" as const, payload: { source: normalizedPicture } },
-          { path: "/profile/picture", method: "PUT" as const, payload: { picture: { url: normalizedPicture } } },
-          { path: "/profile/picture", method: "POST" as const, payload: { picture: { url: normalizedPicture } } },
-          { path: "/profile/picture", method: "PATCH" as const, payload: { picture: { url: normalizedPicture } } },
-        );
-      }
 
       const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
 
       for (const ep of picEndpoints) {
         const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 8000, retries: 1 });
-        console.log(`[profile-pic-set] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
+        console.log(`[profile-pic] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
         if (r.ok) {
-          await svc.from("devices").update({ profile_picture: normalizedPicture }).eq("id", deviceId);
+          const dbValue = normalizedPicture === "remove" ? null : normalizedPicture;
+          await svc.from("devices").update({ profile_picture: dbValue }).eq("id", deviceId);
           return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
         }
-
-        const failureReason = r.data?.error || r.data?.message || r.data?.raw || null;
         failures.push({
-          path: ep.path,
-          method: ep.method,
-          status: r.status,
-          error: failureReason ? String(failureReason) : null,
+          path: ep.path, method: ep.method, status: r.status,
+          error: (r.data?.error || r.data?.message || r.data?.raw || null) as string | null,
         });
       }
 
-      const allMethodNotAllowed = failures.length > 0 && failures.every(f => f.status === 405);
-
       return json({
         success: false,
-        error: allMethodNotAllowed
-          ? "O provedor da instância rejeitou todos os métodos de atualização de foto (405)."
+        error: normalizedPicture === "remove"
+          ? "Não foi possível remover a foto no provedor."
           : "Nenhum endpoint de foto funcionou",
         attempts: failures,
       }, 422);
