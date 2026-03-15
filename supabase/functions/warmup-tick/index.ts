@@ -702,7 +702,9 @@ const IMAGE_CAPTIONS = [
   "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-function pickMediaType(): "text" | "image" | "sticker" {
+function pickMediaType(budgetUsed: number): "text" | "image" | "sticker" {
+  // Primeiras 3 mensagens do dia são SEMPRE texto para parecer natural
+  if (budgetUsed < 3) return "text";
   const r = Math.random();
   if (r < 0.50) return "text";     // 50% texto
   if (r < 0.75) return "image";    // 25% imagem
