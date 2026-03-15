@@ -1034,6 +1034,10 @@ const Devices = () => {
       toast({ title: "Selecione uma foto ou preencha o nome para salvar", variant: "destructive" });
       return;
     }
+
+    // Avoid fast reversion from auto-sync right after saving profile edits
+    muteAutoSync(45_000);
+
     setWpSaving(true);
     try {
       const connectedStatuses = ["Ready", "Connected", "authenticated", "open"];
