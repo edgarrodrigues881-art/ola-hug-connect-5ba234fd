@@ -1856,7 +1856,7 @@ const Devices = () => {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!open) closeEditDialog(); else setEditOpen(true); }}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden border-border/40 bg-card">
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/20">
