@@ -692,10 +692,10 @@ async function getImagePool(db: any): Promise<string[]> {
     if (!error && files?.length > 0) {
       const base = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-media`;
       const imgs = files
-        .filter((f: any) => f.name && !f.name.startsWith(".") && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name))
+        .filter((f: any) => f.name && !f.name.startsWith(".") && !f.name.startsWith("Captura") && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name))
         .map((f: any) => `${base}/${encodeURIComponent(f.name)}`);
       if (imgs.length > 0) {
-        _imagePoolCache = [...imgs, ...FALLBACK_IMAGES];
+        _imagePoolCache = imgs; // Use only storage images, no fallback mix
         return _imagePoolCache;
       }
     }
