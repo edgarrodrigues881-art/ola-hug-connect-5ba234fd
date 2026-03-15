@@ -303,34 +303,50 @@ class RandomPicker {
 // Max time we allow per invocation before self-continuing (45s safety margin)
 const MAX_EXECUTION_MS = 45_000;
 
-// ─── LOCK HELPERS ───
+// ─── LOCK HELPERS (parallelized for 30+ devices) ───
 async function acquireDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string, userId: string): Promise<{ acquired: boolean; lockedBy?: string }> {
-  for (const deviceId of deviceIds) {
-    const { data, error } = await serviceClient.rpc("acquire_device_lock", {
-      _device_id: deviceId,
-      _campaign_id: campaignId,
-      _user_id: userId,
-      _stale_seconds: 120,
-    });
-    if (error || data !== true) {
-      // Check who holds the lock
-      const { data: lock } = await serviceClient
-        .from("campaign_device_locks")
-        .select("campaign_id")
-        .eq("device_id", deviceId)
-        .single();
-      return { acquired: false, lockedBy: lock?.campaign_id || "unknown" };
+  // Acquire all locks in parallel for high-concurrency scenarios
+  const LOCK_BATCH_SIZE = 10;
+  for (let i = 0; i < deviceIds.length; i += LOCK_BATCH_SIZE) {
+    const batch = deviceIds.slice(i, i + LOCK_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(deviceId =>
+        serviceClient.rpc("acquire_device_lock", {
+          _device_id: deviceId,
+          _campaign_id: campaignId,
+          _user_id: userId,
+          _stale_seconds: 180, // extended for large device counts
+        })
+      )
+    );
+    for (let j = 0; j < results.length; j++) {
+      const r = results[j];
+      if (r.status === "rejected" || (r.status === "fulfilled" && (r.value.error || r.value.data !== true))) {
+        const { data: lock } = await serviceClient
+          .from("campaign_device_locks")
+          .select("campaign_id")
+          .eq("device_id", batch[j])
+          .single();
+        return { acquired: false, lockedBy: lock?.campaign_id || "unknown" };
+      }
     }
   }
   return { acquired: true };
 }
 
 async function releaseDeviceLocks(serviceClient: any, deviceIds: string[], campaignId: string) {
-  for (const deviceId of deviceIds) {
-    await serviceClient.rpc("release_device_lock", {
-      _device_id: deviceId,
-      _campaign_id: campaignId,
-    });
+  // Release all locks in parallel
+  const RELEASE_BATCH = 15;
+  for (let i = 0; i < deviceIds.length; i += RELEASE_BATCH) {
+    const batch = deviceIds.slice(i, i + RELEASE_BATCH);
+    await Promise.allSettled(
+      batch.map(deviceId =>
+        serviceClient.rpc("release_device_lock", {
+          _device_id: deviceId,
+          _campaign_id: campaignId,
+        })
+      )
+    );
   }
 }
 
@@ -673,14 +689,16 @@ Deno.serve(async (req) => {
       const useRotation = messagesPerInstance > 0 && allDevices.length > 1;
       const useParallel = messagesPerInstance === -1 && allDevices.length > 1;
 
-      // Get pending contacts (batch of 100)
+      // Scale batch size by device count (10 per device, min 100, max 500)
+      const dynamicBatchSize = Math.min(500, Math.max(100, allDevices.length * 10));
+      // Get pending contacts
       const { data: contacts, error: contactsErr } = await serviceClient
         .from("campaign_contacts")
         .select("id, phone, name, status, campaign_id, var1, var2, var3, var4, var5, var6, var7, var8, var9, var10")
         .eq("campaign_id", campaignId)
         .eq("status", "pending")
         .order("created_at", { ascending: true })
-        .limit(100);
+        .limit(dynamicBatchSize);
 
       if (contactsErr) throw contactsErr;
 
@@ -739,18 +757,29 @@ Deno.serve(async (req) => {
         const chunks: any[][] = allDevices.map(() => [] as any[]);
         contacts.forEach((c, i) => chunks[i % allDevices.length].push(c));
 
-        const results = await Promise.allSettled(allDevices.map(async (dev, devIdx) => {
-          const chunk = chunks[devIdx];
+        // Process devices in waves of 10 for massive concurrency
+        const DEVICE_WAVE_SIZE = 10;
+        const allResults: { sent: number; failed: number }[] = [];
+
+        for (let wave = 0; wave < allDevices.length; wave += DEVICE_WAVE_SIZE) {
+          const waveDevices = allDevices.slice(wave, wave + DEVICE_WAVE_SIZE);
+          const waveChunks = waveDevices.map((_, wi) => chunks[wave + wi] || []);
+
+        const waveResults = await Promise.allSettled(waveDevices.map(async (dev, devIdx) => {
+          const chunk = waveChunks[devIdx];
+          if (!chunk || chunk.length === 0) return { sent: 0, failed: 0 };
           const devToken = dev.uazapi_token;
           const devBaseUrl = (dev.uazapi_base_url || "").replace(/\/+$/, "");
           let devSent = 0, devFailed = 0;
           let devHeartbeat = 0;
+          // Shared cancel flag across device when campaign paused
+          let cancelled = false;
           const devUsedRand4 = new Set<string>();
           const devUsedRand3 = new Set<string>();
           const devRandomPicker = new RandomPicker(messageVariants.length);
 
           for (const contact of chunk) {
-            if (Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
+            if (cancelled || Date.now() - startTime > MAX_EXECUTION_MS) { needsContinue = true; break; }
 
             // Optimistic lock: mark as processing
             const { data: locked } = await serviceClient
@@ -761,16 +790,20 @@ Deno.serve(async (req) => {
               .select("id");
             if (!locked || locked.length === 0) continue;
 
-            // Heartbeat every 5 messages to keep lock alive
+            // Heartbeat every 15 messages (reduced from 5 to lower DB load with 30+ devices)
             devHeartbeat++;
-            if (devHeartbeat % 5 === 0) {
+            if (devHeartbeat % 15 === 0) {
               await heartbeatLock(serviceClient, campaignId);
             }
 
+            // Status check every 10 messages (not every message — saves 90% of queries with 30 devices)
+            if (devHeartbeat % 10 === 1) {
             const { data: fresh } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
             if (fresh && (fresh.status === "paused" || fresh.status === "canceled")) {
               await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
+              cancelled = true;
               break;
+            }
             }
 
             const phone = contact.phone.replace(/\D/g, "");
@@ -859,7 +892,7 @@ Deno.serve(async (req) => {
               const translated = translateErrorMessage(err.message || "Erro");
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: translated, device_id: dev.id }).eq("id", contact.id);
               devFailed++;
-              await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, allDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
+               await oplog(serviceClient, campaign.user_id, "uazapi_error", `Erro ao enviar para ${normalized}: ${translated}`, waveDevices[devIdx]?.id, { campaign_id: campaignId, phone: normalized });
               if (isDisconnectError(err.message || "")) {
                 const remainingIds = chunk.slice(chunk.indexOf(contact) + 1).map((c: any) => c.id);
                 if (remainingIds.length > 0) {
@@ -872,11 +905,16 @@ Deno.serve(async (req) => {
           return { sent: devSent, failed: devFailed };
         }));
 
-        for (const r of results) {
+        for (const r of waveResults) {
           if (r.status === "fulfilled") {
-            sentCount += r.value.sent;
-            failedCount += r.value.failed;
+            allResults.push(r.value);
           }
+        }
+        } // end wave loop
+
+        for (const r of allResults) {
+          sentCount += r.sent;
+          failedCount += r.failed;
         }
         await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
@@ -932,19 +970,21 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // Heartbeat every 5 messages to prevent stale lock detection
+          // Heartbeat every 10 messages (optimized for high device count)
           heartbeatCounter++;
-          if (heartbeatCounter % 5 === 0) {
+          if (heartbeatCounter % 10 === 0) {
             await heartbeatLock(serviceClient, campaignId);
           }
 
-          // Check if paused/canceled
+          // Check if paused/canceled every 8 messages (batched to reduce DB load)
+          if (heartbeatCounter % 8 === 1) {
           const { data: freshCampaign } = await serviceClient.from("campaigns").select("status").eq("id", campaignId).single();
           if (freshCampaign && (freshCampaign.status === "paused" || freshCampaign.status === "canceled")) {
             console.log(`Campaign ${campaignId} was ${freshCampaign.status}. Stopping.`);
             // Revert processing contact
             await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("id", contact.id).eq("status", "processing");
             break;
+          }
           }
 
           // Rotation logic
@@ -961,7 +1001,8 @@ Deno.serve(async (req) => {
           if (phone.length < 10) {
             await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
             failedCount++;
-            await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+            // Batch update counters every 5 messages to reduce DB writes
+            if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             continue;
           }
 
@@ -975,7 +1016,8 @@ Deno.serve(async (req) => {
             const personalizedMessage = replaceVariables(chosenMessage, contact, rand4, rand3);
             const normalizedPhone = normalizeBrazilianPhone(phone);
 
-            // Check device status before sending
+            // Check device status every 10 messages (not every message — reduces DB load)
+            if (heartbeatCounter % 10 === 1) {
             const { data: deviceStatus } = await serviceClient.from("devices").select("status").eq("id", activeDevice.id).single();
             if (deviceStatus && !["Ready", "Connected", "authenticated"].includes(deviceStatus.status)) {
               console.log(`⚠️ Device ${activeDevice.name} is ${deviceStatus.status}, pausing campaign`);
@@ -984,12 +1026,13 @@ Deno.serve(async (req) => {
               await releaseDeviceLocks(serviceClient, deviceIds, campaignId);
               break;
             }
+            }
 
             const check = await checkNumberExists(activeBaseUrl, activeToken, normalizedPhone);
             if (!check.exists) {
               await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: check.error || "Número inválido", device_id: activeDevice.id }).eq("id", contact.id);
               failedCount++;
-              await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+              if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
                 await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
                 break;
@@ -1010,7 +1053,7 @@ Deno.serve(async (req) => {
                   console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
                     await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: activeDevice.id }).eq("id", contact.id);
                   failedCount++;
-                  await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+                  if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                   if (isDisconnectError(result.error || "")) {
                     await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
                   }
@@ -1034,7 +1077,7 @@ Deno.serve(async (req) => {
                 console.error(`Failed to send to ${phone} via ${activeDevice.name} after ${result.attempts} attempts:`, translated);
                 await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: `${translated} (${result.attempts} tentativas)`, device_id: activeDevice.id }).eq("id", contact.id);
                 failedCount++;
-                await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
+                if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
                   await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
                   break;
@@ -1047,7 +1090,8 @@ Deno.serve(async (req) => {
             batchSent++;
             instanceMsgCount++;
             msgsSincePause++;
-            await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
+            // Batch counter updates every 5 messages to reduce DB writes
+            if (batchSent % 5 === 0) await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
             // Apply random delay AFTER send, subtracting API time so perceived gap matches config
             const isLastContact = contacts.indexOf(contact) === contacts.length - 1;
