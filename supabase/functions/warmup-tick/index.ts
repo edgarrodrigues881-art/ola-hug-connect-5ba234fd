@@ -632,6 +632,63 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   throw new Error(`Image send failed: ${b64Result.lastErr || urlResult.lastErr}`);
 }
 
+async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
+  if (!imageUrl) throw new Error("Sticker URL ausente");
+
+  const parseResponse = async (res: Response) => {
+    const raw = await res.text();
+    if (!raw) return { ok: true };
+    try { return JSON.parse(raw); } catch { return { raw }; }
+  };
+
+  const tryEndpoints = async (endpoints: Array<{ url: string; body: Record<string, unknown> }>) => {
+    let lastErr = "";
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+          body: JSON.stringify(ep.body),
+        });
+        if (res.ok) return { ok: true as const, data: await parseResponse(res) };
+        const errText = await res.text();
+        lastErr = `${res.status} @ ${ep.url}: ${errText.substring(0, 240)}`;
+        if (res.status !== 405) console.warn(`[uazapiSendSticker] ${lastErr}`);
+      } catch (e) { lastErr = `${ep.url}: ${e.message}`; }
+    }
+    return { ok: false as const, lastErr };
+  };
+
+  // Strategy 1: direct URL
+  const urlResult = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
+    { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
+    { url: `${baseUrl}/send/sticker`, body: { number, image: imageUrl } },
+  ]);
+  if (urlResult.ok) return urlResult.data;
+
+  // Strategy 2: base64 fallback
+  let dataUri = _blobCache[imageUrl];
+  if (!dataUri) {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`Failed to download sticker: ${imgRes.status}`);
+    const mimeType = imgRes.headers.get("content-type") || "image/webp";
+    const bytes = new Uint8Array(await imgRes.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    dataUri = `data:${mimeType};base64,${btoa(binary)}`;
+    _blobCache[imageUrl] = dataUri;
+  }
+
+  const b64Result = await tryEndpoints([
+    { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
+    { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
+  ]);
+  if (b64Result.ok) return b64Result.data;
+
+  throw new Error(`Sticker send failed: ${b64Result.lastErr || urlResult.lastErr}`);
+}
+
 // ══════════════════════════════════════════════════════════
 // IMAGE POOL
 // ══════════════════════════════════════════════════════════
@@ -682,8 +739,11 @@ const IMAGE_CAPTIONS = [
   "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-function pickMediaType(): "text" | "image" {
-  return Math.random() < 0.90 ? "text" : "image"; // 10% fotos
+function pickMediaType(): "text" | "image" | "sticker" {
+  const r = Math.random();
+  if (r < 0.80) return "text";     // 80% texto
+  if (r < 0.90) return "image";    // 10% imagem
+  return "sticker";                 // 10% figurinha
 }
 
 // ══════════════════════════════════════════════════════════
