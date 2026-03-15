@@ -163,98 +163,70 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: ONLY allows forcing group joins (pre_24h phase) */
+  /* accelerate: forces only the NEXT pending job to run NOW */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
-
-    // Block acceleration for any phase other than pre_24h (group joining)
-    if (cycle.phase !== "pre_24h") {
-      toast({
-        title: "Ação bloqueada",
-        description: "Só é possível forçar a entrada nos grupos. As mensagens de aquecimento seguem o fluxo automático.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setAccelerating(true);
     try {
-      const nowMs = Date.now();
-
-      // Only accelerate join_group jobs
-      const { data: pendingJobs, error: fetchErr } = await supabase
+      // Fetch the single next pending job (any type) for this cycle
+      const { data: nextJob, error: fetchErr } = await supabase
         .from("warmup_jobs")
         .select("id, job_type, run_at, payload")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .eq("job_type", "join_group")
-        .order("run_at", { ascending: true });
+        .order("run_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
       if (fetchErr) throw fetchErr;
 
-      let forcedCount = 0;
-
-      if (pendingJobs && pendingJobs.length > 0) {
-        // Filter out jobs for groups already joined
-        const joinedGroupIds = new Set(
-          instanceGroups
-            .filter((g) => g.join_status === "joined")
-            .map((g) => g.group_id)
-        );
-        for (const g of instanceGroups) {
-          if (g.join_status !== "joined") {
-            const poolName = g.warmup_groups_pool?.name;
-            const normalizedName = poolName ? normalizeGroupName(poolName) : "";
-            const liveMatch = normalizedName && liveDeviceGroups.some(
-              (lg) => normalizeGroupName(lg.name) === normalizedName
-            );
-            if (liveMatch || (g.group_jid && liveDeviceGroups.some((lg) => lg.id === g.group_jid))) {
-              joinedGroupIds.add(g.group_id);
-            }
-          }
-        }
-
-        const alreadyJoinedJobIds: string[] = [];
-        const remainingJobs: typeof pendingJobs = [];
-
-        for (const job of pendingJobs) {
-          const groupId = (job.payload as any)?.group_id;
-          if (groupId && joinedGroupIds.has(groupId)) {
-            alreadyJoinedJobIds.push(job.id);
-          } else {
-            remainingJobs.push(job);
-          }
-        }
-
-        if (alreadyJoinedJobIds.length > 0) {
-          await supabase
-            .from("warmup_jobs")
-            .update({ status: "cancelled", last_error: "Grupo já ingressado — cancelado na aceleração" })
-            .in("id", alreadyJoinedJobIds);
-        }
-
-        if (remainingJobs.length > 0) {
-          const originalFirstMs = new Date(remainingJobs[0].run_at).getTime();
-          const shift = nowMs - originalFirstMs;
-
-          for (const job of remainingJobs) {
-            const newMs = new Date(job.run_at).getTime() + shift;
-            const { error: updateErr } = await supabase
-              .from("warmup_jobs")
-              .update({ run_at: new Date(newMs).toISOString() })
-              .eq("id", job.id)
-              .eq("status", "pending");
-            if (updateErr) throw updateErr;
-          }
-        }
-
-        forcedCount = remainingJobs.length;
-      } else {
+      if (!nextJob) {
         toast({
           title: "Sem tarefas pendentes",
-          description: "Não há novas entradas em grupo pendentes para executar agora.",
+          description: "Não há tarefas pendentes para forçar.",
         });
         return;
       }
+
+      // For join_group: skip if group already joined
+      if (nextJob.job_type === "join_group") {
+        const groupId = (nextJob.payload as any)?.group_id;
+        if (groupId) {
+          const joinedGroupIds = new Set(
+            instanceGroups
+              .filter((g) => g.join_status === "joined")
+              .map((g) => g.group_id)
+          );
+          for (const g of instanceGroups) {
+            if (g.join_status !== "joined") {
+              const poolName = g.warmup_groups_pool?.name;
+              const normalizedName = poolName ? normalizeGroupName(poolName) : "";
+              const liveMatch = normalizedName && liveDeviceGroups.some(
+                (lg) => normalizeGroupName(lg.name) === normalizedName
+              );
+              if (liveMatch || (g.group_jid && liveDeviceGroups.some((lg) => lg.id === g.group_jid))) {
+                joinedGroupIds.add(g.group_id);
+              }
+            }
+          }
+          if (joinedGroupIds.has(groupId)) {
+            await supabase
+              .from("warmup_jobs")
+              .update({ status: "cancelled", last_error: "Grupo já ingressado — cancelado" })
+              .eq("id", nextJob.id);
+            toast({ title: "Grupo já ingressado", description: "Job cancelado. Clique novamente para forçar o próximo." });
+            await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+            return;
+          }
+        }
+      }
+
+      // Set run_at to NOW
+      const { error: updateErr } = await supabase
+        .from("warmup_jobs")
+        .update({ run_at: new Date().toISOString() })
+        .eq("id", nextJob.id)
+        .eq("status", "pending");
+      if (updateErr) throw updateErr;
 
       // Trigger warmup-tick immediately
       try {
@@ -263,9 +235,8 @@ const WarmupInstanceDetail = () => {
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
-      const desc = `${forcedCount} entrada(s) em grupo recalculadas a partir de agora.`;
-
-      toast({ title: "⚡ Recalculado!", description: desc });
+      const jobLabel = nextJob.job_type === "join_group" ? "Entrada em grupo" : nextJob.job_type.replace(/_/g, " ");
+      toast({ title: "⚡ Forçado!", description: `Próxima tarefa (${jobLabel}) executando agora.` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
