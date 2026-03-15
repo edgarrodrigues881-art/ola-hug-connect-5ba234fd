@@ -92,28 +92,48 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
 }
 
 // ══════════════════════════════════════════════════════════
-// OPERATING WINDOW
+// OPERATING WINDOW — 07:00-19:00 BRT (exact timezone)
 // ══════════════════════════════════════════════════════════
+
+function getBrtTodayAt(hour: number, minute = 0): Date {
+  const brtDateStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    timeZoneName: "shortOffset",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const tzPart = parts.find(p => p.type === "timeZoneName")?.value || "GMT-3";
+  const offsetMatch = tzPart.match(/GMT([+-]?\d+)/);
+  const offsetHours = offsetMatch ? parseInt(offsetMatch[1]) : -3;
+  
+  const result = new Date();
+  const [y, m, d] = brtDateStr.split("-").map(Number);
+  result.setUTCFullYear(y, m - 1, d);
+  result.setUTCHours(hour - offsetHours, minute, 0, 0);
+  return result;
+}
 
 function calculateWindow(forced = false): { effectiveStart: number; effectiveEnd: number } | null {
   const now = new Date();
-  const ws = new Date(now); ws.setUTCHours(10, 0, 0, 0);
-  const we = new Date(now); we.setUTCHours(22, 0, 0, 0);
   const nowMs = now.getTime();
+  const startMs = getBrtTodayAt(7).getTime();
+  const endMs = getBrtTodayAt(19).getTime();
 
-  if (forced && nowMs >= we.getTime()) {
+  if (forced && nowMs >= endMs) {
     return { effectiveStart: nowMs, effectiveEnd: nowMs + 2 * 3600000 };
   }
-  if (nowMs < ws.getTime()) return { effectiveStart: ws.getTime(), effectiveEnd: we.getTime() };
-  if (nowMs >= we.getTime()) return null;
-  return { effectiveStart: nowMs, effectiveEnd: we.getTime() };
+  if (nowMs < startMs) return { effectiveStart: startMs, effectiveEnd: endMs };
+  if (nowMs >= endMs) return null;
+  return { effectiveStart: nowMs, effectiveEnd: endMs };
 }
 
 function isWithinOperatingWindow(): boolean {
   const now = new Date();
-  const ws = new Date(now); ws.setUTCHours(10, 0, 0, 0);
-  const we = new Date(now); we.setUTCHours(22, 0, 0, 0);
-  return now.getTime() >= ws.getTime() && now.getTime() < we.getTime();
+  return now.getTime() >= getBrtTodayAt(7).getTime() && now.getTime() < getBrtTodayAt(19).getTime();
 }
 
 function getBrtDateKey(date: Date): string {
