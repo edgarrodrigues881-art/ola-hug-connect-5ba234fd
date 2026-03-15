@@ -852,17 +852,6 @@ const Devices = () => {
 
       return; // skip the closeEditDialog/toast below
 
-      if (warnings.length > 0) {
-        const extraWarnings = warnings.length > 1 ? ` (+${warnings.length - 1} aviso${warnings.length > 2 ? "s" : ""})` : "";
-        toast({
-          title: "⚠️ Foto não aceita pelo WhatsApp",
-          description: `${warnings[0]}${extraWarnings}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Instância atualizada" });
-      }
-      closeEditDialog();
     } catch (err: any) {
       console.error("Edit update error:", err);
       toast({
