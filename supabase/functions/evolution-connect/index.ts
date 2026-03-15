@@ -18,7 +18,7 @@ async function uazapi(
   baseUrl: string,
   endpoint: string,
   token: string,
-  method: "GET" | "POST" | "DELETE" | "PUT" = "POST",
+  method: "GET" | "POST" | "DELETE" | "PUT" | "PATCH" = "POST",
   body?: any,
   opts?: { timeoutMs?: number; retries?: number },
 ): Promise<{ ok: boolean; status: number; data: any }> {
