@@ -1286,7 +1286,7 @@ const WarmupInstanceDetail = () => {
                       detail: isCycleStarted
                         ? "Entre 4 e 6 horas começa a entrar nos grupos."
                         : (log.message.length > 80 ? log.message.substring(0, 77) + "..." : log.message),
-                      detailGroups: isCycleStarted && groupScheduleItems.length > 0 ? groupScheduleItems : undefined,
+                      detailGroups: undefined,
                       icon: iconMap[log.event_type] || "📋",
                       color: colorMap[log.level] || "text-muted-foreground",
                     });
