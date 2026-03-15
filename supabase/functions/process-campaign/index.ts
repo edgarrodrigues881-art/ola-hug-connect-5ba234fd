@@ -1088,7 +1088,8 @@ Deno.serve(async (req) => {
             batchSent++;
             instanceMsgCount++;
             msgsSincePause++;
-            await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount }).eq("id", campaignId);
+            // Batch counter updates every 5 messages to reduce DB writes
+            if (batchSent % 5 === 0) await serviceClient.from("campaigns").update({ sent_count: sentCount, delivered_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
 
             // Apply random delay AFTER send, subtracting API time so perceived gap matches config
             const isLastContact = contacts.indexOf(contact) === contacts.length - 1;
