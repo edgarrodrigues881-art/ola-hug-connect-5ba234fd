@@ -222,8 +222,9 @@ Deno.serve(async (req) => {
                 data.profilePicUrl = snap.pic;
                 data.profilePicture = snap.pic;
               } else if (snap.pic === null) {
-                data.profilePicUrl = "";
-                data.profilePicture = "";
+                // Explicit no-photo signal from provider
+                data.profilePicUrl = null;
+                data.profilePicture = null;
               }
               if (snap.name) {
                 data.pushname = snap.name;
@@ -257,7 +258,7 @@ Deno.serve(async (req) => {
 
     // Limit expensive deep profile checks per run to protect high-concurrency scenarios
     let deepProfileChecks = 0;
-    const MAX_DEEP_PROFILE_CHECKS = 20;
+    const MAX_DEEP_PROFILE_CHECKS = Math.min(120, Math.max(30, Math.ceil(syncable.length * 0.5)));
 
     if (circuitOpen) {
       // Log the provider outage but DON'T disconnect anything
@@ -348,12 +349,33 @@ Deno.serve(async (req) => {
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
 
-        // ── Profile picture sync logic ──
-        const providerPicRaw =
-          inst.profilePicUrl ?? inst.profilePicture ??
-          data.profilePicUrl ?? data.profilePicture ?? "";
-        let providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
-        const providerNameRaw = (inst.profileName || inst.pushname || "").toString().trim();
+        // ── Profile picture sync logic (tri-state to avoid accidental wipes) ──
+        const picCandidates = [
+          inst.profilePicUrl,
+          inst.profilePicture,
+          data.profilePicUrl,
+          data.profilePicture,
+        ];
+
+        let providerPic: string | null | undefined = undefined;
+        for (const candidate of picCandidates) {
+          if (candidate === null) {
+            providerPic = null;
+            break;
+          }
+          if (typeof candidate === "string") {
+            const trimmed = candidate.trim();
+            if (trimmed) {
+              providerPic = trimmed;
+              break;
+            }
+            // Explicit empty string means provider explicitly says "no photo"
+            providerPic = null;
+            break;
+          }
+        }
+
+        const providerNameRaw = (inst.profileName || inst.pushname || data.profileName || data.pushname || "").toString().trim();
 
         const currentPic = device.profile_picture || null;
         const currentName = (device.profile_name || "").toString();
@@ -364,17 +386,18 @@ Deno.serve(async (req) => {
           ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
 
-        // If provider keeps returning the same pic URL, do a limited deep check using dedicated endpoint.
-        // This helps detect manual removals that lag on /instance/status cache.
+        // Deep check when cached/unknown picture state is returned by status endpoint.
+        // This avoids false clears and also helps recover pictures that were previously wiped.
         if (
           isConnected &&
           !justEdited &&
-          currentPic &&
-          providerPic &&
-          currentPic === providerPic &&
           device.uazapi_base_url &&
           device.uazapi_token &&
-          deepProfileChecks < MAX_DEEP_PROFILE_CHECKS
+          deepProfileChecks < MAX_DEEP_PROFILE_CHECKS &&
+          (
+            providerPic === undefined ||
+            (currentPic && typeof providerPic === "string" && currentPic === providerPic)
+          )
         ) {
           deepProfileChecks++;
           const cleanBase = String(device.uazapi_base_url).replace(/\/+$/, "");
@@ -385,7 +408,7 @@ Deno.serve(async (req) => {
             String(device.number || "")
           );
           if (freshPic !== undefined) {
-            providerPic = freshPic || "";
+            providerPic = freshPic;
           }
         }
 
@@ -393,12 +416,15 @@ Deno.serve(async (req) => {
         if (!isConnected) {
           // Disconnected: keep whatever we have
           newPic = currentPic;
-        } else if (justEdited && currentPic && providerPic && currentPic !== providerPic) {
+        } else if (justEdited && currentPic && typeof providerPic === "string" && currentPic !== providerPic) {
           // Just saved from panel and provider returned a different NON-EMPTY pic: keep local briefly
           newPic = currentPic;
+        } else if (providerPic === undefined) {
+          // Unknown provider state: preserve current photo (critical to avoid accidental mass wipe)
+          newPic = currentPic;
         } else {
-          // Normal: trust the provider. Empty = removed, URL = new/updated
-          newPic = providerPic || null;
+          // Explicit provider state: URL (new/updated) or null (removed)
+          newPic = providerPic;
         }
 
         const newName = isConnected
