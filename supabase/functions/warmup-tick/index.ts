@@ -820,16 +820,39 @@ async function handleTick(db: any) {
   if (fetchErr) throw fetchErr;
   if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0 });
 
+  // Limit: only 1 autosave_interaction per device per tick to avoid burst sending
+  const autosaveSeenDevices = new Set<string>();
+  const filteredJobs: any[] = [];
+  const deferredAutosaveIds: string[] = [];
+  for (const j of pendingJobs) {
+    if (j.job_type === "autosave_interaction") {
+      const key = j.device_id;
+      if (autosaveSeenDevices.has(key)) {
+        deferredAutosaveIds.push(j.id);
+        continue;
+      }
+      autosaveSeenDevices.add(key);
+    }
+    filteredJobs.push(j);
+  }
+  // Defer extra autosave jobs by 2-4 min so next tick picks them up one at a time
+  if (deferredAutosaveIds.length > 0) {
+    for (let i = 0; i < deferredAutosaveIds.length; i += 200) {
+      const newRunAt = new Date(Date.now() + randInt(120, 240) * 1000).toISOString();
+      await db.from("warmup_jobs").update({ run_at: newRunAt }).in("id", deferredAutosaveIds.slice(i, i + 200));
+    }
+  }
+
   // Mark as running
-  const jobIds = pendingJobs.map((j: any) => j.id);
+  const jobIds = filteredJobs.map((j: any) => j.id);
   for (let i = 0; i < jobIds.length; i += 200) {
     await db.from("warmup_jobs").update({ status: "running" }).in("id", jobIds.slice(i, i + 200));
   }
 
   // ── BATCH PRE-LOAD ──
-  const uniqueCycleIds = [...new Set(pendingJobs.map((j: any) => j.cycle_id))];
-  const uniqueUserIds = [...new Set(pendingJobs.map((j: any) => j.user_id))];
-  const uniqueDeviceIds = [...new Set(pendingJobs.map((j: any) => j.device_id))];
+  const uniqueCycleIds = [...new Set(filteredJobs.map((j: any) => j.cycle_id))];
+  const uniqueUserIds = [...new Set(filteredJobs.map((j: any) => j.user_id))];
+  const uniqueDeviceIds = [...new Set(filteredJobs.map((j: any) => j.device_id))];
 
   async function batchLoad<T>(table: string, cols: string, field: string, ids: string[], extra?: (q: any) => any): Promise<T[]> {
     const results: T[] = [];
@@ -881,7 +904,7 @@ async function handleTick(db: any) {
   const groupsPoolMap: Record<string, any> = {};
   groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
 
-  console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${pendingJobs.length} jobs`);
+  console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${filteredJobs.length} jobs`);
 
   const pausedCycles = new Set<string>();
   const auditLogBuffer: any[] = [];
@@ -894,7 +917,7 @@ async function handleTick(db: any) {
 
   // ── GROUP JOBS BY DEVICE ──
   const jobsByDevice: Record<string, any[]> = {};
-  for (const job of pendingJobs) {
+  for (const job of filteredJobs) {
     if (!jobsByDevice[job.device_id]) jobsByDevice[job.device_id] = [];
     jobsByDevice[job.device_id].push(job);
   }
@@ -1047,7 +1070,7 @@ async function handleTick(db: any) {
           if (updatedRecord) updatedRecord.join_status = "joined";
 
           const pendingCount = allIGs.filter((ig: any) => ig.join_status === "pending").length;
-          const hasMoreJoinJobs = pendingJobs.some((pj: any) =>
+          const hasMoreJoinJobs = filteredJobs.some((pj: any) =>
             pj.device_id === job.device_id && pj.job_type === "join_group" && pj.id !== job.id && pj.status !== "succeeded"
           );
 
@@ -1427,7 +1450,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: msg ${mIdx + 1} para ${contact.contact_name || phone}`,
+          message: `Auto Save: contato ${rIdx + 1}/${contacts.length}, msg ${mIdx + 1}/${volumes?.autosaveRounds || 3} para ${contact.contact_name || phone}`,
+          meta: { recipient_index: rIdx, msg_index: mIdx, phone, contact_name: contact.contact_name },
         });
         break;
       }
