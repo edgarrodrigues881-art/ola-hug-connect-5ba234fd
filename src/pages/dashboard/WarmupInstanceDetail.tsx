@@ -344,15 +344,15 @@ const WarmupInstanceDetail = () => {
       };
       const nextPhase = isLastDay ? "completed" : getPhaseForDay(finalDayIndex);
 
-      // 1) Cancel ALL pending jobs (including daily_reset, phase_transition)
-      // This prevents the old daily_reset from firing and advancing the day again
+      // 1) Cancel ALL still-open jobs (incl. running/pending) to avoid double-advance
       await supabase
         .from("warmup_jobs")
         .update({ status: "cancelled", last_error: "Dia pulado manualmente" })
         .eq("cycle_id", cycle.id)
-        .eq("status", "pending");
+        .in("status", ["pending", "running"]);
 
-      // 2) Persist new day + phase
+      // 2) Persist new day + phase and mark reset timestamp to keep reset idempotent
+      const resetAt = new Date().toISOString();
       const { error } = await supabase
         .from("warmup_cycles")
         .update({
@@ -361,15 +361,15 @@ const WarmupInstanceDetail = () => {
           day_index: finalDayIndex,
           daily_interaction_budget_used: 0,
           daily_unique_recipients_used: 0,
+          last_daily_reset_at: resetAt,
           is_running: !isLastDay,
-          updated_at: new Date().toISOString(),
+          updated_at: resetAt,
         })
         .eq("id", cycle.id);
       if (error) throw error;
 
-      // 3) Schedule jobs for new day + new daily_reset for tomorrow
+      // 3) Schedule jobs for new day + ensure only one daily_reset for tomorrow
       if (!isLastDay) {
-        // Schedule interaction jobs for today's remaining window (7-19 BRT)
         const { error: fnErr } = await supabase.functions.invoke("warmup-engine", {
           body: {
             action: "schedule_day",
@@ -382,19 +382,30 @@ const WarmupInstanceDetail = () => {
         });
         if (fnErr) console.warn("schedule_day invoke error:", fnErr);
 
-        // Schedule new daily_reset for tomorrow at 00:05 BRT (03:05 UTC)
         const tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setUTCHours(3, 5, 0, 0);
-        await supabase.from("warmup_jobs").insert({
-          user_id: user!.id,
-          device_id: deviceId,
-          cycle_id: cycle.id,
-          job_type: "daily_reset",
-          payload: {},
-          run_at: tomorrow.toISOString(),
-          status: "pending",
-        });
+
+        const { data: existingReset } = await supabase
+          .from("warmup_jobs")
+          .select("id")
+          .eq("cycle_id", cycle.id)
+          .eq("job_type", "daily_reset")
+          .eq("status", "pending")
+          .gte("run_at", new Date().toISOString())
+          .limit(1);
+
+        if (!existingReset || existingReset.length === 0) {
+          await supabase.from("warmup_jobs").insert({
+            user_id: user!.id,
+            device_id: deviceId,
+            cycle_id: cycle.id,
+            job_type: "daily_reset",
+            payload: {},
+            run_at: tomorrow.toISOString(),
+            status: "pending",
+          });
+        }
       }
 
       // 4) Audit log
