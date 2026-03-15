@@ -623,8 +623,15 @@ Deno.serve(async (req) => {
 
       let allDevices: any[] = [];
       if (deviceIds.length > 0) {
-        const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", deviceIds);
-        const devMap = new Map((devs || []).map(d => [d.id, d]));
+        // Paginated device loading for 300+ devices (Supabase 1000-row limit)
+        const PAGE_SIZE = 500;
+        const allDevData: any[] = [];
+        for (let i = 0; i < deviceIds.length; i += PAGE_SIZE) {
+          const batch = deviceIds.slice(i, i + PAGE_SIZE);
+          const { data: devs } = await serviceClient.from("devices").select("id, name, uazapi_token, uazapi_base_url, status").eq("user_id", campaign.user_id).in("id", batch);
+          if (devs) allDevData.push(...devs);
+        }
+        const devMap = new Map(allDevData.map(d => [d.id, d]));
         allDevices = deviceIds.map(id => devMap.get(id)).filter((d): d is any => !!d && !!d.uazapi_token && !!d.uazapi_base_url);
       }
 
