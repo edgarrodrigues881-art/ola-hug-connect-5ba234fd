@@ -1959,7 +1959,7 @@ const Devices = () => {
             )}
 
             <div className="flex items-center gap-3 pt-1">
-              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold border-border/40 text-foreground" onClick={closeEditDialog}>Cancelar</Button>
               <Button className="flex-1 h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" onClick={handleEdit} disabled={!editName.trim()}>Salvar</Button>
             </div>
           </div>
