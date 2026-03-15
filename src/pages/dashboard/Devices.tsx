@@ -224,6 +224,9 @@ const Devices = () => {
         })) as Device[];
     },
     enabled: !!session,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch warmup sessions to identify devices in warmup
