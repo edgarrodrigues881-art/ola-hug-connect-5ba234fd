@@ -1450,7 +1450,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: msg ${mIdx + 1} para ${contact.contact_name || phone}`,
+          message: `Auto Save: contato ${rIdx + 1}/${contacts.length}, msg ${mIdx + 1}/${volumes?.autosaveRounds || 3} para ${contact.contact_name || phone}`,
+          meta: { recipient_index: rIdx, msg_index: mIdx, phone, contact_name: contact.contact_name },
         });
         break;
       }
