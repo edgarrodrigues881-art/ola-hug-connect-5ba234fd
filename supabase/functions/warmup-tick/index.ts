@@ -904,7 +904,7 @@ async function handleTick(db: any) {
   const groupsPoolMap: Record<string, any> = {};
   groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
 
-  console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${pendingJobs.length} jobs`);
+  console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${filteredJobs.length} jobs`);
 
   const pausedCycles = new Set<string>();
   const auditLogBuffer: any[] = [];
