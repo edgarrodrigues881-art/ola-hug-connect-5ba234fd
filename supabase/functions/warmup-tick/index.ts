@@ -890,6 +890,8 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     { url: `${baseUrl}/send/sticker`, body: { number, file: imageUrl } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: imageUrl } },
     { url: `${baseUrl}/send/media`, body: { number, media: imageUrl, type: "sticker" } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: imageUrl } },
+    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: imageUrl } },
   ]);
   if (urlResult.ok) return urlResult.data;
 
@@ -911,6 +913,8 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     { url: `${baseUrl}/send/sticker`, body: { number, file: dataUri } },
     { url: `${baseUrl}/send/sticker`, body: { number, sticker: dataUri } },
     { url: `${baseUrl}/send/media`, body: { number, media: dataUri, type: "sticker" } },
+    { url: `${baseUrl}/message/sendSticker`, body: { chatId: number, media: dataUri } },
+    { url: `${baseUrl}/message/sendSticker`, body: { to: number, media: dataUri } },
   ]);
   if (b64Result.ok) return b64Result.data;
 
