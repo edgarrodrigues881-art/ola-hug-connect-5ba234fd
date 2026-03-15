@@ -637,6 +637,10 @@ const WarmupInstanceDetail = () => {
     // Only run reverse sync when live synchronization is confirmed
     if (!liveGroupsSyncOk) return;
 
+    const currentlyJoined = instanceGroups.filter((g) => g.join_status === "joined").length;
+    // Safety guard: do not demote on clearly partial/empty snapshots
+    if (currentlyJoined > 0 && liveDeviceGroups.length === 0) return;
+
     const liveJids = new Set(liveDeviceGroups.map((g) => g.id));
     const liveNames = new Set(liveDeviceGroups.map((g) => normalizeGroupName(g.name)));
 
