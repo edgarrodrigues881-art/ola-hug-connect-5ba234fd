@@ -702,7 +702,9 @@ const IMAGE_CAPTIONS = [
   "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-function pickMediaType(): "text" | "image" | "sticker" {
+function pickMediaType(budgetUsed: number): "text" | "image" | "sticker" {
+  // Primeiras 3 mensagens do dia são SEMPRE texto para parecer natural
+  if (budgetUsed < 3) return "text";
   const r = Math.random();
   if (r < 0.50) return "text";     // 50% texto
   if (r < 0.75) return "image";    // 25% imagem
@@ -1336,7 +1338,7 @@ async function handleTick(db: any) {
           return generateNaturalMessage("group");
         };
 
-        const requestedMediaType = pickMediaType();
+        const requestedMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
         let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
         let message = getMsg();
         let sendFallbackReason: string | null = null;
@@ -1347,8 +1349,12 @@ async function handleTick(db: any) {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
-            message = `[IMG] ${caption}`;
+            // Enviar foto sem caption + mensagem de texto separada para garantir visibilidade
+            await uazapiSendImage(baseUrl, token, groupJid, imgUrl, "");
+            // Pequeno delay entre foto e texto (1-3s)
+            await new Promise(r => setTimeout(r, randInt(1000, 3000)));
+            await uazapiSendText(baseUrl, token, groupJid, caption);
+            message = `[IMG+TXT] ${caption}`;
           } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
             await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
