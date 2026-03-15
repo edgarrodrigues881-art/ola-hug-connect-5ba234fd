@@ -1406,6 +1406,14 @@ async function handleTick(db: any) {
         const mediaType = pickMediaType();
         let message = getMsg();
 
+        // ~40% chance to reply to last message in group (more natural)
+        let quotedMsgId: string | null = null;
+        if (Math.random() < 0.4 && mediaType === "text") {
+          try {
+            quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
+          } catch { /* ignore, send without quote */ }
+        }
+
         try {
           if (mediaType === "image") {
             const imgUrl = pickRandom(imagePool);
@@ -1415,12 +1423,12 @@ async function handleTick(db: any) {
           } else if (mediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
             await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
-            // Envia uma mensagem de texto junto com a figurinha
             const stickerMsg = getMsg();
             try { await uazapiSendText(baseUrl, token, groupJid, stickerMsg); } catch { /* ok */ }
             message = `[STICKER] 🎭 + "${stickerMsg.substring(0, 40)}"`;
           } else {
-            await uazapiSendText(baseUrl, token, groupJid, message);
+            await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
+            if (quotedMsgId) message = `[REPLY] ${message}`;
           }
         } catch {
           message = getMsg();
