@@ -2636,7 +2636,7 @@ const Devices = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+      <Dialog open={profileOpen} onOpenChange={(open) => { if (!open) closeProfileDialog(); else setProfileOpen(true); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
