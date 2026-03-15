@@ -40,6 +40,7 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
   const [tagColor, setTagColor] = useState(TAG_COLORS[0]);
   const [showTagInput, setShowTagInput] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (open) {
