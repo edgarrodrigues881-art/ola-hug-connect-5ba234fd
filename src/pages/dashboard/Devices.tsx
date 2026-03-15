@@ -823,10 +823,11 @@ const Devices = () => {
             : wpPhotoBase64;
           dbUpdates.profile_picture = profilePictureDbValue;
 
+          const profilePicturePayload = profilePictureDbValue || wpPhotoBase64;
           const photoResult = await callApi({
             action: "updateProfilePicture",
             deviceId: editingDevice.id,
-            profilePictureData: wpPhotoBase64,
+            profilePictureData: profilePicturePayload,
           });
           if (isEdgeCallFailed(photoResult)) {
             warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
