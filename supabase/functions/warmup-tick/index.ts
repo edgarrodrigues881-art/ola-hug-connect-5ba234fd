@@ -1179,14 +1179,66 @@ async function handleTick(db: any) {
         let joinedGroups = allIGs.filter((ig: any) => ig.join_status === "joined");
         let liveGroupsCache: any[] = [];
 
+        const norm = (v: string) =>
+          String(v || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
         const fetchLiveGroups = async (): Promise<any[]> => {
-          const liveRes = await fetch(`${baseUrl}/group/fetchAllGroups`, {
-            method: "GET",
-            headers: { token, Accept: "application/json" },
-          });
-          if (!liveRes.ok) return [];
-          const liveData = await liveRes.json();
-          return Array.isArray(liveData) ? liveData : (liveData?.data || liveData?.groups || []);
+          const endpoints = [
+            `${baseUrl}/group/fetchAllGroups`,
+            `${baseUrl}/group/fetchAllGroups?getParticipants=false`,
+            `${baseUrl}/group/list?GetParticipants=false&count=500`,
+            `${baseUrl}/group/listAll`,
+            `${baseUrl}/chats?type=group`,
+          ];
+
+          const dedup = new Map<string, any>();
+
+          for (const ep of endpoints) {
+            try {
+              const res = await fetch(ep, {
+                method: "GET",
+                headers: { token, Accept: "application/json", "Cache-Control": "no-cache" },
+              });
+              if (!res.ok) continue;
+
+              const raw = await res.text();
+              let parsed: any = null;
+              try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
+              if (!parsed) continue;
+
+              const arrCandidates = [
+                parsed,
+                parsed?.groups,
+                parsed?.data,
+                parsed?.data?.groups,
+                parsed?.chats,
+                parsed?.data?.chats,
+              ];
+
+              const rows: any[] = [];
+              for (const c of arrCandidates) {
+                if (Array.isArray(c)) rows.push(...c);
+              }
+
+              for (const g of rows) {
+                const jid = g?.JID || g?.jid || g?.id || g?.groupJid || g?.chatId || null;
+                const name = g?.subject || g?.name || g?.Name || g?.title || "Grupo detectado";
+                if (!jid || !String(jid).includes("@g.us")) continue;
+                if (!dedup.has(jid)) dedup.set(jid, { ...g, jid, name });
+              }
+
+              if (dedup.size > 0) {
+                return Array.from(dedup.values());
+              }
+            } catch { /* tenta próximo endpoint */ }
+          }
+
+          return [];
         };
 
         // Auto-sync: if no "joined" groups, check live device groups and promote pending→joined
