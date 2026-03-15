@@ -222,8 +222,9 @@ Deno.serve(async (req) => {
                 data.profilePicUrl = snap.pic;
                 data.profilePicture = snap.pic;
               } else if (snap.pic === null) {
-                data.profilePicUrl = "";
-                data.profilePicture = "";
+                // Explicit no-photo signal from provider
+                data.profilePicUrl = null;
+                data.profilePicture = null;
               }
               if (snap.name) {
                 data.pushname = snap.name;
