@@ -706,13 +706,21 @@ function extractFromMe(m: any): boolean {
 }
 
 async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: string): Promise<string | null> {
-  const endpoints = [
-    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10` },
-    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10` },
-    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 } },
-    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10` },
-    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10` },
+  const endpoints: Array<{ method: "GET" | "POST"; url: string; body?: Record<string, unknown>; mode: "messages" | "chats" }> = [
+    { method: "GET", url: `${baseUrl}/chat/messages?chatId=${encodeURIComponent(chatId)}&count=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/messages/${encodeURIComponent(chatId)}?count=10`, mode: "messages" },
+    { method: "POST", url: `${baseUrl}/chat/messages`, body: { chatId, count: 10 }, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/${encodeURIComponent(chatId)}/messages?count=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/messages/${encodeURIComponent(chatId)}?limit=10`, mode: "messages" },
+    { method: "GET", url: `${baseUrl}/chat/list?count=500`, mode: "chats" },
+    { method: "GET", url: `${baseUrl}/chats?type=group&count=500`, mode: "chats" },
   ];
+
+  const extractChatJid = (c: any): string =>
+    String(c?.JID || c?.jid || c?.id || c?.chatId || c?.groupJid || "");
+
+  const extractLastFromChat = (c: any): any =>
+    c?.lastMessage || c?.last_message || c?.lastMsg || c?.message || c?.msg || c?.conversation || c?.recentMessage || null;
 
   for (const ep of endpoints) {
     try {
@@ -731,41 +739,48 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
       }
 
       let data: any;
-      try { data = JSON.parse(rawText); } catch { continue; }
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch { continue; }
 
-      // Extract messages array from various response shapes
-      const messages = Array.isArray(data)
+      if (ep.mode === "messages") {
+        const messages = Array.isArray(data)
+          ? data
+          : data?.messages || data?.data || data?.result || [];
+
+        if (!Array.isArray(messages) || messages.length === 0) continue;
+
+        const normalized = messages
+          .map((m: any, idx: number) => ({
+            id: extractMsgId(m),
+            ts: extractMsgTs(m),
+            idx,
+          }))
+          .filter((m: any) => !!m.id);
+
+        if (normalized.length === 0) continue;
+
+        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
+        const ordered = hasValidTimestamp
+          ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
+          : normalized;
+
+        return ordered[0].id as string;
+      }
+
+      const chats = Array.isArray(data)
         ? data
-        : data?.messages || data?.data || data?.result || data?.chats || [];
+        : data?.chats || data?.data || data?.result || [];
 
-      if (!Array.isArray(messages) || messages.length === 0) {
-        console.log(`[fetchLastMsg] ${ep.url} → OK but empty messages (keys: ${Object.keys(data || {}).join(",")})`);
-        continue;
+      if (!Array.isArray(chats) || chats.length === 0) continue;
+
+      const targetChat = chats.find((c: any) => extractChatJid(c) === chatId || extractChatJid(c).includes(chatId));
+      if (!targetChat) continue;
+
+      const last = extractLastFromChat(targetChat);
+      const lastId = extractMsgId(last) || extractMsgId(targetChat?.lastMessage) || extractMsgId(targetChat?.message);
+      if (lastId) {
+        console.log(`[fetchLastMsg] chat/list fallback using id ${lastId}`);
+        return lastId;
       }
-
-      console.log(`[fetchLastMsg] ${ep.url} → ${messages.length} msgs. Sample keys: ${Object.keys(messages[0] || {}).join(",")}`);
-
-      const normalized = messages
-        .map((m: any, idx: number) => ({
-          id: extractMsgId(m),
-          ts: extractMsgTs(m),
-          fromMe: extractFromMe(m),
-          idx,
-        }))
-        .filter((m: any) => !!m.id);
-
-      if (normalized.length === 0) {
-        console.log(`[fetchLastMsg] All msgs filtered (no valid id). Raw first: ${JSON.stringify(messages[0]).substring(0, 300)}`);
-        continue;
-      }
-
-      const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
-      const ordered = hasValidTimestamp
-        ? [...normalized].sort((a: any, b: any) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
-        : normalized;
-
-      console.log(`[fetchLastMsg] Found ${ordered.length} valid msgs. Using id: ${ordered[0].id}`);
-      return ordered[0].id as string;
     } catch (e) {
       console.log(`[fetchLastMsg] ${ep.url} error: ${e instanceof Error ? e.message : String(e)}`);
     }
