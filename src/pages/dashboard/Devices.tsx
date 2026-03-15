@@ -823,10 +823,11 @@ const Devices = () => {
             : wpPhotoBase64;
           dbUpdates.profile_picture = profilePictureDbValue;
 
+          const profilePicturePayload = profilePictureDbValue || wpPhotoBase64;
           const photoResult = await callApi({
             action: "updateProfilePicture",
             deviceId: editingDevice.id,
-            profilePictureData: wpPhotoBase64,
+            profilePictureData: profilePicturePayload,
           });
           if (isEdgeCallFailed(photoResult)) {
             warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
@@ -1056,6 +1057,7 @@ const Devices = () => {
       const profilePictureDbValue = wpPhotoBase64 && !wpRemovePhoto
         ? (wpPhotoBase64.startsWith("data:image/") ? await uploadProfilePhotoDraft(wpPhotoBase64) : wpPhotoBase64)
         : null;
+      const profilePicturePayload = profilePictureDbValue || wpPhotoBase64;
 
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
@@ -1077,7 +1079,7 @@ const Devices = () => {
               warnings.push(removeResult.error || "Falha ao remover foto no WhatsApp");
             }
           } else if (wpPhotoBase64) {
-            const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 });
+            const photoResult = await callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: profilePicturePayload });
             dbUp.profile_picture = profilePictureDbValue;
             if (isEdgeCallFailed(photoResult)) {
               warnings.push(photoResult?.error || "Falha ao sincronizar foto no WhatsApp");
