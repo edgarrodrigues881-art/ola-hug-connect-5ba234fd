@@ -1595,7 +1595,7 @@ const WarmupInstances = () => {
                 )}
               </div>
                <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
-                {bulkSelected.size} de {filteredDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
+                {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
               </p>
             </div>
 
