@@ -208,24 +208,27 @@ async function scheduleDayJobs(
     }
   }
 
-  // Autosave interactions (last 3h)
+  // Autosave: contact-by-contact, 3 msgs each, 4-7 min gaps, spread through day
   if (volumes.autosaveContacts > 0 && volumes.autosaveRounds > 0) {
-    const total = volumes.autosaveContacts * volumes.autosaveRounds;
-    const asStart = Math.max(effectiveEnd - 3 * 3600000, effectiveStart);
-    const asSpacing = (effectiveEnd - asStart) / (total + 1);
-    for (let r = 0; r < volumes.autosaveRounds; r++) {
-      for (let c = 0; c < volumes.autosaveContacts; c++) {
-        const idx = r * volumes.autosaveContacts + c;
-        const offset = asSpacing * (idx + 1) + randInt(0, Math.floor(asSpacing * 0.3));
-        const runAt = new Date(asStart + offset);
-        if (runAt.getTime() > effectiveEnd) break;
+    const asWindowMs = effectiveEnd - effectiveStart;
+    const asStartOffset = randInt(
+      Math.floor(asWindowMs * 0.1),
+      Math.floor(asWindowMs * 0.4)
+    );
+    let cursor = effectiveStart + asStartOffset;
+
+    for (let c = 0; c < volumes.autosaveContacts; c++) {
+      for (let r = 0; r < volumes.autosaveRounds; r++) {
+        if (cursor > effectiveEnd) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "autosave_interaction",
           payload: { recipient_index: c, msg_index: r },
-          run_at: runAt.toISOString(), status: "pending",
+          run_at: new Date(cursor).toISOString(), status: "pending",
         });
+        cursor += randInt(4, 7) * 60 * 1000;
       }
+      cursor += randInt(5, 10) * 60 * 1000;
     }
   }
 
