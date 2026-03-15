@@ -787,7 +787,8 @@ Deno.serve(async (req) => {
 
             // Heartbeat every 15 messages (reduced from 5 to lower DB load with 30+ devices)
             devHeartbeat++;
-            if (devHeartbeat % 15 === 0) {
+            // Heartbeat every 25 messages per device (300 devices × manageable DB load)
+            if (devHeartbeat % 25 === 0) {
               await heartbeatLock(serviceClient, campaignId);
             }
 
