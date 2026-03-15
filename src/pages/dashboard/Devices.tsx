@@ -962,6 +962,10 @@ const Devices = () => {
           if (Object.keys(dbUp).length > 0) {
             const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
             if (error) throw error;
+            // Optimistic cache update
+            queryClient.setQueryData(["devices"], (old: Device[] | undefined) =>
+              old ? old.map(d => d.id === device.id ? { ...d, ...dbUp } : d) : old
+            );
           }
 
           return { warnings };
