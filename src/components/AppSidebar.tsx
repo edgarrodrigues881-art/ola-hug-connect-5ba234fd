@@ -403,6 +403,23 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Suporte section (bottom) ── */}
+        <SidebarGroup className="py-0 mt-1">
+          {!collapsed && (
+            <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
+              Suporte
+            </SidebarGroupLabel>
+          )}
+          {collapsed && (
+            <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className="px-2.5 space-y-[2px]">
+              {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer profile */}
