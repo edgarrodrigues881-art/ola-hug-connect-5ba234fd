@@ -364,10 +364,11 @@ const formatPhone = (num: string) => {
 const WarmupInstances = () => {
   const [searchParams] = useSearchParams();
   const activeFolderId = searchParams.get("folder");
-  const { folders, addDevices, removeDevice, updateFolder } = useWarmupFolders();
+  const { folders, addDevices, removeDevice, updateFolder, updateDeviceTags } = useWarmupFolders();
   const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [deviceTagTarget, setDeviceTagTarget] = useState<string | null>(null);
   
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
