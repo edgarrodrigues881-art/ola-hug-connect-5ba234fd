@@ -1086,35 +1086,6 @@ const WarmupInstanceDetail = () => {
                   </Badge>
                 </div>
 
-                {/* Phase steps */}
-                <div className="px-6 pb-3 flex items-center gap-1">
-                  {phaseSteps.map((p) => {
-                    const isActive = cycle!.phase === p;
-                    const isPast = (phaseConfig[cycle!.phase]?.step || 0) > (phaseConfig[p]?.step || 0);
-                    return (
-                      <div key={p} className="flex-1">
-                        <div className={cn(
-                          "h-1.5 rounded-full transition-all",
-                          isActive ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : isPast ? "bg-primary/25" : "bg-muted/15"
-                        )} />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Cycle progress bar */}
-                <div className="px-6 pb-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] text-muted-foreground font-medium">Ciclo geral</span>
-                    <span className="text-xs font-bold text-foreground tabular-nums">{cyclePercent}%</span>
-                  </div>
-                  <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all shadow-[0_0_10px_hsl(var(--primary)/0.4)]" style={{ width: `${cyclePercent}%` }} />
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="mx-6 border-t border-border/8" />
 
                 {/* Today's activity */}
                 <div className="px-6 py-4">
