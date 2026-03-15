@@ -806,33 +806,35 @@ async function handleResume(db: any, userId: string | null, body: any) {
     await scheduleDayJobs(db, cycle.id, userId, device_id, cycle.day_index, resumePhase, cycle.chip_state || "new", true);
   }
 
-  // Re-schedule join_group jobs for pending groups
-  const { data: pendingGroups } = await db
-    .from("warmup_instance_groups")
-    .select("group_id, warmup_groups_pool(id, name)")
-    .eq("device_id", device_id)
-    .eq("cycle_id", cycle.id)
-    .eq("join_status", "pending");
+  // Re-schedule join_group jobs ONLY if still on day 1
+  if (cycle.day_index <= 1) {
+    const { data: pendingGroups } = await db
+      .from("warmup_instance_groups")
+      .select("group_id, warmup_groups_pool(id, name)")
+      .eq("device_id", device_id)
+      .eq("cycle_id", cycle.id)
+      .eq("join_status", "pending");
 
-  if (pendingGroups?.length > 0) {
-    const shuffled = shuffleArray(pendingGroups);
-    const joinJobs: any[] = [];
-    let cumulativeMs = randInt(5, 15) * 60 * 1000;
+    if (pendingGroups?.length > 0) {
+      const shuffled = shuffleArray(pendingGroups);
+      const joinJobs: any[] = [];
+      let cumulativeMs = randInt(5, 15) * 60 * 1000;
 
-    for (let i = 0; i < shuffled.length; i++) {
-      const g = shuffled[i];
-      joinJobs.push({
-        user_id: userId, device_id, cycle_id: cycle.id,
-        job_type: "join_group",
-        payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
-        run_at: new Date(now.getTime() + cumulativeMs).toISOString(),
-        status: "pending",
-      });
-      cumulativeMs += randInt(5, 30) * 60 * 1000;
-    }
+      for (let i = 0; i < shuffled.length; i++) {
+        const g = shuffled[i];
+        joinJobs.push({
+          user_id: userId, device_id, cycle_id: cycle.id,
+          job_type: "join_group",
+          payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+          run_at: new Date(now.getTime() + cumulativeMs).toISOString(),
+          status: "pending",
+        });
+        cumulativeMs += randInt(5, 30) * 60 * 1000;
+      }
 
-    if (joinJobs.length > 0) {
-      await db.from("warmup_jobs").insert(joinJobs);
+      if (joinJobs.length > 0) {
+        await db.from("warmup_jobs").insert(joinJobs);
+      }
     }
   }
 
@@ -902,8 +904,8 @@ async function handleScheduleDay(db: any, userId: string | null, body: any) {
   const resolvedPhase = phase || "groups_only";
   let joinScheduled = 0;
 
-  // Ensure join_group jobs exist if in groups phase
-  if (resolvedPhase === "groups_only") {
+  // Join groups only on day 1 (pre_24h phase)
+  if (resolvedPhase === "groups_only" && (day_index || 1) <= 1) {
     joinScheduled = await ensureJoinGroupJobs(db, cycle_id, userId, device_id);
   }
 

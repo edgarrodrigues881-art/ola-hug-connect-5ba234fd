@@ -1157,7 +1157,7 @@ async function handleTick(db: any) {
 
         await db.from("warmup_cycles").update(updateData).eq("id", cycle.id);
 
-        if (targetPhase === "groups_only") {
+        if (targetPhase === "groups_only" && cycle.day_index <= 1) {
           await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
         }
 
@@ -1455,11 +1455,11 @@ async function handleTick(db: any) {
 
         const newPhase = getPhaseForDay(newDay, chipState);
 
-        // Cancel old interaction jobs
+        // Cancel old interaction jobs and join_group jobs (join only on day 1)
         await db.from("warmup_jobs")
           .update({ status: "cancelled", last_error: "Cancelado: reset diário" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
-          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
+          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community", "join_group"]);
 
         const resetAt = new Date().toISOString();
 
