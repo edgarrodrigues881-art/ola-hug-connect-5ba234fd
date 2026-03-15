@@ -202,7 +202,18 @@ Deno.serve(async (req) => {
 
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
-        const providerPic = typeof inst.profilePicUrl === "string" ? inst.profilePicUrl.trim() : "";
+        const providerPicRaw =
+          inst.profilePicUrl ??
+          inst.profilePicture ??
+          data.profilePicUrl ??
+          data.profilePicture;
+        const providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
+        const providerPicFieldPresent =
+          Object.prototype.hasOwnProperty.call(inst, "profilePicUrl") ||
+          Object.prototype.hasOwnProperty.call(inst, "profilePicture") ||
+          Object.prototype.hasOwnProperty.call(data, "profilePicUrl") ||
+          Object.prototype.hasOwnProperty.call(data, "profilePicture");
+
         const recentlyUpdatedMs = Date.now() - new Date(device.updated_at || 0).getTime();
         const preserveRecentManualRemoval =
           isConnected &&
@@ -210,8 +221,13 @@ Deno.serve(async (req) => {
           !!providerPic &&
           recentlyUpdatedMs >= 0 &&
           recentlyUpdatedMs < 10 * 60 * 1000;
+
         const newPic = isConnected
-          ? (preserveRecentManualRemoval ? null : (providerPic || device.profile_picture || null))
+          ? (preserveRecentManualRemoval
+              ? null
+              : providerPicFieldPresent
+                ? (providerPic || null)
+                : (device.profile_picture || null))
           : (device.profile_picture || null);
         const newName = isConnected ? (inst.profileName || inst.pushname || device.profile_name || "") : (device.profile_name || "");
 
