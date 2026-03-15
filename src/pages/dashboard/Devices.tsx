@@ -1173,7 +1173,7 @@ const Devices = () => {
     return result;
   };
 
-  const tryRemoveProfilePhoto = async (deviceId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const tryRemoveProfilePhoto = async (deviceId: string): Promise<{ ok: boolean; error?: string }> => {
     const result = await callApi({ action: "updateProfilePicture", deviceId, profilePictureData: "remove" });
     if (isEdgeCallFailed(result)) {
       return { ok: false, error: result?.error || "Falha ao remover foto no WhatsApp" };
