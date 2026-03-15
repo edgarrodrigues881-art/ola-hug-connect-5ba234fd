@@ -1040,7 +1040,7 @@ const Devices = () => {
       } else {
         toast({ title: wpApplyAll ? `Perfil atualizado em ${targetDevices.length} chip(s)` : "Perfil atualizado" });
       }
-      setProfileOpen(false);
+      closeProfileDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
     } catch (err: any) {
       console.error("Profile update error:", err);
