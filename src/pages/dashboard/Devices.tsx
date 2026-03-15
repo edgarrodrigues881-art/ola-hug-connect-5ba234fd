@@ -1018,24 +1018,44 @@ const Devices = () => {
     try {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const promises: Promise<any>[] = [];
-          // DB update
+          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+
           if (bulkProfileName.trim()) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
+                "Falha ao atualizar nome no WhatsApp",
+              )
+            );
             dbUp.profile_name = bulkProfileName.trim();
-            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() }));
           }
           if (bulkProfileRemovePhoto) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
+                "Falha ao remover foto no WhatsApp",
+              )
+            );
             dbUp.profile_picture = null;
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
           } else if (bulkProfilePhotoPublicUrl) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
+                "Falha ao atualizar foto no WhatsApp",
+              )
+            );
             dbUp.profile_picture = bulkProfilePhotoPublicUrl;
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl }));
           }
+
+          if (apiPromises.length > 0) {
+            await Promise.all(apiPromises);
+          }
+
           if (Object.keys(dbUp).length > 0) {
-            await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            if (error) throw error;
           }
-          await Promise.all(promises);
         })
       );
       const failed = results.filter(r => r.status === "rejected").length;
