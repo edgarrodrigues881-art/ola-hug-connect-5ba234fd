@@ -348,7 +348,7 @@ export function AppSidebar() {
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
+                              setEditingFolder({ id: folder.id, name: folder.name, color: folder.color, tags: folder.tags || [] });
                               setFolderDialogOpen(true);
                             }}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/folder:opacity-100 transition-opacity z-10"
