@@ -18,7 +18,7 @@ async function uazapi(
   baseUrl: string,
   endpoint: string,
   token: string,
-  method: "GET" | "POST" | "DELETE" = "POST",
+  method: "GET" | "POST" | "DELETE" | "PUT" = "POST",
   body?: any,
   opts?: { timeoutMs?: number; retries?: number },
 ): Promise<{ ok: boolean; status: number; data: any }> {
@@ -785,24 +785,28 @@ Deno.serve(async (req) => {
 
       if (profilePictureData === "remove") {
         const removeAttempts = [
+          // UaZapi GO n8n node uses picture: "remove"
+          { path: "/profile/picture", method: "PUT" as const, payload: { picture: "remove" } },
+          { path: "/profile/picture", method: "POST" as const, payload: { picture: "remove" } },
+          { path: "/profile/picture", method: "PUT" as const, payload: { value: "" } },
+          { path: "/profile/picture", method: "POST" as const, payload: { value: "" } },
           { path: "/profile/picture/remove", method: "POST" as const },
+          { path: "/profile/picture/remove", method: "PUT" as const },
           { path: "/profile/remove-picture", method: "POST" as const },
-          { path: "/instance/profile/picture/remove", method: "POST" as const },
           { path: "/profile/picture", method: "DELETE" as const },
           { path: "/instance/profile/picture", method: "DELETE" as const },
           { path: "/profile/picture", method: "POST" as const, payload: { remove: true } },
-          { path: "/profile/update-picture", method: "POST" as const, payload: { remove: true } },
-          { path: "/instance/profile/picture", method: "POST" as const, payload: { remove: true } },
+          { path: "/profile/picture", method: "PUT" as const, payload: { remove: true } },
           { path: "/profile/picture", method: "POST" as const, payload: { picture: "" } },
-          { path: "/profile/picture", method: "POST" as const, payload: { image: "" } },
+          { path: "/profile/picture", method: "PUT" as const, payload: { picture: "" } },
           { path: "/profile/picture", method: "POST" as const, payload: { picture: null } },
-          { path: "/instance/profile/picture", method: "POST" as const, payload: { picture: null } },
         ];
 
         const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
 
         for (const attempt of removeAttempts) {
           const r = await uazapi(instanceUrl, attempt.path, instanceToken, attempt.method, attempt.payload, { timeoutMs: 6000, retries: 0 });
+          console.log(`[profile-pic-remove] ${attempt.method} ${attempt.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
           if (r.ok) {
             await svc.from("devices").update({ profile_picture: null }).eq("id", deviceId);
             return json({ success: true, endpoint: attempt.path, method: attempt.method, ...r.data });
@@ -819,26 +823,31 @@ Deno.serve(async (req) => {
 
         return json({
           success: false,
-          error: "Não foi possível remover a foto no WhatsApp.",
+          error: "Não foi possível remover a foto no provedor.",
           attempts: failures,
         }, 422);
       }
 
       const isUrl = profilePictureData.startsWith("http");
       const picEndpoints = [
-        { path: "/profile/picture", payload: { picture: profilePictureData } },
-        { path: "/profile/picture", payload: { url: profilePictureData } },
-        { path: "/profile/picture", payload: { image: profilePictureData } },
-        ...(isUrl ? [{ path: "/profile/picture", payload: { picture: { url: profilePictureData } } }] : []),
-        { path: "/profile/update-picture", payload: { picture: profilePictureData } },
-        { path: "/instance/profile/picture", payload: { picture: profilePictureData } },
+        // UaZapi GO / n8n node: PUT /profile/picture { picture: url_or_base64 }
+        { path: "/profile/picture", method: "PUT" as const, payload: { picture: profilePictureData } },
+        { path: "/profile/picture", method: "PUT" as const, payload: { value: profilePictureData } },
+        { path: "/profile/picture", method: "POST" as const, payload: { picture: profilePictureData } },
+        { path: "/profile/picture", method: "POST" as const, payload: { url: profilePictureData } },
+        { path: "/profile/picture", method: "POST" as const, payload: { image: profilePictureData } },
+        { path: "/profile/picture", method: "PUT" as const, payload: { url: profilePictureData } },
+        ...(isUrl ? [{ path: "/profile/picture", method: "PUT" as const, payload: { picture: { url: profilePictureData } } }] : []),
+        { path: "/profile/update-picture", method: "POST" as const, payload: { picture: profilePictureData } },
+        { path: "/instance/profile/picture", method: "POST" as const, payload: { picture: profilePictureData } },
       ];
 
       for (const ep of picEndpoints) {
-        const r = await uazapi(instanceUrl, ep.path, instanceToken, "POST", ep.payload, { timeoutMs: 8000, retries: 1 });
+        const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 8000, retries: 1 });
+        console.log(`[profile-pic-set] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
         if (r.ok) {
           await svc.from("devices").update({ profile_picture: profilePictureData }).eq("id", deviceId);
-          return json({ success: true, endpoint: ep.path, ...r.data });
+          return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
         }
       }
       return json({ success: false, error: "Nenhum endpoint de foto funcionou" });
