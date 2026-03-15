@@ -683,7 +683,7 @@ const IMAGE_CAPTIONS = [
 ];
 
 function pickMediaType(): "text" | "image" {
-  return Math.random() < 0.75 ? "text" : "image";
+  return Math.random() < 0.90 ? "text" : "image"; // 10% fotos
 }
 
 // ══════════════════════════════════════════════════════════
