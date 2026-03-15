@@ -116,6 +116,42 @@ function isWithinOperatingWindow(): boolean {
   return now.getTime() >= ws.getTime() && now.getTime() < we.getTime();
 }
 
+function getBrtDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+async function ensureNextDailyResetJob(db: any, job: any, cycleId: string): Promise<void> {
+  const { data: existingNextReset } = await db
+    .from("warmup_jobs")
+    .select("id")
+    .eq("cycle_id", cycleId)
+    .eq("job_type", "daily_reset")
+    .eq("status", "pending")
+    .gt("run_at", new Date().toISOString())
+    .limit(1);
+
+  if (existingNextReset?.length) return;
+
+  const nextReset = new Date();
+  nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+  nextReset.setUTCHours(3, 5, 0, 0);
+
+  await db.from("warmup_jobs").insert({
+    user_id: job.user_id,
+    device_id: job.device_id,
+    cycle_id: cycleId,
+    job_type: "daily_reset",
+    payload: {},
+    run_at: nextReset.toISOString(),
+    status: "pending",
+  });
+}
+
 // ══════════════════════════════════════════════════════════
 // SCHEDULE DAY JOBS — Must match warmup-engine exactly
 // ══════════════════════════════════════════════════════════
@@ -1200,6 +1236,25 @@ async function handleTick(db: any) {
 
       // ── DAILY RESET ──
       case "daily_reset": {
+        // Idempotência: nunca avançar dia 2x no mesmo dia BRT
+        const nowBrtKey = getBrtDateKey(new Date());
+        const lastResetBrtKey = cycle.last_daily_reset_at
+          ? getBrtDateKey(new Date(cycle.last_daily_reset_at))
+          : null;
+
+        if (lastResetBrtKey === nowBrtKey) {
+          await ensureNextDailyResetJob(db, job, cycle.id);
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "info",
+            event_type: "daily_reset_skipped",
+            message: "Reset diário ignorado: já executado hoje (BRT)",
+          });
+          break;
+        }
+
         // Block if still in first 24h
         const first24hEnd = new Date(cycle.first_24h_ends_at);
         if (Date.now() < first24hEnd.getTime() && cycle.phase === "pre_24h") {
@@ -1212,22 +1267,25 @@ async function handleTick(db: any) {
           return false;
         }
 
-        const newDay = Math.min(cycle.day_index + 1, cycle.days_total);
+        const newDay = (cycle.day_index || 1) + 1;
 
         // Check if cycle is complete
         if (newDay > cycle.days_total) {
-          await db.from("warmup_cycles").update({ is_running: false, phase: "completed", daily_interaction_budget_used: 0, daily_unique_recipients_used: 0 }).eq("id", cycle.id);
+          await db.from("warmup_cycles").update({
+            is_running: false,
+            phase: "completed",
+            daily_interaction_budget_used: 0,
+            daily_unique_recipients_used: 0,
+            last_daily_reset_at: new Date().toISOString(),
+          }).eq("id", cycle.id);
+          cycle.is_running = false;
+          cycle.phase = "completed";
+          cycle.last_daily_reset_at = new Date().toISOString();
           bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "cycle_completed", message: `Ciclo concluído: ${cycle.days_total} dias 🎉` });
           break;
         }
 
         const newPhase = getPhaseForDay(newDay, chipState);
-
-        if (newPhase === "completed") {
-          await db.from("warmup_cycles").update({ is_running: false, phase: "completed", daily_interaction_budget_used: 0, daily_unique_recipients_used: 0 }).eq("id", cycle.id);
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "cycle_completed", message: `Ciclo concluído 🎉` });
-          break;
-        }
 
         // Cancel old interaction jobs
         await db.from("warmup_jobs")
@@ -1235,11 +1293,18 @@ async function handleTick(db: any) {
           .eq("cycle_id", cycle.id).eq("status", "pending")
           .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
 
+        const resetAt = new Date().toISOString();
+
         // Update day and phase
         await db.from("warmup_cycles").update({
-          day_index: newDay, phase: newPhase,
-          last_daily_reset_at: new Date().toISOString(),
+          day_index: newDay,
+          phase: newPhase,
+          last_daily_reset_at: resetAt,
         }).eq("id", cycle.id);
+
+        cycle.day_index = newDay;
+        cycle.phase = newPhase;
+        cycle.last_daily_reset_at = resetAt;
 
         const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
         bufferAudit({
@@ -1252,15 +1317,8 @@ async function handleTick(db: any) {
         // Schedule today's jobs
         await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
-        // Schedule NEXT daily reset
-        const nextReset = new Date();
-        nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-        nextReset.setUTCHours(3, 5, 0, 0);
-        await db.from("warmup_jobs").insert({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          job_type: "daily_reset", payload: {},
-          run_at: nextReset.toISOString(), status: "pending",
-        });
+        // Ensure exactly one NEXT daily reset
+        await ensureNextDailyResetJob(db, job, cycle.id);
         break;
       }
 
