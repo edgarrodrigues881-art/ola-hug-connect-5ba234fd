@@ -202,34 +202,20 @@ Deno.serve(async (req) => {
 
         const newStatus = isConnected ? "Ready" : "Disconnected";
         const newPhone = isConnected && phone ? fmtPhone(phone) : (device.number || "");
+
+        // Profile picture: trust provider response as source of truth.
+        // If connected and provider returned a valid URL → use it.
+        // If connected and provider returned empty/missing → null (photo was removed).
+        // If disconnected → preserve current value.
         const providerPicRaw =
-          inst.profilePicUrl ??
-          inst.profilePicture ??
-          data.profilePicUrl ??
-          data.profilePicture;
+          inst.profilePicUrl ?? inst.profilePicture ??
+          data.profilePicUrl ?? data.profilePicture ?? "";
         const providerPic = typeof providerPicRaw === "string" ? providerPicRaw.trim() : "";
-        const providerPicFieldPresent =
-          Object.prototype.hasOwnProperty.call(inst, "profilePicUrl") ||
-          Object.prototype.hasOwnProperty.call(inst, "profilePicture") ||
-          Object.prototype.hasOwnProperty.call(data, "profilePicUrl") ||
-          Object.prototype.hasOwnProperty.call(data, "profilePicture");
 
-        const recentlyUpdatedMs = Date.now() - new Date(device.updated_at || 0).getTime();
-        const preserveRecentManualRemoval =
-          isConnected &&
-          !device.profile_picture &&
-          !!providerPic &&
-          recentlyUpdatedMs >= 0 &&
-          recentlyUpdatedMs < 10 * 60 * 1000;
-
-        const newPic = isConnected
-          ? (preserveRecentManualRemoval
-              ? null
-              : providerPicFieldPresent
-                ? (providerPic || null)
-                : (device.profile_picture || null))
-          : (device.profile_picture || null);
-        const newName = isConnected ? (inst.profileName || inst.pushname || device.profile_name || "") : (device.profile_name || "");
+        const newPic = isConnected ? (providerPic || null) : (device.profile_picture || null);
+        const newName = isConnected
+          ? (inst.profileName || inst.pushname || device.profile_name || "")
+          : (device.profile_name || "");
 
         const statusChanged = newStatus !== device.status;
         const anyChanged = statusChanged
